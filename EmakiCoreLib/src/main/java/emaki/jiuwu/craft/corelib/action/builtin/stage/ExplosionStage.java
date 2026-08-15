@@ -15,15 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Creates an explosion at the target position.
- *
- * <p>{@code fire} and {@code break_blocks} both default to {@code false}, so the explosion is cosmetic and
- * damaging rather than terrain-altering unless asked otherwise. Zero power is {@code Skipped}: an explosion with
- * no power is a no-op, not a failure.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: an explosion affects blocks and entities in a region.</p>
- */
 public final class ExplosionStage extends BaseStage {
 
     public ExplosionStage() {

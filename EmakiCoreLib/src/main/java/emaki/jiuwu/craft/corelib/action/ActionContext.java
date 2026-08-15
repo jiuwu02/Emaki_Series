@@ -7,21 +7,6 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Render context of the placeholder and item-assembly subsystems.
- *
- * <p>Named after the removed v1 action executor, but no longer part of the action pipeline. It is the
- * declared parameter of {@code PlaceholderResolver} and {@code PlaceholderRegistry}, the context of the
- * {@code corelib.assembly} name/lore operation chain, and what business modules build for their own
- * condition and item-meta rendering. It is therefore live infrastructure of those subsystems rather than
- * migration debt, and must not be retired while they are declared in terms of it. The pipeline reaches it
- * only through the {@code RegistryPlaceholderBridge} / {@code SkillPlaceholderBridge} adapters.</p>
- *
- * <p>Trimmed to what those subsystems actually read. The v1 untyped {@code sharedState} channel is gone
- * (cross-stage state lives in {@code PipelineContext} under typed {@code CoreActionKey}s), as are the
- * source-plugin field and the derivation helpers no caller used. Every field is immutable, so a derived
- * context can never write back into the one it was derived from.</p>
- */
 public final class ActionContext {
 
     private final Player player;

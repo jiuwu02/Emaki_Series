@@ -41,13 +41,6 @@ import emaki.jiuwu.craft.station.queue.StationCraftService;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
-/**
- * Builds the runtime component graph in dependency order.
- *
- * <p>Capabilities are probed exactly once here and the result is handed to the warehouse channel as an
- * immutable value. Probing at construction time rather than per call is what keeps the gate cheap and keeps a
- * mid-session capability change from producing two different answers inside one operation.
- */
 final class StationLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStationPlugin, StationRuntimeComponents> {
 
@@ -119,8 +112,7 @@ final class StationLifecycleCoordinator
         QueueStore queueStore = new QueueStore(plugin, () -> queueFiles);
         QueueService queueService = new QueueService(queueStore);
         QueueUnlockStore unlockStore = new QueueUnlockStore(plugin, () -> queueFiles);
-        // The price table itself lives on the plugin behind an AtomicReference so a reload can swap it; this
-        // service only ever reads it through the supplier, never caches it.
+
         StationQueueUnlockService purchaseService = new StationQueueUnlockService(
                 coreLibPlugin.economyManager(),
                 coreLibPlugin.itemSourceService(),
@@ -194,15 +186,6 @@ final class StationLifecycleCoordinator
                 queueTicker);
     }
 
-    /**
-     * Resolves PlaceholderAPI placeholders for one player, or returns the text unchanged.
-     *
-     * <p>Static so it can be handed to the GUI service as a plain function without exposing the coordinator.
-     *
-     * @param player the player to resolve against
-     * @param text   the text to resolve
-     * @return the resolved text
-     */
     private static String resolvePlaceholders(Player player, String text) {
         if (text == null || text.isEmpty()) {
             return "";

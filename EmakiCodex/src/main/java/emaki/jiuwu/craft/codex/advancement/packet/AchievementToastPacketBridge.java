@@ -23,7 +23,6 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
 public final class AchievementToastPacketBridge {
 
     private static final String CRITERION = "toast";

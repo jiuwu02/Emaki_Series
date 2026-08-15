@@ -620,12 +620,6 @@ public final class SkillUpgradeService {
                 .whenComplete((success, throwable) -> logActionResult(definition, phase, success, throwable));
     }
 
-    /**
-     * Reports a failed action phase.
-     *
-     * <p>The pipeline reports one aggregate boolean instead of v1's per-line failure list, so the reason a
-     * line failed is only in the CoreLib pipeline log; this message just names the phase that failed.</p>
-     */
     private void logActionResult(SkillDefinition definition,
             String phase,
             Boolean success,

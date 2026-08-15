@@ -45,10 +45,6 @@ final class GemGuiTemplates {
         return loader.get(defaultId);
     }
 
-    /**
-     * Merges the slot's configured components with the code-side fallback per field, so a template that
-     * styles only the lore still gets the fallback display name.
-     */
     static ConfiguredItemDefinition configuredDefinition(GuiSlot slot, String item, String name, List<String> lore) {
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(
                 slot == null ? Map.of() : slot.itemDefinition().components());

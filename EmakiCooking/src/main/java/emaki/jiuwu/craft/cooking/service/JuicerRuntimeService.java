@@ -286,7 +286,7 @@ public final class JuicerRuntimeService implements Listener {
                     "station_type", StationType.JUICER.folderName(),
                     "slot_index", slot
             );
-            // Same gate as the serving path: decide before the container is frozen and the slot is cleared.
+
             CookingRewardService.ConditionGate pressGate = rewardService.evaluateConditionGate(recipe, player);
             if (pressGate.blocked()) {
                 state.setProgress(slot, required);
@@ -388,16 +388,6 @@ public final class JuicerRuntimeService implements Listener {
         return null;
     }
 
-    /**
-     * Whether serving should win the interaction that {@code serve} and {@code process} share.
-     *
-     * <p>Both default to {@code shift_left_click}, and serving is evaluated first, so without this
-     * gate any stored fluid made pressing unreachable: every click was answered by a serving
-     * failure message instead. Serving now only takes the click when it can actually proceed —
-     * the container requirement is off, or the player holds a container for the stored fluid —
-     * and otherwise the click falls through to pressing. When nothing is pressable, serving keeps
-     * the click so its own diagnosis is still the one the player sees.
-     */
     private boolean servingTakesPrecedence(Player player, StationCoordinates coordinates) {
         JuicerState state = loadStateOrEmpty(coordinates);
         if (!state.hasFluid()) {
@@ -456,8 +446,7 @@ public final class JuicerRuntimeService implements Listener {
                 "station_type", StationType.JUICER.folderName(),
                 "fluid_id", state.fluidId()
         );
-        // Gate before the container is frozen and before the fluid is committed: a blocked condition must
-        // not take the player's container or drain the juicer while the output is suppressed.
+
         CookingRewardService.ConditionGate gate = rewardService.evaluateConditionGate(recipe, player);
         if (gate.blocked()) {
             rewardService.runConditionFailActions(
@@ -574,15 +563,9 @@ public final class JuicerRuntimeService implements Listener {
         return loaded;
     }
 
-
-
-
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
-
-
-
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {

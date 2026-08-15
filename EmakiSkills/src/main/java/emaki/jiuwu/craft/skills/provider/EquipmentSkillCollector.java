@@ -174,17 +174,6 @@ public final class EquipmentSkillCollector {
         return resolved;
     }
 
-    /**
-     * Returns whether EmakiAttribute's item contribution gates accept the item.
-     *
-     * <p>Keeps equipment skills consistent with attributes: an item whose
-     * EmakiItem condition fails contributes neither.
-     *
-     * @param player the owning player
-     * @param item the equipped item
-     * @param slotName the equipment slot name
-     * @return {@code false} only when a gate actively rejects the item
-     */
     private boolean isItemContributionActive(Player player, ItemStack item, String slotName) {
         EaBridge eaBridge = eaBridgeSupplier.get();
         return eaBridge == null || eaBridge.isItemContributionActive(player, item, slotName);

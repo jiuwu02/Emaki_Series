@@ -18,14 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.gui.SoundParser;
 
-/**
- * Plays a sound at the target's own position.
- *
- * <p>{@code sound} is typed {@code SOUND} instead of the v1 {@code STRING}, so both a Bukkit {@code Sound}
- * name and a {@code namespace:key} form stay accepted while the type name states what the argument is.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads the player's position and sends the sound to that player.</p>
- */
 public final class PlaySoundStage extends BaseStage {
 
     public PlaySoundStage() {

@@ -31,36 +31,6 @@ import emaki.jiuwu.craft.station.queue.StationCraftService;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
-/**
- * Everything the lifecycle coordinator builds, handed to the plugin in one piece.
- *
- * @param appConfigLoader     the {@code config.yml} loader
- * @param languageLoader      the language loader
- * @param messageService      player-facing and console messaging
- * @param bootstrapService    default-file installation
- * @param executionDispatcher CoreLib's scheduler facade
- * @param threadOwnership     CoreLib's thread-ownership probe
- * @param guiService          CoreLib's GUI service
- * @param layoutLoader        the station layout loader
- * @param stationLoader       the station definition loader
- * @param recipeLoader        the recipe loader
- * @param dismantleStationLoader the dismantle station loader
- * @param dismantleRecipeLoader the dismantle recipe loader
- * @param dismantleService    the dismantle loot-roll service
- * @param capabilities        the capability probe result
- * @param backpackChannel     the inventory channel
- * @param storageChannel      the warehouse channel
- * @param materialChannel     the merged material channel
- * @param outputDelivery      the output router
- * @param queueStore          queue persistence
- * @param queueService        the queue cache
- * @param unlockStore         purchased-slot persistence
- * @param unlockService       the purchased-slot cache
- * @param purchaseService     queue-slot pricing and charging
- * @param craftService        the submission orchestrator
- * @param stationGuiService   the window manager
- * @param queueTicker         the periodic settlement task
- */
 record StationRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,

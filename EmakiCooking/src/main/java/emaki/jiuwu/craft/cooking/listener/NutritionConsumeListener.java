@@ -7,12 +7,6 @@ import org.bukkit.event.player.PlayerItemConsumeEvent;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 
-
-
-
-
-
-
 public final class NutritionConsumeListener implements Listener {
 
     private final EmakiCookingPlugin plugin;

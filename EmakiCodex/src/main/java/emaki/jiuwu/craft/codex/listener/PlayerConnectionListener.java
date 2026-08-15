@@ -8,23 +8,7 @@ import org.bukkit.event.player.PlayerJoinEvent;
 
 import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class PlayerConnectionListener implements Listener {
-
 
     private static final long RESYNC_DELAY_TICKS = 10L;
 

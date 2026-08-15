@@ -20,23 +20,6 @@ import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.exports.BukkitPlayerExport;
 import emaki.jiuwu.craft.corelib.script.exports.EmakiContextExport;
 
-/**
- * 执行纯计算 JavaScript 脚本，不操作 Bukkit 状态。
- *
- * <p>该 stage 在 {@link CoreActionExecutionDomain#ASYNC_COMPUTE} 域执行，
- * 意味着脚本不应访问任何 Bukkit API（即使通过 bindings 传入的对象也应只读取不修改状态）。</p>
- *
- * <p>典型用途：
- * <ul>
- *   <li>复杂数学计算</li>
- *   <li>条件判断</li>
- *   <li>数据转换</li>
- * </ul>
- *
- * <p>脚本返回值会作为 {@code script_result} 变量供后续 stage 使用。</p>
- *
- * <p>Domain {@code ASYNC_COMPUTE}: 纯计算，不访问 Bukkit 状态。</p>
- */
 public final class JsComputeStage extends BaseStage {
 
     private static final int DEFAULT_TIMEOUT_MS = 5000;
@@ -64,8 +47,7 @@ public final class JsComputeStage extends BaseStage {
 
         Map<String, Object> bindings = new HashMap<>();
         bindings.put("context", new EmakiContextExport(context));
-        
-        // 如果当前目标是玩家，也注入 player 绑定（只读用途）
+
         if (context.currentTarget().entityOrNull() instanceof Player player) {
             bindings.put("player", new BukkitPlayerExport(player));
         }

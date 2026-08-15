@@ -27,16 +27,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
-/** Runs stages that live in the single CoreLib registry. */
 public final class RegistryStageInvoker implements StageInvoker {
 
     private final StageRegistry registry;
 
-    /**
-     * Creates a registry-backed invoker.
-     *
-     * @param registry the live registry
-     */
     public RegistryStageInvoker(@NotNull StageRegistry registry) {
         this.registry = Objects.requireNonNull(registry, "registry");
     }
@@ -81,8 +75,7 @@ public final class RegistryStageInvoker implements StageInvoker {
         return switch (entry.kind()) {
             case SOURCE -> toDomain(((CoreActionSource) entry.stage()).executionTarget(planning));
             case GATE -> switch (((CoreActionGate) entry.stage()).threadNeed()) {
-                // A PURE gate reports the global domain only as a standalone fallback. The interpreter
-                // folds it into whichever domain its neighbours use, so this value is rarely consulted.
+
                 case PURE -> ExecutionDomain.SERVER_GLOBAL;
                 case NEEDS_ENTITY_READ -> ExecutionDomain.ENTITY;
                 case NEEDS_REGION_READ -> ExecutionDomain.LOCATION_REGION;
@@ -144,8 +137,7 @@ public final class RegistryStageInvoker implements StageInvoker {
             return ExecutionDomain.SERVER_GLOBAL;
         }
         return switch (target.domain()) {
-            // UNDECLARED cannot reach here: registration rejects it. Mapping it to global keeps this
-            // switch total without inventing a runtime inference rule.
+
             case UNDECLARED, SERVER_GLOBAL -> ExecutionDomain.SERVER_GLOBAL;
             case CONTEXT_ENTITY -> ExecutionDomain.ENTITY;
             case LOCATION_REGION -> ExecutionDomain.LOCATION_REGION;

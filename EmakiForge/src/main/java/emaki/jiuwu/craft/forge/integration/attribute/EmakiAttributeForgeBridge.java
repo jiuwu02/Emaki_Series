@@ -9,28 +9,9 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.corelib.integration.attribute.AbstractAttributePdcBridge;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 
-/**
- * {@link ForgeAttributeBridge} implementation backed by the canonical
- * {@link EmakiAttributeApi} facade.
- *
- * <p>This is the only class in EmakiForge that references EmakiAttributeApi
- * types; it is class-loaded exclusively by {@code ForgeAttributeIntegration}
- * once EmakiAttribute is enabled. Calls always go through the static facade, so
- * a reloaded or disabled EmakiAttribute is never reached through a stale bridge.
- *
- * <p>Source registration and payload guards come from
- * {@link AbstractAttributePdcBridge}; this class only binds those template
- * operations to {@link PdcAttributeAccess}.
- */
 public final class EmakiAttributeForgeBridge extends AbstractAttributePdcBridge<PdcAttributeAccess>
         implements ForgeAttributeBridge {
 
-    /**
-     * Creates the bridge. Invoked reflectively by
-     * {@code ForgeAttributeIntegration} only when EmakiAttribute is enabled.
-     *
-     * @return the EmakiAttribute-backed bridge
-     */
     public static ForgeAttributeBridge create() {
         return new EmakiAttributeForgeBridge();
     }

@@ -19,10 +19,6 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-
-
-
-
 record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,

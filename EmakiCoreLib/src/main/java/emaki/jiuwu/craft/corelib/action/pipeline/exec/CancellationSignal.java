@@ -4,7 +4,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreCancellationToken;
 
-/** Mutable runtime owner of the read-only cancellation token exposed to stages. */
 final class CancellationSignal implements CoreCancellationToken {
 
     private final AtomicBoolean cancelled = new AtomicBoolean();

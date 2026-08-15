@@ -77,7 +77,6 @@ final class ItemOperationExecutor {
             return ExecutionResult.EMPTY;
         }
 
-
         itemStack.setItemMeta(itemMeta);
         if (!nameRecords.isEmpty()) {
             applyNameState(context, itemStack, nameState);

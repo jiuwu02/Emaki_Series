@@ -61,17 +61,6 @@ public record CoreLibConfig(
         );
     }
 
-    /**
-     * Controls the server-side vanilla language table.
-     *
-     * <p>Vanilla item and block names are translated by the client, so a
-     * server-side feature that needs the localized name must download the language
-     * file itself. Disabled by default: it performs outbound network access, which
-     * a server owner has to opt into.
-     *
-     * @param enabled whether the table may be downloaded and used
-     * @param locale the vanilla locale id to fetch, such as {@code zh_cn}
-     */
     public record VanillaLanguageConfig(boolean enabled, String locale) {
 
         public VanillaLanguageConfig {
@@ -94,18 +83,6 @@ public record CoreLibConfig(
             );
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     public record GuiConfig(String backend, int clickIntervalMs) {
 
@@ -145,12 +122,6 @@ public record CoreLibConfig(
         }
     }
 
-    /**
-     * 展示实体后端设置。
-     *
-     * <p>{@code backend} 取 {@code inherit} 时跟随 {@link GuiConfig#backend()}，
-     * 由装配处调用 {@link #resolveBackend(String)} 解析。
-     */
     public record DisplayConfig(String backend, int viewDistanceBlocks, int refreshIntervalTicks) {
 
         public static final String INHERIT = "inherit";
@@ -178,12 +149,6 @@ public record CoreLibConfig(
             );
         }
 
-        /**
-         * 解析实际生效的后端名。
-         *
-         * @param guiBackend 菜单后端名，供 {@code inherit} 回落
-         * @return 生效的后端名
-         */
         public String resolveBackend(String guiBackend) {
             if (!INHERIT.equals(backend)) {
                 return backend;
@@ -212,22 +177,6 @@ public record CoreLibConfig(
             );
         }
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     public record DebugConfig(boolean globalAll) {
 
@@ -269,13 +218,6 @@ public record CoreLibConfig(
         }
     }
 
-    /**
-     * Load-time compile limits for pipelines.
-     *
-     * @param maxRepeatTimes cap for {@code every ... times N}; exceeding it rejects the configuration
-     * @param maxSequenceDepth cap for nested {@code run} calls
-     * @param maxBranchDepth cap for nested {@code if} branches
-     */
     public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth) {
 
         public static PipelineConfig defaults() {
@@ -294,7 +236,6 @@ public record CoreLibConfig(
             );
         }
 
-        /** {@return these limits as the compiler's own type} */
         public PipelineLimits toLimits() {
             return new PipelineLimits(
                     maxRepeatTimes, maxSequenceDepth, maxBranchDepth);

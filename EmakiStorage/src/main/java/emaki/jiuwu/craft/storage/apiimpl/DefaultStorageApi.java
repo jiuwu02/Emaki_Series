@@ -39,7 +39,6 @@ import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 
-/** Runtime bridge backing {@link EmakiStorageApi}. */
 public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
 
     private final EmakiStoragePlugin plugin;
@@ -65,13 +64,6 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
         return operations;
     }
 
-    /**
-     * {@return whether the module can serve API calls right now}
-     *
-     * <p>{@code contentReady()} comes first on purpose: the services below are non-null from
-     * initialize() onward, so without it this returned true while a reload was rebuilding cost tiers
-     * and the GUI template.</p>
-     */
     private boolean isReady() {
         return plugin.isEnabled()
                 && plugin.contentReady()
@@ -470,12 +462,6 @@ public final class DefaultStorageApi implements EmakiStorageApi.Bridge {
         return mapBatch(request.allOrNothing(), outcome);
     }
 
-    /**
-     * Maps a transaction-layer batch outcome onto the public result.
-     *
-     * <p>An all-or-nothing batch is never reported as {@code Partial}: it either applied every op or
-     * applied none, so a partial result would tell the caller something that cannot have happened.
-     */
     private static EmakiResult<StorageBatchResult> mapBatch(boolean allOrNothing,
             StorageTransactionService.BatchOutcome outcome) {
         if (outcome.cancelled()) {

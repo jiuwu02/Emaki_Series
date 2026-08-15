@@ -7,31 +7,12 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry;
 
-
-
-
-
-
-
-
-
-
-
-
 public final class PacketBackendInstaller {
-
 
     public static final String BACKEND_NAME = "packet";
 
     private PacketBackendInstaller() {
     }
-
-
-
-
-
-
-
 
     public static boolean install(JavaPlugin coreLib,
             GuiBackendRegistry registry,

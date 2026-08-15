@@ -101,11 +101,6 @@ public final class TemporaryAttributeService implements AutoCloseable {
         return TemporaryAttributeResult.missing(normalizedEffectId);
     }
 
-
-
-
-
-
     public int addByTag(LivingEntity entity,
             String effectPrefix,
             String tag,
@@ -129,10 +124,6 @@ public final class TemporaryAttributeService implements AutoCloseable {
         }
         return applied;
     }
-
-
-
-
 
     public int removeByTag(LivingEntity entity, String tag) {
         if (entity == null) {

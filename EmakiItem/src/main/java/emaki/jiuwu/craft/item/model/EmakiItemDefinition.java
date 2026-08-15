@@ -18,7 +18,6 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
 public final class EmakiItemDefinition {
 
     private final String id;
@@ -42,10 +41,6 @@ public final class EmakiItemDefinition {
     private final RepairConfig repair;
     private final int amount;
     private final boolean hasRandomElements;
-
-
-
-
 
     public EmakiItemDefinition(String id,
             Material material,
@@ -91,7 +86,6 @@ public final class EmakiItemDefinition {
                 hasRandomElements
         );
     }
-
 
     public EmakiItemDefinition(String id,
             ConfiguredItemDefinition itemDefinition,
@@ -281,7 +275,6 @@ public final class EmakiItemDefinition {
         signatureData.put("repair_enabled", repair.enabled());
         return SignatureUtil.stableSignature(signatureData);
     }
-
 
     public Map<String, Object> normalizedItemSnapshot() {
         Map<String, Object> componentSnapshot = new LinkedHashMap<>();

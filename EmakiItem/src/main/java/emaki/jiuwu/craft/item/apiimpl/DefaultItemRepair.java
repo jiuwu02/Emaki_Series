@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.item.api.model.RepairQuoteView;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 
-/** Runtime-backed {@link ItemRepair}. */
 public final class DefaultItemRepair implements ItemRepair {
 
     private final EmakiItemPlugin plugin;

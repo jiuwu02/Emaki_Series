@@ -8,7 +8,6 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.StrengthenCatalog;
 import emaki.jiuwu.craft.strengthen.api.StrengthenOperations;
 
-/** Runtime bridge exposing EmakiStrengthen's existing services through the public API layers. */
 public final class DefaultEmakiStrengthenApi implements EmakiStrengthenApi.Bridge {
 
     private final EmakiStrengthenPlugin plugin;

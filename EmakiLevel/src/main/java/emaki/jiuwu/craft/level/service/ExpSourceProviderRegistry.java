@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.level.api.ExpSourceGrant;
 import emaki.jiuwu.craft.level.api.ExpSourceProvider;
 import emaki.jiuwu.craft.level.api.ExpSourceRegistration;
 
-/** Owner-and-provider-id scoped registry for external gameplay experience sources. */
 public final class ExpSourceProviderRegistry implements Listener, AutoCloseable {
 
     private final Plugin plugin;
@@ -51,7 +50,6 @@ public final class ExpSourceProviderRegistry implements Listener, AutoCloseable 
         return new RegistrationHandle(this, key, provider, generation);
     }
 
-    /** Invokes each currently active provider exactly once for this gameplay trigger. */
     public void dispatch(ExpSourceContext context, Consumer<ExpSourceGrant> grantConsumer) {
         if (context == null || grantConsumer == null) {
             return;

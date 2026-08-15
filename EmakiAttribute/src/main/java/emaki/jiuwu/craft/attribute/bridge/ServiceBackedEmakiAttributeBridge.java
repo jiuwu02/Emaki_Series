@@ -38,7 +38,6 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** Runtime mapping from the four-layer public facade to existing Attribute services. */
 public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeApi.Bridge,
         AttributeCatalog,
         AttributeOperations,
@@ -263,8 +262,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (playerCheck.isFailure()) {
             return playerCheck;
         }
-        // The scheduled sync recomputes from the definition tables, so accepting the request while they
-        // are loading would queue work against data that is about to be replaced.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }
@@ -372,9 +370,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (Texts.isBlank(resourceId)) {
             return EmakiResult.invalidInput("attribute.resource_id_invalid");
         }
-        // Gates resourceCurrent and resourceMax: the definition table is what "not_found" is judged
-        // against, so answering it while that table is still loading reports a config error that is not
-        // one.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }
@@ -408,7 +404,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (!isEntityOwned(target) || (attacker != null && !isEntityOwned(attacker))) {
             return EmakiResult.wrongThread();
         }
-        // Gates calculateDamage and applyDamage: both resolve against the damage type registry below.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }

@@ -18,25 +18,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Re-evaluates the target's nutrition thresholds so buffs and penalties catch up.
- *
- * <p>Useful after a batch of nutrition writes that each suppressed threshold evaluation, or after the
- * thresholds themselves were reconfigured.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: {@code recheckThresholds} takes one player and evaluates only that
- * player's single and combination thresholds. The service does walk the online-player list elsewhere, but that
- * is its {@code reload} path, not this one.</p>
- */
 public final class NutritionThresholdRecheckStage implements CoreActionStage {
 
     private final EmakiCookingPlugin plugin;
 
-    /**
-     * Creates the stage.
-     *
-     * @param plugin owning plugin, source of the nutrition service
-     */
     public NutritionThresholdRecheckStage(@NotNull EmakiCookingPlugin plugin) {
         this.plugin = plugin;
     }
@@ -82,8 +67,7 @@ public final class NutritionThresholdRecheckStage implements CoreActionStage {
         if (target == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
-        // False means the nutrition system is disabled or the player has no cached record yet. Neither is a
-        // fault, so it reports as skipped rather than failed.
+
         return plugin.nutritionService().recheckThresholds(target)
                 ? CoreActionOutcome.success(Map.of("player", target.getName()))
                 : CoreActionOutcome.skipped("action.stage.cooking.recheck_unavailable");

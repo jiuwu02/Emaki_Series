@@ -17,11 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Hides one of the target's boss bars, or all of them with {@code id=all}.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: detaches a bar from one player's connection.</p>
- */
 public final class BossBarHideStage extends BaseStage {
 
     public BossBarHideStage() {

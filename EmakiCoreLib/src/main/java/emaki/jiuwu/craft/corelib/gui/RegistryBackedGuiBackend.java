@@ -6,20 +6,6 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class RegistryBackedGuiBackend implements GuiBackend {
 
     private final GuiBackendRegistry registry;
@@ -33,7 +19,6 @@ public final class RegistryBackedGuiBackend implements GuiBackend {
         this.registry = registry;
         this.configuredItemService = configuredItemService;
     }
-
 
     public GuiBackend resolveActive() {
         return registry.activeBackend();

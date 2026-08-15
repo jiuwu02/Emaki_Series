@@ -7,19 +7,10 @@ import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 import emaki.jiuwu.craft.storage.model.SearchQuery;
 import emaki.jiuwu.craft.storage.model.SortMode;
 
-/**
- * Typed view of {@code config.yml}.
- *
- * <p>Immutable value object; YAML parsing lives in {@code StorageLifecycleCoordinator} so a
- * malformed file can fall back to {@link #defaults()} without leaving a half-applied config
- * active.
- */
 public final class AppConfig extends BaseAppConfig {
 
-    /** Structure version of {@code config.yml}, independent of the plugin version. */
     public static final String CURRENT_VERSION = "1.0.6";
 
-    /** Feedback style after a successful deposit. */
     public enum DepositFeedback {
         ACTIONBAR,
         MESSAGE,
@@ -38,7 +29,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** How the slot item's {@code amount} expresses occupancy. */
     public enum AmountMode {
         PERCENT,
         ONE;
@@ -55,7 +45,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** What happens to items the player's inventory cannot accept on withdrawal. */
     public enum WithdrawOverflow {
         RETURN,
         DROP;
@@ -72,7 +61,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** How occupancy beyond the current capacity is handled. */
     public enum OverflowPolicy {
         LOCK_READONLY,
         COMPACT,
@@ -93,7 +81,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Deposit filter mode. */
     public enum FilterMode {
         BLACKLIST,
         WHITELIST,
@@ -112,7 +99,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Where the generated display lines are inserted into the rendered lore. */
     public enum LorePosition {
         TOP,
         BOTTOM;
@@ -129,7 +115,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** GUI layout and interaction settings. */
     public record GuiConfig(int storageRows,
             DepositFeedback depositFeedback,
             boolean requireEmptyCursorForWithdraw) {
@@ -139,7 +124,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Capacity settings; the four slot sources are summed then clamped. */
     public record CapacityConfig(int baseSlots,
             int maxSlots,
             int warnEntryCount,
@@ -150,7 +134,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Unlock and overflow settings. */
     public record UnlockConfig(OverflowPolicy overflowPolicy,
             boolean purchaseEnabled,
             String costFile) {
@@ -160,7 +143,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Slot item rendering settings. */
     public record DisplayConfig(AmountMode amountMode,
             int percentScale,
             List<String> compactUnits,
@@ -188,7 +170,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Withdrawal amounts bound to the four click tiers. */
     public record WithdrawAmounts(long left, long right, long shiftLeft, long shiftRight) {
 
         public static WithdrawAmounts defaults() {
@@ -196,7 +177,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Deposit filter settings. */
     public record DepositFilter(FilterMode mode, List<String> entries) {
 
         public DepositFilter(FilterMode mode, List<String> entries) {
@@ -209,22 +189,10 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** 自定义取出数量输入项的 key；对话框配置必须提供同名输入框。 */
     public static final String WITHDRAW_INPUT_KEY = "amount";
 
-    /** 搜索关键词输入项的 key；对话框配置必须提供同名输入框。 */
     public static final String SEARCH_INPUT_KEY = "query";
 
-    /**
-     * Transaction behaviour settings.
-     *
-     * @param multiSlotStacking whether one item kind may span several slots once the per-slot
-     *                          ceiling is reached; {@code false} keeps the legacy behaviour of
-     *                          refusing the surplus outright
-     * @param batchMaxOps       hard cap on how many increments one API batch may carry, clamped to
-     *                          {@code 1..2000}; a larger request is rejected outright rather than
-     *                          truncated, because a silently shortened batch is a half-applied recipe
-     */
     public record BehaviorConfig(WithdrawOverflow overflowOnWithdraw,
             WithdrawAmounts withdrawAmounts,
             boolean withdrawPromptEnabled,
@@ -236,10 +204,8 @@ public final class AppConfig extends BaseAppConfig {
             SortMode defaultSort,
             boolean playerSortEnabled) {
 
-        /** Inclusive lower bound for {@link #batchMaxOps()}. */
         public static final int BATCH_MAX_OPS_MIN = 1;
 
-        /** Inclusive upper bound for {@link #batchMaxOps()}. */
         public static final int BATCH_MAX_OPS_MAX = 2000;
 
         public BehaviorConfig {
@@ -256,7 +222,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Search settings. No regex option exists at any permission level. */
     public record SearchConfig(boolean enabled,
             SearchQuery.Operators operators,
             InputModeConfig input,
@@ -282,7 +247,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Persistence timing settings. */
     public record PersistenceConfig(long autosaveIntervalSeconds, long drainTimeoutSeconds) {
 
         public static PersistenceConfig defaults() {
@@ -290,7 +254,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /** Operation log settings. The log is write-only; business logic never reads it. */
     public record LoggingConfig(boolean enabled, int retentionDays, List<String> sources) {
 
         public LoggingConfig(boolean enabled, int retentionDays, List<String> sources) {
@@ -382,7 +345,6 @@ public final class AppConfig extends BaseAppConfig {
         return behavior;
     }
 
-    /** {@return 自动拾取设置} */
     public AutoPickupConfig autoPickup() {
         return autoPickup;
     }

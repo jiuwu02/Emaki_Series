@@ -27,37 +27,12 @@ import emaki.jiuwu.craft.storage.api.model.StorageBatchOp;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchRequest;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchResult;
 
-/**
- * Reads and debits materials straight from the player's EmakiStorage warehouse.
- *
- * <h2>Two constraints that shape every method here</h2>
- * <ul>
- *   <li><strong>Completion threads carry no guarantee.</strong> EmakiStorage's futures may complete on any
- *       thread. Nothing in this class touches a player, inventory, or GUI inside a continuation; callers
- *       that need to do so must hop back to the owner thread themselves.</li>
- *   <li><strong>Identity is full {@link ItemStack#equals(Object)}.</strong> Components, enchantments, and
- *       PDC all count. A template built here must be byte-for-byte equal to the one in the warehouse or the
- *       count comes back as zero, so every template is built through CoreLib's item-source service rather
- *       than assembled by hand.</li>
- * </ul>
- *
- * <p>Every warehouse call is gated on a capability check. Without
- * {@link StationCapabilities#storageChannelSupported()} this class refuses to act rather than falling back
- * to per-item withdrawals, which would route materials through the player's inventory.
- */
 public final class StorageChannel {
 
     private final ItemSourceService itemSourceService;
     private final StationCapabilities capabilities;
     private final StorageSettings settings;
 
-    /**
-     * Creates the channel.
-     *
-     * @param itemSourceService CoreLib's item-source service, used to build warehouse-equal templates
-     * @param capabilities      the capability probe result from enable time
-     * @param settings          the warehouse settings from {@code config.yml}
-     */
     public StorageChannel(ItemSourceService itemSourceService,
             StationCapabilities capabilities,
             StorageSettings settings) {
@@ -66,36 +41,16 @@ public final class StorageChannel {
         this.settings = settings == null ? StorageSettings.defaults() : settings;
     }
 
-    /**
-     * {@return whether the warehouse channel can be used right now}
-     *
-     * <p>True only when the configuration enables it, EmakiStorage reports itself usable, and the atomic
-     * batch capability is present.
-     */
     public boolean usable() {
         return settings.enabled()
                 && capabilities.storageChannelSupported()
                 && EmakiStorageApi.status().usable();
     }
 
-    /** {@return whether the warehouse can hold stock back instead of applying it immediately} */
     public boolean reservationSupported() {
         return usable() && capabilities.reservation();
     }
 
-    /**
-     * Counts the warehouse stock backing a recipe's requirements.
-     *
-     * <p>Uses one multi-template round trip when the warehouse supports it, otherwise falls back to one
-     * call per identity. The fallback is correct but its round-trip count grows with the requirement count,
-     * so it is only a convenience, not a target state.
-     *
-     * <p><strong>Thread:</strong> any thread. The future carries no completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param recipe   the recipe whose identities should be counted
-     * @return a future carrying the counts per identity; empty on failure
-     */
     public CompletableFuture<Map<ItemSourceRef, Long>> countAsync(UUID playerId, RecipeDefinition recipe) {
         if (recipe == null) {
             return CompletableFuture.completedFuture(Map.of());
@@ -103,18 +58,6 @@ public final class StorageChannel {
         return countSourcesAsync(playerId, sourcesOf(recipe));
     }
 
-    /**
-     * Counts the warehouse stock for an explicit identity set.
-     *
-     * <p>Exists so the merged channel can ask about exactly the identities it cares about without owning a
-     * recipe, which is what lets one round trip serve a whole requirement list.
-     *
-     * <p><strong>Thread:</strong> any thread. The future carries no completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param sources  the identities to count
-     * @return a future carrying the counts per identity; empty on failure
-     */
     public CompletableFuture<Map<ItemSourceRef, Long>> countSourcesAsync(UUID playerId,
             Collection<ItemSourceRef> sources) {
         if (playerId == null || sources == null || sources.isEmpty() || !usable()
@@ -133,22 +76,6 @@ public final class StorageChannel {
         return countIndividually(playerId, templates);
     }
 
-    /**
-     * Holds an exact set of amounts without withdrawing them.
-     *
-     * <p>This is the half of the merged-channel debit that makes the whole operation recoverable. The
-     * warehouse side is held first, the inventory side is debited synchronously afterwards, and a failure
-     * there is undone by {@link #releaseAsync} — which cannot itself fail for lack of capacity, unlike
-     * depositing already-withdrawn items back.
-     *
-     * <p><strong>Thread:</strong> any thread. Requires the owner online. The future carries no
-     * completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param amounts  the units to hold per identity
-     * @param ttl      how long the hold survives without a commit
-     * @return a future carrying the ticket, or an explicit failure
-     */
     public CompletableFuture<EmakiResult<ReservationHandle>> reserveAsync(UUID playerId,
             Map<ItemSourceRef, Long> amounts,
             Duration ttl) {
@@ -173,15 +100,6 @@ public final class StorageChannel {
                 .reserveAsync(playerId, StorageBatchRequest.atomic(ops), ttl);
     }
 
-    /**
-     * Applies a previously held reservation.
-     *
-     * <p><strong>Thread:</strong> any thread. Requires the owner online. The future carries no
-     * completion-thread guarantee.
-     *
-     * @param handle the ticket to commit
-     * @return a future carrying success or an explicit failure
-     */
     public CompletableFuture<EmakiResult<Unit>> commitAsync(ReservationHandle handle) {
         if (handle == null) {
             return CompletableFuture.completedFuture(
@@ -194,16 +112,6 @@ public final class StorageChannel {
                 .thenApply(result -> result.isFailure() ? result.retypeFailure() : EmakiResult.ok());
     }
 
-    /**
-     * Drops a hold without applying it.
-     *
-     * <p>Idempotent on the warehouse side, so a cleanup path may call it unconditionally.
-     *
-     * <p><strong>Thread:</strong> any thread. The future carries no completion-thread guarantee.
-     *
-     * @param handle the ticket to release; {@code null} completes immediately
-     * @return a future completing once the release finishes
-     */
     public CompletableFuture<Void> releaseAsync(ReservationHandle handle) {
         if (handle == null || !usable()) {
             return CompletableFuture.completedFuture(null);
@@ -211,20 +119,6 @@ public final class StorageChannel {
         return EmakiStorageApi.operations().releaseAsync(handle).thenApply(ignored -> (Void) null);
     }
 
-    /**
-     * Debits an exact set of amounts in one atomic batch, without a reservation.
-     *
-     * <p>Used only when the warehouse cannot reserve. The caller is then responsible for depositing the
-     * amounts back if a later step fails, which is strictly worse than the reservation path because that
-     * deposit can itself be refused for lack of capacity.
-     *
-     * <p><strong>Thread:</strong> any thread. Requires the owner online. The future carries no
-     * completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param amounts  the units to take per identity
-     * @return a future carrying the debited materials, or an explicit failure
-     */
     public CompletableFuture<EmakiResult<List<ConsumedMaterial>>> consumeAmountsAsync(UUID playerId,
             Map<ItemSourceRef, Long> amounts) {
         if (playerId == null || amounts == null || amounts.isEmpty() || itemSourceService == null) {
@@ -269,20 +163,6 @@ public final class StorageChannel {
         return ops;
     }
 
-    /**
-     * Debits a recipe's requirements from the warehouse in one atomic batch.
-     *
-     * <p>All-or-nothing at the warehouse level: a single failed pre-check leaves every stored amount
-     * exactly as it was, so a failed submission never has to be compensated.
-     *
-     * <p><strong>Thread:</strong> any thread. Requires the owner online. The future carries no
-     * completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param recipe   the recipe being crafted
-     * @param batch    how many times to apply the recipe
-     * @return a future carrying the debited materials, or an explicit failure
-     */
     public CompletableFuture<EmakiResult<List<ConsumedMaterial>>> consumeAsync(UUID playerId,
             RecipeDefinition recipe,
             long batch) {
@@ -313,16 +193,6 @@ public final class StorageChannel {
         });
     }
 
-    /**
-     * Deposits items into the warehouse in one atomic batch.
-     *
-     * <p><strong>Thread:</strong> any thread. Requires the owner online. The future carries no
-     * completion-thread guarantee.
-     *
-     * @param playerId the warehouse owner
-     * @param amounts  the units to deposit per identity
-     * @return a future carrying how many units of each identity were accepted; empty on failure
-     */
     public CompletableFuture<Map<ItemSourceRef, Long>> depositAsync(UUID playerId,
             Map<ItemSourceRef, Long> amounts) {
         if (playerId == null || amounts == null || amounts.isEmpty() || !usable()
@@ -386,12 +256,6 @@ public final class StorageChannel {
         return true;
     }
 
-    /**
-     * Collects every identity a recipe's requirements accept, de-duplicated in declaration order.
-     *
-     * @param recipe the recipe to read
-     * @return the identity list
-     */
     public static List<ItemSourceRef> sourcesOf(RecipeDefinition recipe) {
         List<ItemSourceRef> sources = new ArrayList<>();
         for (MaterialRequirement requirement : recipe.requirements()) {

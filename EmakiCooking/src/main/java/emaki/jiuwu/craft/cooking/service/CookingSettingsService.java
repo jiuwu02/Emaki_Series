@@ -167,7 +167,6 @@ public final class CookingSettingsService {
         return wokSettings.displayLayoutRadius();
     }
 
-
     public boolean textDisplayEnabled(StationType stationType) {
         if (stationType == null) {
             return false;
@@ -996,7 +995,6 @@ public final class CookingSettingsService {
         }
     }
 
-
     public List<String> getStationActions(StationType stationType, String operation) {
         if (stationType == null || Texts.isBlank(operation)) {
             return List.of();
@@ -1006,8 +1004,6 @@ public final class CookingSettingsService {
         return actions == null ? List.of() : actions;
     }
 
-
-
     public boolean nutritionEnabled() {
         return configuration.getBoolean("nutrition.enabled", true);
     }
@@ -1015,9 +1011,6 @@ public final class CookingSettingsService {
     public int nutritionSaveIntervalSeconds() {
         return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
     }
-
-
-
 
     public List<NutritionFoodSource> nutritionFoodSources() {
         List<NutritionFoodSource> result = new ArrayList<>();
@@ -1036,9 +1029,6 @@ public final class CookingSettingsService {
         }
         return List.copyOf(result);
     }
-
-
-
 
     public List<NutritionSingleThreshold> nutritionSingleThresholds() {
         List<NutritionSingleThreshold> result = new ArrayList<>();
@@ -1063,9 +1053,6 @@ public final class CookingSettingsService {
         }
         return List.copyOf(result);
     }
-
-
-
 
     public List<NutritionComboThreshold> nutritionComboThresholds() {
         List<NutritionComboThreshold> result = new ArrayList<>();

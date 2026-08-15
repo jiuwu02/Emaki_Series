@@ -73,12 +73,6 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener;
 import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 
-/**
- * EmakiStorage runtime entry point.
- *
- * <p>Owns enable, reload, disable and final cleanup ordering; domain logic lives in the services
- * assembled by {@link StorageLifecycleCoordinator}.
- */
 public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
@@ -128,8 +122,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private DebugCommand debugCommand;
     private BStatsRegistration metrics;
     private TaskToken autosaveTask;
-    // "Data is loaded", not "components exist": every service below is non-null from initialize()
-    // onward, so a null-check answered true for the whole duration of a reload.
+
     private volatile boolean contentReady;
 
     private final EmakiStorageApi.Bridge apiBridge = new DefaultStorageApi(this);
@@ -147,7 +140,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
-        // Registered before the first reload because that reload is now gated on this contributor.
+
         registerConfigPrecheckContributor();
         reloadPluginState();
         registerCommandHandler();
@@ -159,15 +152,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         messageService.info("console.plugin_started");
     }
 
-    /**
-     * Advertises the optional operations this build really supports.
-     *
-     * <p>Published after the API bridge is installed and revoked before it is uninstalled, so a
-     * consumer that sees the capability can always reach a live bridge behind it. The three keys map
-     * one-to-one onto methods, and none of them is behind a config switch today &mdash; if one ever
-     * is, it must stop being published rather than start returning {@code REJECTED}, or the consumer's
-     * gate stops meaning anything.
-     */
     private void publishCapabilities() {
         capabilityRegistration = EmakiCoreLibApi.publishCapabilities(this, Set.of(
                 ApiCapability.of("emakistorage:atomic_batch"),
@@ -179,13 +163,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
     }
 
-    /**
-     * Tears down in the reverse order of enable.
-     *
-     * <p>Ordering matters: task producers stop first, then registrations are removed, then the data
-     * cache is sealed and flushed, and only then is the file lane drained. Draining before the flush
-     * would discard writes that had not been queued yet.
-     */
     @Override
     public void onDisable() {
         contentReady = false;
@@ -230,7 +207,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         lifecycleCoordinator.shutdown(this);
     }
 
-    /** Reloads configuration, language, cost tiers and the GUI template. */
     public int reloadPluginState() {
         contentReady = false;
         publishLoading();
@@ -240,22 +216,10 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return result;
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed".</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>Called from a plain method body with no lock held, so the waiting third-party callbacks that
-     * run synchronously inside the registry cannot deadlock against this module's state.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -268,11 +232,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
@@ -318,7 +277,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         stageRegistrar.register();
     }
 
-    /** {@return the pipeline stage registrar, or {@code null} before actions are registered} */
     public StorageStageRegistrar stageRegistrar() {
         return stageRegistrar;
     }
@@ -356,12 +314,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
     }
 
-    /**
-     * Schedules periodic autosave.
-     *
-     * <p>Amount changes only mark the storage dirty; the actual write happens here, on GUI close, on
-     * quit and on disable. Many changes inside one window therefore collapse into a single write.
-     */
     private void scheduleAutosave() {
         long interval = appConfig().persistence().autosaveIntervalSeconds();
         if (interval <= 0L) {
@@ -374,9 +326,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             }
         }, ticks, ticks);
     }
-
-
-
 
     @Override
     public YamlConfigLoader<AppConfig> appConfigLoader() {
@@ -424,7 +373,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return textIndexer;
     }
 
-    /** {@return 自动拾取服务，未启用时仍返回实例但不会转入任何物品} */
     public StorageAutoPickupService autoPickupService() {
         return autoPickupService;
     }
@@ -477,7 +425,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return debugCommand;
     }
 
-    /** {@return whether the current thread owns the target player's region} */
     public boolean ownsWriteTarget(Player target) {
         return target != null
                 && target.isOnline()
@@ -485,17 +432,6 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 && threadOwnership.isEntityOwned(target);
     }
 
-    /**
-     * Runs an operation on the target player's owning thread.
-     *
-     * <p>Cross-player admin operations are dispatched to the <em>target</em> player's owner, not the
-     * caller's, because the entry table is only safe to touch alongside that player's inventory.
-     *
-     * @param target    the player whose owner thread must run the work
-     * @param operation the work to run
-     * @param onReject  the value produced when the work cannot be scheduled
-     * @return a future completing with the result
-     */
     public <R> CompletableFuture<R> runOwnerWriteAsync(Player target,
             Supplier<R> operation,
             Supplier<R> onReject) {
@@ -520,23 +456,14 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return future;
     }
 
-    /** {@return the online player for a uuid, or {@code null}} */
     public Player onlinePlayer(UUID playerId) {
         return playerId == null ? null : Bukkit.getPlayer(playerId);
     }
 
-    /** {@return a read-only snapshot result, loading the player's data when necessary} */
     public CompletableFuture<EmakiResult<StorageSnapshot>> getApiBridgeSnapshotAsync(UUID playerId) {
         return apiBridge.operations().readSnapshotAsync(playerId);
     }
 
-    /**
-     * Writes a human-readable YAML dump of a player's storage.
-     *
-     * @param playerId   the storage owner
-     * @param playerName the name recorded in the dump
-     * @return a future completing with the written file name, or {@code null} on failure
-     */
     public CompletableFuture<String> exportStorageAsync(UUID playerId, String playerName) {
         return apiBridge.operations().readSnapshotAsync(playerId).thenApply(result -> {
             StorageSnapshot snapshot = result.orElse(null);

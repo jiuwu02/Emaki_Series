@@ -2,12 +2,6 @@ package emaki.jiuwu.craft.storage.model;
 
 import java.util.Locale;
 
-/**
- * The six supported entry orderings.
- *
- * <p>Sorting is an explicit "tidy up" action that rewrites {@link PlayerStorage#entryOrder()};
- * it never reorders entries during rendering, so slot positions stay stable between clicks.
- */
 public enum SortMode {
 
     MATERIAL_ASC("material_asc", Dimension.MATERIAL, true),
@@ -17,7 +11,6 @@ public enum SortMode {
     AMOUNT_ASC("amount_asc", Dimension.AMOUNT, true),
     AMOUNT_DESC("amount_desc", Dimension.AMOUNT, false);
 
-    /** The comparison dimension, independent of direction. */
     public enum Dimension {
         MATERIAL,
         NAME,
@@ -34,7 +27,6 @@ public enum SortMode {
         this.ascending = ascending;
     }
 
-    /** {@return the stable lower-case id used in {@code meta.yml} and {@code config.yml}} */
     public String id() {
         return id;
     }
@@ -47,13 +39,6 @@ public enum SortMode {
         return ascending;
     }
 
-    /**
-     * Resolves a configured id.
-     *
-     * @param raw      the configured value, normalised with {@link Locale#ROOT}
-     * @param fallback returned when {@code raw} is blank or unknown
-     * @return the resolved mode, never {@code null} unless {@code fallback} is
-     */
     public static SortMode fromId(String raw, SortMode fallback) {
         if (raw == null || raw.isBlank()) {
             return fallback;
@@ -67,7 +52,6 @@ public enum SortMode {
         return fallback;
     }
 
-    /** {@return the same dimension with the direction flipped} */
     public SortMode reversed() {
         for (SortMode mode : values()) {
             if (mode.dimension == dimension && mode.ascending != ascending) {
@@ -77,7 +61,6 @@ public enum SortMode {
         return this;
     }
 
-    /** {@return the next dimension keeping the current direction, cycling MATERIAL to NAME to AMOUNT} */
     public SortMode nextDimension() {
         Dimension target = switch (dimension) {
             case MATERIAL -> Dimension.NAME;

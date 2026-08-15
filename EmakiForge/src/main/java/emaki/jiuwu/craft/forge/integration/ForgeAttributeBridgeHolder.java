@@ -7,16 +7,6 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Lifecycle-aware {@link ForgeAttributeBridge} that conditionally loads
- * EmakiForge's optional EmakiAttribute integration.
- *
- * <p>The EmakiAttributeApi-referencing implementation is resolved reflectively,
- * so its class only loads when EmakiAttribute is enabled; EmakiForge starts
- * normally otherwise. The delegate is dropped when EmakiAttribute is disabled
- * and rebuilt (re-registering the source) when it returns, preserving the
- * previous gateway's late-provider behaviour without retaining a stale bridge.
- */
 public final class ForgeAttributeBridgeHolder implements ForgeAttributeBridge {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
@@ -27,11 +17,6 @@ public final class ForgeAttributeBridgeHolder implements ForgeAttributeBridge {
     private volatile ForgeAttributeBridge delegate = ForgeAttributeBridge.UNAVAILABLE;
     private volatile String registeredSourceId;
 
-    /**
-     * Creates the holder.
-     *
-     * @param logger logger used to report integration wiring failures
-     */
     public ForgeAttributeBridgeHolder(Logger logger) {
         this.logger = logger;
     }

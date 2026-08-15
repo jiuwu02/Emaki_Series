@@ -15,19 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Removes the target entity.
- *
- * <p>What is left of the v1 {@code killentity} once its radius / limit / type / include_players search moved
- * into the {@code nearby} source. Selecting which entities to affect was never this stage's business; now it
- * takes what the flow gives it and removes it.</p>
- *
- * <p>A player target is refused. {@code Entity#remove} on a player is not a supported operation, and v1's
- * {@code include_players} argument gated a search rather than the removal itself. Killing a player is
- * {@code set_health amount=0}.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: removes one entity, which its owning thread must do.</p>
- */
 public final class KillEntityStage extends BaseStage {
 
     public KillEntityStage() {

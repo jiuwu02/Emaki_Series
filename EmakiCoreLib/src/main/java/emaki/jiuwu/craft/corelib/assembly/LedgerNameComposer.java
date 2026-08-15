@@ -13,28 +13,10 @@ import net.kyori.adventure.text.Component;
 import emaki.jiuwu.craft.corelib.api.assembly.BaseNamePolicy;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 final class LedgerNameComposer {
 
     private LedgerNameComposer() {
     }
-
-
-
-
-
 
     static Component resolveBaseName(ItemStack itemStack, ItemMeta itemMeta) {
         if (ItemTextBridge.hasCustomName(itemMeta)) {
@@ -45,12 +27,6 @@ final class LedgerNameComposer {
         }
         return ItemTextBridge.effectiveName(itemStack);
     }
-
-
-
-
-
-
 
     static Component composeFromState(LocalNameState state, Component baseName) {
         if (state == null) {
@@ -76,12 +52,6 @@ final class LedgerNameComposer {
         }
         return result;
     }
-
-
-
-
-
-
 
     static Component composeFromRecords(Component baseName, List<ItemOperationEntry.NameOperationRecord> records) {
         Component current = normalize(baseName);
@@ -110,10 +80,6 @@ final class LedgerNameComposer {
         }
         return composeFromState(state, current);
     }
-
-
-
-
 
     static void writeName(ItemStack itemStack, ItemMeta itemMeta, Component name) {
         if (itemStack == null || itemStack.getType().isAir()) {

@@ -9,30 +9,11 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
-/**
- * The filter chain the v1 {@code KillEntityAction} carried inside its {@code execute}.
- *
- * <p>Extracted as a pure function over an already-collected candidate list so that the ordering and
- * truncation rules can be verified without a live world. The rules are kept verbatim: drop null and
- * dead entities, drop players unless {@code includePlayers}, keep only the requested type, order by
- * squared distance to the centre, then truncate to {@code limit}.</p>
- */
 final class NearbyFilter {
 
     private NearbyFilter() {
     }
 
-    /**
-     * Applies the filter chain.
-     *
-     * @param candidates raw candidates, typically from {@code World#getNearbyEntities}
-     * @param centre distance reference point
-     * @param type type filter, {@code null} to accept every type
-     * @param includePlayers whether player entities are eligible
-     * @param limit maximum number of results, at least one
-     * @param playersOnly when true only player entities are eligible, used by {@code nearby_players}
-     * @return the filtered, ordered and truncated result
-     */
     static List<Entity> apply(List<? extends Entity> candidates,
             Location centre,
             EntityType type,
@@ -65,8 +46,7 @@ final class NearbyFilter {
         Location location = entity.getLocation();
         if (location == null || location.getWorld() == null || centre.getWorld() == null
                 || !location.getWorld().equals(centre.getWorld())) {
-            // Sorting must stay total. A candidate in another world cannot be ordered against the centre,
-            // so it sorts last rather than throwing out of the comparator.
+
             return Double.MAX_VALUE;
         }
         return location.distanceSquared(centre);

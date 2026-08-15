@@ -44,7 +44,6 @@ public final class SourceExperienceService {
         }
     }
 
-    /** Invokes every external provider once for one gameplay trigger and applies its returned grants. */
     public void awardExtensions(Player player, String trigger, Map<String, ?> variables) {
         if (player == null || plugin.expSourceRegistry() == null) {
             return;

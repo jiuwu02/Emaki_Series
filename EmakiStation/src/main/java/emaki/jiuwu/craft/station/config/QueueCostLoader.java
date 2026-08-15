@@ -12,29 +12,11 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.station.recipe.RecipeCost;
 
-/**
- * Reads {@code queue_costs.yml} into a {@link QueueCostConfig}.
- *
- * <p>Every problem degrades to "this tier does not exist" rather than to a cheaper price. A tier with an
- * unparseable range, no price at all, or an unrecognised currency is skipped with a warning, and a fallback
- * without its mandatory {@code max_amount} guard rail is dropped entirely. The result is that a broken file
- * refuses sales instead of holding a clearance event.
- */
 public final class QueueCostLoader {
 
     private QueueCostLoader() {
     }
 
-    /**
-     * Loads the price table.
-     *
-     * @param file              the file to read
-     * @param logger            where to report problems
-     * @param reportMissingFile whether an absent or empty file should be logged; {@code false} during initial
-     *                          startup, when the bundled default has not been released yet and an absent file
-     *                          is expected
-     * @return the parsed table, or {@link QueueCostConfig#empty()} when nothing usable was found
-     */
     public static QueueCostConfig load(File file, Logger logger, boolean reportMissingFile) {
         YamlSection section = file == null ? null : YamlFiles.load(file);
         if (section == null || section.isEmpty()) {
@@ -86,8 +68,7 @@ public final class QueueCostLoader {
         }
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
-            // The guard rail is mandatory: an exponential formula loses double precision and can reach
-            // Infinity at high counts, so an uncapped fallback is refused rather than trusted.
+
             warn(logger, "queue_costs.yml fallback requires a positive max_amount guard rail;"
                     + " paid queue slots beyond the defined tiers are disabled.");
             return null;
@@ -110,16 +91,6 @@ public final class QueueCostLoader {
                 options.isEmpty() ? QueueCostConfig.Batch.defaults().options() : options);
     }
 
-    /**
-     * Reads a currency price, resolving the configured token to a provider id.
-     *
-     * <p>An unrecognised token yields no price rather than silently falling back to Vault: charging a wallet
-     * the administrator did not name is worse than refusing the sale.
-     *
-     * @param raw    the raw {@code currency} node
-     * @param logger where to report an unrecognised token
-     * @return the parsed price, or {@code null}
-     */
     private static QueueCostConfig.CurrencyCost parseCurrency(Object raw, Logger logger) {
         if (raw == null) {
             return null;
@@ -157,12 +128,6 @@ public final class QueueCostLoader {
         return count <= 0 ? null : new QueueCostConfig.ItemCost(source.trim(), count);
     }
 
-    /**
-     * Parses {@code "10-19"} or a bare {@code "10"} into inclusive bounds.
-     *
-     * @param range the configured range
-     * @return the bounds as {@code {min, max}}, or {@code null} when unusable
-     */
     private static int[] parseRange(String range) {
         if (range == null || range.isBlank()) {
             return null;

@@ -54,8 +54,7 @@ public final class EmakiItemActionService {
         if (player == null || definition == null || lines == null || lines.isEmpty()) {
             return;
         }
-        // The item travels as the typed ITEM key, which is what stages read in place of v1's
-        // weakly-typed "item_stack" attribute. The trigger stays the phase, as it was in v1.
+
         PipelineContext context = plugin.actionLines()
                 .context(player, trigger, false, placeholders(player, definition, trigger, extraPlaceholders));
         plugin.actionLines().run(lines, itemStack == null
@@ -70,15 +69,6 @@ public final class EmakiItemActionService {
         return context(player, definition, trigger, extraPlaceholders, null);
     }
 
-    /**
-     * Builds the context CoreLib's placeholder registry consumes.
-     *
-     * <p>Retained after the pipeline migration because {@code PlaceholderResolver} and
-     * {@code PlaceholderRegistry} are declared in terms of {@code ActionContext}; that subsystem keeps it
-     * as its own context type, so this is not a leftover action-executor dependency. The condition path
-     * only reaches it indirectly: {@code ConditionEvaluator} takes a text resolver, and the resolver it is
-     * handed renders through this context.</p>
-     */
     ActionContext context(Player player,
             EmakiItemDefinition definition,
             String trigger,

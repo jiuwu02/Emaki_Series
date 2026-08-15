@@ -32,8 +32,7 @@ final class ScalingCurveProcessor {
         return switch (curveType) {
             case ScalingCurveConfig.CURVE_SQRT -> factor * Math.sqrt(excess / factor);
             case ScalingCurveConfig.CURVE_PIECEWISE_LINEAR, ScalingCurveConfig.CURVE_LINEAR -> excess * factor;
-            // Unknown types land here as well. The config precheck reports them, so the fallback only has to
-            // stay predictable rather than also diagnose.
+
             default -> factor * Math.log1p(excess / factor);
         };
     }

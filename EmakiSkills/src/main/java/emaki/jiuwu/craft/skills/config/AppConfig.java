@@ -180,19 +180,6 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    /**
-     * Active trigger source settings.
-     *
-     * @param legacyDispatchCancelledEvents when {@code true}, the drop / hotbar
-     *        / interact trigger sources still dispatch skills for events that
-     *        another plugin (WorldGuard, land-claim protection, ...) already
-     *        cancelled. Defaults to {@code false}, i.e. cancelled events are
-     *        respected.
-     *        <p><strong>Temporary legacy switch.</strong> It exists only so
-     *        administrators can defer the behaviour change by one full minor
-     *        cycle, emits a deprecation warning while enabled, and is removed
-     *        in the next major release.
-     */
     public record TriggerSettings(boolean legacyDispatchCancelledEvents) {
 
         public static TriggerSettings defaults() {

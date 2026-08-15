@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.attribute.service;
 
-
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;

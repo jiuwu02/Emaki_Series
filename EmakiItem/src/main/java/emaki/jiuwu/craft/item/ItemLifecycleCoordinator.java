@@ -208,9 +208,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return;
         }
-        // The item precheck inspects files and directories rather than loader issue lists, so the gate can
-        // run right after the app config candidate is read and stop the definition loaders from touching
-        // live state at all when it is rejected.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 plugin.messageService(),
                 "item",
@@ -218,7 +216,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin.appConfigLoader()::load,
                 plugin.appConfigLoader()::overrideCurrent);
         if (gate.rejected()) {
-            // Previous AppConfig is active again and no candidate value reached a runtime service.
+
             return;
         }
         if (!reloadAllowed(allowed)) {
@@ -296,7 +294,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                             plugin.appConfigLoader()::load,
                             plugin.appConfigLoader()::overrideCurrent);
                     if (gate.rejected()) {
-                        // Aborts the stage so the apply step never runs; AppConfig is already restored.
+
                         throw new IllegalStateException("Item config precheck failed: "
                                 + String.join("; ", gate.failures()));
                     }
@@ -380,8 +378,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     public void registerServices(EmakiItemPlugin plugin) {
         closeItemSourceResolver();
-        // Owner is EmakiItem itself: the provider is revoked when EmakiItem disables, not when CoreLib
-        // reloads, because the definitions it resolves belong to this plugin's lifetime.
+
         itemSourceResolverRegistration = plugin.itemSourceService()
                 .registerProvider(plugin, new EmakiItemSourceResolver(plugin.itemApi()));
     }

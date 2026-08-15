@@ -27,10 +27,6 @@ import emaki.jiuwu.craft.item.model.ItemSetMembership;
 import emaki.jiuwu.craft.item.model.ItemSetPieceDefinition;
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
 
-/**
- * 套装服务门面：对外签名不变，内部把「套装计算」委托给 {@link ItemSetPresentationCalculator}，
- * 把「监听域刷新」委托给 {@link ItemSetListenerScopeRefresher}。
- */
 public final class EmakiItemSetService {
 
     @SuppressWarnings({"unused", "FieldCanBeLocal"})

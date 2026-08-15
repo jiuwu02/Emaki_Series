@@ -31,37 +31,14 @@ import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector.ComponentValueParseResult;
 
-/**
- * Adds, modifies or removes a data component on an item.
- *
- * <p>Replaces the legacy {@code ItemComponentAction}, and the place where this module's item-target guessing
- * ends. v1 walked a fallback chain of seven weakly-typed context keys ({@code item}, {@code itemStack},
- * {@code item_stack}, {@code resultItem}, {@code result_item}, {@code targetItem}, {@code target_item}) looking
- * for something that happened to be an {@code ItemStack}. Four of those keys had no writer anywhere in the
- * repository. This stage reads exactly two sources instead:</p>
- * <ol>
- *   <li>an explicit {@code slot} argument, which names an inventory slot on the target;</li>
- *   <li>{@link CoreActionKeys#ITEM}, the typed pipeline key.</li>
- * </ol>
- *
- * <p>With neither present it falls back to the target's main hand, as v1 did. The gain is that a missing item
- * is now a load-time contract question rather than a silent walk down a chain of guesses.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: the slot path and the main-hand fallback both write one player's
- * inventory.</p>
- */
 public final class ItemComponentStage implements CoreActionStage {
 
-    /** Which component mutation a stage instance performs. */
     public enum Operation {
 
-        /** Set a component that is not present yet. */
         ADD("item_component_add", "Adds a data component to the target item."),
 
-        /** Overwrite a component that is already present. */
         MODIFY("item_component_modify", "Modifies a data component on the target item."),
 
-        /** Unset a component. */
         REMOVE("item_component_remove", "Removes a data component from the target item.");
 
         private final String id;
@@ -72,7 +49,6 @@ public final class ItemComponentStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -81,12 +57,6 @@ public final class ItemComponentStage implements CoreActionStage {
     private final ItemComponentInspector inspector;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param inspector resolves component ids and parses component values
-     * @param operation which mutation this instance performs
-     */
     public ItemComponentStage(ItemComponentInspector inspector, @NotNull Operation operation) {
         this.inspector = inspector;
         this.operation = operation;
@@ -122,23 +92,11 @@ public final class ItemComponentStage implements CoreActionStage {
                         "Inventory slot; empty uses the pipeline item or the main hand"));
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code OPTIONAL} because the pipeline item key alone is enough to run: a flow that produced an item
-     * without a player subject can still patch it.</p>
-     */
     @Override
     public @NotNull CoreTargetRequirement targetRequirement() {
         return CoreTargetRequirement.OPTIONAL;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Not declared as a hard requirement: the key is one of three ways to find the item, so demanding it
-     * would reject the slot and main-hand forms at load time.</p>
-     */
     @Override
     public @NotNull Set<CoreActionKey<?>> requiredContext() {
         return Set.of();
@@ -216,13 +174,6 @@ public final class ItemComponentStage implements CoreActionStage {
         }
     }
 
-    /**
-     * Enforces the add/modify/remove precondition.
-     *
-     * <p>{@code null} means the precondition holds and the patch may proceed. Adding over an existing component
-     * and modifying a missing one are both refused rather than silently corrected, because either would hide a
-     * configuration mistake behind a working-looking result.</p>
-     */
     private CoreActionOutcome checkExistence(boolean existedBefore) {
         return switch (operation) {
             case ADD -> existedBefore
@@ -252,12 +203,6 @@ public final class ItemComponentStage implements CoreActionStage {
                 Map.of("issues", result.issues().stream().map(ItemBuildIssue::message).toList()));
     }
 
-    /**
-     * Finds the item to patch.
-     *
-     * <p>Order is explicit-slot, then the typed pipeline key, then the target's main hand. An explicit slot
-     * wins over the pipeline item because naming a slot is a deliberate instruction, not a fallback.</p>
-     */
     private Target resolveTarget(CoreStageContext context, CoreResolvedArguments arguments) {
         Player player = player(context.currentTarget());
         String rawSlot = arguments.getString("slot", "");
@@ -272,7 +217,6 @@ public final class ItemComponentStage implements CoreActionStage {
         return player == null ? null : new SlotTarget(player, StageSupport.slot("mainhand", "mainhand"));
     }
 
-    /** Where the patched item lives, and how to write it back. */
     private interface Target {
 
         String id();
@@ -282,7 +226,6 @@ public final class ItemComponentStage implements CoreActionStage {
         void commit(ItemStack itemStack);
     }
 
-    /** An inventory slot on a player. */
     private record SlotTarget(Player player, StageSupport.Slot slot) implements Target {
 
         @Override
@@ -301,13 +244,6 @@ public final class ItemComponentStage implements CoreActionStage {
         }
     }
 
-    /**
-     * The item the pipeline is carrying.
-     *
-     * <p>Patched in place: the stack came from the pipeline context, and whoever put it there holds the
-     * reference that later stages will read, so replacing it would leave them looking at the unpatched
-     * copy.</p>
-     */
     private record PipelineTarget(ItemStack original) implements Target {
 
         @Override

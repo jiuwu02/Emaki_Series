@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
-/** Removes money from the target's balance. See {@link MoneyStage} for the shared contract. */
 public final class TakeMoneyStage extends MoneyStage {
 
     public TakeMoneyStage(EconomyManager economyManager) {

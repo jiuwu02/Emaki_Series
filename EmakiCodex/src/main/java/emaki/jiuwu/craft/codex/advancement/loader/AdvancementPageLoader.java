@@ -18,10 +18,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
-
-
-
 public final class AdvancementPageLoader extends YamlDirectoryLoader<AdvancementPage> {
 
     public AdvancementPageLoader(JavaPlugin plugin) {

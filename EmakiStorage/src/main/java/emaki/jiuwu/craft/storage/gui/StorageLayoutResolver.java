@@ -14,34 +14,12 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 
-/**
- * Turns {@code gui.storage_rows} into a concrete template.
- *
- * <p>The template file deliberately does not hard-code slot numbers. CoreLib's parser treats
- * {@code slots} as absolute inventory indices, so changing the row count would leave the function
- * row stranded in the middle of the window. Instead the function row declares an in-row
- * {@code offset} (0–8) and this resolver converts it:
- *
- * <pre>
- * storageRows  = clamp(gui.storage_rows, 1, 5)
- * totalRows    = storageRows + 1          // function row always owns the last row
- * functionBase = storageRows * 9
- * display      = 0 .. functionBase - 1
- * function     = functionBase + offset
- * </pre>
- *
- * <p>{@code totalRows} therefore peaks at 6, which already sits inside CoreLib's {@code 1..6}
- * clamp, so no CoreLib row constraint has to change.
- */
 public final class StorageLayoutResolver {
 
-    /** Template id loaded from {@code gui/storage_gui.yml}. */
     public static final String TEMPLATE_ID = "storage_gui";
 
-    /** Slot type for the display area. */
     public static final String TYPE_STORAGE_SLOT = "storage_slot";
 
-    /** Slot type for the fixed deposit port. */
     public static final String TYPE_DEPOSIT_SLOT = "deposit_slot";
 
     public static final String TYPE_PAGE_PREV = "page_prev";
@@ -58,13 +36,6 @@ public final class StorageLayoutResolver {
     private static final String STORAGE_SLOT_KEY = "storage_slot";
     private static final String FUNCTION_SLOTS_KEY = "slots";
 
-    /**
-     * The resolved layout.
-     *
-     * @param template     the rebuilt template with absolute slot numbers
-     * @param storageRows  the clamped display row count
-     * @param slotsPerPage how many entries one page shows
-     */
     public record Layout(GuiTemplate template, int storageRows, int slotsPerPage) {
 
         public int totalRows() {
@@ -82,12 +53,6 @@ public final class StorageLayoutResolver {
         this.logger = logger;
     }
 
-    /**
-     * Clamps the configured row count, warning rather than silently accepting an illegal value.
-     *
-     * @param configuredRows the raw {@code gui.storage_rows} value
-     * @return the clamped row count in {@code 1..5}
-     */
     public int clampRows(int configuredRows) {
         if (configuredRows > MAX_ROWS) {
             logger.warning("[storage] gui.storage_rows=" + configuredRows
@@ -103,13 +68,6 @@ public final class StorageLayoutResolver {
         return configuredRows;
     }
 
-    /**
-     * Resolves the template for the configured row count.
-     *
-     * @param loader         the module's template loader, already loaded
-     * @param configuredRows the raw {@code gui.storage_rows} value
-     * @return the resolved layout, or {@code null} when the template is missing or unusable
-     */
     public Layout resolve(GuiTemplateLoader loader, int configuredRows) {
         var entry = loader.entry(TEMPLATE_ID);
         if (entry == null || entry.configuration() == null) {
@@ -183,13 +141,6 @@ public final class StorageLayoutResolver {
                 prototype.itemDefinition(), prototype.sounds());
     }
 
-    /**
-     * Reads the in-row offset of a function entry.
-     *
-     * <p>Only the explicit {@code offset} key is accepted. The {@code slots} key present in the
-     * template is a placeholder that keeps the shared parser happy and is overwritten here, so it
-     * must never be mistaken for a real position.
-     */
     private Integer readOffset(Object raw) {
         Object value = ConfigNodes.get(raw, "offset");
         int offset;

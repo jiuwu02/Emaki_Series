@@ -160,8 +160,7 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public void setCancelled(boolean cancelled) {
-        // Managed packet clicks are cancelled before entity-thread dispatch. The
-        // authoritative WindowItems response determines the visible result.
+
     }
 
     private ItemStack playerSlotItem(int rawSlot) {

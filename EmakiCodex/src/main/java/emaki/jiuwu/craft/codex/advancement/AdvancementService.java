@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** Central mutation path for every EmakiCodex grant and revoke. */
 public final class AdvancementService {
 
     private final EmakiCodexPlugin plugin;

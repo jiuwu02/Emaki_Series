@@ -15,25 +15,10 @@ import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.api.model.ProgressMode;
 import emaki.jiuwu.craft.station.config.QueueSettings;
 
-/**
- * Loads {@code stations/*.yml} into {@link StationDefinition}s.
- *
- * <p>Every station inherits the global queue defaults and overrides only the keys it declares, so an
- * administrator can retune all stations from {@code config.yml} without editing each file.
- *
- * <p>A station with both material channels disabled is rejected: it could be opened but never used, and
- * failing at load time with a clear reason is more useful than an inert GUI.
- */
 public final class StationLoader extends YamlDirectoryLoader<StationDefinition> {
 
     private final QueueSettings globalQueueDefaults;
 
-    /**
-     * Creates the loader.
-     *
-     * @param plugin              the owning plugin
-     * @param globalQueueDefaults the queue defaults from {@code config.yml}
-     */
     public StationLoader(JavaPlugin plugin, QueueSettings globalQueueDefaults) {
         super(plugin);
         this.globalQueueDefaults = globalQueueDefaults == null

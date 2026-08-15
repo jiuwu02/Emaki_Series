@@ -21,25 +21,12 @@ import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 
-/**
- * Sets or upgrades one of the target's skill levels.
- *
- * <p>Replaces the legacy {@code SkillLevelAction}, which registered {@code skill_setlevel} and
- * {@code skill_upgrade}. Both ids gain the {@code skill_} prefix plus underscore separators to match the
- * other modules' stage naming, so {@code skill_setlevel} becomes {@code skill_set_level}.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's skill record, and upgrading additionally
- * charges that player's currencies and inventory materials.</p>
- */
 public final class SkillLevelStage implements CoreActionStage {
 
-    /** Which level mutation a stage instance performs. */
     public enum Operation {
 
-        /** Write the level directly, ignoring upgrade costs and success rolls. */
         SET_LEVEL("skill_set_level", "Sets one of the target's skill levels directly."),
 
-        /** Run the upgrade service, which charges costs and rolls for success. */
         UPGRADE("skill_upgrade", "Upgrades one of the target's skills through the upgrade service.");
 
         private final String id;
@@ -50,7 +37,6 @@ public final class SkillLevelStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -59,12 +45,6 @@ public final class SkillLevelStage implements CoreActionStage {
     private final EmakiSkillsPlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the skill services
-     * @param operation which mutation this instance performs
-     */
     public SkillLevelStage(@NotNull EmakiSkillsPlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;
@@ -135,8 +115,7 @@ public final class SkillLevelStage implements CoreActionStage {
             return SkillsStageSupport.serviceUnavailable();
         }
         int oldLevel = plugin.skillLevelService().currentLevel(target, definition);
-        // v1 fell back to the current level when `level` could not be parsed, which makes an unreadable
-        // value a no-op instead of a reset to zero.
+
         int newLevel = plugin.skillLevelService().setLevel(target, definition,
                 arguments.getInt("level", oldLevel));
         plugin.playerSkillDataStore().save(target);
@@ -152,9 +131,7 @@ public final class SkillLevelStage implements CoreActionStage {
         }
         SkillUpgradeService.UpgradeResult result = plugin.skillUpgradeService().upgrade(target, skillId);
         if (!result.success()) {
-            // REJECTED rather than INTERNAL_ERROR: the upgrade service declined by its own rules, such as
-            // an insufficient balance or an already maxed skill. Its message key is passed through so the
-            // existing player-facing text still applies.
+
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
                     "action.stage.skills.upgrade_failed",
                     Map.of("reason", Texts.toStringSafe(result.messageKey())));

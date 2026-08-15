@@ -18,18 +18,6 @@ public final class GuiItemBuilder {
     private GuiItemBuilder() {
     }
 
-    /**
-     * Builds a slot item, preferring the template's own configured components and falling back to the
-     * caller's name/lore when the template styled nothing.
-     *
-     * @param slot         the parsed template slot; may be {@code null}
-     * @param fallbackItem the item source to use when the slot declares none
-     * @param fallbackName the display name to use when the slot configured no components
-     * @param fallbackLore the lore to use when the slot configured no components
-     * @param replacements          the placeholder replacements applied to the resolved definition
-     * @param configuredItemService the service resolving item sources and applying component patches
-     * @return the built stack, or a barrier when the definition cannot be resolved
-     */
     public static ItemStack build(GuiSlot slot,
             String fallbackItem,
             String fallbackName,
@@ -40,15 +28,6 @@ public final class GuiItemBuilder {
         return build(definition, replacements, configuredItemService);
     }
 
-    /**
-     * {@return the slot's own definition when it configured components, otherwise a definition built
-     * from the supplied fallback name and lore}
-     *
-     * @param slot         the parsed template slot; may be {@code null}
-     * @param fallbackItem the item source to use when the slot declares none
-     * @param fallbackName the display name used only when the slot configured no components
-     * @param fallbackLore the lore used only when the slot configured no components
-     */
     public static ConfiguredItemDefinition definitionFor(GuiSlot slot,
             String fallbackItem,
             String fallbackName,

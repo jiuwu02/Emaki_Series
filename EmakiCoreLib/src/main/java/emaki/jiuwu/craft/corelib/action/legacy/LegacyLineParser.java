@@ -7,27 +7,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Tokenises and parses old-syntax action lines.
- *
- * <p>Moved here verbatim from the removed v1 action package. The converter needs to read the old form to
- * rewrite it, so this parser has to outlive the engine it was written for; keeping it package-private to
- * the migration means the rest of the runtime cannot accidentally start depending on old syntax again.</p>
- *
- * <p>Behaviour is unchanged from v1 on purpose. Its quoting and {@code @prefix} rules are exactly what
- * existing configuration was written against, so a "fix" here would change which lines the migration can
- * read.</p>
- */
 final class LegacyLineParser {
 
-    /**
-     * Parses one line.
-     *
-     * @param lineNumber one-based line number, used in diagnostics
-     * @param rawLine the text
-     * @return the parsed line, or {@code null} when the text is blank or a comment
-     * @throws LegacySyntaxException when the text is not valid old syntax
-     */
     LegacyParsedActionLine parse(int lineNumber, String rawLine) throws LegacySyntaxException {
         String raw = rawLine == null ? "" : rawLine;
         String trimmed = raw.trim();
@@ -97,8 +78,7 @@ final class LegacyLineParser {
         if (actionId == null) {
             throw new LegacySyntaxException(lineNumber, raw, "Missing action id.");
         }
-        // Map.copyOf loses insertion order. Kept as-is to stay faithful to v1; the converter recovers
-        // argument order from the original text instead.
+
         return new LegacyParsedActionLine(lineNumber, raw, actionId, Map.copyOf(arguments),
                 new LegacyLineControl(condition, chance, delay, ignoreFailure));
     }

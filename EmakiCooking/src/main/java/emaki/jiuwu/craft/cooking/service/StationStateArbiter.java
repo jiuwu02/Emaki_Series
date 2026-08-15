@@ -4,9 +4,6 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StoredState;
 
-
-
-
 final class StationStateArbiter {
 
     private final StationStateVersionLedger versionLedger = new StationStateVersionLedger();

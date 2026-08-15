@@ -4,21 +4,9 @@ import java.util.Locale;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
-
-
-
-
 public enum TemporaryStackMode {
 
-
-
-
     REPLACE,
-
-
-
-
 
     STACK;
 

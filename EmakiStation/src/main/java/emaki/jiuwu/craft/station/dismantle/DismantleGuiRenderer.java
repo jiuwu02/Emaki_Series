@@ -20,32 +20,12 @@ import emaki.jiuwu.craft.station.gui.AmountDisplay;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationSlotType;
 
-/**
- * Draws the dismantle page for one station.
- *
- * <p>Slot types handled:
- * <ul>
- *   <li>{@link StationSlotType#DISMANTLE_INPUT} — shows the recipe's required input item</li>
- *   <li>{@link StationSlotType#DISMANTLE_ITEM_DISPLAY} — alias for input display</li>
- *   <li>{@link StationSlotType#DISMANTLE_ROLLS_DISPLAY} — shows roll count range</li>
- *   <li>{@link StationSlotType#DISMANTLE_OUTPUT_LIST} — lists possible pool entries or rolled results</li>
- *   <li>{@link StationSlotType#DISMANTLE_CONFIRM} — the dismantle button</li>
- *   <li>Shared page controls (PREV_PAGE / NEXT_PAGE / PAGE_INFO) paging through the pool/results</li>
- * </ul>
- */
 public final class DismantleGuiRenderer {
 
     private final ItemSourceService itemSourceService;
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
 
-    /**
-     * Creates the renderer.
-     *
-     * @param itemSourceService   CoreLib's item-source service, used to build item icons
-     * @param itemServiceSupplier supplies CoreLib's configured-item service
-     * @param guiSupport          reads the layout's virtual items and texts
-     */
     public DismantleGuiRenderer(ItemSourceService itemSourceService,
             Supplier<ConfiguredItemService> itemServiceSupplier,
             ConfiguredGuiSupport guiSupport) {
@@ -54,13 +34,6 @@ public final class DismantleGuiRenderer {
         this.guiSupport = guiSupport;
     }
 
-    /**
-     * Renders one dismantle slot.
-     *
-     * @param state        the viewer's dismantle state
-     * @param resolvedSlot the slot being rendered
-     * @return the stack to place, or {@code null} to fall back to the layout definition
-     */
     public ItemStack render(DismantleViewState state, GuiTemplate.ResolvedSlot resolvedSlot) {
         if (state == null || resolvedSlot == null || resolvedSlot.definition() == null) {
             return null;
@@ -83,12 +56,6 @@ public final class DismantleGuiRenderer {
         };
     }
 
-    /**
-     * Builds the title placeholders for a dismantle window.
-     *
-     * @param state the viewer's dismantle state
-     * @return the substitutions
-     */
     public Map<String, Object> titleReplacements(DismantleViewState state) {
         DismantleRecipeDefinition recipe = state.selectedRecipe();
         Map<String, Object> values = new LinkedHashMap<>();
@@ -135,7 +102,7 @@ public final class DismantleGuiRenderer {
         if (recipe == null) {
             return null;
         }
-        // After a roll: show actual rolled outputs. Before roll: show pool entries.
+
         if (state.hasRolled()) {
             return renderRolledOutput(state, slot, resolvedSlot);
         }
@@ -198,7 +165,7 @@ public final class DismantleGuiRenderer {
             return null;
         }
         if (state.hasRolled()) {
-            // Already rolled: show claim button
+
             Map<String, Object> values = new LinkedHashMap<>();
             values.put("recipe_name", recipe.displayName());
             values.put("output_count", String.valueOf(state.rolledOutputs().size()));

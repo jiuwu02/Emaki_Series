@@ -29,17 +29,6 @@ import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-
-
-
-
-
-
-
-
-
-
-
 public final class NutritionService {
 
     public enum FoodApplyStatus {
@@ -70,7 +59,6 @@ public final class NutritionService {
     private final PlayerNutritionDataStore dataStore;
     private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
-
 
     private final Map<UUID, Set<String>> metSingleKeys = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> metComboKeys = new ConcurrentHashMap<>();
@@ -109,9 +97,6 @@ public final class NutritionService {
         return dataStore;
     }
 
-
-
-
     public void reload() {
         this.enabled = settingsService.nutritionEnabled();
         this.foodSources = settingsService.nutritionFoodSources();
@@ -131,8 +116,6 @@ public final class NutritionService {
     public void shutdown() {
         cancelSaveTask();
     }
-
-
 
     public double value(UUID uuid, String typeId) {
         NutritionTypeConfig type = typeRegistry.type(typeId).orElse(null);
@@ -181,13 +164,6 @@ public final class NutritionService {
         }
         return result;
     }
-
-
-
-
-
-
-
 
     public boolean applyFood(Player player, ItemStack itemStack) {
         return applyFoodDetailed(player, itemStack).applied();
@@ -260,8 +236,6 @@ public final class NutritionService {
         return false;
     }
 
-
-
     public boolean recheckThresholds(Player player) {
         if (!enabled || player == null) {
             return false;
@@ -278,8 +252,7 @@ public final class NutritionService {
         if (player == null) {
             return;
         }
-        // Threshold evaluation runs action lines and fires Bukkit events against the player,
-        // so it must happen on the thread that owns this player entity.
+
         if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             evaluateCachedThresholds(player);
             return;
@@ -395,8 +368,6 @@ public final class NutritionService {
                 player, kind, ruleId, typeId, met, value, threshold, matchedCount, requiredCount));
     }
 
-
-
     private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase,
             Map<String, Object> extra) {
         if (actions == null || actions.isEmpty()) {
@@ -404,14 +375,11 @@ public final class NutritionService {
         }
         Map<String, Object> placeholders = nutritionPlaceholders(data);
         if (extra != null && !extra.isEmpty()) {
-            // Threshold-specific keys are merged last so they win over the per-type snapshot, matching v1.
+
             placeholders.putAll(extra);
         }
         plugin.actionLines().run(actions, player, phase, false, placeholders, false);
     }
-
-
-
 
     public Map<String, Object> nutritionPlaceholders(PlayerNutritionData data) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
@@ -439,9 +407,6 @@ public final class NutritionService {
         placeholders.put("nutrition_threshold", formatValue(threshold));
         return placeholders;
     }
-
-
-
 
     public int comboCount(UUID uuid, NutritionComboThreshold rule) {
         if (uuid == null || rule == null) {
@@ -471,8 +436,6 @@ public final class NutritionService {
         }
         return Texts.toStringSafe(value);
     }
-
-
 
     private void restartSaveTask() {
         cancelSaveTask();

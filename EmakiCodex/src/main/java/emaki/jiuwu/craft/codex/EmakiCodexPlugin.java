@@ -45,10 +45,6 @@ import emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 
-
-
-
-
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
@@ -90,8 +86,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DebugCommand debugCommand;
     private CodexStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
-    // "Data is loaded", not "components exist": the runtime components are non-null from initialize()
-    // onward, so a component null-check reported ready for the whole duration of a reload.
+
     private volatile boolean contentReady;
 
     private final EmakiCodexApi.Bridge apiBridge =
@@ -113,7 +108,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
-        // Registered before the first reload because that reload is now gated on this contributor.
+
         registerConfigPrecheckContributor();
         reloadPluginState();
         registerCommandHandler();
@@ -148,23 +143,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         publishReady();
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the components
-     * were constructed". The components are non-null from {@code initialize} onward, so gating on them
-     * alone reported ready throughout a reload.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
-     * leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -177,11 +159,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -220,7 +197,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         stageRegistrar.register();
     }
 
-    /** {@return the pipeline stage registrar, or {@code null} before actions are registered} */
     public CodexStageRegistrar stageRegistrar() {
         return stageRegistrar;
     }
@@ -279,12 +255,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }

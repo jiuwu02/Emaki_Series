@@ -234,7 +234,7 @@ final class SteamerTickProcessor {
                 "cooking_steamer_complete",
                 placeholders,
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         return accepted;

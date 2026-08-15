@@ -12,22 +12,8 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.station.api.model.OutputRouting;
 
-/**
- * Loads {@code stations_dismantle/*.yml} into {@link DismantleStationDefinition}s.
- *
- * <p>Dismantle stations live in their own directory so a server can run dismantling without
- * declaring a crafting station, and so the two page sets can be retuned independently.
- *
- * <p>A file without an id is skipped with a recorded issue instead of aborting the directory: one
- * bad station must not cost an administrator every other one.
- */
 public final class DismantleStationLoader extends YamlDirectoryLoader<DismantleStationDefinition> {
 
-    /**
-     * Creates the loader.
-     *
-     * @param plugin the owning plugin
-     */
     public DismantleStationLoader(JavaPlugin plugin) {
         super(plugin);
     }

@@ -22,26 +22,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Grants, replaces or withdraws a timed attribute modifier on the target.
- *
- * <p>{@code add} stacks onto an existing effect of the same id while {@code set} replaces it, which is why
- * they are separate stages rather than one with a mode argument.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's temporary modifier table.</p>
- */
 public final class TemporaryAttributeStage implements CoreActionStage {
 
-    /** Which modifier mutation a stage instance performs. */
     public enum Operation {
 
-        /** Stack onto an existing effect of the same id. */
         ADD("attribute_add", "Adds a timed attribute modifier to the target."),
 
-        /** Replace any existing effect of the same id. */
         SET("attribute_set", "Sets a timed attribute modifier on the target."),
 
-        /** Withdraw an effect by id. */
         REMOVE("attribute_remove", "Removes a timed attribute modifier from the target.");
 
         private final String id;
@@ -52,7 +40,6 @@ public final class TemporaryAttributeStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -61,12 +48,6 @@ public final class TemporaryAttributeStage implements CoreActionStage {
     private final AttributeServiceFacade attributeService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param attributeService the module's service facade
-     * @param operation which mutation this instance performs
-     */
     public TemporaryAttributeStage(@NotNull AttributeServiceFacade attributeService,
             @NotNull Operation operation) {
         this.attributeService = attributeService;

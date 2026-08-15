@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.storage.log;
 
 import java.util.Locale;
 
-/** Which surface triggered a storage operation. */
 public enum StorageOperationSource {
 
     GUI("gui"),
@@ -17,7 +16,6 @@ public enum StorageOperationSource {
         this.id = id;
     }
 
-    /** {@return the stable lower-case id written to the log and matched against config} */
     public String id() {
         return id;
     }

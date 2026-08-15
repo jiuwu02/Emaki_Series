@@ -20,14 +20,6 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/**
- * Builds an item from a source and gives it to the target, dropping any overflow.
- *
- * <p>The v1 aliases {@code source} / {@code item} / {@code item_source} are collapsed into {@code item_source};
- * the legacy converter rewrites existing configuration.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's inventory and may drop at their feet.</p>
- */
 public final class GiveItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;

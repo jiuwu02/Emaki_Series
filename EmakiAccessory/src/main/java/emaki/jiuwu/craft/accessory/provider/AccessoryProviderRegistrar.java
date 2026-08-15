@@ -10,16 +10,6 @@ import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistratio
 import emaki.jiuwu.craft.skills.api.EmakiSkillsApi;
 import emaki.jiuwu.craft.skills.api.SkillSourceRegistration;
 
-/**
- * Registers and revokes the two contribution providers.
- *
- * <p>Registration is skipped when the host plugin is absent, which is the whole degradation story: with
- * neither EmakiAttribute nor EmakiSkills installed the module remains a working container that stores
- * items and grants nothing. Nothing else in the module has to test for their presence.
- *
- * <p>Both handles are closed on disable. Closing is idempotent and a superseded handle never removes its
- * replacement, so a reload that re-registers cannot leave the host pointing at a dead provider.
- */
 public final class AccessoryProviderRegistrar {
 
     private final Plugin plugin;
@@ -29,13 +19,6 @@ public final class AccessoryProviderRegistrar {
     private ContributionProviderRegistration attributeRegistration;
     private SkillSourceRegistration skillRegistration;
 
-    /**
-     * Creates the registrar.
-     *
-     * @param plugin              the owning plugin, used as the registration owner
-     * @param contributionService the snapshot cache both providers read
-     * @param logger              receives provider failure reports
-     */
     public AccessoryProviderRegistrar(Plugin plugin,
             AccessoryContributionService contributionService,
             Logger logger) {
@@ -44,17 +27,14 @@ public final class AccessoryProviderRegistrar {
         this.logger = logger;
     }
 
-    /** {@return whether the attribute provider is currently registered} */
     public boolean attributeRegistered() {
         return attributeRegistration != null;
     }
 
-    /** {@return whether the skill provider is currently registered} */
     public boolean skillRegistered() {
         return skillRegistration != null;
     }
 
-    /** Registers both providers with whichever hosts are installed. */
     public void register() {
         if (attributeRegistration == null && EmakiAttributeApi.status().usable()) {
             attributeRegistration = EmakiAttributeApi.extensions().registerContributionProvider(
@@ -66,7 +46,6 @@ public final class AccessoryProviderRegistrar {
         }
     }
 
-    /** Revokes both registrations. */
     public void unregister() {
         if (attributeRegistration != null) {
             attributeRegistration.close();

@@ -49,10 +49,6 @@ import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentat
 import emaki.jiuwu.craft.item.service.ItemSetPresentationCalculator.SetPresentationTarget;
 import emaki.jiuwu.craft.item.api.event.ItemSetBonusChangeEvent;
 
-/**
- * 监听域刷新职责：决定刷新范围、扫描槽位、维护玩家维度缓存、把计算结果写回背包并派发
- * 套装变更事件。所有单物品展示计算委托给 {@link ItemSetPresentationCalculator}。
- */
 final class ItemSetListenerScopeRefresher {
 
     private final EmakiItemLoader itemLoader;

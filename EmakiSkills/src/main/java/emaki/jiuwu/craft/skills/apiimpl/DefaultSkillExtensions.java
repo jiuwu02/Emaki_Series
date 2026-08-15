@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.skills.api.SkillExtensions;
 import emaki.jiuwu.craft.skills.api.SkillSourceProvider;
 import emaki.jiuwu.craft.skills.api.SkillSourceRegistration;
 
-/** Runtime extension layer backed by owner-scoped registries. */
 public final class DefaultSkillExtensions implements SkillExtensions {
 
     private final EmakiSkillsPlugin plugin;

@@ -16,13 +16,6 @@ import emaki.jiuwu.craft.station.api.model.MaterialChannel;
 import emaki.jiuwu.craft.station.api.model.SubmitOutcome;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 
-/**
- * Operation layer for third-party callers.
- *
- * <p>Only the warehouse channel is reachable through the API. The inventory channel's materials live in a GUI
- * session's input slots, which only the owning player's own window can supply, so exposing it here would mean
- * inventing materials the player never placed.
- */
 final class DefaultStationOperations implements StationOperations {
 
     private final EmakiStationPlugin plugin;
@@ -44,10 +37,7 @@ final class DefaultStationOperations implements StationOperations {
         if (!plugin.contentReady()) {
             return CompletableFuture.completedFuture(EmakiResult.unavailable());
         }
-        // The channel argument no longer selects anything. Materials come from one merged pool spanning the
-        // player's inventory and their warehouse, so a caller cannot meaningfully ask for one side. The
-        // parameter is kept for source compatibility and ignored; BACKPACK used to be refused outright with
-        // station.api_backpack_unsupported, and that refusal no longer happens.
+
         return plugin.craftService().submitAsync(playerId, stationId, recipeId, batch);
     }
 
@@ -61,8 +51,7 @@ final class DefaultStationOperations implements StationOperations {
         if (player == null || !player.isOnline()) {
             return CompletableFuture.completedFuture(EmakiResult.targetOffline());
         }
-        // Ahead of the registry lookup: mid-reload the station is momentarily absent, and reporting that
-        // as notFound would tell the caller the station does not exist rather than "retry shortly".
+
         if (!plugin.contentReady()) {
             return CompletableFuture.completedFuture(EmakiResult.unavailable());
         }
@@ -93,8 +82,7 @@ final class DefaultStationOperations implements StationOperations {
         if (player == null || !player.isOnline()) {
             return CompletableFuture.completedFuture(EmakiResult.targetOffline());
         }
-        // Claiming resolves deliverable entries against the live registry, so an empty registry would
-        // silently report "nothing to claim" instead of refusing.
+
         if (!plugin.contentReady()) {
             return CompletableFuture.completedFuture(EmakiResult.unavailable());
         }

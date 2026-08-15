@@ -7,12 +7,6 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
-/**
- * Registers this module's pipeline stages into EmakiCoreLib's single stage registry.
- *
- * <p>Registration is replayed after a CoreLib reload, which rebuilds the stage table; without the rebuild
- * callback these stages would disappear the first time a server owner reloaded.</p>
- */
 public final class GemStageRegistrar {
 
     private final EmakiGemPlugin plugin;
@@ -22,7 +16,6 @@ public final class GemStageRegistrar {
         this.plugin = plugin;
     }
 
-    /** Registers every stage and asks to be replayed on reload. Safe to call twice. */
     public void register() {
         closeHandles();
         for (GemHeldItemStage.Operation operation : GemHeldItemStage.Operation.values()) {
@@ -38,7 +31,6 @@ public final class GemStageRegistrar {
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);
     }
 
-    /** Revokes every stage this registrar installed. */
     public void unregister() {
         closeHandles();
     }

@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.gem.service.GemGuiMode;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-/** Runtime-backed gem operations. */
 public final class DefaultGemOperations implements GemOperations {
 
     private final EmakiGemPlugin plugin;

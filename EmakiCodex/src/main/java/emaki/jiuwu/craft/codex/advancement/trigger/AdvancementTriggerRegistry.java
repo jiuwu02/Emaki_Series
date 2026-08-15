@@ -22,7 +22,6 @@ import emaki.jiuwu.craft.codex.api.AdvancementTrigger;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerContext;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerRegistration;
 
-/** Owner-scoped registry for external gameplay-to-advancement trigger providers. */
 public final class AdvancementTriggerRegistry implements Listener, AutoCloseable {
 
     private final Plugin plugin;
@@ -52,7 +51,6 @@ public final class AdvancementTriggerRegistry implements Listener, AutoCloseable
         return new RegistrationHandle(this, key, trigger, currentGeneration);
     }
 
-    /** Evaluates active providers once and returns de-duplicated advancement ids in provider order. */
     public Set<String> dispatch(AdvancementTriggerContext context) {
         if (context == null) {
             return Set.of();

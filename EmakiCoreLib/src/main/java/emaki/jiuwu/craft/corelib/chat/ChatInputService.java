@@ -23,19 +23,6 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
 
-/**
- * 共享的聊天输入等待服务：让玩家在 GUI 之外通过聊天框提交一个值。
- *
- * <p>与 {@code GuiService} 同一模式——CoreLib 只提供类，业务插件各自
- * {@code new ChatInputService(...)} 并 {@code registerEvents} 为自己的监听器，
- * 停用时调用 {@link #close()}。CoreLib 不持有共享实例，pending 状态随各插件自身释放。</p>
- *
- * <p>提示文案由调用方自行发送；本服务只负责机制。</p>
- *
- * <p>{@code AsyncChatEvent} 在异步线程触发，因此 pending 表为并发表，
- * 回调统一调度回玩家的 entity owner 线程；仅当该线程已不可调度时才就地执行。
- * 提交/取消/超时/退出/被顶替五条路径共用同一个 CAS，保证回调恰好一次。</p>
- */
 public final class ChatInputService implements Listener {
 
     private final Plugin owner;
@@ -47,12 +34,6 @@ public final class ChatInputService implements Listener {
         this.executionDispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
     }
 
-    /**
-     * 注册一次性输入等待。同一玩家重复注册时，旧 pending 先以
-     * {@link ChatInputResult.Status#CANCELLED} 结束。
-     *
-     * @return 本次 pending 的句柄；若超时任务无法调度，pending 已以 CANCELLED 结束且句柄不再活动
-     */
     public ChatInputHandle await(ChatInputRequest request) {
         Objects.requireNonNull(request, "request");
         Player player = request.player();
@@ -70,11 +51,6 @@ public final class ChatInputService implements Listener {
         return new ChatInputHandle(this, input);
     }
 
-    /**
-     * 撤销该玩家当前的 pending，回调以 {@link ChatInputResult.Status#CANCELLED} 结束。
-     *
-     * @return 是否确实撤销了一个 pending
-     */
     public boolean cancel(Player player) {
         if (player == null) {
             return false;
@@ -87,12 +63,6 @@ public final class ChatInputService implements Listener {
         return finish(input, ChatInputResult.cancelled(), true);
     }
 
-    /**
-     * 停用时清理全部 pending，各自以 {@link ChatInputResult.Status#CANCELLED} 结束。
-     *
-     * <p>停用阶段已无法再调度任务，因此回调在调用线程就地执行；
-     * 处理 {@code CANCELLED} 的回调分支不应访问 Bukkit 状态。</p>
-     */
     public void close() {
         for (PendingInput input : List.copyOf(pending.values())) {
             debug(input.request.player(), "common.chat_input.closed_pending_cancelled",
@@ -102,12 +72,6 @@ public final class ChatInputService implements Listener {
         pending.clear();
     }
 
-    /**
-     * 以最低优先级拦截聊天。命中 pending 时取消事件，输入不进入公共聊天。
-     *
-     * <p>本方法在异步聊天线程执行，因此只做纯文本转换与 pending 查表，
-     * 回调统一交给 {@link #finish} 调度回玩家的 entity owner 线程。</p>
-     */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onAsyncChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
@@ -139,7 +103,6 @@ public final class ChatInputService implements Listener {
         finishOnDisconnect(event.getPlayer(), "common.chat_input.player_kick_cancelled");
     }
 
-    /** 供 {@link ChatInputHandle} 撤销它自己那一次 pending。 */
     boolean cancel(PendingInput input) {
         if (input == null) {
             return false;
@@ -158,13 +121,6 @@ public final class ChatInputService implements Listener {
         finish(input, ChatInputResult.quit(), false);
     }
 
-    /**
-     * 结束一条 pending：CAS 胜出者才移除记录、取消超时任务并投递回调。
-     *
-     * @param dispatch {@code true} 时把回调调度回玩家的 entity owner 线程；
-     *                 {@code false} 用于本身已在该线程的路径（退出/踢出/停用）
-     * @return 本次调用是否胜出 CAS
-     */
     private boolean finish(PendingInput input, ChatInputResult result, boolean dispatch) {
         if (!input.completed.compareAndSet(false, true)) {
             return false;
@@ -260,7 +216,6 @@ public final class ChatInputService implements Listener {
         ChatInputDebugSupport.log(owner, player, langKey, replacements);
     }
 
-    /** 单次 pending 记录。五条结束路径共用 {@code completed} 这一个 CAS，保证回调恰好一次。 */
     static final class PendingInput {
 
         private final ChatInputRequest request;

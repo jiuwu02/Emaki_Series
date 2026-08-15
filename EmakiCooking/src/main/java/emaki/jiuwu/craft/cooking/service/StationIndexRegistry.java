@@ -43,9 +43,6 @@ import emaki.jiuwu.craft.cooking.service.StationStateStore.StationIndexEntry;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StoredState;
 
-
-
-
 final class StationIndexRegistry {
 
     private static final long INDEX_FLUSH_DELAY_SECONDS = 2L;

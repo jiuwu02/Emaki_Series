@@ -15,21 +15,8 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 
-/**
- * Named sequences built from configuration.
- *
- * <p>A sequence is a list of pipeline lines addressable by name, which is what {@code run} and
- * {@code start_task} execute. Definitions come from configuration rather than code, so they are compiled
- * once when the action system reloads and held here in compiled form.</p>
- *
- * <p>Two-pass construction is required and not incidental: validating a {@code run} call needs the
- * catalog to already answer {@link #contains} and {@link #calls} for every name, including names that
- * appear later in the file. So names and raw bodies are collected first, and only then is each body
- * compiled against a catalog that can already see all of them.</p>
- */
 public final class ConfiguredSequenceRepository implements SequenceRepository {
 
-    /** Matches the {@code %var.name%} references a sequence body reads. */
     private static final Pattern VAR_REFERENCE = Pattern.compile("%var\\.([A-Za-z0-9_]+)%");
 
     private final Map<String, Entry> entries;
@@ -38,13 +25,6 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         this.entries = entries;
     }
 
-    /**
-     * Builds a repository from raw sequence definitions.
-     *
-     * @param definitions sequence name to its pipeline lines
-     * @param compiler compiles one line against this catalog; returns {@code null} when it does not compile
-     * @return the repository, holding only the sequences whose every line compiled
-     */
     public static @NotNull ConfiguredSequenceRepository build(
             @Nullable Map<String, List<String>> definitions,
             @NotNull LineCompiler compiler) {
@@ -56,13 +36,12 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
                 }
             });
         }
-        // Pass one: names, declared parameters and outgoing calls, all derived from text. This is what
-        // lets validation of any single line see the whole catalog.
+
         Map<String, Entry> entries = new LinkedHashMap<>();
         raw.forEach((name, lines) -> entries.put(name,
                 new Entry(name, lines, parametersOf(lines), callsOf(lines), null)));
         ConfiguredSequenceRepository catalog = new ConfiguredSequenceRepository(entries);
-        // Pass two: compile each body now that the catalog answers for every name.
+
         raw.forEach((name, lines) -> {
             List<CompiledPipeline> compiled = new ArrayList<>(lines.size());
             for (String line : lines) {
@@ -80,18 +59,10 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return catalog;
     }
 
-    /** {@return an empty repository} */
     public static @NotNull ConfiguredSequenceRepository empty() {
         return new ConfiguredSequenceRepository(Map.of());
     }
 
-    /**
-     * Reads the {@code %var.*%} names a body references.
-     *
-     * <p>Derived from the body rather than declared separately: a sequence that reads {@code %var.amount%}
-     * requires {@code amount}, and making the author repeat that in a parameter list only creates a second
-     * place to forget.</p>
-     */
     private static Set<String> parametersOf(List<String> lines) {
         Set<String> parameters = new LinkedHashSet<>();
         for (String line : lines) {
@@ -103,12 +74,6 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return Set.copyOf(parameters);
     }
 
-    /**
-     * Reads the sequence names a body calls, for cycle detection.
-     *
-     * <p>Text-level extraction on purpose: cycle detection has to run before compilation, because
-     * compiling a cyclic sequence is what the check exists to prevent.</p>
-     */
     private static Set<String> callsOf(List<String> lines) {
         Set<String> calls = new LinkedHashSet<>();
         for (String line : lines) {
@@ -137,7 +102,6 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return Set.copyOf(calls);
     }
 
-    /** Reports whether the text before this index is only a pipe and whitespace. */
     private static boolean isSegmentBoundary(String text, int index) {
         for (int cursor = index - 1; cursor >= 0; cursor--) {
             char ch = text.charAt(cursor);
@@ -161,12 +125,6 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return body == null || body.isEmpty() ? null : body.get(0);
     }
 
-    /**
-     * Resolves every compiled line of a sequence.
-     *
-     * @param name sequence name
-     * @return the compiled lines, or {@code null} when the sequence is unknown or failed to compile
-     */
     public @Nullable List<CompiledPipeline> bodyOf(@Nullable String name) {
         if (name == null) {
             return null;
@@ -175,12 +133,6 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return entry == null ? null : entry.compiled();
     }
 
-    /**
-     * Reads a sequence's raw lines.
-     *
-     * @param name sequence name
-     * @return the raw lines, empty when unknown
-     */
     public @NotNull List<String> linesOf(@Nullable String name) {
         if (name == null) {
             return List.of();
@@ -217,12 +169,10 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return List.copyOf(entries.keySet());
     }
 
-    /** {@return how many sequences are defined} */
     public int size() {
         return entries.size();
     }
 
-    /** {@return the names whose body failed to compile} */
     public @NotNull List<String> failed() {
         List<String> names = new ArrayList<>();
         entries.forEach((name, entry) -> {
@@ -233,32 +183,14 @@ public final class ConfiguredSequenceRepository implements SequenceRepository {
         return List.copyOf(names);
     }
 
-    /** Compiles one sequence line. */
     public interface LineCompiler {
 
-        /**
-         * Compiles a line belonging to a sequence.
-         *
-         * @param sequence the sequence being compiled, for diagnostics
-         * @param line the pipeline line
-         * @param catalog the catalog to validate {@code run} targets against
-         * @return the compiled pipeline, or {@code null} when it did not compile
-         */
         @Nullable
         CompiledPipeline compile(@NotNull String sequence,
                 @NotNull String line,
                 @NotNull SequenceRepository catalog);
     }
 
-    /**
-     * One sequence.
-     *
-     * @param name its name, lowercased
-     * @param lines its raw pipeline lines
-     * @param parameters the {@code %var.*%} names its body reads
-     * @param calls the sequences it calls directly
-     * @param compiled its compiled body, {@code null} when compilation failed
-     */
     private record Entry(@NotNull String name,
             @NotNull List<String> lines,
             @NotNull Set<String> parameters,

@@ -18,17 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Spawns particles at the target's position.
- *
- * <p>This is the clearest case of the pipeline removing arguments. v1 carried {@code target}, {@code world},
- * {@code x}, {@code y} and {@code z} and re-implemented location resolution inside the action; all five are
- * gone, because "where" is now the target flow's job. {@code at x=.. y=.. z=.. | spawn_particle ...} and
- * {@code nearby radius=5 | spawn_particle ...} both work without the stage knowing how the position was
- * chosen.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: {@code World#spawnParticle} is a region write.</p>
- */
 public final class SpawnParticleStage extends BaseStage {
 
     public SpawnParticleStage() {

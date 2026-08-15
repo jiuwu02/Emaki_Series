@@ -26,7 +26,6 @@ import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 
-/** Runtime-backed gem catalog. */
 public final class DefaultGemCatalog implements GemCatalog {
 
     private final EmakiGemPlugin plugin;

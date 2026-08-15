@@ -9,26 +9,6 @@ import emaki.jiuwu.craft.station.api.model.MaterialRequirementView;
 import emaki.jiuwu.craft.station.api.model.PendingOutput;
 import emaki.jiuwu.craft.station.api.model.RecipeView;
 
-/**
- * One loaded recipe.
- *
- * @param id               the recipe id, unique across the recipe directory
- * @param displayName      the configured display name, unrendered
- * @param tags             lower-cased tags used by station include/exclude rules
- * @param stationIds       lower-cased station ids this recipe belongs to; empty means no restriction
- * @param requirements     the material requirements, matched as an unordered set
- * @param durationSeconds  how long one submission takes; zero settles immediately
- * @param outputs          what one batch produces
- * @param resultActions    action lines run once the craft settles
- * @param permission       the permission required to see and use it, or an empty string
- * @param condition        the gate evaluated before submission
- * @param preActions       action lines run before consumption
- * @param successActions   action lines run after a successful settle
- * @param failureActions   action lines run when a submission is refused
- * @param cost             the currency charged per batch
- * @param visible          whether this recipe appears in a station catalog at all
- * @param displayCondition the gate deciding whether the catalog entry is unlocked
- */
 public record RecipeDefinition(String id,
         String displayName,
         Set<String> tags,
@@ -46,26 +26,6 @@ public record RecipeDefinition(String id,
         boolean visible,
         ConditionBlock displayCondition) {
 
-    /**
-     * Creates a recipe with defensively copied collections.
-     *
-     * @param id               the recipe id
-     * @param displayName      the display name; {@code null} becomes the id
-     * @param tags             the tags; {@code null} becomes empty
-     * @param stationIds       the owning station ids; {@code null} becomes empty
-     * @param requirements     the material requirements; {@code null} becomes empty
-     * @param durationSeconds  the craft duration; negatives are clamped to zero
-     * @param outputs          the produced items; {@code null} becomes empty
-     * @param resultActions    post-settle action lines; {@code null} becomes empty
-     * @param permission       the required permission; {@code null} becomes an empty string
-     * @param condition        the submission gate; {@code null} becomes an empty block
-     * @param preActions       pre-consumption action lines; {@code null} becomes empty
-     * @param successActions   post-success action lines; {@code null} becomes empty
-     * @param failureActions   post-refusal action lines; {@code null} becomes empty
-     * @param cost             the per-batch currency charge; {@code null} becomes no charge
-     * @param visible          whether the recipe appears in a catalog
-     * @param displayCondition the unlock gate; {@code null} becomes an empty block
-     */
     public RecipeDefinition {
         displayName = displayName == null ? id : displayName;
         tags = tags == null ? Set.of() : Set.copyOf(tags);
@@ -83,15 +43,6 @@ public record RecipeDefinition(String id,
         displayCondition = displayCondition == null ? ConditionBlock.empty() : displayCondition;
     }
 
-    /**
-     * Tests whether this recipe is offered by one station.
-     *
-     * <p>Declaring no {@code station_ids} means "every station", which keeps a recipe usable without
-     * having to name each station that should carry it.
-     *
-     * @param stationId the station id; matched case-insensitively
-     * @return whether the station offers this recipe
-     */
     public boolean belongsTo(String stationId) {
         if (stationIds.isEmpty()) {
             return true;
@@ -100,27 +51,18 @@ public record RecipeDefinition(String id,
                 && stationIds.contains(stationId.trim().toLowerCase(Locale.ROOT));
     }
 
-    /** {@return whether this recipe settles immediately instead of entering a timed queue} */
     public boolean instant() {
         return durationSeconds <= 0L;
     }
 
-    /** {@return whether this recipe restricts use behind its own permission node} */
     public boolean hasPermission() {
         return !permission.isBlank();
     }
 
-    /** {@return whether this recipe gates its catalog entry behind a display condition} */
     public boolean hasDisplayCondition() {
         return displayCondition.configured();
     }
 
-    /**
-     * Computes this recipe's duration under a station's speed multiplier.
-     *
-     * @param speedMultiplier the station multiplier; non-positive values are treated as 1
-     * @return the effective duration in milliseconds
-     */
     public long effectiveDurationMillis(double speedMultiplier) {
         if (instant()) {
             return 0L;
@@ -133,7 +75,6 @@ public record RecipeDefinition(String id,
         return Math.max(0L, (long) millis);
     }
 
-    /** {@return an API view of this recipe} */
     public RecipeView toView() {
         List<MaterialRequirementView> requirementViews = requirements.stream()
                 .map(MaterialRequirement::toView)

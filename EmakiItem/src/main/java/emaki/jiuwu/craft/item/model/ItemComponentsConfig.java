@@ -12,12 +12,6 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
-
-
-
-
-
 public record ItemComponentsConfig(Object customModelData,
         String itemModel,
         String tooltipStyle,
@@ -73,7 +67,6 @@ public record ItemComponentsConfig(Object customModelData,
                 ""
         );
     }
-
 
     public Map<String, ItemComponentPatch> toComponentPatches() {
         return toComponentPatches("");

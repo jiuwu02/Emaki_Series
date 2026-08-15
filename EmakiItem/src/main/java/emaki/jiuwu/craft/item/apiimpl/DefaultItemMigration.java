@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.item.api.model.MigrationOutcome;
 import emaki.jiuwu.craft.item.api.model.MigrationPreview;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 
-/** Runtime-backed {@link ItemMigration}. */
 public final class DefaultItemMigration implements ItemMigration {
 
     private final EmakiItemPlugin plugin;
@@ -112,8 +111,7 @@ public final class DefaultItemMigration implements ItemMigration {
         if (Texts.isBlank(oldNormalized) || Texts.isBlank(newNormalized) || oldNormalized.equals(newNormalized)) {
             return EmakiResult.invalidInput("item.migration.ids_invalid");
         }
-        // Gates preview and apply, the only two callers: both read the definition table, so answering
-        // "target_not_found" while it is still being loaded would report a config error that is not one.
+
         if (plugin.itemLoader() == null || plugin.aliasLoader() == null || !plugin.runtimeReady()) {
             return EmakiResult.unavailable();
         }

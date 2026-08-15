@@ -12,28 +12,10 @@ import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 
-/**
- * {@link ItemAttributeBridge} implementation backed by the canonical
- * EmakiAttributeApi facades.
- *
- * <p>This class is the only place in EmakiItem that references EmakiAttributeApi
- * types. It is class-loaded exclusively by
- * {@code ItemAttributeIntegration#create} once EmakiAttribute is enabled, so
- * EmakiItem starts normally when EmakiAttribute is absent.
- *
- * <p>All calls resolve the static facades, never a cached bridge instance, so a
- * reloaded or disabled EmakiAttribute is never reached through a stale delegate.
- */
 public final class EmakiAttributeItemBridge implements ItemAttributeBridge {
 
     private volatile String registeredSourceId;
 
-    /**
-     * Creates the bridge. Invoked reflectively by
-     * {@code ItemAttributeIntegration} only when EmakiAttribute is enabled.
-     *
-     * @return the EmakiAttribute-backed bridge
-     */
     public static ItemAttributeBridge create() {
         return new EmakiAttributeItemBridge();
     }

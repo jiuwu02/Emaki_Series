@@ -193,17 +193,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         this(plugin, actionEngineSupplier, itemIdentifierService, false);
     }
 
-    /**
-     * Creates a loader.
-     *
-     * <p>The engine arrives as a supplier rather than a value because a CoreLib reload replaces it; reading
-     * it per validation pass is what keeps this loader from checking recipes against a retired stage table.</p>
-     *
-     * @param plugin the owning plugin
-     * @param actionEngineSupplier reads the live pipeline engine, may yield {@code null} before first load
-     * @param itemIdentifierService resolves configured item ids
-     * @param deferRuntimeValidation whether runtime-only checks are postponed to a later pass
-     */
     public RecipeLoader(EmakiForgePlugin plugin,
                         Supplier<ActionEngine> actionEngineSupplier,
                         ItemIdentifierService itemIdentifierService,
@@ -514,17 +503,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                 && validatePhase(file, recipe, "failure", recipe.action().failure(), engine);
     }
 
-    /**
-     * Rejects a recipe whose action lines do not compile.
-     *
-     * <p>Compilation replaces what used to be three separate checks against the v1 registries: parse the
-     * line, look the action up, then validate its arguments. The pipeline compiler does all three and additionally
-     * verifies stage position and referenced sequences, so a recipe that compiles here cannot fail at forge
-     * time for a configuration reason.</p>
-     *
-     * <p>Only the first diagnostic per line is reported. The compiler emits every problem it finds, and the
-     * later ones are usually consequences of the first, so surfacing them all would bury the real cause.</p>
-     */
     private boolean validatePhase(File file,
                                   Recipe recipe,
                                   String phase,
@@ -542,8 +520,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             if (compiled.successful()) {
                 continue;
             }
-            // Rendered through CoreLib's message service: every action.* diagnostic text lives in
-            // CoreLib's language file, so Forge reads it there rather than duplicating the wording.
+
             String reason = compiled.diagnostics().isEmpty()
                     ? "did not compile"
                     : forgePlugin.coreLib().messageService().renderFirstDiagnostic(compiled.diagnostics());
@@ -733,8 +710,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             probes.add(probe);
             sourceStatuses.merge(probe.status(), 1, Integer::sum);
             if (source != null) {
-                // A diagnostic distribution only, reported as-is and never compared against config.
-                // The key was the enum's name(); the kind's canonical key serves the same purpose.
+
                 typeDistribution.merge(source.kind().key(), 1, Integer::sum);
             }
             if (probe.ready()) {

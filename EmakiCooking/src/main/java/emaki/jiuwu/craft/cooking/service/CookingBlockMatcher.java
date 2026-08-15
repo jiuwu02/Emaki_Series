@@ -66,8 +66,7 @@ public final class CookingBlockMatcher {
         if (block == null || source == null) {
             return false;
         }
-        // An if-chain rather than a switch: the kind is a record now, so it cannot be a switch label.
-        // Only these five kinds have a block form; anything else is item-only and never matches a block.
+
         ItemSourceKind kind = source.kind();
         if (ItemSourceKind.VANILLA.equals(kind)) {
             return matchesVanilla(block, source.identifier());

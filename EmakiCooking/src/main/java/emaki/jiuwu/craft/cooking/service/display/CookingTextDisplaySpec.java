@@ -11,12 +11,6 @@ import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * 工位文本展示的入参。
- *
- * <p>保留工位语义供调用方使用，通过 {@link #toCoreSpec()} 转成 CoreLib 的通用 spec。
- * 工位文本是常驻显示，因此存活时长恒为 0，可见性也不做定向。
- */
 public record CookingTextDisplaySpec(StationType stationType,
         StationCoordinates stationCoordinates,
         String displayKey,
@@ -34,7 +28,6 @@ public record CookingTextDisplaySpec(StationType stationType,
         baseLocation = baseLocation.clone();
     }
 
-    /** {@return 转换为 CoreLib 通用 spec} */
     public TextDisplaySpec toCoreSpec() {
         return new TextDisplaySpec(
                 CookingDisplayKeys.of(stationType, stationCoordinates, displayKey),

@@ -13,11 +13,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Puts out the fire on the target.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one entity's fire ticks.</p>
- */
 public final class ExtinguishStage extends BaseStage {
 
     public ExtinguishStage() {

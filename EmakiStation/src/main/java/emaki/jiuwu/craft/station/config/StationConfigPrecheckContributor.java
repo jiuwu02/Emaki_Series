@@ -18,21 +18,10 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.gui.StationLayoutValidator;
 
-/**
- * Reports EmakiStation's configuration health during CoreLib's precheck stage.
- *
- * <p>Layout validation runs here rather than at open time so an administrator learns about a broken layout at
- * startup, when they are looking at the console, instead of when a player clicks a station.
- */
 public final class StationConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
     private final EmakiStationPlugin plugin;
 
-    /**
-     * Creates the contributor.
-     *
-     * @param plugin the owning plugin
-     */
     public StationConfigPrecheckContributor(EmakiStationPlugin plugin) {
         super("station", plugin::messageService);
         this.plugin = plugin;
@@ -66,16 +55,6 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         return new ConfigPrecheckResult(module(), issues);
     }
 
-    /**
-     * Validates every layout a station actually references, as the page it is referenced for.
-     *
-     * <p>A layout is only meaningful as one of the three pages, and which one it is comes from the station
-     * that names it. Layout files nothing references are therefore left alone rather than validated against
-     * a guessed page: that is what keeps a superseded file sitting in {@code gui/} from producing errors an
-     * administrator cannot act on.
-     *
-     * @param issues the issue list to append to
-     */
     private void checkLayouts(List<ConfigPrecheckIssue> issues) {
         if (plugin.layoutLoader() == null || plugin.stationLoader() == null) {
             return;

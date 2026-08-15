@@ -15,72 +15,28 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.api.model.PendingOutput;
 
-/**
- * Routes finished outputs to the warehouse, the inventory, or a pending claim.
- *
- * <p>Stacks are always rebuilt from the item identity and split by the item's own maximum stack size. A
- * display-rendered stack is never handed to a player, because its presentation lore and rewritten
- * stack-size component would be burned into a real item permanently.
- *
- * <p>The warehouse can refuse a deposit for a reason that has nothing to do with capacity: with
- * {@code behavior.allow_unique_items} off it rejects any item carrying PDC, which is exactly what a custom
- * output tends to be. That refusal is treated like any other full destination and falls through to the next
- * target rather than being reported as an internal error, so the player gets their items and a clear
- * message instead of a silent loss.
- */
 public final class OutputDelivery {
 
     private final ItemSourceService itemSourceService;
     private final StorageChannel storageChannel;
 
-    /**
-     * Creates the router.
-     *
-     * @param itemSourceService CoreLib's item-source service, used to rebuild stacks
-     * @param storageChannel    the warehouse channel
-     */
     public OutputDelivery(ItemSourceService itemSourceService, StorageChannel storageChannel) {
         this.itemSourceService = itemSourceService;
         this.storageChannel = storageChannel;
     }
 
-    /**
-     * The result of one delivery attempt.
-     *
-     * @param delivered outputs that reached the player
-     * @param pending   outputs that could not be delivered and now await a claim
-     */
     public record Result(List<PendingOutput> delivered, List<PendingOutput> pending) {
 
-        /**
-         * Creates a result with defensively copied lists.
-         *
-         * @param delivered outputs that reached the player; {@code null} becomes empty
-         * @param pending   outputs awaiting a claim; {@code null} becomes empty
-         */
         public Result {
             delivered = delivered == null ? List.of() : List.copyOf(delivered);
             pending = pending == null ? List.of() : List.copyOf(pending);
         }
 
-        /** {@return whether anything still awaits a claim} */
         public boolean hasPending() {
             return !pending.isEmpty();
         }
     }
 
-    /**
-     * Delivers outputs according to a routing preference.
-     *
-     * <p><strong>Thread:</strong> the target player's owner thread, because the inventory leg touches the
-     * player directly. The warehouse leg is awaited internally; its continuation only aggregates numbers and
-     * never touches Bukkit state.
-     *
-     * @param player  the receiving player
-     * @param outputs the outputs to deliver
-     * @param routing where to try first
-     * @return a future carrying what was delivered and what is still owed
-     */
     public CompletableFuture<Result> deliverAsync(Player player,
             List<PendingOutput> outputs,
             OutputRouting routing) {
@@ -149,17 +105,6 @@ public final class OutputDelivery {
         return remaining;
     }
 
-    /**
-     * Places units into the inventory, stopping as soon as one chunk cannot be placed.
-     *
-     * <p>Stops rather than dropping so the remainder stays accounted for as a pending claim; silently
-     * dropping a large output onto the ground is how items get lost.
-     *
-     * @param player the receiving player
-     * @param source the identity to hand out
-     * @param amount the units to hand out
-     * @return how many units could not be placed
-     */
     private long giveToInventory(Player player, ItemSourceRef source, long amount) {
         if (itemSourceService == null) {
             return amount;
@@ -219,9 +164,7 @@ public final class OutputDelivery {
         for (PendingOutput output : requested) {
             long pending = owed.getOrDefault(output.source(), 0L);
             long stillOwed = Math.min(pending, output.amount());
-            // Decrement unconditionally: when one identity appears in two requested entries, skipping the
-            // update for a fully-pending entry would charge the same shortfall twice and under-report the
-            // second entry's delivery.
+
             owed.put(output.source(), pending - stillOwed);
             long handed = output.amount() - stillOwed;
             if (handed > 0L) {
@@ -231,16 +174,6 @@ public final class OutputDelivery {
         return delivered;
     }
 
-    /**
-     * Delivers pending outputs during a claim, without any warehouse routing preference.
-     *
-     * <p><strong>Thread:</strong> the target player's owner thread.
-     *
-     * @param player  the claiming player
-     * @param outputs the owed outputs
-     * @param routing the station's routing preference
-     * @return a future carrying what was delivered and what is still owed
-     */
     public CompletableFuture<Result> claimAsync(Player player,
             List<PendingOutput> outputs,
             OutputRouting routing) {

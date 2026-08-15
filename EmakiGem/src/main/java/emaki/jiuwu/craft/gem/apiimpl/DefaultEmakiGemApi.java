@@ -8,12 +8,6 @@ import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.api.GemCatalog;
 import emaki.jiuwu.craft.gem.api.GemOperations;
 
-/**
- * {@link EmakiGemApi.Bridge} 的运行时实现。
- *
- * <p>两个层实现只构造一次并复用。{@link #status()} 把「插件已启用」与「状态服务已就绪」分别映射到
- * {@code installed} 与 {@code ready}，覆盖 install 早于子系统加载完成的空档窗口。
- */
 public final class DefaultEmakiGemApi implements EmakiGemApi.Bridge {
 
     private final EmakiGemPlugin plugin;

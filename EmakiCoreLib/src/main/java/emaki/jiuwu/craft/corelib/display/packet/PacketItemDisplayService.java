@@ -43,7 +43,6 @@ import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.packet.VirtualEntityIds;
 
-/** 用封包模拟的物品展示实体。 */
 public final class PacketItemDisplayService implements ItemDisplayService, Listener {
 
     private static final int ENTITY_METADATA_BASE = 8;
@@ -197,7 +196,6 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         double degreesPerSegment = rotationDegrees / segments;
         double heightPerSegment = heightOffset / segments;
 
-        // 抬升阶段
         for (int segment = 0; segment < segments; segment++) {
             int delay = segment * ticksPerSegment;
             int segmentIndex = segment + 1;
@@ -210,7 +208,6 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             }
         }
 
-        // 回落阶段
         int riseEndTick = segments * ticksPerSegment;
         for (int segment = 0; segment < segments; segment++) {
             int delay = riseEndTick + segment * ticksPerSegment;
@@ -370,7 +367,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         try {
             handle.cancel();
         } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
+
         }
     }
 
@@ -436,7 +433,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         if (bukkitLocation == null) {
             return;
         }
-        com.github.retrooper.packetevents.protocol.world.Location packetLocation =
+        var packetLocation =
                 new com.github.retrooper.packetevents.protocol.world.Location(
                         bukkitLocation.getX(), bukkitLocation.getY(), bukkitLocation.getZ(), 0F, 0F);
         WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(

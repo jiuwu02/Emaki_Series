@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewRegistry;
 
-/** {@link ItemExtensions} 的运行时实现，把注册请求接到 {@link EmakiItemLayerPreviewRegistry}。 */
 public final class DefaultItemExtensions implements ItemExtensions {
 
     private final EmakiItemPlugin plugin;

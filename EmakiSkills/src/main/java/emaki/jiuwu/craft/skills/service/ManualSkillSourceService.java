@@ -13,7 +13,6 @@ import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.api.SkillSourceEntry;
 import emaki.jiuwu.craft.skills.api.SkillSourceProvider;
 
-
 public final class ManualSkillSourceService implements SkillSourceProvider {
 
     private static final String SOURCE_ID = "manual";

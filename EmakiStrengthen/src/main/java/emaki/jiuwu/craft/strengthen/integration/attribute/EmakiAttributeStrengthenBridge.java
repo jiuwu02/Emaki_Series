@@ -10,30 +10,9 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.corelib.integration.attribute.AbstractAttributePdcBridge;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 
-/**
- * {@link StrengthenAttributeBridge} implementation backed by the canonical
- * {@link EmakiAttributeApi} facade.
- *
- * <p>This is the only class in EmakiStrengthen that references EmakiAttributeApi
- * types; it is class-loaded exclusively by
- * {@code StrengthenAttributeBridgeHolder} once EmakiAttribute is enabled. Calls
- * always go through the static facade, so a reloaded or disabled EmakiAttribute
- * is never reached through a stale bridge.
- *
- * <p>Source registration and payload guards come from
- * {@link AbstractAttributePdcBridge}; this class binds those template operations
- * to {@link PdcAttributeAccess} and adds the strengthen-specific payload copy
- * used when carrying levels across items.
- */
 public final class EmakiAttributeStrengthenBridge extends AbstractAttributePdcBridge<PdcAttributeAccess>
         implements StrengthenAttributeBridge {
 
-    /**
-     * Creates the bridge. Invoked reflectively by
-     * {@code StrengthenAttributeBridgeHolder} only when EmakiAttribute is enabled.
-     *
-     * @return the EmakiAttribute-backed bridge
-     */
     public static StrengthenAttributeBridge create() {
         return new EmakiAttributeStrengthenBridge();
     }

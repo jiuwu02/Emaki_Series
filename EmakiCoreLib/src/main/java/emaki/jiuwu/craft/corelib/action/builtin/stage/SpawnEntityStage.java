@@ -19,14 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Spawns entities at the target position.
- *
- * <p>An unknown type name is {@code Failure} because it is a typo, while a known but non-spawnable type is
- * {@code Skipped} because the configuration is well-formed and the engine simply refuses it.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: adds entities to a region.</p>
- */
 public final class SpawnEntityStage extends BaseStage {
 
     public SpawnEntityStage() {

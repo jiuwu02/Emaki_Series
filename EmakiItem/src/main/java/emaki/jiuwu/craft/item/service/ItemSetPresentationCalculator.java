@@ -23,10 +23,6 @@ import emaki.jiuwu.craft.item.model.ItemSetDefinition;
 import emaki.jiuwu.craft.item.model.ItemSetMembership;
 import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 
-/**
- * 套装计算职责：把 {@link EquippedSetState} 编译为可比较的展示目标，并在单个物品上
- * 落地/回滚 set_display 台账与 PDC。不持有玩家维度状态，不做监听域调度。
- */
 final class ItemSetPresentationCalculator {
 
     private static final String SET_DISPLAY_NAMESPACE = "emakiitem:set_display";

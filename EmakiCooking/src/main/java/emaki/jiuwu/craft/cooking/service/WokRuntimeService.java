@@ -582,9 +582,6 @@ public final class WokRuntimeService {
         return true;
     }
 
-
-
-
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();
@@ -693,9 +690,7 @@ public final class WokRuntimeService {
                 "station_type", StationType.WOK.folderName(),
                 "outcome", branch
         );
-        // The condition decides whether this serving runs at all. Evaluating it here, before the bowl is
-        // frozen and before the DELETE commit, is what keeps a blocked condition from eating the bowl and
-        // clearing the wok while reporting success.
+
         CookingRewardService.ConditionGate gate = rewardService.evaluateConditionGate(recipe, player);
         if (gate.blocked()) {
             debugStation("station.wok_serve", Map.of(
@@ -809,7 +804,7 @@ public final class WokRuntimeService {
                         phase,
                         Map.of("station_type", StationType.WOK.folderName()),
                         bowlInput == null ? List.of() : List.of(bowlInput),
-                        // No recipe on this path, so there is no completion condition to carry.
+
                         null
                 ));
         if (accepted) {
@@ -1430,10 +1425,8 @@ public final class WokRuntimeService {
         return items.isEmpty() ? List.of() : List.copyOf(items);
     }
 
-
     private record WokIngredientDisplay(String source, ItemStack itemStack) {
     }
-
 
     private record WokState(List<WokIngredientState> ingredients,
             int totalStirCount,

@@ -24,35 +24,12 @@ import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelOperationType;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
 
-/**
- * Adds, sets, removes or resets the target's level and experience.
- *
- * <p>Replaces the legacy {@code LevelOperationAction}. Two v1 mechanisms disappear here because the pipeline
- * already provides them:</p>
- * <ul>
- *   <li>the {@code target} argument, since naming the subject is the target flow's job;</li>
- *   <li>the hand-built expression variable map. v1 injected every numeric placeholder and context attribute
- *       into {@code ExpressionEngine} so that {@code amount} could be written as an expression. The pipeline
- *       renders placeholders into the argument text before arguments are resolved, so {@code amount} declared
- *       as {@code EXPRESSION} gets the same result through one documented path instead of an open-ended map
- *       whose keys depended on whichever trigger happened to fire.</li>
- * </ul>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's level record.</p>
- */
 public final class LevelOperationStage implements CoreActionStage {
 
     private final EmakiLevelPlugin plugin;
     private final LevelOperationType operationType;
     private final String id;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the level service
-     * @param operationType which level mutation this instance performs
-     * @param id the pipeline stage id
-     */
     public LevelOperationStage(@NotNull EmakiLevelPlugin plugin,
             @NotNull LevelOperationType operationType,
             @NotNull String id) {
@@ -90,9 +67,7 @@ public final class LevelOperationStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         List<CoreStageParameter> parameters = new ArrayList<>();
         parameters.add(CoreStageParameter.required("type", CoreStageParameterType.STRING, "Level type id"));
-        // Declared for every operation, including reset and level_up which ignore the value. v1 read `amount`
-        // unconditionally without declaring it there, so a config that passes it would be rejected as an
-        // unknown argument if it were omitted here.
+
         parameters.add(CoreStageParameter.optional("amount", CoreStageParameterType.EXPRESSION, "0",
                 "Amount, may be an arithmetic expression"));
         parameters.add(CoreStageParameter.optional("reason", CoreStageParameterType.STRING, "action",

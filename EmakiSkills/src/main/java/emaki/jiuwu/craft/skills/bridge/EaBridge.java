@@ -14,16 +14,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.skills.integration.SkillsAttributeBridge;
 
-/**
- * EmakiSkills' access point to EmakiAttribute capabilities.
- *
- * <p>Backed by the canonical {@code EmakiAttributeApi} facade through a
- * conditionally loaded adapter: the EmakiAttributeApi-referencing class is only
- * loaded when EmakiAttribute is enabled, so EmakiSkills starts normally without
- * it. The delegate is re-resolved whenever EmakiAttribute's enabled state
- * changes, so a disabled or reloaded EmakiAttribute is never called through a
- * stale bridge.
- */
 public final class EaBridge {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
@@ -146,17 +136,6 @@ public final class EaBridge {
         }
     }
 
-    /**
-     * Returns whether every EmakiAttribute item contribution gate accepts the item.
-     *
-     * <p>Degrades to {@code true} when EmakiAttribute is absent or the lookup
-     * fails, so equipment skills are never lost to an integration problem.
-     *
-     * @param player the owning player
-     * @param itemStack the equipped item
-     * @param slotName the equipment slot name
-     * @return {@code false} only when a gate actively rejects the item
-     */
     public boolean isItemContributionActive(Player player, ItemStack itemStack, String slotName) {
         SkillsAttributeBridge resolved = resolve();
         if (!resolved.available()) {

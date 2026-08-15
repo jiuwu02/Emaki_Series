@@ -19,12 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Orders the target flow by distance or health.
- *
- * <p>Thread need {@code NEEDS_ENTITY_READ}: {@code distance} reads each subject's position and
- * {@code health} reads a living entity's health, both of which are owner-thread reads.</p>
- */
 public final class SortByGate extends BaseGate {
 
     private static final String DISTANCE = "distance";
@@ -78,7 +72,7 @@ public final class SortByGate extends BaseGate {
         Location location = subject == null ? null : subject.location();
         if (location == null || origin == null || location.getWorld() == null
                 || origin.getWorld() == null || !location.getWorld().equals(origin.getWorld())) {
-            // Keep the comparator total: an unmeasurable subject sorts last instead of throwing.
+
             return Double.MAX_VALUE;
         }
         return location.distanceSquared(origin);

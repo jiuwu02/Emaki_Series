@@ -10,29 +10,9 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.corelib.integration.attribute.AbstractAttributePdcBridge;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 
-/**
- * {@link GemAttributeBridge} implementation backed by the canonical
- * {@link EmakiAttributeApi} facade.
- *
- * <p>This is the only class in EmakiGem that references EmakiAttributeApi types;
- * it is class-loaded exclusively by {@code GemAttributeBridgeHolder} once
- * EmakiAttribute is enabled. Calls always go through the static facade, so a
- * reloaded or disabled EmakiAttribute is never reached through a stale bridge.
- *
- * <p>Source registration and payload guards come from
- * {@link AbstractAttributePdcBridge}; this class binds those template operations
- * to {@link PdcAttributeAccess} and adds the gem-specific payload copy used when
- * transferring sockets between items.
- */
 public final class EmakiAttributeGemBridge extends AbstractAttributePdcBridge<PdcAttributeAccess>
         implements GemAttributeBridge {
 
-    /**
-     * Creates the bridge. Invoked reflectively by
-     * {@code GemAttributeBridgeHolder} only when EmakiAttribute is enabled.
-     *
-     * @return the EmakiAttribute-backed bridge
-     */
     public static GemAttributeBridge create() {
         return new EmakiAttributeGemBridge();
     }

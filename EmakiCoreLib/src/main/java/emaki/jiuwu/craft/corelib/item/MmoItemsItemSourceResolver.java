@@ -17,14 +17,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
 
-/**
- * MMOItems bridge.
- *
- * <p>Implements {@link ItemSourceProvider} directly rather than extending
- * {@link AbstractManagedItemSourceProvider}: MMOItems has no "items loaded" event to hook, its readiness
- * is a plain {@code MMOItems.plugin != null} check, and an identifier here is a composite
- * {@code <type>:<item>} that the shared accessor shape cannot express.
- */
 final class MmoItemsItemSourceResolver implements ItemSourceProvider {
 
     private static final String PLUGIN_NAME = "MMOItems";

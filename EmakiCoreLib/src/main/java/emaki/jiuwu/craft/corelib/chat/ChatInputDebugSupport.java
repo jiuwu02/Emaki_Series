@@ -45,7 +45,6 @@ public final class ChatInputDebugSupport {
         return replacements;
     }
 
-    /** 请求字段：调度归属插件、超时秒数与取消词数量。 */
     public static Map<String, Object> requestFields(ChatInputRequest request) {
         return requestFields(request, Map.of());
     }

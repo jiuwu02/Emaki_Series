@@ -27,10 +27,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
-
-
-
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>";
@@ -83,15 +79,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 executionDispatcher, threadOwnership);
     }
 
-
-
-
-
-
-
     public void reload(EmakiCodexPlugin plugin) {
-        // The page loader runs inside the candidate step because the codex precheck reads its issue list;
-        // advancement registration below only happens once the gate accepts that candidate.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 plugin.messageService(),
                 "codex",
@@ -104,7 +93,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 },
                 plugin.appConfigLoader()::overrideCurrent);
         if (gate.rejected()) {
-            // Previous AppConfig is active again and no candidate value reached a runtime service.
+
             return;
         }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -119,16 +108,6 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             plugin.advancementRegistrar().unregisterConfigured();
         }
     }
-
-
-
-
-
-
-
-
-
-
 
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
         if (registered <= 0 || Bukkit.getOnlinePlayers().isEmpty()) {

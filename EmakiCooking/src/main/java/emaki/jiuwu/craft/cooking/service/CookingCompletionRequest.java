@@ -16,11 +16,6 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-
-/**
- * A completion submission. {@code conditionOutcome} carries an already-evaluated recipe completion
- * condition so the pipeline does not evaluate it a second time; see {@link ConditionOutcome}.
- */
 record CookingCompletionRequest(
         String discriminator,
         StationType stationType,
@@ -40,16 +35,6 @@ record CookingCompletionRequest(
         List<PlayerInventoryInput> playerInputs,
         ConditionOutcome conditionOutcome) {
 
-    /**
-     * A completion condition that the caller already evaluated.
-     *
-     * <p>Callers that gate the submission on the condition themselves (so a blocked condition never
-     * consumes inputs or commits state) pass their result here. The pipeline then reuses
-     * {@code passed} instead of re-evaluating, which keeps the condition a single observation per
-     * completion. {@code null} means "not pre-evaluated" and the pipeline evaluates it as before.
-     *
-     * @param passed whether the condition evaluated to true
-     */
     record ConditionOutcome(boolean passed) {
 
         static final ConditionOutcome PASSED = new ConditionOutcome(true);

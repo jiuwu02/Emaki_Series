@@ -9,16 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-/**
- * Lifecycle-aware {@link ItemAttributeBridge} that conditionally loads
- * EmakiItem's optional EmakiAttribute integration.
- *
- * <p>The EmakiAttributeApi-referencing implementation is resolved reflectively,
- * so its class only loads when EmakiAttribute is enabled; EmakiItem starts
- * normally otherwise. The delegate is dropped when EmakiAttribute is disabled
- * and rebuilt (re-registering the source) when it returns, preserving the
- * previous gateway's late-provider behaviour without retaining a stale bridge.
- */
 public final class ItemAttributeBridgeHolder implements ItemAttributeBridge {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
@@ -29,11 +19,6 @@ public final class ItemAttributeBridgeHolder implements ItemAttributeBridge {
     private volatile ItemAttributeBridge delegate = ItemAttributeBridge.UNAVAILABLE;
     private volatile String registeredSourceId;
 
-    /**
-     * Creates the holder.
-     *
-     * @param logger logger used to report integration wiring failures
-     */
     public ItemAttributeBridgeHolder(Logger logger) {
         this.logger = logger;
     }

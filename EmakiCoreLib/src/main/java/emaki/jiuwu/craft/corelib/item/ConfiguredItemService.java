@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
 public final class ConfiguredItemService {
 
     private static final String LORE_COMPONENT_ID = "minecraft:lore";
@@ -247,13 +246,6 @@ public final class ConfiguredItemService {
         return new ConfiguredItemDefinition(source, definition.amount(), resolvedPatches);
     }
 
-    /**
-     * Resolves a lore value, letting a line that is exactly one placeholder expand into several lines.
-     *
-     * <p>Only {@code minecraft:lore} takes this path. Other components keep the strict one-to-one
-     * {@link #replacePlain(Object, Map)} mapping, because structured values such as
-     * {@code writable_book_content.pages} must not gain or lose entries from placeholder expansion.
-     */
     private Object expandLoreValue(Object value, Map<String, ?> replacements) {
         if (!(value instanceof Collection<?> lines)) {
             return replacePlain(value, replacements);

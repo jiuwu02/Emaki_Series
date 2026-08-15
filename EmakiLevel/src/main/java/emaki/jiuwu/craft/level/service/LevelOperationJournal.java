@@ -34,7 +34,6 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
 final class LevelOperationJournal {
 
     enum Phase {
@@ -95,11 +94,6 @@ final class LevelOperationJournal {
         advanceAsync(operationId, phase);
     }
 
-    /**
-     * Persists the phase transition and, for {@link Phase#COMPLETED}, archives the entry afterwards.
-     * The returned future completes once the journal is durable; archiving only runs when the write
-     * succeeded, so a failed write leaves the entry recoverable in {@code active}.
-     */
     private CompletableFuture<Void> advanceAsync(String operationId, Phase phase) {
         Entry current = load(operationId);
         if (current == null || phase == null) {
@@ -171,10 +165,6 @@ final class LevelOperationJournal {
         }
     }
 
-    /**
-     * Reads the journal off the calling thread and applies recovery on the global thread, because
-     * compensation touches Bukkit state. Returns immediately; recovery continues in the background.
-     */
     void recover(EconomyManager economyManager, ItemSourceService itemSourceService) {
         loadActive().thenAccept(entries -> {
             if (entries.isEmpty()) {
@@ -275,11 +265,6 @@ final class LevelOperationJournal {
         return new RefundResult(remainingCurrencies, remainingMaterials);
     }
 
-    /**
-     * Records the entry in memory and persists it off the calling thread. The returned future
-     * completes only after the write lands, so callers can gate operation completion on durability.
-     * Writes for one operation id share a physical path and are therefore ordered by the file scope.
-     */
     private CompletableFuture<Void> save(Entry entry) {
         activeEntries.put(entry.operationId(), entry);
         AsyncYamlFiles files = asyncYamlFiles();
@@ -297,18 +282,10 @@ final class LevelOperationJournal {
                 "Failed to persist level operation " + operationId, AsyncFailures.unwrap(throwable)));
     }
 
-    /**
-     * Returns the in-memory entry for the operation. Active entries are seeded by {@link #recover}
-     * at startup and by {@link #begin}, so no blocking read is needed on the calling thread.
-     */
     private Entry load(String operationId) {
         return operationId == null ? null : activeEntries.get(operationId);
     }
 
-    /**
-     * Lists and decodes every active entry off the calling thread. A single corrupt file is
-     * quarantined and skipped instead of discarding the whole journal.
-     */
     private CompletableFuture<List<Entry>> loadActive() {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
@@ -368,10 +345,6 @@ final class LevelOperationJournal {
         }
     }
 
-    /**
-     * Moves an undecodable file into the quarantine directory on the file scope and resolves to
-     * {@code null} so the remaining entries keep loading.
-     */
     private CompletableFuture<Entry> quarantineCorruptFile(Path source, Throwable throwable) {
         String fileName = source.getFileName() == null ? "unknown.yml" : source.getFileName().toString();
         String stem = fileName.replaceFirst("(?i)\\.ya?ml$", "");
@@ -434,11 +407,6 @@ final class LevelOperationJournal {
                 : message;
     }
 
-    /**
-     * Moves the finished entry out of {@code active}. The move is enqueued on the same physical path
-     * as the preceding writes, so it can never overtake them. A failed archive leaves the file in
-     * {@code active} for the next recovery pass, which is why it does not fail the operation.
-     */
     private CompletableFuture<Void> archive(Entry entry) {
         Path source = activePath(entry.operationId());
         Path target = completedDirectory.resolve(entry.operationId() + ".yml");

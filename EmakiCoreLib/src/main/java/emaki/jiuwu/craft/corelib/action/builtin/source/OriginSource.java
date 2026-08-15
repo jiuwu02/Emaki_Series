@@ -12,12 +12,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
-/**
- * The pipeline's spatial reference point as a location subject.
- *
- * <p>Domain {@code SERVER_GLOBAL}: the origin is a {@code Location} value the context already holds, so
- * reading it touches no world or block state.</p>
- */
 public final class OriginSource extends BaseSource {
 
     public OriginSource() {
@@ -32,8 +26,7 @@ public final class OriginSource extends BaseSource {
         try {
             origin = context.origin();
         } catch (IllegalStateException exception) {
-            // A console-triggered pipeline has neither caster nor origin. That is a normal state for a
-            // trigger, not a configuration error, so it is Empty rather than Invalid.
+
             return CoreSourceResult.empty("action.source.origin.no_origin");
         }
         if (origin == null || origin.getWorld() == null) {

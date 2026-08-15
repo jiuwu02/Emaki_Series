@@ -8,9 +8,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.ItemStack;
 
-
-
-
 final class BukkitGuiDragContext implements GuiDragContext {
 
     private final InventoryDragEvent event;

@@ -56,11 +56,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
- /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\   
- \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\/_/\\ \\/\\/_/\\ \\/\\ \\  __<\\ \\ \\ \\  __<\\ \\ \\_\\ \\/_/\\ \\/\\ \\  __\\   
-  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\ \\_\\   \\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\ \\_\\ \\ \\_____\\ 
+ /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\
+ \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\/_/\\ \\/\\/_/\\ \\/\\ \\  __<\\ \\ \\ \\  __<\\ \\ \\_\\ \\/_/\\ \\/\\ \\  __\\
+  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\ \\_\\   \\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\ \\_\\ \\ \\_____\\
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
-                                                                                                                
+
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0xF43F5E;
     private static final int STARTUP_ASCII_END_COLOR = 0xFB923C;
@@ -141,21 +141,13 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
             metrics = null;
         }
         regenTask = null;
-        // Bukkit 在 disable 时注销本插件的监听，这里同步清掉句柄与注册标记，
-        // 避免旧 bridge 实例与「已注册」状态跨 reload 泄漏到下一次 enable。
+
         mythicBridge = null;
         mythicBridgeRegistered = false;
         betterHudBridge = null;
         betterHudBridgeRegistered = false;
     }
 
-    /**
-     * MythicBridge 的唯一注册入口：幂等地保证实例存在且已注册一次监听。
-     *
-     * <p>守卫针对「是否已注册」而非「是否已构造」，因为实例可能由生命周期协调器的
-     * {@code initialize} 预先构造；只防重复构造会让注册责任落到别处，
-     * 导致同一实例被注册两次、处理器触发两次。
-     */
     public void ensureMythicBridge() {
         if (mythicBridgeRegistered) {
             return;
@@ -219,9 +211,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     public CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
         publishLoading();
         CompletableFuture<Void> reload = startReloadAsync(resyncPlayers, progressListener);
-        // Appended outside the synchronized method on purpose: waiting third-party callbacks run
-        // synchronously wherever this stage executes, and the reload chain can complete inline on the
-        // calling thread, which would run them while this plugin's monitor is held.
+
         return reload.whenComplete((ignored, throwable) -> syncReadiness());
     }
 
@@ -246,13 +236,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return reloadFuture;
     }
 
-    /**
-     * Publishes the current registry load state to CoreLib's readiness registry.
-     *
-     * <p>Uses the same three-registry predicate the API bridge reports through {@code status()}, so the
-     * registry cannot disagree with it. Must be called outside this plugin's monitor: waiting
-     * third-party callbacks run synchronously on the calling thread.</p>
-     */
     private void syncReadiness() {
         boolean ready = attributeService != null
                 && attributeService.attributeRegistry() != null
@@ -278,11 +261,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -308,7 +286,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
-        // 飘字服务用 Supplier 取依赖，这样 reload 后自动读到新配置，无需重建实例。
+
         damageIndicatorService = new DamageIndicatorService(
                 () -> {
                     EmakiCoreLibPlugin coreLib =
@@ -408,7 +386,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return languageLoader;
     }
 
-    /** {@return 伤害飘字服务，未启用飘字时仍返回实例但不会生成任何实体} */
     public DamageIndicatorService damageIndicatorService() {
         return damageIndicatorService;
     }
@@ -465,8 +442,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         if (attributeService == null) {
             return;
         }
-        // Rebuilt on every module reload: the stages capture the service facade, and a reload may have
-        // replaced it.
+
         stageRegistrar = new AttributeStageRegistrar(this, attributeService);
         stageRegistrar.register();
     }

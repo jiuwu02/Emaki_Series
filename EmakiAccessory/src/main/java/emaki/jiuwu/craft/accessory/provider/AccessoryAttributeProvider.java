@@ -15,26 +15,6 @@ import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 
-/**
- * Feeds accessory attributes into EmakiAttribute.
- *
- * <p>Deliberately trivial: {@link #collect(LivingEntity)} is a map read over an already-built snapshot.
- * EmakiAttribute invokes it while computing its combat-snapshot cache signature, which happens on every
- * combat snapshot read and before the cache decision, so a cache hit does not avoid this call. Any
- * parsing here would land directly on the combat hot path.
- *
- * <p>Because contributions are hashed into that signature, a changed accessory automatically invalidates
- * EmakiAttribute's cache. This module therefore needs no attribute-side invalidation hooks on join,
- * respawn or world change, which is what prevents the "accessory still in the slot but its stats are
- * gone" failure reported against comparable mods.
- *
- * <p>Exceptions are swallowed on purpose. EmakiAttribute's provider loop has no {@code try/catch} of its
- * own, so an exception escaping here would corrupt an entire combat snapshot rather than just drop this
- * module's contribution.
- *
- * <p>The provider id carries a namespace because EmakiAttribute keys contribution providers globally
- * rather than per owner: an unqualified id could be superseded by another plugin's registration.
- */
 public final class AccessoryAttributeProvider implements AttributeContributionProvider {
 
     private static final String PROVIDER_ID = "emakiaccessory:accessories";
@@ -42,12 +22,6 @@ public final class AccessoryAttributeProvider implements AttributeContributionPr
     private final AccessoryContributionService contributionService;
     private final Logger logger;
 
-    /**
-     * Creates the provider.
-     *
-     * @param contributionService the snapshot cache to read
-     * @param logger              receives the one-line report when a collection fails
-     */
     public AccessoryAttributeProvider(AccessoryContributionService contributionService, Logger logger) {
         this.contributionService = contributionService;
         this.logger = logger;
@@ -60,8 +34,7 @@ public final class AccessoryAttributeProvider implements AttributeContributionPr
 
     @Override
     public int priority() {
-        // Neutral: accessory attributes are plain additive contributions with no ordering requirement
-        // against other providers.
+
         return 100;
     }
 

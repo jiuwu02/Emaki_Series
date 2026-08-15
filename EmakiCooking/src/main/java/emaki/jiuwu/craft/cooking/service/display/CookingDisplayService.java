@@ -4,12 +4,6 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 
-/**
- * 工位物品展示的薄适配层。
- *
- * <p>与 {@link CookingTextDisplayService} 同理，实体管理下沉到 CoreLib，
- * 这里只做工位身份翻译。
- */
 public final class CookingDisplayService {
 
     private final ItemDisplayService delegate;
@@ -46,7 +40,6 @@ public final class CookingDisplayService {
         delegate.removeGroupPrefix(CookingDisplayKeys.NAMESPACE, CookingDisplayKeys.typePrefix(stationType));
     }
 
-    /** 播放翻炒动画，底层是通用的抬升加绕轴旋转变换。 */
     public void playStirAnimation(StationType stationType,
             StationCoordinates coordinates,
             double heightOffset,

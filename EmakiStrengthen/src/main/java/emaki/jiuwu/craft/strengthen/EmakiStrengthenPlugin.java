@@ -61,7 +61,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc");
 
     private static final String STARTUP_ASCII = """
- ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __
 /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\__  _\\/\\  == \\/\\  ___\\/\\ "-.\\ \\/\\  ___\\/\\__  _\\/\\ \\_\\ \\/\\  ___\\/\\ "-.\\ \\
 \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\___  \\/_/\\ \\/\\ \\  __<\\ \\  __\\\\ \\ \\-.  \\ \\ \\__ \\/_/\\ \\/\\ \\  __ \\ \\  __\\\\ \\ \\-.  \\
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
@@ -72,9 +72,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private static final int BSTATS_PLUGIN_ID = 31769;
 
     private BStatsRegistration metrics;
-    // "Data is loaded", not "services exist": the services are non-null from initialize() onward, so a
-    // service null-check reported ready for the whole duration of a reload. Unrelated to the
-    // accept/freeze gate on StrengthenAttemptService, which answers a different question.
+
     private volatile boolean contentReady;
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
@@ -178,24 +176,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
                 });
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed". Deliberately separate from {@code attemptService().accepting()}, which is the
-     * shutdown gate for new requests and says nothing about whether the recipe table is loaded.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held. In particular it is not
-     * guarded by {@code lifecycleMonitor}, which belongs to the accept/freeze gate, so no monitor is
-     * held while the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -208,11 +192,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
@@ -318,12 +297,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
@@ -384,7 +357,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return coreItemFactory;
     }
 
-    /** Creates a stack from a parsed item source; used by economy payouts and command item resolution. */
     @FunctionalInterface
     public interface CoreItemFactory {
 

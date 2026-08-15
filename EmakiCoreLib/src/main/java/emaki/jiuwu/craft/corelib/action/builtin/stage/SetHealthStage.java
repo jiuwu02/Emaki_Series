@@ -17,11 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Sets the target's health to an absolute value, clamped to {@code [0, max]}.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one entity's health.</p>
- */
 public final class SetHealthStage extends BaseStage {
 
     public SetHealthStage() {

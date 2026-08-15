@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.Locale;
 
-
-
-
 public enum NutritionCompare {
 
     GREATER_OR_EQUAL(">="),
@@ -34,10 +31,6 @@ public enum NutritionCompare {
             case NOT_EQUAL -> value != threshold;
         };
     }
-
-
-
-
 
     public static NutritionCompare parse(String raw) {
         if (raw == null) {

@@ -37,21 +37,6 @@ import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.model.StorageReservation;
 
-/**
- * The single implementation of deposit and withdrawal.
- *
- * <p>Both GUI deposit paths — clicking a display slot with a loaded cursor, and the fixed
- * {@code deposit_slot} — funnel through {@link #depositFromInventory} / {@link #depositCursor}
- * into one transaction body. Capacity checks, the deposit filter, the unique-item rule, event
- * publication and log emission exist exactly once; duplicating them would guarantee behavioural
- * drift and one of the two copies eventually skipping a check.
- *
- * <p>Everything here runs on the owning entity thread. That is not laziness about async: a deposit
- * is an atomic trade between the player's inventory and the entry table, the inventory can only be
- * touched on its owner thread, so the whole trade belongs there. Making the entry table async
- * would break that atomicity and open an item-duplication window. Serialisation and file IO, which
- * genuinely can be async, happen later on the file lane and never inside this path.
- */
 public final class StorageTransactionService {
 
     private final ItemSourceService itemSourceService;
@@ -82,17 +67,6 @@ public final class StorageTransactionService {
         }
     }
 
-    /**
-     * Deposits from the player's cursor.
-     *
-     * @param storage  the target storage
-     * @param player   the acting player, also the inventory owner
-     * @param capacity the freshly computed capacity breakdown
-     * @param cursor   the cursor contents
-     * @param amount   how many units to take from the cursor
-     * @param source   the originating surface
-     * @return the outcome plus the cursor remainder the caller must write back
-     */
     public CursorDepositResult depositCursor(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -117,25 +91,9 @@ public final class StorageTransactionService {
         return new CursorDepositResult(result, remainder);
     }
 
-    /**
-     * Outcome of a cursor deposit.
-     *
-     * @param result          the transaction outcome
-     * @param remainingCursor what the cursor must be set to afterwards, {@code null} to clear it
-     */
     public record CursorDepositResult(StorageResult result, ItemStack remainingCursor) {
     }
 
-    /**
-     * Deposits from a specific player inventory slot, used by shift-click redirection.
-     *
-     * @param storage  the target storage
-     * @param player   the acting player
-     * @param capacity the freshly computed capacity breakdown
-     * @param slot     the player inventory slot index
-     * @param source   the originating surface
-     * @return the transaction outcome
-     */
     public StorageResult depositFromInventory(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -166,19 +124,6 @@ public final class StorageTransactionService {
         return commitDeposit(storage, player, inventory, plan, key, preCheck, requested, source);
     }
 
-    /**
-     * Deposits every matching stack from the player's main inventory, used by the bulk button.
-     *
-     * <p>All 36 slots are processed inside one owner-thread pass. Doing it in chunks across ticks
-     * would let the inventory change mid-operation; a table lookup only costs
-     * {@code hashCode}/{@code equals} and involves no serialisation, so one pass is affordable.
-     *
-     * @param storage  the target storage
-     * @param player   the acting player
-     * @param capacity the capacity breakdown, recomputed internally as slots fill
-     * @param source   the originating surface
-     * @return how many units were stored in total
-     */
     public long depositAll(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -200,17 +145,6 @@ public final class StorageTransactionService {
         return stored;
     }
 
-    /**
-     * Adds items without touching any inventory, used by the API, actions and admin commands.
-     *
-     * @param storage  the target storage
-     * @param player   the online player, or {@code null} for offline targets
-     * @param capacity the capacity breakdown
-     * @param template the item to store
-     * @param amount   how many units to add
-     * @param source   the originating surface
-     * @return the transaction outcome
-     */
     public StorageResult depositDirect(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -243,9 +177,6 @@ public final class StorageTransactionService {
                 : StorageResult.partial(amount, applied, "slot_full");
     }
 
-    /**
-     * The shared deposit body used by both GUI paths.
-     */
     private StorageResult applyDeposit(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -291,7 +222,7 @@ public final class StorageTransactionService {
             throw failure;
         }
         if (applied < plan.removedAmount()) {
-            // The table accepted less than was taken: give the difference back rather than void it.
+
             long surplus = plan.removedAmount() - applied;
             ItemStack refund = key.toItemStack((int) Math.min(Integer.MAX_VALUE, surplus));
             InventoryItemUtil.addOrDrop(player, refund);
@@ -306,20 +237,6 @@ public final class StorageTransactionService {
                 : StorageResult.partial(requested, applied, "slot_full");
     }
 
-    /**
-     * Withdraws items into a player's inventory.
-     *
-     * <p>Debit happens before the hand-out. The reverse order would mean a successful hand-out
-     * followed by a failed debit — item duplication. In this order the worst case is the player
-     * receiving less than asked, and that surplus is credited straight back.
-     *
-     * @param storage  the source storage
-     * @param player   the receiving player
-     * @param key      the entry to withdraw from
-     * @param amount   how many units to withdraw; larger than stock simply takes everything
-     * @param source   the originating surface
-     * @return the transaction outcome
-     */
     public StorageResult withdraw(PlayerStorage storage,
             Player player,
             StorageKey key,
@@ -342,8 +259,6 @@ public final class StorageTransactionService {
             return StorageResult.failed(requested, "entry_missing");
         }
 
-        // Data-layer item, never the GUI projection: the rendered item carries percentage lore and
-        // an overridden max_stack_size, which would be baked into the player's item permanently.
         long leftover = handOut(player, key, debited);
         if (leftover > 0L) {
             if (config.behavior().overflowOnWithdraw() == AppConfig.WithdrawOverflow.RETURN) {
@@ -369,11 +284,6 @@ public final class StorageTransactionService {
                 : StorageResult.partial(requested, debited, "inventory_full");
     }
 
-    /**
-     * Splits the amount into vanilla-sized stacks and hands them to the player.
-     *
-     * @return how many units the inventory refused
-     */
     private long handOut(Player player, StorageKey key, long amount) {
         int stackSize = key.vanillaMaxStackSize();
         long remaining = amount;
@@ -394,49 +304,14 @@ public final class StorageTransactionService {
         return refused;
     }
 
-    /**
-     * Per-op outcome of one batch, plus where and why it stopped.
-     *
-     * @param requested   unsigned requested amount per op, positionally aligned with the request
-     * @param applied     unsigned applied amount per op, positionally aligned with the request
-     * @param failedIndex the op that could not be applied in full, or {@code -1}
-     * @param reasonKey   reason key for {@code failedIndex}, or an empty string
-     * @param cancelled   whether a listener cancelled the batch before anything moved
-     */
     public record BatchOutcome(List<Long> requested, List<Long> applied, int failedIndex, String reasonKey,
             boolean cancelled) {
 
-        /** {@return whether some op could not be applied in full} */
         public boolean failed() {
             return failedIndex >= 0;
         }
     }
 
-    /**
-     * Applies a batch of signed increments in one owner-thread pass, never touching any inventory.
-     *
-     * <p>Three phases, in this order, and the order is the whole point:</p>
-     * <ol>
-     *   <li><strong>pre-check</strong> on a projection of the entry table, so an under-stocked or
-     *       over-capacity batch is rejected before a single unit moves;</li>
-     *   <li><strong>one event</strong> for the batch, cancellable, still before any mutation;</li>
-     *   <li><strong>apply</strong> in list order, recording enough to undo.</li>
-     * </ol>
-     *
-     * <p>Under {@code allOrNothing} any op that cannot be applied in full triggers an exact undo of
-     * the ops already applied. The undo is exact because nothing outside the entry table is touched:
-     * amounts are pure arithmetic, and emptied entries are deliberately <em>not</em> pruned until the
-     * batch has committed. Pruning mid-batch would shift every later slot index, and re-appending on
-     * undo would put the entry back at the tail instead of its original position.
-     *
-     * @param storage      the target storage
-     * @param player       the online storage owner, used only to recompute capacity
-     * @param capacity     the capacity breakdown captured before the batch
-     * @param ops          the increments, in application order
-     * @param allOrNothing whether a single unapplicable op aborts and undoes the whole batch
-     * @param source       the originating surface
-     * @return the per-op outcome
-     */
     public BatchOutcome applyBatch(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -450,8 +325,7 @@ public final class StorageTransactionService {
             keys.add(StorageKey.of(op.template()));
             requested.add(op.magnitude());
         }
-        // Expired holds must stop counting against available stock before the pre-check reads it,
-        // or a caller that never committed would keep the units frozen for the whole session.
+
         storage.pruneExpiredReservations(System.currentTimeMillis());
 
         BatchRejection rejection = preCheckBatch(storage, capacity, ops, keys);
@@ -535,28 +409,13 @@ public final class StorageTransactionService {
         return new BatchOutcome(requested, applied, firstFailIndex, firstFailReason, false);
     }
 
-    /** One increment that really moved, kept only to undo it. */
     private record AppliedOp(StorageKey key, long signedAmount) {
     }
 
-    /** {@return the configured cap on how many increments one API batch may carry} */
     public int batchMaxOps() {
         return config.behavior().batchMaxOps();
     }
 
-    /**
-     * Holds the withdrawal side of a batch without applying anything.
-     *
-     * <p>Only the withdrawal side is validated. Capacity is deliberately not pre-booked: a hold
-     * exists to stop stock being spent twice, and freezing free slots as well would let one caller
-     * starve every other deposit path for as long as it holds the ticket. Commit re-checks capacity.
-     *
-     * @param storage  the target storage
-     * @param capacity the capacity breakdown, unused today but kept for symmetry with commit
-     * @param ops      the increments whose withdrawals should be held
-     * @param ttl      how long the hold survives without a commit
-     * @return the new reservation id, or empty when stock is insufficient
-     */
     public Optional<UUID> reserve(PlayerStorage storage,
             StorageCapacity capacity,
             List<StorageBatchOp> ops,
@@ -585,28 +444,9 @@ public final class StorageTransactionService {
         return Optional.of(reservationId);
     }
 
-    /**
-     * Applies a held reservation.
-     *
-     * @param outcome       the batch outcome, or {@code null} when the reservation was unknown
-     * @param allOrNothing  always {@code true}: a reservation is an all-or-nothing promise
-     */
     public record CommitOutcome(BatchOutcome outcome, boolean allOrNothing) {
     }
 
-    /**
-     * Drops the hold and applies its increments in one owner-thread pass.
-     *
-     * <p>The hold is removed <em>before</em> applying, or {@link #availableAmount} would still exclude
-     * the very units this commit is supposed to take.
-     *
-     * @param storage       the target storage
-     * @param player        the online storage owner, used only to recompute capacity
-     * @param capacity      the capacity breakdown captured before the commit
-     * @param reservationId the hold to commit
-     * @param source        the originating surface
-     * @return the outcome, with a {@code null} batch outcome when the hold is unknown or expired
-     */
     public CommitOutcome commitReservation(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -624,25 +464,15 @@ public final class StorageTransactionService {
         }
         BatchOutcome outcome = applyBatch(storage, player, capacity, ops, true, source);
         if (outcome.failed() || outcome.cancelled()) {
-            // Put the hold back: a failed commit must not silently release the stock it was holding.
+
             storage.addReservation(reservation);
         }
         return new CommitOutcome(outcome, true);
     }
 
-    /** Where and why a batch pre-check refused. */
     private record BatchRejection(int index, String reasonKey) {
     }
 
-    /**
-     * Validates the whole batch against a projection of the entry table.
-     *
-     * <p>The projection is what makes "any shortfall aborts everything" honest for a batch that lists
-     * the same template several times: two withdrawals of 40 against a stock of 60 must fail, and they
-     * only do so if the second op sees the first one's effect.
-     *
-     * @return the first rejection, or {@code null} when every op is applicable
-     */
     private BatchRejection preCheckBatch(PlayerStorage storage,
             StorageCapacity capacity,
             List<StorageBatchOp> ops,
@@ -686,13 +516,6 @@ public final class StorageTransactionService {
         return null;
     }
 
-    /**
-     * {@return how many units of {@code key} a batch may actually take}
-     *
-     * <p>Reserved units are stored and visible but already promised to an outstanding reservation, so
-     * they are excluded here rather than in the caller: a batch that could spend them would let the
-     * same units be handed out twice.
-     */
     private long availableAmount(PlayerStorage storage, StorageKey key) {
         StorageEntry entry = storage.entry(key);
         if (entry == null) {
@@ -701,7 +524,6 @@ public final class StorageTransactionService {
         return Math.max(0L, entry.amount() - storage.reservedAmount(key));
     }
 
-    /** Debits without pruning the entry, so an undo can restore it in place. */
     private long debitForBatch(PlayerStorage storage, StorageKey key, long amount) {
         StorageEntry entry = storage.entry(key);
         if (entry == null) {
@@ -760,15 +582,6 @@ public final class StorageTransactionService {
         }
     }
 
-    /**
-     * Pre-transaction validation shared by every deposit path.
-     *
-     * @param room      how many units may still be accepted
-     * @param ceiling   the total amount this entry is allowed to reach, already accounting for the
-     *                  slots it may grow into under {@code behavior.multi_slot_stacking}
-     * @param entry     the existing entry, {@code null} when a new one is needed
-     * @param rejection a reason key when the deposit is refused outright, otherwise {@code null}
-     */
     private record PreCheck(long room, long ceiling, StorageEntry entry, String rejection) {
     }
 
@@ -786,8 +599,7 @@ public final class StorageTransactionService {
             if (!capacityService.hasFreeSlot(capacity)) {
                 return new PreCheck(0L, 0L, null, "no_free_slot");
             }
-            // A brand new entry may also span several slots straight away, otherwise depositing 120
-            // into an empty warehouse would still store 100 and reject 20.
+
             long ceiling = capacityService.spanCeiling(storage, null, capacity.freeSlots());
             return new PreCheck(ceiling, ceiling, null, null);
         }
@@ -809,14 +621,6 @@ public final class StorageTransactionService {
         return entry.add(amount, preCheck.ceiling());
     }
 
-    /**
-     * Builds a removal plan matched by full {@link ItemStack} equality.
-     *
-     * <p>CoreLib's {@code planRemoval} matches by ItemSource, which is the wrong identity here:
-     * this module deduplicates on full component equality, so two items sharing a source but
-     * differing in components must not be treated as interchangeable. The plan is still applied
-     * through CoreLib's {@code applyRemoval}, keeping its compare-before-write guarantee.
-     */
     private InventoryItemUtil.RemovalPlan planExactRemoval(PlayerInventory inventory,
             StorageKey key, long amount) {
         ItemStack[] contents = inventory.getContents();
@@ -868,12 +672,6 @@ public final class StorageTransactionService {
         return false;
     }
 
-    /**
-     * {@return whether the item carries a per-instance marker}
-     *
-     * <p>Detected structurally through the item's own persistent data rather than by reading its
-     * display name or lore, which are rendering output and not an identity source.
-     */
     private boolean isUnique(ItemStack template) {
         if (!template.hasItemMeta()) {
             return false;

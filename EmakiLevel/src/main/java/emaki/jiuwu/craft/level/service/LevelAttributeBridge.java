@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 
-/** Isolated optional EmakiAttribute integration, loaded only after the plugin-name availability check. */
 public final class LevelAttributeBridge implements AttributeContributionProvider, AutoCloseable {
 
     private final JavaPlugin plugin;
@@ -63,7 +62,6 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
         this.config = config;
     }
 
-    /** Resynchronizes one player on that player's owner thread. */
     public void resync(Player player) {
         if (!registered || player == null || !player.isOnline() || !EmakiAttributeApi.status().usable()) {
             return;
@@ -76,7 +74,6 @@ public final class LevelAttributeBridge implements AttributeContributionProvider
         scheduling.runForEntity(plugin, player, task, null);
     }
 
-    /** Dispatches every online player's resynchronization to its own owner thread. */
     public void resyncAll() {
         if (!registered) {
             return;

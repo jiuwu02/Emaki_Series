@@ -3,9 +3,6 @@ package emaki.jiuwu.craft.attribute.model;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-
-
-
 public record AttributeContributionTrace(
         String attributeId,
         double value,

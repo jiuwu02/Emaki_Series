@@ -26,29 +26,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Adds to, sets, or subtracts from one of the target's resources.
- *
- * <p>{@code consume} and {@code remove} compute the same value; they stay as separate stage ids because
- * configuration refers to them by name, but they share one implementation.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's resource state.</p>
- */
 public final class ResourceModifyStage implements CoreActionStage {
 
-    /** Which resource mutation a stage instance performs. */
     public enum Operation {
 
-        /** Increase the current value. */
         ADD("attribute_resource_add", "Adds to one of the target's resources."),
 
-        /** Replace the current value. */
         SET("attribute_resource_set", "Sets one of the target's resources."),
 
-        /** Decrease the current value, floored at zero. */
         REMOVE("attribute_resource_remove", "Removes from one of the target's resources."),
 
-        /** Spend from the current value. Same arithmetic as {@link #REMOVE}, kept as its own id. */
         CONSUME("attribute_resource_consume", "Consumes one of the target's resources.");
 
         private final String id;
@@ -59,7 +46,6 @@ public final class ResourceModifyStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -68,12 +54,6 @@ public final class ResourceModifyStage implements CoreActionStage {
     private final AttributeServiceFacade attributeService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param attributeService the module's service facade
-     * @param operation which mutation this instance performs
-     */
     public ResourceModifyStage(@NotNull AttributeServiceFacade attributeService,
             @NotNull Operation operation) {
         this.attributeService = attributeService;
@@ -149,12 +129,6 @@ public final class ResourceModifyStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.copyOf(data));
     }
 
-    /**
-     * Reads the resource's current value, initialising it when the player has none yet.
-     *
-     * <p>The sync-with-null call is how v1 primed a resource that had never been written: without it the
-     * baseline would be zero and an {@code add} would start from the wrong number.</p>
-     */
     private double currentValue(Player target,
             ResourceDefinition definition,
             String resourceId,

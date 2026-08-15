@@ -10,22 +10,6 @@ import emaki.jiuwu.craft.station.api.model.ProgressMode;
 import emaki.jiuwu.craft.station.api.model.QueueEntryState;
 import emaki.jiuwu.craft.station.api.model.QueueEntryView;
 
-/**
- * One queued craft, mutable while it lives in a {@link CraftQueue}.
- *
- * <h2>One shape for both progress modes</h2>
- * Both timing fields are always persisted, and only the advance function differs. This is what lets an
- * administrator flip a station between {@code online} and {@code offline} without migrating queue files:
- *
- * <ul>
- *   <li>{@code offline} reads {@code startedAtMs} and compares it to the wall clock.</li>
- *   <li>{@code online} accumulates into {@code accumulatedMs} while {@code lastTickMs} is non-zero, and
- *       freezes by zeroing {@code lastTickMs} on disconnect.</li>
- * </ul>
- *
- * <p>Not thread-safe. Every mutation happens on the owner's owner thread, and {@link CraftQueue} owns the
- * synchronisation for its entry list.
- */
 public final class QueueEntry {
 
     private final String recipeId;
@@ -42,27 +26,6 @@ public final class QueueEntry {
     private long accumulatedMs;
     private long lastTickMs;
 
-    /**
-     * Creates an entry.
-     *
-     * <p>The currency fields exist for the same reason {@code consumedMaterials} does: the entry is the
-     * player's receipt. A cancellation after a restart can only refund what the entry itself remembers, so
-     * the charge is recorded rather than recomputed from the recipe — which may have been re-priced or
-     * deleted in the meantime.
-     *
-     * @param recipeId          the recipe being crafted
-     * @param batch             how many times the recipe is applied
-     * @param channel           the primary material source; per-material truth lives in
-     *                          {@code consumedMaterials}, which may span both sides
-     * @param durationMillis    the entry's total duration
-     * @param consumedMaterials the materials already debited
-     * @param state             the initial state
-     * @param startedAtMs       the wall-clock start, or zero when not started
-     * @param accumulatedMs     online progress accumulated so far
-     * @param lastTickMs        the last online tick timestamp, or zero when frozen
-     * @param costProviderId    the economy provider already charged, or an empty string
-     * @param costAmount        the currency already charged; zero when nothing was
-     */
     public QueueEntry(String recipeId,
             long batch,
             MaterialChannel channel,
@@ -91,77 +54,58 @@ public final class QueueEntry {
         this.costAmount = this.costProviderId.isEmpty() ? 0L : charged;
     }
 
-    /** {@return the recipe being crafted} */
     public String recipeId() {
         return recipeId;
     }
 
-    /** {@return how many times the recipe is applied} */
     public long batch() {
         return batch;
     }
 
-    /** {@return where the materials came from} */
     public MaterialChannel channel() {
         return channel;
     }
 
-    /** {@return the entry's total duration in milliseconds} */
     public long durationMillis() {
         return durationMillis;
     }
 
-    /** {@return the materials already debited; a live view} */
     public List<ConsumedMaterial> consumedMaterials() {
         return consumedMaterials;
     }
 
-    /** {@return the outputs still owed; a live view} */
     public List<PendingOutput> pendingOutputs() {
         return pendingOutputs;
     }
 
-    /** {@return the current lifecycle state} */
     public QueueEntryState state() {
         return state;
     }
 
-    /** {@return the wall-clock start, or zero when not started} */
     public long startedAtMs() {
         return startedAtMs;
     }
 
-    /** {@return online progress accumulated so far} */
     public long accumulatedMs() {
         return accumulatedMs;
     }
 
-    /** {@return the last online tick timestamp, or zero when frozen} */
     public long lastTickMs() {
         return lastTickMs;
     }
 
-    /** {@return the economy provider already charged, or an empty string when nothing was} */
     public String costProviderId() {
         return costProviderId;
     }
 
-    /** {@return the currency already charged; zero when nothing was} */
     public long costAmount() {
         return costAmount;
     }
 
-    /** {@return whether this entry carries a refundable currency charge} */
     public boolean charged() {
         return !costProviderId.isEmpty() && costAmount > 0L;
     }
 
-    /**
-     * Marks this entry as the running head of its queue.
-     *
-     * @param mode the station's progress mode
-     * @param now  the current wall-clock time
-     */
     public void start(ProgressMode mode, long now) {
         if (state != QueueEntryState.WAITING) {
             return;
@@ -173,14 +117,6 @@ public final class QueueEntry {
         }
     }
 
-    /**
-     * Folds elapsed online time into the accumulator and freezes the clock.
-     *
-     * <p>Called on disconnect and before persisting, so a saved entry never carries a {@code lastTickMs}
-     * that would be reinterpreted as progress after a restart.
-     *
-     * @param now the current wall-clock time
-     */
     public void freezeOnlineProgress(long now) {
         if (lastTickMs > 0L && now > lastTickMs) {
             accumulatedMs += now - lastTickMs;
@@ -188,24 +124,12 @@ public final class QueueEntry {
         lastTickMs = 0L;
     }
 
-    /**
-     * Resumes online accumulation.
-     *
-     * @param now the current wall-clock time
-     */
     public void resumeOnlineProgress(long now) {
         if (state == QueueEntryState.RUNNING) {
             lastTickMs = now;
         }
     }
 
-    /**
-     * Computes how much time this entry still needs.
-     *
-     * @param mode the station's progress mode
-     * @param now  the current wall-clock time
-     * @return the remaining milliseconds; zero once the entry is due
-     */
     public long remainingMillis(ProgressMode mode, long now) {
         if (state != QueueEntryState.RUNNING) {
             return state == QueueEntryState.PENDING_CLAIM ? 0L : durationMillis;
@@ -216,22 +140,10 @@ public final class QueueEntry {
         return Math.max(0L, durationMillis - elapsed);
     }
 
-    /**
-     * Tests whether this entry has reached its duration.
-     *
-     * @param mode the station's progress mode
-     * @param now  the current wall-clock time
-     * @return whether the entry is ready to settle
-     */
     public boolean due(ProgressMode mode, long now) {
         return state == QueueEntryState.RUNNING && remainingMillis(mode, now) <= 0L;
     }
 
-    /**
-     * Moves this entry into the pending-claim state with the outputs it still owes.
-     *
-     * @param outputs the undelivered outputs
-     */
     public void markPendingClaim(List<PendingOutput> outputs) {
         state = QueueEntryState.PENDING_CLAIM;
         pendingOutputs.clear();
@@ -241,19 +153,10 @@ public final class QueueEntry {
         lastTickMs = 0L;
     }
 
-    /** Clears every owed output, which is what a completed claim leaves behind. */
     public void clearPendingOutputs() {
         pendingOutputs.clear();
     }
 
-    /**
-     * Builds an API view of this entry.
-     *
-     * @param index the entry's current queue position
-     * @param mode  the station's progress mode
-     * @param now   the current wall-clock time
-     * @return the view
-     */
     public QueueEntryView toView(int index, ProgressMode mode, long now) {
         return new QueueEntryView(index,
                 recipeId,

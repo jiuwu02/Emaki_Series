@@ -21,13 +21,6 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
 
-/**
- * Owner-aware registry of {@link ItemContributionGate} providers.
- *
- * <p>A gate may veto every contribution of one item. A provider that throws is
- * treated as accepting the item, so a broken third-party gate can never wipe out
- * all equipment attributes.
- */
 public final class ItemContributionGateRegistry implements Listener, AutoCloseable {
 
     private final Map<String, RegisteredGate> gates = new LinkedHashMap<>();
@@ -51,14 +44,6 @@ public final class ItemContributionGateRegistry implements Listener, AutoCloseab
         return new RegistrationHandle(this, id, generation);
     }
 
-    /**
-     * Evaluates every registered gate and returns the first rejecting gate id.
-     *
-     * @param player the owning player
-     * @param itemStack the equipped item
-     * @param slotName the equipment slot name; may be {@code null}
-     * @return the rejecting gate id, or {@code ""} when the item is accepted
-     */
     public String rejectingGateId(Player player, ItemStack itemStack, String slotName) {
         for (Map.Entry<String, ItemContributionGate> entry : activeGates().entrySet()) {
             boolean active;
@@ -75,7 +60,6 @@ public final class ItemContributionGateRegistry implements Listener, AutoCloseab
         return "";
     }
 
-    /** {@return whether any gate is currently registered} */
     public synchronized boolean hasGates() {
         gates.entrySet().removeIf(entry -> !entry.getValue().owner().isEnabled());
         return !gates.isEmpty();

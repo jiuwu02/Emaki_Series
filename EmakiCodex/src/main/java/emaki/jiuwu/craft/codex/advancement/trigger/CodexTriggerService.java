@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** Resolves configured and external trigger providers into central advancement mutations. */
 public final class CodexTriggerService {
 
     private final EmakiCodexPlugin plugin;

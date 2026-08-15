@@ -21,15 +21,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.gson.GsonComponentSerializer;
 
-
-
-
-
-
-
-
-
-
 @SuppressWarnings("deprecation")
 public final class AdvancementJsonBuilder {
 
@@ -38,14 +29,6 @@ public final class AdvancementJsonBuilder {
     public AdvancementJsonBuilder(ItemSourceService itemSourceService) {
         this.itemSourceService = itemSourceService;
     }
-
-
-
-
-
-
-
-
 
     public String build(AdvancementPage page, AdvancementDefinition definition, String parentKey) {
         JsonObject root = new JsonObject();
@@ -81,7 +64,6 @@ public final class AdvancementJsonBuilder {
         return root.toString();
     }
 
-    /** Builds the platform JSON for a narrow external advancement specification. */
     public String build(AdvancementSpec spec, String parentKey) {
         JsonObject root = new JsonObject();
         JsonObject display = new JsonObject();
@@ -120,7 +102,6 @@ public final class AdvancementJsonBuilder {
         if (Texts.isBlank(iconShorthand)) {
             return "minecraft:book";
         }
-
 
         ItemSourceRef source = ItemSourceUtil.parse(iconShorthand);
         if (source != null && itemSourceService != null) {

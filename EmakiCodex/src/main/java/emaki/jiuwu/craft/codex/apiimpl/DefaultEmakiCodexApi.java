@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.codex.api.CodexOperations;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 
-/** Runtime bridge for the static Codex facade. */
 public final class DefaultEmakiCodexApi implements EmakiCodexApi.Bridge {
 
     private final EmakiCodexPlugin plugin;

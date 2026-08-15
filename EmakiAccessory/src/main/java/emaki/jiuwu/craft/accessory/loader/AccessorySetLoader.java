@@ -13,23 +13,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
-/**
- * Loads {@code sets/**.yml} into {@link AccessorySetDefinition}s.
- *
- * <p>The file shape mirrors EmakiItem's {@code sets/example_set.yml} so server owners reuse a syntax
- * they already know, with one difference: {@code slot} names an accessory part or slot instance instead
- * of a Bukkit equipment slot.
- *
- * <p>A set whose pieces or thresholds fail to parse is skipped with a recorded issue rather than
- * aborting the directory, so one bad file does not cost an administrator every other set.
- */
 public final class AccessorySetLoader extends YamlDirectoryLoader<AccessorySetDefinition> {
 
-    /**
-     * Creates the loader.
-     *
-     * @param plugin the owning plugin
-     */
     public AccessorySetLoader(JavaPlugin plugin) {
         super(plugin);
     }
@@ -145,13 +130,6 @@ public final class AccessorySetLoader extends YamlDirectoryLoader<AccessorySetDe
         return thresholds;
     }
 
-    /**
-     * Reads the {@code effects} list of one threshold.
-     *
-     * <p>Effect entries are keyed by {@code type} exactly like EmakiItem's set effects, so the same
-     * {@code ea_attribute} / {@code es_skill} vocabulary applies. Unknown types are ignored rather than
-     * rejected: a future effect type must not invalidate an existing set file.
-     */
     private void collectEffects(YamlSection threshold, Map<String, Double> attributes, List<String> skills) {
         for (Map<?, ?> raw : threshold.getMapList("effects")) {
             if (raw == null) {

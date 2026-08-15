@@ -50,7 +50,6 @@ public final class TriggerRegistry {
         }
     }
 
-
     public static List<SkillTriggerDefinition> defaultDefinitions() {
         List<SkillTriggerDefinition> defs = new ArrayList<>();
 

@@ -9,13 +9,6 @@ import emaki.jiuwu.craft.cooking.api.CookingNutrition;
 import emaki.jiuwu.craft.cooking.api.CookingOperations;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 
-/**
- * {@link EmakiCookingApi.Bridge} 的运行时实现。
- *
- * <p>三个层实现只构造一次并复用。{@link #status()} 的 ready 判定要求配方服务与营养注册表都在位，
- * 比旧实现只看配方服务更严；营养子系统是否被服主关闭由
- * {@link CookingNutrition#enabled()} 单独表达，不混进 status。
- */
 public final class DefaultEmakiCookingApi implements EmakiCookingApi.Bridge {
 
     private final EmakiCookingPlugin plugin;

@@ -55,22 +55,6 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.station.api.model.QueueEntryState;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 
-/**
- * Opens the three station pages and routes their clicks.
- *
- * <h2>Why view state is not on the GUI session</h2>
- * {@code GuiService.open()} closes the viewer's current window first, which fires the previous handler's
- * {@code onClose}. Every page change therefore destroys a session. Page numbers live in {@link StationViewState},
- * kept in a map this service owns, so returning from the preview lands on the catalog page the viewer left.
- *
- * <h2>Why every player-side click is rejected explicitly</h2>
- * CoreLib cancels clicks in the upper inventory automatically, but not clicks in the player's own inventory, and
- * its blocked-transfer test does not cover number-key or offhand swaps. Since no slot in any of the three pages
- * accepts an item, every handler cancels unconditionally and only then decides what the click meant.
- *
- * <p>Nothing here takes custody of a player's items. There are no input slots to hand back on close, which is
- * what removes the whole class of "rendered display stack escapes into an inventory" bugs.
- */
 public final class StationGuiService {
 
     private final Plugin plugin;
@@ -98,28 +82,6 @@ public final class StationGuiService {
     private final Map<UUID, StationViewState> states = new ConcurrentHashMap<>();
     private final Map<UUID, DismantleViewState> dismantleStates = new ConcurrentHashMap<>();
 
-    /**
-     * Creates the service.
-     *
-     * @param plugin              the owning plugin
-     * @param guiService          CoreLib's GUI service
-     * @param threadOwnership     CoreLib's thread-ownership probe
-     * @param layoutLoader        supplies the current layout loader
-     * @param registrySupplier    supplies the current resolved registry
-     * @param guiSettings         supplies the current GUI timing settings
-     * @param itemSourceService   CoreLib's item-source service
-     * @param materialChannel     the merged material channel
-     * @param storageChannel      the warehouse channel, consulted for availability only
-     * @param queueService        the queue cache
-     * @param unlockService       the purchased-slot cache
-     * @param purchaseService     the queue purchase service
-     * @param craftService        the submission orchestrator
-     * @param economyManager      CoreLib's economy manager, read for balance display
-     * @param placeholders        resolves placeholders for one player, used by display conditions
-     * @param guiSupport          reads each layout's virtual items and texts
-     * @param dismantleService    the dismantle loot-roll service
-     * @param dismantleRegistrySupplier supplies the current dismantle station registry
-     */
     public StationGuiService(Plugin plugin,
             GuiService guiService,
             ThreadOwnership threadOwnership,
@@ -168,16 +130,6 @@ public final class StationGuiService {
                 itemSourceService);
     }
 
-    /**
-     * Opens a station's catalog page.
-     *
-     * <p><strong>Thread:</strong> the viewer's owner thread. Returns {@code WRONG_THREAD} elsewhere rather than
-     * scheduling a deferred open, so a caller never believes a window is already up when it is not.
-     *
-     * @param player    the viewer
-     * @param stationId the station to open
-     * @return success when the window opened, otherwise the reason it did not
-     */
     public EmakiResult<Unit> open(Player player, String stationId) {
         if (player == null || stationId == null) {
             return EmakiResult.invalidInput("station.open_bad_request");
@@ -197,12 +149,6 @@ public final class StationGuiService {
         return openCatalog(state);
     }
 
-    /**
-     * Opens or reopens the catalog page for an existing state.
-     *
-     * @param state the viewer's page state
-     * @return success when the window opened
-     */
     private EmakiResult<Unit> openCatalog(StationViewState state) {
         GuiTemplate template = templateOf(state.station().layoutId());
         if (template == null) {
@@ -217,12 +163,6 @@ public final class StationGuiService {
                 slot -> catalogRenderer.render(state, entries, slot));
     }
 
-    /**
-     * Opens the material preview for the state's selected recipe.
-     *
-     * @param state the viewer's page state
-     * @return success when the window opened
-     */
     private EmakiResult<Unit> openPreview(StationViewState state) {
         if (state.selectedRecipe() == null) {
             return EmakiResult.rejected("station.no_recipe_selected");
@@ -244,12 +184,6 @@ public final class StationGuiService {
         return opened;
     }
 
-    /**
-     * Opens the craft-queue page.
-     *
-     * @param state the viewer's page state
-     * @return success when the window opened
-     */
     private EmakiResult<Unit> openQueue(StationViewState state) {
         GuiTemplate template = templateOf(state.station().queueLayoutId());
         if (template == null) {
@@ -266,18 +200,6 @@ public final class StationGuiService {
                         purchasedOf(state), quoteOf(state, 1), slot));
     }
 
-    /**
-     * Shared open path for all three pages.
-     *
-     * <p>{@link StationViewState#beginNavigation()} is set before the open so the outgoing page's
-     * {@code onClose} recognises this as a page change and leaves the view state alone.
-     *
-     * @param state    the viewer's page state
-     * @param template the layout to open
-     * @param title    the title substitutions
-     * @param renderer the per-slot renderer
-     * @return success when the window opened
-     */
     private EmakiResult<Unit> openPage(StationViewState state,
             GuiTemplate template,
             Map<String, Object> title,
@@ -305,29 +227,11 @@ public final class StationGuiService {
         return EmakiResult.ok();
     }
 
-    /** Renders one resolved slot for whichever page is open. */
     private interface SlotRenderer {
 
-        /**
-         * Renders a slot.
-         *
-         * @param slot the resolved slot
-         * @return the stack to place, or {@code null} for the layout's own definition
-         */
         ItemStack render(GuiTemplate.ResolvedSlot slot);
     }
 
-    /**
-     * Opens the dismantle page for a player at a specific station.
-     *
-     * <p>Scans the player's inventory for the first item that matches any registered dismantle recipe
-     * for the station. Returns {@code notFound} when the station has no matching recipe for anything
-     * the player currently carries.
-     *
-     * @param player    the viewer
-     * @param stationId the station to open
-     * @return success when the window opened, otherwise the reason it did not
-     */
     public EmakiResult<Unit> openDismantle(Player player, String stationId) {
         if (player == null || stationId == null) {
             return EmakiResult.invalidInput("station.open_bad_request");
@@ -339,7 +243,7 @@ public final class StationGuiService {
         if (station == null) {
             return EmakiResult.notFound("station.unknown_station");
         }
-        // Find the first item in the player's inventory that matches a dismantle recipe.
+
         DismantleRecipeDefinition recipe = null;
         for (ItemStack item : player.getInventory().getStorageContents()) {
             if (item == null || item.getType().isAir()) {
@@ -364,12 +268,6 @@ public final class StationGuiService {
         return openDismantlePage(state);
     }
 
-    /**
-     * Opens or reopens the dismantle page for an existing state.
-     *
-     * @param state the viewer's dismantle state
-     * @return success when the window opened
-     */
     private EmakiResult<Unit> openDismantlePage(DismantleViewState state) {
         GuiTemplate template = templateOf(state.station().layoutId());
         if (template == null) {
@@ -398,62 +296,30 @@ public final class StationGuiService {
         return EmakiResult.ok();
     }
 
-    /**
-     * Discards a viewer's page state.
-     *
-     * <p>No items are returned because none were ever held.
-     *
-     * @param playerId the viewer
-     */
     public void close(UUID playerId) {
         states.remove(playerId);
         dismantleStates.remove(playerId);
     }
 
-    /** Discards every viewer's page state. Used by the disable path. */
     public void closeAll() {
         states.clear();
         dismantleStates.clear();
     }
 
-    /** Redraws every open window, which is how the ticker advances visible progress. */
     public void refreshOpenSessions() {
         for (StationViewState state : states.values()) {
             redraw(state);
         }
     }
 
-    /** {@return every viewer with an open station window} */
     public List<UUID> viewers() {
         return new ArrayList<>(states.keySet());
     }
 
-    /**
-     * Returns a viewer's page state.
-     *
-     * @param playerId the viewer
-     * @return the state, or {@code null} when they have no station window open
-     */
     public StationViewState state(UUID playerId) {
         return playerId == null ? null : states.get(playerId);
     }
 
-    /**
-     * Builds the catalog rows visible to one viewer.
-     *
-     * <p>Three filters apply, in order of severity:
-     *
-     * <ol>
-     *   <li>{@code visible: false} removes a recipe outright — it is not a catalog row at all;</li>
-     *   <li>a failed permission check removes it too, matching the published meaning of {@code permission}
-     *       as "can see and use";</li>
-     *   <li>a failed {@code display_condition} keeps the row but marks it locked, so a player can see that
-     *       progression continues.</li>
-     * </ol>
-     *
-     * @param state the viewer's page state
-     * @return the visible rows, in registry order
-     */
     private List<StationCatalogEntry> catalogEntries(StationViewState state) {
         List<StationCatalogEntry> entries = new ArrayList<>();
         Player viewer = state.viewer();
@@ -469,13 +335,6 @@ public final class StationGuiService {
         return entries;
     }
 
-    /**
-     * Evaluates a recipe's display condition.
-     *
-     * @param viewer the viewer
-     * @param recipe the recipe
-     * @return whether the row should be shown as unlocked
-     */
     private boolean unlocked(Player viewer, RecipeDefinition recipe) {
         if (!recipe.hasDisplayCondition()) {
             return true;
@@ -485,15 +344,6 @@ public final class StationGuiService {
                 ConditionContext.of(viewer));
     }
 
-    /**
-     * Re-reads the viewer's combined material availability and redraws when it lands.
-     *
-     * <p>Throttled by {@code gui.refresh_interval} unless forced, because a preview redraw happens on every
-     * ticker pass and a warehouse round trip per pass is not affordable.
-     *
-     * @param state the viewer's page state
-     * @param force whether to bypass the staleness check
-     */
     private void refreshAvailability(StationViewState state, boolean force) {
         RecipeDefinition recipe = state.selectedRecipe();
         if (recipe == null) {
@@ -513,11 +363,6 @@ public final class StationGuiService {
                 });
     }
 
-    /**
-     * Recomputes why the selected recipe cannot be submitted right now.
-     *
-     * @param state the viewer's page state
-     */
     private void updateBlockReason(StationViewState state) {
         RecipeDefinition recipe = state.selectedRecipe();
         if (recipe == null) {
@@ -622,11 +467,6 @@ public final class StationGuiService {
         }
     }
 
-    /**
-     * Handles every interaction for one open page.
-     *
-     * <p>One instance per opened page, closing over the view state so no lookup is needed.
-     */
     private final class StationSessionHandler implements GuiSessionHandler {
 
         private final StationViewState state;
@@ -639,8 +479,7 @@ public final class StationGuiService {
         public void onSlotClick(GuiSession guiSession,
                 GuiClickContext click,
                 GuiTemplate.ResolvedSlot slot) {
-            // No slot on any page accepts an item, so cancelling first is unconditional and the rest of this
-            // method only has to decide what the click meant.
+
             click.setCancelled(true);
             if (slot == null || slot.definition() == null || state.processing()) {
                 return;
@@ -662,15 +501,14 @@ public final class StationGuiService {
                 case PREVIEW -> onPreviewClick(type, click);
                 case QUEUE -> onQueueClick(type, click, slot);
                 case DISMANTLE -> {
-                    // Dismantle page is managed by DismantleSessionHandler; this branch is unreachable.
+
                 }
             }
         }
 
         @Override
         public void onPlayerInventoryClick(GuiSession guiSession, GuiClickContext click) {
-            // Shift-click, collect-to-cursor, and double-click can pull items into the upper inventory without
-            // targeting a slot. Nothing up there is a container, so every such transfer is refused.
+
             if (click.isBlockedTransfer()) {
                 click.setCancelled(true);
             }
@@ -678,8 +516,7 @@ public final class StationGuiService {
 
         @Override
         public void onDrag(GuiSession guiSession, GuiDragContext drag) {
-            // A drag can span several slots at once, including rendered ones. Rather than reconciling which
-            // parts were legal, refuse drags that touch the window at all.
+
             int topSize = guiSession.template().slotCount();
             for (Integer rawSlot : drag.rawSlots()) {
                 if (rawSlot != null && rawSlot < topSize) {
@@ -691,8 +528,7 @@ public final class StationGuiService {
 
         @Override
         public void onClose(GuiSession guiSession, GuiCloseContext close) {
-            // A page change arrives as the same event as a real close. The flag set before opening the sibling
-            // page distinguishes them; without it, every navigation would discard the viewer's page numbers.
+
             if (state.consumeNavigation()) {
                 return;
             }
@@ -715,20 +551,11 @@ public final class StationGuiService {
                 case StationSlotType.QUEUE_OPEN -> openQueue(state);
                 case StationSlotType.CLOSE -> state.viewer().closeInventory();
                 default -> {
-                    // Decorative or unknown slot; the click is already cancelled.
+
                 }
             }
         }
 
-        /**
-         * Handles a click on a catalog row.
-         *
-         * <p>Left click submits at the current batch; right click opens the material preview. A locked row does
-         * neither.
-         *
-         * @param click the click
-         * @param slot  the clicked slot
-         */
         private void onRecipeClick(GuiClickContext click, GuiTemplate.ResolvedSlot slot) {
             List<StationCatalogEntry> entries = catalogEntries(state);
             int pageSize = Math.max(1, slot.definition().slots().size());
@@ -770,7 +597,7 @@ public final class StationGuiService {
                 case StationSlotType.NEXT_PAGE -> movePage(1);
                 case StationSlotType.CLOSE -> state.viewer().closeInventory();
                 default -> {
-                    // Decorative or unknown slot; the click is already cancelled.
+
                 }
             }
         }
@@ -785,19 +612,11 @@ public final class StationGuiService {
                 case StationSlotType.NEXT_PAGE -> movePage(1);
                 case StationSlotType.CLOSE -> state.viewer().closeInventory();
                 default -> {
-                    // Decorative or unknown slot; the click is already cancelled.
+
                 }
             }
         }
 
-        /**
-         * Cancels or claims one queue entry.
-         *
-         * <p>A {@code PENDING_CLAIM} entry has already finished, so clicking it hands the outputs over rather
-         * than attempting a cancellation the craft service would refuse.
-         *
-         * @param slot the clicked slot
-         */
         private void onQueueEntryClick(GuiTemplate.ResolvedSlot slot) {
             CraftQueue queue = queueOf(state);
             if (queue == null) {
@@ -829,14 +648,6 @@ public final class StationGuiService {
             });
         }
 
-        /**
-         * Buys queue slots.
-         *
-         * <p>A plain click buys one; a shift click buys the largest configured batch that still fits under the
-         * station ceiling.
-         *
-         * @param batchPurchase whether this is a shift click
-         */
         private void purchase(boolean batchPurchase) {
             if (purchaseService == null || unlockService == null) {
                 return;
@@ -854,15 +665,6 @@ public final class StationGuiService {
                     });
         }
 
-        /**
-         * Submits one craft.
-         *
-         * <p>The catalog has no availability snapshot, so a submission from there is validated entirely inside
-         * the craft service and any refusal is reported through the usual result path. The preview page does have
-         * a snapshot, which is why it can show a block reason before the click.
-         *
-         * @param recipe the recipe to submit
-         */
         private void submit(RecipeDefinition recipe) {
             if (recipe == null) {
                 return;
@@ -880,14 +682,6 @@ public final class StationGuiService {
                     });
         }
 
-        /**
-         * Cycles the batch multiplier through fixed steps.
-         *
-         * <p>The catalog has no availability snapshot, so there is no "max" step to cycle into; the preview page
-         * offers that through its own {@code max_craftable} slot instead.
-         *
-         * @param backwards whether to step backwards
-         */
         private void cycleBatch(boolean backwards) {
             long[] steps = {1L, 10L, 64L, 1_000L};
             long current = state.batch();
@@ -923,11 +717,6 @@ public final class StationGuiService {
             state.outputRouting(options[(position + 1) % options.length]);
         }
 
-        /**
-         * Moves whichever list the open page paginates.
-         *
-         * @param delta the page delta
-         */
         private void movePage(int delta) {
             GuiSession guiSession = state.guiSession();
             if (guiSession == null) {
@@ -959,18 +748,13 @@ public final class StationGuiService {
                             queue == null ? 0 : queue.entries().size(), pageSize));
                 }
                 case DISMANTLE -> {
-                    // Dismantle pagination is managed by DismantleGuiInteractionController.
+
                 }
             }
             redraw(state);
         }
     }
 
-    /**
-     * Handles every interaction for one open dismantle page.
-     *
-     * <p>One instance per opened dismantle page, closing over the dismantle view state.
-     */
     private final class DismantleSessionHandler implements GuiSessionHandler {
 
         private final DismantleViewState state;

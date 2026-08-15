@@ -270,12 +270,6 @@ final class DamageMessageDispatcher {
                 : Numbers.formatNumber(damageContext.variables().getDouble("distance", 0D), "0.##");
     }
 
-    /**
-     * 取 Mythic 怪物显示名，未配置或实体非 Mythic 怪物时返回空串，由调用方回落 vanilla 实体名。
-     *
-     * <p>查询统一走 CoreLib 的 {@code MythicMobBridge}：门禁、一次性告警与 {@code LinkageError}
-     * 兜底都由该桥承担，这里不再自行反射 MythicMobs。
-     */
     private String mythicDisplayName(LivingEntity entity) {
         if (entity == null) {
             return "";

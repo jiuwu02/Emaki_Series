@@ -23,31 +23,16 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 
-/**
- * Socket, inlay, extract and layer operations on the target's held gear.
- *
- * <p>Replaces the legacy {@code GemHeldItemAction}. All four operations read the main hand as the gear and,
- * for three of them, the off hand as the consumable, then write both back.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: every operation reads and writes one player's inventory. {@code extract}
- * may drop the returned gem at the player's feet when the inventory is full, which is still that entity's
- * region, so it does not need a wider domain.</p>
- */
 public final class GemHeldItemStage implements CoreActionStage {
 
-    /** Which gem operation a stage instance performs. */
     public enum Operation {
 
-        /** Open a socket on the held gear using the off-hand opener. */
         OPEN_SOCKET("gem_open_socket", "Opens a socket on the target's held gear."),
 
-        /** Inlay the off-hand gem into a socket. */
         INLAY("gem_inlay", "Inlays the off-hand gem into a socket on the target's held gear."),
 
-        /** Remove a gem from a socket and return it. */
         EXTRACT("gem_extract", "Extracts a gem from a socket on the target's held gear."),
 
-        /** Strip the gem layer entirely. */
         CLEAR_LAYER("gem_clear_layer", "Removes the gem layer from the target's held gear.");
 
         private final String id;
@@ -58,7 +43,6 @@ public final class GemHeldItemStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -67,12 +51,6 @@ public final class GemHeldItemStage implements CoreActionStage {
     private final EmakiGemPlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the gem services
-     * @param operation which operation this instance performs
-     */
     public GemHeldItemStage(@NotNull EmakiGemPlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;
@@ -167,8 +145,7 @@ public final class GemHeldItemStage implements CoreActionStage {
                 arguments.getBoolean("bypass_cost", false),
                 false);
         if (!result.result().success()) {
-            // v1 consumed the gem on a consuming failure too: the service already counted it as spent, so
-            // skipping the subtract here would hand the player a free retry.
+
             if (result.result().inputConsumed()) {
                 gem.subtract(1);
             }
@@ -219,13 +196,6 @@ public final class GemHeldItemStage implements CoreActionStage {
                 "action.stage.gem.service_unavailable");
     }
 
-    /**
-     * Maps a refused gem operation onto the pipeline's failure model.
-     *
-     * <p>{@code REJECTED} rather than {@code INTERNAL_ERROR}: the service declined the operation by its own
-     * rules, for example a missing opener or an occupied slot, which is a domain decision and not a fault.
-     * The service's own message key is passed through so the existing player-facing text still applies.</p>
-     */
     private static CoreActionOutcome rejected(String messageKey) {
         return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
                 messageKey == null ? "action.stage.gem.rejected" : messageKey);

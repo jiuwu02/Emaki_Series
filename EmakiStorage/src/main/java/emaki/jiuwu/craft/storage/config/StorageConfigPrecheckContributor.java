@@ -28,8 +28,7 @@ public final class StorageConfigPrecheckContributor extends AbstractModuleConfig
         checkFile(new File(plugin.getDataFolder(), "config.yml"), "config.yml", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("gui", plugin.guiTemplateLoader() == null ? null : plugin.guiTemplateLoader().issues(), issues);
-        // unlock_costs.yml is deliberately not checked: the coordinator treats a missing or empty file as
-        // "paid expansion disabled" rather than an error, so requiring it would reject a valid install.
+
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

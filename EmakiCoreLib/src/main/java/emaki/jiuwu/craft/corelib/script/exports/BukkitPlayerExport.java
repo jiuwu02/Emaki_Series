@@ -4,41 +4,6 @@ import org.bukkit.entity.Player;
 import org.graalvm.polyglot.HostAccess;
 import org.jetbrains.annotations.NotNull;
 
-/**
- * Bukkit {@link Player} 的 JavaScript 白名单导出。
- *
- * <p>该类是 {@link Player} 在 GraalVM JavaScript 沙箱中的安全代理，只暴露标注 {@code @HostAccess.Export} 的方法。
- * 所有未标注的方法（如 {@code setOp}、{@code kickPlayer}、{@code performCommand}）对脚本不可见，
- * 脚本尝试调用时会抛出 {@code TypeError: invokeMember (setOp) on ... failed}。</p>
- *
- * <h3>设计原则</h3>
- * <ul>
- *   <li><b>只读状态优先</b>：暴露玩家名称、UUID、坐标、世界名等读取方法</li>
- *   <li><b>基础属性可写</b>：允许修改生命值、饱食度、经验等基础数值属性</li>
- *   <li><b>禁止权限提升</b>：不暴露 {@code setOp}、{@code addAttachment} 等权限相关方法</li>
- *   <li><b>禁止危险操作</b>：不暴露 {@code kickPlayer}、{@code ban}、{@code performCommand} 等操作</li>
- *   <li><b>值域钳制</b>：所有 setter 方法对输入值进行合法性检查和钳制，防止脚本传入非法值</li>
- * </ul>
- *
- * <h3>使用示例</h3>
- * <pre>{@code
- * // YAML 配置中的脚本
- * script: |
- *   if (player.getHealth() < 5) {
- *     player.setHealth(player.getMaxHealth());
- *     return "已回满生命值";
- *   }
- *   return "生命值充足";
- * }</pre>
- *
- * <h3>线程安全性</h3>
- * <p>该类本身不维护可变状态，线程安全性取决于底层 {@link Player} 对象。
- * Bukkit API 要求在主线程或区域线程调用，脚本执行环境需确保调度正确。</p>
- *
- * @see org.graalvm.polyglot.HostAccess.Export
- * @see Player
- * @since 4.7.1
- */
 public final class BukkitPlayerExport {
 
     private final Player player;
@@ -50,207 +15,101 @@ public final class BukkitPlayerExport {
         this.player = player;
     }
 
-    /**
-     * 获取玩家名称。
-     *
-     * @return 玩家名称
-     */
     @HostAccess.Export
     public @NotNull String getName() {
         return player.getName();
     }
 
-    /**
-     * 获取玩家 UUID 字符串。
-     *
-     * @return UUID 字符串
-     */
     @HostAccess.Export
     public @NotNull String getUniqueId() {
         return player.getUniqueId().toString();
     }
 
-    /**
-     * 获取玩家当前生命值。
-     *
-     * @return 生命值
-     */
     @HostAccess.Export
     public double getHealth() {
         return player.getHealth();
     }
 
-    /**
-     * 设置玩家生命值。
-     *
-     * <p>值会被钳制在 [0, maxHealth] 范围内。</p>
-     *
-     * @param health 目标生命值
-     */
     @HostAccess.Export
     public void setHealth(double health) {
         player.setHealth(Math.max(0, Math.min(health, player.getMaxHealth())));
     }
 
-    /**
-     * 获取玩家最大生命值。
-     *
-     * @return 最大生命值
-     */
     @HostAccess.Export
     public double getMaxHealth() {
         return player.getMaxHealth();
     }
 
-    /**
-     * 获取玩家饱食度。
-     *
-     * @return 饱食度 (0-20)
-     */
     @HostAccess.Export
     public int getFoodLevel() {
         return player.getFoodLevel();
     }
 
-    /**
-     * 设置玩家饱食度。
-     *
-     * <p>值会被钳制在 [0, 20] 范围内。</p>
-     *
-     * @param level 目标饱食度
-     */
     @HostAccess.Export
     public void setFoodLevel(int level) {
         player.setFoodLevel(Math.max(0, Math.min(level, 20)));
     }
 
-    /**
-     * 获取玩家经验等级。
-     *
-     * @return 经验等级
-     */
     @HostAccess.Export
     public int getLevel() {
         return player.getLevel();
     }
 
-    /**
-     * 设置玩家经验等级。
-     *
-     * @param level 目标等级
-     */
     @HostAccess.Export
     public void setLevel(int level) {
         player.setLevel(Math.max(0, level));
     }
 
-    /**
-     * 获取玩家当前经验值（当前等级内的进度，0.0-1.0）。
-     *
-     * @return 经验进度
-     */
     @HostAccess.Export
     public float getExp() {
         return player.getExp();
     }
 
-    /**
-     * 设置玩家当前经验进度。
-     *
-     * <p>值会被钳制在 [0.0, 1.0] 范围内。</p>
-     *
-     * @param exp 目标经验进度
-     */
     @HostAccess.Export
     public void setExp(float exp) {
         player.setExp(Math.max(0.0f, Math.min(exp, 1.0f)));
     }
 
-    /**
-     * 获取玩家是否在线。
-     *
-     * @return 是否在线
-     */
     @HostAccess.Export
     public boolean isOnline() {
         return player.isOnline();
     }
 
-    /**
-     * 获取玩家是否潜行。
-     *
-     * @return 是否潜行
-     */
     @HostAccess.Export
     public boolean isSneaking() {
         return player.isSneaking();
     }
 
-    /**
-     * 获取玩家是否疾跑。
-     *
-     * @return 是否疾跑
-     */
     @HostAccess.Export
     public boolean isSprinting() {
         return player.isSprinting();
     }
 
-    /**
-     * 获取玩家是否在飞行。
-     *
-     * @return 是否在飞行
-     */
     @HostAccess.Export
     public boolean isFlying() {
         return player.isFlying();
     }
 
-    /**
-     * 获取玩家是否允许飞行。
-     *
-     * @return 是否允许飞行
-     */
     @HostAccess.Export
     public boolean getAllowFlight() {
         return player.getAllowFlight();
     }
 
-    /**
-     * 获取玩家世界名称。
-     *
-     * @return 世界名称
-     */
     @HostAccess.Export
     public @NotNull String getWorldName() {
         return player.getWorld().getName();
     }
 
-    /**
-     * 获取玩家 X 坐标。
-     *
-     * @return X 坐标
-     */
     @HostAccess.Export
     public double getX() {
         return player.getLocation().getX();
     }
 
-    /**
-     * 获取玩家 Y 坐标。
-     *
-     * @return Y 坐标
-     */
     @HostAccess.Export
     public double getY() {
         return player.getLocation().getY();
     }
 
-    /**
-     * 获取玩家 Z 坐标。
-     *
-     * @return Z 坐标
-     */
     @HostAccess.Export
     public double getZ() {
         return player.getLocation().getZ();

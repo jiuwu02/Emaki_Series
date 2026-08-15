@@ -19,19 +19,8 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
-/**
- * Loads {@code recipes_dismantle/**.yml} into {@link DismantleRecipeDefinition}s.
- *
- * <p>Item tokens are resolved through CoreLib's public item-source contract. A file whose
- * {@code input_source} or {@code pool} cannot be parsed is skipped with a recorded issue.
- */
 public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRecipeDefinition> {
 
-    /**
-     * Creates the loader.
-     *
-     * @param plugin the owning plugin
-     */
     public DismantleRecipeLoader(JavaPlugin plugin) {
         super(plugin);
     }
@@ -62,7 +51,6 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             return null;
         }
 
-        // input_source
         String inputToken = configuration.getString("input_source");
         if (inputToken == null || inputToken.isBlank()) {
             issue("station.dismantle_recipe_no_input", Map.of("recipe", id, "file", fileName(file)));
@@ -75,10 +63,8 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             return null;
         }
 
-        // rolls
         RollsRange rolls = parseRolls(configuration);
 
-        // pool
         List<DismantlePoolEntry> pool = parsePool(file, id, configuration);
         if (pool.isEmpty()) {
             issue("station.dismantle_recipe_empty_pool", Map.of("recipe", id, "file", fileName(file)));
@@ -102,7 +88,7 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
         if (rolls != null) {
             return RollsRange.of(rolls.get("min"), rolls.get("max"));
         }
-        // Support shorthand: rolls: 2  (scalar)
+
         Object raw = configuration.get("rolls");
         if (raw instanceof Number n) {
             int v = n.intValue();
@@ -181,7 +167,7 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             try {
                 return Double.parseDouble(s.trim());
             } catch (NumberFormatException ignored) {
-                // fall through
+
             }
         }
         return fallback;

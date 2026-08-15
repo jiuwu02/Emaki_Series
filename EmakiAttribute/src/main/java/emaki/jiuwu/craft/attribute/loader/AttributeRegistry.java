@@ -517,11 +517,6 @@ public final class AttributeRegistry extends DirectoryLoader<AttributeDefinition
         return "([+-]?\\d+(?:\\.\\d+)?)(?:\\s*[-~～]\\s*([+-]?\\d+(?:\\.\\d+)?))?";
     }
 
-
-
-
-
-
     public record MatchedRange(String min, String max) {
 
         public boolean hasRange() {

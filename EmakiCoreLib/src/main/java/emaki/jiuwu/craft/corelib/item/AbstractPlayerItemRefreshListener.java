@@ -86,15 +86,14 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         }
         UUID playerId = player.getUniqueId();
         RefreshSlot slot = new RefreshSlot();
-        // 先原子占位再调度：避免「containsKey 后 put」的 check-then-act，也避免任务体/retired
-        // 回调先于 put 执行时，put 把一个已结束的 handle 重新塞回 map 造成永久残留。
+
         if (scheduledRefreshes.putIfAbsent(playerId, slot) != null) {
             return;
         }
         TaskToken task;
         try {
             task = executionDispatcher.runEntity(plugin, player, () -> {
-                // 按值删除：迟到的回调只会清掉自己这次的占位，不会误删新 session 的 handle。
+
                 scheduledRefreshes.remove(playerId, slot);
                 if (!player.isOnline()) {
                     return;
@@ -115,10 +114,6 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
         slot.bind(task);
     }
 
-    /**
-     * 一次刷新调度的占位句柄。调度前先入 map 作为身份标识，拿到真实 {@link TaskToken} 后再
-     * {@link #bind(TaskToken)}；因此 map 中的 value 一经写入就不再变化，回调可安全按值删除。
-     */
     private static final class RefreshSlot implements TaskToken {
 
         private volatile TaskToken delegate;
@@ -139,10 +134,6 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
             return current == null ? cancelled : current.cancelled();
         }
 
-        /**
-         * 绑定真实句柄。与 {@link #cancel()} 的写读顺序相反，因此并发发生时至少一方能看到对方，
-         * 不会出现「已取消但真实任务仍在排队」的漏取消。
-         */
         void bind(TaskToken handle) {
             delegate = handle;
             if (cancelled) {

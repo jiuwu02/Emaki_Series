@@ -20,19 +20,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Shared body for {@code give_money}, {@code take_money} and {@code set_money}.
- *
- * <p>{@link EconomyManager} still speaks the v1 {@code ActionResult}, so the three stages convert its result
- * rather than reaching into economy providers themselves. That conversion is the only place the two result types
- * meet, and it maps the economy-specific error codes onto the pipeline failure kinds: an unavailable provider or
- * unknown currency is {@code INVALID_CONFIG} because the server owner named something that does not exist, while
- * an insufficient balance is {@code REJECTED} because the request was well-formed and the domain refused it.</p>
- *
- * <p>Requires a {@code Player}: every {@code EconomyProvider} method is defined in terms of one.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: economy providers are keyed by player and commonly touch player state.</p>
- */
 abstract class MoneyStage extends BaseStage {
 
     private final EconomyManager economyManager;
@@ -64,16 +51,6 @@ abstract class MoneyStage extends BaseStage {
                 arguments.getDouble("amount", 0D)));
     }
 
-    /**
-     * Performs the economy operation.
-     *
-     * @param economy the economy manager
-     * @param target the affected player
-     * @param provider provider id, {@code auto} for the configured default
-     * @param currency currency id, blank for the provider default
-     * @param amount the amount
-     * @return the v1 result to convert
-     */
     abstract ActionResult perform(EconomyManager economy,
             Player target,
             String provider,

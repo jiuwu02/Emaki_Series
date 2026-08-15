@@ -13,10 +13,8 @@ import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 
 final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
-    /** Reported when a stage id resolves against no registered stage. */
     private static final String UNKNOWN_STAGE = "action.validate.unknown_stage";
 
-    /** Reported when a {@code run} target names no configured sequence. */
     private static final String UNKNOWN_SEQUENCE = "action.validate.unknown_sequence";
 
     CoreLibConfigPrecheckContributor(Supplier<? extends LogMessages> messagesSupplier) {
@@ -53,14 +51,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         }
     }
 
-    /**
-     * Compiles every configured sequence line and reports what the compiler rejected.
-     *
-     * <p>No parsing or argument checking is repeated here. The v1 version re-implemented both and therefore
-     * had to know each action's arguments by hand; asking the pipeline compiler means the precheck accepts exactly
-     * what the runtime accepts, including bracket, branch, repeat-cap and required-argument errors it never
-     * used to catch.</p>
-     */
     private void checkSequences(Map<String, List<String>> sequences,
             ConfigPrecheckContext context,
             List<ConfigPrecheckIssue> issues) {
@@ -85,19 +75,6 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         }
     }
 
-    /**
-     * Turns one compile diagnostic into a precheck issue.
-     *
-     * <p>Reported as warnings, not errors, for two reasons. A blocking issue here aborts the action system
-     * reload, and on the first start after the upgrade that would disable the plugin before the one-shot
-     * old-syntax migration ever runs, leaving a server with old template lines unable to start at all. And
-     * the runtime itself does not treat an uncompilable sequence as fatal: it drops that sequence and logs
-     * it, so blocking here would make the precheck stricter than the engine it speaks for.</p>
-     *
-     * <p>An unknown stage is additionally expected during a reload: this runs against the candidate stage
-     * table, which holds CoreLib's builtin stages only, so a sequence calling a business module's stage
-     * cannot resolve yet.</p>
-     */
     private void addDiagnosticIssue(String sequenceId,
             int line,
             CompileDiagnostic diagnostic,

@@ -17,41 +17,17 @@ import emaki.jiuwu.craft.station.queue.CraftQueue;
 import emaki.jiuwu.craft.station.queue.QueueEntry;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 
-/**
- * Draws the craft-queue page.
- *
- * <p>Entries page like any other list. The purchase slot shows a live quote for the next batch, including the
- * reason there is no quote — a player who cannot buy should be told whether that is because the station forbids
- * it, the price table is missing, or they have hit the station's ceiling.
- */
 public final class StationQueueRenderer {
 
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
 
-    /**
-     * Creates the renderer.
-     *
-     * @param itemServiceSupplier supplies CoreLib's configured-item service
-     * @param guiSupport          reads the layout's virtual items and texts
-     */
     public StationQueueRenderer(Supplier<ConfiguredItemService> itemServiceSupplier,
             ConfiguredGuiSupport guiSupport) {
         this.itemServiceSupplier = itemServiceSupplier;
         this.guiSupport = guiSupport;
     }
 
-    /**
-     * Renders one queue slot.
-     *
-     * @param state        the viewer's page state
-     * @param queue        the viewer's queue at this station, possibly {@code null}
-     * @param capacity     the viewer's effective queue length
-     * @param purchased    how many slots the viewer has bought here
-     * @param quote        the quote for the next purchase, possibly {@code null}
-     * @param resolvedSlot the slot being rendered
-     * @return the stack to place, or {@code null} to fall back to the layout definition
-     */
     public ItemStack render(StationViewState state,
             CraftQueue queue,
             int capacity,
@@ -77,14 +53,6 @@ public final class StationQueueRenderer {
         };
     }
 
-    /**
-     * Builds the title placeholders for a queue window.
-     *
-     * @param state    the viewer's page state
-     * @param queue    the viewer's queue, possibly {@code null}
-     * @param capacity the viewer's effective queue length
-     * @return the substitutions
-     */
     public Map<String, Object> titleReplacements(StationViewState state, CraftQueue queue, int capacity) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("station_name", state.station().displayName());
@@ -181,16 +149,6 @@ public final class StationQueueRenderer {
         return GuiItemBuilder.build(slot.itemDefinition(), values, itemServiceSupplier.get());
     }
 
-    /**
-     * Counts entries that occupy queue length.
-     *
-     * <p>{@code PENDING_CLAIM} entries are excluded: they have finished and are only waiting to be handed over,
-     * so they do not hold a slot. Counting them would make a player with undelivered outputs appear to have a
-     * full queue.
-     *
-     * @param queue the queue to count
-     * @return the occupying entry count
-     */
     private static int activeCount(CraftQueue queue) {
         if (queue == null) {
             return 0;

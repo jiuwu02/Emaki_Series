@@ -41,12 +41,6 @@ import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
 import emaki.jiuwu.craft.storage.config.InputModeConfig;
 
-/**
- * Assembles, reloads and tears down the module's runtime.
- *
- * <p>Reload keeps the previously active configuration whenever parsing fails, so a broken edit can
- * never replace a working runtime state with a half-applied one.
- */
 final class StorageLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStoragePlugin, StorageRuntimeComponents> {
 
@@ -125,15 +119,8 @@ final class StorageLifecycleCoordinator
                 layoutResolver, amountFormatter, storageGuiService);
     }
 
-    /**
-     * Reloads configuration, language, cost tiers and the GUI template.
-     *
-     * @param plugin the owning plugin
-     * @return how many GUI templates were loaded
-     */
     public int reload(EmakiStoragePlugin plugin) {
-        // The GUI template loader runs inside the candidate step because the storage precheck reads its
-        // issue list; every reconfigure below only happens once the gate accepts that candidate.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 plugin.messageService(),
                 "storage",
@@ -146,8 +133,7 @@ final class StorageLifecycleCoordinator
                 },
                 plugin.appConfigLoader()::overrideCurrent);
         if (gate.rejected()) {
-            // Previous AppConfig is active again and no candidate value reached a runtime service, so the
-            // layout the server is still running on is the one reported back.
+
             return plugin.guiTemplateLoader().all().size();
         }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -164,7 +150,6 @@ final class StorageLifecycleCoordinator
         plugin.dataStore().configure(config.behavior().defaultSort(), config.capacity().warnEntryCount(),
                 config.autoPickup().defaultEnabled());
 
-        // Already loaded in the candidate step above, so this only reads the resulting count.
         int templates = plugin.guiTemplateLoader().all().size();
         StorageLayoutResolver.Layout layout =
                 plugin.layoutResolver().resolve(plugin.guiTemplateLoader(), config.gui().storageRows());
@@ -176,7 +161,6 @@ final class StorageLifecycleCoordinator
         return templates;
     }
 
-    /** Releases resources in the reverse order of {@link #initialize(EmakiStoragePlugin)}. */
     public void shutdown(EmakiStoragePlugin plugin) {
         if (plugin.stageRegistrar() != null) {
             plugin.stageRegistrar().unregister();
@@ -355,20 +339,6 @@ final class StorageLifecycleCoordinator
                 sources == null ? List.of() : sources);
     }
 
-    /**
-     * Loads {@code unlock_costs.yml}.
-     *
-     * <p>Business data, so it is released once as a default and never overwritten by a version
-     * upgrade. A missing or unparsable file yields an empty config, which refuses purchases rather
-     * than making them free.
-     *
-     * @param reportMissingFile whether a missing or empty file should be logged. This is
-     *                          {@code false} during {@link #initialize(EmakiStoragePlugin)}
-     *                          because the bootstrap that releases the bundled default has not run
-     *                          yet, so on a first launch the file is legitimately absent and the
-     *                          result is immediately superseded by the post-bootstrap reload.
-     *                          A reload runs after bootstrap, so an absent file is then real.
-     */
     private UnlockCostConfig loadCostConfig(EmakiStoragePlugin plugin, AppConfig config,
             boolean reportMissingFile) {
         String fileName = config.unlock().costFile();
@@ -434,8 +404,7 @@ final class StorageLifecycleCoordinator
         }
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
-            // The guard rail is mandatory: an exponential formula loses double precision and can
-            // reach Infinity at high counts, so an uncapped fallback is rejected outright.
+
             plugin.getLogger().warning("[storage] unlock_costs.yml fallback requires a positive"
                     + " max_amount guard rail; paid expansion beyond the defined tiers is disabled.");
             return null;
@@ -474,7 +443,6 @@ final class StorageLifecycleCoordinator
         return count <= 0 ? null : new UnlockCostConfig.ItemCost(source.trim(), count);
     }
 
-    /** Parses {@code "10-19"} or a bare {@code "10"} into inclusive bounds. */
     private int[] parseRange(String range) {
         if (range == null || range.isBlank()) {
             return null;

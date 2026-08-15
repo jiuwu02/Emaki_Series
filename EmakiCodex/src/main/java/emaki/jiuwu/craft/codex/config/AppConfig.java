@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.codex.config;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
-
-
-
 public final class AppConfig extends BaseAppConfig {
 
     public static final String CURRENT_VERSION = "1.0.14";
@@ -77,21 +74,9 @@ public final class AppConfig extends BaseAppConfig {
         return removeOnDisable;
     }
 
-
-
-
-
-
-
     public boolean packetCoordinates() {
         return packetCoordinates;
     }
-
-
-
-
-
-
 
     public boolean advancementTriggersEnabled() {
         return advancementTriggersEnabled;

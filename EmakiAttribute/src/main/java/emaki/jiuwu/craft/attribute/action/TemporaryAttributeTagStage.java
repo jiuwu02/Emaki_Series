@@ -23,31 +23,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Grants or withdraws timed attribute modifiers in bulk, addressed by tag.
- *
- * <p>A tag names a group of attributes configured together, so one stage call can apply a whole buff without
- * listing its parts.</p>
- *
- * <p><strong>Known duplication:</strong> {@code attribute_tag_clear} and {@code attribute_tag_remove} both
- * call {@code removeByTag} with the same argument, so the two ids behave identically. This is preserved
- * rather than fixed, because deciding what {@code clear} was meant to do (drop every tag, presumably) would
- * change behaviour that existing configuration may depend on.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's temporary modifier table.</p>
- */
 public final class TemporaryAttributeTagStage implements CoreActionStage {
 
-    /** Which tag mutation a stage instance performs. */
     public enum Operation {
 
-        /** Apply every attribute carrying the tag. */
         ADD("attribute_tag_add", "Adds timed attribute modifiers to the target by tag."),
 
-        /** Withdraw every effect carrying the tag. */
         REMOVE("attribute_tag_remove", "Removes timed attribute modifiers from the target by tag."),
 
-        /** Identical to {@link #REMOVE} in v1; see the class note. */
         CLEAR("attribute_tag_clear", "Clears timed attribute modifiers on the target by tag.");
 
         private final String id;
@@ -58,7 +41,6 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -67,12 +49,6 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
     private final AttributeServiceFacade attributeService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param attributeService the module's service facade
-     * @param operation which mutation this instance performs
-     */
     public TemporaryAttributeTagStage(@NotNull AttributeServiceFacade attributeService,
             @NotNull Operation operation) {
         this.attributeService = attributeService;
@@ -148,12 +124,6 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.of("tag", tag, "count", count));
     }
 
-    /**
-     * Resolves the stack mode.
-     *
-     * <p>{@code null} means "use the service default", which is what a blank or unrecognised value produced in
-     * v1. An unknown mode is therefore not an error here.</p>
-     */
     private static TemporaryStackMode stackMode(String value) {
         if (Texts.isBlank(value)) {
             return null;

@@ -22,18 +22,6 @@ import java.util.stream.Stream;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 
-/**
- * Append-only flow log, one directory per player and one file per day.
- *
- * <p><strong>Write-only by design.</strong> Business logic never reads these files, which removes
- * the need for an index, compaction, schema versioning, corruption recovery or cross-file
- * transactions. A failed write never fails the storage transaction that produced it — it only
- * logs a warning.
- *
- * <p>Assembly and writing happen entirely off the owning thread: callers hand over an immutable
- * {@link StorageLogEntry} and return immediately. Records queued for the same player are flushed
- * as one append, so a 36-slot bulk deposit produces one file operation rather than 36.
- */
 public final class StorageOperationLog {
 
     private final Path logRoot;
@@ -44,12 +32,6 @@ public final class StorageOperationLog {
 
     private volatile AppConfig.LoggingConfig config;
 
-    /**
-     * @param logRoot   {@code plugins/EmakiStorage/logs}
-     * @param logger    the plugin logger, used only for warnings
-     * @param fileScope the module's owner-scoped async file lane
-     * @param config    the active logging settings
-     */
     public StorageOperationLog(Path logRoot,
             Logger logger,
             AsyncFileService.FileScope fileScope,
@@ -60,16 +42,10 @@ public final class StorageOperationLog {
         this.config = config == null ? AppConfig.LoggingConfig.defaults() : config;
     }
 
-    /** Applies reloaded settings without dropping queued records. */
     public void reconfigure(AppConfig.LoggingConfig config) {
         this.config = config == null ? AppConfig.LoggingConfig.defaults() : config;
     }
 
-    /**
-     * Queues one record. Returns immediately; the caller never waits for IO.
-     *
-     * @param entry the record to write; ignored when filtered out by config
-     */
     public void record(StorageLogEntry entry) {
         if (entry == null || !shouldRecord(entry)) {
             return;
@@ -78,11 +54,6 @@ public final class StorageOperationLog {
         scheduleFlush(entry.playerId());
     }
 
-    /**
-     * Decides whether a record survives the configured filters.
-     *
-     * <p>{@code ADMIN_*} records ignore both {@code enabled} and {@code sources}.
-     */
     private boolean shouldRecord(StorageLogEntry entry) {
         if (entry.type().forced()) {
             return true;
@@ -137,24 +108,12 @@ public final class StorageOperationLog {
         }
     }
 
-    /**
-     * Flushes every queued record and waits for the lane to settle.
-     *
-     * <p>Called during shutdown, before the file scope is drained.
-     */
     public void flushAll() {
         for (UUID playerId : Set.copyOf(pending.keySet())) {
             flushPlayer(playerId);
         }
     }
 
-    /**
-     * Deletes expired daily files and removes player directories once they hold nothing.
-     *
-     * <p>Because files are split per day, expiry is a plain delete — no file is ever rewritten.
-     *
-     * @return how many files were deleted
-     */
     public int purgeExpired() {
         AppConfig.LoggingConfig active = config;
         int retentionDays = active.retentionDays();

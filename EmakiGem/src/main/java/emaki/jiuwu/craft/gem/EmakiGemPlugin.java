@@ -181,12 +181,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
                 });
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module sets {@code publicApiReady} in a plain method body with no lock held, so there is
-     * no monitor to leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -199,11 +193,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -324,12 +313,6 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }

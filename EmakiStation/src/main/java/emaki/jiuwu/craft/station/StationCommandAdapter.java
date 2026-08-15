@@ -8,12 +8,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import emaki.jiuwu.craft.station.command.StationCommandRouter;
 
-/**
- * Adapts the station command router onto Paper's runtime command registration.
- *
- * <p>Commands are registered at runtime rather than declared in the descriptor, matching how every other
- * module in this repository does it.
- */
 final class StationCommandAdapter implements BasicCommand {
 
     private final String rootLabel;

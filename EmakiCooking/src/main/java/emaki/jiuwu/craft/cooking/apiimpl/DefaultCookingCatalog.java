@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingStationTracker;
 
-/** Runtime-backed cooking catalog. */
 public final class DefaultCookingCatalog implements CookingCatalog {
 
     private final EmakiCookingPlugin plugin;

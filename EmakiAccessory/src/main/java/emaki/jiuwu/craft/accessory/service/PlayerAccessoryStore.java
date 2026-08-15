@@ -22,33 +22,13 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 
-/**
- * IO orchestration for per-player accessory contents.
- *
- * <p>Splits responsibilities the way EmakiLevel does: {@link PlayerAccessoryCache} owns session state,
- * {@link AccessoryDataFile} owns the on-disk shape, and this class owns when reads and writes happen.
- *
- * <p>Every read waits for the player's save lane to go idle first, so a load can never observe a
- * half-written file. Futures complete on the file lane, not on a Bukkit thread: callers that touch a
- * player, inventory or GUI afterwards must hop back to the owner thread themselves and re-check the
- * generation, because the player may have reconnected in between.
- */
 public final class PlayerAccessoryStore {
 
-    /**
-     * Outcome of the shutdown flush.
-     *
-     * @param savedEntries          how many dirty entries reached disk
-     * @param failedEntries         how many dirty entries failed to write
-     * @param remainingDirtyEntries how many entries were still dirty after the deadline
-     * @param drainResult           the file scope drain outcome
-     */
     public record FlushResult(int savedEntries,
             int failedEntries,
             int remainingDirtyEntries,
             AsyncFileService.DrainResult drainResult) {
 
-        /** {@return whether everything was written and the file scope drained cleanly} */
         public boolean clean() {
             return failedEntries == 0
                     && remainingDirtyEntries == 0
@@ -66,80 +46,36 @@ public final class PlayerAccessoryStore {
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
     private FlushResult flushResult;
 
-    /**
-     * Creates the store.
-     *
-     * @param logger         receives IO warnings
-     * @param asyncYamlFiles the module's own owner-scoped YAML lane
-     * @param dataFile       the per-player file accessor
-     */
     public PlayerAccessoryStore(Logger logger, AsyncYamlFiles asyncYamlFiles, AccessoryDataFile dataFile) {
         this.logger = logger;
         this.asyncYamlFiles = asyncYamlFiles;
         this.dataFile = dataFile;
     }
 
-    /** {@return the backing session cache} */
     public PlayerAccessoryCache cache() {
         return cache;
     }
 
-    /** {@return the per-player file accessor} */
     public AccessoryDataFile dataFile() {
         return dataFile;
     }
 
-    /**
-     * {@return the active payload for a player, or {@code null} when nothing is loaded and writable}
-     *
-     * @param playerId the player id
-     */
     public PlayerAccessories cached(UUID playerId) {
         return cache.activeData(playerId);
     }
 
-    /**
-     * {@return the current session generation, or {@code 0} when no session exists}
-     *
-     * @param playerId the player id
-     */
     public long currentGeneration(UUID playerId) {
         return cache.generation(playerId);
     }
 
-    /**
-     * {@return whether the given generation is still the current one}
-     *
-     * @param playerId   the player id
-     * @param generation the generation captured earlier
-     */
     public boolean isCurrentGeneration(UUID playerId, long generation) {
         return cache.isCurrentGeneration(playerId, generation);
     }
 
-    /**
-     * Applies a mutation under the entry lock, rejecting stale generations.
-     *
-     * @param playerId           the player id
-     * @param expectedGeneration the generation the caller believes is current; {@code 0} skips the check
-     * @param mutation           the mutation to apply
-     * @param <R>                the mutation result type
-     * @return the mutation result, or {@code null} when the session is gone, stale or not writable
-     */
     public <R> R mutate(UUID playerId, long expectedGeneration, Function<PlayerAccessories, R> mutation) {
         return cache.mutate(playerId, expectedGeneration, mutation);
     }
 
-    /**
-     * Opens a session and loads the player's file.
-     *
-     * <p>The placeholder starts non-writable so a failed load cannot overwrite a healthy file with
-     * defaults; only a successful load makes the session writable.
-     *
-     * @param playerId   the player id
-     * @param playerName the name to record for offline admin lookups
-     * @return the loaded payload, or {@code null} when the cache is sealed or the load was superseded
-     */
     public CompletableFuture<PlayerAccessories> beginSessionAsync(UUID playerId, String playerName) {
         if (playerId == null) {
             return CompletableFuture.completedFuture(null);
@@ -186,22 +122,10 @@ public final class PlayerAccessoryStore {
         return dataFile.read(playerId, playerName, root);
     }
 
-    /**
-     * Saves a player's contents without closing the session.
-     *
-     * @param playerId the player id
-     * @return whether a write happened and committed
-     */
     public CompletableFuture<Boolean> saveAsync(UUID playerId) {
         return save(playerId, false);
     }
 
-    /**
-     * Saves a player's contents and closes the session.
-     *
-     * @param playerId the player id
-     * @return whether a write happened and committed
-     */
     public CompletableFuture<Boolean> unloadAsync(UUID playerId) {
         return save(playerId, true);
     }
@@ -218,11 +142,6 @@ public final class PlayerAccessoryStore {
         return cache.enqueueSave(ticket, this::writeTicket);
     }
 
-    /**
-     * Saves every dirty entry.
-     *
-     * @return how many entries were written
-     */
     public CompletableFuture<Integer> saveAllAsync() {
         List<PlayerAccessoryCache.SaveTicket<UUID, PlayerAccessories>> tickets = cache.snapshotDirtyEntries();
         if (tickets.isEmpty()) {
@@ -281,16 +200,6 @@ public final class PlayerAccessoryStore {
         }
     }
 
-    /**
-     * Flushes every dirty entry and seals the cache and file lane.
-     *
-     * <p>Order matters and is not interchangeable: seal the cache, drain the pending saves, and only
-     * then seal the file lane. Draining first would discard writes that had not been enqueued yet.
-     *
-     * @param timeout total budget for the flush
-     * @param unit    unit of {@code timeout}
-     * @return the flush outcome; repeated calls return the first result
-     */
     public synchronized FlushResult flushAndSeal(long timeout, TimeUnit unit) {
         if (flushResult != null) {
             return flushResult;

@@ -63,8 +63,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getPluginMeta().getVersion();
-        // Data criterion, not "one service exists": messageService is non-null from initializeServices()
-        // onward, so the old check reported ready while a reload was still swapping the stage table.
+
         return plugin.contentReady()
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);
@@ -86,11 +85,6 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         return resolved;
     }
 
-    /**
-     * 安装对话框层。由 {@link EmakiCoreLibPlugin} 在对话框子系统就绪后调用。
-     *
-     * @param dialogs 对话框层实现；{@code null} 表示子系统不可用
-     */
     public void installDialogs(CoreLibDialogs dialogs) {
         this.dialogBridge = dialogs;
     }
@@ -189,8 +183,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             return CompletableFuture.completedFuture(
                     EmakiResult.invalidInput("action.trigger.dispatch.no_dispatch"));
         }
-        // An unknown id fails instead of running permissively. A typo would otherwise skip exactly the
-        // contract check that registering the trigger exists to provide.
+
         TriggerContract contract = plugin.triggerRegistry().contractOf(triggerId);
         if (contract == null) {
             return CompletableFuture.completedFuture(
@@ -204,8 +197,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             return CompletableFuture.completedFuture(EmakiResult.failure(FailureKind.UNAVAILABLE,
                     "action.trigger.dispatch.engine_unavailable"));
         }
-        // Resolved from the UUID here rather than carried as an entity: the dispatch carrier holds no live
-        // entity reference, matching what CoreActionKeys.TRIGGER already does for the same reason.
+
         Player caster = dispatch.casterId() == null ? null : Bukkit.getPlayer(dispatch.casterId());
         PipelineContext context = runner.context(caster, dispatch.phase(), dispatch.silent(),
                 dispatch.variables());

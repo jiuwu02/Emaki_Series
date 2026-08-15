@@ -36,10 +36,8 @@ public record AttributeConfig(String language,
         List<DamageCauseRule> allowedDamageCauses,
         List<ScalingCurveConfig> scalingCurves) {
 
-    /** Attack speed cooldown is managed by EmakiAttribute for every attack. */
     private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
 
-    /** Attack speed cooldown is managed only for items carrying an EmakiAttribute attack speed value. */
     private static final String ATTACK_SPEED_SCOPE_ATTRIBUTE_ONLY = "attribute_only";
 
     public static AttributeConfig defaults() {

@@ -4,12 +4,6 @@ import java.util.Locale;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-/**
- * 自动拾取设置。
- *
- * <p>需要 {@code emakistorage.autopickup} 权限，并由玩家自行开启；
- * 开关状态按玩家保存在 {@code meta.yml}。
- */
 public record AutoPickupConfig(boolean enabled,
         Mode mode,
         int radius,
@@ -26,11 +20,10 @@ public record AutoPickupConfig(boolean enabled,
         notifyCooldownMs = Math.max(0L, notifyCooldownMs);
     }
 
-    /** 拾取模式。 */
     public enum Mode {
-        /** 玩家拾取物品时决定是否转入仓库。 */
+
         ON_PICKUP,
-        /** 周期扫描玩家附近的掉落物并吸入仓库。 */
+
         RADIUS;
 
         public static Mode parse(String raw, Mode fallback) {

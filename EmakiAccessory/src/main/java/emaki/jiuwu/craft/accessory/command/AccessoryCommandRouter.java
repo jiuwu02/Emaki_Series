@@ -17,12 +17,6 @@ import emaki.jiuwu.craft.accessory.model.AccessorySlot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Routes {@code /emakiaccessory} subcommands.
- *
- * <p>Anything that opens a window or touches contents is dispatched to the owning player's thread first,
- * because a command can arrive from the console or from another player's thread.
- */
 public final class AccessoryCommandRouter {
 
     private static final String PERMISSION_ROOT = "emakiaccessory";
@@ -31,7 +25,6 @@ public final class AccessoryCommandRouter {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
 
-    /** Permission needed to modify another player's accessories through an open window. */
     public static final String PERMISSION_EDIT_OTHERS = PERMISSION_ROOT + ".admin.edit";
 
     private static final List<String> SUBCOMMANDS =
@@ -40,23 +33,10 @@ public final class AccessoryCommandRouter {
 
     private final EmakiAccessoryPlugin plugin;
 
-    /**
-     * Creates the router.
-     *
-     * @param plugin the owning plugin
-     */
     public AccessoryCommandRouter(EmakiAccessoryPlugin plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * Handles one command invocation.
-     *
-     * @param sender the caller
-     * @param label  the root label used
-     * @param args   the raw arguments
-     * @return always {@code true}; failures are reported as messages, not usage errors
-     */
     public boolean onCommand(CommandSender sender, String label, String[] args) {
         if (args.length == 0) {
             sendHelp(sender);
@@ -75,13 +55,6 @@ public final class AccessoryCommandRouter {
         };
     }
 
-    /**
-     * Suggests completions.
-     *
-     * @param sender the caller
-     * @param args   the raw arguments
-     * @return the suggestions
-     */
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
@@ -131,7 +104,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         plugin.executionDispatcher().runEntity(plugin, player, () -> plugin.openOwn(player), () -> {
-            // The player left before the window could open; nothing to clean up.
+
         });
         return true;
     }
@@ -239,9 +212,7 @@ public final class AccessoryCommandRouter {
             openFor(viewer, cached, writable);
             return true;
         }
-        // Offline targets are loaded on demand. The session is not begun for them, so the payload is a
-        // detached copy and edits are refused: a write here could be overwritten by the real session the
-        // moment the player reconnects.
+
         if (writable) {
             message(sender, "command.admin_target_offline");
             return true;
@@ -253,7 +224,7 @@ public final class AccessoryCommandRouter {
             }
             plugin.executionDispatcher().runEntity(plugin, viewer,
                     () -> openFor(viewer, accessories, false), () -> {
-                        // Viewer left before the window opened.
+
                     });
         });
         return true;
@@ -268,14 +239,14 @@ public final class AccessoryCommandRouter {
                     return;
                 }
             } else {
-                // Read-only viewers must not take the lease away from an editor.
+
                 plugin.writeSessions().release(accessories.playerId(), viewer.getUniqueId());
             }
             if (!plugin.open(viewer, accessories)) {
                 message(viewer, "command.open_failed");
             }
         }, () -> {
-            // Viewer left before the window opened.
+
         });
     }
 
@@ -308,7 +279,7 @@ public final class AccessoryCommandRouter {
         if (accessories != null && target != null) {
             plugin.executionDispatcher().runEntity(plugin, target,
                     () -> plugin.refreshContributions(accessories), () -> {
-                        // Target left mid-clear; their session unload will persist the cleared payload.
+
                     });
         }
         plugin.accessoryStore().saveAsync(targetId);

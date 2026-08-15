@@ -18,11 +18,6 @@ import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
-/**
- * 用真实 {@link TextDisplay} 实体实现的文本展示服务。
- *
- * <p>真实体对所有玩家可见，因此 {@link TextDisplaySpec#viewers()} 在此后端无效。
- */
 public final class BukkitTextDisplayService implements TextDisplayService {
 
     private final Plugin plugin;
@@ -143,12 +138,6 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         return "bukkit";
     }
 
-    /**
-     * 写入 spec 的静态渲染参数。
-     *
-     * <p>有运动时这里直接写运动第 0 帧且插值时长为 0：调度器会把后续帧回调推迟到下一 tick，
-     * 若此处只写 profile 原始变换，出场缩放会有一 tick 显示为错误尺寸。
-     */
     private void apply(TextDisplay display, TextDisplaySpec spec) {
         DisplayGeometry.TextProfile profile = spec.profile();
         display.text(spec.component());
@@ -202,12 +191,6 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         });
     }
 
-    /**
-     * 启动或重启该条目的运动。
-     *
-     * <p>帧回调在全局线程触发，写实体状态前必须切回实体所属 region 线程，
-     * 这是 Folia 下的硬要求。实体已退休时顺带取消运动，避免空转。
-     */
     private void startMotion(TextDisplaySpec spec, TextDisplay display) {
         String key = spec.runtimeKey();
         if (!spec.hasMotion()) {
@@ -226,12 +209,6 @@ public final class BukkitTextDisplayService implements TextDisplayService {
                 }, () -> motionRunner.cancel(key)));
     }
 
-    /**
-     * 为有存活时长的条目安排到期移除。
-     *
-     * <p>必须先取消同 key 的上一个到期任务，否则旧任务会提前删掉刚刷新的实体，
-     * 这是伤害飘字等「窗口内反复 upsert 同一 key」场景的正确性前提。
-     */
     private void scheduleExpiry(TextDisplaySpec spec) {
         String key = spec.runtimeKey();
         cancelQuietly(expiryTasks.remove(key));
@@ -259,7 +236,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         try {
             handle.cancel();
         } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
+
         }
     }
 

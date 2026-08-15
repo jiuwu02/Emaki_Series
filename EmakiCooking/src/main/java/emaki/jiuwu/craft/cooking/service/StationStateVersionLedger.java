@@ -6,9 +6,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 
-
-
-
 final class StationStateVersionLedger {
 
     record Mutation(long version, boolean tombstone) {
@@ -48,9 +45,6 @@ final class StationStateVersionLedger {
     Mutation currentMutation(StationCoordinates coordinates) {
         return coordinates == null ? null : mutations.get(coordinates);
     }
-
-
-
 
     boolean abandonMutation(StationCoordinates coordinates, long version, Mutation previous) {
         if (coordinates == null || version < 0L) {

@@ -49,15 +49,6 @@ import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
-/**
- * EmakiStation's entry point.
- *
- * <p>Orchestration only: the component graph is built by {@link StationLifecycleCoordinator} and the domain
- * logic lives in the services it produces.
- *
- * <p>Disable is the exact reverse of enable. Open windows are closed first so input items are returned before
- * anything they depend on is torn down, and queues are flushed before the file lane is released.
- */
 public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
@@ -91,11 +82,9 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private DebugCommand debugCommand;
     private TaskToken autoSaveTask;
     private boolean runtimeInitialized;
-    // "Data is loaded", not "components exist": components is non-null from initialize() onward, so a
-    // null-check answered true while reloadContent() was still swapping in layouts, stations, recipes.
+
     private volatile boolean contentReady;
 
-    /** Creates the plugin with its shipped configuration defaults. */
     public EmakiStationPlugin() {
         super(AppConfig::defaults);
     }
@@ -131,16 +120,13 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
-        // Ahead of the runtimeInitialized guard: a partially enabled module may already have published
-        // "loading", and that has to be revoked even when the rest of the teardown is skipped.
+
         contentReady = false;
         publishAbsent();
         if (!runtimeInitialized || components == null) {
             return;
         }
-        // Registering a barrier keeps CoreLib's own shutdown waiting for the queue flush instead of blocking
-        // this thread on it. Blocking here would stall the server's disable sequence, and the flush needs
-        // CoreLib's async file lane to still be alive.
+
         CompletableFuture<Void> shutdownFuture = new CompletableFuture<>();
         coreLib().registerDependentShutdown(MODULE, shutdownFuture);
         uninstallPublicApi();
@@ -151,11 +137,10 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         ConfigPrecheckLifecycleSupport.unregister(MODULE);
         HandlerList.unregisterAll(this);
         components.queueTicker().stop();
-        // Windows no longer hold player property, so closing them is only a state cleanup.
+
         components.stationGuiService().closeAll();
         components.guiService().closeAll();
-        // Purchased slots flush before the queues so a shutdown that only half-completes loses the cheaper
-        // half: an unsaved queue entry can be reconciled from its receipt, unsaved paid capacity cannot.
+
         components.unlockService().saveAllAsync().whenComplete((ignoredUnlocks, unlockFailure) -> {
             if (unlockFailure != null) {
                 getLogger().warning("Queue unlock flush did not finish cleanly: "
@@ -174,14 +159,6 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         });
     }
 
-    /**
-     * Reloads configuration, layouts, stations, and recipes.
-     *
-     * <p>The resolved registry is only swapped in once every loader succeeded, so a broken edit leaves the
-     * previous working set active rather than replacing it with a partial one.
-     *
-     * @return how many stations and recipes are active after the reload
-     */
     public ReloadSummary reloadContent() {
         contentReady = false;
         publishLoading();
@@ -204,8 +181,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
                 List.copyOf(components.dismantleRecipeLoader().all().values()));
         dismantleRegistry.set(DismantleStationRegistry.build(
                 components.dismantleStationLoader().all().values()));
-        // Re-read on every reload, and report an absent file this time: bootstrap has run by now, so a missing
-        // price file is a real omission rather than a first-launch ordering artefact.
+
         queueCosts.set(QueueCostLoader.load(
                 dataPath(appConfig().purchaseSettings().costFile()).toFile(), getLogger(), true));
         StationRegistry resolved = StationRegistry.resolve(components.stationLoader().all(),
@@ -216,22 +192,10 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
                 components.stationLoader().issues().size() + components.recipeLoader().issues().size());
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the runtime
-     * components were constructed".</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>Called from a plain method body with no lock held, so the waiting third-party callbacks that
-     * the registry runs synchronously cannot deadlock against this module's state.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -244,11 +208,6 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
@@ -257,138 +216,103 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
     }
 
-    /**
-     * How much content a reload produced.
-     *
-     * @param stations how many stations are active
-     * @param recipes  how many recipes are active
-     * @param issues   how many loader problems were recorded
-     */
     public record ReloadSummary(int stations, int recipes, int issues) {
     }
 
-    /** {@return the currently active resolved registry} */
     public StationRegistry registry() {
         return registry.get();
     }
 
-    /** {@return the currently active dismantle station registry} */
     public DismantleStationRegistry dismantleRegistry() {
         return dismantleRegistry.get();
     }
 
-    /** {@return the currently active queue price table} */
     public QueueCostConfig queueCosts() {
         return queueCosts.get();
     }
 
-    /** {@return the purchased-slot cache, or {@code null} before enable completes} */
     public QueueUnlockService queueUnlockService() {
         return components == null ? null : components.unlockService();
     }
 
-    /** {@return the message service, or {@code null} before enable completes} */
     public MessageService messageService() {
         return components == null ? null : components.messageService();
     }
 
-    /** {@return the language loader, or {@code null} before enable completes} */
     public LanguageLoader languageLoader() {
         return components == null ? null : components.languageLoader();
     }
 
-    /** {@return the bootstrap service, or {@code null} before enable completes} */
     public BootstrapService bootstrapService() {
         return components == null ? null : components.bootstrapService();
     }
 
-    /** {@return CoreLib's execution dispatcher, or {@code null} before enable completes} */
     public ExecutionDispatcher executionDispatcher() {
         return components == null ? null : components.executionDispatcher();
     }
 
-    /** {@return CoreLib's GUI service, or {@code null} before enable completes} */
     public GuiService guiService() {
         return components == null ? null : components.guiService();
     }
 
-    /** {@return the layout loader, or {@code null} before enable completes} */
     public GuiTemplateLoader layoutLoader() {
         return components == null ? null : components.layoutLoader();
     }
 
-    /** {@return the station window manager, or {@code null} before enable completes} */
     public StationGuiService stationGuiService() {
         return components == null ? null : components.stationGuiService();
     }
 
-    /** {@return the queue cache, or {@code null} before enable completes} */
     public QueueService queueService() {
         return components == null ? null : components.queueService();
     }
 
-    /** {@return the submission orchestrator, or {@code null} before enable completes} */
     public StationCraftService craftService() {
         return components == null ? null : components.craftService();
     }
 
-    /** {@return the station loader, or {@code null} before enable completes} */
     public StationLoader stationLoader() {
         return components == null ? null : components.stationLoader();
     }
 
-    /** {@return the recipe loader, or {@code null} before enable completes} */
     public RecipeLoader recipeLoader() {
         return components == null ? null : components.recipeLoader();
     }
 
-    /** {@return the dismantle station loader, or {@code null} before enable completes} */
     public DismantleStationLoader dismantleStationLoader() {
         return components == null ? null : components.dismantleStationLoader();
     }
 
-    /** {@return the dismantle recipe loader, or {@code null} before enable completes} */
     public DismantleRecipeLoader dismantleRecipeLoader() {
         return components == null ? null : components.dismantleRecipeLoader();
     }
 
-    /** {@return the dismantle service, or {@code null} before enable completes} */
     public DismantleService dismantleService() {
         return components == null ? null : components.dismantleService();
     }
 
-    /** {@return the warehouse channel, or {@code null} before enable completes} */
     public StorageChannel storageChannel() {
         return components == null ? null : components.storageChannel();
     }
 
-    /** {@return the capability probe result, or an empty set before enable completes} */
     public StationCapabilities capabilities() {
         return components == null
                 ? StationCapabilities.none()
                 : components.capabilities();
     }
 
-    /** {@return the structured debug command handler, or {@code null} before enable completes} */
     public DebugCommand debugCommand() {
         return debugCommand;
     }
 
-    /**
-     * {@return a freshly resolved action-line runner}
-     *
-     * <p>Resolved per call rather than cached so a CoreLib reload does not leave a stale engine behind.
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
 
-    /** {@return the CoreLib plugin instance} */
     public EmakiCoreLibPlugin coreLib() {
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /** {@return whether the disable path has begun} */
     public boolean isShutdownStarted() {
         return shutdownStarted.get();
     }
@@ -405,13 +329,6 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         getServer().getPluginManager().registerEvents(playerListener, this);
     }
 
-    /**
-     * Starts the periodic save.
-     *
-     * <p>Purchased slots ride the same timer rather than getting their own. A purchase already flushes
-     * immediately, so this pass only catches a record left dirty by something else; a second timer for that
-     * would be two schedules to reason about for no additional safety.
-     */
     private void scheduleAutoSave() {
         long intervalTicks = Math.max(100L,
                 appConfig().persistenceSettings().autosaveIntervalSeconds() * 20L);

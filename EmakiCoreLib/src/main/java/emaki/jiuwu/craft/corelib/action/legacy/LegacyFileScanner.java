@@ -8,31 +8,15 @@ import java.util.List;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Finds and rewrites the old action lines inside one YAML file's text.
- *
- * <p>Works on raw lines rather than a parsed YAML tree. The files being migrated are shipped examples
- * carrying more comment than data, and every YAML library available here drops comments on write, so a
- * DOM round-trip would destroy the part of the file server owners actually read.</p>
- *
- * <p>The trade-off is that this class has to track block structure itself. It only needs enough of it
- * to know which key a list item sits under, which is what the {@code lore} blacklist depends on.</p>
- */
 final class LegacyFileScanner {
 
     private final LegacyLineConverter converter = new LegacyLineConverter();
 
-    /**
-     * Scans one file's content.
-     *
-     * @param content the file text
-     * @return what the scan found and what the file would become
-     */
     @NotNull Result scan(@NotNull String content) {
         String[] lines = content.split("\n", -1);
         List<Change> changes = new ArrayList<>();
         List<Skip> skips = new ArrayList<>();
-        // Each frame is the indentation and key of an open mapping entry, nearest last.
+
         Deque<Frame> stack = new ArrayDeque<>();
         for (int index = 0; index < lines.length; index++) {
             String raw = lines[index];
@@ -62,24 +46,13 @@ final class LegacyFileScanner {
                 case UNMAPPABLE -> skips.add(new Skip(index + 1, item.value(),
                         result.oldId(), result.reason()));
                 case NOT_AN_ACTION -> {
-                    // Left untouched on purpose: this is the heuristic declining, not a failure.
+
                 }
             }
         }
         return new Result(List.copyOf(changes), List.copyOf(skips), lines);
     }
 
-    /**
-     * Applies the given changes to produce the new file text.
-     *
-     * <p>Takes the changes to apply rather than reading them off the scan, so that a caller which
-     * rejected some of them can still install the rest. A line whose change is not passed here keeps
-     * its original text.</p>
-     *
-     * @param result a previous scan of the same content
-     * @param applied the subset of that scan's changes to install
-     * @return the rewritten text
-     */
     @NotNull String rewrite(@NotNull Result result, @NotNull List<Change> applied) {
         String[] lines = result.lines().clone();
         for (Change change : applied) {
@@ -90,13 +63,6 @@ final class LegacyFileScanner {
         return String.join("\n", lines);
     }
 
-    /**
-     * Chooses the YAML quoting for a pipeline line.
-     *
-     * <p>Single quotes when the line contains a double quote, because a YAML double-quoted scalar would
-     * then need backslash escapes that the pipeline parser would receive verbatim. A line holding both
-     * quote styles is emitted single-quoted with YAML's doubled-apostrophe escape.</p>
-     */
     private String reQuoteForYaml(String pipeline) {
         if (pipeline.indexOf('"') < 0) {
             return '"' + pipeline + '"';
@@ -107,7 +73,6 @@ final class LegacyFileScanner {
         return '\'' + pipeline.replace("'", "''") + '\'';
     }
 
-    /** Splits a list item into its {@code - } prefix and its scalar value, unquoting the value. */
     private @Nullable Item parseItem(String line) {
         int dash = line.indexOf('-');
         if (dash < 0) {
@@ -124,19 +89,13 @@ final class LegacyFileScanner {
         if (value.isEmpty() || value.startsWith("#")) {
             return null;
         }
-        // A nested mapping or list, not a scalar: `- id: foo` is structure, not an action line.
+
         if (value.endsWith(":") || looksLikeMappingEntry(value)) {
             return null;
         }
         return new Item(prefix, unquote(value));
     }
 
-    /**
-     * Reports whether a list item is really a mapping entry such as {@code - id: overeat}.
-     *
-     * <p>Checked before the colon inside any quotes, so that an action line whose text contains a colon
-     * is not mistaken for structure.</p>
-     */
     private boolean looksLikeMappingEntry(String value) {
         char quote = 0;
         for (int index = 0; index < value.length(); index++) {
@@ -204,7 +163,6 @@ final class LegacyFileScanner {
         return -1;
     }
 
-    /** Finds the key a list item at this indentation belongs to. */
     private @Nullable String parentKeyFor(Deque<Frame> stack, int indent) {
         String candidate = null;
         for (Frame frame : stack) {
@@ -227,34 +185,12 @@ final class LegacyFileScanner {
         return line.endsWith("\r") ? line.substring(0, line.length() - 1) : line;
     }
 
-    /**
-     * One open mapping entry.
-     *
-     * @param indent its indentation
-     * @param key its key
-     */
     private record Frame(int indent, @NotNull String key) {
     }
 
-    /**
-     * A list item split into prefix and value.
-     *
-     * @param prefix everything up to and including the dash and following spaces
-     * @param value the unquoted scalar
-     */
     private record Item(@NotNull String prefix, @NotNull String value) {
     }
 
-    /**
-     * One line that will be rewritten.
-     *
-     * @param lineIndex zero-based index into the file's lines
-     * @param originalLine the untouched source line
-     * @param newLine the replacement line, including indentation and quoting
-     * @param oldValue the old action line, unquoted
-     * @param newValue the converted pipeline line, unquoted
-     * @param parentKey the YAML key this item sits under
-     */
     record Change(int lineIndex,
             @NotNull String originalLine,
             @NotNull String newLine,
@@ -263,32 +199,16 @@ final class LegacyFileScanner {
             @Nullable String parentKey) {
     }
 
-    /**
-     * One recognised old action line that cannot be converted.
-     *
-     * @param lineNumber one-based line number
-     * @param value the old action line
-     * @param oldId the old action id
-     * @param reason why it cannot be converted
-     */
     record Skip(int lineNumber,
             @NotNull String value,
             @Nullable String oldId,
             @Nullable String reason) {
     }
 
-    /**
-     * What one file scan produced.
-     *
-     * @param changes the lines that would be rewritten
-     * @param skips the recognised lines that cannot be converted
-     * @param lines the file's original lines
-     */
     record Result(@NotNull List<Change> changes,
             @NotNull List<Skip> skips,
             @NotNull String[] lines) {
 
-        /** {@return whether this file has anything to convert} */
         boolean hasChanges() {
             return !changes.isEmpty();
         }

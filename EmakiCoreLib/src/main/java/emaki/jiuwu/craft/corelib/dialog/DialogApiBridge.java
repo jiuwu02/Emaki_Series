@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 
-/** {@link CoreLibDialogs} 的运行时实现，把公开门面接到 {@link DialogService}。 */
 public final class DialogApiBridge implements CoreLibDialogs {
 
     private final DialogService service;

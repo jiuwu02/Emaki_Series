@@ -29,12 +29,6 @@ import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 
-/**
- * {@link ForgeOperations} 的运行时实现。
- *
- * <p>所有写操作都先校验线程归属再委托，避免在非归属线程上改动 GUI 与背包。runtime 侧统一用
- * {@code boolean} 表达结果，这里按「入参非法 / 未就绪 / 业务拒绝」拆成不同的 {@link FailureKind}。
- */
 public final class DefaultForgeOperations implements ForgeOperations {
 
     private final EmakiForgePlugin plugin;

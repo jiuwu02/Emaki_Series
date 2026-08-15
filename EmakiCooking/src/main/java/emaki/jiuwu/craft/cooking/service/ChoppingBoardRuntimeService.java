@@ -439,7 +439,7 @@ public final class ChoppingBoardRuntimeService {
                         "station_type", StationType.CHOPPING_BOARD.folderName()
                 ),
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         if (accepted) {
@@ -536,9 +536,6 @@ public final class ChoppingBoardRuntimeService {
         stateStore.deleteAsync(coordinates);
         return true;
     }
-
-
-
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {

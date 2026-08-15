@@ -170,16 +170,6 @@ public final class ActionBarService {
         return resolveSkillName(binding.skillId(), defs) + resolveTriggerName(binding.triggerId());
     }
 
-    /**
-     * Renders a slot's trigger label.
-     *
-     * <p>A freshly equipped skill has no trigger bound yet. Looking that empty id
-     * up in the registry logs an "unregistered trigger" warning on every action bar
-     * refresh, so the unbound case is answered from the language file instead.
-     *
-     * @param triggerId the bound trigger id, may be {@code null} or blank
-     * @return the label to show for this slot's trigger
-     */
     private String resolveTriggerName(String triggerId) {
         return triggerId == null || triggerId.isBlank()
                 ? messageService.message("gui.trigger_unbound_short")

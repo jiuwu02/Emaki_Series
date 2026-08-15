@@ -157,13 +157,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
-    /**
-     * Compiles and runs one pipeline line typed at the console or in chat.
-     *
-     * <p>Compiled first so a syntax or unknown-stage problem is reported with its own diagnostic instead of
-     * surfacing as a generic run failure. Only the first diagnostic is shown: the compiler reports every
-     * problem it finds on a line, and the rest are usually consequences of the first.</p>
-     */
     private void runPipelineLine(CommandSender sender, String rawLine) {
         ActionEngine engine = plugin.actionEngine();
         Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
@@ -189,12 +182,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         );
     }
 
-    /**
-     * Lists the registered pipeline stages, grouped by role.
-     *
-     * <p>Grouped because a stage id is only valid in one position of a line, so a flat list would not tell
-     * an operator where the id they are looking at can actually be used.</p>
-     */
     private void sendStageList(CommandSender sender, StageRegistry registry) {
         Map<CoreStageKind, List<String>> byKind = registry.allIds();
         int total = byKind.values().stream().mapToInt(List::size).sum();
@@ -231,12 +218,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
     }
 
-    /**
-     * Reports how a manually run pipeline ended.
-     *
-     * <p>Names the stage that failed rather than only the overall status, because a line typed by hand is
-     * usually being debugged and the failing stage is the whole answer.</p>
-     */
     private void sendPipelineOutcome(CommandSender sender, PipelineOutcome outcome, Throwable throwable) {
         if (throwable != null) {
             sendLang(sender, "command.action_execute_failed", Map.of(
@@ -251,8 +232,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {
             PipelineOutcome.StageResult failure = firstFailedStage(outcome);
-            // Only the pipeline-level outcome carries placeholder arguments; StageResult has just a key.
-            // Prefer the stage's key when the pipeline did not set one, so the more specific reason wins.
+
             String reasonKey = Texts.isBlank(outcome.reasonKey()) && failure != null
                     ? failure.reasonKey()
                     : outcome.reasonKey();
@@ -340,8 +320,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "key" -> sendTaskSnapshots(sender, tasks.snapshotsByKey(args.length >= 4 ? args[3] : ""));
             case "cancel" -> {
                 String key = args.length >= 4 ? args[3] : "";
-                // Exact match, matching what this command did under v1: an operator cancelling by a key
-                // they typed should not also take out everything that happens to share its prefix.
+
                 int cancelled = tasks.stop(key, false);
                 if (cancelled > 0) {
                     sendLang(sender, "command.loop_cancelled", Map.of("key", key));

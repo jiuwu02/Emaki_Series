@@ -217,8 +217,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (closeInventories) {
             forEachOnlinePlayer(plugin, Player::closeInventory).join();
         }
-        // Definition loaders belong to the candidate step because the skills precheck reads their issue
-        // lists; the apply work below only runs once the gate has accepted that candidate.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 plugin.messageService(),
                 "skills",
@@ -233,12 +232,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 },
                 plugin.appConfigLoader()::overrideCurrent);
         if (gate.rejected()) {
-            // Previous AppConfig is active again and no candidate value reached a runtime service.
+
             return;
         }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
-        // The skill YAML was just reread, so every compiled pipeline was built from text that may no longer be
-        // configured. Dropping the cache here is what makes the next cast compile the current lines.
+
         plugin.skillPipelineRuntime().invalidateAll();
         loadTriggersIntoRegistry(plugin);
         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
@@ -280,7 +278,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                                     },
                                     plugin.appConfigLoader()::overrideCurrent);
                             if (gate.rejected()) {
-                                // Aborts the stage so the apply step never runs; AppConfig is already restored.
+
                                 throw new IllegalStateException("Skills config precheck failed: "
                                         + String.join("; ", gate.failures()));
                             }

@@ -209,12 +209,6 @@ public final class ParentAttributeService {
         dataStore.saveAll();
     }
 
-    /**
-     * Fires the public allocation event when the caller owns the player's thread.
-     *
-     * @return the amount to allocate, or {@code 0} when cancelled or invoked
-     *         without ownership of the player's entity thread.
-     */
     private int fireAllocateEvent(Player player,
             AttributeDefinition definition,
             ParentAttributeData data,
@@ -233,12 +227,6 @@ public final class ParentAttributeService {
         return event.isCancelled() ? 0 : event.getAmount();
     }
 
-    /**
-     * Fires the public reset event when the caller owns the player's thread.
-     *
-     * @return {@code true} to proceed with the reset, {@code false} when
-     *         cancelled or invoked without ownership of the player's entity thread.
-     */
     private boolean fireResetEvent(Player player,
             ParentAttributeData data,
             int refundedPoints,

@@ -20,20 +20,7 @@ import emaki.jiuwu.craft.corelib.event.gameplay.GameplayEvent;
 import emaki.jiuwu.craft.corelib.event.gameplay.MythicKillEvent;
 import emaki.jiuwu.craft.corelib.event.gameplay.TameGameplayEvent;
 
-
-
-
-
-
-
-
-
-
-
-
-
 public final class CodexGameplaySubscriber {
-
 
     private static final long BREW_ATTRIBUTION_EXPIRE_TICKS = 600L;
 
@@ -46,10 +33,6 @@ public final class CodexGameplaySubscriber {
         this.triggerService = triggerService;
     }
 
-
-
-
-
     public void subscribe(EmakiEventBus eventBus) {
         subscribe(eventBus, EntityKillEvent.class, this::forward);
         subscribe(eventBus, MythicKillEvent.class, this::forward);
@@ -60,7 +43,6 @@ public final class CodexGameplaySubscriber {
         subscribe(eventBus, BrewGameplayEvent.class, this::onBrew);
         subscribe(eventBus, BlockBreakGameplayEvent.class, this::onBlockBreak);
     }
-
 
     public void unsubscribe() {
         for (EmakiEventBus.Subscription subscription : subscriptions) {

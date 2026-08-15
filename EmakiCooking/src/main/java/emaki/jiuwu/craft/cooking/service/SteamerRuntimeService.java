@@ -748,15 +748,9 @@ public final class SteamerRuntimeService implements Listener {
         return existing == null ? loaded : existing;
     }
 
-
-
-
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
-
-
-
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {

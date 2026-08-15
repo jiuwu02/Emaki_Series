@@ -15,18 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Lowers the target's health by a flat amount.
- *
- * <p>Sets health directly, exactly as v1 did, rather than calling {@code LivingEntity#damage}. That keeps
- * the behaviour identical across the migration: no damage event, no armour or resistance reduction, no
- * knockback and no hurt animation.</p>
- *
- * <p>Omitting the source means {@code self}, so a bare {@code damage amount=5} hurts the caster — the same
- * result the v1 action produced with no target argument.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one entity's health.</p>
- */
 public final class DamageStage extends BaseStage {
 
     public DamageStage() {

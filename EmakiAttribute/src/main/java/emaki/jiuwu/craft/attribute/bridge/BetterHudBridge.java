@@ -24,26 +24,12 @@ import kr.toxicity.hud.api.trigger.HudTrigger;
 import kr.toxicity.hud.api.update.UpdateEvent;
 import kr.toxicity.hud.api.update.UpdateReason;
 
-/**
- * BetterHUD soft-dependency bridge.
- *
- * <p>Registers 11 custom trigger IDs with BetterHUD's {@link TriggerManager} so
- * that administrators can bind any popup/HUD element to EmakiAttribute events
- * directly in their BetterHUD YAML configuration.
- *
- * <p>This class must only be instantiated when BetterHUD is present on the
- * classpath.  The owning plugin checks availability before calling
- * {@link EmakiAttributePlugin#ensureBetterHudBridge()}.
- */
 public final class BetterHudBridge implements Listener {
 
-    /** Percent threshold below which emaki_resource_low fires (configurable). */
-    // TODO: expose via config.yml key betterhud.resource-low-threshold
     private static final double DEFAULT_RESOURCE_LOW_THRESHOLD = 0.2D;
 
     private final EmakiAttributePlugin plugin;
 
-    /* One consumer list per trigger; populated by BetterHUD via registerEvent(). */
     private final List<BiConsumer<UUID, UpdateEvent>> meleeHitConsumers      = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<UUID, UpdateEvent>> rangedHitConsumers     = new CopyOnWriteArrayList<>();
     private final List<BiConsumer<UUID, UpdateEvent>> sweepHitConsumers      = new CopyOnWriteArrayList<>();
@@ -60,12 +46,6 @@ public final class BetterHudBridge implements Listener {
         this.plugin = plugin;
     }
 
-    /**
-     * Registers all 11 trigger IDs with BetterHUD's {@link TriggerManager}.
-     * Must be called once after BetterHUD is confirmed to be enabled.
-     * BetterHUD will call {@code registerEvent()} on each trigger again after
-     * a reload — no need to re-register.
-     */
     public void registerTriggers() {
         TriggerManager tm = BetterHud.getInstance().getTriggerManager();
         addTrigger(tm, "emaki_melee_hit",         meleeHitConsumers);
@@ -80,8 +60,6 @@ public final class BetterHudBridge implements Listener {
         addTrigger(tm, "emaki_resource_low",      resourceLowConsumers);
         addTrigger(tm, "emaki_point_allocated",   pointAllocatedConsumers);
     }
-
-    // ── helpers ────────────────────────────────────────────────────────────
 
     private static void addTrigger(@NotNull TriggerManager tm,
             @NotNull String name,
@@ -104,8 +82,7 @@ public final class BetterHudBridge implements Listener {
         if (consumers.isEmpty()) {
             return;
         }
-        // Each fire call creates a unique UpdateEvent key so BetterHUD does
-        // not de-duplicate successive identical triggers for the same player.
+
         UpdateEvent event = new UpdateEvent() {
             private final Object key = UUID.randomUUID();
 
@@ -124,8 +101,6 @@ public final class BetterHudBridge implements Listener {
         }
     }
 
-    // ── event handlers ─────────────────────────────────────────────────────
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAttributeDamage(@NotNull EmakiAttributeDamageEvent event) {
         double finalDamage = event.getFinalDamage();
@@ -133,7 +108,6 @@ public final class BetterHudBridge implements Listener {
         LivingEntity target   = event.getTarget();
         DamageContextVariables vars = event.getVariables();
 
-        // ── attacker-side ──────────────────────────────────────────────────
         if (attacker instanceof Player attackerPlayer && finalDamage > 0D) {
             EntityDamageEvent.DamageCause cause = event.getCause();
             if (cause == EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK) {
@@ -146,13 +120,12 @@ public final class BetterHudBridge implements Listener {
             if (event.isCritical()) {
                 fire(criticalHitConsumers, attackerPlayer.getUniqueId());
             }
-            // Kill: target health before this hit minus finalDamage falls to 0
+
             if (target != null && target.getHealth() - finalDamage <= 0D) {
                 fire(killConsumers, attackerPlayer.getUniqueId());
             }
         }
 
-        // ── target-side ────────────────────────────────────────────────────
         if (target instanceof Player targetPlayer) {
             if (finalDamage > 0D) {
                 fire(damageTakenConsumers, targetPlayer.getUniqueId());
@@ -187,4 +160,3 @@ public final class BetterHudBridge implements Listener {
         fire(pointAllocatedConsumers, event.getPlayer().getUniqueId());
     }
 }
-

@@ -177,15 +177,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
         }
-        // mythicBridge 不在此注册：它的唯一注册入口是 EmakiAttributePlugin#ensureMythicBridge，
-        // 那里同时覆盖 reload 与 MythicMobs 后启用两条路径。
+
     }
 
     public TaskToken reload(EmakiAttributePlugin plugin, TaskToken currentTask, boolean resyncPlayers) {
-        // Entry B rather than the single-loader gate: this module loads in stages, and two of its
-        // registries (DefaultProfileRegistry, AttributeBalanceRegistry) read plugin.configModel()
-        // while loading, so the candidate config has to be in place before the stages can run. The
-        // previous model is captured here and put back if the precheck rejects the candidate.
+
         AttributeConfig previousConfig = plugin.configModel();
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
@@ -205,8 +201,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runReloadStage("pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load(), failureHandler(plugin));
         runReloadStage("attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load(), failureHandler(plugin));
         runReloadStage("damage_type_registry", () -> plugin.damageTypeRegistry().load(), failureHandler(plugin));
-        // Gate after the stages because the attribute precheck reads every registry's issue list, and
-        // before the cache/bridge/player work so a rejected candidate never reaches online entities.
+
         if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
             restoreConfigModel(plugin, previousConfig);
             return currentTask;
@@ -232,7 +227,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
-        // Captured before the pipeline mutates it, for the same reason as the synchronous path.
+
         AttributeConfig previousConfig = plugin.configModel();
         return runReloadPipelineAsync(scheduler, executionDispatcher, plugin, new ReloadPipelineConfig<>(
                 "attribute",
@@ -385,7 +380,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
     }
 
-
     private void loadGuiTemplates(EmakiAttributePlugin plugin) {
         if (plugin.guiTemplateLoader() == null) {
             return;
@@ -415,13 +409,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
-    /**
-     * Puts the last known good config model back after a rejected precheck.
-     *
-     * <p>Restoring the captured instance rather than reloading from disk is deliberate: the file on disk
-     * is the rejected candidate, and {@code loadConfigModel} falls back to {@link AttributeConfig#defaults()}
-     * when parsing fails, which would silently discard the operator's working configuration.
-     */
     private void restoreConfigModel(EmakiAttributePlugin plugin, AttributeConfig previousConfig) {
         AttributeConfig restored = previousConfig == null ? AttributeConfig.defaults() : previousConfig;
         plugin.setConfigModel(restored);

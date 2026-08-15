@@ -7,12 +7,6 @@ import org.bukkit.event.Listener;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import net.Indyuce.mmoitems.api.event.item.ConsumableConsumedEvent;
 
-
-
-
-
-
-
 public final class MmoItemsNutritionListener implements Listener {
 
     private final EmakiCookingPlugin plugin;

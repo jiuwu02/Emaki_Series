@@ -14,21 +14,8 @@ import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-/**
- * Per-player accessory persistence: one YAML file holding {@code slotInstanceId -> Base64 item}.
- *
- * <p>Items are encoded with {@link ItemStack#serializeAsBytes()} rather than the map-based
- * {@code ItemStack#serialize()}, because the byte form records the game's {@code DataVersion} and runs
- * Mojang's DataFixer on read, so a saved accessory survives a Minecraft upgrade. YAML cannot hold raw
- * bytes, hence Base64 around that payload.
- *
- * <p>Decoding is per slot and failure is contained: a slot whose payload cannot be decoded is dropped
- * with a warning and every other slot in the file still loads. Framing each item separately is the
- * whole reason not to serialise the map as one blob.
- */
 public final class AccessoryDataFile {
 
-    /** Bumped only when the on-disk layout changes in a way a reader must branch on. */
     public static final int FORMAT_VERSION = 1;
 
     private static final String KEY_FORMAT_VERSION = "format_version";
@@ -38,40 +25,19 @@ public final class AccessoryDataFile {
     private final Logger logger;
     private final Path dataRoot;
 
-    /**
-     * Creates the file accessor.
-     *
-     * @param logger   receives per-slot decode warnings
-     * @param dataRoot directory holding one file per player
-     */
     public AccessoryDataFile(Logger logger, Path dataRoot) {
         this.logger = logger;
         this.dataRoot = dataRoot;
     }
 
-    /**
-     * Resolves one player's data file.
-     *
-     * @param playerId the player id
-     * @return the file, which may not exist yet
-     */
     public File fileFor(UUID playerId) {
         return dataRoot.resolve(playerId + ".yml").toFile();
     }
 
-    /** {@return the directory holding player files} */
     public Path dataRoot() {
         return dataRoot;
     }
 
-    /**
-     * Converts a loaded YAML document into a payload.
-     *
-     * @param playerId   the player id
-     * @param playerName the name to record when the file carries none
-     * @param root       the loaded document; {@code null} or empty yields an empty payload
-     * @return the payload, never dirty
-     */
     public PlayerAccessories read(UUID playerId, String playerName, YamlSection root) {
         PlayerAccessories accessories = new PlayerAccessories(playerId);
         Map<String, ItemStack> items = new LinkedHashMap<>();
@@ -109,12 +75,6 @@ public final class AccessoryDataFile {
         return accessories;
     }
 
-    /**
-     * Renders a payload into the map form the YAML writer expects.
-     *
-     * @param accessories the payload snapshot to write
-     * @return the values to serialise
-     */
     public Map<String, Object> write(PlayerAccessories accessories) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put(KEY_FORMAT_VERSION, FORMAT_VERSION);

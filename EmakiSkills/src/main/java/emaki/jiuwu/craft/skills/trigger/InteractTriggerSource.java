@@ -28,24 +28,6 @@ public final class InteractTriggerSource implements SkillTriggerSource {
     public void register(JavaPlugin plugin, TriggerDispatcher dispatcher) {
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
 
-            /**
-             * Deliberately declared <em>without</em> {@code ignoreCancelled}.
-             *
-             * <p>{@link PlayerInteractEvent#isCancelled()} is defined as
-             * {@code useInteractedBlock() == DENY}, and the constructor sets
-             * {@code useClickedBlock = DENY} whenever there is no clicked
-             * block. Every air click therefore arrives already "cancelled", so
-             * {@code ignoreCancelled = true} would permanently suppress
-             * {@code left_click} / {@code right_click} /
-             * {@code shift_left_click} / {@code shift_right_click}.
-             *
-             * <p>Cancellation is instead evaluated through
-             * {@link #externallySuppressed(PlayerInteractEvent)}, which reads
-             * the item-in-hand result: that is the half of the event's two
-             * cancellation states describing the item use the skill is cast
-             * from, and it is {@code DEFAULT} rather than {@code DENY} for a
-             * plain air click.
-             */
             @EventHandler(priority = EventPriority.NORMAL)
             public void onInteract(PlayerInteractEvent event) {
                 if (legacyDispatchCancelledEvents(plugin)) {
@@ -95,15 +77,6 @@ public final class InteractTriggerSource implements SkillTriggerSource {
         }, plugin);
     }
 
-    /**
-     * Whether another plugin has denied the item use this trigger is cast from.
-     *
-     * <p>{@code setCancelled(true)} drives {@code useItemInHand} to
-     * {@link Event.Result#DENY}, so region protection such as WorldGuard is
-     * honoured, while an ordinary air click (which reports
-     * {@code isCancelled() == true} purely as a vanilla no-op prediction) is
-     * not mistaken for a cancellation.
-     */
     private boolean externallySuppressed(PlayerInteractEvent event) {
         return event.useItemInHand() == Event.Result.DENY;
     }

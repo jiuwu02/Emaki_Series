@@ -24,35 +24,18 @@ public final class GemActionCoordinator {
         }
     }
 
-    /** Reported when the pipeline engine has not finished starting up, so nothing can run yet. */
     private static final String RUNNER_UNAVAILABLE = "Action executor unavailable.";
 
-    /** Reported for a failed batch: the pipeline runner answers with a verdict, not a per-line diagnosis. */
     private static final String UNKNOWN_FAILURE = "Unknown action failure.";
 
     private final EmakiGemPlugin plugin;
     private final ActionLineRunner actionLines;
 
-    /**
-     * Creates a coordinator.
-     *
-     * @param plugin the owning plugin, used for failure logging
-     * @param actionLines the pipeline runner; safe to hold because it reads the live engine per call
-     */
     public GemActionCoordinator(EmakiGemPlugin plugin, ActionLineRunner actionLines) {
         this.plugin = plugin;
         this.actionLines = actionLines;
     }
 
-    /**
-     * Starts a phase without waiting for it.
-     *
-     * @param player the acting player
-     * @param phase phase name
-     * @param actions configured pipeline lines
-     * @param placeholders values readable as {@code %var.name%}
-     * @return {@code ok} once the batch is started, or a failure when it could not be started at all
-     */
     public ExecutionResult execute(Player player, String phase, List<String> actions, Map<String, ?> placeholders) {
         if (actions == null || actions.isEmpty()) {
             return ExecutionResult.ok();
@@ -64,15 +47,6 @@ public final class GemActionCoordinator {
         return ExecutionResult.ok();
     }
 
-    /**
-     * Runs a phase and reports its verdict.
-     *
-     * @param player the acting player
-     * @param phase phase name
-     * @param actions configured pipeline lines
-     * @param placeholders values readable as {@code %var.name%}
-     * @return the batch verdict
-     */
     public CompletionStage<ExecutionResult> executeAsync(Player player,
             String phase,
             List<String> actions,
@@ -90,12 +64,6 @@ public final class GemActionCoordinator {
         return actionLines != null && actionLines.available();
     }
 
-    /**
-     * Runs the batch and folds its outcome into an {@link ExecutionResult}.
-     *
-     * <p>The phase is no longer also written as a context attribute: a pipeline context carries the phase itself,
-     * so stages read it from {@code context.phase()} instead.</p>
-     */
     private CompletionStage<ExecutionResult> executeAsync(ActionLineRunner runner,
             Player player,
             String phase,

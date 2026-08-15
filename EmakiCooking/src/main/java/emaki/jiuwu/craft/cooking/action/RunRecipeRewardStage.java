@@ -25,32 +25,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Delivers a configured recipe outcome to the target: its outputs, its actions, or both.
- *
- * <p><strong>Transitional implementation.</strong> The reward service this delegates to executes a recipe's
- * configured action lines through the v1 action executor. Those lines now belong in a named sequence invoked
- * with {@code run}, but named sequences are not wired up yet and the recipe files still hold v1 syntax. Rather
- * than migrate the recipe format here, this stage keeps calling the existing service; phase 6 replaces the
- * inner call with {@code run} alongside the config converter that rewrites the recipe files.</p>
- *
- * <p>Two consequences of that delegation are worth knowing. First, the reward chain is asynchronous and
- * fire-and-forget, so a successful outcome from this stage means the delivery was submitted, not that it
- * finished. Second, the nested action lines run against a context this stage does not build, so the pipeline's
- * declared-context checking does not extend into them.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: the stage itself resolves a recipe and hands one player's outputs to the
- * reward service. The nested action lines choose their own domains through the v1 executor.</p>
- */
 public final class RunRecipeRewardStage implements CoreActionStage {
 
     private final EmakiCookingPlugin plugin;
 
-    /**
-     * Creates the stage.
-     *
-     * @param plugin owning plugin, source of the recipe and reward services
-     */
     public RunRecipeRewardStage(@NotNull EmakiCookingPlugin plugin) {
         this.plugin = plugin;
     }
@@ -152,12 +130,6 @@ public final class RunRecipeRewardStage implements CoreActionStage {
                 "target", target.getUniqueId().toString()));
     }
 
-    /**
-     * Builds the placeholder set the nested actions see.
-     *
-     * <p>Both the short and {@code cooking_}-prefixed spellings are supplied because v1 did, and recipe files
-     * in the wild use either.</p>
-     */
     private Map<String, Object> placeholders(RecipeDocument recipe, String outcomePath) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("recipe_id", recipe.id());
@@ -209,7 +181,6 @@ public final class RunRecipeRewardStage implements CoreActionStage {
         return null;
     }
 
-    /** Accepts either {@code success} or a full {@code result.success} path, as v1 did. */
     private String outcomePath(String value) {
         String outcome = Texts.isBlank(value) ? "success" : value.trim();
         return outcome.contains(".") ? outcome : "result." + outcome;

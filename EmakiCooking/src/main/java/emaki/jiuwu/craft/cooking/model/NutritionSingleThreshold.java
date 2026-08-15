@@ -2,19 +2,6 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.List;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 public record NutritionSingleThreshold(String id,
         List<String> types,
         double value,
@@ -28,9 +15,6 @@ public record NutritionSingleThreshold(String id,
         onRecoverActions = onRecoverActions == null ? List.of() : List.copyOf(onRecoverActions);
         compare = compare == null ? NutritionCompare.GREATER_OR_EQUAL : compare;
     }
-
-
-
 
     public boolean appliesTo(String typeId) {
         return types.isEmpty() || types.contains(typeId);

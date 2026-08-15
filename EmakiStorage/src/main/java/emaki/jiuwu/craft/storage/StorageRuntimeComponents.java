@@ -26,12 +26,6 @@ import emaki.jiuwu.craft.storage.service.StorageTextIndexer;
 import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 
-/**
- * Everything the plugin assembles at enable time.
- *
- * <p>Exposed through {@link RuntimeComponents} so the plugin's service registry stays the single
- * lookup point, matching how the other Emaki runtime modules are wired.
- */
 record StorageRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,

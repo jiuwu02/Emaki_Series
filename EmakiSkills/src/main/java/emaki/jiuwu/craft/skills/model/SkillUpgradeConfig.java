@@ -16,12 +16,6 @@ public record SkillUpgradeConfig(
         Map<Integer, SkillUpgradeLevel> levels
 ) {
 
-    /**
-     * 升级界面的默认模板 id，对应 {@code gui/upgrade_gui.yml}。
-     *
-     * <p>该值必须是一个真实存在的模板 id：{@code SkillsGuiService.openUpgradeGui}
-     * 会按 {@link #guiTemplate()} 取模板，取不到才回落到本值。</p>
-     */
     public static final String DEFAULT_GUI_TEMPLATE = "upgrade_gui";
 
     public SkillUpgradeConfig {

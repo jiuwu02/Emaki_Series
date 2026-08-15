@@ -282,9 +282,6 @@ public final class GrinderRuntimeService {
         return true;
     }
 
-
-
-
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();
@@ -461,7 +458,7 @@ public final class GrinderRuntimeService {
                         "station_type", StationType.GRINDER.folderName()
                 ),
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         if (accepted && player != null && player.isOnline()) {

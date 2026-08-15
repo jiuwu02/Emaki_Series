@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 
-/** Mapping functions between private runtime models and stable API values. */
 final class GemApiMapper {
 
     private GemApiMapper() {

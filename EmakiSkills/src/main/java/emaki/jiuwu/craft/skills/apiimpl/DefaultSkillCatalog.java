@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 
-/** Runtime skill catalog. */
 public final class DefaultSkillCatalog implements SkillCatalog {
 
     private final EmakiSkillsPlugin plugin;
@@ -134,15 +133,6 @@ public final class DefaultSkillCatalog implements SkillCatalog {
                 : EmakiResult.success(plugin.skillLevelService().isMaxLevel(player, definition));
     }
 
-    /**
-     * {@return a failure to return immediately, or {@code null} when the call may proceed}
-     *
-     * <p>Every query in this class funnels through here, which is why the readiness check lives here:
-     * all of them resolve a skill id against the loaded definition table, so answering
-     * {@code skill.not_found} mid-reload would report a config error for a skill that exists.</p>
-     *
-     * @param player the target player
-     */
     private <T> EmakiResult<T> guardPlayer(Player player) {
         if (!plugin.isEnabled() || plugin.playerSkillDataStore() == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();

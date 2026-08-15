@@ -80,7 +80,6 @@ public final class EmakiItemMigrationService {
         this.plugin = plugin;
     }
 
-    /** Actual result of a synchronous online-player batch on the current owner thread. */
     public record OnlineMigrationResult(int changedItems, int skippedPlayers) {
 
         public OnlineMigrationResult {
@@ -89,11 +88,6 @@ public final class EmakiItemMigrationService {
         }
     }
 
-    /**
-     * Signals that apply committed some files before a later checked operation failed.
-     *
-     * <p>The attached outcome contains only successfully committed files and alias state.
-     */
     public static final class PartialMigrationException extends IOException {
 
         private final Map<String, Object> outcome;
@@ -293,12 +287,6 @@ public final class EmakiItemMigrationService {
         return migrateOwnedOnlineInventories().changedItems();
     }
 
-    /**
-     * Migrates only online inventories owned by the current thread.
-     *
-     * <p>On Paper's main thread this covers every player. On Folia a synchronous caller generally owns
-     * only one entity, so skipped players are reported instead of being accessed from the wrong region.
-     */
     public OnlineMigrationResult migrateOwnedOnlineInventories() {
         int changed = 0;
         int skipped = 0;

@@ -29,38 +29,18 @@ import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.model.StorageResult;
 
-/**
- * Moves items in and out of the target's warehouse and adjusts its capacity.
- *
- * <p>Replaces the five legacy actions that were inner classes of {@code StorageActionRegistrar}. They
- * are one class here because they share the same shape: resolve the target's storage, apply one change, record
- * it in the operation log.</p>
- *
- * <p>Note that the {@code item} argument is an ItemSource token, not a context item. This module addresses
- * stored goods by definition rather than by whatever stack a pipeline happens to be carrying, so it does not
- * read {@code CoreActionKeys.ITEM}.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's storage record and, for deposits and
- * withdrawals, that player's inventory.</p>
- */
 public final class StorageStage implements CoreActionStage {
 
-    /** Which storage change a stage instance performs. */
     public enum Operation {
 
-        /** Move items from the target's inventory into storage. */
         DEPOSIT("storage_deposit", "Stores items into the target's warehouse."),
 
-        /** Move items from storage into the target's inventory. */
         WITHDRAW("storage_withdraw", "Withdraws items from the target's warehouse."),
 
-        /** Grant or reclaim granted slots. */
         GRANT_SLOT("storage_grant_slot", "Grants or reclaims warehouse slots for the target."),
 
-        /** Add purchased slots without charging. */
         UNLOCK_SLOT("storage_unlock_slot", "Adds purchased warehouse slots without charging the target."),
 
-        /** Set the player-level or per-slot stack ceiling. */
         SET_STACK_LIMIT("storage_set_stacklimit", "Sets the target's warehouse stack ceiling.");
 
         private final String id;
@@ -71,7 +51,6 @@ public final class StorageStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -80,12 +59,6 @@ public final class StorageStage implements CoreActionStage {
     private final EmakiStoragePlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the storage services
-     * @param operation which change this instance performs
-     */
     public StorageStage(@NotNull EmakiStoragePlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;
@@ -253,12 +226,6 @@ public final class StorageStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.of("slot", slot, "stack_limit", limit));
     }
 
-    /**
-     * Appends one line to the operation log.
-     *
-     * <p>Administrative changes are logged unconditionally in this module, so a missing log service is
-     * tolerated rather than treated as a reason to skip the change itself.</p>
-     */
     private void record(PlayerStorage storage,
             StorageOperationType type,
             String identifier,

@@ -27,13 +27,6 @@ public class AbstractMessageService implements LogMessages {
     private final BiFunction<String, Map<String, ?>, String> replacementResolver;
     private final boolean includePrefixInLogs;
 
-    /**
-     * Renders pipeline diagnostics through this service's language file.
-     *
-     * <p>Held here rather than behind a plugin-level accessor because every display site already reaches a
-     * message service, so no second wiring path is needed and a reload replaces the renderer along with the
-     * service that owns it.</p>
-     */
     private final DiagnosticRenderer diagnosticRenderer = new DiagnosticRenderer(this::messageOrFallback);
 
     protected AbstractMessageService(JavaPlugin plugin, String defaultPrefix) {
@@ -77,19 +70,6 @@ public class AbstractMessageService implements LogMessages {
         return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 
-    /**
-     * Resolves a key with replacements, returning {@code fallback} when the key has no translation.
-     *
-     * <p>Shares the missing-key test with {@link #messageOrFallback(String, String)}: the language loader
-     * returns the key itself when it cannot find an entry, so a resolved value equal to the key means the
-     * translation is absent. The single-argument form covers static labels; diagnostics need placeholders,
-     * which is why this overload exists.</p>
-     *
-     * @param key the language key
-     * @param replacements placeholder replacements
-     * @param fallback returned when the key has no translation
-     * @return the resolved message, or {@code fallback}
-     */
     public final String messageOrFallback(String key, Map<String, ?> replacements, String fallback) {
         if (Texts.isBlank(key)) {
             return fallback;
@@ -98,33 +78,14 @@ public class AbstractMessageService implements LogMessages {
         return Texts.isBlank(value) || key.equals(value) ? fallback : value;
     }
 
-    /**
-     * Renders one pipeline compile diagnostic as a readable sentence.
-     *
-     * @param diagnostic the diagnostic
-     * @return the rendered text, never {@code null}
-     */
     public final String renderDiagnostic(CompileDiagnostic diagnostic) {
         return diagnosticRenderer.render(diagnostic);
     }
 
-    /**
-     * Renders a pipeline reason key and its arguments as a readable sentence.
-     *
-     * @param reasonKey the language key
-     * @param args placeholder arguments
-     * @return the rendered text, never {@code null}
-     */
     public final String renderDiagnostic(String reasonKey, Map<String, ?> args) {
         return diagnosticRenderer.render(reasonKey, args);
     }
 
-    /**
-     * Renders the first diagnostic of a line and notes how many others it has.
-     *
-     * @param diagnostics all diagnostics for one line
-     * @return the rendered text, never {@code null}
-     */
     public final String renderFirstDiagnostic(List<CompileDiagnostic> diagnostics) {
         return diagnosticRenderer.renderFirst(diagnostics);
     }

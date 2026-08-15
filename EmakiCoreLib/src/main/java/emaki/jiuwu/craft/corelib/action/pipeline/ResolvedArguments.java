@@ -16,12 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Typed argument view over one stage's resolved values.
- *
- * <p>Reuses {@link ValueParsers} for every scalar shape so the pipeline and v1 parse identical text the same
- * way. Declared defaults are applied here, so stages never repeat null handling.</p>
- */
 public final class ResolvedArguments implements CoreResolvedArguments {
 
     private static final ResolvedArguments EMPTY = new ResolvedArguments(Map.of(), Map.of());
@@ -34,18 +28,10 @@ public final class ResolvedArguments implements CoreResolvedArguments {
         this.defaults = defaults;
     }
 
-    /** {@return an argument view with no values} */
     public static @NotNull ResolvedArguments empty() {
         return EMPTY;
     }
 
-    /**
-     * Builds an argument view.
-     *
-     * @param values resolved values, keyed by argument name in any case
-     * @param declared the stage's declared parameters, used for defaults
-     * @return the view
-     */
     public static @NotNull ResolvedArguments of(@Nullable Map<String, String> values,
             @Nullable Iterable<CoreStageParameter> declared) {
         Map<String, String> normalized = new LinkedHashMap<>();

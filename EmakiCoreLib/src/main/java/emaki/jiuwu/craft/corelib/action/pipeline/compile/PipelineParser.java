@@ -11,40 +11,16 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * The one parser for pipeline text.
- *
- * <p>There is no second parsing path: a pipeline is always one line, so the earlier plan's split
- * between a structured-YAML compiler and an inline parser does not exist.</p>
- *
- * <p>Grammar:</p>
- * <pre>
- * line     := node ('|' node)*
- * node     := branch | stage
- * branch   := 'if' condition '[' line ']' ('else' '[' line ']')?
- * stage    := name arg*
- * arg      := key '=' value | bare_value
- * </pre>
- */
 public final class PipelineParser {
 
-    /** The branch keyword. */
     public static final String IF = "if";
 
-    /** The alternative-branch keyword. */
     public static final String ELSE = "else";
 
-    /** The sub-sequence call keyword. */
     public static final String RUN = "run";
 
     private final PipelineLexer lexer = new PipelineLexer();
 
-    /**
-     * Parses one pipeline line.
-     *
-     * @param line raw pipeline text
-     * @return the parse result
-     */
     public @NotNull Result parse(@Nullable String line) {
         String raw = line == null ? "" : line.trim();
         if (raw.isEmpty() || raw.startsWith("#")) {
@@ -299,13 +275,6 @@ public final class PipelineParser {
         }
     }
 
-    /**
-     * Parse outcome.
-     *
-     * @param nodes parsed nodes in written order
-     * @param diagnostic the problem, or {@code null} on success
-     * @param blank whether the input was blank or a comment
-     */
     public record Result(@NotNull List<ActionAst> nodes, @Nullable CompileDiagnostic diagnostic, boolean blank) {
 
         public Result {
@@ -324,7 +293,6 @@ public final class PipelineParser {
             return new Result(List.of(), null, true);
         }
 
-        /** {@return whether parsing produced usable nodes} */
         public boolean successful() {
             return diagnostic == null && !blank;
         }

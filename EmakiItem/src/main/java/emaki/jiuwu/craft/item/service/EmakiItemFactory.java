@@ -26,7 +26,6 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 
 public final class EmakiItemFactory {
 
-    /** Result of the pre-commit creation path. */
     public record CreateResult(ItemStack itemStack, boolean cancelled) {
 
         public static CreateResult created(ItemStack itemStack) {
@@ -81,12 +80,6 @@ public final class EmakiItemFactory {
         return createDetailed(id, amount).itemStack();
     }
 
-    /**
-     * Builds an item and exposes whether the synchronous pre-commit event cancelled it.
-     *
-     * <p>Internal callers still use {@link #create(String, int)} and therefore receive {@code null} on
-     * cancellation; the public API uses this detailed result to map cancellation explicitly.
-     */
     public CreateResult createDetailed(String id, int amount) {
         EmakiItemDefinition definition = idResolver == null ? loader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
@@ -180,10 +173,7 @@ public final class EmakiItemFactory {
         }
         Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
         pdcWriter.write(itemStack, definition, safeVariables);
-        // The item was just rebuilt from the current definition, so its lore is the authoritative
-        // baseline. Recorded baselines and the stored presentation snapshot describe the previous
-        // definition and must be dropped instead of replayed, otherwise the stale baseline resurfaces
-        // as external lines and the old lore lines accumulate on every update.
+
         ItemOperationLedger.UpdateResult discarded = itemOperationLedger.discardNamespaces(
                 itemStack, currentReadResult, OWNED_DISPLAY_NAMESPACES);
         if (!discarded.success()) {

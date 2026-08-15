@@ -1,14 +1,5 @@
 package emaki.jiuwu.craft.cooking.model;
 
-
-
-
-
-
-
-
-
-
 public record NutritionOperationResult(boolean success,
         String typeId,
         double oldValue,

@@ -18,7 +18,6 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.skills.api.SkillSourceProvider;
 import emaki.jiuwu.craft.skills.api.SkillSourceRegistration;
 
-/** Owner-and-provider-id scoped registry for external skill sources. */
 public final class SkillSourceRegistry implements Listener, AutoCloseable {
 
     private final Map<ProviderKey, RegisteredProvider> registrations = new LinkedHashMap<>();

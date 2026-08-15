@@ -65,14 +65,6 @@ final class StrengthenGuiRenderer {
         state.guiSession().refresh();
     }
 
-    /**
-     * Builds the preview slot.
-     *
-     * <p>Title and body are supplied as {@code %preview_title%} / {@code %preview_lines%} replacements
-     * rather than as a fallback name and lore, because {@code GuiItemBuilder.definitionFor} discards the
-     * caller's name and lore entirely once the template configured its own components &mdash; and
-     * {@code strengthen_gui.yml} does configure them for this slot.</p>
-     */
     private ItemStack buildPreviewItem(StrengthenGuiSession state, GuiSlot slot) {
         AttemptPreview preview = state.preview();
         if (state.targetItem() == null) {
@@ -155,13 +147,6 @@ final class StrengthenGuiRenderer {
         return buildItem(slot, "INK_SAC", msg("gui.temper.title"), lore, null, "temper_lines", null);
     }
 
-    /**
-     * Builds the confirm slot, keeping the BARRIER icon for the ineligible state.
-     *
-     * <p>The ineligible icon has to be forced through {@code withSource}: this path passes the template's
-     * own definition, whose configured {@code source} would otherwise win over the {@code BARRIER}
-     * argument and leave the button looking clickable.</p>
-     */
     private ItemStack buildConfirmItem(StrengthenGuiSession state, GuiSlot slot) {
         AttemptPreview preview = state.preview();
         if (preview == null || !preview.eligible()) {
@@ -194,22 +179,6 @@ final class StrengthenGuiRenderer {
         return plugin.messageService().message(key, replacements);
     }
 
-    /**
-     * Builds a slot item whose title and body are supplied as placeholder replacements.
-     *
-     * <p>Needed because {@code GuiItemBuilder.definitionFor} drops the caller's name and lore whenever the
-     * template configured any component of its own. Feeding them as replacements lets the template keep
-     * ownership of the layout while this renderer still decides the content.</p>
-     *
-     * @param slot           the template slot; must have configured components for placeholders to resolve
-     * @param item           the item source used when neither the slot nor the override declares one
-     * @param name           the title text, or {@code null} when the template hardcodes a constant title
-     * @param lore           the body lines, expanded one per line by the lore placeholder
-     * @param titleKey       the replacement key carrying {@code name}, or {@code null} to omit it
-     * @param linesKey       the replacement key carrying {@code lore}
-     * @param overrideSource forces this item source regardless of the template, for state-driven icon
-     *                       swaps; {@code null} leaves the template's own source in charge
-     */
     private ItemStack buildItem(GuiSlot slot,
             String item,
             String name,

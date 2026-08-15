@@ -8,12 +8,6 @@ import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import pers.neige.neigeitems.event.ItemActionEvent;
 import pers.neige.neigeitems.item.action.ItemActionType;
 
-
-
-
-
-
-
 public final class NeigeItemsNutritionListener implements Listener {
 
     private final EmakiCookingPlugin plugin;

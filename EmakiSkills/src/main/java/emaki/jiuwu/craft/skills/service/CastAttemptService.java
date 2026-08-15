@@ -45,27 +45,10 @@ import emaki.jiuwu.craft.skills.model.SkillActivationType;
 
 public final class CastAttemptService {
 
-    /** Reason key {@link #castMythic} reports for an absent Mythic skill. */
     static final String MYTHIC_MISSING_REASON = "skill.mythic_not_found";
 
-    /**
-     * Which of the normal cast gates a caller wants skipped.
-     *
-     * <p>Exists for callers that are not a player pressing a key: the {@code cast_skill} pipeline stage lets a
-     * server owner script a cast that ignores cooldowns or runs free of charge. The three switches are separate
-     * because they answer separate questions: whether the cast is allowed now, whether the caster can afford it,
-     * and whether they are billed for it.</p>
-     *
-     * <p>Only the per-skill and global cooldowns are bypassable. The forced global cast delay is not, because it
-     * is the anti-spam guard the in-flight de-duplication relies on rather than a gameplay cost.</p>
-     *
-     * @param cooldown when {@code true} the per-skill and global cooldown checks are skipped
-     * @param resourceCheck when {@code true} an unaffordable cast proceeds instead of failing
-     * @param consumeResource when {@code false} a successful cast bills nothing
-     */
     public record CastBypass(boolean cooldown, boolean resourceCheck, boolean consumeResource) {
 
-        /** {@return the normal behaviour: every gate enforced, resources billed} */
         public static CastBypass none() {
             return new CastBypass(false, false, true);
         }
@@ -148,16 +131,6 @@ public final class CastAttemptService {
         return attemptDirectCast(player, triggerId, definition, invocation, CastBypass.none());
     }
 
-    /**
-     * Casts a skill directly, optionally skipping some of the normal gates.
-     *
-     * @param player the caster
-     * @param triggerId trigger name recorded on the attempt
-     * @param definition the skill to cast
-     * @param invocation trigger payload, may be {@code null}
-     * @param bypass which gates to skip; {@code null} means none
-     * @return the attempt result
-     */
     public CompletableFuture<CastAttemptResult> attemptDirectCast(Player player,
             String triggerId,
             SkillDefinition definition,
@@ -171,30 +144,6 @@ public final class CastAttemptService {
                 .thenCompose(this::executePlan);
     }
 
-    /**
-     * Casts a skill with a non-player entity as the caster.
-     *
-     * <p>Separate from {@link #attemptDirectCast} rather than a generalisation of it, because the whole cast
-     * pipeline is anchored on a player session: {@code PlayerSkillDataStore} opens a session per joining player,
-     * {@code SessionTicket} carries the generation used for optimistic concurrency, and cooldowns and local
-     * resources live inside {@code PlayerSkillProfile}. A mob has none of those, so there is nothing to read a
-     * cooldown from or bill a resource against.</p>
-     *
-     * <p>Consequences a caller must know:</p>
-     * <ul>
-     *   <li>Only the skill's {@code mythicSkill} is cast. A native or hybrid script needs the player variable
-     *       context that {@code SkillScriptCastService} builds, so a script-only skill is refused rather than
-     *       silently doing nothing.</li>
-     *   <li>No cooldown is recorded or enforced. Inventing an in-memory cooldown table keyed by entity would
-     *       need an eviction story for entity death and chunk unload; that belongs with the mob plugin that
-     *       will own non-player casters, not here.</li>
-     *   <li>Resource costs are neither checked nor consumed, because the entity has no resource pool.</li>
-     * </ul>
-     *
-     * @param caster the casting entity, expected not to be a player
-     * @param definition the skill to cast
-     * @return whether MythicMobs accepted the cast
-     */
     public boolean castAsEntity(Entity caster, SkillDefinition definition) {
         if (caster == null || definition == null || !definition.enabled()) {
             return false;
@@ -342,8 +291,6 @@ public final class CastAttemptService {
             }
         }
 
-        // Resolved once here and shared by both the script and Mythic legs: HYBRID runs them in sequence, and a
-        // random-valued variable must not roll a second time between the two.
         Map<String, String> variables = skillVariableResolver == null
                 ? Map.of()
                 : skillVariableResolver.resolve(player, definition, plan.triggerId(), plan.invocation());
@@ -426,8 +373,7 @@ public final class CastAttemptService {
                     });
         }
         if (!hasMythic) {
-            // REJECTED rather than INVALID_CONFIG so this keeps landing on `cast.skill_execute_failed`, which
-            // is the message v1's INVALID_STATE produced for the same "not castable at all" case.
+
             return CompletableFuture.completedFuture(PipelineOutcome.failure(
                     CoreActionFailureKind.REJECTED, "skill.mythic_not_configured",
                     Map.of(), List.of()));
@@ -440,14 +386,6 @@ public final class CastAttemptService {
                 "skill.script_unavailable", Map.of(), List.of());
     }
 
-    /**
-     * Casts the Mythic skill and reports which stage failed, so a missing skill id
-     * is no longer indistinguishable from a Mythic-side execution failure.
-     *
-     * <p>Mythic does not go through the pipeline, so the outcome is constructed directly. The failure kinds are
-     * chosen to land on the same message keys the v1 error types did: a missing skill is a configuration
-     * mistake, a refusal is not.</p>
-     */
     private PipelineOutcome castMythic(Player player,
             String mythicSkillId,
             TriggerInvocation invocation,
@@ -467,15 +405,6 @@ public final class CastAttemptService {
                         "skill.mythic_rejected", Map.of(), List.of());
     }
 
-    /**
-     * Maps a failed script or Mythic cast onto a specific message key.
-     *
-     * <p>Every failure used to collapse into {@code cast.skill_execute_failed},
-     * which told neither the player nor the server owner what went wrong. The
-     * error type now selects a dedicated key, the failing skill id is preserved,
-     * and a configuration mistake is additionally logged once per occurrence
-     * because it can only be fixed from the console side.
-     */
     private CastAttemptResult describeCastFailure(SkillDefinition definition,
             String triggerId,
             CastOutcome outcome) {
@@ -503,17 +432,6 @@ public final class CastAttemptService {
                 Texts.toStringSafe(triggerId));
     }
 
-    /**
-     * Classifies a pipeline failure for {@link CastAttemptResult}.
-     *
-     * <p>A missing Mythic skill is recognised by its reason key rather than its kind, because it shares
-     * {@code INVALID_CONFIG} with every other configuration mistake while needing its own reason so the GUI can
-     * name the skill that is absent.</p>
-     *
-     * @param kind the pipeline failure classification
-     * @param reasonKey the failing stage's reason key
-     * @return the cast failure reason
-     */
     static FailureReason failureReasonFor(CoreActionFailureKind kind, String reasonKey) {
         if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
             return FailureReason.MYTHIC_SKILL_NOT_FOUND;
@@ -523,39 +441,21 @@ public final class CastAttemptService {
                 : FailureReason.MYTHIC_CAST_FAILED;
     }
 
-    /**
-     * Selects the player-facing message key for a pipeline failure.
-     *
-     * @param kind the pipeline failure classification
-     * @param reasonKey the failing stage's reason key
-     * @return one of the {@code cast.*} language keys
-     */
     static String messageKeyFor(CoreActionFailureKind kind, String reasonKey) {
         if (MYTHIC_MISSING_REASON.equals(reasonKey)) {
             return "cast.mythic_not_found";
         }
         return switch (kind) {
-            // MISSING_CONTEXT means a stage asked for something the phase does not provide, which reads the
-            // same way to a server owner as the v1 "action not found": the line names something that is not
-            // there.
+
             case MISSING_CONTEXT -> "cast.script_action_not_found";
             case INVALID_CONFIG -> "cast.script_invalid_argument";
             case TIMEOUT -> "cast.script_timeout";
             case OWNER_DISABLED -> "cast.cancelled";
-            // WRONG_THREAD and REJECTED have no dedicated key; they are runtime conditions rather than
-            // configuration mistakes, so they land on the generic message.
+
             case WRONG_THREAD, REJECTED, INTERNAL_ERROR -> "cast.skill_execute_failed";
         };
     }
 
-    /**
-     * Reports whether the failure is a server-side configuration mistake rather
-     * than an expected in-game outcome. Only these are logged, so a normal failed
-     * cast never floods the console.
-     *
-     * <p>{@code SYNTAX_ERROR} has no v2 counterpart at run time: a malformed line now fails to compile at load
-     * time, where {@code SkillPipelineRuntime} already logs it.</p>
-     */
     static boolean isConfigurationError(CoreActionFailureKind kind) {
         return kind == CoreActionFailureKind.INVALID_CONFIG
                 || kind == CoreActionFailureKind.MISSING_CONTEXT
@@ -747,14 +647,6 @@ public final class CastAttemptService {
         }
     }
 
-    /**
-     * Carries the pipeline outcome together with any scheduling failure, so the reason survives the hop back
-     * onto the caster's thread.
-     *
-     * <p>{@code SKIPPED} and {@code PARTIAL} both count as success. "No enemy was in range" and "three of five
-     * targets resisted" are gameplay results, not cast failures, and treating them as failures would consume no
-     * resources and show an error message for a cast that visibly happened.</p>
-     */
     private record CastOutcome(PipelineOutcome result, Throwable throwable) {
 
         private boolean success() {

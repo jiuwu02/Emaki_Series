@@ -33,15 +33,6 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-/**
- * Builds EmakiAccessory's component graph.
- *
- * <p>Construction order matters in two places. {@link MessageService} is built before
- * {@code languageLoader.load()} because it only captures method references, but the configured language
- * can only be selected after that load has run. And the module takes its own owner-scoped YAML lane
- * rather than CoreLib's shared default scope, so an accessory write is serialised against other
- * accessory writes only.
- */
 final class AccessoryLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiAccessoryPlugin, AccessoryRuntimeComponents> {
 
@@ -129,16 +120,6 @@ final class AccessoryLifecycleCoordinator
                 providerRegistrar);
     }
 
-    /**
-     * Reloads configuration, parts, templates and sets, then rebinds every dependent service.
-     *
-     * <p>The registry is rebuilt from the freshly loaded parts and handed to each consumer in one pass, so
-     * the GUI layout, contribution snapshots and set counts can never be resolved against different part
-     * configurations.
-     *
-     * @param plugin the owning plugin
-     * @return how many slot instances are active after the reload
-     */
     int reload(EmakiAccessoryPlugin plugin) {
         plugin.appConfigLoader().load();
         plugin.languageLoader().load();

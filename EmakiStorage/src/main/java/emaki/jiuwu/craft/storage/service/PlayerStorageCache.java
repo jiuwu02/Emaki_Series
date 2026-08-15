@@ -12,25 +12,8 @@ import java.util.function.Function;
 
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 
-/**
- * Session-aware cache for loaded player storages.
- *
- * <p>Mirrors the generation/dirty/save-lane design already used for player level data rather than
- * inventing a second scheme. Three mechanisms do the real work:
- *
- * <ul>
- *   <li><strong>session generation</strong> — every {@code beginSession} bumps a per-player
- *       counter, so an async load that finishes after the player reconnected is discarded instead
- *       of overwriting the newer session. This is also what invalidates an admin's temporary
- *       offline session the moment the target player logs in.</li>
- *   <li><strong>dirty revision</strong> — a save is skipped entirely when nothing changed.</li>
- *   <li><strong>save lane</strong> — writes for one player are chained, so a save never overtakes
- *       an earlier save or a pending load of the same file.</li>
- * </ul>
- */
 public final class PlayerStorageCache {
 
-    /** Lifecycle of one cached session. */
     public enum Lifecycle {
         LOADING,
         ACTIVE,
@@ -38,20 +21,17 @@ public final class PlayerStorageCache {
         LOAD_FAILED
     }
 
-    /** Result of installing data into a session. */
     public enum CommitResult {
         COMMITTED,
-        /** The session was replaced by a newer one; the value was discarded. */
+
         STALE,
-        /** The cache is sealed and no longer accepts sessions. */
+
         REJECTED
     }
 
-    /** Opaque handle proving which session an async load belongs to. */
     public record SessionTicket(UUID playerId, Object entryIdentity, long generation) {
     }
 
-    /** Snapshot handed to the async writer. */
     public record SaveTicket(UUID playerId,
             Object entryIdentity,
             long generation,
@@ -87,14 +67,6 @@ public final class PlayerStorageCache {
     private final AtomicBoolean sealed = new AtomicBoolean();
     private final Object lifecycleLock = new Object();
 
-    /**
-     * Opens a new session, superseding any existing one for that player.
-     *
-     * @param playerId    the storage owner
-     * @param initialData the placeholder used until the real data arrives
-     * @param writable    whether this session may be written back to disk
-     * @return a ticket to pass to {@link #installLoaded}, or {@code null} when sealed
-     */
     public SessionTicket beginSession(UUID playerId, PlayerStorage initialData, boolean writable) {
         if (sealed.get()) {
             return null;
@@ -111,7 +83,6 @@ public final class PlayerStorageCache {
         }
     }
 
-    /** Seals the cache so no new session or write is accepted. */
     public boolean seal() {
         return sealed.compareAndSet(false, true);
     }
@@ -120,13 +91,6 @@ public final class PlayerStorageCache {
         return sealed.get();
     }
 
-    /**
-     * Installs successfully loaded data.
-     *
-     * @param ticket the ticket returned by {@link #beginSession}
-     * @param loaded the data read from disk
-     * @return whether the data was accepted
-     */
     public CommitResult installLoaded(SessionTicket ticket, PlayerStorage loaded) {
         synchronized (lifecycleLock) {
             SessionEntry entry = matching(ticket);
@@ -141,16 +105,6 @@ public final class PlayerStorageCache {
         }
     }
 
-    /**
-     * Marks a session read-only after a failed load.
-     *
-     * <p>The session stays usable for reads but is never written back, so a transient read error
-     * cannot overwrite a healthy file on disk with defaults.
-     *
-     * @param ticket   the ticket returned by {@link #beginSession}
-     * @param fallback the empty storage to expose
-     * @return whether the fallback was accepted
-     */
     public CommitResult installLoadFailure(SessionTicket ticket, PlayerStorage fallback) {
         synchronized (lifecycleLock) {
             SessionEntry entry = matching(ticket);
@@ -164,7 +118,6 @@ public final class PlayerStorageCache {
         }
     }
 
-    /** {@return the live storage for an active session, or {@code null} when not usable} */
     public PlayerStorage active(UUID playerId) {
         SessionEntry entry = entries.get(playerId);
         if (entry == null || entry.lifecycle == Lifecycle.LOADING) {
@@ -173,25 +126,21 @@ public final class PlayerStorageCache {
         return entry.data;
     }
 
-    /** {@return the current generation, or {@code 0} when no session exists} */
     public long generation(UUID playerId) {
         AtomicLong counter = generations.get(playerId);
         return counter == null ? 0L : counter.get();
     }
 
-    /** {@return whether the supplied generation is still the live one} */
     public boolean isCurrentGeneration(UUID playerId, long generation) {
         SessionEntry entry = entries.get(playerId);
         return entry != null && entry.generation == generation;
     }
 
-    /** {@return whether the session may be written back to disk} */
     public boolean writable(UUID playerId) {
         SessionEntry entry = entries.get(playerId);
         return entry != null && entry.writable && entry.lifecycle != Lifecycle.LOADING;
     }
 
-    /** {@return every currently cached storage} */
     public Map<UUID, PlayerStorage> activeSnapshot() {
         Map<UUID, PlayerStorage> snapshot = new ConcurrentHashMap<>();
         entries.forEach((playerId, entry) -> {
@@ -202,13 +151,6 @@ public final class PlayerStorageCache {
         return Map.copyOf(snapshot);
     }
 
-    /**
-     * Builds a save ticket, or {@code null} when nothing needs writing.
-     *
-     * @param playerId       the storage owner
-     * @param closeAfterSave whether the entry should leave the cache once written
-     * @return the ticket, or {@code null} when the session is unwritable or clean
-     */
     public SaveTicket snapshotForSave(UUID playerId, boolean closeAfterSave) {
         synchronized (lifecycleLock) {
             SessionEntry entry = entries.get(playerId);
@@ -236,7 +178,6 @@ public final class PlayerStorageCache {
         }
     }
 
-    /** {@return save tickets for every dirty session, used during shutdown} */
     public List<SaveTicket> snapshotDirtyEntries() {
         List<SaveTicket> tickets = new ArrayList<>();
         for (UUID playerId : List.copyOf(entries.keySet())) {
@@ -248,13 +189,6 @@ public final class PlayerStorageCache {
         return tickets;
     }
 
-    /**
-     * Queues a write on the player's serial lane.
-     *
-     * @param ticket the save ticket
-     * @param writer performs the actual IO and reports success
-     * @return a future completing with whether the write succeeded
-     */
     public CompletableFuture<Boolean> enqueueSaveAsync(SaveTicket ticket,
             Function<SaveTicket, CompletableFuture<Boolean>> writer) {
         SaveLane lane = saveLanes.computeIfAbsent(ticket.playerId(), id -> new SaveLane());
@@ -285,7 +219,6 @@ public final class PlayerStorageCache {
         return save;
     }
 
-    /** {@return a future settling once the player's lane is idle} */
     public CompletableFuture<Void> waitForIdleAsync(UUID playerId) {
         SaveLane lane = saveLanes.get(playerId);
         if (lane == null) {
@@ -296,7 +229,6 @@ public final class PlayerStorageCache {
         }
     }
 
-    /** Drops a session outright, used when a load was superseded before it completed. */
     public void discard(UUID playerId) {
         synchronized (lifecycleLock) {
             entries.remove(playerId);
@@ -317,7 +249,6 @@ public final class PlayerStorageCache {
         return entries.size();
     }
 
-    /** Clears every session; only valid after {@link #seal()} and a completed drain. */
     public void clear() {
         synchronized (lifecycleLock) {
             entries.clear();

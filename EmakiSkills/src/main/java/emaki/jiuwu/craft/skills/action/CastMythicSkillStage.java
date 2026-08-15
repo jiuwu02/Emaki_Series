@@ -23,21 +23,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Casts a MythicMobs skill on the target.
- *
- * <p>Lives in EmakiSkills rather than CoreLib because casting skills is this module's subject matter.
- * It does not go through {@code MythicSkillCastService}: that service accepts a {@code Player}, while the
- * whole point of this stage is that any entity can be the caster, so it keeps its own
- * {@code BukkitAPIHelper} path.</p>
- *
- * <p>MythicMobs is an optional dependency, so the bridge is resolved once on first use and the result cached.
- * {@code NoClassDefFoundError} is caught alongside ordinary exceptions because a missing MythicMobs manifests as a
- * linkage error rather than a thrown exception, and an unavailable optional integration must not take the pipeline
- * down with it.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: the skill is cast by and around one entity.</p>
- */
 public final class CastMythicSkillStage implements CoreActionStage {
 
     private volatile Object apiHelper;
@@ -104,15 +89,6 @@ public final class CastMythicSkillStage implements CoreActionStage {
         }
     }
 
-    /**
-     * Reads the subject's entity.
-     *
-     * <p>Deliberately not narrowed to a player the way the other stages in this package are: MythicMobs
-     * casts from any entity, and that generality is this stage's reason to exist.</p>
-     *
-     * @param subject the current target
-     * @return the entity, or {@code null} when the subject carries none
-     */
     private static Entity entity(CoreActionSubject subject) {
         return subject == null ? null : subject.entityOrNull();
     }

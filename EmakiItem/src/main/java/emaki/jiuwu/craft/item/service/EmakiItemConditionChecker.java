@@ -55,19 +55,6 @@ public final class EmakiItemConditionChecker {
         return passes;
     }
 
-    /**
-     * Evaluates the item conditions without sending the deny message or running
-     * the pass/fail actions.
-     *
-     * <p>Required by hot paths such as attribute and skill collection, which run
-     * per equipment slot on every resync and must stay side-effect free.
-     *
-     * @param player the owning player
-     * @param definition the item definition
-     * @param trigger the trigger name exposed to the condition context
-     * @param itemStack the evaluated item; may be {@code null}
-     * @return whether the conditions are satisfied
-     */
     public boolean evaluateSilently(Player player,
             EmakiItemDefinition definition,
             String trigger,

@@ -19,27 +19,8 @@ import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 
-/**
- * Handles occupancy that exceeds the current capacity.
- *
- * <p>All four policies are zero-loss. There is deliberately no {@code drop} or {@code delete}
- * option: irreversible data loss must never be triggered implicitly by an admin lowering a config
- * value.
- *
- * <p>Overflow state is <strong>not persisted</strong>. It is derived from capacity versus
- * occupancy and is recomputed whenever capacity changes — login, reload, permission change,
- * command grant — so a stored flag can never drift out of sync with the facts.
- */
 public final class StorageOverflowService {
 
-    /**
-     * The evaluated overflow state.
-     *
-     * @param lockedKeys keys beyond the capacity boundary: readable and withdrawable, not
-     *                   depositable, released as soon as they are emptied
-     * @param returned   how many units were handed back to the player's inventory
-     * @param rejected   whether the policy refused the shrink outright
-     */
     public record OverflowState(Set<StorageKey> lockedKeys, long returned, boolean rejected) {
 
         public OverflowState(Set<StorageKey> lockedKeys, long returned, boolean rejected) {
@@ -83,14 +64,6 @@ public final class StorageOverflowService {
         }
     }
 
-    /**
-     * Evaluates overflow and applies the configured policy.
-     *
-     * @param storage  the storage to evaluate
-     * @param player   the online owner, or {@code null} when offline
-     * @param capacity the freshly computed capacity breakdown
-     * @return the resulting state
-     */
     public OverflowState evaluate(PlayerStorage storage, Player player, StorageCapacity capacity) {
         if (storage == null || !capacity.overflowing()) {
             return OverflowState.none();
@@ -103,19 +76,6 @@ public final class StorageOverflowService {
         };
     }
 
-    /**
-     * {@return the keys sitting beyond the capacity boundary}
-     *
-     * <p>{@code compact} needs no separate branch here: entries are already stored in a compact
-     * gap-free list, so "pull entries forward into free slots" is the list's natural state. What
-     * remains over capacity falls back to read-only, exactly as documented.
-     *
-     * <p>Occupancy is walked as spans rather than entry positions, because under
-     * {@code behavior.multi_slot_stacking} one entry can occupy several slots. An entry whose span
-     * straddles the boundary is locked whole: partially locking it would mean an entry that accepts
-     * deposits into its first slot but not its second, which cannot be expressed to the player.
-     * Locking is read-only, so this stays zero-loss either way.
-     */
     private Set<StorageKey> overflowKeys(PlayerStorage storage, StorageCapacity capacity) {
         List<StorageKey> order = storage.entryOrder();
         int effective = Math.max(0, capacity.effectiveSlots());
@@ -138,9 +98,6 @@ public final class StorageOverflowService {
         return locked.isEmpty() ? Set.of() : locked;
     }
 
-    /**
-     * Tries to hand overflowing entries back to the player, locking whatever does not fit.
-     */
     private OverflowState returnToInventory(PlayerStorage storage, Player player, StorageCapacity capacity) {
         Set<StorageKey> candidates = overflowKeys(storage, capacity);
         if (candidates.isEmpty()) {
@@ -175,14 +132,6 @@ public final class StorageOverflowService {
         return new OverflowState(stillLocked, returned, false);
     }
 
-    /**
-     * Moves as much of an entry as the inventory will accept.
-     *
-     * <p>Debit-then-hand-out, with any refused remainder credited straight back, mirroring the
-     * withdrawal ordering so no unit can be duplicated or silently lost.
-     *
-     * @return how many units left the storage
-     */
     private long pushToInventory(Player player, StorageKey key, StorageEntry entry) {
         int stackSize = key.vanillaMaxStackSize();
         long moved = 0L;

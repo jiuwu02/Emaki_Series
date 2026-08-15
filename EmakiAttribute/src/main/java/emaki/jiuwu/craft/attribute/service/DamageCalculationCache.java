@@ -64,13 +64,6 @@ final class DamageCalculationCache {
         return computed;
     }
 
-
-
-
-
-
-
-
     double spreadSum(AttributeSnapshot snapshot, List<String> ids) {
         if (snapshot == null || ids == null || ids.isEmpty()) {
             return 0D;

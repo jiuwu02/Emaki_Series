@@ -17,7 +17,6 @@ import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
@@ -28,45 +27,18 @@ import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 
-/**
- * Rejects an invalid pipeline at config load time and resolves its stage roles and positional
- * arguments.
- *
- * <p>The validator deliberately has no Bukkit lifecycle dependency. Its inputs are read-only seams
- * over the stage registry, sequence definitions and phase contract, so every failure path can be
- * exercised as a unit test.</p>
- */
 public final class StaticValidator {
 
-    /** Stage name used by decision Q4's implicit source. */
     public static final String SELF_SOURCE = "self";
 
-    /** Time stage whose repeat count is bounded by decision D4. */
     public static final String EVERY_STAGE = "every";
 
-    /** Time stage that delays every following stage. */
     public static final String AFTER_STAGE = "after";
 
-    /**
-     * Gate stage that marks the target flow for the next phase.
-     *
-     * <p>The interpreter records the flow this gate saw into {@link
-     * emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome#keptFlow()}, which is how a caller can hand one
-     * phase's targets to the next one. Named here next to the other special stage ids so the interpreter does
-     * not repeat the literal.</p>
-     */
     public static final String KEEP_GATE = "keep";
 
-    /**
-     * Gate stage whose argument names are chosen by the configuration author.
-     *
-     * <p>{@code set damage=%skill.level%*4+18} names a variable CoreLib cannot know in advance, so this stage is
-     * exempt from the unknown-argument check. Every other stage keeps it, which is what makes a misspelled
-     * argument a load-time error.</p>
-     */
     public static final String SET_STAGE = "set";
 
-    /** Source stage that reads a caller- or previous-phase-provided target flow. */
     public static final String INHERITED_SOURCE = "inherited";
 
     private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
@@ -75,13 +47,6 @@ public final class StaticValidator {
     private final SequenceCatalog sequences;
     private final PipelineLimits limits;
 
-    /**
-     * Creates a validator.
-     *
-     * @param stages stage metadata resolver
-     * @param sequences named sequence catalog
-     * @param limits compile limits
-     */
     public StaticValidator(@Nullable StageResolver stages,
             @Nullable SequenceCatalog sequences,
             @Nullable PipelineLimits limits) {
@@ -90,14 +55,6 @@ public final class StaticValidator {
         this.limits = limits == null ? PipelineLimits.defaults() : limits;
     }
 
-    /**
-     * Validates parsed nodes.
-     *
-     * @param source original pipeline text
-     * @param parsed parser output
-     * @param phase what the triggering phase provides
-     * @return the validation result
-     */
     public @NotNull Result validate(@Nullable String source,
             @Nullable List<ActionAst> parsed,
             @Nullable PhaseContract phase) {
@@ -188,10 +145,7 @@ public final class StaticValidator {
                 explicitSourceSeen = true;
                 flowAvailable = true;
             } else if (kind == CoreStageKind.GATE) {
-                // A gate transforms the target flow, so running one after an action has already consumed
-                // that flow is a configuration error. Timing stages are registered as gates but do not
-                // touch the flow: they defer the stages that follow them, so `damage | after 10t | heal`
-                // is legitimate and must not be rejected here.
+
                 if (actionSeen && !timingStage(stage.id())) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.gate_after_action",
                             stageToken, Map.of("stage", stage.id())));
@@ -200,8 +154,7 @@ public final class StaticValidator {
                     flowAvailable = true;
                 }
             } else if (!flowAvailable) {
-                // At root level this becomes decision Q4's implicit self. Branch bodies and sequence
-                // bodies receive their caller's flow and therefore never need this path.
+
                 flowAvailable = true;
             }
             if (kind == CoreStageKind.ACTION) {
@@ -253,8 +206,7 @@ public final class StaticValidator {
             normalizeEveryPositional(stage, arguments, diagnostics);
         } else if (!stage.positional().isEmpty()) {
             if (positional.isEmpty()) {
-                // Names the stage, the word that was rejected and the argument names this stage does
-                // accept. Without those three an author only learns that something is wrong, not where.
+
                 diagnostics.add(new CompileDiagnostic("action.validate.positional_not_allowed",
                         "", "", 0, Math.max(1, stage.column()), stage.positional().get(0),
                         Map.of("stage", stage.id(), "value", stage.positional().get(0)),
@@ -470,9 +422,7 @@ public final class StaticValidator {
         }
         for (String supplied : call.parameters().keySet()) {
             if (!required.contains(supplied)) {
-                // Sequence catalogs expose required parameters in phase 2. Optional parameters are
-                // added to the catalog contract in phase 5 when real module definitions migrate.
-                // Until then accept extras: rejecting them would make defaults impossible to model.
+
                 continue;
             }
         }
@@ -524,8 +474,7 @@ public final class StaticValidator {
         ActionAst.Stage stage = (ActionAst.Stage) first;
         StageResolver.Resolution resolution = stages.resolve(stage.id());
         if (!resolution.known() || resolution.kind() == CoreStageKind.SOURCE) {
-            // An unresolved first stage already produces its own diagnostic. Adding "no self source" on
-            // top of it would point the reader at the wrong problem.
+
             return false;
         }
         return resolution.kind() != CoreStageKind.ACTION
@@ -570,12 +519,6 @@ public final class StaticValidator {
         }
     }
 
-    /**
-     * Tests whether a stage id is a timing stage.
-     *
-     * @param id stage id
-     * @return whether the stage defers the stages after it rather than transforming the flow
-     */
     public static boolean timingStage(@Nullable String id) {
         return AFTER_STAGE.equals(id) || EVERY_STAGE.equals(id);
     }
@@ -654,12 +597,6 @@ public final class StaticValidator {
         }
     }
 
-    /**
-     * Validation outcome.
-     *
-     * @param pipeline compiled pipeline, or {@code null} when validation failed
-     * @param diagnostics all detected problems, rather than stopping after the first one
-     */
     public record Result(@Nullable CompiledPipeline pipeline, @NotNull List<CompileDiagnostic> diagnostics) {
 
         public Result {
@@ -678,7 +615,6 @@ public final class StaticValidator {
             return new Result(null, diagnostics);
         }
 
-        /** {@return whether a compiled pipeline is available} */
         public boolean successful() {
             return pipeline != null && diagnostics.isEmpty();
         }

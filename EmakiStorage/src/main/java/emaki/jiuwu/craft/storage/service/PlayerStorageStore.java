@@ -23,24 +23,8 @@ import emaki.jiuwu.craft.storage.model.StorageReservation;
 import emaki.jiuwu.craft.storage.persistence.StorageDataFile;
 import emaki.jiuwu.craft.storage.persistence.StorageMetaFile;
 
-/**
- * Owns loading, saving and unloading of player storages.
- *
- * <p>Reads and writes run on the module's owner-scoped async file lane; only the hand-off back
- * into live state happens on the owning entity thread, which the caller arranges. Saves are
- * chained per player by {@link PlayerStorageCache}, so a save can never overtake an earlier one
- * or a pending load of the same file.
- */
 public final class PlayerStorageStore {
 
-    /**
-     * Outcome of the shutdown flush.
-     *
-     * @param savedEntries          how many storages were written
-     * @param failedEntries         how many writes failed
-     * @param remainingDirtyEntries how many storages were still dirty when the timeout expired
-     * @param drainResult           the file scope drain outcome
-     */
     public record FlushResult(int savedEntries,
             int failedEntries,
             int remainingDirtyEntries,
@@ -71,13 +55,6 @@ public final class PlayerStorageStore {
     private volatile int warnEntryCount;
     private FlushResult flushResult;
 
-    /**
-     * @param logger      the plugin logger
-     * @param fileScope   the module's owner-scoped async file lane
-     * @param dataRoot    {@code plugins/EmakiStorage/data}
-     * @param corruptRoot {@code plugins/EmakiStorage/corrupt}
-     * @param textIndexer builds the pre-computed search and sort text
-     */
     public PlayerStorageStore(Logger logger,
             AsyncFileService.FileScope fileScope,
             Path dataRoot,
@@ -90,18 +67,10 @@ public final class PlayerStorageStore {
         this.textIndexer = textIndexer;
     }
 
-    /** Applies reloaded settings that affect loading defaults. */
     public void configure(SortMode defaultSortMode, int warnEntryCount) {
         configure(defaultSortMode, warnEntryCount, defaultAutoPickup);
     }
 
-    /**
-     * Applies reloaded settings that affect loading defaults.
-     *
-     * @param defaultSortMode   sort mode for players without a stored value
-     * @param warnEntryCount    entry count that triggers a size warning
-     * @param defaultAutoPickup auto pickup state for players without a stored value
-     */
     public void configure(SortMode defaultSortMode, int warnEntryCount, boolean defaultAutoPickup) {
         this.defaultSortMode = defaultSortMode == null ? SortMode.AMOUNT_DESC : defaultSortMode;
         this.warnEntryCount = Math.max(0, warnEntryCount);
@@ -112,7 +81,6 @@ public final class PlayerStorageStore {
         return cache;
     }
 
-    /** {@return the live storage for a player, or {@code null} when not loaded} */
     public PlayerStorage cached(UUID playerId) {
         return cache.active(playerId);
     }
@@ -129,17 +97,6 @@ public final class PlayerStorageStore {
         return cache.writable(playerId);
     }
 
-    /**
-     * Begins a session and loads the player's data from disk.
-     *
-     * <p>The returned future completes on a file-lane thread. Callers that need to touch Bukkit
-     * state must hop to the owning entity thread themselves and re-check the generation, because
-     * the player may have reconnected while the read was in flight.
-     *
-     * @param playerId   the storage owner
-     * @param playerName the last known name, recorded for troubleshooting only
-     * @return a future completing with the loaded storage, or {@code null} when superseded
-     */
     public CompletableFuture<PlayerStorage> beginSessionAsync(UUID playerId, String playerName) {
         PlayerStorage placeholder = new PlayerStorage(playerId);
         placeholder.playerName(playerName);
@@ -170,13 +127,6 @@ public final class PlayerStorageStore {
         return future;
     }
 
-    /**
-     * Reads one player's storage from disk. Runs on a file-lane thread.
-     *
-     * @param playerId   the storage owner
-     * @param playerName the last known name
-     * @return the reconstructed storage
-     */
     private PlayerStorage readStorage(UUID playerId, String playerName) {
         PlayerStorage storage = new PlayerStorage(playerId);
         storage.playerName(playerName);
@@ -207,8 +157,7 @@ public final class PlayerStorageStore {
             StorageKey key = StorageKey.of(record.template());
             StorageEntry existing = storage.entry(key);
             if (existing != null) {
-                // Two records that now compare equal, e.g. after a component format change.
-                // Amounts are summed; discarding either one would silently destroy player items.
+
                 existing.add(record.amount(), 0L);
                 merged++;
                 continue;
@@ -226,14 +175,6 @@ public final class PlayerStorageStore {
         return storage;
     }
 
-    /**
-     * Re-attaches persisted holds and drops the ones that outlived their ttl.
-     *
-     * <p>This is the crash-recovery path. A hold taken just before the server died would otherwise
-     * keep its stock frozen forever, because the caller that would have committed or released it is
-     * long gone. Expiry is checked on load rather than lazily, so the player's next snapshot already
-     * shows the released units.
-     */
     private void restoreReservations(UUID playerId, PlayerStorage storage,
             List<StorageDataFile.ReservationRecord> reservations) {
         if (reservations.isEmpty()) {
@@ -266,12 +207,6 @@ public final class PlayerStorageStore {
         }
     }
 
-    /**
-     * Saves a player without unloading.
-     *
-     * @param playerId the storage owner
-     * @return a future completing with whether anything was written
-     */
     public CompletableFuture<Boolean> saveAsync(UUID playerId) {
         PlayerStorageCache.SaveTicket ticket = cache.snapshotForSave(playerId, false);
         if (ticket == null) {
@@ -280,12 +215,6 @@ public final class PlayerStorageStore {
         return cache.enqueueSaveAsync(ticket, this::writeTicket);
     }
 
-    /**
-     * Saves and unloads a player.
-     *
-     * @param playerId the storage owner
-     * @return a future completing with whether anything was written
-     */
     public CompletableFuture<Boolean> unloadAsync(UUID playerId) {
         PlayerStorageCache.SaveTicket ticket = cache.snapshotForSave(playerId, true);
         if (ticket == null) {
@@ -294,7 +223,6 @@ public final class PlayerStorageStore {
         return cache.enqueueSaveAsync(ticket, this::writeTicket);
     }
 
-    /** Saves every dirty storage without unloading. */
     public CompletableFuture<Integer> saveAllAsync() {
         List<PlayerStorageCache.SaveTicket> tickets = cache.snapshotDirtyEntries();
         if (tickets.isEmpty()) {
@@ -356,15 +284,6 @@ public final class PlayerStorageStore {
         });
     }
 
-    /**
-     * Seals the cache, flushes everything and drains the file lane.
-     *
-     * <p>Idempotent: repeated calls return the first result.
-     *
-     * @param timeout how long to wait in total
-     * @param unit    the timeout unit
-     * @return the flush outcome
-     */
     public synchronized FlushResult flushAndSeal(long timeout, TimeUnit unit) {
         if (flushResult != null) {
             return flushResult;

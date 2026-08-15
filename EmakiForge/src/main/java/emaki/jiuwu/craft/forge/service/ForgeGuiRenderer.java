@@ -21,11 +21,6 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 final class ForgeGuiRenderer {
 
-    /**
-     * How many recipe groups the blueprint requirement list expands before collapsing the rest into a
-     * "N more" line. One blueprint can feed many recipes; expanding all of them would overflow the
-     * tooltip.
-     */
     private static final int MAX_RECIPE_GROUPS = 3;
 
     private final EmakiForgePlugin plugin;
@@ -77,14 +72,6 @@ final class ForgeGuiRenderer {
         state.guiSession().refresh();
     }
 
-    /**
-     * Builds the capacity slot, the one slot that also carries the blueprint requirement list.
-     *
-     * <p>The requirement list lives here rather than on {@code blueprint_inputs} because that slot is a
-     * placeholder: once a blueprint is placed the real item replaces it, which would hide the very list the
-     * player needs. Requirement lines are only computed for this slot to keep the other slots' rendering
-     * free of the candidate-recipe scan.</p>
-     */
     private ItemStack buildCapacityDisplayItem(GuiSlot slot, ForgeGuiSession state) {
         Map<String, Object> replacements = slotReplacements(state);
         List<Recipe> candidates = requirementRecipes(state);
@@ -125,13 +112,6 @@ final class ForgeGuiRenderer {
         return replacements;
     }
 
-    /**
-     * {@return the recipes whose material requirements should be shown}
-     *
-     * <p>Once a preview recipe is resolved the list narrows to that single recipe. Before that, every
-     * recipe matching the placed blueprints is a candidate, because one blueprint can be used by several
-     * recipes and the player still needs to see what each route asks for.</p>
-     */
     private List<Recipe> requirementRecipes(ForgeGuiSession state) {
         Recipe resolved = state.previewRecipe() != null ? state.previewRecipe() : state.recipe();
         if (resolved != null) {
@@ -140,14 +120,6 @@ final class ForgeGuiRenderer {
         return stateSupport.resolveCandidateRecipes(state);
     }
 
-    /**
-     * Builds the blueprint requirement lines, one entry per line.
-     *
-     * <p>With a single recipe the materials are listed directly. With several candidates each recipe gets
-     * its own header and material block, deliberately <b>not</b> a merged union: if one recipe needs iron
-     * and another needs gold, a union would show both as missing even though satisfying either is
-     * enough.</p>
-     */
     private List<String> blueprintRequirementLines(ForgeGuiSession state, List<Recipe> candidates) {
         List<String> lines = new ArrayList<>();
         if (candidates.isEmpty()) {

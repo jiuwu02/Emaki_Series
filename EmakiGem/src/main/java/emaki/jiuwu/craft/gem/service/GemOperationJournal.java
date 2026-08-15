@@ -33,7 +33,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 
-
 public final class GemOperationJournal {
 
     public enum Phase {
@@ -48,7 +47,6 @@ public final class GemOperationJournal {
 
     private static final Map<EmakiGemPlugin, GemOperationJournal> INSTANCES = new ConcurrentHashMap<>();
 
-    /** Debug module the journal anchors are filed under; must stay within EmakiGemPlugin's set. */
     private static final String DEBUG_JOURNAL_MODULE = "state";
 
     private final EmakiGemPlugin plugin;
@@ -103,11 +101,6 @@ public final class GemOperationJournal {
         advanceAsync(operationId, phase);
     }
 
-    /**
-     * Persists the phase transition and, for {@link Phase#COMPLETED}, archives the entry afterwards.
-     * The returned future completes once the journal is durable; archiving only runs when the write
-     * succeeded, so a failed write leaves the entry recoverable in {@code active}.
-     */
     private CompletableFuture<Void> advanceAsync(String operationId, Phase phase) {
         Entry current = load(operationId);
         if (current == null || phase == null) {
@@ -119,8 +112,7 @@ public final class GemOperationJournal {
         Phase from = current.phase();
         CompletableFuture<Void> persisted = save(updated);
         if (anchorsEnabled()) {
-            // Anchor on completion rather than on submit, so the line carries the real durability
-            // outcome and elapsed time instead of just "a write was queued".
+
             persisted.whenComplete((ignored, failure) -> anchorTransition(
                     updated.operationId(), from, phase, startedAt, failure));
         }
@@ -130,16 +122,11 @@ public final class GemOperationJournal {
         return persisted.thenCompose(_ -> archive(updated));
     }
 
-    /** {@return whether journal anchors (W6-2a) are currently wanted} */
     private boolean anchorsEnabled() {
         return plugin.debugLogger() != null
                 && plugin.debugLogger().shouldLog(DEBUG_JOURNAL_MODULE, (UUID) null);
     }
 
-    /**
-     * Records one journal state transition: operationId, the phase edge, elapsed time and the
-     * failure cause when the write did not become durable.
-     */
     private void anchorTransition(String operationId,
             Phase from,
             Phase to,
@@ -242,10 +229,6 @@ public final class GemOperationJournal {
                 current.currencies(), current.materials(), error == null ? "" : error));
     }
 
-    /**
-     * Reads the journal off the calling thread and applies recovery on the global thread, because
-     * compensation touches Bukkit state. Returns immediately; recovery continues in the background.
-     */
     public void recover(GemEconomyService economyService) {
         loadActive().thenAccept(entries -> {
             if (entries.isEmpty()) {
@@ -298,11 +281,6 @@ public final class GemOperationJournal {
         }
     }
 
-    /**
-     * Records the entry in memory and persists it off the calling thread. The returned future
-     * completes only after the write lands, so callers can gate operation completion on durability.
-     * Writes for one operation id share a physical path and are therefore ordered by the file scope.
-     */
     private CompletableFuture<Void> save(Entry entry) {
         activeEntries.put(entry.operationId(), entry);
         AsyncYamlFiles files = asyncYamlFiles();
@@ -320,18 +298,10 @@ public final class GemOperationJournal {
                 "Failed to persist gem operation " + operationId, AsyncFailures.unwrap(throwable)));
     }
 
-    /**
-     * Returns the in-memory entry for the operation. Active entries are seeded by {@link #recover}
-     * at startup and by {@link #begin}, so no blocking read is needed on the calling thread.
-     */
     private Entry load(String operationId) {
         return operationId == null ? null : activeEntries.get(operationId);
     }
 
-    /**
-     * Lists and decodes every active entry off the calling thread. A single corrupt file is
-     * quarantined and skipped instead of discarding the whole journal.
-     */
     private CompletableFuture<List<Entry>> loadActive() {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
@@ -391,10 +361,6 @@ public final class GemOperationJournal {
         }
     }
 
-    /**
-     * Moves an undecodable file into the quarantine directory on the file scope and resolves to
-     * {@code null} so the remaining entries keep loading.
-     */
     private CompletableFuture<Entry> quarantineCorruptFile(Path source, Throwable throwable) {
         String fileName = source.getFileName() == null ? "unknown.yml" : source.getFileName().toString();
         String stem = fileName.replaceFirst("(?i)\\.ya?ml$", "");
@@ -457,11 +423,6 @@ public final class GemOperationJournal {
                 : message;
     }
 
-    /**
-     * Moves the finished entry out of {@code active}. The move is enqueued on the same physical path
-     * as the preceding writes, so it can never overtake them. A failed archive leaves the file in
-     * {@code active} for the next recovery pass, which is why it does not fail the operation.
-     */
     private CompletableFuture<Void> archive(Entry entry) {
         Path source = activePath(entry.operationId());
         Path target = completedDirectory.resolve(entry.operationId() + ".yml");

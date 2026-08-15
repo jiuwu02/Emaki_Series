@@ -12,21 +12,10 @@ import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
-/**
- * Renders skill placeholders for a pipeline.
- *
- * <p>Pipeline variables are exposed only through the {@code %var.name%} namespace, then CoreLib's placeholder
- * registry runs for non-pipeline placeholders such as PlaceholderAPI expansions.</p>
- */
 public final class SkillPlaceholderBridge implements PlaceholderBridge {
 
     private final EmakiSkillsPlugin plugin;
 
-    /**
-     * Creates the bridge.
-     *
-     * @param plugin the owning plugin, used to reach CoreLib's placeholder registry
-     */
     public SkillPlaceholderBridge(EmakiSkillsPlugin plugin) {
         this.plugin = plugin;
     }

@@ -7,8 +7,6 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 
-
-
 public record AttributeSourceTraceReport(
         UUID playerId,
         String playerName,

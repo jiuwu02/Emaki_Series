@@ -115,11 +115,6 @@ final class CookingStationListener implements Listener {
         grinderRuntimeService.handleInteraction(interaction);
     }
 
-
-
-
-
-
     private void fireInteractEvent(StationInteraction interaction, StationType stationType) {
         if (interaction == null) {
             return;
@@ -136,12 +131,6 @@ final class CookingStationListener implements Listener {
                 interactionType == null ? "" : interactionType.configKey()
         ));
     }
-
-
-
-
-
-
 
     private StationType resolveStationType(StationInteraction interaction) {
         if (blockMatcher == null) {

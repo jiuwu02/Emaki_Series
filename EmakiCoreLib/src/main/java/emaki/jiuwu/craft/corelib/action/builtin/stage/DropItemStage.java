@@ -19,14 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/**
- * Drops an item at the target's position.
- *
- * <p>v1 required {@code x}, {@code y} and {@code z}; all four coordinate arguments are gone because the drop
- * position is the target. {@code at x=.. y=.. z=.. | drop_item ...} is the direct replacement.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: spawns an item entity in a region.</p>
- */
 public final class DropItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;

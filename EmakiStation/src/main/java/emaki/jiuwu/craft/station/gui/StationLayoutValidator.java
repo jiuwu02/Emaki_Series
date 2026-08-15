@@ -10,32 +10,16 @@ import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 
-/**
- * Startup validation for station layouts.
- *
- * <p>Runs during the configuration precheck stage. A layout that fails validation is reported and the
- * previous valid runtime configuration is kept, because replacing a working station set with a broken one
- * is worse than refusing the change.
- *
- * <p>Each of the three pages is validated against its own accepted type set. A slot type that exists but
- * belongs to another page is reported as {@code wrong_page_type} rather than {@code unknown_type}, because
- * the fix is different: one is a typo, the other is a slot in the wrong file.
- */
 public final class StationLayoutValidator {
 
-    /** The page a layout is being validated as. */
     public enum Page {
 
-        /** The recipe catalog. */
         CATALOG(StationSlotType.RECIPE_LIST, "missing_recipe_list"),
 
-        /** The material preview. */
         PREVIEW(StationSlotType.MATERIAL_LIST, "missing_material_list"),
 
-        /** The craft queue. */
         QUEUE(StationSlotType.QUEUE_VIEW, "missing_queue_view"),
 
-        /** The dismantle page. */
         DISMANTLE(StationSlotType.DISMANTLE_CONFIRM, "missing_dismantle_confirm");
 
         private final String requiredType;
@@ -46,17 +30,14 @@ public final class StationLayoutValidator {
             this.missingCode = missingCode;
         }
 
-        /** {@return the slot type this page cannot work without} */
         public String requiredType() {
             return requiredType;
         }
 
-        /** {@return the diagnostic code emitted when the required type is absent} */
         public String missingCode() {
             return missingCode;
         }
 
-        /** {@return every slot type this page accepts} */
         public Set<String> acceptedTypes() {
             return switch (this) {
                 case CATALOG -> StationSlotType.catalogTypes();
@@ -67,30 +48,12 @@ public final class StationLayoutValidator {
         }
     }
 
-    /**
-     * One problem found in one layout.
-     *
-     * @param layoutId the layout the problem belongs to
-     * @param code     a stable machine-readable problem code
-     * @param detail   the offending value or slot
-     */
     public record LayoutIssue(String layoutId, String code, String detail) {
     }
 
     private StationLayoutValidator() {
     }
 
-    /**
-     * Validates one layout as a given page.
-     *
-     * <p>Checks, in order: the row count is inside the chest range, every declared slot resolves to a
-     * position that exists in that many rows, no two typed groups claim the same slot, every declared type
-     * is one this page can render, and the page's required slot type is present.
-     *
-     * @param template the parsed template; {@code null} yields a single {@code missing_template} issue
-     * @param page     the page this layout is meant to be
-     * @return the issues found; empty when the layout is usable
-     */
     public static List<LayoutIssue> validate(GuiTemplate template, Page page) {
         List<LayoutIssue> issues = new ArrayList<>();
         if (template == null) {
@@ -111,8 +74,7 @@ public final class StationLayoutValidator {
             }
             String type = StationSlotType.normalize(slot.type());
             if (!type.isEmpty() && !accepted.contains(type)) {
-                // A recognised type on the wrong page is a different mistake from an unrecognised one, and
-                // saying so saves an administrator from hunting a typo that is not there.
+
                 String code = StationSlotType.known(type) ? "wrong_page_type" : "unknown_type";
                 issues.add(new LayoutIssue(layoutId, code, slot.key() + "=" + type));
             }

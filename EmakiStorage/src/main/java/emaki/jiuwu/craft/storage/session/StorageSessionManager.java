@@ -30,14 +30,6 @@ import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.dialog.DialogService;
 
-/**
- * Opens warehouse windows and owns the chat-driven interactions.
- *
- * <p>Kept out of the plugin class so the main class only orchestrates lifecycle. This is also where
- * the temporary admin session for an offline player is guarded: the generation captured at open time
- * is re-checked on every mutation, so the moment the target player logs in and starts a real session
- * the admin's view stops being able to write.
- */
 public final class StorageSessionManager implements StorageGuiHandler.Callbacks {
 
     private final EmakiStoragePlugin plugin;
@@ -46,12 +38,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         this.plugin = plugin;
     }
 
-    /**
-     * Opens a player's own warehouse.
-     *
-     * @param player the viewer and owner
-     * @return whether a window was opened
-     */
     public boolean openOwn(Player player) {
         if (player == null) {
             return false;
@@ -64,17 +50,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         return open(player, storage);
     }
 
-    /**
-     * Opens another player's warehouse for an admin.
-     *
-     * <p>For an online target the same {@link PlayerStorage} instance is used, so both windows are
-     * naturally serialised on that player's owner thread. For an offline target a temporary session
-     * is loaded and released when the window closes.
-     *
-     * @param admin  the viewing admin
-     * @param target the storage owner
-     * @return a future completing with whether a window was opened
-     */
     public CompletableFuture<Boolean> openForAdminAsync(Player admin, UUID target, String targetName) {
         if (admin == null || target == null) {
             return CompletableFuture.completedFuture(false);
@@ -127,11 +102,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
                 result -> handleWithdrawInput(viewer, session, key, storageOwner, generation, result)));
     }
 
-    /**
-     * 尝试用对话框询问取出数量。
-     *
-     * @return 成功展示对话框返回 {@code true}；此时不再走聊天输入
-     */
     private boolean promptWithdrawByDialog(Player viewer,
             GuiSession session,
             StorageKey key,
@@ -160,12 +130,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         applyWithdrawInput(viewer, session, key, storageOwner, generation, result.text());
     }
 
-    /**
-     * 执行取出。
-     *
-     * <p>聊天输入与对话框提交共用这段逻辑，两者只是取值来源不同；
-     * 会话代际校验必须保留，避免玩家在等待输入期间仓库被换掉。
-     */
     private void applyWithdrawInput(Player viewer,
             GuiSession session,
             StorageKey key,
@@ -194,11 +158,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         refresh(viewer, session, storage);
     }
 
-    /**
-     * Parses a withdrawal amount, accepting compact units and {@code all}.
-     *
-     * @return the resolved amount, or {@code -1} when unparsable
-     */
     private long parseAmount(String raw, PlayerStorage storage, StorageKey key) {
         if (raw == null || raw.isBlank()) {
             return -1L;
@@ -211,14 +170,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         return parseCompactAmount(text);
     }
 
-    /**
-     * Parses a compact amount such as {@code 10k} or {@code 1m}.
-     *
-     * <p>Overflow is reported rather than truncated: silently clamping a mistyped figure would move
-     * a different quantity than the player asked for.
-     *
-     * @return the amount, or {@code -1} when unparsable or out of {@code long} range
-     */
     public static long parseCompactAmount(String text) {
         if (text == null || text.isBlank()) {
             return -1L;
@@ -286,11 +237,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
                 result -> handleSearchInput(viewer, session, storageOwner, generation, result)));
     }
 
-    /**
-     * 尝试用对话框询问搜索关键词。
-     *
-     * @return 成功展示对话框返回 {@code true}
-     */
     private boolean promptSearchByDialog(Player viewer,
             GuiSession session,
             UUID storageOwner,
@@ -310,16 +256,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
                         submission.text(input.inputKey())));
     }
 
-    /**
-     * 把配置里的对话框定义解析为可展示的定义。
-     *
-     * <p>配置存的是语言键名，这里才解析为文案，因此重载语言或切换语言后立即生效；
-     * 键不存在时按原文渲染，服主可以直接写文本而不建语言键。
-     *
-     * @param input        该交互的输入方式配置
-     * @param replacements 文本占位符替换值
-     * @return 可展示的定义；不该用对话框或定义不可用时返回 {@code null}
-     */
     private DialogDefinition resolveDialog(InputModeConfig input, Map<String, ?> replacements) {
         if (!input.allowsDialog() || !input.dialogUsable()) {
             return null;
@@ -380,12 +316,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
                 source.action());
     }
 
-    /**
-     * 把配置值当作语言键解析。
-     *
-     * <p>语言键缺失时 {@code message} 会回显键名本身，等价于按原文渲染，
-     * 因此服主既可以填语言键，也可以直接写 MiniMessage 文本。
-     */
     private String text(String raw, Map<String, ?> replacements) {
         if (raw == null || raw.isBlank()) {
             return raw;
@@ -394,7 +324,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         return resolved == null ? raw : resolved;
     }
 
-    /** {@return CoreLib 的对话框服务；不可用时为 {@code null}} */
     private DialogService dialogService() {
         var coreLib = JavaPlugin
                 .getPlugin(EmakiCoreLibPlugin.class);
@@ -413,7 +342,6 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         applySearchInput(viewer, session, storageOwner, generation, result.text());
     }
 
-    /** 应用搜索条件；聊天输入与对话框提交共用。 */
     private void applySearchInput(Player viewer,
             GuiSession session,
             UUID storageOwner,

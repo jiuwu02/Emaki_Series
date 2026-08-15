@@ -10,18 +10,6 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.corelib.session.SessionData;
 
-/**
- * Aggregate root for one player's warehouse.
- *
- * <p>{@code entries} and {@code entryOrder} must stay in lockstep: additions append to the tail,
- * and emptying an entry removes it from both so later entries shift forward naturally. The index
- * into {@code entryOrder} <em>is</em> the logical slot number, which is why the list is kept
- * compact and gap-free.
- *
- * <p>This type is not thread-safe by design. Every mutation happens on the owning entity thread
- * because deposits and withdrawals are atomic trades against the player's inventory, and Bukkit
- * inventories may only be touched there.
- */
 public final class PlayerStorage implements SessionData<PlayerStorage> {
 
     private final UUID playerId;
@@ -52,7 +40,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return playerName;
     }
 
-    /** Records the last known name purely for human troubleshooting; never an identity source. */
     public void playerName(String playerName) {
         this.playerName = playerName == null ? "" : playerName;
     }
@@ -73,7 +60,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         this.purchasedSlots = Math.max(0, purchasedSlots);
     }
 
-    /** {@return the player-level ceiling; {@code 0} means inherit {@code capacity.default_stack_limit}} */
     public long defaultStackLimit() {
         return defaultStackLimit;
     }
@@ -92,7 +78,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         }
     }
 
-    /** {@return 该玩家是否开启了自动拾取} */
     public boolean autoPickupEnabled() {
         return autoPickupEnabled;
     }
@@ -109,7 +94,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         this.nextTemplateId = Math.max(1L, nextTemplateId);
     }
 
-    /** {@return and consume the next per-player template id} */
     public long allocateTemplateId() {
         long allocated = nextTemplateId;
         nextTemplateId = allocated + 1L;
@@ -132,7 +116,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return key == null ? null : entries.get(key);
     }
 
-    /** {@return the entry at a logical slot index, or {@code null} when out of range} */
     public StorageEntry entryAt(int slotIndex) {
         if (slotIndex < 0 || slotIndex >= entryOrder.size()) {
             return null;
@@ -140,17 +123,10 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return entries.get(entryOrder.get(slotIndex));
     }
 
-    /** {@return the logical slot index of a key, or {@code -1} when absent} */
     public int indexOf(StorageKey key) {
         return key == null ? -1 : entryOrder.indexOf(key);
     }
 
-    /**
-     * Appends a new entry to the tail of the order list.
-     *
-     * @param entry the entry to add; ignored when its key already exists
-     * @return the assigned logical slot index, or the existing index when already present
-     */
     public int append(StorageEntry entry) {
         if (entry == null) {
             return -1;
@@ -164,12 +140,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return entryOrder.size() - 1;
     }
 
-    /**
-     * Removes an entry from both structures, letting later entries shift forward.
-     *
-     * @param key the key to drop
-     * @return whether an entry was actually removed
-     */
     public boolean remove(StorageKey key) {
         if (key == null || entries.remove(key) == null) {
             return false;
@@ -178,7 +148,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return true;
     }
 
-    /** Drops every entry whose amount reached zero, preserving relative order of the rest. */
     public int pruneEmpty() {
         int removed = 0;
         for (int index = entryOrder.size() - 1; index >= 0; index--) {
@@ -193,12 +162,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return removed;
     }
 
-    /**
-     * Replaces the whole order list, used by the explicit sort action.
-     *
-     * @param order the new order; keys unknown to this storage are skipped, and any known key
-     *              missing from {@code order} is appended so no entry can ever be lost
-     */
     public void reorder(List<StorageKey> order) {
         if (order == null || order.isEmpty()) {
             return;
@@ -224,40 +187,20 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return revision;
     }
 
-    /** {@return every outstanding reservation, keyed by reservation id, in insertion order} */
     public Map<UUID, StorageReservation> reservations() {
         return Collections.unmodifiableMap(reservations);
     }
 
-    /**
-     * Records a hold.
-     *
-     * @param reservation the hold to add; ignored when {@code null}
-     */
     public void addReservation(StorageReservation reservation) {
         if (reservation != null && reservation.reservationId() != null) {
             reservations.put(reservation.reservationId(), reservation);
         }
     }
 
-    /**
-     * Drops a hold.
-     *
-     * @param reservationId the hold to drop
-     * @return the removed hold, or {@code null} when unknown
-     */
     public StorageReservation removeReservation(UUID reservationId) {
         return reservationId == null ? null : reservations.remove(reservationId);
     }
 
-    /**
-     * {@return how many units of {@code key} are held by outstanding reservations}
-     *
-     * <p>Reserved units stay counted in the entry amount so the player still sees them; they are only
-     * excluded from what a new batch may take, which is what stops the same units being promised twice.
-     *
-     * @param key the stored item identity
-     */
     public long reservedAmount(StorageKey key) {
         if (key == null || reservations.isEmpty()) {
             return 0L;
@@ -269,15 +212,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return reserved;
     }
 
-    /**
-     * Drops every hold whose ttl has elapsed.
-     *
-     * <p>Called on load so a crash cannot strand a player's materials forever, and periodically so a
-     * caller that never commits does not hold stock indefinitely.
-     *
-     * @param nowMillis the current wall-clock time
-     * @return how many holds were dropped
-     */
     public int pruneExpiredReservations(long nowMillis) {
         if (reservations.isEmpty()) {
             return 0;
@@ -297,7 +231,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         return persistedRevision;
     }
 
-    /** {@return whether the in-memory state differs from what was last written to disk} */
     @Override
     public boolean dirty() {
         return revision > persistedRevision;
@@ -318,14 +251,6 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         persistedRevision = revision;
     }
 
-    /**
-     * Deep-copies this storage for off-thread serialisation.
-     *
-     * <p>Entries are copied; keys are shared because {@link StorageKey} is immutable and its
-     * template is never handed out by reference.
-     *
-     * @return a detached copy safe to hand to an async file lane
-     */
     @Override
     public PlayerStorage copy() {
         PlayerStorage copy = new PlayerStorage(playerId);

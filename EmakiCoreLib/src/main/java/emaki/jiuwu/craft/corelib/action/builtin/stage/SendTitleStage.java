@@ -17,15 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import net.kyori.adventure.title.Title;
 
-/**
- * Shows a title and subtitle to the target.
- *
- * <p>The three timing arguments are declared as {@code DURATION} rather than the v1 {@code TIME}; both
- * parse the same text, so {@code fade_in=10t} keeps working while the newer type name also accepts
- * {@code 500ms}.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes to that player's connection.</p>
- */
 public final class SendTitleStage extends BaseStage {
 
     public SendTitleStage() {

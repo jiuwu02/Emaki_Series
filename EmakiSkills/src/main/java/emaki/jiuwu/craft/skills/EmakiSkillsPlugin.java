@@ -87,8 +87,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private static final int BSTATS_PLUGIN_ID = 31768;
 
     private BStatsRegistration metrics;
-    // "Data is loaded", not "services exist": the services are non-null from initialize() onward, so a
-    // service null-check reported ready for the whole duration of a reload.
+
     private volatile boolean contentReady;
 
     private static final Set<String> DEBUG_MODULES = Set.of("cast", "unlock", "upgrade", "slot");
@@ -212,23 +211,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 });
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed". The services are non-null from {@code initialize} onward, so gating on them
-     * alone reported ready throughout a reload.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
-     * leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -241,11 +227,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -390,12 +371,6 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }

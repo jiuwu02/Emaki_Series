@@ -22,39 +22,12 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
-/**
- * Draws the material preview page for one selected recipe.
- *
- * <h2>How a required amount is shown</h2>
- * <ul>
- *   <li><strong>At most 99:</strong> the icon carries the real count, so the client draws it on the item. The
- *       exact figure also goes into lore.</li>
- *   <li><strong>100 or more:</strong> the icon carries {@code 1} and no number is drawn. Only lore states the
- *       amount.</li>
- * </ul>
- *
- * <p>The split is {@link AmountDisplay#previewStackSize(long)}, which <em>branches</em> rather than clamps. Using
- * {@link AmountDisplay#renderedStackSize(long)} here would render a requirement for 5000 as a stack of 99, which
- * looks like a requirement for 99.
- *
- * <p>Counts between 65 and 99 exceed most items' natural stack size. The client draws whatever the stack claims,
- * but the {@code minecraft:max_stack_size} component is raised to match so nothing in the pipeline clamps it
- * first. That component is written onto the <em>rendered</em> stack only, and rendered stacks are never handed to
- * a player.
- */
 public final class StationPreviewRenderer {
 
     private final ItemSourceService itemSourceService;
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
 
-    /**
-     * Creates the renderer.
-     *
-     * @param itemSourceService   CoreLib's item-source service, used to build material icons
-     * @param itemServiceSupplier supplies CoreLib's configured-item service
-     * @param guiSupport          reads the layout's virtual items and texts
-     */
     public StationPreviewRenderer(ItemSourceService itemSourceService,
             Supplier<ConfiguredItemService> itemServiceSupplier,
             ConfiguredGuiSupport guiSupport) {
@@ -63,15 +36,6 @@ public final class StationPreviewRenderer {
         this.guiSupport = guiSupport;
     }
 
-    /**
-     * Renders one preview slot.
-     *
-     * @param state        the viewer's page state
-     * @param maxBatch     how many batches the cached snapshot supports
-     * @param balance      the viewer's balance in the recipe's currency
-     * @param resolvedSlot the slot being rendered
-     * @return the stack to place, or {@code null} to fall back to the layout definition
-     */
     public ItemStack render(StationViewState state,
             long maxBatch,
             double balance,
@@ -101,12 +65,6 @@ public final class StationPreviewRenderer {
         };
     }
 
-    /**
-     * Builds the title placeholders for a preview window.
-     *
-     * @param state the viewer's page state
-     * @return the substitutions
-     */
     public Map<String, Object> titleReplacements(StationViewState state) {
         RecipeDefinition recipe = state.selectedRecipe();
         Map<String, Object> values = new LinkedHashMap<>();
@@ -155,21 +113,10 @@ public final class StationPreviewRenderer {
         return guiSupport.apply(state.station().previewLayoutId(), path, icon, values);
     }
 
-    /**
-     * Puts the required amount onto a preview icon.
-     *
-     * <p>See the class documentation for why this branches at {@link AmountDisplay#MAX_RENDERED_STACK} instead
-     * of clamping to it.
-     *
-     * @param icon     the icon being rendered; mutated in place
-     * @param required the exact amount required
-     */
     private void applyRequiredAmount(ItemStack icon, long required) {
         int rendered = AmountDisplay.previewStackSize(required);
         if (rendered > icon.getMaxStackSize()) {
-            // The client draws whatever amount the stack claims, but raising the component keeps anything
-            // downstream from clamping it back to the item's natural limit first. Legal range is 1..99, which
-            // previewStackSize already guarantees.
+
             ItemMeta meta = icon.getItemMeta();
             if (meta != null) {
                 meta.setMaxStackSize(AmountDisplay.MAX_RENDERED_STACK);

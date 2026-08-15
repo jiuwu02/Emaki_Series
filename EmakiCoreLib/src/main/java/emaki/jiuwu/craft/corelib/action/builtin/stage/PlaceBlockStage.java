@@ -33,18 +33,6 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
-/**
- * Places a vanilla or supported custom block at the target position.
- *
- * <p>Keeps v1's event etiquette verbatim: {@code BlockCanBuildEvent} then {@code BlockPlaceEvent} when a player
- * is available, with the previous {@code BlockState} restored if either is refused. Protection plugins therefore
- * still get their say. The player comes from the caster, so a console-triggered pipeline places without events
- * exactly as v1 did.</p>
- *
- * <p>The four coordinate arguments are gone; the position is the target.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: reads and writes one block.</p>
- */
 public final class PlaceBlockStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;
@@ -84,8 +72,7 @@ public final class PlaceBlockStage extends BaseStage {
         }
         Block target = location.getBlock();
         Player player = StageSupport.player(context.caster());
-        // An if-chain rather than a switch: the kind is a record now, so it cannot be a switch label.
-        // Only these five kinds have a block form at all; everything else is item-only.
+
         ItemSourceKind kind = source.kind();
         if (ItemSourceKind.VANILLA.equals(kind)) {
             return placeVanilla(player, target, source);
@@ -152,7 +139,6 @@ public final class PlaceBlockStage extends BaseStage {
         return placed(source, target);
     }
 
-    /** {@return a refusal outcome, or {@code null} when the build is allowed} */
     private CoreActionOutcome callCanBuildEvent(Player player,
             Block target,
             BlockData blockData,
@@ -165,7 +151,6 @@ public final class PlaceBlockStage extends BaseStage {
         return event.isBuildable() ? null : CoreActionOutcome.skipped("action.stage.place_block.build_denied");
     }
 
-    /** {@return a refusal outcome, or {@code null} when the placement is allowed} */
     private CoreActionOutcome callPlaceEvent(Player player,
             Block target,
             BlockState replaced,

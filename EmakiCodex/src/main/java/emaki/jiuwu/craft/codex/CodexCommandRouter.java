@@ -20,10 +20,6 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
-
-
-
 final class CodexCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakicodex";
@@ -95,9 +91,7 @@ final class CodexCommandRouter implements TabExecutor {
             return true;
         }
         String advancementId = args[2];
-        // Carries the whole EmakiResult back rather than isSuccess(): the service distinguishes nine
-        // failure causes (not registered, missing on server, already completed, disabled, wrong thread,
-        // ...) and collapsing them into one message left the operator with no way to tell them apart.
+
         runOnTargetOwner(target, () -> grant
                 ? plugin.advancementService().grant(target, advancementId)
                 : plugin.advancementService().revoke(target, advancementId))
@@ -126,13 +120,6 @@ final class CodexCommandRouter implements TabExecutor {
         return true;
     }
 
-    /**
-     * Turns a failed result into the sentence explaining why.
-     *
-     * <p>Resolves the result's own reason key through the language file, so a new failure cause in
-     * {@code AdvancementService} only needs a language entry rather than a change here. Falls back to the
-     * raw key so an untranslated cause is still reportable instead of silently blank.</p>
-     */
     private String describeFailure(EmakiResult<Unit> result) {
         String reasonKey = result == null ? "" : Texts.toStringSafe(result.reasonKey());
         if (Texts.isBlank(reasonKey)) {
@@ -141,13 +128,6 @@ final class CodexCommandRouter implements TabExecutor {
         return plugin.messageService().messageOrFallback(reasonKey, reasonKey);
     }
 
-    /**
-     * Runs an advancement mutation on the thread that owns the target.
-     *
-     * <p>Carries the operation's own {@link EmakiResult} rather than a boolean so the caller can report why
-     * a mutation was refused. When the target is gone or no thread could be obtained the failure is
-     * expressed as a result too, keeping one reporting path for every outcome.</p>
-     */
     private CompletableFuture<EmakiResult<Unit>> runOnTargetOwner(Player target,
             Supplier<EmakiResult<Unit>> operation) {
         CompletableFuture<EmakiResult<Unit>> future = new CompletableFuture<>();

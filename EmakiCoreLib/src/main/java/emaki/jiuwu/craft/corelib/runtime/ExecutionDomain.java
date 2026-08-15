@@ -1,8 +1,5 @@
 package emaki.jiuwu.craft.corelib.runtime;
 
-
-
-
 public enum ExecutionDomain {
     SERVER_GLOBAL(false, false),
     LOCATION_REGION(true, false),

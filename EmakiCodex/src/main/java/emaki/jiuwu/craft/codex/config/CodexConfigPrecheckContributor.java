@@ -26,8 +26,7 @@ public final class CodexConfigPrecheckContributor extends AbstractModuleConfigPr
     public ConfigPrecheckResult check(CoreLibConfig config, ConfigPrecheckContext context) {
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         checkFile(new File(plugin.getDataFolder(), "config.yml"), "config.yml", issues);
-        // `advancements` is created by the page loader itself when absent, so an empty directory is a
-        // valid install and only a genuinely unreadable path is reported here.
+
         checkDirectory(new File(plugin.getDataFolder(), "advancements"), "advancements", issues);
         addLoaderIssues("advancements",
                 plugin.advancementPageLoader() == null ? null : plugin.advancementPageLoader().issues(), issues);

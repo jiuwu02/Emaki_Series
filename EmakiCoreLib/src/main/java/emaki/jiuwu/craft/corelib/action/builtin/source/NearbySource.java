@@ -19,19 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * Entities around the pipeline origin.
- *
- * <p>Holds the search that v1 kept inside {@code KillEntityAction}. That was always target selection
- * written in the wrong place: the four parameters describe which entities to pick, not what to do to
- * them. With the search here, the kill stage is reduced to {@code remove()}.</p>
- *
- * <p>Two behaviours differ from v1 on purpose. Finding nothing is {@code Empty}, an unknown entity type
- * is {@code Invalid}; v1 reported the typo as skipped, so a server owner never saw it.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: {@code World#getNearbyEntities} is a region read around the
- * origin.</p>
- */
 public final class NearbySource extends BaseSource {
 
     public NearbySource() {

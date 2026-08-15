@@ -9,23 +9,8 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.skills.integration.SkillsAttributeBridge;
 
-/**
- * {@link SkillsAttributeBridge} implementation backed by the canonical
- * {@link EmakiAttributeApi} facade.
- *
- * <p>This is the only class in EmakiSkills that references EmakiAttributeApi
- * types; it is class-loaded exclusively by {@code SkillsAttributeBridgeHolder}
- * once EmakiAttribute is enabled. Every call goes through the static facade, so
- * a reloaded or disabled EmakiAttribute is never reached through a stale bridge.
- */
 public final class EmakiAttributeSkillsBridge implements SkillsAttributeBridge {
 
-    /**
-     * Creates the bridge. Invoked reflectively by
-     * {@code SkillsAttributeBridgeHolder} only when EmakiAttribute is enabled.
-     *
-     * @return the EmakiAttribute-backed bridge
-     */
     public static SkillsAttributeBridge create() {
         return new EmakiAttributeSkillsBridge();
     }

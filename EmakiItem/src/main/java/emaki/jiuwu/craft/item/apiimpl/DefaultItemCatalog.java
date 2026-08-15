@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 
-/** Runtime-backed {@link ItemCatalog}. */
 public final class DefaultItemCatalog implements ItemCatalog {
 
     private final EmakiItemPlugin plugin;
@@ -29,14 +28,6 @@ public final class DefaultItemCatalog implements ItemCatalog {
         this.plugin = plugin;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Deliberately not gated on {@link EmakiItemPlugin#runtimeReady()}: a {@code Set} return type
-     * cannot express "not loaded yet", so gating would only turn one indistinguishable answer into
-     * another. An empty set during the loading window is therefore ambiguous by signature, which is
-     * why the API documentation tells callers to wait for readiness before enumerating.</p>
-     */
     @Override
     public @NotNull Set<String> definitionIds() {
         if (plugin.itemLoader() == null) {
@@ -96,13 +87,6 @@ public final class DefaultItemCatalog implements ItemCatalog {
                 : text);
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Deliberately not gated on {@link EmakiItemPlugin#runtimeReady()}: a {@code boolean} cannot
-     * distinguish "no such id" from "not loaded yet". Callers that need that distinction should use
-     * {@link #definition(String)} and inspect the failure kind.</p>
-     */
     @Override
     public boolean exists(@Nullable String id) {
         return Texts.isNotBlank(id)

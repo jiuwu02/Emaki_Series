@@ -78,14 +78,6 @@ public final class CookingRuntimeUtil {
         }
     }
 
-
-
-
-
-
-
-
-
     static String resolveBlockId(EmakiCookingPlugin plugin, Block block) {
         if (block == null) {
             return "";

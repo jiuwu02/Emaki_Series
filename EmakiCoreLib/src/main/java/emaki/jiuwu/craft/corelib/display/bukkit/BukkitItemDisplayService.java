@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
-/** 用真实 {@link ItemDisplay} 实体实现的物品展示服务。 */
 public final class BukkitItemDisplayService implements ItemDisplayService {
 
     private final Plugin plugin;
@@ -186,7 +185,6 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             }, () -> removeMapOnly(groupKey, key));
         }
 
-        // 抬升阶段：逐段累加高度与角度
         for (int segment = 0; segment < segments; segment++) {
             int delay = segment * ticksPerSegment;
             int segmentIndex = segment + 1;
@@ -199,7 +197,6 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             }
         }
 
-        // 回落阶段：按剩余比例递减回原状
         int riseEndTick = segments * ticksPerSegment;
         for (int segment = 0; segment < segments; segment++) {
             int delay = riseEndTick + segment * ticksPerSegment;
@@ -303,7 +300,6 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
         });
     }
 
-    /** 与文本后端同理：重排到期任务前必须取消旧任务。 */
     private void scheduleExpiry(ItemDisplaySpec spec) {
         String key = spec.runtimeKey();
         cancelQuietly(expiryTasks.remove(key));
@@ -331,7 +327,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
         try {
             handle.cancel();
         } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
+
         }
     }
 

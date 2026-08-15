@@ -22,18 +22,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Sets the block at the target position, without firing placement events.
- *
- * <p>The v1 {@code material} / {@code block} alias pair is collapsed into {@code material}; {@code block_data}
- * still takes a full Bukkit block-data string such as {@code oak_stairs[facing=east]} and wins when both are
- * given.</p>
- *
- * <p>Unlike {@code place_block} this is a raw write with no {@code BlockPlaceEvent}, so protection plugins do not
- * see it. That is v1's behaviour and the reason the two stages both exist.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: writes one block.</p>
- */
 public final class SetBlockStage extends BaseStage {
 
     public SetBlockStage() {

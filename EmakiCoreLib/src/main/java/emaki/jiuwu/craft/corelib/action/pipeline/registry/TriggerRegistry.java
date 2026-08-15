@@ -15,41 +15,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * The one place every pipeline trigger contract is registered.
- *
- * <p>Deliberately built on the same four rules {@link StageRegistry} enforces, because a trigger has
- * the same ownership problem a stage does:</p>
- * <ul>
- *   <li>a duplicate id is a hard failure naming the first owner, never a silent overwrite;</li>
- *   <li>registration returns a revocable handle whose {@code close()} is idempotent;</li>
- *   <li>every trigger owned by one plugin can be revoked in one call when that plugin is disabled;</li>
- *   <li>the contract is validated at registration time rather than at first dispatch.</li>
- * </ul>
- *
- * <p>Unlike {@link StageRegistry} this registry additionally requires a namespace prefix. Stage ids
- * predate third-party registration and could not be tightened retroactively, but trigger ids are new
- * and public from the first release, so a bare {@code forge_success} is rejected before two plugins can
- * ever race for it.</p>
- *
- * <p>Reads go through a {@code volatile} immutable map, so dispatch-path lookup takes no lock and does
- * no per-server scan. Writes happen only on enable / reload and copy the whole map.</p>
- */
 public final class TriggerRegistry {
 
-    /** Stable reason key: the id was blank. */
     public static final String REASON_BLANK_ID = "action.trigger.register.blank_id";
 
-    /** Stable reason key: the id carried no {@code namespace:} prefix. */
     public static final String REASON_MISSING_NAMESPACE = "action.trigger.register.missing_namespace";
 
-    /** Stable reason key: {@code contract()} returned {@code null} or threw. */
     public static final String REASON_INVALID_CONTRACT = "action.trigger.register.invalid_contract";
 
-    /** Stable reason key prefix: the id is already owned. The first owner name is appended. */
     public static final String REASON_DUPLICATE_OWNED_BY = "action.trigger.register.duplicate_id_owned_by:";
 
-    /** Stable reason key: the id is already registered but its first owner is unknown. */
     public static final String REASON_DUPLICATE = "action.trigger.register.duplicate_id";
 
     private final AtomicLong generationSequence = new AtomicLong();
@@ -57,13 +32,6 @@ public final class TriggerRegistry {
 
     private volatile Map<String, RegisteredTrigger> entries = Map.of();
 
-    /**
-     * Registers a trigger contract.
-     *
-     * @param owner owning plugin
-     * @param trigger the trigger declaration
-     * @return a revocable handle; an inactive handle carrying a stable reason key on rejection
-     */
     public @NotNull CoreTriggerRegistration register(@Nullable Plugin owner,
             @Nullable CoreActionTrigger trigger) {
         if (trigger == null) {
@@ -104,50 +72,20 @@ public final class TriggerRegistry {
         }
     }
 
-    /**
-     * Looks up the contract for one trigger id.
-     *
-     * <p>This is the compile-path entry point. An unknown id resolves to {@code null} so the caller can
-     * keep its existing permissive fallback rather than having a permissive contract fabricated here —
-     * the distinction between "no such trigger" and "a trigger that declared nothing" matters to
-     * diagnostics.</p>
-     *
-     * @param triggerId trigger id
-     * @return the declared contract, or {@code null} when no live trigger holds that id
-     */
     public @Nullable TriggerContract contractOf(@Nullable String triggerId) {
         RegisteredTrigger entry = live(triggerId);
         return entry == null ? null : entry.contract();
     }
 
-    /**
-     * Looks up a live trigger.
-     *
-     * @param triggerId trigger id
-     * @return the entry, or {@code null} when unknown or its owner is disabled
-     */
     public @Nullable RegisteredTrigger lookup(@Nullable String triggerId) {
         return live(triggerId);
     }
 
-    /**
-     * Reads the owner name of a registered id.
-     *
-     * @param triggerId trigger id
-     * @return the owner name, or an empty string when the id is unknown
-     */
     public @NotNull String ownerNameOf(@Nullable String triggerId) {
         RegisteredTrigger entry = entries.get(Texts.lower(Texts.trim(Texts.toStringSafe(triggerId))));
         return entry == null ? "" : entry.ownerName();
     }
 
-    /**
-     * Revokes one entry when its generation still matches.
-     *
-     * @param triggerId trigger id
-     * @param generation the generation captured at registration time
-     * @return whether the entry was removed
-     */
     public boolean revoke(@Nullable String triggerId, long generation) {
         String key = Texts.lower(Texts.trim(Texts.toStringSafe(triggerId)));
         synchronized (writeLock) {
@@ -162,12 +100,6 @@ public final class TriggerRegistry {
         }
     }
 
-    /**
-     * Revokes every trigger owned by {@code owner}.
-     *
-     * @param owner the owning plugin
-     * @return how many entries were removed
-     */
     public int revokeAll(@Nullable Plugin owner) {
         if (owner == null) {
             return 0;
@@ -188,22 +120,14 @@ public final class TriggerRegistry {
         }
     }
 
-    /** {@return every live trigger id, in registration order} */
     public @NotNull List<String> ids() {
         return List.copyOf(entries.keySet());
     }
 
-    /** {@return every live entry} */
     public @NotNull List<RegisteredTrigger> all() {
         return List.copyOf(entries.values());
     }
 
-    /**
-     * Lists live entries owned by {@code owner}.
-     *
-     * @param owner the owning plugin
-     * @return matching entries
-     */
     public @NotNull List<RegisteredTrigger> byOwner(@Nullable Plugin owner) {
         if (owner == null) {
             return List.of();
@@ -217,24 +141,16 @@ public final class TriggerRegistry {
         return List.copyOf(result);
     }
 
-    /** {@return how many live entries this registry holds} */
     public int size() {
         return entries.size();
     }
 
-    /** Clears every entry. Used when CoreLib itself shuts down. */
     public void clear() {
         synchronized (writeLock) {
             entries = Map.of();
         }
     }
 
-    /**
-     * Tests whether an id carries a usable {@code namespace:name} prefix.
-     *
-     * @param id the candidate id
-     * @return whether both sides of the colon are non-empty
-     */
     public static boolean hasNamespace(@Nullable String id) {
         if (Texts.isBlank(id)) {
             return false;

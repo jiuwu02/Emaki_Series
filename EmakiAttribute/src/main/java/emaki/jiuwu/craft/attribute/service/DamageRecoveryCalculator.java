@@ -56,8 +56,7 @@ final class DamageRecoveryCalculator {
         double healed = Math.min(maxHealth, currentHealth + recoveryAmount) - currentHealth;
         attacker.setHealth(Math.min(maxHealth, currentHealth + recoveryAmount));
         service.scheduleHealthSync(attacker);
-        // 这里是所有回血路径的唯一汇聚点，飘字挂在此处可同时覆盖同步与异步结算分支。
-        // 用实际生效的治疗量而非请求量，满血时不再冒出无意义的数字。
+
         if (healed > 0D && service.plugin() != null && service.plugin().damageIndicatorService() != null) {
             service.plugin().damageIndicatorService().showHeal(attacker, healed);
         }

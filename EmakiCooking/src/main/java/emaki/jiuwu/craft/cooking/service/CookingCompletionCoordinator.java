@@ -43,20 +43,10 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionRecoveryPlanner.NextStep;
 
-
 public final class CookingCompletionCoordinator {
 
     private static final long RETRY_DELAY_TICKS = 20L;
 
-    /**
-     * How many times a player-inventory input may be attempted before the completion is abandoned.
-     *
-     * <p>These units read the player's main hand at execution time, so an unbounded retry would keep
-     * watching the hand and consume the item at some arbitrary later moment — long after the
-     * interaction that asked for it. With {@link #RETRY_DELAY_TICKS} at 20 ticks this bounds the watch
-     * to roughly five seconds, after which nothing has been consumed and no state has been committed,
-     * so abandoning simply returns the station to the player untouched.
-     */
     private static final int MAX_PLAYER_INPUT_ATTEMPTS = 5;
 
     private final JavaPlugin plugin;
@@ -116,10 +106,6 @@ public final class CookingCompletionCoordinator {
                 && activeByStation.containsKey(stationKey(stationType, coordinates));
     }
 
-
-
-
-
     public boolean submit(CookingCompletionRequest request) {
         if (!accepting.get() || request == null || request.stationType() == null || request.coordinates() == null) {
             return false;
@@ -155,7 +141,6 @@ public final class CookingCompletionCoordinator {
         });
         return true;
     }
-
 
     public CompletableFuture<Void> recover() {
         if (!accepting.get()) {
@@ -382,10 +367,7 @@ public final class CookingCompletionCoordinator {
                     if (success) {
                         return save(saved.withInputUnit(current.complete())).thenApply(_ -> true);
                     }
-                    // The unit reads the player's main hand when it runs, so retrying forever would let it
-                    // consume the item at an unrelated later moment. Give up once the attempt budget is
-                    // spent: nothing was consumed and no state was committed, so the station is released
-                    // exactly as the player left it.
+
                     if (current.attempts() >= MAX_PLAYER_INPUT_ATTEMPTS) {
                         return abandonUnavailableInput(saved, current).thenApply(_ -> false);
                     }
@@ -398,18 +380,6 @@ public final class CookingCompletionCoordinator {
                 }));
     }
 
-    /**
-     * Abandons a completion whose required player-inventory input never became available.
-     *
-     * <p>Reached only while the operation is still {@code PREPARED}: no input has been consumed and the
-     * station state has not been committed, so there is nothing to roll back and nothing to salvage.
-     * The operation is archived rather than quarantined because it is a benign outcome — the player
-     * simply no longer held the item — and archiving releases the station through {@code remove}.
-     *
-     * @param operation the operation to abandon
-     * @param unit the input unit that exhausted its attempts
-     * @return the archived operation
-     */
     private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
             CookingCompletionOperation operation,
             Unit unit) {

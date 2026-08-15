@@ -23,12 +23,6 @@ import emaki.jiuwu.craft.station.gui.DurationDisplay;
 import emaki.jiuwu.craft.station.queue.PlayerQueues;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
-/**
- * Routes {@code /emakistation} subcommands.
- *
- * <p>Every subcommand that touches a player's window or inventory dispatches to that player's owner thread
- * first, because a command can arrive from the console or from another player's thread.
- */
 public final class StationCommandRouter {
 
     private static final String PERMISSION_ROOT = "emakistation";
@@ -44,23 +38,10 @@ public final class StationCommandRouter {
 
     private final EmakiStationPlugin plugin;
 
-    /**
-     * Creates the router.
-     *
-     * @param plugin the owning plugin
-     */
     public StationCommandRouter(EmakiStationPlugin plugin) {
         this.plugin = plugin;
     }
 
-    /**
-     * Handles one command invocation.
-     *
-     * @param sender the caller
-     * @param label  the root label used
-     * @param args   the raw arguments
-     * @return always {@code true}; failures are reported as messages, not usage errors
-     */
     public boolean onCommand(CommandSender sender, String label, String[] args) {
         if (args.length == 0) {
             sendHelp(sender);
@@ -83,13 +64,6 @@ public final class StationCommandRouter {
         };
     }
 
-    /**
-     * Suggests completions.
-     *
-     * @param sender the caller
-     * @param args   the raw arguments
-     * @return the suggestions
-     */
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
@@ -158,7 +132,7 @@ public final class StationCommandRouter {
                 message(player, "command.dismantle_failed", Map.of("reason", result.reasonKey()));
             }
         }, () -> {
-            // The player left before the window could open; nothing to clean up.
+
         });
         return true;
     }
@@ -192,7 +166,7 @@ public final class StationCommandRouter {
                 message(player, "command.open_failed", Map.of("reason", result.reasonKey()));
             }
         }, () -> {
-            // The player left before the window could open; nothing to clean up.
+
         });
         return true;
     }
@@ -251,7 +225,7 @@ public final class StationCommandRouter {
                     message(player, "command.claim_done",
                             Map.of("count", String.valueOf(result.orElse(0))));
                 }), () -> {
-                    // The player left before the claim ran; their pending outputs stay pending.
+
                 });
         return true;
     }
@@ -290,7 +264,7 @@ public final class StationCommandRouter {
                     }
                     message(player, "command.cancel_done", Map.of("index", String.valueOf(target + 1)));
                 }), () -> {
-                    // The player left before the cancellation ran; the entry stays queued.
+
                 });
         return true;
     }

@@ -17,15 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * Players around the pipeline origin.
- *
- * <p>Shares {@link NearbyFilter} with {@code nearby}; only the player predicate differs. {@code limit}
- * defaults to {@code 0}, meaning every match, because a party- or area-wide effect normally wants all
- * players rather than the closest one.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: same region read as {@code nearby}.</p>
- */
 public final class NearbyPlayersSource extends BaseSource {
 
     public NearbyPlayersSource() {

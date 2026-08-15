@@ -29,12 +29,6 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 import emaki.jiuwu.craft.storage.session.StorageSessionManager;
 
-/**
- * Root command dispatch for {@code /emakistorage}.
- *
- * <p>Implements Bukkit's {@link TabExecutor} and is adapted to Paper's {@code BasicCommand} by the
- * plugin class, matching how the other Emaki modules register their root command.
- */
 public final class StorageCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakistorage";
@@ -77,11 +71,6 @@ public final class StorageCommandRouter implements TabExecutor {
         };
     }
 
-    /**
-     * 开关自己的自动拾取。
-     *
-     * <p>写入的是玩家自己的仓库元数据，因此必须回到该玩家的所有者线程执行。
-     */
     private boolean handleAutoPickup(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
             plugin.messageService().send(sender, "general.player_only");
@@ -159,7 +148,6 @@ public final class StorageCommandRouter implements TabExecutor {
         return true;
     }
 
-    /** Handles {@code slot grant <player> <amount>}. */
     private boolean handleSlot(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -195,7 +183,6 @@ public final class StorageCommandRouter implements TabExecutor {
         return true;
     }
 
-    /** Handles {@code stacklimit player|slot ...}. */
     private boolean handleStackLimit(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -312,12 +299,6 @@ public final class StorageCommandRouter implements TabExecutor {
         return true;
     }
 
-    /**
-     * Handles {@code export <player>}.
-     *
-     * <p>Entry payloads are binary and cannot be hand-edited, so an admin diagnosing a problem needs
-     * a readable dump. The values that genuinely need hand-editing live in {@code meta.yml} already.
-     */
     private boolean handleExport(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -370,21 +351,12 @@ public final class StorageCommandRouter implements TabExecutor {
                 Arrays.copyOfRange(args, 1, args.length), plugin.messageService());
     }
 
-    /**
-     * Parses a stack limit, accepting compact units and {@code max}.
-     *
-     * <p>Out-of-range input is rejected outright rather than truncated, so a mistyped figure never
-     * silently becomes a different ceiling.
-     *
-     * @return the parsed limit, or {@code null} when already reported as invalid
-     */
     private Long parseLimit(CommandSender sender, String raw) {
         String text = raw == null ? "" : raw.trim();
         if (text.equalsIgnoreCase("max")) {
             return Long.MAX_VALUE;
         }
-        // 0 is a meaningful value here: at entry and player level it restores inheritance from the
-        // next level up, so it must not be rejected alongside genuinely invalid input.
+
         if (text.equals("0")) {
             return 0L;
         }
@@ -397,7 +369,6 @@ public final class StorageCommandRouter implements TabExecutor {
         return parsed;
     }
 
-    /** A resolved command target. */
     private record ResolvedTarget(UUID uuid, String name, Player online) {
     }
 
@@ -415,12 +386,6 @@ public final class StorageCommandRouter implements TabExecutor {
         return new ResolvedTarget(offline.getUniqueId(), resolvedName, null);
     }
 
-    /**
-     * Runs a mutation against a target's storage on the correct owner thread.
-     *
-     * <p>Online targets are dispatched to their own region thread, not the caller's. Offline targets
-     * are refused: mutating an unloaded storage would race the player's next login.
-     */
     private void withStorage(CommandSender sender, ResolvedTarget target,
             Consumer<PlayerStorage> mutation) {
         if (target.online() == null) {
@@ -500,7 +465,6 @@ public final class StorageCommandRouter implements TabExecutor {
         };
     }
 
-    /** {@return the storage keys of a player, used by the export dump} */
     static List<StorageKey> orderedKeys(PlayerStorage storage) {
         return new ArrayList<>(storage.entryOrder());
     }

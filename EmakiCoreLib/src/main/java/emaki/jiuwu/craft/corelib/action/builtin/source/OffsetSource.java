@@ -15,15 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * A location offset from the pipeline origin.
- *
- * <p>With {@code relative=false} the offset is along world axes. With {@code relative=true} it is along
- * the origin's own facing, so {@code z} means forward and {@code x} means right.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: pure arithmetic on a {@code Location} the context already holds. No
- * block, chunk or entity state is read.</p>
- */
 public final class OffsetSource extends BaseSource {
 
     public OffsetSource() {

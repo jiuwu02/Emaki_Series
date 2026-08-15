@@ -25,39 +25,20 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageCapacityService;
 import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 
-/**
- * Click dispatch for the warehouse window.
- *
- * <p>Only {@link GuiClickContext} is consulted; {@code InventoryClickEvent} is never touched. Under
- * CoreLib's packet GUI backend no Bukkit event exists at all, so any direct dependency would fail
- * silently the moment an admin switches backends.
- *
- * <p>Deposits arrive through two paths that share one transaction implementation: clicking a display
- * slot with a loaded cursor, and the fixed {@code deposit_slot}. The only difference is the entry
- * check — the display path is refused while a search filter is active because paging no longer maps
- * to real slot numbers, whereas the deposit port keeps working.
- */
 public final class StorageGuiHandler implements GuiSessionHandler {
 
-    /** Callbacks the handler needs from the plugin without depending on the main class. */
     public interface Callbacks {
 
-        /** Persists the storage after the window closes. */
         void onWindowClosed(Player viewer, PlayerStorage storage);
 
-        /** Starts the chat prompt for a custom withdrawal amount. */
         void promptWithdrawAmount(Player viewer, GuiSession session, StorageKey key);
 
-        /** Starts the chat prompt for a search term. */
         void promptSearch(Player viewer, GuiSession session);
 
-        /** Opens the purchase flow. */
         void openUnlock(Player viewer, GuiSession session, PlayerStorage storage);
 
-        /** Cycles or reverses the sort mode. */
         void cycleSort(Player viewer, GuiSession session, PlayerStorage storage, boolean reverse);
 
-        /** Clears an active search filter. */
         void clearSearch(Player viewer, GuiSession session);
     }
 
@@ -132,13 +113,6 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         }
     }
 
-    /**
-     * {@return whether a click kind is refused outright}
-     *
-     * <p>Double-click aggregates across slots, number keys and offhand swap bypass cursor
-     * semantics, and drop keys would discard the item — none of them can be given a safe meaning
-     * here. Distinguishing them at all is what the expanded {@link GuiClickType} set is for.
-     */
     private boolean rejectedClick(GuiClickType clickType) {
         return switch (clickType) {
             case DOUBLECLICK, NUMBER_KEY, SWAP_OFFHAND, DROP, CONTROL_DROP -> true;
@@ -155,16 +129,13 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         boolean cursorLoaded = cursor != null && !cursor.getType().isAir();
 
         if (cursorLoaded) {
-            // With require_empty_cursor_for_withdraw enabled a loaded cursor makes a display-slot
-            // click a no-op instead of a deposit, which is the whole point of the option: it closes
-            // the "meant to withdraw but had a leftover cursor" mis-click window.
+
             if (config.gui().requireEmptyCursorForWithdraw()) {
                 messageService.send(viewer, "gui.deposit.cursor_guard");
                 return;
             }
             if (state.searching()) {
-                // Paging follows the filtered result set, so a display slot no longer identifies a
-                // real slot. The deposit port stays available and is advertised in the item lore.
+
                 messageService.send(viewer, "gui.deposit.search_blocked");
                 return;
             }
@@ -185,8 +156,7 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         if (index < 0 || index >= slots.size()) {
             return;
         }
-        // Every slice of a spanned entry resolves to the same key, so a withdrawal always debits the
-        // one shared total. That is what makes the tail slots collapse forward on their own.
+
         StorageKey key = slots.get(index).key();
         StorageEntry entry = storage.entry(key);
         if (entry == null || entry.empty()) {
@@ -229,11 +199,6 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         depositFromCursor(session, click, viewer, -1);
     }
 
-    /**
-     * Shared cursor deposit for both paths.
-     *
-     * @param amount how many units to take, or {@code -1} for the whole cursor
-     */
     private void depositFromCursor(GuiSession session, GuiClickContext click, Player viewer, int amount) {
         ItemStack cursor = click.cursorItem();
         if (cursor == null || cursor.getType().isAir()) {
@@ -278,7 +243,7 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         StorageCapacity capacity = capacityService.capacityOf(storage, viewer, perPage);
         int allowed = Math.min(reachable, Math.max(1, capacity.totalPages()));
         if (target > allowed - 1) {
-            // A page with no entry at all is not reachable; page 1 always is.
+
             return;
         }
         guiService.applyPage(session, target);
@@ -297,9 +262,6 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         callbacks.promptSearch(viewer, session);
     }
 
-    /**
-     * Redirects a shift-click on a player inventory item into the deposit port logic.
-     */
     @Override
     public void onPlayerInventoryClick(GuiSession session, GuiClickContext click) {
         if (!click.isMoveToOtherInventory()) {
@@ -339,12 +301,6 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         }
     }
 
-    /**
-     * Clamps the page after the entry count changed, then repaints.
-     *
-     * <p>Withdrawing the last entry on page 3 makes that page unreachable, so the view falls back
-     * to the last reachable page instead of showing an empty window.
-     */
     private void clampAndRefresh(GuiSession session, Player viewer, StorageGuiService.ViewState state) {
         int perPage = guiService.slotsPerPage();
         int slotCount = state.slots().size();
@@ -396,13 +352,6 @@ public final class StorageGuiHandler implements GuiSessionHandler {
         }
     }
 
-    /**
-     * Sends deposit feedback through the configured channel.
-     *
-     * <p>Feedback is not optional decoration: under the mixed deposit strategy an item lands where
-     * the entry order puts it, which may be a different page, so without feedback the player would
-     * believe the item vanished.
-     */
     private void sendFeedback(Player viewer, String key, Map<String, Object> replacements) {
         AppConfig.DepositFeedback feedback = config.gui().depositFeedback();
         if (feedback == AppConfig.DepositFeedback.NONE) {

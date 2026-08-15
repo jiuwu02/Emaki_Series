@@ -140,8 +140,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return;
         }
         try {
-            // Same load/apply split the async path already uses: everything the precheck inspects loads
-            // inside the candidate step, and nothing is applied until the gate commits.
+
             ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                     plugin.messageService(),
                     "strengthen",
@@ -155,7 +154,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                     },
                     plugin.appConfigLoader()::overrideCurrent);
             if (gate.rejected()) {
-                // Previous AppConfig is active again; resumeAccepting still runs in the finally block.
+
                 return;
             }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -203,7 +202,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                             },
                             plugin.appConfigLoader()::overrideCurrent);
                     if (gate.rejected()) {
-                        // Aborts the stage so the apply step never runs; AppConfig is already restored.
+
                         throw new IllegalStateException("Strengthen config precheck failed: "
                                 + String.join("; ", gate.failures()));
                     }
@@ -332,6 +331,5 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {
         coreLibPlugin.namespaceRegistry().register(new EmakiNamespaceDefinition("strengthen", 200, "Strengthen"));
     }
-
 
 }

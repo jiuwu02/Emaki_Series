@@ -16,17 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Runs a command as the target player with operator status granted for its duration.
- *
- * <p>Operator status is restored in a {@code finally} block, including when the command throws, so a failed
- * dispatch cannot leave a player permanently opped. A player who was already an operator is left untouched.</p>
- *
- * <p>This grants full operator permissions for the length of one command. Prefer
- * {@code run_command_as_console} where the command does not have to appear to come from the player.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's operator flag.</p>
- */
 public final class RunCommandAsOpStage extends BaseStage {
 
     public RunCommandAsOpStage() {

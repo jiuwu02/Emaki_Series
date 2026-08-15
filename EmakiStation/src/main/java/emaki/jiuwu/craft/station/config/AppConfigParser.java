@@ -3,24 +3,11 @@ package emaki.jiuwu.craft.station.config;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.station.api.model.ProgressMode;
 
-/**
- * Turns a raw {@code config.yml} section into an {@link AppConfig}.
- *
- * <p>Every read falls back to the shipped default rather than failing, so a partially hand-edited file
- * still yields a usable runtime. Range clamping is left to each settings record's {@code normalized()},
- * which {@link AppConfig}'s constructor applies.
- */
 public final class AppConfigParser {
 
     private AppConfigParser() {
     }
 
-    /**
-     * Parses a configuration section.
-     *
-     * @param section the root section; {@code null} yields the shipped defaults
-     * @return the parsed configuration
-     */
     public static AppConfig parse(YamlSection section) {
         if (section == null) {
             return AppConfig.defaults();
@@ -38,16 +25,6 @@ public final class AppConfigParser {
                 parsePurchase(section.getSection("queue"), defaults.purchaseSettings()));
     }
 
-    /**
-     * Reads the {@code queue.purchase} block.
-     *
-     * <p>Nested under {@code queue} rather than given its own top-level section because it configures the
-     * same feature the surrounding block does, and a station opts in through its own {@code queue} block.
-     *
-     * @param queueSection the {@code queue} section; {@code null} yields the defaults
-     * @param defaults     the shipped defaults
-     * @return the parsed settings
-     */
     private static PurchaseSettings parsePurchase(YamlSection queueSection, PurchaseSettings defaults) {
         if (queueSection == null) {
             return defaults;

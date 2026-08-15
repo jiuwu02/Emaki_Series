@@ -91,9 +91,7 @@ final class ResourceManagementService {
             if (regenPerSecond == 0D) {
                 continue;
             }
-            // The regeneration increment is applied to the engine-owned baseline
-            // rather than the persisted mirror: an external setHealth call this
-            // plugin never observed would otherwise be reverted on the next tick.
+
             double baselineValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
             double nextValue = baselineValue + (regenPerSecond * intervalSeconds);
             boolean traceHealthRegen = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) && shouldDebugResource(player);
@@ -126,9 +124,7 @@ final class ResourceManagementService {
             if (existingHealth == null || existingHealth.currentValue() <= 0D) {
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
             } else {
-                // The player's own entity health is authoritative on join: it was
-                // restored from playerdata and reflects changes this plugin never
-                // observed, whereas the persisted resource state is only a mirror.
+
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
             }
         });
@@ -385,10 +381,7 @@ final class ResourceManagementService {
             ResourceSyncReason reason,
             Double healthOverride,
             boolean forceHealthToFull) {
-        // Vanilla-mapped attributes are refreshed first: the health resource reads
-        // the modified MAX_HEALTH value as its ceiling, so a VANILLA-mapped max
-        // health binding must already be applied for this tick rather than lagging
-        // one sync behind.
+
         service.vanillaSynchronizer().syncVanillaMappedAttributes(
                 player,
                 snapshot,
@@ -405,27 +398,6 @@ final class ResourceManagementService {
         service.vanillaSynchronizer().syncMovementSpeed(player, snapshot, service.registryService().genericSpeedDefinitions());
     }
 
-    /**
-     * Resolves the effective ceiling for the health resource.
-     *
-     * <p>EmakiAttribute owns the {@code MAX_HEALTH} base value, but other
-     * sources (its own {@code VANILLA}-mapped attributes, potion effects such as
-     * Health Boost, and third-party plugins) contribute attribute modifiers on
-     * top of that base. {@code Player#setHealth(double)} is bounded by the
-     * modified attribute value, not by the base, so the resource ceiling must
-     * follow the engine-computed value. Otherwise the resource cap stays at the
-     * EmakiAttribute-only figure and every sync forces health back down to it,
-     * which prevents the player from ever healing past it.
-     *
-     * <p>For non-health resources, and when the health resource does not sync to
-     * Bukkit, the EmakiAttribute-only cap is returned unchanged.
-     *
-     * @param player the player being synchronized
-     * @param resourceDefinition the resource being synchronized
-     * @param ownMax the cap derived from EmakiAttribute's own resource attributes
-     * @param reason the sync reason, used for diagnostics
-     * @return the ceiling the resource state should adopt
-     */
     private double resolveHealthCeiling(Player player,
             ResourceDefinition resourceDefinition,
             double ownMax,
@@ -454,26 +426,6 @@ final class ResourceManagementService {
         return ceiling;
     }
 
-    /**
-     * Resolves the baseline EmakiAttribute derives a resource's current value
-     * from when no explicit override applies.
-     *
-     * <p>For a resource that synchronises to Bukkit, the engine owns the current
-     * value: {@code Player#setHealth(double)} can be called by any other plugin,
-     * by vanilla food regeneration, or by a command, and none of those routes
-     * fire {@code EntityRegainHealthEvent}. EmakiAttribute therefore cannot
-     * observe them and its persisted state is only a mirror. Deriving the next
-     * value from that mirror silently reverts every unobserved change, so the
-     * baseline must come from {@code Player#getHealth()} instead.
-     *
-     * <p>For resources that do not synchronise to Bukkit, such as {@code mana},
-     * the persisted state is the only authority and is returned unchanged.
-     *
-     * @param player the player being synchronized
-     * @param resourceDefinition the resource being synchronized
-     * @param existing the persisted resource state, may be {@code null}
-     * @return the baseline the current value should be derived from
-     */
     private double resolveCurrentValueBaseline(Player player,
             ResourceDefinition resourceDefinition,
             ResourceState existing) {
@@ -487,11 +439,7 @@ final class ResourceManagementService {
         if (player == null || state == null) {
             return;
         }
-        // A dead player still reports online and valid until the respawn packet is
-        // handled, so the generic usability check cannot guard this write. Writing a
-        // positive health value in that window revives the server-side entity while
-        // the client stays on the death screen, which strands the player. Respawn is
-        // handled separately by scheduleRespawnHealthSync.
+
         if (player.isDead()) {
             debugResource(player, "resource.bukkit_skipped_dead", debugReplacements(
                     "player", player.getName(),
@@ -595,12 +543,6 @@ final class ResourceManagementService {
         ));
     }
 
-    /**
-     * Logs every modifier currently present on the player's {@code MAX_HEALTH}
-     * instance, so the source of an unexpected effective maximum can be named
-     * instead of guessed. Each modifier is reported with its key, amount,
-     * operation and slot group.
-     */
     private void debugMaxHealthModifiers(Player player, ResourceSyncReason reason, AttributeInstance maxHealthAttribute) {
         if (maxHealthAttribute == null || !shouldDebugResource(player)) {
             return;

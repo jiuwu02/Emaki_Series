@@ -123,7 +123,6 @@ public final class PlayerSkillProfile implements SessionData<PlayerSkillProfile>
         return revision > persistedRevision;
     }
 
-    /** {@inheritDoc} Delegates to the pre-existing {@link #isDirty()} spelling. */
     @Override
     public synchronized boolean dirty() {
         return isDirty();

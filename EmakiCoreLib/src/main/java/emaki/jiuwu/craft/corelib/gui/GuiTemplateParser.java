@@ -21,10 +21,6 @@ import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 
 public final class GuiTemplateParser {
 
-    /**
-     * Recognised {@code sounds} keys. Keys absent from this map are ignored so templates written
-     * for the pre-expansion click set keep loading unchanged.
-     */
     private static final Map<String, GuiClickType> SOUND_KEYS = Map.ofEntries(
             Map.entry("click", GuiClickType.CLICK),
             Map.entry("left_click", GuiClickType.LEFTCLICK),

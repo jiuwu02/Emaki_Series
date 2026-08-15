@@ -15,14 +15,6 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Per-player boss bars owned by the boss bar stages, keyed by player and bar id.
- *
- * <p>Separate from the v1 {@code BuiltinBossBarRegistry} on purpose. That class is package-private inside
- * {@code action.builtin} and phase 6 deletes it; sharing state across the two would make the v2 stages
- * depend on code scheduled for removal. During the dual-registration window each side owns the bars it
- * created, which is correct because a given configuration goes down exactly one of the two paths.</p>
- */
 final class BossBarStore {
 
     private static final ConcurrentMap<Key, BossBar> BARS = new ConcurrentHashMap<>();
@@ -88,7 +80,6 @@ final class BossBarStore {
         return removedCount;
     }
 
-    /** Detaches every tracked bar. Called when CoreLib shuts down, so no bar outlives the plugin. */
     static void clear() {
         for (Key key : Map.copyOf(BARS).keySet()) {
             BossBar removed = BARS.remove(key);

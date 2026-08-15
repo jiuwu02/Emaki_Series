@@ -38,9 +38,6 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StationStorageBackend;
 import emaki.jiuwu.craft.cooking.service.StationStateStore.StoredState;
 
-
-
-
 final class StationStateFileStore {
 
     static final String STATION_SOURCE_KEY = "station_source";

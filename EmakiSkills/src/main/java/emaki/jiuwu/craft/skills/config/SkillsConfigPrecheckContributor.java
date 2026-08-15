@@ -52,17 +52,6 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
         return new ConfigPrecheckResult(module(), issues);
     }
 
-    /**
-     * Reports every skill script line that failed to compile.
-     *
-     * <p>The check itself moved into {@link SkillPipelineRuntime}: compilation already happens at load time and
-     * already knows what is wrong with a line, so this method compiles each script once and translates the
-     * diagnostics rather than re-implementing a parser and an argument check.</p>
-     *
-     * <p>Diagnostics are grouped onto the three keys this module's language files define. Anything CoreLib
-     * reports that is not an unknown stage or a missing argument lands on {@code script_syntax_error}, which is
-     * accurate: every remaining case is a line the author has to rewrite.</p>
-     */
     private void checkSkillScripts(List<ConfigPrecheckIssue> issues) {
         SkillDefinitionLoader loader = plugin.skillDefinitionLoader();
         SkillPipelineRuntime runtime = plugin.skillPipelineRuntime();
@@ -87,8 +76,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                 + entry.phase().configKey();
         String reasonKey = diagnostic.reasonKey();
         if ("action.validate.unknown_stage".equals(reasonKey)) {
-            // The offending token is what the author has to fix. The full stage list is not appended: it
-            // runs to dozens of ids, buries the line number it is attached to, and is already documented.
+
             addMessageIssue(path, WARN, "script_action_unknown", Map.of(
                     "skill", entry.skillId(),
                     "line", entry.lineNumber(),
@@ -103,9 +91,7 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
                     "argument", Texts.toStringSafe(diagnostic.detail().get("argument"))), issues);
             return;
         }
-        // Rendered through CoreLib's message service, not this module's: every action.* diagnostic text
-        // lives in CoreLib's language file, and Skills' own language file has none of those keys. Falls
-        // back to toString() so the token, column and detail survive when CoreLib is unreachable.
+
         String detail = plugin.coreLib() == null || plugin.coreLib().messageService() == null
                 ? diagnostic.toString()
                 : plugin.coreLib().messageService().renderDiagnostic(diagnostic);

@@ -8,7 +8,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 
-/** Metadata carrier for the builtin gate stages. */
 public abstract class BaseGate implements CoreActionGate {
 
     private final String id;

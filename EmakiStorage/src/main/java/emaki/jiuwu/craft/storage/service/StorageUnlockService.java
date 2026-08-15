@@ -24,35 +24,8 @@ import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.log.StorageOperationType;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 
-/**
- * Paid capacity expansion.
- *
- * <p>Two rules drive the whole class:
- *
- * <ul>
- *   <li><strong>Batch purchases are priced per slot and summed.</strong> Charging
- *       "current unit price times count" would let a player buy a large batch at the cheapest tier
- *       and lock in that price for slots that belong in far more expensive tiers.</li>
- *   <li><strong>Payment is transactional with reverse-order compensation.</strong> Currency is
- *       taken, then items; if the item step fails the currency is refunded and the plan rolled
- *       back before {@code purchasedSlots} is ever touched.</li>
- * </ul>
- *
- * <p>Fail-closed: when no tier matches and no fallback exists the purchase is refused rather than
- * treated as free.
- */
 public final class StorageUnlockService {
 
-    /**
-     * A computed price for a batch.
-     *
-     * @param slots         how many slots the quote covers
-     * @param currencyTotal the summed currency amount
-     * @param currencyType  the currency backend, {@code null} when no currency is charged
-     * @param currencyId    the backend currency id
-     * @param itemTotals    required items keyed by ItemSource token
-     * @param rejection     a reason key when no valid quote exists, otherwise {@code null}
-     */
     public record Quote(int slots,
             double currencyTotal,
             UnlockCostConfig.CurrencyType currencyType,
@@ -87,13 +60,6 @@ public final class StorageUnlockService {
         }
     }
 
-    /**
-     * Outcome of a purchase attempt.
-     *
-     * @param unlocked  how many slots were added
-     * @param quote     the quote that was charged
-     * @param reasonKey a reason key on failure, otherwise {@code null}
-     */
     public record PurchaseResult(int unlocked, Quote quote, String reasonKey) {
 
         public boolean success() {
@@ -140,7 +106,6 @@ public final class StorageUnlockService {
         return costConfig;
     }
 
-    /** {@return the configured batch options, filtered to what the ceiling still allows} */
     public List<Integer> batchOptions() {
         UnlockCostConfig costs = costConfig;
         if (!costs.batch().enabled()) {
@@ -149,14 +114,6 @@ public final class StorageUnlockService {
         return costs.batch().options();
     }
 
-    /**
-     * Prices a batch by summing each individual slot's tier price.
-     *
-     * @param storage  the buyer's storage
-     * @param capacity the current capacity breakdown
-     * @param slots    how many slots to quote
-     * @return the quote, or a rejection when pricing is impossible
-     */
     public Quote quote(PlayerStorage storage, StorageCapacity capacity, int slots) {
         if (slots <= 0) {
             return Quote.rejected(slots, "invalid_amount");
@@ -207,8 +164,7 @@ public final class StorageUnlockService {
                     return Quote.rejected(slots, "price_overflow");
                 }
                 if (ceiling != Double.MAX_VALUE && amount > ceiling) {
-                    // Explicit refusal rather than a silent clamp: the admin's formula produced a
-                    // price outside the declared guard rail, so the purchase must not proceed.
+
                     return Quote.rejected(slots, "price_over_cap");
                 }
                 currencyTotal += amount;
@@ -234,19 +190,6 @@ public final class StorageUnlockService {
         return evaluated.success() ? evaluated.value() : Double.NaN;
     }
 
-    /**
-     * Executes a purchase.
-     *
-     * <p>Order: quote, fire the cancellable event, take currency, take items, then grant slots.
-     * Any failure after a successful charge is compensated in reverse before returning.
-     *
-     * @param storage  the buyer's storage
-     * @param player   the buyer, must be online
-     * @param capacity the current capacity breakdown
-     * @param slots    how many slots to buy
-     * @param source   the originating surface
-     * @return the purchase outcome
-     */
     public PurchaseResult purchase(PlayerStorage storage,
             Player player,
             StorageCapacity capacity,
@@ -299,9 +242,6 @@ public final class StorageUnlockService {
         return new PurchaseResult(slots, quote, null);
     }
 
-    /**
-     * Reverses every completed step in reverse order.
-     */
     private void compensate(Player player,
             Quote quote,
             boolean currencyCharged,

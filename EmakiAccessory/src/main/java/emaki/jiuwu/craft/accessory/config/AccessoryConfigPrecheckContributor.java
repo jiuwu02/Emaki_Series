@@ -13,22 +13,10 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
 
-/**
- * Reports EmakiAccessory configuration problems into CoreLib's precheck report.
- *
- * <p>Covers the four surfaces an administrator can break independently: the main config, the parts
- * file, the GUI template directory and the set directory. Loader issues are forwarded rather than
- * re-derived, so the report says the same thing the startup log did.
- */
 public final class AccessoryConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
     private final EmakiAccessoryPlugin plugin;
 
-    /**
-     * Creates the contributor.
-     *
-     * @param plugin the owning plugin
-     */
     public AccessoryConfigPrecheckContributor(EmakiAccessoryPlugin plugin) {
         super("accessory", plugin::messageService);
         this.plugin = plugin;

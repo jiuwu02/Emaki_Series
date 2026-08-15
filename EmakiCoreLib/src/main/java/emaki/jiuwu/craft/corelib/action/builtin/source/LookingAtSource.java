@@ -18,15 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * The entity the caster is looking at.
- *
- * <p>Replaces the Skills-side {@code ray} action; its {@code save=target} write-back is now the explicit
- * {@code keep} gate instead of a hidden context side effect.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: {@code LivingEntity#rayTraceEntities} reads the caster's position and
- * direction plus the surrounding entities, so it must run on the thread that owns the caster.</p>
- */
 public final class LookingAtSource extends BaseSource {
 
     public LookingAtSource() {
@@ -53,8 +44,7 @@ public final class LookingAtSource extends BaseSource {
         if (world == null) {
             return CoreSourceResult.empty("action.source.looking_at.no_hit");
         }
-        // World#rayTraceEntities rather than LivingEntity#rayTraceEntities: only the former accepts a ray
-        // size, and `width` has to keep the meaning the Skills-side `ray` action gave it.
+
         RayTraceResult result = world.rayTraceEntities(eye, eye.getDirection(), range, width,
                 candidate -> candidate != null && !candidate.equals(caster));
         if (result == null || result.getHitEntity() == null) {

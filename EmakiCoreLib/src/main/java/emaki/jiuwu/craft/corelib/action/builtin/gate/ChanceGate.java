@@ -16,16 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Stops the pipeline unless a probability roll succeeds.
- *
- * <p>Accepts {@code 50%}, {@code 0.5} and {@code 1/3}. Losing the roll is {@code Halted}, not
- * {@code Invalid}: a failed roll is the point of the stage, while {@code chance abc} is a typo the server
- * owner needs to see.</p>
- *
- * <p>Thread need {@code PURE}: draws a random number and compares it. No Bukkit state is touched, so this
- * gate folds into whichever domain its neighbours use.</p>
- */
 public final class ChanceGate extends BaseGate {
 
     public ChanceGate() {

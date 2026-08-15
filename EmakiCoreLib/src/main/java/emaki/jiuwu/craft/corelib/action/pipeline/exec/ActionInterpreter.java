@@ -35,13 +35,6 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Runs a {@link CompiledPipeline}.
- *
- * <p>Two properties matter most. Nothing is parsed here: the hot path walks an AST that was validated
- * at load time. And every stage is dispatched through {@link StageDispatcher} with the domain the
- * stage declared, so no domain is ever inferred at runtime.</p>
- */
 public final class ActionInterpreter {
 
     private final StageInvoker invoker;
@@ -49,14 +42,6 @@ public final class ActionInterpreter {
     private final SequenceRepository sequences;
     private final PipelineLimits limits;
 
-    /**
-     * Creates an interpreter.
-     *
-     * @param invoker stage execution seam
-     * @param dispatcher the single scheduling entry point
-     * @param sequences named sequences available to {@code run}
-     * @param limits compile limits, reused at runtime for sequence depth
-     */
     public ActionInterpreter(@NotNull StageInvoker invoker,
             @NotNull StageDispatcher dispatcher,
             @Nullable SequenceRepository sequences,
@@ -67,14 +52,6 @@ public final class ActionInterpreter {
         this.limits = limits == null ? PipelineLimits.defaults() : limits;
     }
 
-    /**
-     * Runs a pipeline.
-     *
-     * @param owner plugin owning this invocation
-     * @param pipeline the compiled pipeline
-     * @param context root context
-     * @return the pipeline outcome
-     */
     public @NotNull CompletableFuture<PipelineOutcome> run(@NotNull Plugin owner,
             @NotNull CompiledPipeline pipeline,
             @NotNull PipelineContext context) {
@@ -103,21 +80,12 @@ public final class ActionInterpreter {
         return walk(run, chain, nodes, sequenceDepth);
     }
 
-    /**
-     * Walks a node list, batching stages and handing control nodes their own step.
-     *
-     * <p>A timing stage takes everything after it as its body, because {@code after 10t | self | msg}
-     * means "run {@code self | msg} 10 ticks later" rather than "transform the flow". The walk
-     * therefore stops at the first timing stage and nests the remainder.</p>
-     */
     private CompletableFuture<State> walk(Run run,
             CompletableFuture<State> chain,
             List<ActionAst> nodes,
             int sequenceDepth) {
         CompletableFuture<State> current = chain;
-        // Consecutive plain stages are collected into runs so same-domain stages can share one
-        // dispatch. Branches and sequence calls break a run because their bodies are separate
-        // pipelines whose domains are only known once their own stages resolve.
+
         List<ActionAst> pending = new ArrayList<>();
         for (int index = 0; index < nodes.size(); index++) {
             ActionAst node = nodes.get(index);
@@ -171,8 +139,7 @@ public final class ActionInterpreter {
                 ? arguments.getDurationTicks("delay", 0L)
                 : arguments.getDurationTicks("interval", 0L);
         if (intervalTicks <= 0L && !stage.positional().isEmpty()) {
-            // The compiler names positional values before execution, but the interpreter must not depend
-            // on that having happened: reading the bare value keeps a hand-built AST behaving the same.
+
             intervalTicks = Math.max(0L, ValueParsers.parseTicks(
                     state.context().render(stage.positional().get(0))));
         }
@@ -180,14 +147,12 @@ public final class ActionInterpreter {
             run.record(stage.id(), PipelineOutcome.Status.SKIPPED, "action.run.timing_without_body", 0);
             return CompletableFuture.completedFuture(state.stopped("action.run.timing_without_body"));
         }
-        // times counts extra runs on top of the first one (decision D4 makes 0 the default), so a plain
-        // `after` and `every ... times 0` both run the body exactly once.
+
         int extraRuns = 0;
         if (!isAfter) {
             extraRuns = Math.max(0, arguments.getInt("times", 0));
             if (extraRuns == 0) {
-                // Written form is `every <interval> times <count>`, so the count follows the literal
-                // `times` keyword rather than sitting at a fixed index.
+
                 List<String> positional = stage.positional();
                 for (int index = 0; index + 1 < positional.size(); index++) {
                     if ("times".equalsIgnoreCase(positional.get(index))) {
@@ -219,13 +184,6 @@ public final class ActionInterpreter {
                                 iteration + 1));
     }
 
-    /**
-     * Waits {@code delayTicks} and then revalidates the pipeline before letting the body run.
-     *
-     * <p>The design requires caster, targets and owner all be rechecked after a delay, and requires the
-     * result be {@code Skipped} rather than {@code Failure}: "the player logged off during the delay"
-     * is not a configuration error.</p>
-     */
     private CompletableFuture<State> delayed(Run run, State state, long delayTicks) {
         if (delayTicks <= 0L) {
             return CompletableFuture.completedFuture(state);
@@ -237,7 +195,7 @@ public final class ActionInterpreter {
                 .handle((resumed, throwable) -> {
                     if (throwable != null) {
                         CoreActionOutcome outcome = throwableOutcome(throwable);
-                        // A retired target or a disabled owner during the wait is a skip, not a failure.
+
                         if (outcome instanceof CoreActionOutcome.Failure failure
                                 && (failure.kind() == CoreActionFailureKind.MISSING_CONTEXT
                                         || failure.kind() == CoreActionFailureKind.OWNER_DISABLED)) {
@@ -301,16 +259,14 @@ public final class ActionInterpreter {
         return switch (node) {
             case ActionAst.Branch branch -> branch(run, branch, state, sequenceDepth);
             case ActionAst.SequenceCall call -> sequence(run, call, state, sequenceDepth);
-            // Reached only for a lone stage inside a branch or sequence body; the top-level walk batches
-            // stages before they get here.
+
             case ActionAst.Stage stage -> runStageRun(run, List.of(stage), state);
         };
     }
 
     private CompletableFuture<State> runGroup(Run run, StageGroup group, State state) {
         if (group.perTarget()) {
-            // A per-target group keeps one dispatch per target: the target owns the thread the stage
-            // must run on, so these cannot be collapsed into a single dispatch.
+
             return runPerTargetGroup(run, group, state);
         }
         StageDispatcher.DispatchTarget target = dispatchTarget(
@@ -325,12 +281,6 @@ public final class ActionInterpreter {
                         : result);
     }
 
-    /**
-     * Runs every member of a group on the thread the group was dispatched to.
-     *
-     * <p>This is the point of grouping: the stages inside one group are already on the right thread, so
-     * they run in sequence without going back to the scheduler.</p>
-     */
     private State runMembersInline(Run run, StageGroup group, State state) {
         State current = state;
         for (StageGroup.Member member : group.members()) {
@@ -375,9 +325,7 @@ public final class ActionInterpreter {
     }
 
     private static long groupTimeout(StageGroup group) {
-        // The group shares one dispatch, so it needs one timeout. Taking the maximum keeps a slow stage
-        // from being cut short by a faster neighbour; the design requires timeout be applied in exactly
-        // one place, which is this dispatch.
+
         long timeout = 0L;
         for (StageGroup.Member member : group.members()) {
             timeout = Math.max(timeout, member.handle().timeoutMillis());
@@ -455,8 +403,7 @@ public final class ActionInterpreter {
         return switch (result) {
             case CoreGateResult.Passed passed -> {
                 run.record(stageId, PipelineOutcome.Status.SUCCESS, "", passed.outbound().size());
-                // The one place every gate result converges, so recording `keep` here catches it wherever
-                // it sits: inside a batched group, on its own dispatch, or inside a branch body.
+
                 if (StaticValidator.KEEP_GATE.equals(stageId)) {
                     run.recordKept(passed.outbound());
                 }
@@ -486,8 +433,6 @@ public final class ActionInterpreter {
                     .thenApply(outcome -> actionResult(run, handle.id(), state, List.of(outcome), 0));
         }
 
-        // Snapshot the flow now. A stage that removes an entity must not shorten the iteration of the
-        // stage it shares a flow with; that is what "iteration order is stable" means for a pipeline.
         List<CoreActionSubject> flow = state.flow();
         if (flow.isEmpty()) {
             if (handle.targetRequirement().requiresTarget()) {
@@ -510,8 +455,7 @@ public final class ActionInterpreter {
                 }
                 CoreActionSubject subject = flow.get(position);
                 if (!subject.valid()) {
-                    // Revalidated per target rather than once up front: on Folia a target can be
-                    // removed while an earlier target in the same flow is still being processed.
+
                     skippedTargets[0]++;
                     return CompletableFuture.completedFuture(null);
                 }
@@ -539,9 +483,7 @@ public final class ActionInterpreter {
         CoreActionSubject subject = invocationContext.currentTarget();
         StageDispatcher.DispatchTarget target = dispatchTarget(
                 invoker.domainOf(handle, invocationContext, subject, raw), invocationContext, subject);
-        // Placeholders are rendered inside the dispatched task, not before it: %target.health% must be
-        // read on the thread that owns the target, and per-target rendering is why each iteration gets
-        // its own arguments.
+
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
                 () -> invoker.invokeAction(handle, invocationContext,
@@ -576,8 +518,7 @@ public final class ActionInterpreter {
             run.record(stageId, PipelineOutcome.Status.FAILURE, first.reasonKey(), outcomes.size());
             return state.failed(first.kind(), first.reasonKey(), first.args());
         }
-        // Partial is recorded but does not stop the pipeline: "three of five targets were immune" is a
-        // gameplay result, not a configuration error, and later stages still have work to do.
+
         run.record(stageId, PipelineOutcome.Status.PARTIAL, "action.run.partial_targets", outcomes.size());
         return state.partial();
     }
@@ -627,15 +568,12 @@ public final class ActionInterpreter {
             List<ActionAst> nodes,
             State state,
             int sequenceDepth) {
-        // A branch body is a pipeline too, so it gets the same batching, grouping and timing handling.
-        // Dispatching each of its stages separately would reintroduce per-stage scheduling inside every
-        // branch.
+
         return walk(run, CompletableFuture.completedFuture(state), nodes, sequenceDepth);
     }
 
     private State mergeSequence(State caller, State callee) {
-        // A sequence call is isolated in variables but not in failure: if the callee failed, the caller
-        // must not continue as if nothing happened.
+
         if (callee.failureKind() != null) {
             return caller.failed(callee.failureKind(), callee.reasonKey(), callee.args());
         }
@@ -727,13 +665,6 @@ public final class ActionInterpreter {
         };
     }
 
-    /**
-     * One invocation's mutable bookkeeping: owner, cancellation, the per-stage log and the kept flow.
-     *
-     * <p>{@code keptFlow} is a single-element holder rather than a field because {@code Run} is a record: the
-     * flow recorded by {@code keep} has to be replaceable while the record itself stays shallowly immutable,
-     * the same shape {@code stageResults} already uses.</p>
-     */
     private record Run(Plugin owner,
             CancellationSignal cancellation,
             List<PipelineOutcome.StageResult> stageResults,
@@ -747,12 +678,6 @@ public final class ActionInterpreter {
             stageResults.add(new PipelineOutcome.StageResult(stageId, status, reasonKey, targetCount));
         }
 
-        /**
-         * Records the flow a {@code keep} gate saw.
-         *
-         * <p>Last write wins. {@code keep} means "the flow at this point", so a later {@code keep} replaces an
-         * earlier one and a gate that narrows the flow after {@code keep} does not change what was recorded.</p>
-         */
         private void recordKept(List<CoreActionSubject> flow) {
             keptFlow.clear();
             keptFlow.add(flow == null ? List.of() : List.copyOf(flow));
@@ -763,12 +688,6 @@ public final class ActionInterpreter {
         }
     }
 
-    /**
-     * Immutable interpreter state threaded through the pipeline.
-     *
-     * <p>Deliberately a value rather than a mutable cursor: a stage cannot reach back and change what
-     * an earlier stage decided, which is the property the v1 {@code sharedState} map lacked.</p>
-     */
     private record State(PipelineContext context,
             List<CoreActionSubject> flow,
             @Nullable String stoppedReason,

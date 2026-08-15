@@ -42,7 +42,6 @@ public final class DebugLogger {
         this.languageLoader = Objects.requireNonNull(languageLoader, "languageLoader");
     }
 
-
     public static void setGlobalAllEnabled(boolean enabled) {
         globalAllEnabled = enabled;
     }
@@ -68,7 +67,6 @@ public final class DebugLogger {
     public boolean shouldLog(String module, Player player) {
         return shouldLog(module, player == null ? null : player.getUniqueId());
     }
-
 
     public void log(String module, UUID player, String langKey, Map<String, ?> replacements) {
         if (!shouldLog(module, player)) {
@@ -110,7 +108,6 @@ public final class DebugLogger {
         log(module, player == null ? null : player.getUniqueId(), langKey, Map.of());
     }
 
-
     public boolean addPlayer(UUID player) {
         if (player == null) {
             return false;
@@ -145,7 +142,6 @@ public final class DebugLogger {
     public Set<UUID> trackedPlayers() {
         return Collections.unmodifiableSet(trackedPlayers);
     }
-
 
     public boolean enableModule(String module) {
         if (Texts.isBlank(module)) {
@@ -182,7 +178,6 @@ public final class DebugLogger {
     public Set<String> enabledModules() {
         return Collections.unmodifiableSet(enabledModules);
     }
-
 
     public void enableAll() {
         trackedPlayers.clear();

@@ -10,13 +10,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 
-/**
- * Metadata carrier for the builtin source stages.
- *
- * <p>The domain is a constructor argument rather than an overridable method: requirement R2 asks that
- * no stage be able to stay undeclared, and a mandatory constructor parameter is the form of that rule
- * which the compiler itself enforces.</p>
- */
 public abstract class BaseSource implements CoreActionSource {
 
     private final String id;

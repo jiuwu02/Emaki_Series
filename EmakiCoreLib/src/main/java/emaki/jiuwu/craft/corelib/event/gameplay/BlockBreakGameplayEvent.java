@@ -5,18 +5,6 @@ import java.util.Map;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
-
-
-
-
-
-
 public record BlockBreakGameplayEvent(Player player, Block block, boolean mature)
         implements GameplayEvent {
 

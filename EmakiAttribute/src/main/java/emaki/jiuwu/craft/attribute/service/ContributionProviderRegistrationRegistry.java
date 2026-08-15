@@ -16,7 +16,6 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
 
-/** Owner-aware lifecycle wrapper around the existing contribution provider registry. */
 public final class ContributionProviderRegistrationRegistry implements Listener, AutoCloseable {
 
     private final AttributeServiceFacade attributeService;

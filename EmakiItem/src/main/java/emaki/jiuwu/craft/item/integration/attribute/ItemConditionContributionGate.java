@@ -9,21 +9,10 @@ import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistratio
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
-/**
- * Applies an EmakiItem definition's {@code condition} block to every
- * contribution of that item.
- *
- * <p>Without this gate the condition block only guards trigger actions, so an
- * item whose condition fails still contributes its Lore and PDC attributes and
- * its equipment skills. Evaluation is silent because attribute and skill
- * collection runs per equipment slot on every resync.
- */
 public final class ItemConditionContributionGate implements ItemContributionGate {
 
-    /** Gate identifier surfaced in diagnostics and attribute snapshot signatures. */
     public static final String GATE_ID = "emakiitem_condition";
 
-    /** Trigger name exposed to the condition context during gate evaluation. */
     private static final String GATE_TRIGGER = "contribution";
 
     private final EmakiItemPlugin plugin;
@@ -32,15 +21,6 @@ public final class ItemConditionContributionGate implements ItemContributionGate
         this.plugin = plugin;
     }
 
-    /**
-     * Registers the gate with EmakiAttribute.
-     *
-     * <p>Invoked reflectively by {@code ItemContributionGateLifecycle} only when
-     * EmakiAttribute is enabled, so EmakiItem starts normally without it.
-     *
-     * @param plugin the owning EmakiItem plugin
-     * @return the closeable registration handle
-     */
     public static ItemContributionGateRegistration register(EmakiItemPlugin plugin) {
         return EmakiAttributeApi.extensions().registerItemContributionGate(
                 plugin,

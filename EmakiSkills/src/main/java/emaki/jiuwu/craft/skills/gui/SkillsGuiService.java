@@ -91,7 +91,6 @@ public final class SkillsGuiService {
         this.messageService = messageService;
     }
 
-
     public boolean open(Player player) {
         if (player == null) {
             return false;
@@ -145,16 +144,6 @@ public final class SkillsGuiService {
         return session != null;
     }
 
-    /**
-     * 打开技能升级界面。
-     *
-     * <p>模板取自该技能 {@code upgrade.gui_template} 声明的 id，未配置或该 id
-     * 不存在时回落到内置 {@value #TEMPLATE_UPGRADE}。</p>
-     *
-     * @param player  查看者
-     * @param skillId 要升级的技能 id
-     * @return 会话是否成功打开
-     */
     public boolean openUpgradeGui(Player player, String skillId) {
         if (player == null) {
             return false;
@@ -187,9 +176,6 @@ public final class SkillsGuiService {
         return session != null;
     }
 
-    /**
-     * {@return 该技能声明的升级模板，缺失时回落内置模板；两者都不存在时为 {@code null}}
-     */
     private GuiTemplate resolveUpgradeTemplate(SkillDefinition definition) {
         SkillUpgradeConfig upgrade = definition == null ? null : definition.upgrade();
         String configured = upgrade == null ? null : Texts.normalizeId(upgrade.guiTemplate());
@@ -236,7 +222,6 @@ public final class SkillsGuiService {
         return CompletableFuture.allOf(closes.toArray(CompletableFuture[]::new));
     }
 
-
     public void renderSkillsGui(GuiSession session) {
         if (session == null) {
             return;
@@ -282,9 +267,7 @@ public final class SkillsGuiService {
         String triggerPlain = binding.triggerId() == null || binding.triggerId().isBlank()
                 ? messageService.message("gui.trigger_unbound")
                 : triggerRegistry.getDisplayName(binding.triggerId());
-        // Slot presentation belongs to gui/skills_gui.yml. A Java-side fallback lore
-        // would be silently discarded whenever the template configures its own lore,
-        // so any hint written here could never be relied upon.
+
         Map<String, Object> replacements = activeSlotReplacements(player, slotIndex, definition, binding, triggerPlain);
         return buildConfiguredItem(slot, definition.iconMaterial(), "<gold>" + definition.displayName(),
                 List.of(), replacements);
@@ -301,8 +284,7 @@ public final class SkillsGuiService {
         replacements.put("max_level", 0);
         replacements.put("cooldown", "0.0");
         replacements.put("cooldown_ticks", 0);
-        // An empty slot deliberately reuses the configured active_slot presentation:
-        // its name and lore come from gui/skills_gui.yml, not from this class.
+
         return buildConfiguredItem(slot, "gray_stained_glass_pane",
                 messageService.message("gui.slot_empty") + " <dark_gray>#" + slotIndex,
                 List.of(), replacements);
@@ -390,7 +372,6 @@ public final class SkillsGuiService {
                 List.of("<gray>已解锁技能: <white>" + unlocked.size()), replacements);
     }
 
-
     public void renderTriggerSelectGui(GuiSession session, int targetSlot) {
         if (session == null) {
             return;
@@ -446,9 +427,7 @@ public final class SkillsGuiService {
         }
 
         String nameColor = hasConflict ? "<red>" : (currentlyBound ? "<yellow>" : "<green>");
-        // The %status% placeholder carries the bound/conflicting/available wording so
-        // gui/trigger_select_gui.yml owns the layout. A Java-side lore would be
-        // dropped whenever that template defines its own lore.
+
         String status = currentlyBound
                 ? messageService.message("gui.trigger_bound_current")
                 : hasConflict
@@ -466,7 +445,6 @@ public final class SkillsGuiService {
         );
         return buildConfiguredItem(slot, fallbackItem, nameColor + trigger.displayName(), List.of(), replacements);
     }
-
 
     public void renderUpgradeGui(GuiSession session) {
         if (session == null) {
@@ -488,7 +466,7 @@ public final class SkillsGuiService {
         if (definition == null) {
             return null;
         }
-        // 每个槽位各自取一次预览：预览是纯读操作，且升级结算后必须反映新等级。
+
         UpgradePreview preview = skillUpgradeService == null ? null : skillUpgradeService.preview(player, definition);
         GuiSlot slot = resolved.definition();
         return switch (type) {
@@ -570,13 +548,6 @@ public final class SkillsGuiService {
                 messageService.message("gui.upgrade_success_rate_title", replacements), List.of(), replacements);
     }
 
-    /**
-     * 渲染确认槽。
-     *
-     * <p>成本不足与已满级都<b>保留槽位</b>只改文案与图标（不隐藏）：隐藏会让玩家
-     * 无法区分「不能升」与「界面坏了」。实际能否升级仍由
-     * {@code SkillUpgradeService.upgrade} 判定，这里只是提示。</p>
-     */
     private ItemStack renderUpgradeConfirm(Player player,
             GuiSlot slot,
             SkillDefinition definition,
@@ -662,7 +633,6 @@ public final class SkillsGuiService {
         };
     }
 
-
     private boolean isSkillEquipped(Player player, String skillId) {
         PlayerSkillProfile profile = dataStore.get(player);
         if (profile == null) {
@@ -713,7 +683,6 @@ public final class SkillsGuiService {
                 plugin.coreLib().configuredItemService()
         );
     }
-
 
     private Map<String, Object> activeSlotReplacements(Player player,
             int slotIndex,

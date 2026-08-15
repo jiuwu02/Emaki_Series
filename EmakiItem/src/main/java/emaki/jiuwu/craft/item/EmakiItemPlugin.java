@@ -294,9 +294,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         if (attempt == null) {
             return;
         }
-        // The transition is computed under the monitor but published outside it: publishing runs third
-        // party callbacks synchronously, and running them while holding readinessMonitor would let any
-        // callback that queries this plugin, or waits on another thread that does, deadlock.
+
         boolean becameReady = false;
         synchronized (readinessMonitor) {
             if (attempt.lifecycleEpoch() != lifecycleEpoch) {
@@ -322,12 +320,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>Must be called outside {@link #readinessMonitor}: waiting third-party callbacks run
-     * synchronously on the calling thread.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLib -> coreLib.markModuleReady(getName()));
     }
@@ -340,14 +332,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         publishReadiness(coreLib -> coreLib.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * <p>Shutdown ordering is the reason for the guard: this plugin's disable path publishes too, and a
-     * failure to tell CoreLib about it must never turn into an exception out of {@code onDisable}.</p>
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -379,12 +363,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         });
     }
 
-    /**
-     * {@return whether the item runtime has finished loading and is safe to query}
-     *
-     * <p>Public so the API bridge can report {@code loading} rather than {@code ready} during the window
-     * between plugin enable and definitions becoming available.
-     */
     public boolean runtimeReady() {
         synchronized (readinessMonitor) {
             return runtimeReady;
@@ -586,12 +564,6 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }

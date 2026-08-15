@@ -12,14 +12,6 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
-/**
- * Registers EmakiItem's condition gate with EmakiAttribute when available.
- *
- * <p>The gate lets an item definition's {@code condition} block veto that item's
- * whole attribute and skill contribution. The provider class is resolved
- * reflectively so EmakiItem starts normally when EmakiAttribute is absent, and
- * the registration follows EmakiAttribute's enable/disable cycle.
- */
 public final class ItemContributionGateLifecycle implements Listener, AutoCloseable {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";

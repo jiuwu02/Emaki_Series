@@ -1372,7 +1372,7 @@ final class DamageCalculationService {
                 builder.append("; ");
             }
             builder.append(attributeId).append('=');
-            // 与 DamageCalculationCache#computeSum 同序：先读快照，缺失时回落到上下文变量。
+
             Double snapshotValue = snapshot == null ? null : snapshot.values().get(attributeId);
             if (snapshotValue != null) {
                 builder.append(debugNumber(snapshotValue));

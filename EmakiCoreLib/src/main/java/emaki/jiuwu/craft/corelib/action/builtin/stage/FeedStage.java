@@ -15,14 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Restores food and optionally saturation on the target.
- *
- * <p>Still requires a {@code Player}: hunger and saturation exist only on players, so a non-player target is
- * {@code Skipped} rather than an error.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's food state.</p>
- */
 public final class FeedStage extends BaseStage {
 
     public FeedStage() {

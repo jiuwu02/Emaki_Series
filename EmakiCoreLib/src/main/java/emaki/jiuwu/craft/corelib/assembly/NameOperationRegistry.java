@@ -65,7 +65,6 @@ public final class NameOperationRegistry {
         return Set.copyOf(processors.keySet());
     }
 
-
     private static final class ReplaceProcessor implements NameOperationProcessor {
 
         @Override

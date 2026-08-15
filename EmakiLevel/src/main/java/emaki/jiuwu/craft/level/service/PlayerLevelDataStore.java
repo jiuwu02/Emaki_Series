@@ -52,7 +52,6 @@ public final class PlayerLevelDataStore {
     private record PendingLoad(long generation, CompletableFuture<PlayerLevelData> future) {
     }
 
-    /** Debug module the session anchors are filed under; must stay within EmakiLevelPlugin's set. */
     private static final String DEBUG_SESSION_MODULE = "common";
 
     private final File dataFolder;
@@ -71,9 +70,7 @@ public final class PlayerLevelDataStore {
                 Objects.requireNonNull(plugin, "plugin").getDataFolder(),
                 plugin.getLogger(),
                 asyncYamlFilesSupplier,
-                // Session anchors (W6-2a) ride the plugin's existing debug switch, so they stay off
-                // until an operator turns that module on. Resolved lazily: the plugin wires its
-                // debug logger during enable, and either side may still be null here.
+
                 () -> plugin.debugLogger() != null
                         && plugin.debugLogger().shouldLog(DEBUG_SESSION_MODULE, (UUID) null),
                 fields -> {

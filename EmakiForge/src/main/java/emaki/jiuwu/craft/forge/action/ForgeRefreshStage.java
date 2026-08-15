@@ -23,27 +23,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.forge.service.ForgeItemRefreshService;
 
-/**
- * Re-renders forged items after a recipe or config change.
- *
- * <p>Replaces the legacy {@code ForgeRefreshAction}. The three operations differ in scope rather than in
- * effect: one item, one player's inventory, or every online player.</p>
- */
 public final class ForgeRefreshStage implements CoreActionStage {
 
-    /** How long the server-wide refresh may block before the stage gives up waiting. */
     private static final long ONLINE_REFRESH_TIMEOUT_SECONDS = 20L;
 
-    /** Which refresh scope a stage instance covers. */
     public enum Operation {
 
-        /** The target's main-hand item. */
         HELD_ITEM("forge_refresh_held", "Re-renders the target's held forged item."),
 
-        /** Every forged item in the target's inventory. */
         PLAYER_INVENTORY("forge_refresh_player", "Re-renders every forged item in the target's inventory."),
 
-        /** Every forged item held by every online player. */
         ONLINE_PLAYERS("forge_refresh_all", "Re-renders forged items for every online player.");
 
         private final String id;
@@ -54,7 +43,6 @@ public final class ForgeRefreshStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -63,12 +51,6 @@ public final class ForgeRefreshStage implements CoreActionStage {
     private final ForgeItemRefreshService refreshService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param refreshService the module's refresh service
-     * @param operation which scope this instance covers
-     */
     public ForgeRefreshStage(ForgeItemRefreshService refreshService, @NotNull Operation operation) {
         this.refreshService = refreshService;
         this.operation = operation;
@@ -94,13 +76,6 @@ public final class ForgeRefreshStage implements CoreActionStage {
         return List.of();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>The server-wide refresh needs no target: it finds its own subjects from the online-player list.
-     * Declaring {@code NONE} is what lets {@code forge_refresh_all} stand alone in a pipeline instead of
-     * picking up the implicit {@code self} source.</p>
-     */
     @Override
     public @NotNull CoreTargetRequirement targetRequirement() {
         return operation == Operation.ONLINE_PLAYERS
@@ -108,12 +83,6 @@ public final class ForgeRefreshStage implements CoreActionStage {
                 : CoreTargetRequirement.REQUIRED_ENTITY;
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code SERVER_GLOBAL} for the server-wide refresh because it walks the online-player list, which is
-     * global state; {@code CONTEXT_ENTITY} for the other two because they touch one player's inventory.</p>
-     */
     @Override
     public @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
         return operation == Operation.ONLINE_PLAYERS
@@ -158,18 +127,6 @@ public final class ForgeRefreshStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.of("changed", changed));
     }
 
-    /**
-     * Waits for the server-wide refresh to finish and reports what it did.
-     *
-     * <p>The refresh service is asynchronous, but a stage completes synchronously, so this blocks. That is
-     * acceptable here and nowhere else in this class: re-rendering every online player's items is an
-     * administrative operation triggered after a config change, not something on a gameplay hot path. The
-     * wait is bounded so a stuck refresh cannot pin the calling thread indefinitely.</p>
-     *
-     * <p>A changed runtime generation is reported as a failure rather than a success, preserving v1's
-     * behaviour: the items were rebuilt against recipes that have since been replaced, so the result is
-     * already stale and silently accepting it would hide the need to run again.</p>
-     */
     private CoreActionOutcome refreshOnlinePlayers() {
         ForgeItemRefreshService.RefreshSummary summary;
         try {

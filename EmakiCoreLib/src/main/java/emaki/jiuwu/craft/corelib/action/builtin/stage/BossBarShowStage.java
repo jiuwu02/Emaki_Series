@@ -25,11 +25,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Shows or replaces one of the target's boss bars, addressed by id.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: a boss bar is attached to one player's connection.</p>
- */
 public final class BossBarShowStage extends BaseStage {
 
     public BossBarShowStage() {

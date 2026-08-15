@@ -14,19 +14,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * Repeats every following stage on an interval.
- *
- * <p>Written as {@code every <interval> times <count>}. {@code times} counts the extra runs on top of the
- * first, so {@code times 0} — the default — runs the body once. The count is capped by
- * {@code action.pipeline.max_repeat_times} (default 100) and exceeding it rejects the configuration rather
- * than silently truncating it, because a capped {@code times=100000} would look like it worked.</p>
- *
- * <p>Registered for the same reason as {@code after}, and its {@link #apply} is likewise the defensive
- * fallback rather than the normal path.</p>
- *
- * <p>Thread need {@code PURE}: the repetition is the scheduler's work.</p>
- */
 public final class EveryGate extends BaseGate {
 
     public EveryGate() {

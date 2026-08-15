@@ -90,7 +90,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         dataStore.save(player);
     }
 
-
     private void handleActiveSlotClick(GuiSession session, GuiClickContext click,
             GuiTemplate.ResolvedSlot slot, Player player) {
         int slotIndex = slot.slotIndex();
@@ -108,8 +107,7 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             plugin.scheduling().runForEntity(plugin, player, () ->
                     skillsGuiService.openTriggerSelect(player, slotIndex), () -> { });
         } else if (click.isRightClick()) {
-            // 右键进入升级界面。左键与 Shift+左键已被卸下/设置触发器占用，
-            // 右键是 active_slot 上唯一空闲的点击方式，说明写在 skills_gui.yml 的 lore 里。
+
             String skillId = binding.skillId();
             player.closeInventory();
             plugin.scheduling().runForEntity(plugin, player, () -> {
@@ -209,7 +207,6 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
             skillsGuiService.renderSkillsGui(session);
         }
     }
-
 
     static int getPage(GuiSession session) {
         Object raw = session.replacements().get(KEY_CURRENT_PAGE);

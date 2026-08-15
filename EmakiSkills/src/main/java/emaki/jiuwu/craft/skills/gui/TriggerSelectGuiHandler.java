@@ -75,7 +75,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
     public void onClose(GuiSession session, GuiCloseContext close) {
     }
 
-
     private void handleTriggerOptionClick(GuiSession session, GuiTemplate.ResolvedSlot slot, Player player) {
         List<SkillTriggerDefinition> enabledTriggers = getEnabledTriggers();
         int index = slot.slotIndex();
@@ -113,7 +112,6 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         player.closeInventory();
         plugin.scheduling().runForEntity(plugin, player, onBack, () -> { });
     }
-
 
     List<SkillTriggerDefinition> getEnabledTriggers() {
         List<SkillTriggerDefinition> result = new ArrayList<>();

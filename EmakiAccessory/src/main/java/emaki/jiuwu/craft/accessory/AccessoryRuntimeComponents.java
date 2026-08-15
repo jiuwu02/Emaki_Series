@@ -23,28 +23,6 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-/**
- * Everything the lifecycle coordinator builds, handed to the plugin in one piece.
- *
- * @param appConfigLoader      the {@code config.yml} loader
- * @param languageLoader       the language loader
- * @param messageService       player-facing and console messaging
- * @param bootstrapService     default-file installation
- * @param executionDispatcher  CoreLib's scheduler facade
- * @param threadOwnership      CoreLib's thread-ownership probe
- * @param guiService           CoreLib's GUI service
- * @param guiTemplateLoader    the GUI template loader
- * @param partLoader           the {@code parts.yml} loader
- * @param setLoader            the {@code sets/} loader
- * @param uniqueService        the duplicate-accessory rule
- * @param accessoryStore       per-player persistence and session cache
- * @param setService           accessory set piece counting and bonuses
- * @param contributionService  attribute and skill contribution snapshots
- * @param accessoryGuiService  the accessory window manager
- * @param writeSessions        the single-writer lease registry
- * @param adminService         administrative data operations
- * @param providerRegistrar    EmakiAttribute and EmakiSkills registration
- */
 record AccessoryRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         LanguageLoader languageLoader,
         MessageService messageService,

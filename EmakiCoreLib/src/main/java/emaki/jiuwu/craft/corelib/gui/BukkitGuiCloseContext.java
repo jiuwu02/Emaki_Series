@@ -6,9 +6,6 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 
-
-
-
 final class BukkitGuiCloseContext implements GuiCloseContext {
 
     private final InventoryCloseEvent event;

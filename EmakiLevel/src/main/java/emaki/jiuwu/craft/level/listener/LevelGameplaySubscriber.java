@@ -23,26 +23,6 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
 import emaki.jiuwu.craft.level.service.SourceExperienceService;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class LevelGameplaySubscriber {
 
     private final EmakiLevelPlugin plugin;
@@ -53,7 +33,6 @@ public final class LevelGameplaySubscriber {
         this.plugin = plugin;
         this.sourceService = new SourceExperienceService(plugin);
     }
-
 
     public void subscribe(EmakiEventBus eventBus) {
         subscribe(eventBus, EntityKillEvent.class, this::onEntityKill);
@@ -67,7 +46,6 @@ public final class LevelGameplaySubscriber {
         subscribe(eventBus, BrewGameplayEvent.class, this::onBrew);
     }
 
-
     public void unsubscribe() {
         for (EmakiEventBus.Subscription subscription : subscriptions) {
             subscription.unsubscribe();
@@ -79,10 +57,6 @@ public final class LevelGameplaySubscriber {
             Class<T> type, Consumer<T> handler) {
         subscriptions.add(eventBus.subscribe(plugin, type, handler));
     }
-
-
-
-
 
     private void onEntityKill(EntityKillEvent event) {
         LivingEntity entity = event.victim();
@@ -133,10 +107,6 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-
-
-
-
     private void onBlockPlace(BlockPlaceGameplayEvent event) {
         sourceService.awardExtensions(event.player(), "block_place", Map.of(
                 "block", event.block(),
@@ -170,10 +140,6 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-
-
-
-
     private void onCraft(CraftGameplayEvent event) {
         int amount = Math.max(1, event.result().getAmount());
         sourceService.awardExtensions(event.player(), "craft_item", Map.of(
@@ -203,10 +169,6 @@ public final class LevelGameplaySubscriber {
         }
     }
 
-
-
-
-
     private void onFish(FishGameplayEvent event) {
         sourceService.awardExtensions(
                 event.player(), "player_fish", Map.of("fish_state", event.state()));
@@ -229,10 +191,6 @@ public final class LevelGameplaySubscriber {
             }
         }
     }
-
-
-
-
 
     private void onBrew(BrewGameplayEvent event) {
         String potionType = event.potionType();

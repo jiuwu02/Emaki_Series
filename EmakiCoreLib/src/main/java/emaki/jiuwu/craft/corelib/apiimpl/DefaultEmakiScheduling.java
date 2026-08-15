@@ -16,12 +16,6 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
-/**
- * {@link EmakiScheduling} 的运行时实现，把窄门面接到内部的 {@link ExecutionDispatcher}
- * 与 {@link ThreadOwnership}。
- *
- * <p>只转发，不新增调度策略；{@link ExecutionDispatcher} 已直接返回 API 侧的 {@link TaskToken}。
- */
 public final class DefaultEmakiScheduling implements EmakiScheduling {
 
     private final ExecutionDispatcher dispatcher;

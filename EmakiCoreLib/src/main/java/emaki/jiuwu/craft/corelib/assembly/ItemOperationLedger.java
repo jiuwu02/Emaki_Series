@@ -184,28 +184,12 @@ public final class ItemOperationLedger {
         return reverter.revertAll(itemStack, sourceNamespace, read(itemStack)).revertedCount();
     }
 
-    /**
-     * Drops every ledger entry owned by {@code sourceNamespace} without replaying or reverting the
-     * recorded display projection, and clears the stored presentation snapshot.
-     *
-     * <p>Use this only when the caller has already rebuilt the item's managed presentation from an
-     * authoritative source, so the recorded lore baselines and the presentation snapshot no longer
-     * describe the current item. Lore and custom name are left exactly as the caller wrote them.
-     * For user-facing rollbacks that must restore a previous projection, use
-     * {@link #revert(ItemStack, ReadResult, String)} or {@link #revertAll(ItemStack, String, ReadResult)}.
-     */
     public UpdateResult discardNamespace(ItemStack itemStack,
                                         ReadResult readResult,
                                         String sourceNamespace) {
         return discardNamespaces(itemStack, readResult, List.of(Texts.toStringSafe(sourceNamespace)));
     }
 
-    /**
-     * Drops every ledger entry owned by any of {@code sourceNamespaces} without replaying or
-     * reverting the recorded display projection, and clears the stored presentation snapshot.
-     *
-     * @see #discardNamespace(ItemStack, ReadResult, String)
-     */
     public UpdateResult discardNamespaces(ItemStack itemStack,
                                          ReadResult readResult,
                                          Collection<String> sourceNamespaces) {
@@ -306,7 +290,6 @@ public final class ItemOperationLedger {
     public boolean hasOperations(ItemStack itemStack) {
         return read(itemStack).status() == ReadStatus.VALID;
     }
-
 
     public void clear(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {

@@ -682,7 +682,7 @@ final class ForgeGuiInteractionController {
             try {
                 recordSettlementFailure(state, failureReason + ": " + Texts.toStringSafe(throwable.getMessage()));
             } catch (Throwable ignored) {
-                // Terminal cleanup must not be prevented by diagnostic failures.
+
             }
         } finally {
             if (state != null) {
@@ -762,7 +762,7 @@ final class ForgeGuiInteractionController {
         try {
             GuiDebugSupport.log(plugin, player, langKey, replacements == null ? Map.of() : replacements);
         } catch (Throwable ignored) {
-            // Debug diagnostics must not interrupt GUI ownership or settlement.
+
         }
     }
 

@@ -285,7 +285,6 @@ public final class CookingRecipeService {
         return ConditionBlock.empty();
     }
 
-
     public boolean hasCompletionCondition(RecipeDocument recipe) {
         if (recipe == null) {
             return false;

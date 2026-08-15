@@ -237,7 +237,7 @@ final class ForgeExecutionService {
                         + Texts.toStringSafe(throwable.getMessage()));
             }
         }
-        // Delivery is the commit boundary: stale completions must not return consumed inputs again.
+
         if (!isRuntimeCurrent(runtimeGeneration)) {
             return CompletableFuture.completedFuture(result);
         }

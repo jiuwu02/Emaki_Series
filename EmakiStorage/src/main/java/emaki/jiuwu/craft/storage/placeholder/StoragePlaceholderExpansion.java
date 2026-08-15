@@ -15,13 +15,6 @@ import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 
-/**
- * PlaceholderAPI expansion, registered only when PlaceholderAPI is present.
- *
- * <p>Every placeholder reads from the in-memory storage of an online player. Nothing here loads from
- * disk: a placeholder resolves on whatever thread PAPI calls it from, so blocking IO is not an
- * option, and an unloaded storage simply reports zero.
- */
 public final class StoragePlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
     private static final String COUNT_PREFIX = "count_";

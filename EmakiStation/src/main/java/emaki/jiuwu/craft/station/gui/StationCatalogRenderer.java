@@ -21,36 +21,12 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
-/**
- * Draws the recipe catalog page.
- *
- * <h2>Three lore sections from one YAML line each</h2>
- * Conditions, costs, and materials are variable-length lists. CoreLib expands a lore line that is exactly one
- * {@code %key%} placeholder into one line per collection element, so the layout writes {@code - "%materials%"}
- * once and gets as many lines as the recipe has requirements. The line templates themselves come from the
- * layout's {@code texts} block, which is what keeps the wording in the administrator's hands.
- *
- * <p><strong>Only {@code minecraft:lore} expands this way.</strong> A mixed line such as
- * {@code "Materials: %materials%"} is deliberately not expanded, so section headings have to be their own line.
- *
- * <h2>No live craftability</h2>
- * Catalog entries show static facts only: name, output, duration, cost, and requirement list. Whether the
- * viewer can afford a recipe right now is deliberately not computed here, because doing so for a whole page
- * would mean a warehouse round trip on every page turn. That question is answered on the preview page.
- */
 public final class StationCatalogRenderer {
 
     private final ItemSourceService itemSourceService;
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
 
-    /**
-     * Creates the renderer.
-     *
-     * @param itemSourceService   CoreLib's item-source service, used to build recipe icons
-     * @param itemServiceSupplier supplies CoreLib's configured-item service
-     * @param guiSupport          reads the layout's virtual items and texts
-     */
     public StationCatalogRenderer(ItemSourceService itemSourceService,
             Supplier<ConfiguredItemService> itemServiceSupplier,
             ConfiguredGuiSupport guiSupport) {
@@ -59,14 +35,6 @@ public final class StationCatalogRenderer {
         this.guiSupport = guiSupport;
     }
 
-    /**
-     * Renders one catalog slot.
-     *
-     * @param state        the viewer's page state
-     * @param entries      the recipes visible to this viewer, already filtered and ordered
-     * @param resolvedSlot the slot being rendered
-     * @return the stack to place, or {@code null} to fall back to the layout definition
-     */
     public ItemStack render(StationViewState state,
             List<StationCatalogEntry> entries,
             GuiTemplate.ResolvedSlot resolvedSlot) {
@@ -88,13 +56,6 @@ public final class StationCatalogRenderer {
         };
     }
 
-    /**
-     * Builds the title placeholders for a catalog window.
-     *
-     * @param state   the viewer's page state
-     * @param entries the visible recipes
-     * @return the substitutions
-     */
     public Map<String, Object> titleReplacements(StationViewState state, List<StationCatalogEntry> entries) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("station_name", state.station().displayName());
@@ -141,16 +102,6 @@ public final class StationCatalogRenderer {
         return guiSupport.apply(layoutId, "virtual_items.recipe_entry", icon, values);
     }
 
-    /**
-     * Builds the "conditions" lore section.
-     *
-     * <p>Conditions are not evaluated here. The catalog only states that a gate exists, because evaluating a
-     * condition can reach PlaceholderAPI and doing that for every slot on every redraw is not affordable.
-     *
-     * @param layoutId the layout supplying the line template
-     * @param recipe   the recipe being described
-     * @return one line per stated condition, possibly empty
-     */
     private List<String> conditionLines(String layoutId, RecipeDefinition recipe) {
         List<String> lines = new ArrayList<>();
         if (recipe.hasPermission()) {
@@ -171,13 +122,6 @@ public final class StationCatalogRenderer {
         return lines;
     }
 
-    /**
-     * Builds the "cost" lore section.
-     *
-     * @param layoutId the layout supplying the line templates
-     * @param recipe   the recipe being described
-     * @return one line per cost component
-     */
     private List<String> costLines(String layoutId, RecipeDefinition recipe) {
         List<String> lines = new ArrayList<>();
         if (recipe.cost().charges()) {
@@ -187,9 +131,7 @@ public final class StationCatalogRenderer {
         }
         lines.add(guiSupport.text(layoutId, "texts.recipe.cost_duration", "Takes %duration%",
                 Map.of("duration", DurationDisplay.format(recipe.durationSeconds() * 1_000L))));
-        // A non-consuming requirement is a cost in the sense that the player must hold it, but not in the
-        // sense that they lose it. Stating it here keeps it out of the "materials" section, which reads as
-        // "these are spent".
+
         for (MaterialRequirement requirement : recipe.requirements()) {
             if (requirement.consume()) {
                 continue;
@@ -201,13 +143,6 @@ public final class StationCatalogRenderer {
         return lines;
     }
 
-    /**
-     * Builds the "materials" lore section, listing only what is actually spent.
-     *
-     * @param layoutId the layout supplying the line template
-     * @param recipe   the recipe being described
-     * @return one line per consumed requirement
-     */
     private List<String> materialLines(String layoutId, RecipeDefinition recipe) {
         List<String> lines = new ArrayList<>();
         for (MaterialRequirement requirement : recipe.requirements()) {
@@ -252,16 +187,6 @@ public final class StationCatalogRenderer {
         return GuiItemBuilder.build(slot.itemDefinition(), values, itemServiceSupplier.get());
     }
 
-    /**
-     * Reads how many slots a typed group has in the viewer's current template.
-     *
-     * <p>The page size is a property of the template, which is reachable through the live session. Falling
-     * back to one keeps the arithmetic safe when a redraw races a close.
-     *
-     * @param state the viewer's page state
-     * @param type  the slot type to size
-     * @return the group's slot count, at least one
-     */
     private int pageSizeOf(StationViewState state, String type) {
         if (state.guiSession() != null) {
             return Math.max(1, GuiPagination.pageSize(state.guiSession().template(), type));

@@ -15,11 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Removes every potion effect from the target.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one entity's effect list.</p>
- */
 public final class ClearPotionEffectsStage extends BaseStage {
 
     public ClearPotionEffectsStage() {
@@ -34,7 +29,7 @@ public final class ClearPotionEffectsStage extends BaseStage {
         if (target == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_living_entity");
         }
-        // Snapshot first: removing an effect mutates the live collection being iterated.
+
         List<PotionEffect> active = List.copyOf(target.getActivePotionEffects());
         if (active.isEmpty()) {
             return CoreActionOutcome.skipped("action.stage.potion.none_active");

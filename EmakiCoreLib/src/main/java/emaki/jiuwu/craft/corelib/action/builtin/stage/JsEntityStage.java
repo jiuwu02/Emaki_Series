@@ -21,23 +21,6 @@ import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.exports.BukkitPlayerExport;
 import emaki.jiuwu.craft.corelib.script.exports.EmakiContextExport;
 
-/**
- * 执行操作玩家/实体的 JavaScript 脚本。
- *
- * <p>该 stage 在 {@link CoreActionExecutionDomain#CONTEXT_ENTITY} 域执行，
- * 保证脚本运行在正确的 Folia 实体所有者线程上。</p>
- *
- * <p>典型用途：
- * <ul>
- *   <li>修改玩家生命值、饱食度、经验</li>
- *   <li>复杂的玩家状态判断</li>
- *   <li>根据多个条件动态调整玩家属性</li>
- * </ul>
- *
- * <p>脚本返回值会作为 {@code script_result} 变量供后续 stage 使用。</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: 操作实体状态，运行在实体所有者线程。</p>
- */
 public final class JsEntityStage extends BaseStage {
 
     private static final int DEFAULT_TIMEOUT_MS = 5000;

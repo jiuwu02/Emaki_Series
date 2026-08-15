@@ -73,7 +73,7 @@ public final class ItemUpdateListener implements Listener {
                 int converted = event.getView().convertSlot(event.getRawSlot());
                 playerSlot = converted == event.getSlot() ? converted : -1;
             } catch (RuntimeException ignored) {
-                // Keep the invalid sentinel; the classifier will conservatively request a full refresh.
+
             }
         }
         accept(player, "inventory_click", classifier.classifyClick(new ClickContext(

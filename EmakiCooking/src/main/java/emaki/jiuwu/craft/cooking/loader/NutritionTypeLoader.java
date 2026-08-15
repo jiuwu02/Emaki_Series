@@ -14,12 +14,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 
-
-
-
-
-
-
 public final class NutritionTypeLoader {
 
     private final JavaPlugin plugin;

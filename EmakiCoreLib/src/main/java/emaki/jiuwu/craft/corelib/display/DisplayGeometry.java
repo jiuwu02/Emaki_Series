@@ -7,18 +7,11 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-/**
- * 展示实体的几何与渲染参数。
- *
- * <p>这些类型原先内嵌在 EmakiCooking 的设置服务里，但它们只描述位置、缩放与旋转，
- * 不含任何业务语义，因此上移为公共模型供所有模块复用。
- */
 public final class DisplayGeometry {
 
     private DisplayGeometry() {
     }
 
-    /** 三维向量。 */
     public record Vector3(double x, double y, double z) {
 
         public static final Vector3 ZERO = new Vector3(0D, 0D, 0D);
@@ -29,7 +22,6 @@ public final class DisplayGeometry {
         }
     }
 
-    /** 文本展示实体的渲染参数。 */
     public record TextProfile(Vector3 offset,
             Vector3 scale,
             String billboard,
@@ -49,7 +41,6 @@ public final class DisplayGeometry {
             return new TextProfile(null, null, "center", 200, 0, true, false);
         }
 
-        /** {@return 仅含缩放的变换，旋转恒为单位四元数} */
         public Transformation transformation() {
             return new Transformation(
                     new Vector3f(),
@@ -60,7 +51,6 @@ public final class DisplayGeometry {
         }
     }
 
-    /** 单轴旋转，支持区间随机。 */
     public record AxisRotation(double min, double max) {
 
         public AxisRotation {
@@ -75,13 +65,11 @@ public final class DisplayGeometry {
             return new AxisRotation(value, value);
         }
 
-        /** {@return 本次取用的角度；区间不为单点时随机取值} */
         public double resolve() {
             return min == max ? min : ThreadLocalRandom.current().nextDouble(min, max);
         }
     }
 
-    /** 三轴旋转。 */
     public record RotationProfile(AxisRotation x, AxisRotation y, AxisRotation z) {
 
         public RotationProfile {
@@ -95,7 +83,6 @@ public final class DisplayGeometry {
         }
     }
 
-    /** 物品展示实体的位置与变换参数。 */
     public record ItemProfile(Vector3 offset, RotationProfile rotation, Vector3 scale) {
 
         public ItemProfile {

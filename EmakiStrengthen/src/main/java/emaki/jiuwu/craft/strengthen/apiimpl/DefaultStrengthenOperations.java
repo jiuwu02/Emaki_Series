@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
-/** State-changing API adapter that validates ownership and maps runtime result semantics. */
 public final class DefaultStrengthenOperations implements StrengthenOperations {
 
     private final EmakiStrengthenPlugin plugin;
@@ -102,8 +101,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenAttemptService service = plugin.attemptService();
-        // Without the gate the recipeLoader().get miss below would surface as a permanent notFound
-        // rather than a retryable unavailable.
+
         if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
@@ -146,7 +144,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenRefreshService service = plugin.refreshService();
-        // Refresh delegates to attemptService.rebuild, which needs the recipe table.
+
         if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }

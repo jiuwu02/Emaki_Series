@@ -4,14 +4,6 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-
-
-
-
-
-
-
-
 public final class BukkitGuiBackend implements GuiBackend {
 
     @Override

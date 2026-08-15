@@ -14,12 +14,6 @@ import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.api.event.AdvancementCompletedEvent;
 
-
-
-
-
-
-
 public final class AdvancementListener implements Listener {
 
     private final EmakiCodexPlugin plugin;

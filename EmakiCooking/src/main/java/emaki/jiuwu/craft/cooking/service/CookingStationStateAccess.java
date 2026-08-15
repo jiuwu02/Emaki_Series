@@ -6,11 +6,9 @@ import java.util.concurrent.CompletionStage;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-
 interface CookingStationStateAccess {
 
     StationType stationType();
-
 
     Map<String, Object> snapshot(StationCoordinates coordinates);
 

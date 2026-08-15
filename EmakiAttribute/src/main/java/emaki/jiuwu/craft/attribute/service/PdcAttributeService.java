@@ -174,7 +174,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
                 if (payload == null || Texts.isBlank(payload.sourceId()) || excluded.contains(payload.sourceId())) {
                     continue;
                 }
-                // Copy preserves persisted blocks even when their owning source is temporarily absent.
+
                 persist(toItem, payload);
             }
             return EmakiResult.ok();
@@ -266,14 +266,6 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         );
     }
 
-    /**
-     * Resolves the id of the first registered gate rejecting the item.
-     *
-     * @param player the owning player
-     * @param itemStack the equipped item
-     * @param actualSlot the equipment slot being collected
-     * @return the rejecting gate id, or {@code ""} when accepted
-     */
     String resolveRejectingGateId(Player player, ItemStack itemStack, String actualSlot) {
         if (gateRegistry == null || itemStack == null || itemStack.getType().isAir()) {
             return "";
@@ -760,7 +752,6 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return !declaredSlots.isEmpty();
         }
 
-        /** {@return whether every registered item contribution gate accepted the item} */
         boolean itemContributionActive() {
             return rejectingGateId.isEmpty();
         }

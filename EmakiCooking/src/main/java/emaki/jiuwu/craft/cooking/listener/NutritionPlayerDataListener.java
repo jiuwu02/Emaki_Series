@@ -16,9 +16,6 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 
-
-
-
 public final class NutritionPlayerDataListener implements Listener {
 
     private final EmakiCookingPlugin plugin;

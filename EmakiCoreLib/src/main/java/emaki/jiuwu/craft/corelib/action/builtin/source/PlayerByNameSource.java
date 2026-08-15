@@ -17,15 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * An online player, addressed by name or UUID.
- *
- * <p>Holds the name-or-UUID resolution that Cooking previously reinvented in its own execution-target
- * helper, so the pipeline text is the only place a player has to be named.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: {@code Bukkit.getPlayer} reads the server's online-player table, which
- * is global state rather than per-entity state.</p>
- */
 public final class PlayerByNameSource extends BaseSource {
 
     public PlayerByNameSource() {

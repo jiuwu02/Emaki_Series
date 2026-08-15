@@ -17,50 +17,21 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
-/**
- * Compiles skill script lines at load time and runs them through CoreLib's {@link ActionEngine}.
- *
- * <p>Replaces {@code SkillScriptExecutor}, which parsed every line on every cast and carried its own
- * scheduling, timeout, chance, delay and condition handling. All of that now lives in the pipeline, so this
- * class only owns the compile cache and the per-line iteration.</p>
- *
- * <p>A line that fails to compile is logged and skipped rather than aborting its phase, matching what the v1
- * executor did with a syntax error. Its diagnostics are retained so the config precheck can report them
- * without compiling a second time.</p>
- */
 public final class SkillPipelineRuntime {
 
     private final EmakiSkillsPlugin plugin;
     private final SkillPlaceholderBridge placeholders;
     private final Map<String, CompiledSkill> cache = new ConcurrentHashMap<>();
 
-    /**
-     * Creates the runtime.
-     *
-     * @param plugin the owning plugin, used to reach CoreLib's engine
-     */
     public SkillPipelineRuntime(EmakiSkillsPlugin plugin) {
         this.plugin = plugin;
         this.placeholders = new SkillPlaceholderBridge(plugin);
     }
 
-    /** {@return the placeholder bridge to install on root contexts} */
     public SkillPlaceholderBridge placeholders() {
         return placeholders;
     }
 
-    /**
-     * Runs one phase of a skill script.
-     *
-     * <p>Lines run in order. {@code stop_on_failure} stops at the first failing line; otherwise every line
-     * runs and the last one's outcome is returned. An empty phase yields a success with no stage results.</p>
-     *
-     * @param skillId the skill being cast, used as the compile cache key
-     * @param script the script definition
-     * @param phase the phase to run
-     * @param context the root context for this phase
-     * @return the outcome of the last line that ran
-     */
     public CompletableFuture<PipelineOutcome> runPhase(String skillId,
             SkillScriptDefinition script,
             SkillScriptPhase phase,
@@ -100,43 +71,22 @@ public final class SkillPipelineRuntime {
         });
     }
 
-    /**
-     * Compiles every phase of a script so the config precheck can read its diagnostics.
-     *
-     * @param skillId the skill id
-     * @param script the script definition
-     */
     public void precompile(String skillId, SkillScriptDefinition script) {
         if (script != null && script.enabled()) {
             compiled(skillId, script);
         }
     }
 
-    /** {@return every diagnostic collected while compiling, one entry per problem} */
     public List<PhaseDiagnostic> diagnostics() {
         List<PhaseDiagnostic> all = new ArrayList<>();
         cache.values().forEach(compiled -> all.addAll(compiled.diagnostics()));
         return List.copyOf(all);
     }
 
-    /**
-     * Drops every cached pipeline.
-     *
-     * <p>Called from the Skills reload path: a reload rereads the skill YAML, so the text that was compiled is
-     * no longer necessarily what is configured.</p>
-     */
     public void invalidateAll() {
         cache.clear();
     }
 
-    /**
-     * Returns the cache entry for one skill, compiling all four phases on first use.
-     *
-     * <p>Recompiles when CoreLib swapped in a new engine. {@code installStageRuntime} builds a fresh
-     * {@link ActionEngine} on every CoreLib reload, so an engine identity change is a reliable signal that the
-     * stage table may have changed shape; a cached pipeline validated against the old parameter declarations
-     * would otherwise only fail at run time.</p>
-     */
     private CompiledSkill compiled(String skillId, SkillScriptDefinition script) {
         ActionEngine engine = engine();
         if (engine == null) {
@@ -175,12 +125,6 @@ public final class SkillPipelineRuntime {
         return new CompiledSkill(engine, Map.copyOf(phases), List.copyOf(diagnostics));
     }
 
-    /**
-     * Logs a script problem the server owner has to fix in the skill YAML.
-     *
-     * <p>Names the skill, phase and line so it can be located directly, the same contract the v1
-     * {@code logConfigurationError} had.</p>
-     */
     private void logCompileFailure(String skillId,
             SkillScriptPhase phase,
             int lineNumber,
@@ -188,9 +132,7 @@ public final class SkillPipelineRuntime {
         if (plugin == null) {
             return;
         }
-        // Rendered through CoreLib's message service: every action.* diagnostic text lives in CoreLib's
-        // language file. Falls back to the raw list when CoreLib is not reachable, which keeps a load-time
-        // problem visible instead of swallowing it.
+
         String reason = plugin.coreLib() == null || plugin.coreLib().messageService() == null
                 ? String.valueOf(diagnostics)
                 : plugin.coreLib().messageService().renderFirstDiagnostic(diagnostics);
@@ -200,18 +142,10 @@ public final class SkillPipelineRuntime {
     }
 
     private ActionEngine engine() {
-        // Read through on every use rather than holding a field: a CoreLib reload replaces the engine, and a
-        // stale reference would keep dispatching into the retired stage table.
+
         return plugin == null || plugin.coreLib() == null ? null : plugin.coreLib().actionEngine();
     }
 
-    /**
-     * One skill's compiled phases, tied to the engine they were compiled against.
-     *
-     * @param engine the engine identity this entry is valid for
-     * @param phases compiled lines per phase
-     * @param diagnostics problems found while compiling
-     */
     private record CompiledSkill(ActionEngine engine,
             Map<SkillScriptPhase, List<CompiledPipeline>> phases,
             List<PhaseDiagnostic> diagnostics) {
@@ -221,14 +155,6 @@ public final class SkillPipelineRuntime {
         }
     }
 
-    /**
-     * One compile problem located in a skill's script.
-     *
-     * @param skillId the skill whose script failed to compile
-     * @param phase the phase the line belongs to
-     * @param lineNumber one-based line number within that phase
-     * @param diagnostic what CoreLib reported
-     */
     public record PhaseDiagnostic(String skillId,
             SkillScriptPhase phase,
             int lineNumber,

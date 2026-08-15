@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.item.api.ItemMigration;
 import emaki.jiuwu.craft.item.api.ItemOperations;
 import emaki.jiuwu.craft.item.api.ItemRepair;
 
-/** Runtime implementation of the EmakiItem facade bridge. */
 public final class DefaultEmakiItemApi implements EmakiItemApi.Bridge {
 
     private final EmakiItemPlugin plugin;

@@ -654,12 +654,6 @@ public final class AttributeCommand implements TabExecutor {
                 + "</white>";
     }
 
-    /**
-     * Sends the source signature.
-     *
-     * <p>A player gets the compact hover form; the console gets the value expanded onto its own indented
-     * line, because a console cannot hover and would otherwise only ever see the label.</p>
-     */
     private void sendDumpSignature(CommandSender sender, AttributeSnapshot snapshot) {
         boolean blank = snapshot == null || snapshot.sourceSignature() == null
                 || snapshot.sourceSignature().isBlank();
@@ -680,12 +674,6 @@ public final class AttributeCommand implements TabExecutor {
                 "signature", MiniMessages.escape(snapshot.sourceSignature())));
     }
 
-    /**
-     * Sends the non-zero attribute values.
-     *
-     * <p>Same split as {@link #sendDumpSignature}: hover for players, one indented line per attribute for
-     * the console. Both paths read the same ordered list, so the two views cannot drift.</p>
-     */
     private void sendDumpValues(CommandSender sender, AttributeSnapshot snapshot) {
         List<String> hoverLines = new ArrayList<>();
         List<Map.Entry<String, Double>> shown = new ArrayList<>();
@@ -723,12 +711,6 @@ public final class AttributeCommand implements TabExecutor {
         }
     }
 
-    /**
-     * {@return whether this sender can read hover text}
-     *
-     * <p>Only a real player can hover. The console renders a component's plain text, so hover content is
-     * silently dropped there.</p>
-     */
     private boolean supportsHover(CommandSender sender) {
         return sender instanceof Player;
     }

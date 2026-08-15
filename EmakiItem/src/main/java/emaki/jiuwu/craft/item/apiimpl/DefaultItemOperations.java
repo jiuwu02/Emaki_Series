@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemRefreshResult;
 
-/** Runtime-backed {@link ItemOperations}. */
 public final class DefaultItemOperations implements ItemOperations {
 
     private static final String STACK_REFRESH_TRIGGER = "command";

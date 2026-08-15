@@ -546,7 +546,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
                         "stage", stageName
                 ),
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         if (accepted && notifyPlayer && player != null) {
@@ -599,15 +599,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         return loaded;
     }
 
-
-
-
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
         return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
     }
-
-
-
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {

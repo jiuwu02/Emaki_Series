@@ -27,34 +27,10 @@ import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService.CastBypass;
 
-/**
- * Casts an EmakiSkills skill with the target as the caster.
- *
- * <p>Takes an EmakiSkills skill id, not a MythicMobs one. {@code cast_mythic_skill} is the stage for casting a
- * Mythic skill directly; this one goes through this module's own cast flow, so cooldowns, resource costs,
- * conditions and the pre/post cast events all apply. Configuration written against the previous behaviour
- * (a Mythic id in {@code skill}) must move to {@code cast_mythic_skill}.</p>
- *
- * <p>Two caster paths, because a skill profile only exists for players:</p>
- * <ul>
- *   <li><b>Player</b>: the full cast flow, including the three bypass switches below.</li>
- *   <li><b>Any other entity</b>: only the skill's Mythic component is cast. A mob has no profile, so there is
- *       no cooldown to read and no resource pool to bill; the three switches are inert on this path, and a
- *       script-only skill is refused rather than silently doing nothing.</li>
- * </ul>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: a skill is cast by one entity in its own region, which is the only domain
- * Folia accepts for this work.</p>
- */
 public final class CastSkillStage implements CoreActionStage {
 
     private final EmakiSkillsPlugin plugin;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the cast services
-     */
     public CastSkillStage(@NotNull EmakiSkillsPlugin plugin) {
         this.plugin = plugin;
     }
@@ -104,8 +80,7 @@ public final class CastSkillStage implements CoreActionStage {
         if (caster == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_entity");
         }
-        // Normalized, unlike cast_mythic_skill: this is EmakiSkills' own id space, and the registry stores
-        // normalized ids.
+
         String skillId = Texts.normalizeId(arguments.getString("skill"));
         if (skillId.isEmpty()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
@@ -124,15 +99,6 @@ public final class CastSkillStage implements CoreActionStage {
                 : castAsEntity(caster, definition, skillId);
     }
 
-    /**
-     * Runs the full cast flow for a player caster.
-     *
-     * <p>The flow is asynchronous, but this stage must answer synchronously. Rather than block, it inspects the
-     * future without waiting: a cast that already failed by the time the call returns did so on a synchronous
-     * gate (cooldown, resource, wrong activation type), and that is a result the pipeline can act on. Anything
-     * still running is reported as accepted, with the eventual failure going to the debug log only, matching how
-     * {@code start_task} guarantees the task was registered rather than that its body succeeded.</p>
-     */
     private CoreActionOutcome castAsPlayer(Player player,
             SkillDefinition definition,
             String skillId,
@@ -154,7 +120,6 @@ public final class CastSkillStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.of("skill", skillId));
     }
 
-    /** Casts the skill's Mythic component with a non-player caster; see the class Javadoc for the limits. */
     private CoreActionOutcome castAsEntity(Entity caster, SkillDefinition definition, String skillId) {
         if (Texts.isBlank(definition.mythicSkill())) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
@@ -176,12 +141,6 @@ public final class CastSkillStage implements CoreActionStage {
                         : Texts.toStringSafe(result.failureMessage())));
     }
 
-    /**
-     * Reads the subject's entity.
-     *
-     * <p>Not narrowed to a player the way the other stages in this package are, because this stage supports a
-     * non-player caster through its Mythic path.</p>
-     */
     private static Entity entity(CoreActionSubject subject) {
         return subject == null ? null : subject.entityOrNull();
     }

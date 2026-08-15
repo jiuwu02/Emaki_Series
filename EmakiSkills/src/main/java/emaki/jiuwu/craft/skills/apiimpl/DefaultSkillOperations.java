@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 
-/** Runtime implementation of state-changing skill operations. */
 public final class DefaultSkillOperations implements SkillOperations {
 
     private final EmakiSkillsPlugin plugin;
@@ -216,15 +215,6 @@ public final class DefaultSkillOperations implements SkillOperations {
         return EmakiResult.ok();
     }
 
-    /**
-     * {@return a failure to return immediately, or {@code null} when the call may proceed}
-     *
-     * <p>Every operation in this class funnels through here, which is why the readiness check lives
-     * here: all of them resolve a skill id against the loaded definition table and write player state,
-     * so running one mid-reload would apply a change against data that is about to be replaced.</p>
-     *
-     * @param player the target player
-     */
     private <T> EmakiResult<T> guardPlayer(Player player) {
         if (!plugin.isEnabled() || plugin.playerSkillDataStore() == null
                 || plugin.playerSkillStateService() == null || plugin.manualSkillSourceService() == null

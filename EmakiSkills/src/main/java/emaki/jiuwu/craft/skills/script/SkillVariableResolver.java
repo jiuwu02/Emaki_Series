@@ -37,8 +37,6 @@ public final class SkillVariableResolver {
         resolved.put("trigger_id", Texts.toStringSafe(triggerId));
         resolved.put("has_target", invocation != null && invocation.targetEntity() != null ? "1" : "0");
 
-        // The `emaki_`-prefixed keys are what MythicMobs skills read as `<skill.var.emaki_*>`. The loader
-        // skips `emaki_` keys in `variables:` (see SkillDefinitionLoader), so they can only be supplied here.
         resolved.put("emaki_skill_id", definition == null ? "" : definition.id());
         resolved.put("emaki_skill_level", Integer.toString(level));
         resolved.put("emaki_trigger_id", Texts.toStringSafe(triggerId));

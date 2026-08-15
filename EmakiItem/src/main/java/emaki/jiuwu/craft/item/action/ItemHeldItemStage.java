@@ -23,35 +23,20 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
-/**
- * Updates, re-renders or repairs the item in the target's main hand.
- *
- * <p>Replaces the legacy {@code ItemHeldItemAction}. {@code item_update} reapplies the definition while
- * {@code item_rerender} only rebuilds display data, which is why they stay separate.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's main-hand slot.</p>
- */
 public final class ItemHeldItemStage implements CoreActionStage {
 
-    /** Which item mutation a stage instance performs. */
     public enum Operation {
 
-        /** Reapply the item definition, picking up config changes. */
         UPDATE("item_update", "Reapplies the item definition to the target's held item."),
 
-        /** Rebuild display data only. */
         RERENDER("item_rerender", "Re-renders the target's held item."),
 
-        /** Repair by a number of damage points. */
         REPAIR_AMOUNT("item_repair_amount", "Repairs the target's held item by an amount."),
 
-        /** Add damage points. */
         DAMAGE("item_damage", "Damages the target's held item by an amount."),
 
-        /** Set the damage value directly. */
         SET_DAMAGE("item_set_damage", "Sets the damage value on the target's held item."),
 
-        /** Set the remaining durability, the inverse of damage. */
         SET_DURABILITY("item_set_durability", "Sets the remaining durability on the target's held item.");
 
         private final String id;
@@ -62,7 +47,6 @@ public final class ItemHeldItemStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -71,12 +55,6 @@ public final class ItemHeldItemStage implements CoreActionStage {
     private final EmakiItemPlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the item services
-     * @param operation which mutation this instance performs
-     */
     public ItemHeldItemStage(@NotNull EmakiItemPlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;
@@ -122,8 +100,7 @@ public final class ItemHeldItemStage implements CoreActionStage {
     public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
         if (plugin.repairService() == null) {
-            // Shares the builtin item stages' key: the message is generic enough to fit either owner, and
-            // adding a near-duplicate would leave two strings to keep in sync.
+
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
                     "action.stage.item.service_unavailable");
         }
@@ -180,13 +157,6 @@ public final class ItemHeldItemStage implements CoreActionStage {
         return setDamage(itemStack, maxDamage - Math.max(0, durability));
     }
 
-    /**
-     * Writes a clamped damage value.
-     *
-     * <p>Clearing the disabled flag below maximum damage is carried over from v1: an item that was marked
-     * broken has to become usable again once it is no longer at full damage, otherwise repairing it leaves it
-     * inert.</p>
-     */
     private ItemStack setDamage(ItemStack itemStack, int damage) {
         ItemMeta meta = itemStack == null ? null : itemStack.getItemMeta();
         if (!(meta instanceof Damageable damageable)) {

@@ -5,14 +5,6 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
-
-
-
-
-
-
-
-
 public record NutritionFoodSource(List<ItemSourceRef> itemSources,
         Map<String, Double> nutrition,
         List<String> actions) {

@@ -130,10 +130,7 @@ public final class StrengthenRecipeResolver {
         }
         StrengthenRecipe.MatchRule rule = recipe.matchRule();
         if (!rule.sourceTypes().isEmpty()) {
-            // Config writes bare source-type names such as "vanilla" / "craftengine" / "emakiitem",
-            // which used to be the enum constant lower-cased. kind().id() reproduces all nine spellings
-            // exactly, which is why EmakiItem's kind is "emakiitem:emakiitem" rather than the
-            // better-reading "emakiitem:item".
+
             String sourceType = baseSource == null ? "" : Texts.lower(baseSource.kind().id());
             if (!rule.sourceTypes().contains(sourceType)) {
                 return false;

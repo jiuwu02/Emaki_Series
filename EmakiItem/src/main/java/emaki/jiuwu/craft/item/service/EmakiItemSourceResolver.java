@@ -12,29 +12,8 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 
-/**
- * Exposes EmakiItem definitions as an item source.
- *
- * <p>This class now owns all three halves of that claim: the {@linkplain #KIND kind}, the shorthand
- * prefixes and the resolution behaviour. Previously the resolver lived here while CoreLib hard-coded
- * the {@code EMAKIITEM} enum constant, the {@code emakiitem-} prefix short circuit and the identifier
- * normalisation &mdash; CoreLib recognised an item source it did not implement. Whoever supplies the
- * provider declares the kind and the prefixes; that rule is what this class exists to satisfy.
- */
 public final class EmakiItemSourceResolver implements ItemSourceProvider {
 
-    /**
-     * EmakiItem's own item source kind.
-     *
-     * <p>Its namespace is {@code emakiitem} rather than {@code emaki}, because the {@code emaki}
-     * namespace belongs to the eight kinds CoreLib implements itself.
-     *
-     * <p>The id repeats the namespace on purpose. Existing server config compares a bare source-type
-     * name against {@code kind().id()} &mdash; EmakiStrengthen's {@code match_rule.source_types} is the
-     * known case &mdash; and that name used to be the old enum constant lower-cased, i.e.
-     * {@code emakiitem}. An id of {@code item} would have read better but would silently stop matching
-     * every rule that lists {@code emakiitem}.
-     */
     public static final ItemSourceKind KIND = ItemSourceKind.of("emakiitem:emakiitem");
 
     private final EmakiItemApi.Bridge api;
@@ -65,8 +44,7 @@ public final class EmakiItemSourceResolver implements ItemSourceProvider {
 
     @Override
     public String normalizeIdentifier(String identifier) {
-        // Definition ids are plain lowercase tokens; ItemSourceRef already trims, lower-cases and
-        // replaces spaces, so nothing further is needed here.
+
         return identifier;
     }
 

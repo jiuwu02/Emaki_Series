@@ -385,9 +385,7 @@ public final class EmakiItemUpdateService {
         }
 
         ItemStack assemblyState = original.clone();
-        // The assembly base presentation is rewritten from the rebuilt item right below, so the
-        // recorded baselines of our own display operations and the stored presentation snapshot are
-        // already stale and must be dropped rather than replayed.
+
         ItemOperationLedger.UpdateResult assemblyRevert = operationLedger.discardNamespaces(
                 assemblyState, readResult, EmakiItemFactory.OWNED_DISPLAY_NAMESPACES);
         if (!assemblyRevert.success() || assemblyRevert.entries().stream().anyMatch(entry -> entry != null

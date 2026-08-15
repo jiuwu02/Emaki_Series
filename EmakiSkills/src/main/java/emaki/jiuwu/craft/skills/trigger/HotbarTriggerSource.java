@@ -38,16 +38,6 @@ public final class HotbarTriggerSource implements SkillTriggerSource {
                 dispatch(event);
             }
 
-            /**
-             * Legacy compatibility path, only active while
-             * {@code trigger_settings.legacy_dispatch_cancelled_events} is
-             * {@code true}. It deliberately omits {@code ignoreCancelled} so
-             * that events already cancelled by protection plugins still reach
-             * the dispatcher, reproducing the pre-fix behaviour.
-             *
-             * <p>Temporary: kept for one full minor cycle, removed in the next
-             * major release.
-             */
             @EventHandler(priority = EventPriority.NORMAL)
             public void onHotbarLegacy(PlayerItemHeldEvent event) {
                 if (!legacyDispatchCancelledEvents(plugin)) {

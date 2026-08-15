@@ -8,12 +8,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 
 import emaki.jiuwu.craft.accessory.command.AccessoryCommandRouter;
 
-/**
- * Bridges Paper's {@link BasicCommand} to the module's own router.
- *
- * <p>Keeps the router free of Paper command types so the dispatch logic stays plain Java, matching how
- * EmakiStation separates the two.
- */
 final class AccessoryCommandAdapter implements BasicCommand {
 
     private final String rootLabel;
@@ -33,8 +27,7 @@ final class AccessoryCommandAdapter implements BasicCommand {
 
     @Override
     public Collection<String> suggest(CommandSourceStack source, String[] args) {
-        // Paper hands an empty array for the first segment; without the padding the router would see no
-        // argument at all and could not suggest subcommands.
+
         String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
         List<String> suggestions = router.onTabComplete(source.getSender(), completionArgs);
         return suggestions == null ? List.of() : suggestions;

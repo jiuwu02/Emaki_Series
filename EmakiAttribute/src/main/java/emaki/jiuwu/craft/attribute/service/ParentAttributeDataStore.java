@@ -24,19 +24,8 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-/**
- * Caches and persists parent attribute allocations.
- *
- * <p>The cache carries explicit load / dirty / save / unload / seal semantics:
- * every session has a monotonic {@code generation}, saves are serialised per
- * player through a {@code SaveLane}, and each save runs against an isolated
- * {@link ParentAttributeData#copy() snapshot} carried by a {@link SaveTicket}.
- * This mirrors {@code PlayerLevelDataCache} on purpose so the two can be
- * converged onto a shared CoreLib template later (P4-A).
- */
 public final class ParentAttributeDataStore {
 
-    /** Shutdown drain upper bound. */
     private static final long DRAIN_TIMEOUT_MS = 5_000L;
 
     enum Lifecycle {
@@ -63,10 +52,8 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /** Outcome of a shutdown drain, reported by {@code AttributeService}. */
     public record DrainReport(boolean drained, int succeeded, int failed, int pending) {
 
-        /** {@code true} when every save finished and none failed. */
         public boolean clean() {
             return drained && failed == 0 && pending == 0;
         }
@@ -93,13 +80,6 @@ public final class ParentAttributeDataStore {
         this.plugin = plugin;
     }
 
-    /**
-     * Starts a session for {@code player} and loads its file asynchronously.
-     *
-     * <p>Returns the currently cached data, which may still be the freshly
-     * created placeholder while the read is in flight. The join path does not
-     * consume the return value, so no caller observes the intermediate state.
-     */
     public ParentAttributeData load(Player player) {
         if (player == null) {
             return null;
@@ -110,14 +90,7 @@ public final class ParentAttributeDataStore {
         if (data == null) {
             return null;
         }
-        // Deferred until the read lands: touching the instance now would raise
-        // its revision past loadBaselineRevision and make installLoaded treat
-        // the join itself as a racing edit, discarding the stored file.
-        //
-        // Only the name is refreshed here. ensureParentAttributes is left to the
-        // main-thread getOrLoad path because it reads AttributeRegistry, whose
-        // backing maps are plain LinkedHashMaps and are not safe to touch from
-        // the IO thread.
+
         CompletableFuture<ParentAttributeData> pending = pendingLoads.get(uuid);
         if (pending == null) {
             data.name(name);
@@ -127,18 +100,12 @@ public final class ParentAttributeDataStore {
         return data;
     }
 
-    /**
-     * Starts a session for {@code uuid}, blocking until the file is read.
-     *
-     * <p>Kept synchronous because callers dereference the result immediately.
-     */
     public ParentAttributeData load(UUID uuid, String name) {
         if (uuid == null) {
             return null;
         }
         if (beginSession(uuid, name) == null) {
-            // Sealed: never hand back null, callers dereference this directly.
-            // The instance stays detached so it can never be persisted.
+
             return new ParentAttributeData(uuid, name);
         }
         ParentAttributeData data = awaitLoad(uuid);
@@ -149,13 +116,6 @@ public final class ParentAttributeDataStore {
         return data;
     }
 
-    /**
-     * Returns fully loaded data for {@code uuid}, loading it when necessary.
-     *
-     * <p>Callers dereference the result directly, so this never returns
-     * {@code null} for a non-null uuid, and never exposes a session whose file
-     * read is still in flight: an in-flight read is awaited first.
-     */
     public ParentAttributeData getOrLoad(UUID uuid) {
         if (uuid == null) {
             return null;
@@ -176,28 +136,15 @@ public final class ParentAttributeDataStore {
                 return existing;
             }
         }
-        // No usable session: either none exists, or the current one is CLOSING.
+
         Player player = Bukkit.getPlayer(uuid);
         return load(uuid, player == null ? uuid.toString() : player.getName());
     }
 
-    /**
-     * Returns the cached instance only when its session is fully loaded.
-     *
-     * <p>A session whose read is still in flight reports {@code null} so callers
-     * fall through to {@link #getOrLoad(UUID)}, which awaits the read instead of
-     * computing against an empty placeholder.
-     */
     public ParentAttributeData cached(UUID uuid) {
         return uuid == null ? null : activeData(uuid);
     }
 
-    /**
-     * Removes {@code uuid} from the cache, optionally flushing it first.
-     *
-     * <p>The removal and the save snapshot are taken under the entry monitor,
-     * so a concurrent mutation cannot slip between them.
-     */
     public void unload(UUID uuid, boolean save) {
         if (uuid == null) {
             return;
@@ -222,7 +169,6 @@ public final class ParentAttributeDataStore {
         enqueueSave(ticket);
     }
 
-    /** Flushes every dirty entry; returns one future per submitted save. */
     private List<CompletableFuture<Boolean>> saveAllAsync() {
         List<CompletableFuture<Boolean>> futures = new ArrayList<>();
         for (Map.Entry<UUID, SessionEntry> mapped : entries.entrySet()) {
@@ -242,12 +188,6 @@ public final class ParentAttributeDataStore {
         saveAllAsync();
     }
 
-    /**
-     * Seals the cache and drains outstanding saves within a bounded time.
-     *
-     * <p>After sealing, no new session may start. Waits at most
-     * {@value #DRAIN_TIMEOUT_MS} ms in total.
-     */
     public DrainReport flushAndSeal() {
         return flushAndSeal(DRAIN_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
@@ -262,8 +202,7 @@ public final class ParentAttributeDataStore {
         boolean drained = true;
         int succeeded = 0;
         int failed = 0;
-        // Lane tails cover writes that were already in flight when the drain
-        // started; those produce no ticket here and would otherwise be missed.
+
         List<CompletableFuture<Void>> tails = new ArrayList<>();
         for (SaveLane lane : saveLanes.values()) {
             synchronized (lane) {
@@ -309,8 +248,7 @@ public final class ParentAttributeDataStore {
                 drained = false;
                 break;
             } catch (ExecutionException exception) {
-                // Lane tails absorb failures; the ticket loop above already
-                // counted them.
+
             }
         }
         int pending = 0;
@@ -322,14 +260,6 @@ public final class ParentAttributeDataStore {
         return new DrainReport(drained && pending == 0, succeeded, failed, pending);
     }
 
-    /**
-     * Flushes {@code data} asynchronously when it is the live cached instance.
-     *
-     * <p>The snapshot is taken under the entry monitor and the write runs off
-     * the calling thread; {@code clearDirty} is replaced by
-     * {@link ParentAttributeData#markPersisted(long)} against the snapshot
-     * revision, so edits made while the write is in flight stay dirty.
-     */
     public void save(ParentAttributeData data) {
         if (data == null) {
             return;
@@ -350,15 +280,6 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /**
-     * Creates or reuses a session entry and triggers the asynchronous read.
-     *
-     * <p>The sealed check, the generation bump and the {@code entries} insert all
-     * happen under {@code lifecycleLock}, so two threads racing on the same uuid
-     * cannot produce two entries, two generations or two competing loads.
-     *
-     * @return the live instance, or {@code null} when the store is sealed.
-     */
     private ParentAttributeData beginSession(UUID uuid, String name) {
         SessionEntry created;
         synchronized (lifecycleLock) {
@@ -368,8 +289,7 @@ public final class ParentAttributeDataStore {
             SessionEntry existing = entries.get(uuid);
             if (existing != null) {
                 synchronized (existing) {
-                    // Only a CLOSING entry is unusable; bumping the generation
-                    // below invalidates any save ticket it still owns.
+
                     if (existing.lifecycle != Lifecycle.CLOSING) {
                         return existing.data;
                     }
@@ -379,22 +299,13 @@ public final class ParentAttributeDataStore {
             created = new SessionEntry(generation, new ParentAttributeData(uuid, name));
             entries.put(uuid, created);
         }
-        // Started outside lifecycleLock: the load completion handler needs the
-        // entry monitor, and must never wait on a lock held by this thread.
+
         pendingLoads.put(uuid, startLoad(uuid, name, created));
         synchronized (created) {
             return created.data;
         }
     }
 
-    /**
-     * Reads the file off-thread and installs the result into {@code entry}.
-     *
-     * <p>When the read cannot be performed or fails, the session is marked
-     * {@code LOAD_FAILED} instead of {@code ACTIVE}. Saves are then refused, so
-     * an empty in-memory placeholder can never overwrite an existing file whose
-     * content was never read.
-     */
     private CompletableFuture<ParentAttributeData> startLoad(UUID uuid, String name, SessionEntry entry) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
@@ -421,15 +332,6 @@ public final class ParentAttributeDataStore {
                 });
     }
 
-    /**
-     * Applies file content onto the live instance without dropping edits.
-     *
-     * <p>The live instance is mutated in place rather than replaced, because
-     * {@code beginSession} already handed this reference to callers. Content is
-     * only applied while the session is still {@code LOADING} and nothing has
-     * mutated the instance past {@code loadBaselineRevision} — otherwise a real
-     * edit made during the read would be silently overwritten by the file.
-     */
     private ParentAttributeData installLoaded(UUID uuid, String name, SessionEntry entry, YamlSection section) {
         synchronized (entry) {
             ParentAttributeData data = entry.data;
@@ -450,7 +352,6 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /** Refreshes the stored player name under the entry monitor. */
     private void refreshName(UUID uuid, ParentAttributeData loaded, String name) {
         if (loaded == null) {
             return;
@@ -466,13 +367,6 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /**
-     * Blocks until the in-flight read for {@code uuid} finished.
-     *
-     * <p>If the read ended exceptionally the session is still promoted out of
-     * {@code LOADING}, so the caller receives the cached instance rather than a
-     * detached one that would silently drop its edits.
-     */
     private ParentAttributeData awaitLoad(UUID uuid) {
         CompletableFuture<ParentAttributeData> pending = pendingLoads.get(uuid);
         if (pending != null) {
@@ -490,21 +384,13 @@ public final class ParentAttributeDataStore {
         }
         synchronized (entry) {
             if (entry.lifecycle == Lifecycle.LOADING) {
-                // The read settled without reaching installLoaded (it threw).
-                // Treat it as a failed load: readable, but never persisted.
+
                 entry.lifecycle = Lifecycle.LOAD_FAILED;
             }
             return isSettled(entry.lifecycle) ? entry.data : null;
         }
     }
 
-    /**
-     * Live instance of a settled, non-closing session.
-     *
-     * <p>{@code LOAD_FAILED} counts as settled: the instance is handed out so
-     * callers keep working against the cached object, while {@link #ticketFor}
-     * refuses to persist it.
-     */
     private ParentAttributeData activeData(UUID uuid) {
         SessionEntry entry = entries.get(uuid);
         if (entry == null) {
@@ -519,13 +405,6 @@ public final class ParentAttributeDataStore {
         return lifecycle == Lifecycle.ACTIVE || lifecycle == Lifecycle.LOAD_FAILED;
     }
 
-    /**
-     * Builds a save ticket, or {@code null} when there is nothing to persist.
-     *
-     * <p>Must be called while holding the {@code entry} monitor. A
-     * {@code LOAD_FAILED} session is never persisted, because its in-memory
-     * state does not reflect the file content.
-     */
     private SaveTicket ticketFor(UUID uuid, SessionEntry entry, boolean closeAfterSave) {
         if (entry.lifecycle == Lifecycle.LOAD_FAILED) {
             return null;
@@ -544,7 +423,6 @@ public final class ParentAttributeDataStore {
         return ticket;
     }
 
-    /** Chains the write onto the player's save lane, preserving order. */
     private CompletableFuture<Boolean> enqueueSave(SaveTicket ticket) {
         SaveLane lane = saveLanes.computeIfAbsent(ticket.uuid(), ignored -> new SaveLane());
         CompletableFuture<Boolean> save;
@@ -576,12 +454,6 @@ public final class ParentAttributeDataStore {
                 .handle((ignored, throwable) -> throwable == null);
     }
 
-    /**
-     * Marks the saved revision as persisted, ignoring stale tickets.
-     *
-     * <p>A ticket whose generation or entry identity no longer matches belongs to
-     * a superseded session and must not touch the current one.
-     */
     private void commitSaved(SaveTicket ticket) {
         SessionEntry entry = entries.get(ticket.uuid());
         if (entry == null) {
@@ -603,12 +475,6 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /**
-     * Logs the failure and keeps the entry dirty so a later save can retry.
-     *
-     * <p>{@code markPersisted} is deliberately not called: the data never
-     * reached disk, so it must stay dirty.
-     */
     private void commitFailed(SaveTicket ticket, Throwable throwable) {
         plugin.getLogger().warning("[ParentAttributeDataStore] Failed to save parent attribute data for "
                 + ticket.uuid() + ": " + (throwable == null ? "write reported failure" : throwable.getMessage()));
@@ -621,8 +487,7 @@ public final class ParentAttributeDataStore {
             if (!matches(entry, ticket)) {
                 return;
             }
-            // Identity, not equality: SaveTicket copies its snapshot on every
-            // access, so two logically equal tickets never compare equal.
+
             if (entry.closeTicket == ticket) {
                 entry.closeTicket = null;
                 remove = entry.lifecycle == Lifecycle.CLOSING;
@@ -641,7 +506,6 @@ public final class ParentAttributeDataStore {
                 && entry.generation == ticket.generation();
     }
 
-    /** Builds the YAML body; key order is identical to the previous writer. */
     private Map<String, Object> serialize(ParentAttributeData data) {
         Map<String, Object> root = new LinkedHashMap<>();
         root.put("schema_version", 1);
@@ -697,7 +561,6 @@ public final class ParentAttributeDataStore {
         }
     }
 
-    /** Lazily resolves CoreLib; {@code null} when it is not ready yet. */
     private AsyncYamlFiles asyncYamlFiles() {
         AsyncYamlFiles resolved = asyncYamlFiles;
         if (resolved != null) {
@@ -726,10 +589,7 @@ public final class ParentAttributeDataStore {
         private final Object identity = new Object();
         private final long generation;
         private final ParentAttributeData data;
-        /**
-         * Revision of {@link #data} at the moment the load was started. A higher
-         * revision when the read lands means a real edit raced the load.
-         */
+
         private final long loadBaselineRevision;
         private Lifecycle lifecycle = Lifecycle.LOADING;
         private SaveTicket closeTicket;

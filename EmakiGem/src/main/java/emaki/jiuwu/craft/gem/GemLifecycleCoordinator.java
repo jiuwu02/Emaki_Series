@@ -174,8 +174,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private void reloadNow(EmakiGemPlugin plugin) {
-        // The definition loaders run inside the candidate step because the gem precheck reads their
-        // issue lists; gating before they load would certify a candidate nobody parsed yet.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 plugin.messageService(),
                 "gem",
@@ -190,7 +189,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 },
                 plugin.appConfigLoader()::overrideCurrent);
         if (gate.rejected()) {
-            // Previous AppConfig is active again and no candidate value reached a runtime service.
+
             return;
         }
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
@@ -235,7 +234,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                                 },
                                 plugin.appConfigLoader()::overrideCurrent);
                         if (gate.rejected()) {
-                            // Aborts the stage so the apply step never runs; AppConfig is already restored.
+
                             throw new IllegalStateException("Gem config precheck failed: "
                                     + String.join("; ", gate.failures()));
                         }
@@ -274,8 +273,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     private void refreshOnlinePlayerItems(EmakiGemPlugin plugin) {
-        // Inventory refresh is per-player entity work: the global region thread owns no player,
-        // so every refresh is dispatched to its own owner thread instead of running inline here.
+
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player == null) {
                 continue;

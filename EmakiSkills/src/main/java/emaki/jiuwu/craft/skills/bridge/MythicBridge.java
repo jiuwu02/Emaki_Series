@@ -73,17 +73,6 @@ public final class MythicBridge {
         return castSkill(caster, mythicSkillId, Map.of());
     }
 
-    /**
-     * Casts a skill with any entity as the caster.
-     *
-     * <p>The other overloads take a {@code Player} because they serve the player cast flow, which needs a
-     * profile and a session. MythicMobs itself casts from any entity, so this overload exists for callers that
-     * legitimately have a non-player caster and therefore no skill profile to consult.</p>
-     *
-     * @param caster the casting entity
-     * @param mythicSkillId the Mythic skill id
-     * @return whether MythicMobs accepted the cast
-     */
     public boolean castSkillFromEntity(Entity caster, String mythicSkillId) {
         if (!available || apiHelper == null || caster == null
                 || mythicSkillId == null || mythicSkillId.isBlank()) {

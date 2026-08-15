@@ -17,17 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Restores health on the target, capped at its maximum.
- *
- * <p>Widened from v1's {@code Player} to {@code LivingEntity}: with a target flow the caster is no longer
- * assumed to be a player, and {@code nearby | heal amount=5} on mobs is a reasonable thing to write.</p>
- *
- * <p>The cap is read from {@code AttributeInstance#getValue()}, the engine's own view of maximum health, so
- * third-party modifiers are respected rather than recomputed.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one entity's health.</p>
- */
 public final class HealStage extends BaseStage {
 
     public HealStage() {

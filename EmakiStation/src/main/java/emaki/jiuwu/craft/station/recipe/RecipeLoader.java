@@ -19,26 +19,10 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
-/**
- * Loads {@code recipes/**.yml} into {@link RecipeDefinition}s.
- *
- * <p>Item tokens are resolved through CoreLib's public item-source contract rather than by hard-coding
- * prefixes, so a recipe may name any source a provider plugin has registered without EmakiStation
- * knowing that plugin exists.
- *
- * <p>A file whose requirements or outputs cannot be parsed is skipped with a recorded issue instead of
- * aborting the whole directory: one bad recipe must not cost an administrator every other one.
- */
 public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
 
     private final int warnMaterialTypes;
 
-    /**
-     * Creates the loader.
-     *
-     * @param plugin            the owning plugin
-     * @param warnMaterialTypes the requirement count above which a recipe only logs a warning
-     */
     public RecipeLoader(JavaPlugin plugin, int warnMaterialTypes) {
         super(plugin);
         this.warnMaterialTypes = Math.max(1, warnMaterialTypes);
@@ -105,18 +89,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 ConditionBlock.fromConfig(configuration.getSection("display_condition"), true, false));
     }
 
-    /**
-     * Reads the optional {@code cost.currency} block.
-     *
-     * <p>Fail-open by design: an unusable currency token or a non-positive amount records an issue and the
-     * recipe loads with no charge. Refusing the whole recipe would hide every other thing that recipe does
-     * behind one mistyped word, which is harder for an administrator to diagnose than a free craft plus a
-     * startup warning.
-     *
-     * @param recipeId      the recipe being parsed, for the issue message
-     * @param configuration the recipe root section
-     * @return the parsed cost, or {@link RecipeCost#none()}
-     */
     private RecipeCost parseCost(String recipeId, YamlSection configuration) {
         YamlSection cost = configuration.getSection("cost");
         if (cost == null) {
@@ -154,15 +126,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         return tags;
     }
 
-    /**
-     * Reads the {@code station_ids} list declaring which stations this recipe belongs to.
-     *
-     * <p>An empty list means the recipe is available in every station, preserving backward compatibility:
-     * any recipe that does not declare {@code station_ids} continues to appear in all stations as before.
-     *
-     * @param configuration the recipe root section
-     * @return the lower-cased station ids, possibly empty
-     */
     private Set<String> parseStationIds(YamlSection configuration) {
         Set<String> stationIds = new LinkedHashSet<>();
         for (String stationId : configuration.getStringList("station_ids")) {
@@ -245,15 +208,6 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         return refs;
     }
 
-    /**
-     * Wraps a raw YAML map entry as a section.
-     *
-     * <p>{@code getMapList} yields {@code Map<?, ?>} whose keys are untyped, so they are re-keyed by
-     * their string form before being handed to {@link MapYamlSection}.
-     *
-     * @param raw the raw map; {@code null} and empty yield {@code null}
-     * @return a section view, or {@code null} when there is nothing to read
-     */
     private static YamlSection section(Map<?, ?> raw) {
         if (raw == null || raw.isEmpty()) {
             return null;

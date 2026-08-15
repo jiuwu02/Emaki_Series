@@ -19,104 +19,40 @@ import emaki.jiuwu.craft.station.config.PurchaseSettings;
 import emaki.jiuwu.craft.station.config.QueueCostConfig;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 
-/**
- * Prices and sells additional queue length at one station.
- *
- * <h2>Per-slot pricing, summed</h2>
- * A batch of five is priced as five individual slots at their own tier prices and then summed. Multiplying one
- * unit price by the batch size would let a player buy an arbitrarily large batch at the cheapest tier, which is
- * the opposite of what a rising price curve is for.
- *
- * <h2>Fail-closed</h2>
- * A slot with no tier and no fallback is refused, never given away. A mispriced file costs an administrator a
- * startup warning; a free-capacity bug costs them their economy.
- *
- * <p><strong>Thread:</strong> every method here reads or debits a player's inventory and wallet, so all of them
- * require the buyer's owner thread.
- */
 public final class StationQueueUnlockService {
 
-    /**
-     * The permission required to buy queue length.
-     *
-     * <p>Deliberately outside {@code emakistation.queue.*}: that prefix is already read as a numeric queue
-     * length tier by {@link QueueCapacity}, so a node like {@code emakistation.queue.purchase} would be parsed
-     * as a tier, fail, and be silently skipped.
-     */
     public static final String PURCHASE_PERMISSION = "emakistation.purchase";
 
-    /**
-     * The price of a purchase, or the reason there is none.
-     *
-     * @param slots        how many slots were quoted
-     * @param currencyId   the economy provider to charge, or an empty string when no currency is charged
-     * @param currencyCost the total currency across every quoted slot
-     * @param itemCosts    the total items across every quoted slot, keyed by item-source token
-     * @param rejection    why the quote is unusable, or {@code null} when it is usable
-     */
     public record Quote(int slots,
             String currencyId,
             double currencyCost,
             Map<String, Integer> itemCosts,
             String rejection) {
 
-        /**
-         * Creates a quote with a defensively copied item map.
-         *
-         * @param slots        the quoted slot count
-         * @param currencyId   the provider to charge; {@code null} becomes an empty string
-         * @param currencyCost the total currency
-         * @param itemCosts    the total items; {@code null} becomes empty
-         * @param rejection    the refusal reason, or {@code null}
-         */
         public Quote {
             currencyId = currencyId == null ? "" : currencyId;
             itemCosts = itemCosts == null ? Map.of() : Map.copyOf(itemCosts);
         }
 
-        /**
-         * Creates a refused quote.
-         *
-         * @param slots     the requested slot count
-         * @param rejection the refusal reason key
-         * @return the refused quote
-         */
         public static Quote rejected(int slots, String rejection) {
             return new Quote(slots, "", 0.0D, Map.of(), rejection);
         }
 
-        /** {@return whether this quote may be acted on} */
         public boolean valid() {
             return rejection == null;
         }
 
-        /** {@return whether this quote charges currency} */
         public boolean chargesCurrency() {
             return !currencyId.isEmpty() && currencyCost > 0.0D;
         }
     }
 
-    /**
-     * The outcome of a purchase attempt.
-     *
-     * @param unlocked  how many slots were granted; zero on failure
-     * @param quote     the quote the attempt used
-     * @param reasonKey why the attempt failed, or {@code null} on success
-     */
     public record PurchaseResult(int unlocked, Quote quote, String reasonKey) {
 
-        /** {@return whether slots were actually granted} */
         public boolean success() {
             return reasonKey == null && unlocked > 0;
         }
 
-        /**
-         * Creates a failed result.
-         *
-         * @param quote     the quote that was attempted
-         * @param reasonKey the failure reason key
-         * @return the failed result
-         */
         public static PurchaseResult failed(Quote quote, String reasonKey) {
             return new PurchaseResult(0, quote, reasonKey);
         }
@@ -127,14 +63,6 @@ public final class StationQueueUnlockService {
     private final Supplier<PurchaseSettings> settings;
     private final Supplier<QueueCostConfig> costs;
 
-    /**
-     * Creates the service.
-     *
-     * @param economyManager    CoreLib's economy manager
-     * @param itemSourceService CoreLib's item-source service, used for item prices
-     * @param settings          supplies the current purchase settings, re-read per call so a reload applies
-     * @param costs             supplies the current price table, re-read per call so a reload applies
-     */
     public StationQueueUnlockService(EconomyManager economyManager,
             ItemSourceService itemSourceService,
             Supplier<PurchaseSettings> settings,
@@ -145,15 +73,6 @@ public final class StationQueueUnlockService {
         this.costs = costs;
     }
 
-    /**
-     * Prices a batch of queue slots at one station.
-     *
-     * @param player   the buyer
-     * @param station  the station being extended
-     * @param unlocks  the buyer's purchase record
-     * @param slots    how many slots to quote
-     * @return the quote, or a rejection explaining why there is none
-     */
     public Quote quote(Player player, StationDefinition station, QueueUnlocks unlocks, int slots) {
         if (player == null || station == null || unlocks == null) {
             return Quote.rejected(slots, "bad_request");
@@ -209,8 +128,7 @@ public final class StationQueueUnlockService {
                     return Quote.rejected(slots, "price_overflow");
                 }
                 if (ceiling != Double.MAX_VALUE && amount > ceiling) {
-                    // Explicit refusal rather than a silent clamp: the administrator's formula left the
-                    // guard rail they themselves declared, so the sale must not proceed at a made-up price.
+
                     return Quote.rejected(slots, "price_over_cap");
                 }
                 currencyTotal += amount;
@@ -226,20 +144,6 @@ public final class StationQueueUnlockService {
         return new Quote(slots, currencyId, currencyTotal, itemTotals, null);
     }
 
-    /**
-     * Buys queue slots.
-     *
-     * <p>Order: quote, take currency, take items, then grant. A failure after the charge compensates in
-     * reverse before returning, so a refused purchase never leaves the buyer out of pocket.
-     *
-     * <p><strong>Thread:</strong> the buyer's owner thread.
-     *
-     * @param player  the buyer
-     * @param station the station being extended
-     * @param unlocks the buyer's purchase record, mutated on success
-     * @param slots   how many slots to buy
-     * @return the outcome
-     */
     public PurchaseResult purchase(Player player,
             StationDefinition station,
             QueueUnlocks unlocks,
@@ -277,7 +181,6 @@ public final class StationQueueUnlockService {
         return new PurchaseResult(slots, quote, null);
     }
 
-    /** {@return the batch sizes the queue page should offer} */
     public List<Integer> batchOptions() {
         QueueCostConfig table = costs.get();
         if (table == null || !table.batch().enabled()) {

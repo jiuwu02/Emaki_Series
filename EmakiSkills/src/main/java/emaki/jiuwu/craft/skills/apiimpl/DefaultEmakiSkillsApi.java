@@ -9,9 +9,6 @@ import emaki.jiuwu.craft.skills.api.SkillCatalog;
 import emaki.jiuwu.craft.skills.api.SkillExtensions;
 import emaki.jiuwu.craft.skills.api.SkillOperations;
 
-/**
- * {@link EmakiSkillsApi.Bridge} 的运行时实现。
- */
 public final class DefaultEmakiSkillsApi implements EmakiSkillsApi.Bridge {
 
     private final EmakiSkillsPlugin plugin;

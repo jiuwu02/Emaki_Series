@@ -36,21 +36,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 import net.kyori.adventure.text.Component;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class AdvancementResyncService {
 
     private final JavaPlugin plugin;
@@ -58,11 +43,6 @@ public final class AdvancementResyncService {
     private final ItemSourceService itemSourceService;
     private final ExecutionDispatcher executionDispatcher;
     private final ThreadOwnership threadOwnership;
-
-
-
-
-
 
     public AdvancementResyncService(JavaPlugin plugin,
             AdvancementRegistrar registrar,
@@ -75,11 +55,6 @@ public final class AdvancementResyncService {
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
     }
-
-
-
-
-
 
     public CompletableFuture<Integer> resyncAllAsync() {
         List<AdvancementHolder> holders = buildHolders();
@@ -105,12 +80,6 @@ public final class AdvancementResyncService {
                     return sent;
                 });
     }
-
-
-
-
-
-
 
     public boolean resync(Player player) {
         List<AdvancementHolder> holders = buildHolders();
@@ -157,11 +126,6 @@ public final class AdvancementResyncService {
             return false;
         }
     }
-
-
-
-
-
 
     private List<AdvancementHolder> buildHolders() {
         List<AdvancementHolder> holders = new ArrayList<>();

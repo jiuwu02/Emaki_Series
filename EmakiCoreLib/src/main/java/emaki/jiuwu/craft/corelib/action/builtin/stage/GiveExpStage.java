@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import org.bukkit.entity.Player;
 
-/** Grants experience to the target. See {@link ExperienceStage} for the shared contract. */
 public final class GiveExpStage extends ExperienceStage {
 
     public GiveExpStage() {

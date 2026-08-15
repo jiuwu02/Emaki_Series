@@ -16,10 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Immutable pipeline context. Every derivation returns a new instance; there is no mutable channel
- * equivalent to the v1 {@code sharedState}.
- */
 public final class PipelineContext implements CoreStageContext {
 
     private final Plugin sourcePlugin;
@@ -55,17 +51,6 @@ public final class PipelineContext implements CoreStageContext {
         this.placeholders = placeholders == null ? PlaceholderBridge.noop() : placeholders;
     }
 
-    /**
-     * Creates a root context for one pipeline invocation.
-     *
-     * @param sourcePlugin the plugin that triggered the pipeline
-     * @param caster who started it
-     * @param origin spatial reference point, defaulting to the caster location when {@code null}
-     * @param phase phase name
-     * @param silent whether player-facing feedback is suppressed
-     * @param placeholders placeholder rendering bridge
-     * @return the root context
-     */
     public static @NotNull PipelineContext root(@Nullable Plugin sourcePlugin,
             @Nullable CoreActionSubject caster,
             @Nullable Location origin,
@@ -119,7 +104,6 @@ public final class PipelineContext implements CoreStageContext {
                 + caster.getClass().getSimpleName() + ", phase=" + phase);
     }
 
-    /** {@return whether this context can supply an origin without throwing} */
     public boolean hasOrigin() {
         return origin != null || caster.location() != null;
     }
@@ -171,7 +155,6 @@ public final class PipelineContext implements CoreStageContext {
         return Optional.ofNullable(variables.get(Texts.lower(name)));
     }
 
-    /** {@return all pipeline variables, keyed by lowercase name} */
     public @NotNull Map<String, String> variables() {
         return variables;
     }
@@ -181,40 +164,20 @@ public final class PipelineContext implements CoreStageContext {
         return placeholders.render(this, template);
     }
 
-    /** {@return the placeholder bridge backing {@link #render(String)}} */
     public @NotNull PlaceholderBridge placeholders() {
         return placeholders;
     }
 
-    /**
-     * Replaces the target flow and resets the iteration index.
-     *
-     * @param newTargets the new flow
-     * @return a derived context
-     */
     public @NotNull PipelineContext withTargets(@Nullable List<CoreActionSubject> newTargets) {
         return new PipelineContext(sourcePlugin, caster, newTargets, origin, phase, silent,
                 variables, data, 0, placeholders);
     }
 
-    /**
-     * Moves the iteration cursor.
-     *
-     * @param index zero-based target index
-     * @return a derived context
-     */
     public @NotNull PipelineContext withTargetIndex(int index) {
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
                 variables, data, index, placeholders);
     }
 
-    /**
-     * Writes one pipeline variable.
-     *
-     * @param name variable name
-     * @param value value, stringified
-     * @return a derived context
-     */
     public @NotNull PipelineContext withVariable(@Nullable String name, @Nullable Object value) {
         if (Texts.isBlank(name)) {
             return this;
@@ -225,12 +188,6 @@ public final class PipelineContext implements CoreStageContext {
                 copy, data, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Writes several pipeline variables.
-     *
-     * @param values variables to merge in
-     * @return a derived context
-     */
     public @NotNull PipelineContext withVariables(@Nullable Map<String, ?> values) {
         if (values == null || values.isEmpty()) {
             return this;
@@ -246,14 +203,6 @@ public final class PipelineContext implements CoreStageContext {
                 copy, data, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Writes one typed context value.
-     *
-     * @param key context key
-     * @param value value
-     * @param <T> value type
-     * @return a derived context
-     */
     public @NotNull <T> PipelineContext with(@NotNull CoreActionKey<T> key, @Nullable T value) {
         if (key == null) {
             return this;
@@ -268,15 +217,6 @@ public final class PipelineContext implements CoreStageContext {
                 variables, copy, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Writes several typed context values.
-     *
-     * <p>Values whose runtime type does not match their key are dropped rather than stored, so a
-     * later {@code require} cannot observe a mistyped value.</p>
-     *
-     * @param values typed values to merge in
-     * @return a derived context
-     */
     public @NotNull PipelineContext withData(@Nullable Map<CoreActionKey<?>, Object> values) {
         if (values == null || values.isEmpty()) {
             return this;
@@ -297,39 +237,17 @@ public final class PipelineContext implements CoreStageContext {
                 variables, copy, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Replaces the origin.
-     *
-     * @param newOrigin the new reference point
-     * @return a derived context
-     */
     public @NotNull PipelineContext withOrigin(@Nullable Location newOrigin) {
         return new PipelineContext(sourcePlugin, caster, targets, origin == null && newOrigin == null
                 ? null : (newOrigin == null ? origin : newOrigin.clone()),
                 phase, silent, variables, data, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Replaces the phase name.
-     *
-     * @param newPhase the new phase
-     * @return a derived context
-     */
     public @NotNull PipelineContext withPhase(@Nullable String newPhase) {
         return new PipelineContext(sourcePlugin, caster, targets, origin, newPhase, silent,
                 variables, data, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Derives an isolated context for a sub-sequence call.
-     *
-     * <p>Keeps caster, targets, origin and typed data; discards every pipeline variable and installs
-     * only {@code parameters}. This is what makes {@code run} calls unable to read their caller's
-     * locals.</p>
-     *
-     * @param parameters the parameters explicitly passed to the sequence
-     * @return an isolated context
-     */
     public @NotNull PipelineContext isolated(@Nullable Map<String, String> parameters) {
         Map<String, String> scoped = new LinkedHashMap<>();
         if (parameters != null) {
@@ -344,14 +262,6 @@ public final class PipelineContext implements CoreStageContext {
                 scoped, data, currentTargetIndex, placeholders);
     }
 
-    /**
-     * Drops targets that are no longer valid.
-     *
-     * <p>Needed after a domain switch or a delay: on Folia an entity can be removed while the pipeline
-     * waits.</p>
-     *
-     * @return a derived context holding only valid targets
-     */
     public @NotNull PipelineContext revalidated() {
         if (targets.isEmpty()) {
             return this;

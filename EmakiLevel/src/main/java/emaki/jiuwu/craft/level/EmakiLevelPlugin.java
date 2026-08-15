@@ -138,8 +138,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private LevelPlaceholderExpansion placeholderExpansion;
     private LevelStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
-    // "Data is loaded", not "services exist": the services are non-null from initializeServices()
-    // onward, so a service null-check reported ready for the whole duration of a reload.
+
     private volatile boolean contentReady;
     private EmakiLevelApi.Bridge levelApiBridge;
     private ExpSourceProviderRegistry expSourceRegistry;
@@ -229,9 +228,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     public void reloadPluginState() {
-        // Gate first: nothing below may run on a candidate the precheck rejects. Level parses straight
-        // into the active field, so the restorer puts the last known good config back instead of
-        // letting the module continue on a half-applied or defaulted one.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 messages,
                 "level",
@@ -241,9 +238,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         if (gate.rejected()) {
             return;
         }
-        // Not-ready starts after the gate, not at method entry: a rejected candidate leaves the previous
-        // config in place and the module fully usable, so announcing a loading window there would make
-        // every consumer's gate flap for a reload that never happened.
+
         contentReady = false;
         publishLoading();
         closeAttributeBridge();
@@ -277,23 +272,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         publishReady();
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed". The services are non-null from {@code initializeServices} onward, so gating on
-     * them alone reported ready throughout a reload.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
-     * leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -306,11 +288,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -559,12 +536,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         return coreLib;
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
