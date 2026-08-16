@@ -13,7 +13,6 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -128,7 +127,7 @@ public final class GuiTemplateParser {
         }
         String source = parseItemText(raw);
         int amount = Math.max(1, Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1));
-        return new LegacyConfiguredItemConverter(parser).convert(source, amount, raw, Map.of());
+        return new ConfiguredItemDefinition(source, amount, Map.of());
     }
 
     private static String parseItemText(Object raw) {

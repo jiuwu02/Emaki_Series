@@ -27,7 +27,6 @@ public final class ConfiguredItemService {
     private final Plugin plugin;
     private final ItemSourceService itemSourceService;
     private final ConfiguredItemParser parser = new ConfiguredItemParser();
-    private final LegacyConfiguredItemConverter legacyConverter = new LegacyConfiguredItemConverter(parser);
     private final MinecraftComponentValueCodec codec = new MinecraftComponentValueCodec();
     private final MinecraftItemComponentCatalog catalog = new MinecraftItemComponentCatalog();
     private final PaperItemComponentBridge paperBridge = new PaperItemComponentBridge();
@@ -41,10 +40,6 @@ public final class ConfiguredItemService {
 
     public ConfiguredItemParser parser() {
         return parser;
-    }
-
-    public LegacyConfiguredItemConverter legacyConverter() {
-        return legacyConverter;
     }
 
     public List<ItemComponentCapability> capabilities() {

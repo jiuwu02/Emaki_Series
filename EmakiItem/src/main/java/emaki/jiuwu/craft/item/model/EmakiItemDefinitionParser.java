@@ -8,8 +8,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.logging.Logger;
 
-import org.bukkit.Material;
-
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
@@ -21,7 +19,6 @@ import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -32,7 +29,6 @@ public final class EmakiItemDefinitionParser {
 
     private final Logger logger;
     private final ConfiguredItemParser configuredItemParser;
-    private final LegacyConfiguredItemConverter legacyConverter;
 
     public EmakiItemDefinitionParser(Logger logger) {
         this(logger, new ConfiguredItemParser());
@@ -41,7 +37,6 @@ public final class EmakiItemDefinitionParser {
     public EmakiItemDefinitionParser(Logger logger, ConfiguredItemParser configuredItemParser) {
         this.logger = logger;
         this.configuredItemParser = configuredItemParser == null ? new ConfiguredItemParser() : configuredItemParser;
-        this.legacyConverter = new LegacyConfiguredItemConverter(this.configuredItemParser);
     }
 
     public EmakiItemDefinition parse(Map<String, ?> root, String source) {
@@ -59,7 +54,7 @@ public final class EmakiItemDefinitionParser {
         }
         ConfiguredItemDefinition itemDefinition;
         try {
-            itemDefinition = parseConfiguredItem(root, id, source);
+            itemDefinition = parseConfiguredItem(root, id);
         } catch (IllegalArgumentException exception) {
             warning("Skipping item definition " + source + ": " + exception.getMessage());
             return null;
@@ -107,7 +102,7 @@ public final class EmakiItemDefinitionParser {
         );
     }
 
-    private ConfiguredItemDefinition parseConfiguredItem(YamlSection root, String itemId, String sourceLabel) {
+    private ConfiguredItemDefinition parseConfiguredItem(YamlSection root, String itemId) {
         Object nestedItem = root.get("item");
         boolean hasNestedItem = nestedItem instanceof Map<?, ?> || nestedItem instanceof YamlSection || nestedItem instanceof String;
         Object configuredNode = hasNestedItem ? nestedItem : root;
@@ -116,71 +111,18 @@ public final class EmakiItemDefinitionParser {
         if (Texts.isBlank(itemSource) && hasNestedItem && root.get("source") != null) {
             itemSource = configuredItemParser.parse(Map.of("source", root.get("source"))).source();
         }
-        if (Texts.isBlank(itemSource)) {
-            itemSource = legacyMaterialSource(root.getString("material", ""));
-        }
         int amount = hasNestedItem && ConfigNodes.contains(configuredNode, "amount")
                 ? shared.amount()
                 : Math.max(1, root.getInt("amount", shared.amount()));
 
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
         patches.putAll(shared.components());
-        removeLegacyOnlyComponentPatches(patches, configuredNode);
-        ConfiguredItemDefinition converted = legacyConverter.convert(itemSource, amount, configuredNode, Map.of());
-        patches.putAll(converted.components());
-        YamlSection legacyComponents = ConfigNodes.section(configuredNode, "components");
-        patches.putAll(parseComponents(legacyComponents, itemId).toComponentPatches());
-        overlayLegacyTextComponents(patches, configuredNode);
+        patches.putAll(parseComponents(ConfigNodes.section(configuredNode, "components"), itemId).toComponentPatches());
 
         if (hasNestedItem) {
-            ConfiguredItemDefinition rootLegacy = legacyConverter.convert(itemSource, amount, root, Map.of());
-            rootLegacy.components().forEach(patches::putIfAbsent);
             parseComponents(root.getSection("components"), itemId).toComponentPatches().forEach(patches::putIfAbsent);
-            overlayLegacyTextComponentsFallback(patches, root);
-        }
-        warnIgnoredRawComponent(configuredNode, sourceLabel);
-        if (hasNestedItem) {
-            warnIgnoredRawComponent(root, sourceLabel);
         }
         return new ConfiguredItemDefinition(itemSource, amount, patches);
-    }
-
-    private void removeLegacyOnlyComponentPatches(Map<String, ItemComponentPatch> patches, Object raw) {
-        Object components = ConfigNodes.get(raw, "components");
-        for (String legacyKey : List.of("raw", "item_flags", "hide_tooltip",
-                "hidden_components", "display_name")) {
-            if (ConfigNodes.contains(components, legacyKey)) {
-                patches.remove("minecraft:" + legacyKey);
-            }
-        }
-    }
-
-    private void overlayLegacyTextComponents(Map<String, ItemComponentPatch> patches, Object raw) {
-        Object displayName = ConfigNodes.get(raw, "display_name");
-        if (displayName != null) {
-            patches.put("minecraft:custom_name", ItemComponentPatch.set(ConfigNodes.toPlainData(displayName)));
-        }
-        Object itemName = ConfigNodes.get(raw, "item_name");
-        if (itemName != null && Texts.isNotBlank(itemName)) {
-            patches.put("minecraft:item_name", ItemComponentPatch.set(ConfigNodes.toPlainData(itemName)));
-        }
-        if (ConfigNodes.contains(raw, "lore")) {
-            Object lore = ConfigNodes.get(raw, "lore");
-            patches.put("minecraft:lore", ItemComponentPatch.set(ConfigNodes.toPlainData(lore == null ? List.of() : lore)));
-        }
-    }
-
-    private void overlayLegacyTextComponentsFallback(Map<String, ItemComponentPatch> patches, Object raw) {
-        Map<String, ItemComponentPatch> legacyText = new LinkedHashMap<>();
-        overlayLegacyTextComponents(legacyText, raw);
-        legacyText.forEach(patches::putIfAbsent);
-    }
-
-    private String legacyMaterialSource(String materialName) {
-        Material material = ItemSourceUtil.resolveVanillaMaterial(materialName);
-        return material == null || !material.isItem()
-                ? null
-                : "minecraft-" + material.name().toLowerCase(Locale.ROOT);
     }
 
     private boolean validateConfiguredItem(ConfiguredItemDefinition definition,
@@ -240,13 +182,6 @@ public final class EmakiItemDefinitionParser {
             return resolved;
         }
         return value;
-    }
-
-    private void warnIgnoredRawComponent(Object raw, String source) {
-        Object components = ConfigNodes.get(raw, "components");
-        if (Texts.isNotBlank(ConfigNodes.get(components, "raw"))) {
-            warning("Item definition " + source + " uses legacy components.raw; the shared item model cannot safely normalize this free-form item string, so it was ignored.");
-        }
     }
 
     private ItemComponentsConfig parseComponents(YamlSection section, String itemId) {

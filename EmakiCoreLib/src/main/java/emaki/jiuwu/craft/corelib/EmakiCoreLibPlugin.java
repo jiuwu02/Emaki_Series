@@ -19,7 +19,6 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinStages;
-import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineBatchRunner;
@@ -213,7 +212,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerPublicApiService();
         publishOwnCapabilities();
         installPacketBackend();
-        runLegacyActionMigration();
         logStartupAudit();
         metrics = registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -803,35 +801,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     loop == null ? 100 : loop.maxActiveLoopsPerPlugin(),
                     loop == null || loop.cancelPlayerLoopsOnQuit()));
         }
-    }
-
-    private void runLegacyActionMigration() {
-        ActionEngine engine = actionEngine;
-        if (engine == null) {
-            return;
-        }
-        List<Path> folders = new ArrayList<>();
-        File pluginsRoot = getDataFolder().getParentFile();
-        File[] candidates = pluginsRoot == null ? null : pluginsRoot.listFiles();
-        if (candidates != null) {
-            for (File candidate : candidates) {
-
-                if (candidate.isDirectory() && candidate.getName().startsWith("Emaki")) {
-                    folders.add(candidate.toPath());
-                }
-            }
-        }
-        LegacyActionMigrator migrator = new LegacyActionMigrator(pipeline -> {
-            ActionEngine.Result result = engine.compile(pipeline, null);
-            if (result.successful()) {
-                return null;
-            }
-            return result.diagnostics().isEmpty()
-                    ? "did not compile"
-                    : messageService().renderFirstDiagnostic(result.diagnostics());
-        });
-        LegacyActionMigrator.Report report = migrator.run(getDataFolder().toPath(), folders, false);
-        report.describe().forEach(line -> getLogger().info(line));
     }
 
     public ConfigPrecheckService configPrecheckService() {
