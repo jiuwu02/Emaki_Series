@@ -1,16 +1,11 @@
 package emaki.jiuwu.craft.mobs.loader;
 
-import emaki.jiuwu.craft.mobs.spawner.ActiveSpawnConfig;
-import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnRule;
+import emaki.jiuwu.craft.mobs.spawner.AutonomousSpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.CountRange;
-import emaki.jiuwu.craft.mobs.spawner.CustomSpawnRule;
-import emaki.jiuwu.craft.mobs.spawner.DayIntervalSpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.DistanceRange;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnRule;
-import emaki.jiuwu.craft.mobs.spawner.PlayerRelativeSpawnRule;
-import emaki.jiuwu.craft.mobs.spawner.SpawnConditions;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
-import emaki.jiuwu.craft.mobs.spawner.StructureSpawnRule;
+import emaki.jiuwu.craft.mobs.spawner.SpawnTrigger;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Biome;
@@ -63,24 +58,23 @@ public final class SpawnRuleLoader {
         Object mobIdObj = map.get("mob_id");
         Object typeObj = map.get("type");
         if (!(mobIdObj instanceof String mobId) || !(typeObj instanceof String type)) {
-            plugin.getLogger().warning("Spawn rule in '" + fileName + "' missing mob_id or type, skipping.");
+            plugin.getLogger().warning(
+                    "Spawn rule in '" + fileName + "' missing mob_id or type, skipping.");
             return null;
         }
         return switch (type) {
-            case "natural"        -> parseNatural(mobId, map);
-            case "structure"      -> parseStructure(mobId, map, fileName);
-            case "player_relative"-> parsePlayerRelative(mobId, map);
-            case "day_interval"   -> parseDayInterval(mobId, map);
-            case "custom"         -> parseCustom(mobId, map);
-            case "biome"          -> parseBiome(mobId, map);
+            case "natural"    -> parseNatural(mobId, map);
+            case "autonomous" -> parseAutonomous(mobId, map, fileName);
             default -> {
-                plugin.getLogger().warning("Unknown spawn type '" + type + "' in '" + fileName + "', skipping.");
+                plugin.getLogger().warning(
+                        "Unknown spawn type '" + type + "' in '" + fileName + "', skipping.");
                 yield null;
             }
         };
     }
 
     private NaturalSpawnRule parseNatural(String mobId, Map<?, ?> map) {
+        Set<String> worlds = new HashSet<>(getStringList(map, "worlds"));
         Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
         List<?> yRange = getList(map, "y_range");
         int yMin = yRange.size() >= 1 ? toInt(yRange.get(0), -64) : -64;
@@ -88,56 +82,60 @@ public final class SpawnRuleLoader {
         int lightMax = toInt(map.get("light_level_max"), 15);
         double chance = toDouble(map.get("replacement_chance"), 1.0);
         int maxNearby = toInt(map.get("max_nearby"), 0);
-        return new NaturalSpawnRule(mobId, biomes, yMin, yMax, lightMax, chance, maxNearby, parseCount(map));
+        return new NaturalSpawnRule(
+                mobId, Set.copyOf(worlds), biomes, yMin, yMax, lightMax, chance, maxNearby,
+                parseCount(map));
     }
 
-    private StructureSpawnRule parseStructure(String mobId, Map<?, ?> map, String fileName) {
-        List<Structure> structures = new ArrayList<>();
-        for (String key : getStringList(map, "structures")) {
+    private AutonomousSpawnRule parseAutonomous(String mobId, Map<?, ?> map, String fileName) {
+        Object triggerObj = map.get("trigger");
+        if (!(triggerObj instanceof String triggerStr)) {
+            plugin.getLogger().warning(
+                    "Autonomous rule for '" + mobId + "' in '" + fileName + "' missing trigger, skipping.");
+            return null;
+        }
+        SpawnTrigger trigger = SpawnTrigger.fromString(triggerStr);
+        if (trigger == null) {
+            plugin.getLogger().warning(
+                    "Unknown trigger '" + triggerStr + "' for '" + mobId + "' in '" + fileName + "', skipping.");
+            return null;
+        }
+        long intervalTicks = toLong(map.get("interval_ticks"), 600L);
+        int intervalDays = toInt(map.get("interval_days"), 1);
+        boolean onDayStart = Boolean.TRUE.equals(map.get("on_day_start"));
+        String cronExpr = map.get("cron") instanceof String s ? s : "";
+        Set<String> worlds = new HashSet<>(getStringList(map, "worlds"));
+        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
+        List<Structure> structures = parseStructures(getStringList(map, "structures"), fileName);
+        List<?> yRange = getList(map, "y_range");
+        int yMin = yRange.size() >= 1 ? toInt(yRange.get(0), -64) : -64;
+        int yMax = yRange.size() >= 2 ? toInt(yRange.get(1), 320) : 320;
+        int lightMax = toInt(map.get("light_level_max"), 15);
+        String timeOfDay = map.get("time_of_day") instanceof String s ? s : "any";
+        boolean requireSurface = Boolean.TRUE.equals(map.get("require_surface"));
+        DistanceRange distance = parseDistanceRange(map, "distance");
+        int maxNearby = toInt(map.get("max_nearby"), 0);
+        int maxGlobal = toInt(map.get("max_global"), 0);
+        return new AutonomousSpawnRule(
+                mobId, trigger, intervalTicks, intervalDays, onDayStart, cronExpr,
+                Set.copyOf(worlds), biomes, List.copyOf(structures),
+                yMin, yMax, lightMax, timeOfDay, requireSurface,
+                distance, maxNearby, maxGlobal, parseCount(map));
+    }
+
+    private List<Structure> parseStructures(List<String> keys, String fileName) {
+        List<Structure> result = new ArrayList<>();
+        for (String key : keys) {
             NamespacedKey nsk = NamespacedKey.fromString(key);
             Structure s = nsk != null ? Registry.STRUCTURE.get(nsk) : null;
             if (s == null) {
-                plugin.getLogger().warning("Unknown structure '" + key + "' in '" + fileName + "', skipping entry.");
+                plugin.getLogger().warning(
+                        "Unknown structure '" + key + "' in '" + fileName + "', skipping.");
             } else {
-                structures.add(s);
+                result.add(s);
             }
         }
-        int maxNearby = toInt(map.get("max_nearby"), 0);
-        ActiveSpawnConfig activeSpawn = parseActiveSpawn(map.get("active_spawn"));
-        return new StructureSpawnRule(mobId, List.copyOf(structures), maxNearby, parseCount(map), activeSpawn);
-    }
-
-    private PlayerRelativeSpawnRule parsePlayerRelative(String mobId, Map<?, ?> map) {
-        DistanceRange distance = parseDistanceRange(map, "distance");
-        boolean skyAccess = Boolean.TRUE.equals(map.get("require_sky_access"));
-        int maxGlobal = toInt(map.get("max_global"), 0);
-        long interval = toLong(map.get("interval_ticks"), 24000L);
-        return new PlayerRelativeSpawnRule(mobId, distance, skyAccess, maxGlobal, interval, parseCount(map));
-    }
-
-    private DayIntervalSpawnRule parseDayInterval(String mobId, Map<?, ?> map) {
-        int intervalDays = toInt(map.get("interval_days"), 1);
-        boolean onDayStart = Boolean.TRUE.equals(map.get("on_day_start"));
-        DistanceRange dist = parseDistanceRange(map, "distance_from_player");
-        int maxGlobal = toInt(map.get("max_global"), 0);
-        return new DayIntervalSpawnRule(mobId, intervalDays, onDayStart, dist, parseCount(map), maxGlobal);
-    }
-
-    private CustomSpawnRule parseCustom(String mobId, Map<?, ?> map) {
-        long interval = toLong(map.get("interval_ticks"), 600L);
-        DistanceRange dist = parseDistanceRange(map, "distance");
-        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
-        int maxNearby = toInt(map.get("max_nearby"), 0);
-        return new CustomSpawnRule(mobId, interval, dist, biomes, parseCount(map), maxNearby);
-    }
-
-    private BiomeSpawnRule parseBiome(String mobId, Map<?, ?> map) {
-        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
-        long interval = toLong(map.get("interval_ticks"), 400L);
-        DistanceRange dist = parseDistanceRange(map, "distance");
-        SpawnConditions conditions = parseConditions(map.get("conditions"));
-        int maxNearby = toInt(map.get("max_nearby"), 0);
-        return new BiomeSpawnRule(mobId, biomes, interval, dist, conditions, parseCount(map), maxNearby);
+        return result;
     }
 
     @SuppressWarnings("deprecation")
@@ -168,20 +166,6 @@ public final class SpawnRuleLoader {
             return new DistanceRange(toInt(distMap.get("min"), 16), toInt(distMap.get("max"), 64));
         }
         return new DistanceRange(16, 64);
-    }
-
-    private ActiveSpawnConfig parseActiveSpawn(Object obj) {
-        if (!(obj instanceof Map<?, ?> map)) return null;
-        int interval = toInt(map.get("interval_ticks"), 1200);
-        int nearby = toInt(map.get("require_player_nearby"), 64);
-        return new ActiveSpawnConfig(interval, nearby);
-    }
-
-    private SpawnConditions parseConditions(Object obj) {
-        if (!(obj instanceof Map<?, ?> map)) return null;
-        int lightMax = toInt(map.get("light_max"), 15);
-        boolean surface = Boolean.TRUE.equals(map.get("require_surface"));
-        return new SpawnConditions(lightMax, surface);
     }
 
     @SuppressWarnings("unchecked")

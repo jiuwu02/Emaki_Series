@@ -29,15 +29,11 @@ import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
-import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnHandler;
-import emaki.jiuwu.craft.mobs.spawner.CustomSpawnHandler;
-import emaki.jiuwu.craft.mobs.spawner.DayIntervalSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.AutonomousSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
-import emaki.jiuwu.craft.mobs.spawner.PlayerRelativeSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.SpawnConditionEvaluator;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
-import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
@@ -92,13 +88,8 @@ final class MobsLifecycleCoordinator
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var spawnConditionEvaluator = new SpawnConditionEvaluator(mobIdentifier);
         var naturalSpawnHandler = new NaturalSpawnHandler(spawnConditionEvaluator, mobFactory);
-        var structureSpawnHandler = new StructureSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
-        var playerRelativeSpawnHandler = new PlayerRelativeSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
-        var dayIntervalSpawnHandler = new DayIntervalSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
-        var customSpawnHandler = new CustomSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
-        var biomeSpawnHandler = new BiomeSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
-        var spawnRuleDispatcher = new SpawnRuleDispatcher(naturalSpawnHandler, structureSpawnHandler,
-                playerRelativeSpawnHandler, dayIntervalSpawnHandler, customSpawnHandler, biomeSpawnHandler);
+        var autonomousSpawnHandler = new AutonomousSpawnHandler(plugin, spawnConditionEvaluator, mobFactory);
+        var spawnRuleDispatcher = new SpawnRuleDispatcher(naturalSpawnHandler, autonomousSpawnHandler);
         var spawnRuleLoader = new SpawnRuleLoader(plugin);
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
         var mobSkillExecutor = new MobSkillExecutor(plugin, mobRegistry::get, plugin.getLogger());
@@ -122,7 +113,7 @@ final class MobsLifecycleCoordinator
                 appConfigLoader, bootstrapService, mobRegistry,
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
-                naturalSpawnHandler, structureSpawnHandler,
+                naturalSpawnHandler, autonomousSpawnHandler,
                 attributeBridge, mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
                 mobExtensions);

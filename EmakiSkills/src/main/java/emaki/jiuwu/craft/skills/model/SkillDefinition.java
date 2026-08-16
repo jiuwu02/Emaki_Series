@@ -15,6 +15,8 @@ public record SkillDefinition(String id,
         String mythicSkill,
         SkillActivationType activationType,
         List<String> passiveTriggers,
+        String cronExpression,
+        int cronMaxExecutions,
         Map<String, SkillParameterDefinition> variables,
         SkillScriptDefinition script,
         SkillUpgradeConfig upgrade,
@@ -42,6 +44,8 @@ public record SkillDefinition(String id,
         mythicSkill = mythicSkill == null ? "" : mythicSkill;
         activationType = activationType == null ? SkillActivationType.ACTIVE : activationType;
         passiveTriggers = passiveTriggers == null ? List.of() : List.copyOf(passiveTriggers);
+        cronExpression = cronExpression == null ? "" : cronExpression;
+        cronMaxExecutions = Math.max(0, cronMaxExecutions);
         variables = variables == null
                 ? Map.of()
                 : Collections.unmodifiableMap(new LinkedHashMap<>(variables));

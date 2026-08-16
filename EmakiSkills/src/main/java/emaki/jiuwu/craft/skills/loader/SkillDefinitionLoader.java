@@ -67,6 +67,21 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         ConditionBlock condition = ConditionBlock.fromRoot(configuration, true, false);
         ConditionGroup conditionGroup = condition.group();
 
+        String cronExpr = configuration.getString("cron_expression", "");
+        int cronMaxExec = configuration.getInt("cron_max_executions", 0);
+        List<String> rawPassiveTriggers = normalizeTriggerIds(configuration.getStringList("passive_triggers"));
+        List<String> passiveTriggers;
+        if (!cronExpr.isBlank()) {
+            List<String> withCron = new ArrayList<>(rawPassiveTriggers);
+            String cronTriggerId = "cron_" + id;
+            if (!withCron.contains(cronTriggerId)) {
+                withCron.add(cronTriggerId);
+            }
+            passiveTriggers = List.copyOf(withCron);
+        } else {
+            passiveTriggers = rawPassiveTriggers;
+        }
+
         return new SkillDefinition(
                 id,
                 configuration.getString("display_name", id),
@@ -74,7 +89,9 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 iconMaterial,
                 configuration.getString("mythic_skill", ""),
                 activationType,
-                normalizeTriggerIds(configuration.getStringList("passive_triggers")),
+                passiveTriggers,
+                cronExpr,
+                cronMaxExec,
                 parseSkillParameters(configuration.getSection("variables")),
                 parseScript(configuration.getSection("script")),
                 parseUpgradeConfig(configuration.getSection("upgrade")),

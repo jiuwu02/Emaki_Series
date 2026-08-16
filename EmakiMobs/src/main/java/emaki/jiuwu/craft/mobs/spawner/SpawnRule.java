@@ -1,8 +1,6 @@
 package emaki.jiuwu.craft.mobs.spawner;
 
-public sealed interface SpawnRule
-        permits NaturalSpawnRule, StructureSpawnRule, PlayerRelativeSpawnRule,
-                DayIntervalSpawnRule, CustomSpawnRule, BiomeSpawnRule {
+public sealed interface SpawnRule permits NaturalSpawnRule, AutonomousSpawnRule {
 
     String mobId();
 

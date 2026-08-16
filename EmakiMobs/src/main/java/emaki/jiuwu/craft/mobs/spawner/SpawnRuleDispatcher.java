@@ -7,19 +7,10 @@ public final class SpawnRuleDispatcher {
 
     private final Map<String, SpawnHandler> handlers;
 
-    public SpawnRuleDispatcher(NaturalSpawnHandler natural,
-                               StructureSpawnHandler structure,
-                               PlayerRelativeSpawnHandler playerRelative,
-                               DayIntervalSpawnHandler dayInterval,
-                               CustomSpawnHandler custom,
-                               BiomeSpawnHandler biome) {
+    public SpawnRuleDispatcher(NaturalSpawnHandler natural, AutonomousSpawnHandler autonomous) {
         handlers = Map.of(
-                "natural",         natural,
-                "structure",       structure,
-                "player_relative", playerRelative,
-                "day_interval",    dayInterval,
-                "custom",          custom,
-                "biome",           biome
+                "natural",    natural,
+                "autonomous", autonomous
         );
     }
 

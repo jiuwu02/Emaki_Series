@@ -6,6 +6,7 @@ import java.util.Set;
 
 public record NaturalSpawnRule(
         String mobId,
+        Set<String> worlds,
         Set<Biome> biomes,
         int yMin,
         int yMax,

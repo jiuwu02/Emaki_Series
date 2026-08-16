@@ -37,7 +37,10 @@ import org.bukkit.projectiles.ProjectileSource;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.schedule.cron.CronParseException;
+import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.skills.config.AppConfig;
+import emaki.jiuwu.craft.skills.model.SkillDefinition;
 
 public final class PassiveTriggerSource {
 
@@ -47,6 +50,7 @@ public final class PassiveTriggerSource {
     private final Map<UUID, ComboState> comboStates = new ConcurrentHashMap<>();
     private PassiveTriggerDispatcher dispatcher_ref;
     private final AtomicLong timerGeneration = new AtomicLong();
+    private final CronScheduler cronScheduler = new CronScheduler();
     private TaskToken timerTask;
     private long lastTimerDispatchAt;
     private volatile boolean timerDispatchWarningLogged;
@@ -251,9 +255,41 @@ public final class PassiveTriggerSource {
 
     public void stop() {
         timerGeneration.incrementAndGet();
+        cronScheduler.cancelAll();
         if (timerTask != null) {
             timerTask.cancel();
             timerTask = null;
+        }
+    }
+
+    public void reloadCronTasks(JavaPlugin plugin, Iterable<SkillDefinition> skills) {
+        cronScheduler.cancelAll();
+        if (dispatcher_ref == null || skills == null) return;
+        for (SkillDefinition skill : skills) {
+            if (skill.cronExpression().isBlank()) continue;
+            final String triggerId = "cron_" + skill.id();
+            final int maxExec = skill.cronMaxExecutions();
+            try {
+                cronScheduler.schedule(plugin, skill.cronExpression(), maxExec, () -> {
+                    for (Player player : plugin.getServer().getOnlinePlayers()) {
+                        dispatcher_ref.dispatch(new TriggerInvocation(
+                                player,
+                                triggerId,
+                                null,
+                                player.isSneaking(),
+                                false,
+                                System.currentTimeMillis(),
+                                null,
+                                player.getLocation(),
+                                null
+                        ));
+                    }
+                });
+            } catch (CronParseException e) {
+                plugin.getLogger().warning(
+                        "[EmakiSkills] Invalid cron expression '" + skill.cronExpression()
+                                + "' for skill '" + skill.id() + "': " + e.getMessage());
+            }
         }
     }
 

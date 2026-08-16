@@ -22,10 +22,10 @@ import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
+import emaki.jiuwu.craft.mobs.spawner.AutonomousSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
-import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
@@ -52,7 +52,7 @@ record MobsRuntimeComponents(
         AtomicReference<List<SpawnRule>> spawnRegistry,
         SpawnRuleDispatcher spawnRuleDispatcher,
         NaturalSpawnHandler naturalSpawnHandler,
-        StructureSpawnHandler structureSpawnHandler,
+        AutonomousSpawnHandler autonomousSpawnHandler,
         AttributeBridge attributeBridge,
         MobSkillExecutor mobSkillExecutor,
         HealthPhaseTracker healthPhaseTracker,

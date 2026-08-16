@@ -2,12 +2,15 @@ package emaki.jiuwu.craft.mobs.spawner;
 
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Biome;
 import org.bukkit.block.Block;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.generator.structure.Structure;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 
@@ -20,6 +23,10 @@ public final class SpawnConditionEvaluator {
     }
 
     public boolean matchesNatural(Location location, NaturalSpawnRule rule) {
+        if (!rule.worlds().isEmpty()) {
+            World world = location.getWorld();
+            if (world == null || !rule.worlds().contains(world.getName())) return false;
+        }
         if (!matchesBiomes(location, rule.biomes())) return false;
         int y = location.getBlockY();
         if (y < rule.yMin() || y > rule.yMax()) return false;
@@ -33,16 +40,32 @@ public final class SpawnConditionEvaluator {
         return biomes.contains(location.getBlock().getBiome());
     }
 
-    public boolean matchesConditions(Location location, SpawnConditions conditions) {
-        if (conditions == null) return true;
-        if (location.getBlock().getLightLevel() > conditions.lightMax()) return false;
-        if (conditions.requireSurface()) {
-            World world = location.getWorld();
-            if (world == null) return false;
-            int highest = world.getHighestBlockYAt(location.getBlockX(), location.getBlockZ());
-            if (location.getBlockY() < highest) return false;
+    public boolean matchesWorlds(Location location, Set<String> worlds) {
+        if (worlds.isEmpty()) return true;
+        World world = location.getWorld();
+        return world != null && worlds.contains(world.getName());
+    }
+
+    public boolean matchesTimeOfDay(World world, String timeOfDay) {
+        if (timeOfDay == null || "any".equalsIgnoreCase(timeOfDay)) return true;
+        long time = world.getTime();
+        return switch (timeOfDay.toLowerCase()) {
+            case "day"   -> time >= 1000 && time < 13000;
+            case "night" -> time >= 13000 || time < 1000;
+            default      -> true;
+        };
+    }
+
+    public boolean isInStructures(Location location, List<Structure> structures) {
+        Chunk chunk = location.getChunk();
+        for (var gen : chunk.getStructures()) {
+            if (structures.contains(gen.getStructure())
+                    && gen.getBoundingBox().contains(
+                            location.getX(), location.getY(), location.getZ())) {
+                return true;
+            }
         }
-        return true;
+        return false;
     }
 
     public long countNearby(Location location, String mobId, int radius) {

@@ -574,6 +574,24 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                     TriggerCategory.PASSIVE
             ));
         }
+
+        for (var skill : plugin.skillDefinitionLoader().all().values()) {
+            if (!skill.cronExpression().isBlank()) {
+                registry.register(new SkillTriggerDefinition(
+                        "cron_" + skill.id(),
+                        skill.displayName() + " (Cron)",
+                        null,
+                        true,
+                        Set.of(),
+                        null,
+                        TriggerCategory.PASSIVE
+                ));
+            }
+        }
+        if (plugin.passiveTriggerSource() != null) {
+            plugin.passiveTriggerSource().reloadCronTasks(
+                    plugin, plugin.skillDefinitionLoader().all().values());
+        }
     }
 
     private boolean shouldReleaseDefaultData(EmakiSkillsPlugin plugin) {

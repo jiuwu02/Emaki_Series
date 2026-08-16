@@ -301,6 +301,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 triggerRegistry, playerSkillStateService, castAttemptService);
         passiveTriggerSource = new PassiveTriggerSource(this::appConfig);
         passiveTriggerSource.register(this, passiveTriggerDispatcher, scheduling);
+        passiveTriggerSource.reloadCronTasks(this, skillDefinitionLoader.all().values());
 
         getServer().getPluginManager().registerEvents(
                 new CastModeKeyListener(castModeService, actionBarService, messageService),
@@ -449,6 +450,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public MythicBridge mythicBridge() {
         return mythicBridge;
+    }
+
+    public PassiveTriggerSource passiveTriggerSource() {
+        return passiveTriggerSource;
     }
 
     public SkillsPlaceholderExpansion placeholderExpansion() {
