@@ -1,0 +1,20 @@
+# ============================================================
+#  丛林潜行者 — 简洁自然生成示例
+#  演示：最小化配置、不显示名牌、无 Boss 血条、
+#        依靠 biome 类型刷新规则在丛林中自然出现
+# ============================================================
+id: jungle_stalker
+type: creeper
+display_name: "<dark_green>丛林潜行者</dark_green>"
+
+components:
+  max_health: 30.0
+  movement_speed: 0.35
+  # 不设置 custom_name / custom_name_visible，生物不显示名牌
+  persistent: true
+  loot_table: "emakimobs:entities/jungle_stalker"
+
+experience: 20
+
+# 无 attributes / skills / threat / boss_bar — 保持轻量
+# 需要配合 spawn_rules/ 中 type: biome 规则使用

@@ -1,0 +1,43 @@
+# ============================================================
+#  丛林潜行者掉落表
+# ============================================================
+mob_id: jungle_stalker
+
+pools:
+  main:
+    rolls: 1
+    entries:
+      gunpowder:
+        item: "minecraft:gunpowder"
+        weight: 10
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 0
+              max: 2
+          looting:
+            type: looting_enchant
+            count:
+              min: 0
+              max: 1
+
+      vine:
+        item: "minecraft:vine"
+        weight: 4
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 1
+              max: 3
+
+      bamboo:
+        item: "minecraft:bamboo"
+        weight: 3
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 1
+              max: 4

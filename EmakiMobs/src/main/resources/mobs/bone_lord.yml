@@ -1,0 +1,66 @@
+# ============================================================
+#  骨骼领主 — Boss 生物示例
+#  演示：高强度 Boss 配置、多阶段技能、分段 Boss 血条、
+#        自定义威胁权重、稀有掉落
+# ============================================================
+id: bone_lord
+type: skeleton
+display_name: "<dark_red>☠ 骨骼领主 ☠</dark_red>"
+
+components:
+  max_health: 400.0
+  movement_speed: 0.22
+  attack_damage: 15.0
+  follow_range: 64.0
+  knockback_resistance: 0.8
+  armor: 8.0
+  armor_toughness: 4.0
+  custom_name: "<dark_red>☠ 骨骼领主 ☠</dark_red>"
+  custom_name_visible: true
+  persistent: true
+  loot_table: "emakimobs:entities/bone_lord"
+
+experience: 500
+
+# ── EmakiAttribute（可选）──────────────────────────────────
+attributes:
+  STR: 40
+  VIT: 30
+  AGI: 8
+
+# ── 技能触发器（可选）──────────────────────────────────────
+skills:
+  on_spawn:
+    - "self | particle type=SOUL count=100 offset_x=1 offset_y=2 offset_z=1"
+    - "nearby radius=60 type=player | send_message text='<dark_red>☠ <bold>骨骼领主</bold>降临！准备迎战！'"
+    - "nearby radius=60 type=player | play_sound sound=minecraft:entity.wither.spawn volume=1.0 pitch=1.0"
+  on_death:
+    - "self | explosion power=2 fire=false"
+    - "nearby radius=60 type=player | send_message text='<gold>✦ 骨骼领主已倒下！世界再次安宁。'"
+    - "killer | give_exp amount=500"
+    - "killer | send_message text='<gold>⚔ 你击败了骨骼领主！'"
+  on_target:
+    - "self | play_sound sound=minecraft:entity.skeleton.ambient volume=1.0 pitch=0.7"
+  on_damage_take:
+    - "self | particle type=BONE_MEAL count=15 offset_x=0.5 offset_y=1.0 offset_z=0.5"
+  on_damage_give:
+    - "target | apply_effect type=WITHER duration=100 amplifier=0"
+
+# ── 威胁仇恨表 ──────────────────────────────────────────────
+# Boss 应具有较大 max_range，确保场地内所有玩家均被纳入威胁计算。
+threat:
+  enabled: true
+  max_range: 80.0
+  weights:
+    damage: 1.0
+    healing: 0.8 # Boss 对奶妈仇恨更高
+  decay:
+    rate: 0.02 # Boss 仇恨衰减较慢
+    out_of_range: true
+
+# ── Boss 血条 ────────────────────────────────────────────────
+boss_bar:
+  title: "<dark_red>☠ 骨骼领主 ☠"
+  color: WHITE
+  style: SEGMENTED_20
+  range: 80.0
