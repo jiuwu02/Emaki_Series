@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs;
 
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -25,6 +26,16 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private static final String ROOT_COMMAND = "emakimobs";
 
+    private static final String STARTUP_ASCII = """
+ ______ __ __ ______ __ __ __ __ __ ______ ______ ______
+/\\ ___\\/\\ "-./ \\/\\ __ \\/\\ \\/ / /\\ \\/\\ "-./ \\/\\ __ \\/\\ == \\/\\ ___\\
+\\ \\ __\\\\ \\ \\-./\\ \\ \\ __ \\ \\ _"-. \\ \\ \\ \\ \\-./\\ \\ \\ \\/\\ \\ \\ __<\\ \\___ \\
+\\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\ \\_\\ \\_____\\ \\_____\\/\\_____\\
+\\/_____/\\/_/ \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/
+""";
+    private static final int STARTUP_ASCII_START_COLOR = 0x86EFAC;
+    private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
+
     private final MobsLifecycleCoordinator lifecycleCoordinator = new MobsLifecycleCoordinator();
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
 
@@ -43,6 +54,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         components.messageService().info("console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
