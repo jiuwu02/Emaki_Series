@@ -4,7 +4,9 @@ rules:
     biomes:
       - plains
       - forest
-    y_range: [-64, 50]
+    y_range:
+      - -64
+      - 50
     light_level_max: 7
     replacement_chance: 0.05
     max_nearby: 3

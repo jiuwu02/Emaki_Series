@@ -28,7 +28,8 @@ slots:
           hide_tooltip: true
 
   dismantle_input:
-    slots: [20]
+    slots:
+      - 20
     type: "dismantle_input"
     item:
       source: "GRAY_STAINED_GLASS_PANE"
@@ -36,7 +37,8 @@ slots:
         custom_name: "<gray>选中的配方输入</gray>"
 
   dismantle_rolls_display:
-    slots: [22]
+    slots:
+      - 22
     type: "dismantle_rolls_display"
     item:
       source: "DICE"
@@ -47,7 +49,8 @@ slots:
           - "<gray>最多: <yellow>%rolls_max%</yellow></gray>"
 
   dismantle_confirm:
-    slots: [24]
+    slots:
+      - 24
     type: "dismantle_confirm"
     item:
       source: "GREEN_STAINED_GLASS_PANE"
@@ -70,7 +73,8 @@ slots:
         custom_name: "<yellow>%item%</yellow>"
 
   prev_page:
-    slots: [36]
+    slots:
+      - 36
     type: "prev_page"
     item:
       source: "ARROW"
@@ -78,7 +82,8 @@ slots:
         custom_name: "<yellow>上一页</yellow>"
 
   page_info:
-    slots: [40]
+    slots:
+      - 40
     type: "page_info"
     item:
       source: "BOOK"
@@ -88,7 +93,8 @@ slots:
           - "<dark_gray>共 %total% 项</dark_gray>"
 
   next_page:
-    slots: [44]
+    slots:
+      - 44
     type: "next_page"
     item:
       source: "ARROW"
@@ -96,7 +102,8 @@ slots:
         custom_name: "<yellow>下一页</yellow>"
 
   back:
-    slots: [45]
+    slots:
+      - 45
     type: "back"
     item:
       source: "ARROW"
@@ -104,7 +111,8 @@ slots:
         custom_name: "<yellow>返回配方列表</yellow>"
 
   close:
-    slots: [53]
+    slots:
+      - 53
     type: "close"
     item:
       source: "BARRIER"

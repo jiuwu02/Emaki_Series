@@ -84,7 +84,13 @@ display:
   # max_stack_size 组件合法范围是 1-99，不要改成 100 或更大（未定义行为）
   percent_scale: 99
   # 紧凑数量单位（K/M/B/T/P/E），置空则使用精确数字
-  compact_units: ["K", "M", "B", "T", "P", "E"]
+  compact_units:
+    - "K"
+    - "M"
+    - "B"
+    - "T"
+    - "P"
+    - "E"
   compact_decimals: 2
   # 是否在 lore 中额外显示带千分位的精确数量
   show_exact_amount: true
@@ -138,7 +144,7 @@ behavior:
         - label: "dialog.confirm"
   deposit_filter:
     mode: blacklist # blacklist | whitelist | off
-    entries: [] # CoreLib ItemSource token 列表
+    entries: # CoreLib ItemSource token 列表（null == 空列表，解析已确认安全）
   # 是否允许存入带唯一标记（EmakiItem 实例 UUID 等）的物品
   allow_unique_items: true
   # 同一物品单槽存满后，是否自动占用新槽位继续存储。
@@ -222,7 +228,9 @@ search:
     # 聊天输入等待超时（秒）
     timeout: 30
     # 取消聊天输入的关键词
-    cancel_keywords: ["取消", "cancel"]
+    cancel_keywords:
+      - "取消"
+      - "cancel"
     # 对话框配置，键集同 behavior.withdraw_prompt.dialog。
     # inputs 必须保留一个 key 为 query 的输入框，否则对话框取不到关键词。
     dialog:
@@ -259,7 +267,7 @@ logging:
   # 日志保留天数。过期文件按日删除；某玩家的日志全部过期后其目录一并删除
   retention_days: 30
   # 只记录这些来源（gui/command/api/action），留空 = 全部
-  sources: []
+  sources:
   # 注意：ADMIN_SET / ADMIN_GIVE / ADMIN_CLEAR 三类管理员操作强制记录，
   # 不受 enabled 与 sources 影响
 

@@ -11,7 +11,9 @@ rules:
       - forest
       - dark_forest
       - meadow
-    y_range: [-64, 50] # 只在此 Y 范围内生效
+    y_range: # 只在此 Y 范围内生效
+      - -64
+      - 50
     light_level_max: 7 # 光照等级不超过此值才触发
     replacement_chance: 0.08 # 8% 概率将原版生物替换为精英僵尸
     max_nearby: 3 # 32 格内同 id 生物不超过此数量；0 = 不限

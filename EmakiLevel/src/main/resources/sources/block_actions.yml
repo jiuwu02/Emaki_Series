@@ -9,11 +9,21 @@ sources:
       ignore_player_placed_blocks: true
       exp_cooldown_ticks: 2
     rules:
-      - blocks: ["STONE", "DEEPSLATE"]
+      - blocks:
+          - "STONE"
+          - "DEEPSLATE"
         exp_formula: "1"
-      - blocks: ["COAL_ORE", "DEEPSLATE_COAL_ORE", "IRON_ORE", "DEEPSLATE_IRON_ORE"]
+      - blocks:
+          - "COAL_ORE"
+          - "DEEPSLATE_COAL_ORE"
+          - "IRON_ORE"
+          - "DEEPSLATE_IRON_ORE"
         exp_formula: "5"
-      - blocks: ["DIAMOND_ORE", "DEEPSLATE_DIAMOND_ORE", "EMERALD_ORE", "DEEPSLATE_EMERALD_ORE"]
+      - blocks:
+          - "DIAMOND_ORE"
+          - "DEEPSLATE_DIAMOND_ORE"
+          - "EMERALD_ORE"
+          - "DEEPSLATE_EMERALD_ORE"
         exp_formula: "25"
   logging:
     enabled: true
@@ -23,7 +33,15 @@ sources:
       ignore_player_placed_blocks: true
       exp_cooldown_ticks: 2
     rules:
-      - blocks: ["OAK_LOG", "BIRCH_LOG", "SPRUCE_LOG", "JUNGLE_LOG", "ACACIA_LOG", "DARK_OAK_LOG", "MANGROVE_LOG", "CHERRY_LOG"]
+      - blocks:
+          - "OAK_LOG"
+          - "BIRCH_LOG"
+          - "SPRUCE_LOG"
+          - "JUNGLE_LOG"
+          - "ACACIA_LOG"
+          - "DARK_OAK_LOG"
+          - "MANGROVE_LOG"
+          - "CHERRY_LOG"
         exp_formula: "5"
   gathering:
     enabled: true
@@ -33,7 +51,13 @@ sources:
       ignore_player_placed_blocks: true
       exp_cooldown_ticks: 2
     rules:
-      - blocks: ["GRASS", "FERN", "LARGE_FERN", "DANDELION", "POPPY", "SWEET_BERRY_BUSH"]
+      - blocks:
+          - "GRASS"
+          - "FERN"
+          - "LARGE_FERN"
+          - "DANDELION"
+          - "POPPY"
+          - "SWEET_BERRY_BUSH"
         exp_formula: "2"
   farming:
     enabled: true
@@ -43,5 +67,10 @@ sources:
       ignore_player_placed_blocks: true
       exp_cooldown_ticks: 2
     rules:
-      - blocks: ["WHEAT", "CARROTS", "POTATOES", "BEETROOTS", "NETHER_WART"]
+      - blocks:
+          - "WHEAT"
+          - "CARROTS"
+          - "POTATOES"
+          - "BEETROOTS"
+          - "NETHER_WART"
         exp_formula: "4"

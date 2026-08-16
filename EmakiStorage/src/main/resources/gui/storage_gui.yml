@@ -22,7 +22,8 @@ slots:
   # 这里配置的物品只作为“未解锁槽位”的占位外观来源。
   storage_slot:
     type: storage_slot
-    slots: [0]
+    slots:
+      - 0
     item:
       source: "gray_stained_glass_pane"
 
@@ -30,7 +31,8 @@ slots:
   page_prev:
     type: page_prev
     offset: 0
-    slots: [0]
+    slots:
+      - 0
     item:
       source: "arrow"
       components:
@@ -41,14 +43,16 @@ slots:
   page_info:
     type: page_info
     offset: 1
-    slots: [1]
+    slots:
+      - 1
     item:
       source: "book"
 
   deposit_slot:
     type: deposit_slot
     offset: 3
-    slots: [3]
+    slots:
+      - 3
     item:
       source: "hopper"
       components:
@@ -60,21 +64,24 @@ slots:
   search:
     type: search
     offset: 4
-    slots: [4]
+    slots:
+      - 4
     item:
       source: "compass"
 
   sort:
     type: sort
     offset: 5
-    slots: [5]
+    slots:
+      - 5
     item:
       source: "hopper"
 
   deposit_all:
     type: deposit_all
     offset: 6
-    slots: [6]
+    slots:
+      - 6
     item:
       source: "chest"
       components:
@@ -85,14 +92,16 @@ slots:
   unlock:
     type: unlock
     offset: 7
-    slots: [7]
+    slots:
+      - 7
     item:
       source: "emerald"
 
   page_next:
     type: page_next
     offset: 8
-    slots: [8]
+    slots:
+      - 8
     item:
       source: "arrow"
       components:

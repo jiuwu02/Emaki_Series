@@ -52,7 +52,8 @@ slots:
         pitch: 1.0
 
   queue_open:
-    slots: [49]
+    slots:
+      - 49
     type: "queue_open"
     item:
       source: "CLOCK"
@@ -67,7 +68,8 @@ slots:
         pitch: 1.2
 
   batch_multiplier:
-    slots: [47]
+    slots:
+      - 47
     type: "batch_multiplier"
     item:
       source: "COMPARATOR"
@@ -83,7 +85,8 @@ slots:
         pitch: 1.0
 
   output_toggle:
-    slots: [48]
+    slots:
+      - 48
     type: "output_toggle"
     item:
       source: "HOPPER"
@@ -93,7 +96,8 @@ slots:
           - "<gray>当前: %output_state%</gray>"
 
   prev_page:
-    slots: [45]
+    slots:
+      - 45
     type: "prev_page"
     item:
       source: "ARROW"
@@ -101,7 +105,8 @@ slots:
         custom_name: "<yellow>上一页</yellow>"
 
   page_info:
-    slots: [46]
+    slots:
+      - 46
     type: "page_info"
     item:
       source: "BOOK"
@@ -111,7 +116,8 @@ slots:
           - "<dark_gray>共 %total% 个配方</dark_gray>"
 
   next_page:
-    slots: [53]
+    slots:
+      - 53
     type: "next_page"
     item:
       source: "ARROW"
@@ -119,7 +125,8 @@ slots:
         custom_name: "<yellow>下一页</yellow>"
 
   close:
-    slots: [50]
+    slots:
+      - 50
     type: "close"
     item:
       source: "BARRIER"

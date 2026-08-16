@@ -9,7 +9,11 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      - result_item_sources: ["minecraft-crafting_table", "minecraft-furnace"]
+      - result_item_sources:
+          - "minecraft-crafting_table"
+          - "minecraft-furnace"
         exp_formula: "5 * %result_amount%"
-      - result_item_sources: ["minecraft-diamond_pickaxe", "minecraft-diamond_sword"]
+      - result_item_sources:
+          - "minecraft-diamond_pickaxe"
+          - "minecraft-diamond_sword"
         exp_formula: "40 * %result_amount%"

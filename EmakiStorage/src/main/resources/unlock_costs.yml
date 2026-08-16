@@ -38,4 +38,8 @@ fallback:
 
 batch:
   enabled: true
-  options: [1, 5, 10, 64]
+  options:
+    - 1
+    - 5
+    - 10
+    - 64

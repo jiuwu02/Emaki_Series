@@ -8,7 +8,11 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      - result_item_sources: ["minecraft-iron_ingot", "minecraft-copper_ingot", "minecraft-gold_ingot"]
+      - result_item_sources:
+          - "minecraft-iron_ingot"
+          - "minecraft-copper_ingot"
+          - "minecraft-gold_ingot"
         exp_formula: "3 * %result_amount%"
-      - result_item_sources: ["minecraft-netherite_scrap"]
+      - result_item_sources:
+          - "minecraft-netherite_scrap"
         exp_formula: "20 * %result_amount%"

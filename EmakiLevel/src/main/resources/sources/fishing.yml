@@ -8,7 +8,9 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 5
     rules:
-      - states: ["CAUGHT_FISH"]
+      - states:
+          - "CAUGHT_FISH"
         exp_formula: "10"
-      - states: ["CAUGHT_ENTITY"]
+      - states:
+          - "CAUGHT_ENTITY"
         exp_formula: "5"

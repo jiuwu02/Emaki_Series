@@ -10,7 +10,10 @@ sources:
       ignore_near_spawner: true
       spawner_scan_radius: 8
     rules:
-      - mob_ids: ["SkeletonKing", "UndeadKnight"]
+      - mob_ids:
+          - "SkeletonKing"
+          - "UndeadKnight"
         exp_formula: "50 + %mythic_level% * 5"
-      - mob_ids: ["ForestBoss"]
+      - mob_ids:
+          - "ForestBoss"
         exp_formula: "300 + %mythic_level% * 20"
