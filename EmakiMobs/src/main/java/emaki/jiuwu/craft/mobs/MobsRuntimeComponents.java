@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
+import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 
 import java.util.List;
@@ -57,7 +58,8 @@ record MobsRuntimeComponents(
         TypeOverrideApplicator typeOverrideApplicator,
         MobRefreshService mobRefreshService,
         ThreatTableManager threatTableManager,
-        BossBarManager bossBarManager
+        BossBarManager bossBarManager,
+        DefaultMobExtensions mobExtensions
 ) implements RuntimeComponents {
 
     @Override

@@ -73,6 +73,17 @@ public final class EmakiMobsApi {
         return o == null ? UnavailableMobs.OPERATIONS : o;
     }
 
+    /**
+     * {@return the mob extensions registry; never {@code null}, and a no-op
+     * implementation while no bridge is installed}
+     */
+    public static @NotNull MobExtensions extensions() {
+        Bridge resolved = bridge;
+        if (resolved == null) return UnavailableMobs.EXTENSIONS;
+        var e = resolved.extensions();
+        return e == null ? UnavailableMobs.EXTENSIONS : e;
+    }
+
     /** Bridge contract implemented by EmakiMobs runtime. Third-party plugins must not implement it. */
     @ApiStatus.NonExtendable
     public interface Bridge {
@@ -88,5 +99,9 @@ public final class EmakiMobsApi {
         /** {@return the mob operations facade; must never be {@code null}} */
         @NotNull
         MobOperations operations();
+
+        /** {@return the mob extensions registry; must never be {@code null}} */
+        @NotNull
+        MobExtensions extensions();
     }
 }

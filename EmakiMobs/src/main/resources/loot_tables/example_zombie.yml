@@ -5,7 +5,7 @@ pools:
     rolls: 1
     entries:
       rotten_flesh:
-        item: "minecraft:rotten_flesh"
+        item: "minecraft-rotten_flesh"
         weight: 10
         functions:
           count:
@@ -19,7 +19,7 @@ pools:
               min: 0
               max: 1
       iron_nugget:
-        item: "minecraft:iron_nugget"
+        item: "minecraft-iron_nugget"
         weight: 3
         chance: 0.25
         functions:

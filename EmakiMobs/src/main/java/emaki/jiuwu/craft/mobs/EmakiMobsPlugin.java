@@ -7,6 +7,7 @@ import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.api.EmakiMobsApi;
+import emaki.jiuwu.craft.mobs.api.MobExtensions;
 import emaki.jiuwu.craft.mobs.apiimpl.ServiceBackedMobsBridge;
 import emaki.jiuwu.craft.mobs.command.MobsCommandAdapter;
 import emaki.jiuwu.craft.mobs.command.MobsCommandRouter;
@@ -99,6 +100,10 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public MobFactory mobFactory() {
         return components == null ? null : components.mobFactory();
+    }
+
+    public MobExtensions mobExtensions() {
+        return components == null ? null : components.mobExtensions();
     }
 
     public AtomicReference<Map<String, MobSpec>> mobRegistry() {

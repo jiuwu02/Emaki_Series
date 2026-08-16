@@ -27,4 +27,15 @@ public interface MobOperations {
      */
     @NotNull
     Optional<LivingEntity> spawn(@NotNull Location location, @NotNull String mobId);
+
+    /**
+     * Removes a managed entity from the world.
+     *
+     * <p>The default implementation is a no-op; the active EmakiMobs bridge
+     * provides a real implementation.
+     *
+     * @param entity the entity to remove
+     */
+    default void remove(@NotNull LivingEntity entity) {
+    }
 }
