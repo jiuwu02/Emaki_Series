@@ -26,7 +26,7 @@ public final class JsComputeStage extends BaseStage {
 
     public JsComputeStage() {
         super("js_compute", "script", "执行纯计算 JavaScript 脚本（不操作 Bukkit 状态）",
-                CoreTargetRequirement.OPTIONAL, CoreActionExecutionDomain.ASYNC_COMPUTE,
+                CoreTargetRequirement.NONE, CoreActionExecutionDomain.ASYNC_COMPUTE,
                 CoreStageParameter.required("code", CoreStageParameterType.STRING, "JavaScript 代码"),
                 CoreStageParameter.optional("timeout", CoreStageParameterType.INTEGER,
                         String.valueOf(DEFAULT_TIMEOUT_MS), "超时时间（毫秒）"));
