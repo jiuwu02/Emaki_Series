@@ -6,6 +6,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityCombustEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
@@ -100,5 +101,23 @@ public final class MobTriggerListener implements Listener {
             return;
         }
         skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
+    }
+
+    // ── 防火免疫 ──────────────────────────────────────────────────────────────
+
+    @EventHandler(priority = EventPriority.LOW)
+    public void onEntityCombust(EntityCombustEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity entity)) return;
+        if (mobIdentifier.isFireImmune(entity)) event.setCancelled(true);
+    }
+
+    @EventHandler(priority = EventPriority.LOW, ignoreCancelled = true)
+    public void onEntityFireDamage(EntityDamageEvent event) {
+        var cause = event.getCause();
+        if (cause != EntityDamageEvent.DamageCause.FIRE
+                && cause != EntityDamageEvent.DamageCause.FIRE_TICK
+                && cause != EntityDamageEvent.DamageCause.LAVA) return;
+        if (!(event.getEntity() instanceof LivingEntity entity)) return;
+        if (mobIdentifier.isFireImmune(entity)) event.setCancelled(true);
     }
 }

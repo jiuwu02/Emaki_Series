@@ -4,7 +4,10 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.api.EmakiMobsApi;
 import emaki.jiuwu.craft.mobs.api.MobCatalog;
+import emaki.jiuwu.craft.mobs.api.MobOperations;
 import org.jetbrains.annotations.NotNull;
+
+import java.util.Optional;
 
 public final class ServiceBackedMobsBridge implements EmakiMobsApi.Bridge {
 
@@ -31,5 +34,15 @@ public final class ServiceBackedMobsBridge implements EmakiMobsApi.Bridge {
     @Override
     public @NotNull MobCatalog catalog() {
         return catalog;
+    }
+
+    @Override
+    public @NotNull MobOperations operations() {
+        return (location, mobId) -> {
+            if (!plugin.isEnabled() || plugin.isShutdownStarted()) return Optional.empty();
+            var factory = plugin.mobFactory();
+            if (factory == null) return Optional.empty();
+            return factory.spawn(location, mobId);
+        };
     }
 }

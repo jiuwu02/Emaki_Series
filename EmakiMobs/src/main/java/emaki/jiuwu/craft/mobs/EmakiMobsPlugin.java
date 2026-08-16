@@ -124,6 +124,9 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(components.naturalSpawnHandler(), this);
         getServer().getPluginManager().registerEvents(components.structureSpawnHandler(), this);
         getServer().getPluginManager().registerEvents(components.mobTriggerListener(), this);
+        getServer().getPluginManager().registerEvents(components.typeOverrideApplicator(), this);
+        getServer().getPluginManager().registerEvents(components.threatTableManager(), this);
+        getServer().getPluginManager().registerEvents(components.bossBarManager(), this);
     }
 
     private void installPublicApi() {

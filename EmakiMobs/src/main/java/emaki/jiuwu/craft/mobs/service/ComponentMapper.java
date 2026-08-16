@@ -1,7 +1,10 @@
 package emaki.jiuwu.craft.mobs.service;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
+import org.bukkit.loot.LootTable;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
@@ -21,8 +24,10 @@ import java.util.function.BiConsumer;
 public final class ComponentMapper {
 
     private final Map<String, BiConsumer<LivingEntity, Object>> handlers;
+    private final MobIdentifier mobIdentifier;
 
-    public ComponentMapper() {
+    public ComponentMapper(MobIdentifier mobIdentifier) {
+        this.mobIdentifier = mobIdentifier;
         handlers = new HashMap<>();
         registerAll();
     }
@@ -95,6 +100,15 @@ public final class ComponentMapper {
                 entity.setFreezeTicks(parseInt(value)));
         handlers.put("fire_ticks", (entity, value) ->
                 entity.setFireTicks(parseInt(value)));
+        handlers.put("fire_immune", (entity, value) ->
+                mobIdentifier.setFireImmune(entity, parseBoolean(value)));
+        handlers.put("loot_table", (entity, value) -> {
+            String s = String.valueOf(value);
+            NamespacedKey key = s.contains(":") ? NamespacedKey.fromString(s) : NamespacedKey.minecraft(s);
+            if (key == null) return;
+            LootTable lt = Bukkit.getLootTable(key);
+            if (lt != null && entity instanceof Mob mob) mob.setLootTable(lt);
+        });
         handlers.put("potion_effect", (entity, value) ->
                 applyPotionEffect(entity, value));
 
@@ -105,6 +119,7 @@ public final class ComponentMapper {
         handlers.put("boots", (e, v) -> applyEquipment(e, v, EquipmentSlot.FEET));
         handlers.put("main_hand", (e, v) -> applyEquipment(e, v, EquipmentSlot.HAND));
         handlers.put("off_hand", (e, v) -> applyEquipment(e, v, EquipmentSlot.OFF_HAND));
+        handlers.put("equipment", (e, v) -> applyEquipmentMap(e, v));
 
         // === Type-specific ===
         handlers.put("is_baby", (entity, value) -> {
@@ -191,6 +206,16 @@ public final class ComponentMapper {
             if (entity instanceof Rabbit r)
                 parseEnum(Rabbit.Type.class, String.valueOf(value)).ifPresent(r::setRabbitType);
         });
+        handlers.put("wolf_variant", (entity, value) -> {
+            if (entity instanceof Wolf w)
+                parseKeyed(Registry.WOLF_VARIANT, String.valueOf(value)).ifPresent(w::setVariant);
+        });
+        handlers.put("phantom_size", (entity, value) -> {
+            if (entity instanceof Phantom p) p.setSize(parseInt(value));
+        });
+        handlers.put("goat_screaming", (entity, value) -> {
+            if (entity instanceof Goat g) g.setScreaming(parseBoolean(value));
+        });
     }
 
     private void registerAttribute(String key, Attribute attribute, boolean fullHeal) {
@@ -200,6 +225,54 @@ public final class ComponentMapper {
             instance.setBaseValue(parseDouble(value));
             if (fullHeal) entity.setHealth(instance.getValue());
         });
+    }
+
+    private static void applyEquipmentMap(LivingEntity entity, Object value) {
+        if (!(value instanceof Map<?, ?> rawMap)) return;
+        EntityEquipment eq = entity.getEquipment();
+        if (eq == null) return;
+        rawMap.forEach((slotKey, slotVal) -> {
+            EquipmentSlot slot = parseEquipmentSlot(String.valueOf(slotKey));
+            if (slot == null) return;
+            if (slotVal instanceof Map<?, ?> slotMap) {
+                Object itemVal = slotMap.get("item");
+                Object dropChanceVal = slotMap.get("drop_chance");
+                if (itemVal != null) {
+                    Material mat = Material.matchMaterial(String.valueOf(itemVal).toUpperCase());
+                    if (mat != null && mat.isItem()) eq.setItem(slot, new ItemStack(mat));
+                }
+                if (dropChanceVal != null) {
+                    float chance = (float) parseDouble(dropChanceVal);
+                    setSlotDropChance(eq, slot, chance);
+                }
+            } else {
+                Material mat = Material.matchMaterial(String.valueOf(slotVal).toUpperCase());
+                if (mat != null && mat.isItem()) eq.setItem(slot, new ItemStack(mat));
+            }
+        });
+    }
+
+    private static EquipmentSlot parseEquipmentSlot(String name) {
+        return switch (name.toLowerCase().trim()) {
+            case "main_hand", "hand" -> EquipmentSlot.HAND;
+            case "off_hand" -> EquipmentSlot.OFF_HAND;
+            case "helmet", "head" -> EquipmentSlot.HEAD;
+            case "chestplate", "chest" -> EquipmentSlot.CHEST;
+            case "leggings", "legs" -> EquipmentSlot.LEGS;
+            case "boots", "feet" -> EquipmentSlot.FEET;
+            default -> null;
+        };
+    }
+
+    private static void setSlotDropChance(EntityEquipment eq, EquipmentSlot slot, float chance) {
+        switch (slot) {
+            case HAND -> eq.setItemInHandDropChance(chance);
+            case OFF_HAND -> eq.setItemInOffHandDropChance(chance);
+            case HEAD -> eq.setHelmetDropChance(chance);
+            case CHEST -> eq.setChestplateDropChance(chance);
+            case LEGS -> eq.setLeggingsDropChance(chance);
+            case FEET -> eq.setBootsDropChance(chance);
+        }
     }
 
     private static void applyEquipment(LivingEntity entity, Object value, EquipmentSlot slot) {

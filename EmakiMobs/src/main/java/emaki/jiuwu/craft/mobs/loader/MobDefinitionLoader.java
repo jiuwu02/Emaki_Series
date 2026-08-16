@@ -1,8 +1,11 @@
 package emaki.jiuwu.craft.mobs.loader;
 
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -59,7 +62,55 @@ public final class MobDefinitionLoader {
         Map<String, Object> components = extractSection(config, "components");
         Map<String, Double> attributes = extractDoubleSection(config, "attributes");
         Map<String, List<String>> skills = extractListSection(config, "skills");
-        return new MobSpec(id, entityType, displayName, components, attributes, skills, experience);
+        boolean typeOverride = isEntityTypeName(id);
+        ThreatConfig threatConfig = parseThreatConfig(config);
+        BossBarConfig bossBarConfig = parseBossBarConfig(config);
+        return new MobSpec(id, entityType, displayName, components, attributes, skills, experience,
+                typeOverride, threatConfig, bossBarConfig);
+    }
+
+    private boolean isEntityTypeName(String id) {
+        try {
+            EntityType.valueOf(id.toUpperCase(Locale.ROOT));
+            return true;
+        } catch (IllegalArgumentException e) {
+            return false;
+        }
+    }
+
+    @Nullable
+    private ThreatConfig parseThreatConfig(YamlConfiguration config) {
+        var section = config.getConfigurationSection("threat");
+        if (section == null) return null;
+        boolean enabled = section.getBoolean("enabled", true);
+        double maxRange = section.getDouble("max_range", 64.0);
+        var weightsSection = section.getConfigurationSection("weights");
+        double damageW = weightsSection != null ? weightsSection.getDouble("damage", 1.0) : 1.0;
+        double healingW = weightsSection != null ? weightsSection.getDouble("healing", 0.5) : 0.5;
+        var decaySection = section.getConfigurationSection("decay");
+        double decayRate = decaySection != null ? decaySection.getDouble("rate", 0.05) : 0.05;
+        boolean outOfRange = decaySection == null || decaySection.getBoolean("out_of_range", true);
+        return new ThreatConfig(enabled,
+                new ThreatConfig.ThreatWeightsConfig(damageW, healingW),
+                new ThreatConfig.ThreatDecayConfig(decayRate, outOfRange),
+                maxRange);
+    }
+
+    @Nullable
+    private BossBarConfig parseBossBarConfig(YamlConfiguration config) {
+        var section = config.getConfigurationSection("boss_bar");
+        if (section == null) return null;
+        String title = section.getString("title", "");
+        String colorStr = section.getString("color", "PURPLE");
+        String styleStr = section.getString("style", "SOLID");
+        double range = section.getDouble("range", 64.0);
+        BarColor color;
+        try { color = BarColor.valueOf(colorStr.toUpperCase(Locale.ROOT)); }
+        catch (IllegalArgumentException e) { color = BarColor.PURPLE; }
+        BarStyle style;
+        try { style = BarStyle.valueOf(styleStr.toUpperCase(Locale.ROOT)); }
+        catch (IllegalArgumentException e) { style = BarStyle.SOLID; }
+        return new BossBarConfig(title, color, style, range);
     }
 
     private Map<String, Object> extractSection(YamlConfiguration config, String sectionKey) {

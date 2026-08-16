@@ -62,6 +62,17 @@ public final class EmakiMobsApi {
         return c == null ? UnavailableMobs.CATALOG : c;
     }
 
+    /**
+     * {@return the mob operations facade; never {@code null}, and a no-op
+     * implementation while no bridge is installed}
+     */
+    public static @NotNull MobOperations operations() {
+        Bridge resolved = bridge;
+        if (resolved == null) return UnavailableMobs.OPERATIONS;
+        var o = resolved.operations();
+        return o == null ? UnavailableMobs.OPERATIONS : o;
+    }
+
     /** Bridge contract implemented by EmakiMobs runtime. Third-party plugins must not implement it. */
     @ApiStatus.NonExtendable
     public interface Bridge {
@@ -73,5 +84,9 @@ public final class EmakiMobsApi {
         /** {@return the mob definition catalog; must never be {@code null}} */
         @NotNull
         MobCatalog catalog();
+
+        /** {@return the mob operations facade; must never be {@code null}} */
+        @NotNull
+        MobOperations operations();
     }
 }

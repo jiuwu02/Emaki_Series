@@ -21,6 +21,8 @@ final class UnavailableMobs {
         }
     };
 
+    static final MobOperations OPERATIONS = (location, mobId) -> Optional.empty();
+
     private UnavailableMobs() {
     }
 }

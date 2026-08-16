@@ -19,10 +19,14 @@ import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
+import emaki.jiuwu.craft.mobs.display.BossBarManager;
+import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
+import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 
 import java.util.List;
 import java.util.Map;
@@ -49,7 +53,11 @@ record MobsRuntimeComponents(
         StructureSpawnHandler structureSpawnHandler,
         AttributeBridge attributeBridge,
         MobSkillExecutor mobSkillExecutor,
-        MobTriggerListener mobTriggerListener
+        MobTriggerListener mobTriggerListener,
+        TypeOverrideApplicator typeOverrideApplicator,
+        MobRefreshService mobRefreshService,
+        ThreatTableManager threatTableManager,
+        BossBarManager bossBarManager
 ) implements RuntimeComponents {
 
     @Override

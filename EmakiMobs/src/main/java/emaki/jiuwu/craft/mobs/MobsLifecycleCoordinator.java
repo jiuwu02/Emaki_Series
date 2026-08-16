@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.display.BossBarManager;
+import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.CustomSpawnHandler;
@@ -30,6 +32,8 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnConditionEvaluator;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.StructureSpawnHandler;
+import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
+import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
@@ -68,8 +72,8 @@ final class MobsLifecycleCoordinator
                     }
                 });
         var executionDispatcher = coreLibPlugin.executionDispatcher();
-        var componentMapper = new ComponentMapper();
         var mobIdentifier = new MobIdentifier(plugin);
+        var componentMapper = new ComponentMapper(mobIdentifier);
         var definitionLoader = new MobDefinitionLoader(plugin);
         var lootTableLoader = new LootTableDefinitionLoader(plugin);
         Map<String, MobSpec> initialMobs = Map.of();
@@ -92,13 +96,22 @@ final class MobsLifecycleCoordinator
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
         var mobSkillExecutor = new MobSkillExecutor(plugin, mobRegistry::get, plugin.getLogger());
         var mobTriggerListener = new MobTriggerListener(mobIdentifier, mobSkillExecutor);
+        var typeOverrideApplicator = new TypeOverrideApplicator(
+                mobRegistry::get, componentMapper, attributeBridge, mobIdentifier);
+        var mobRefreshService = new MobRefreshService(
+                mobIdentifier, componentMapper, attributeBridge, mobRegistry::get);
+        var threatTableManager = new ThreatTableManager(plugin, mobIdentifier, mobRegistry::get);
+        var bossBarManager = new BossBarManager(plugin, mobIdentifier, mobRegistry::get);
+        mobFactory.setSkillExecutor(mobSkillExecutor);
+        mobFactory.setBossBarManager(bossBarManager);
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, componentMapper, mobIdentifier, mobFactory,
                 appConfigLoader, bootstrapService, mobRegistry,
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
                 naturalSpawnHandler, structureSpawnHandler,
-                attributeBridge, mobSkillExecutor, mobTriggerListener);
+                attributeBridge, mobSkillExecutor, mobTriggerListener,
+                typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager);
     }
 
     int reload(EmakiMobsPlugin plugin) {
@@ -111,6 +124,7 @@ final class MobsLifecycleCoordinator
         var loadedRules = components.spawnRuleLoader().loadAll();
         components.spawnRegistry().set(loadedRules);
         components.spawnRuleDispatcher().reload(loadedRules);
+        components.mobRefreshService().refreshAll();
         return loadedMobs.size();
     }
 }
