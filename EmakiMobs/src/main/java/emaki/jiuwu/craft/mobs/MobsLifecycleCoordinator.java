@@ -1,12 +1,17 @@
 package emaki.jiuwu.craft.mobs;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.mobs.action.source.AttackerSource;
+import emaki.jiuwu.craft.mobs.action.source.KillerSource;
+import emaki.jiuwu.craft.mobs.action.source.TargetSource;
+import emaki.jiuwu.craft.mobs.action.source.VictimSource;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
@@ -22,6 +27,7 @@ import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
+import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.spawner.BiomeSpawnHandler;
 import emaki.jiuwu.craft.mobs.spawner.CustomSpawnHandler;
@@ -96,7 +102,8 @@ final class MobsLifecycleCoordinator
         var spawnRuleLoader = new SpawnRuleLoader(plugin);
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
         var mobSkillExecutor = new MobSkillExecutor(plugin, mobRegistry::get, plugin.getLogger());
-        var mobTriggerListener = new MobTriggerListener(mobIdentifier, mobSkillExecutor);
+        var healthPhaseTracker = new HealthPhaseTracker();
+        var mobTriggerListener = new MobTriggerListener(mobIdentifier, mobSkillExecutor, healthPhaseTracker);
         var typeOverrideApplicator = new TypeOverrideApplicator(
                 mobRegistry::get, componentMapper, attributeBridge, mobIdentifier);
         var mobRefreshService = new MobRefreshService(
@@ -106,13 +113,17 @@ final class MobsLifecycleCoordinator
         var mobExtensions = new DefaultMobExtensions();
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);
+        
+        // 注册 EmakiMobs 专属的选择器和 Stage 到 CoreLib
+        registerCustomActions(plugin);
+        
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, componentMapper, mobIdentifier, mobFactory,
                 appConfigLoader, bootstrapService, mobRegistry,
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
                 naturalSpawnHandler, structureSpawnHandler,
-                attributeBridge, mobSkillExecutor, mobTriggerListener,
+                attributeBridge, mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
                 mobExtensions);
     }
@@ -122,6 +133,7 @@ final class MobsLifecycleCoordinator
         var loadedMobs = components.mobDefinitionLoader().loadAll();
         components.mobRegistry().set(loadedMobs);
         components.mobSkillExecutor().invalidate();
+        components.healthPhaseTracker().clearAll();
         var loadedLoot = components.lootTableLoader().loadAll();
         components.lootRegistry().set(loadedLoot);
         var loadedRules = components.spawnRuleLoader().loadAll();
@@ -130,5 +142,30 @@ final class MobsLifecycleCoordinator
         components.mobRefreshService().refreshAll();
         components.mobExtensions().notifyReload();
         return loadedMobs.size();
+    }
+
+    /**
+     * 注册 EmakiMobs 的自定义选择器和 Stage 到 CoreLib ActionEngine。
+     */
+    private void registerCustomActions(JavaPlugin plugin) {
+        var components = ((EmakiMobsPlugin) plugin).components();
+
+        // 注册上下文选择器
+        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
+                new emaki.jiuwu.craft.mobs.action.source.AttackerSource());
+        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
+                new emaki.jiuwu.craft.mobs.action.source.KillerSource());
+        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
+                new emaki.jiuwu.craft.mobs.action.source.VictimSource());
+        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
+                new emaki.jiuwu.craft.mobs.action.source.TargetSource());
+
+        // 注册召唤 Stage
+        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionStage(plugin,
+                new emaki.jiuwu.craft.mobs.action.stage.SummonMobStage(
+                        components.mobRegistry()::get,
+                        components.mobFactory()));
+
+        plugin.getLogger().info("已注册 4 个自定义选择器和 1 个自定义 Stage");
     }
 }

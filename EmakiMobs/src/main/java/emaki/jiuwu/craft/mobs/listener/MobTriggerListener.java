@@ -1,6 +1,9 @@
 package emaki.jiuwu.craft.mobs.listener;
 
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
+import emaki.jiuwu.craft.mobs.api.MobActionKeys;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
@@ -16,6 +19,8 @@ import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 
+import java.util.Map;
+
 /**
  * 监听 Bukkit 实体事件，将已管理生物的行为分发到对应触发器。
  *
@@ -30,6 +35,7 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
  *   <li>{@code on_explode}    — 生物爆炸（{@link EntityExplodeEvent}）</li>
  *   <li>{@code on_teleport}   — 生物传送（{@link EntityTeleportEvent}）</li>
  *   <li>{@code on_transform}  — 生物变形（{@link EntityTransformEvent}）</li>
+ *   <li>{@code on_health_threshold_XX} — 血量阈值触发（XX 为百分比，如 75、50、25）</li>
  * </ul>
  *
  * <p>所有处理器使用 {@link EventPriority#MONITOR} 优先级，在其他插件完成判断后才触发技能。
@@ -39,10 +45,13 @@ public final class MobTriggerListener implements Listener {
 
     private final MobIdentifier mobIdentifier;
     private final MobSkillExecutor skillExecutor;
+    private final HealthPhaseTracker healthPhaseTracker;
 
-    public MobTriggerListener(MobIdentifier mobIdentifier, MobSkillExecutor skillExecutor) {
+    public MobTriggerListener(MobIdentifier mobIdentifier, MobSkillExecutor skillExecutor,
+                              HealthPhaseTracker healthPhaseTracker) {
         this.mobIdentifier = mobIdentifier;
         this.skillExecutor = skillExecutor;
+        this.healthPhaseTracker = healthPhaseTracker;
     }
 
     // ── 触发器：on_death ───────────────────────────────────────────────────
@@ -56,7 +65,17 @@ public final class MobTriggerListener implements Listener {
         if (mobId == null) {
             return;
         }
-        skillExecutor.executeForTrigger(entity, mobId, "on_death");
+        // 传递 killer 上下文
+        LivingEntity killer = entity.getKiller();
+        if (killer != null) {
+            skillExecutor.executeForTrigger(entity, mobId, "on_death",
+                    Map.of(MobActionKeys.KILLER, killer));
+        } else {
+            skillExecutor.executeForTrigger(entity, mobId, "on_death");
+        }
+        
+        // 清理血量阶段跟踪数据
+        healthPhaseTracker.clearEntity(entity);
     }
 
     // ── 触发器：on_target ──────────────────────────────────────────────────
@@ -70,7 +89,14 @@ public final class MobTriggerListener implements Listener {
         if (mobId == null) {
             return;
         }
-        skillExecutor.executeForTrigger(entity, mobId, "on_target");
+        // 传递 target 上下文
+        LivingEntity target = event.getTarget();
+        if (target != null) {
+            skillExecutor.executeForTrigger(entity, mobId, "on_target",
+                    Map.of(MobActionKeys.TARGET, target));
+        } else {
+            skillExecutor.executeForTrigger(entity, mobId, "on_target");
+        }
     }
 
     // ── 触发器：on_damage_give ─────────────────────────────────────────────
@@ -89,7 +115,13 @@ public final class MobTriggerListener implements Listener {
         if (mobId == null) {
             return;
         }
-        skillExecutor.executeForTrigger(attacker, mobId, "on_damage_give");
+        // 传递 target 上下文（受害者）
+        if (event.getEntity() instanceof LivingEntity target) {
+            skillExecutor.executeForTrigger(attacker, mobId, "on_damage_give",
+                    Map.of(MobActionKeys.TARGET, target));
+        } else {
+            skillExecutor.executeForTrigger(attacker, mobId, "on_damage_give");
+        }
     }
 
     // ── 触发器：on_damage_take ─────────────────────────────────────────────
@@ -99,6 +131,8 @@ public final class MobTriggerListener implements Listener {
      *
      * <p>使用基类 {@link EntityDamageEvent}，涵盖被玩家/实体攻击、
      * 摔落、岩浆、窒息等所有伤害来源。
+     * 
+     * <p>同时检测血量阈值触发器 {@code on_health_threshold_XX}。
      */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamage(EntityDamageEvent event) {
@@ -109,7 +143,46 @@ public final class MobTriggerListener implements Listener {
         if (mobId == null) {
             return;
         }
-        skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
+        
+        // 触发 on_damage_take
+        if (event instanceof EntityDamageByEntityEvent dmgEvent) {
+            if (dmgEvent.getDamager() instanceof LivingEntity attacker) {
+                skillExecutor.executeForTrigger(target, mobId, "on_damage_take",
+                        Map.of(MobActionKeys.ATTACKER, attacker));
+            } else {
+                skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
+            }
+        } else {
+            skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
+        }
+        
+        // 检测血量阈值触发器（受伤后）
+        checkHealthThresholds(target, mobId);
+    }
+
+    /**
+     * 检测并触发血量阈值技能。
+     * 
+     * <p>遍历常见阈值（90%, 75%, 50%, 25%, 10%），当生物血量首次低于某个阈值时，
+     * 触发 {@code on_health_threshold_XX} 技能。每个阈值只会触发一次。
+     * 
+     * @param entity 生物实体
+     * @param mobId  生物定义 ID
+     */
+    private void checkHealthThresholds(LivingEntity entity, String mobId) {
+        double healthPercent = (entity.getHealth() / entity.getMaxHealth()) * 100;
+        
+        // 常见的血量阶段阈值
+        int[] thresholds = {90, 75, 50, 25, 10};
+        
+        for (int threshold : thresholds) {
+            // 如果血量低于阈值且未触发过
+            if (healthPercent <= threshold && !healthPhaseTracker.hasTriggered(entity, threshold)) {
+                String triggerName = "on_health_threshold_" + threshold;
+                skillExecutor.executeForTrigger(entity, mobId, triggerName);
+                healthPhaseTracker.markTriggered(entity, threshold);
+            }
+        }
     }
 
     // ── 触发器：on_kill ────────────────────────────────────────────────────────
@@ -126,7 +199,10 @@ public final class MobTriggerListener implements Listener {
         if (!(dmgEvent.getDamager() instanceof LivingEntity killer)) return;
         String mobId = mobIdentifier.readId(killer);
         if (mobId == null) return;
-        skillExecutor.executeForTrigger(killer, mobId, "on_kill");
+        // 传递 victim 上下文
+        LivingEntity victim = event.getEntity();
+        skillExecutor.executeForTrigger(killer, mobId, "on_kill",
+                Map.of(MobActionKeys.VICTIM, victim));
     }
 
     // ── 触发器：on_shoot ───────────────────────────────────────────────────────

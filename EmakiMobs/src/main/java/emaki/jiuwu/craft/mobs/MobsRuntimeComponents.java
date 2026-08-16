@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
@@ -54,6 +55,7 @@ record MobsRuntimeComponents(
         StructureSpawnHandler structureSpawnHandler,
         AttributeBridge attributeBridge,
         MobSkillExecutor mobSkillExecutor,
+        HealthPhaseTracker healthPhaseTracker,
         MobTriggerListener mobTriggerListener,
         TypeOverrideApplicator typeOverrideApplicator,
         MobRefreshService mobRefreshService,

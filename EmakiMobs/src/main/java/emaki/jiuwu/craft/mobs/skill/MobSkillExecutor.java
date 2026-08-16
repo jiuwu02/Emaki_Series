@@ -4,14 +4,17 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -52,6 +55,19 @@ public final class MobSkillExecutor {
      * @param trigger 触发器名称，如 {@code on_death}、{@code on_damage_give}
      */
     public void executeForTrigger(LivingEntity mob, String mobId, String trigger) {
+        executeForTrigger(mob, mobId, trigger, Map.of());
+    }
+
+    /**
+     * 对指定实体触发某个技能触发器，并传递上下文数据。
+     *
+     * @param mob           触发技能的生物实体（作为施法者 / caster）
+     * @param mobId         生物定义 ID（来自 PDC）
+     * @param trigger       触发器名称，如 {@code on_death}、{@code on_damage_give}
+     * @param contextData   上下文数据（如 attacker、killer、victim 等）
+     */
+    public void executeForTrigger(LivingEntity mob, String mobId, String trigger,
+                                   @Nullable Map<CoreActionKey<?>, Object> contextData) {
         ActionEngine engine = engine();
         if (engine == null) {
             return;
@@ -69,6 +85,12 @@ public final class MobSkillExecutor {
         CoreActionSubject caster = CoreActionSubject.of(mob);
         PipelineContext context = PipelineContext.root(
                 plugin, caster, mob.getLocation(), trigger, false, null);
+        
+        // 注入上下文数据
+        if (contextData != null && !contextData.isEmpty()) {
+            context = context.withData(contextData);
+        }
+        
         for (CompiledPipeline pipeline : pipelines) {
             engine.run(plugin, pipeline, context);
         }
