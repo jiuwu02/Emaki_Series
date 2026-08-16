@@ -45,6 +45,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
@@ -66,6 +67,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0xF472B6;
     private static final int STARTUP_ASCII_END_COLOR = 0xC084FC;
+    private static final int BSTATS_PLUGIN_ID = 33428;
 
     private final AccessoryLifecycleCoordinator lifecycleCoordinator = new AccessoryLifecycleCoordinator();
     private final AtomicReference<AccessoryPartRegistry> partRegistry =
@@ -82,6 +84,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     private boolean runtimeInitialized;
 
     private volatile boolean contentReady;
+    private BStatsRegistration metrics;
 
     public EmakiAccessoryPlugin() {
         super(AppConfig::defaults);
@@ -110,6 +113,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         components.providerRegistrar().register();
         installPublicApi();
         scheduleAutoSave();
+        metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         components.messageService().info("console.plugin_started");
     }
 

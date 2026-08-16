@@ -89,6 +89,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0x4DA6FF;
     private static final int STARTUP_ASCII_END_COLOR = 0xFFD166;
+    private static final int BSTATS_PLUGIN_ID = 33429;
 
     private final StorageLifecycleCoordinator lifecycleCoordinator = new StorageLifecycleCoordinator();
     private final StorageCommandRouter commandRouter = new StorageCommandRouter(this);
@@ -149,6 +150,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         scheduleAutosave();
         EmakiStorageApi.install(apiBridge);
         publishCapabilities();
+        metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 

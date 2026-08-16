@@ -1,9 +1,11 @@
 package emaki.jiuwu.craft.mobs;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -16,6 +18,7 @@ import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import org.bukkit.event.HandlerList;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Map;
@@ -35,6 +38,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0x86EFAC;
     private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
+    private static final int BSTATS_PLUGIN_ID = 33427;
 
     private final MobsLifecycleCoordinator lifecycleCoordinator = new MobsLifecycleCoordinator();
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
@@ -43,6 +47,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private boolean runtimeInitialized;
     private volatile boolean contentReady;
     private ServiceBackedMobsBridge bridge;
+    private BStatsRegistration metrics;
 
     public EmakiMobsPlugin() {
         super(AppConfig::defaults);
@@ -61,6 +66,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommandHandler();
         registerListeners();
         installPublicApi();
+        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         components.messageService().info("console.plugin_started");
     }
 
