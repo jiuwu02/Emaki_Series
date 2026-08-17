@@ -9,7 +9,6 @@ import java.util.UUID;
 import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
@@ -18,8 +17,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.action.ActionErrorType;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
+import emaki.jiuwu.craft.corelib.cost.CostReceipt;
+import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.RepairCurrencyCost;
 import emaki.jiuwu.craft.item.model.RepairEconomyConfig;
@@ -35,8 +36,6 @@ import emaki.jiuwu.craft.item.model.RepairMaterial;
 import emaki.jiuwu.craft.item.api.event.ItemRepairEvent;
 
 public final class ItemRepairService {
-
-    private static final NamespacedKey DISABLED_KEY = new NamespacedKey("emakiitem", "disabled");
 
     public record CurrencyQuote(RepairCurrencyCost cost, double amount, double balance, boolean supported) {
 
@@ -119,7 +118,7 @@ public final class ItemRepairService {
             return false;
         }
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        Byte value = pdc.get(DISABLED_KEY, PersistentDataType.BYTE);
+        Byte value = pdc.get(ItemPdcKeys.DISABLED, PersistentDataType.BYTE);
         return value != null && value == (byte) 1;
     }
 
@@ -131,8 +130,8 @@ public final class ItemRepairService {
         if (meta == null) {
             return;
         }
-        Byte previous = meta.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.BYTE);
-        meta.getPersistentDataContainer().set(DISABLED_KEY, PersistentDataType.BYTE, (byte) 1);
+        Byte previous = meta.getPersistentDataContainer().get(ItemPdcKeys.DISABLED, PersistentDataType.BYTE);
+        meta.getPersistentDataContainer().set(ItemPdcKeys.DISABLED, PersistentDataType.BYTE, (byte) 1);
         boolean committed = itemStack.setItemMeta(meta);
         logPdcMutation(itemStack, "set", previous == null ? "{}" : "{emakiitem:disabled=" + previous + "}",
                 "1", "{emakiitem:disabled=1}", committed);
@@ -146,8 +145,8 @@ public final class ItemRepairService {
         if (meta == null) {
             return;
         }
-        Byte previous = meta.getPersistentDataContainer().get(DISABLED_KEY, PersistentDataType.BYTE);
-        meta.getPersistentDataContainer().remove(DISABLED_KEY);
+        Byte previous = meta.getPersistentDataContainer().get(ItemPdcKeys.DISABLED, PersistentDataType.BYTE);
+        meta.getPersistentDataContainer().remove(ItemPdcKeys.DISABLED);
         boolean committed = itemStack.setItemMeta(meta);
         logPdcMutation(itemStack, "remove", previous == null ? "{}" : "{emakiitem:disabled=" + previous + "}",
                 "", "{}", committed);
@@ -373,7 +372,9 @@ public final class ItemRepairService {
         }
         int restored = applyRepair(equipment, restoreAmount);
         if (restored <= 0) {
-            rollbackCurrencies(player, economyManager, chargeResult.debits());
+            if (chargeResult.receipt() != null) {
+                chargeResult.receipt().rollback();
+            }
             return RepairResult.failure("repair.error.already_repaired", Map.of());
         }
         triggerRepaired(player, definition, equipment, "economy", restored);
@@ -544,72 +545,28 @@ public final class ItemRepairService {
             EconomyManager economyManager,
             List<CurrencyQuote> quotes) {
         if (player == null || economyManager == null) {
-            return CurrencyChargeResult.failure("repair.error.economy_provider_unavailable", null, List.of(), true);
+            return CurrencyChargeResult.failure("repair.error.economy_provider_unavailable", null, true, null);
         }
-        Map<CurrencyKey, ResolvedCurrency> aggregated = new LinkedHashMap<>();
+        List<CostTransaction.CurrencyCharge> charges = new ArrayList<>();
         if (quotes != null) {
             for (CurrencyQuote quote : quotes) {
-                if (quote == null || quote.cost() == null || quote.amount() <= 0D) {
-                    continue;
+                if (quote != null && quote.cost() != null && quote.amount() > 0D) {
+                    charges.add(new CostTransaction.CurrencyCharge(
+                            quote.cost().provider(), quote.cost().currencyId(), quote.amount()));
                 }
-                CurrencyKey key = new CurrencyKey(quote.cost().provider(), quote.cost().currencyId());
-                ResolvedCurrency existing = aggregated.get(key);
-                aggregated.put(key, new ResolvedCurrency(
-                        existing == null ? quote.cost() : existing.cost(),
-                        (existing == null ? 0D : existing.amount()) + quote.amount()
-                ));
             }
         }
-        List<CurrencyQuote> normalized = new ArrayList<>(aggregated.size());
-        for (ResolvedCurrency currency : aggregated.values()) {
-            double balance = economyManager.getBalance(player, currency.cost().provider(), currency.cost().currencyId());
-            CurrencyQuote quote = new CurrencyQuote(currency.cost(), currency.amount(), balance, true);
-            if (balance + 1.0E-9D < currency.amount()) {
-                return CurrencyChargeResult.failure("repair.error.insufficient_funds", quote, List.of(), true);
-            }
-            normalized.add(quote);
+        CostReceipt receipt = CostTransaction.execute(player, economyManager, null, charges, List.of());
+        if (receipt.success()) {
+            return CurrencyChargeResult.committed(receipt);
         }
-
-        List<CurrencyDebit> debits = new ArrayList<>();
-        for (CurrencyQuote quote : normalized) {
-            double before = economyManager.getBalance(player, quote.cost().provider(), quote.cost().currencyId());
-            ActionResult result = economyManager.remove(player, quote.cost().provider(), quote.cost().currencyId(), quote.amount());
-            double after = economyManager.getBalance(player, quote.cost().provider(), quote.cost().currencyId());
-            double debited = Math.max(0D, before - after);
-            if (debited > 1.0E-9D) {
-                debits.add(new CurrencyDebit(quote.cost().provider(), quote.cost().currencyId(), debited, before));
-            }
-            if (!result.success() || debited + 1.0E-9D < quote.amount()) {
-                boolean compensated = rollbackCurrencies(player, economyManager, debits);
-                String errorKey = compensated && result.errorType() == ActionErrorType.INSUFFICIENT_BALANCE
-                        ? "repair.error.insufficient_funds"
-                        : "repair.error.economy_provider_unavailable";
-                return CurrencyChargeResult.failure(errorKey, quote, compensated ? List.of() : debits, compensated);
-            }
-        }
-        return CurrencyChargeResult.committed(debits);
-    }
-
-    private boolean rollbackCurrencies(Player player,
-            EconomyManager economyManager,
-            List<CurrencyDebit> debits) {
-        if (debits == null || debits.isEmpty()) {
-            return true;
-        }
-        if (player == null || economyManager == null) {
-            return false;
-        }
-        boolean success = true;
-        for (int index = debits.size() - 1; index >= 0; index--) {
-            CurrencyDebit debit = debits.get(index);
-            ActionResult result = economyManager.add(player, debit.provider(), debit.currencyId(), debit.amount());
-            double restored = economyManager.getBalance(player, debit.provider(), debit.currencyId());
-            success &= result.success() && Math.abs(restored - debit.balanceBefore()) <= 1.0E-6D;
-        }
-        if (!success && plugin != null) {
-            plugin.getLogger().severe("Failed to fully compensate repair economy costs.");
-        }
-        return success;
+        boolean compensated = receipt.compensationComplete();
+        return switch (receipt.failureReason()) {
+            case INSUFFICIENT_FUNDS ->
+                    CurrencyChargeResult.failure("repair.error.insufficient_funds", null, compensated, receipt);
+            default ->
+                    CurrencyChargeResult.failure("repair.error.economy_provider_unavailable", null, compensated, receipt);
+        };
     }
 
     private Map<String, Object> quoteReplacements(CurrencyQuote quote) {
@@ -652,27 +609,22 @@ public final class ItemRepairService {
     record CurrencyChargeResult(boolean success,
             String errorKey,
             CurrencyQuote failedQuote,
-            List<CurrencyDebit> debits,
-            boolean compensationComplete) {
+            boolean compensationComplete,
+            CostReceipt receipt) {
 
         CurrencyChargeResult {
-            debits = debits == null ? List.of() : List.copyOf(debits);
         }
 
-        static CurrencyChargeResult committed(List<CurrencyDebit> debits) {
-            return new CurrencyChargeResult(true, "", null, debits, true);
+        static CurrencyChargeResult committed(CostReceipt receipt) {
+            return new CurrencyChargeResult(true, "", null, true, receipt);
         }
 
         static CurrencyChargeResult failure(String errorKey,
                 CurrencyQuote failedQuote,
-                List<CurrencyDebit> debits,
-                boolean compensationComplete) {
-            return new CurrencyChargeResult(false, errorKey, failedQuote, debits, compensationComplete);
+                boolean compensationComplete,
+                CostReceipt receipt) {
+            return new CurrencyChargeResult(false, errorKey, failedQuote, compensationComplete, receipt);
         }
-    }
-
-    record CurrencyDebit(String provider, String currencyId, double amount, double balanceBefore) {
-
     }
 
     private record CurrencyKey(String provider, String currencyId) {
@@ -696,7 +648,7 @@ public final class ItemRepairService {
         replacements.put("operation", operation);
         replacements.put("item", itemStack == null ? "null" : itemStack.getType());
         replacements.put("amount", itemStack == null ? 0 : itemStack.getAmount());
-        replacements.put("key", DISABLED_KEY);
+        replacements.put("key", ItemPdcKeys.DISABLED);
         replacements.put("value", value);
         replacements.put("before", before);
         replacements.put("after", after);

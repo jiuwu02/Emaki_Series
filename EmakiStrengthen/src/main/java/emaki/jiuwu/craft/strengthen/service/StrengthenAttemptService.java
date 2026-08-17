@@ -9,7 +9,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
@@ -27,6 +26,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
@@ -257,7 +257,7 @@ public final class StrengthenAttemptService {
             }
         }
 
-        double rollSuccessRate = sanitizeRate(preview.successRate());
+        double rollSuccessRate = CraftRollEngine.clamp(preview.successRate());
         if (isPlayerOwned(player)) {
             StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
                     player,
@@ -272,10 +272,10 @@ public final class StrengthenAttemptService {
                 return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview,
                         replacements(preview, preview.currentStar()), operationId));
             }
-            rollSuccessRate = sanitizeRate(preAttemptEvent.getSuccessRate());
+            rollSuccessRate = CraftRollEngine.clamp(preAttemptEvent.getSuccessRate());
         }
 
-        boolean success = ThreadLocalRandom.current().nextDouble(100D) < rollSuccessRate;
+        boolean success = CraftRollEngine.roll(rollSuccessRate);
         StrengthenState currentState = preview.state();
         int resultStar = success ? preview.targetStar() : preview.failureStar();
         int resultTemper = success ? 0 : preview.failureTemper();
@@ -439,10 +439,6 @@ public final class StrengthenAttemptService {
 
     private int attemptFingerprint(AttemptContext context) {
         return context == null ? 0 : Objects.hash(context.targetItem(), context.materialInputs());
-    }
-
-    private double sanitizeRate(double value) {
-        return Double.isFinite(value) ? Numbers.clamp(value, 0D, 100D) : 0D;
     }
 
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {

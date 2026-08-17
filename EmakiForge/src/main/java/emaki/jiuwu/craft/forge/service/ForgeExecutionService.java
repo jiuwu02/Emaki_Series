@@ -5,7 +5,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -16,6 +15,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
+import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore.GuaranteeCounterUpdate;
@@ -127,15 +127,12 @@ final class ForgeExecutionService {
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
                     result.actionFailureReason());
         }
-        double effectiveSuccessRate = Double.isFinite(successRate)
-                ? Math.max(0D, Math.min(100D, successRate))
-                : 0D;
+        double effectiveSuccessRate = CraftRollEngine.clamp(successRate);
         if (effectiveSuccessRate < 100D) {
             if (!isRuntimeCurrent(runtimeGeneration)) {
                 return CompletableFuture.completedFuture(staleRuntimeResult());
             }
-            double roll = ThreadLocalRandom.current().nextDouble(100D);
-            if (roll >= effectiveSuccessRate) {
+            if (!CraftRollEngine.roll(effectiveSuccessRate)) {
                 ForgeFailureResolver.ForgeFailureResult failureResult = forgeFailureResolver.resolve(recipe, guiItems, player);
                 result.setErrorKey("forge.craft.failed");
                 result.setReplacements(Map.of("outcome_type", failureResult.outcomeType()));

@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
+import emaki.jiuwu.craft.attribute.model.StageRole;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
@@ -978,10 +979,10 @@ final class DamageCalculationService {
             if (stage == null) {
                 continue;
             }
-            if (!allowCritical && isCriticalStage(stage.id())) {
+            if (!allowCritical && stage.role() == StageRole.CRITICAL) {
                 continue;
             }
-            if (!calculateTargetDefense && isDefenseStage(stage.id())) {
+            if (!calculateTargetDefense && stage.role() == StageRole.DEFENSE) {
                 continue;
             }
             filteredStages.add(stage);
@@ -1016,16 +1017,6 @@ final class DamageCalculationService {
                 damageType.attackerMessage(),
                 damageType.targetMessage()
         );
-    }
-
-    private boolean isCriticalStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "crit".equals(normalized) || "critical".equals(normalized);
-    }
-
-    private boolean isDefenseStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "defense".equals(normalized) || "target_defense".equals(normalized);
     }
 
     private double readSnapshotAttribute(AttributeSnapshot snapshot, String attributeId) {
@@ -1274,21 +1265,12 @@ final class DamageCalculationService {
     }
 
     private String debugStageLangKey(DamageStageDefinition stage) {
-        if (isCriticalStage(stage.id())) {
-            return "combat.damage_critical";
-        }
-        if (isDefenseStage(stage.id())) {
-            return "combat.damage_reduction";
-        }
-        if (isBlockStage(stage.id())) {
-            return "combat.damage_block";
-        }
-        return "combat.damage_bonus";
-    }
-
-    private boolean isBlockStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "block".equals(normalized) || "shield_block".equals(normalized);
+        return switch (stage.role()) {
+            case CRITICAL -> "combat.damage_critical";
+            case DEFENSE -> "combat.damage_reduction";
+            case BLOCK -> "combat.damage_block";
+            case NORMAL -> "combat.damage_bonus";
+        };
     }
 
     private Map<String, ?> debugStageFields(DamageContext context,

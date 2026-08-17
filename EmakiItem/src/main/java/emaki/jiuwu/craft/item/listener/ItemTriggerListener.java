@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.item.listener;
 
 import java.util.Map;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -32,11 +31,10 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class ItemTriggerListener implements Listener {
-
-    private static final NamespacedKey DISABLED_KEY = new NamespacedKey("emakiitem", "disabled");
 
     private static final Map<String, Object> EMPTY_PLACEHOLDERS = Map.of();
 
@@ -302,7 +300,7 @@ public final class ItemTriggerListener implements Listener {
             return false;
         }
         PersistentDataContainer pdc = held.getItemMeta().getPersistentDataContainer();
-        Byte value = pdc.get(DISABLED_KEY, PersistentDataType.BYTE);
+        Byte value = pdc.get(ItemPdcKeys.DISABLED, PersistentDataType.BYTE);
         return value != null && value == 1;
     }
 

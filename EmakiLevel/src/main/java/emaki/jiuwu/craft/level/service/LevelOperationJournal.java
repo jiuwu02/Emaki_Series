@@ -33,6 +33,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.cost.CostReceipt;
+import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 
 final class LevelOperationJournal {
 
@@ -72,22 +74,23 @@ final class LevelOperationJournal {
     }
 
     void preparedCosts(String operationId,
-            List<LevelCostTransaction.CurrencyCharge> currencies,
-            List<LevelCostTransaction.MaterialCharge> materials) {
+            List<CostTransaction.CurrencyCharge> currencies,
+            List<CostTransaction.MaterialSource> materials) {
         Entry current = load(operationId);
         if (current != null) {
             save(new Entry(current.operationId(), current.kind(), current.playerId(), current.phase(),
-                    encodeCurrencies(currencies), encodeMaterials(materials), current.error()));
+                    encodeCurrencies(currencies), encodePlannedMaterials(materials), current.error()));
         }
     }
 
-    void charged(String operationId, LevelCostTransaction.Result result) {
+    void charged(String operationId, CostReceipt receipt) {
         Entry current = load(operationId);
-        if (current == null || result == null || !result.success()) {
+        if (current == null || receipt == null || !receipt.success()) {
             return;
         }
         save(new Entry(current.operationId(), current.kind(), current.playerId(), Phase.CHARGED,
-                encodeCurrencies(result.chargedCurrencies()), encodeMaterials(result.chargedMaterials()), ""));
+                encodeCurrencyRecords(receipt.chargedCurrencies()),
+                encodeMaterialRecords(receipt.chargedMaterials()), ""));
     }
 
     void advance(String operationId, Phase phase) {
@@ -108,8 +111,8 @@ final class LevelOperationJournal {
         return persisted.thenCompose(_ -> archive(updated));
     }
 
-    void failedCharge(String operationId, LevelCostTransaction.Result result) {
-        if (result == null || result.compensationComplete()) {
+    void failedCharge(String operationId, CostReceipt receipt) {
+        if (receipt == null || receipt.compensationComplete()) {
             advance(operationId, Phase.COMPLETED);
             return;
         }
@@ -118,8 +121,9 @@ final class LevelOperationJournal {
             return;
         }
         save(new Entry(current.operationId(), current.kind(), current.playerId(), Phase.COMPENSATION_PENDING,
-                encodeCurrencies(result.remainingCurrencies()), encodeMaterials(result.remainingMaterials()),
-                result.failureReason()));
+                encodeCurrencyRecords(receipt.remainingCurrencies()),
+                encodeMaterialRecords(receipt.remainingMaterials()),
+                receipt.failureReason().name().toLowerCase(Locale.ROOT)));
     }
 
     void compensationPending(String operationId, String error) {
@@ -499,21 +503,41 @@ final class LevelOperationJournal {
                 maps(section.get("currencies")), maps(section.get("materials")), section.getString("error", ""));
     }
 
-    private List<Map<String, Object>> encodeCurrencies(List<LevelCostTransaction.CurrencyCharge> costs) {
+    private List<Map<String, Object>> encodeCurrencies(List<CostTransaction.CurrencyCharge> costs) {
         List<Map<String, Object>> values = new ArrayList<>();
         if (costs != null) {
-            for (LevelCostTransaction.CurrencyCharge cost : costs) {
+            for (CostTransaction.CurrencyCharge cost : costs) {
                 values.add(Map.of("provider", cost.provider(), "currency_id", cost.currencyId(), "amount", cost.amount()));
             }
         }
         return List.copyOf(values);
     }
 
-    private List<Map<String, Object>> encodeMaterials(List<LevelCostTransaction.MaterialCharge> costs) {
+    private List<Map<String, Object>> encodePlannedMaterials(List<CostTransaction.MaterialSource> sources) {
         List<Map<String, Object>> values = new ArrayList<>();
-        if (costs != null) {
-            for (LevelCostTransaction.MaterialCharge cost : costs) {
-                values.add(Map.of("item_sources", cost.itemSources(), "amount", cost.amount()));
+        if (sources != null) {
+            for (CostTransaction.MaterialSource source : sources) {
+                values.add(Map.of("item_sources", source.itemTokens(), "amount", source.amount()));
+            }
+        }
+        return List.copyOf(values);
+    }
+
+    private List<Map<String, Object>> encodeCurrencyRecords(List<CostReceipt.CurrencyRecord> records) {
+        List<Map<String, Object>> values = new ArrayList<>();
+        if (records != null) {
+            for (CostReceipt.CurrencyRecord record : records) {
+                values.add(Map.of("provider", record.provider(), "currency_id", record.currencyId(), "amount", record.amount()));
+            }
+        }
+        return List.copyOf(values);
+    }
+
+    private List<Map<String, Object>> encodeMaterialRecords(List<CostReceipt.MaterialRecord> records) {
+        List<Map<String, Object>> values = new ArrayList<>();
+        if (records != null) {
+            for (CostReceipt.MaterialRecord record : records) {
+                values.add(Map.of("item_sources", record.itemTokens(), "amount", record.amount()));
             }
         }
         return List.copyOf(values);

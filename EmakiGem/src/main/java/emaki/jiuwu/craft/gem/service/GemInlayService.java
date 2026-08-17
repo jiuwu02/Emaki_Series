@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
+import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent;
@@ -197,7 +198,7 @@ public final class GemInlayService {
         } else if (bypassCost) {
             operationJournal.advance(operationId, GemOperationJournal.Phase.CHARGED);
         }
-        if (!rollSuccess(successChance)) {
+        if (!CraftRollEngine.roll(CraftRollEngine.clamp(successChance))) {
             boolean transactionComplete;
             if (preserveInputOnFailure && chargeResult != null) {
                 GemEconomyService.RefundResult refundResult = economyService.refundDetailed(actor, chargeResult);
@@ -476,18 +477,14 @@ public final class GemInlayService {
                 config.defaultChance()
         );
         if (Texts.isBlank(config.rateFormula())) {
-            return clampChance(configuredChance);
+            return CraftRollEngine.clamp(configuredChance);
         }
         Map<String, Object> variables = new LinkedHashMap<>();
         variables.put("default_chance", config.defaultChance());
         variables.put("level_chance", configuredChance);
         variables.put("configured_chance", configuredChance);
         variables.put("level", definition.level());
-        return clampChance(ExpressionEngine.evaluate(config.rateFormula(), variables));
-    }
-
-    private boolean rollSuccess(double chance) {
-        return ThreadLocalRandom.current().nextDouble(100D) < clampChance(chance);
+        return CraftRollEngine.clamp(ExpressionEngine.evaluate(config.rateFormula(), variables));
     }
 
     private boolean shouldChargeBeforeRoll(String failureAction) {
@@ -504,10 +501,6 @@ public final class GemInlayService {
         variables.put("current_level", Math.max(1, currentLevel));
         variables.put("target_level", Math.max(1, targetLevel));
         return Map.copyOf(variables);
-    }
-
-    private double clampChance(double chance) {
-        return Math.max(0D, Math.min(100D, chance));
     }
 
     private void applyGemOperations(ItemStack itemStack, GemDefinition gemDefinition, GemItemInstance instance, int slotIndex, Map<String, Object> placeholders) {

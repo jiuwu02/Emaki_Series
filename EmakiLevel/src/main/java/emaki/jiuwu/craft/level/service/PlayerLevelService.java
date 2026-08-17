@@ -37,6 +37,8 @@ import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
+import emaki.jiuwu.craft.corelib.cost.CostReceipt;
+import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 
 public final class PlayerLevelService {
 
@@ -368,10 +370,10 @@ public final class PlayerLevelService {
                 }
             }
             String operationId = operationJournal.begin("level_up:" + type.id(), uuid);
-            LevelCostTransaction.Result costResult = chargeCost(player, type, targetLevel, operationId);
+            CostReceipt costResult = chargeCost(player, type, targetLevel, operationId);
             if (!costResult.success()) {
                 operationJournal.failedCharge(operationId, costResult);
-                return levelUpFailure(uuid, type, costResult.failureReason(), silent);
+                return levelUpFailure(uuid, type, mapCostFailure(costResult.failureReason()), silent);
             }
             entry.exp(Math.max(0D, entry.exp() - requiredExp));
             entry.level(targetLevel);
@@ -451,38 +453,57 @@ public final class PlayerLevelService {
         attributeRefreshPlayer.accept(player);
     }
 
-    private LevelCostTransaction.Result chargeCost(Player player, LevelTypeConfig type, int targetLevel, String operationId) {
+    private CostReceipt chargeCost(Player player, LevelTypeConfig type, int targetLevel, String operationId) {
         if (!type.upgrade().cost().enabled()) {
             operationJournal.advance(operationId, LevelOperationJournal.Phase.CHARGED);
-            return LevelCostTransaction.Result.committed();
+            return CostReceipt.noop();
         }
         if (player == null) {
-            return LevelCostTransaction.Result.failure(LevelFailureReason.PLAYER_NOT_FOUND);
+            return CostReceipt.failure(CostReceipt.FailureReason.PLAYER_UNAVAILABLE);
         }
         Map<String, Object> vars = costVariables(type, targetLevel);
-        List<LevelCostTransaction.CurrencyCharge> currencies = new ArrayList<>();
+        List<CostTransaction.CurrencyCharge> currencies = new ArrayList<>();
         for (LevelTypeConfig.CurrencyCost currency : type.upgrade().cost().currencies()) {
             vars.put("base_cost", currency.baseCost());
             double amount = Math.max(0D, ExpressionEngine.evaluate(currency.costFormula(), vars));
             if (amount > 0D) {
-                currencies.add(new LevelCostTransaction.CurrencyCharge(currency.provider(), currency.currencyId(), amount));
+                currencies.add(new CostTransaction.CurrencyCharge(currency.provider(), currency.currencyId(), amount));
             }
         }
-        List<LevelCostTransaction.MaterialCharge> materials = new ArrayList<>();
+        List<CostTransaction.MaterialSource> materials = new ArrayList<>();
         for (LevelTypeConfig.MaterialCost material : type.upgrade().cost().materials()) {
             vars.put("base_amount", material.baseAmount());
             long amount = Math.max(0L, Math.round(ExpressionEngine.evaluate(material.amountFormula(), vars)));
             if (amount > 0L) {
-                materials.add(new LevelCostTransaction.MaterialCharge(material.itemSources(), amount));
+                List<ItemSourceRef> refs = new ArrayList<>();
+                List<String> tokens = new ArrayList<>();
+                for (String token : material.itemSources()) {
+                    ItemSourceRef ref = ItemSourceUtil.parse(token);
+                    if (ref != null) {
+                        refs.add(ref);
+                        tokens.add(token);
+                    }
+                }
+                if (!refs.isEmpty()) {
+                    materials.add(CostTransaction.ofParsed(refs, tokens, amount));
+                }
             }
         }
         operationJournal.preparedCosts(operationId, currencies, materials);
-        LevelCostTransaction.Result result = LevelCostTransaction.charge(
-                player, economyManager, itemSourceService, currencies, materials);
-        if (result.success()) {
-            operationJournal.charged(operationId, result);
+        CostReceipt receipt = CostTransaction.execute(player, economyManager, itemSourceService, currencies, materials);
+        if (receipt.success()) {
+            operationJournal.charged(operationId, receipt);
         }
-        return result;
+        return receipt;
+    }
+
+    private static String mapCostFailure(CostReceipt.FailureReason reason) {
+        return switch (reason) {
+            case INSUFFICIENT_FUNDS -> LevelFailureReason.NOT_ENOUGH_MONEY;
+            case INSUFFICIENT_MATERIALS -> LevelFailureReason.NOT_ENOUGH_MATERIAL;
+            case PLAYER_UNAVAILABLE -> LevelFailureReason.PLAYER_NOT_FOUND;
+            default -> LevelFailureReason.COST_COMPENSATION_FAILED;
+        };
     }
 
     private void giveRewards(Player player, LevelTypeConfig type, int level) {
