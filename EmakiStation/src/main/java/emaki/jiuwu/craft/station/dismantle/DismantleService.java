@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.math.Randoms;
+import emaki.jiuwu.craft.corelib.random.WeightedPool;
 
 public final class DismantleService {
 
@@ -55,18 +56,19 @@ public final class DismantleService {
             return List.of();
         }
         int rollCount = Randoms.randomInt(recipe.rolls().min(), recipe.rolls().max());
-        List<Randoms.Weighted<DismantlePoolEntry>> weighted = new ArrayList<>(recipe.pool().size());
+        WeightedPool<DismantlePoolEntry> pool = new WeightedPool<>();
         for (DismantlePoolEntry entry : recipe.pool()) {
-            weighted.add(new Randoms.Weighted<>(entry, entry.weight()));
+            pool.add(entry, entry.weight());
         }
         List<DismantleOutput> outputs = new ArrayList<>(rollCount);
         for (int i = 0; i < rollCount; i++) {
-            DismantlePoolEntry picked = Randoms.weightedRandom(weighted);
-            if (picked == null) {
+            Optional<DismantlePoolEntry> picked = pool.roll();
+            if (picked.isEmpty()) {
                 continue;
             }
-            int amount = Randoms.randomInt(picked.amount().min(), picked.amount().max());
-            outputs.add(new DismantleOutput(picked.source(), amount));
+            DismantlePoolEntry entry = picked.get();
+            int amount = Randoms.randomInt(entry.amount().min(), entry.amount().max());
+            outputs.add(new DismantleOutput(entry.source(), amount));
         }
         return Collections.unmodifiableList(outputs);
     }

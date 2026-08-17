@@ -5,6 +5,10 @@ import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
@@ -29,7 +33,7 @@ public final class PassiveTriggerDispatcher {
         if (invocation == null || invocation.player() == null || invocation.triggerId() == null) {
             return;
         }
-        SkillTriggerDefinition trigger = triggerRegistry.get(invocation.triggerId());
+        TriggerDefinition trigger = triggerRegistry.get(invocation.triggerId());
         if (trigger == null || !trigger.enabled() || trigger.category() != TriggerCategory.PASSIVE) {
             return;
         }

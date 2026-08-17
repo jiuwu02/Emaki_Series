@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.mobs.loader;
 
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.EntityType;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
@@ -14,35 +15,24 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-public final class MobDefinitionLoader {
+public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> {
 
-    private final Plugin plugin;
-
-    public MobDefinitionLoader(Plugin plugin) {
-        this.plugin = plugin;
+    public MobDefinitionYamlLoader(JavaPlugin plugin) {
+        super(plugin);
     }
 
-    public Map<String, MobSpec> loadAll() {
-        Map<String, MobSpec> result = new HashMap<>();
-        File mobsDir = new File(plugin.getDataFolder(), "mobs");
-        if (!mobsDir.isDirectory()) {
-            return result;
-        }
-        File[] files = mobsDir.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) {
-            return result;
-        }
-        for (File file : files) {
-            MobSpec spec = parseFile(file);
-            if (spec != null) {
-                result.put(spec.id(), spec);
-            }
-        }
-        return result;
+    @Override
+    protected String directoryName() {
+        return "mobs";
     }
 
-    private MobSpec parseFile(File file) {
-        var config = YamlConfiguration.loadConfiguration(file);
+    @Override
+    protected String typeName() {
+        return "Mob";
+    }
+
+    @Override
+    protected MobSpec parse(File file, YamlSection config) {
         String id = config.getString("id");
         if (id == null || id.isBlank()) {
             plugin.getLogger().warning("Mob file '" + file.getName() + "' missing 'id' field, skipping.");
@@ -69,6 +59,11 @@ public final class MobDefinitionLoader {
                 typeOverride, threatConfig, bossBarConfig);
     }
 
+    @Override
+    protected String idOf(MobSpec value) {
+        return value.id();
+    }
+
     private boolean isEntityTypeName(String id) {
         try {
             EntityType.valueOf(id.toUpperCase(Locale.ROOT));
@@ -79,15 +74,15 @@ public final class MobDefinitionLoader {
     }
 
     @Nullable
-    private ThreatConfig parseThreatConfig(YamlConfiguration config) {
-        var section = config.getConfigurationSection("threat");
+    private ThreatConfig parseThreatConfig(YamlSection config) {
+        YamlSection section = config.getSection("threat");
         if (section == null) return null;
         boolean enabled = section.getBoolean("enabled", true);
         double maxRange = section.getDouble("max_range", 64.0);
-        var weightsSection = section.getConfigurationSection("weights");
+        YamlSection weightsSection = section.getSection("weights");
         double damageW = weightsSection != null ? weightsSection.getDouble("damage", 1.0) : 1.0;
         double healingW = weightsSection != null ? weightsSection.getDouble("healing", 0.5) : 0.5;
-        var decaySection = section.getConfigurationSection("decay");
+        YamlSection decaySection = section.getSection("decay");
         double decayRate = decaySection != null ? decaySection.getDouble("rate", 0.05) : 0.05;
         boolean outOfRange = decaySection == null || decaySection.getBoolean("out_of_range", true);
         return new ThreatConfig(enabled,
@@ -97,8 +92,8 @@ public final class MobDefinitionLoader {
     }
 
     @Nullable
-    private BossBarConfig parseBossBarConfig(YamlConfiguration config) {
-        var section = config.getConfigurationSection("boss_bar");
+    private BossBarConfig parseBossBarConfig(YamlSection config) {
+        YamlSection section = config.getSection("boss_bar");
         if (section == null) return null;
         String title = section.getString("title", "");
         String colorStr = section.getString("color", "PURPLE");
@@ -113,9 +108,9 @@ public final class MobDefinitionLoader {
         return new BossBarConfig(title, color, style, range);
     }
 
-    private Map<String, Object> extractSection(YamlConfiguration config, String sectionKey) {
+    private Map<String, Object> extractSection(YamlSection config, String sectionKey) {
         Map<String, Object> result = new HashMap<>();
-        var section = config.getConfigurationSection(sectionKey);
+        YamlSection section = config.getSection(sectionKey);
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 result.put(key, section.get(key));
@@ -124,9 +119,9 @@ public final class MobDefinitionLoader {
         return result;
     }
 
-    private Map<String, Double> extractDoubleSection(YamlConfiguration config, String sectionKey) {
+    private Map<String, Double> extractDoubleSection(YamlSection config, String sectionKey) {
         Map<String, Double> result = new HashMap<>();
-        var section = config.getConfigurationSection(sectionKey);
+        YamlSection section = config.getSection(sectionKey);
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 Object val = section.get(key);
@@ -153,9 +148,9 @@ public final class MobDefinitionLoader {
      * @param sectionKey 顶层节点键名（通常为 {@code "skills"}）
      * @return 触发器名 → Action 管道行列表 的映射；无此节点时返回空 Map
      */
-    private Map<String, List<String>> extractListSection(YamlConfiguration config, String sectionKey) {
+    private Map<String, List<String>> extractListSection(YamlSection config, String sectionKey) {
         Map<String, List<String>> result = new HashMap<>();
-        var section = config.getConfigurationSection(sectionKey);
+        YamlSection section = config.getSection(sectionKey);
         if (section != null) {
             for (String key : section.getKeys(false)) {
                 List<String> lines = new ArrayList<>(section.getStringList(key));

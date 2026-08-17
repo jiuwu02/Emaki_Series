@@ -9,10 +9,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
-import emaki.jiuwu.craft.mobs.loader.MobDefinitionLoader;
+import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
-import emaki.jiuwu.craft.mobs.loot.LootTableDefinitionLoader;
+import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.AttributeBridge;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
@@ -38,14 +38,14 @@ record MobsRuntimeComponents(
         MessageService messageService,
         LanguageLoader languageLoader,
         ExecutionDispatcher executionDispatcher,
-        MobDefinitionLoader mobDefinitionLoader,
+        MobDefinitionYamlLoader mobDefinitionLoader,
         ComponentMapper componentMapper,
         MobIdentifier mobIdentifier,
         MobFactory mobFactory,
         YamlConfigLoader<AppConfig> appConfigLoader,
         BootstrapService bootstrapService,
         AtomicReference<Map<String, MobSpec>> mobRegistry,
-        LootTableDefinitionLoader lootTableLoader,
+        LootTableYamlLoader lootTableLoader,
         AtomicReference<Map<String, LootTableDefinition>> lootRegistry,
         MobDropHandler mobDropHandler,
         SpawnRuleLoader spawnRuleLoader,
@@ -71,9 +71,10 @@ record MobsRuntimeComponents(
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
-                RuntimeComponents.component(MobDefinitionLoader.class, mobDefinitionLoader),
+                RuntimeComponents.component(MobDefinitionYamlLoader.class, mobDefinitionLoader),
                 RuntimeComponents.component(ComponentMapper.class, componentMapper),
                 RuntimeComponents.component(MobIdentifier.class, mobIdentifier),
                 RuntimeComponents.component(MobFactory.class, mobFactory));
     }
 }
+

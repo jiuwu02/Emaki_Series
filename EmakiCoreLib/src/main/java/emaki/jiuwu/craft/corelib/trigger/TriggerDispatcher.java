@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.trigger;
+package emaki.jiuwu.craft.corelib.trigger;
 
 @FunctionalInterface
 public interface TriggerDispatcher {

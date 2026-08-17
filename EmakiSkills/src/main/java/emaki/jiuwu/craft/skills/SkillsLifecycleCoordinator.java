@@ -49,15 +49,16 @@ import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
-import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefaults;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
@@ -533,10 +534,10 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         TriggerRegistry registry = plugin.triggerRegistry();
         registry.clear();
 
-        for (SkillTriggerDefinition def : TriggerRegistry.defaultDefinitions()) {
+        for (TriggerDefinition def : SkillTriggerDefaults.defaultDefinitions()) {
             registry.register(def);
         }
-        for (SkillTriggerDefinition def : TriggerRegistry.defaultPassiveDefinitions()) {
+        for (TriggerDefinition def : SkillTriggerDefaults.defaultPassiveDefinitions()) {
             registry.register(def);
         }
 
@@ -547,7 +548,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             Set<String> incompatible = tc.incompatibleWith() == null
                     ? Set.of()
                     : new HashSet<>(tc.incompatibleWith());
-            registry.register(new SkillTriggerDefinition(
+            registry.register(new TriggerDefinition(
                     id,
                     tc.displayName(),
                     null,
@@ -564,7 +565,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             Set<String> incompatible = tc.incompatibleWith() == null
                     ? Set.of()
                     : new HashSet<>(tc.incompatibleWith());
-            registry.register(new SkillTriggerDefinition(
+            registry.register(new TriggerDefinition(
                     id,
                     tc.displayName(),
                     null,
@@ -577,7 +578,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
         for (var skill : plugin.skillDefinitionLoader().all().values()) {
             if (!skill.cronExpression().isBlank()) {
-                registry.register(new SkillTriggerDefinition(
+                registry.register(new TriggerDefinition(
                         "cron_" + skill.id(),
                         skill.displayName() + " (Cron)",
                         null,

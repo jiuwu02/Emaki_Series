@@ -1,35 +1,26 @@
 package emaki.jiuwu.craft.gem.service;
 
-import java.io.IOException;
-import java.nio.file.AtomicMoveNotSupportedException;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
-import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.diagnostics.Anchors;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 
@@ -46,27 +37,17 @@ public final class GemOperationJournal {
     }
 
     private static final Map<EmakiGemPlugin, GemOperationJournal> INSTANCES = new ConcurrentHashMap<>();
-
     private static final String DEBUG_JOURNAL_MODULE = "state";
 
     private final EmakiGemPlugin plugin;
     private final EmakiScheduling scheduling;
-    private final Path activeDirectory;
-    private final Path completedDirectory;
-    private final Path quarantineDirectory;
-    private final Map<String, Entry> activeEntries = new ConcurrentHashMap<>();
-    private volatile AsyncYamlFiles asyncYamlFiles;
-    private volatile FileScope fileScope;
-    private volatile boolean asyncFilesUnavailableLogged;
+    private final CraftOperationJournal<GemPayload> journal;
 
-    private GemOperationJournal(EmakiGemPlugin plugin,
-            EmakiScheduling scheduling) {
+    private GemOperationJournal(EmakiGemPlugin plugin, EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.scheduling = scheduling;
         Path root = plugin.getDataFolder().toPath().resolve("data/operation-journal");
-        this.activeDirectory = root.resolve("active");
-        this.completedDirectory = root.resolve("completed");
-        this.quarantineDirectory = root.resolve("quarantine");
+        this.journal = CraftOperationJournal.ofPersisted(Integer.MAX_VALUE, new GemCodec(), plugin, root);
     }
 
     public static GemOperationJournal forPlugin(EmakiGemPlugin plugin,
@@ -110,16 +91,14 @@ public final class GemOperationJournal {
                 current.currencies(), current.materials(), current.error());
         long startedAt = anchorsEnabled() ? System.nanoTime() : 0L;
         Phase from = current.phase();
-        CompletableFuture<Void> persisted = save(updated);
+        save(updated);
         if (anchorsEnabled()) {
-
-            persisted.whenComplete((ignored, failure) -> anchorTransition(
-                    updated.operationId(), from, phase, startedAt, failure));
+            anchorTransition(updated.operationId(), from, phase, startedAt, null);
         }
         if (phase != Phase.COMPLETED) {
-            return persisted;
+            return CompletableFuture.completedFuture(null);
         }
-        return persisted.thenCompose(_ -> archive(updated));
+        return archive(updated);
     }
 
     private boolean anchorsEnabled() {
@@ -230,9 +209,18 @@ public final class GemOperationJournal {
     }
 
     public void recover(GemEconomyService economyService) {
-        loadActive().thenAccept(entries -> {
-            if (entries.isEmpty()) {
+        journal.loadActive().thenAccept(recovered -> {
+            if (recovered.isEmpty()) {
                 return;
+            }
+            List<Entry> entries = new ArrayList<>();
+            for (CraftOperationJournal.Entry<GemPayload> e : recovered) {
+                journal.restore(e.operationId(), e.kind(), e.playerId(), e.phase(), e.payload());
+                entries.add(toGemEntry(e));
+            }
+            if (!entries.isEmpty()) {
+                plugin.getLogger().info("Recoverable gem operations: " + String.join(", ",
+                        entries.stream().map(e -> e.operationId() + "(" + e.phase().name() + ")").toList()));
             }
             Runnable apply = () -> applyRecovery(entries, economyService);
             if (scheduling == null) {
@@ -245,7 +233,6 @@ public final class GemOperationJournal {
 
     private void applyRecovery(List<Entry> entries, GemEconomyService economyService) {
         for (Entry entry : entries) {
-            activeEntries.putIfAbsent(entry.operationId(), entry);
             switch (entry.phase()) {
                 case PREPARED, REWARDED -> advance(entry.operationId(), Phase.COMPLETED);
                 case STATE_COMMITTED, REWARD_PENDING -> rewardPending(entry.operationId(),
@@ -258,10 +245,6 @@ public final class GemOperationJournal {
 
     private void recoverCompensation(Entry entry, GemEconomyService economyService) {
         Player player = entry.playerId() == null ? null : Bukkit.getPlayer(entry.playerId());
-        if (player == null || !player.isOnline() || economyService == null) {
-            compensationPending(entry.operationId(), "player_offline");
-            return;
-        }
         Runnable recovery = () -> completeAfterRefund(entry.operationId(), "refund_failed",
                 economyService.refundPersistedDetailed(player,
                         decodeCurrencies(entry.currencies()), decodeMaterials(entry.materials())));
@@ -281,244 +264,91 @@ public final class GemOperationJournal {
         }
     }
 
-    private CompletableFuture<Void> save(Entry entry) {
-        activeEntries.put(entry.operationId(), entry);
-        AsyncYamlFiles files = asyncYamlFiles();
-        if (files == null) {
-            return logPersistFailure(entry.operationId(), asyncFilesUnavailable("save"));
+    private void save(Entry entry) {
+        GemPayload payload = new GemPayload(entry.currencies(), entry.materials(), entry.error());
+        if (!journal.contains(entry.operationId())) {
+            journal.begin(entry.operationId(), entry.kind(), entry.playerId(),
+                    entry.phase().name(), payload);
+        } else {
+            journal.update(entry.operationId(), entry.phase().name(), payload);
         }
-        return files.save(activePath(entry.operationId()).toFile(), encode(entry))
-                .exceptionallyCompose(throwable -> logPersistFailure(entry.operationId(), throwable));
-    }
-
-    private CompletableFuture<Void> logPersistFailure(String operationId, Throwable throwable) {
-        plugin.getLogger().severe("Failed to persist gem operation " + operationId + ": "
-                + rootCauseMessage(throwable));
-        return CompletableFuture.failedFuture(new IllegalStateException(
-                "Failed to persist gem operation " + operationId, AsyncFailures.unwrap(throwable)));
     }
 
     private Entry load(String operationId) {
-        return operationId == null ? null : activeEntries.get(operationId);
-    }
-
-    private CompletableFuture<List<Entry>> loadActive() {
-        AsyncYamlFiles files = asyncYamlFiles();
-        if (files == null) {
-            plugin.getLogger().severe("Cannot recover gem operation journal: async file service is unavailable");
-            return CompletableFuture.completedFuture(List.of());
-        }
-        return files.read("gem-journal-list-active", this::listActiveFiles)
-                .thenCompose(this::loadEach)
-                .exceptionally(throwable -> {
-                    plugin.getLogger().severe("Failed to list gem operation journal directory: "
-                            + rootCauseMessage(throwable));
-                    return List.of();
-                });
-    }
-
-    private CompletableFuture<List<Entry>> loadEach(List<Path> paths) {
-        CompletableFuture<List<Entry>> chain = CompletableFuture.completedFuture(new ArrayList<>());
-        for (Path path : paths) {
-            chain = chain.thenCompose(entries -> loadOne(path).thenApply(entry -> {
-                if (entry != null) {
-                    entries.add(entry);
-                }
-                return entries;
-            }));
-        }
-        return chain.thenApply(entries -> {
-            logRecoverable(entries);
-            return List.copyOf(entries);
-        });
-    }
-
-    private CompletableFuture<Entry> loadOne(Path path) {
-        AsyncYamlFiles files = asyncYamlFiles();
-        if (files == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-        return files.load(path.toFile())
-                .thenApply(this::decode)
-                .exceptionallyCompose(throwable -> quarantineCorruptFile(path, throwable));
-    }
-
-    private List<Path> listActiveFiles() {
-        try {
-            Files.createDirectories(activeDirectory);
-            List<Path> paths = new ArrayList<>();
-            try (var stream = Files.newDirectoryStream(activeDirectory, "*.{yml,yaml}")) {
-                for (Path path : stream) {
-                    if (Files.isRegularFile(path)) {
-                        paths.add(path);
-                    }
-                }
-            }
-            paths.sort(Comparator.comparing(path -> path.getFileName().toString().toLowerCase(Locale.ROOT)));
-            return List.copyOf(paths);
-        } catch (IOException exception) {
-            throw new CompletionException(exception);
-        }
-    }
-
-    private CompletableFuture<Entry> quarantineCorruptFile(Path source, Throwable throwable) {
-        String fileName = source.getFileName() == null ? "unknown.yml" : source.getFileName().toString();
-        String stem = fileName.replaceFirst("(?i)\\.ya?ml$", "");
-        Path target = quarantineDirectory.resolve(sanitize(stem) + "-corrupt-" + System.currentTimeMillis() + ".yml");
-        FileScope scope = fileScope();
-        if (scope == null) {
-            plugin.getLogger().warning("Failed to load gem operation journal '" + fileName + "': "
-                    + rootCauseMessage(throwable) + "; quarantine skipped because the file scope is unavailable");
-            return CompletableFuture.completedFuture(null);
-        }
-        return scope.write(source, "gem-journal-quarantine:" + fileName, () -> {
-            try {
-                Files.createDirectories(quarantineDirectory);
-                moveReplacing(source, target);
-            } catch (IOException exception) {
-                throw new CompletionException(exception);
-            }
-        }).handle((_, moveFailure) -> {
-            if (moveFailure == null) {
-                plugin.getLogger().warning("Quarantined corrupt gem operation journal '" + fileName + "' to '"
-                        + target.getFileName() + "': " + rootCauseMessage(throwable));
-            } else {
-                plugin.getLogger().warning("Failed to load gem operation journal '" + fileName + "': "
-                        + rootCauseMessage(throwable) + "; quarantine move failed: "
-                        + rootCauseMessage(moveFailure));
-            }
+        if (operationId == null) {
             return null;
-        });
-    }
-
-    private void logRecoverable(List<Entry> entries) {
-        if (entries.isEmpty()) {
-            return;
         }
-        List<String> operationIds = new ArrayList<>();
-        for (Entry entry : entries) {
-            operationIds.add(entry.operationId() + "(" + entry.phase().name() + ")");
-        }
-        plugin.getLogger().info("Recoverable gem operations: " + String.join(", ", operationIds));
-    }
-
-    private String sanitize(String value) {
-        String normalized = value == null ? "operation" : value.replaceAll("[^a-zA-Z0-9._-]+", "_");
-        return normalized.isBlank() ? "operation" : normalized;
-    }
-
-    private static void moveReplacing(Path source, Path target) throws IOException {
-        try {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException _) {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-        }
-    }
-
-    private String rootCauseMessage(Throwable throwable) {
-        Throwable current = AsyncFailures.unwrap(throwable);
-        String message = current == null ? null : current.getMessage();
-        return message == null || message.isBlank()
-                ? current == null ? "unknown error" : current.getClass().getSimpleName()
-                : message;
+        CraftOperationJournal.Entry<GemPayload> e = journal.get(operationId);
+        return e == null ? null : toGemEntry(e);
     }
 
     private CompletableFuture<Void> archive(Entry entry) {
-        Path source = activePath(entry.operationId());
-        Path target = completedDirectory.resolve(entry.operationId() + ".yml");
-        FileScope scope = fileScope();
-        if (scope == null) {
-            activeEntries.remove(entry.operationId());
-            plugin.getLogger().warning("Failed to archive gem operation " + entry.operationId()
-                    + ": async file service is unavailable");
-            return CompletableFuture.completedFuture(null);
+        return journal.archive(entry.operationId());
+    }
+
+    private Entry toGemEntry(CraftOperationJournal.Entry<GemPayload> e) {
+        Phase phase;
+        try {
+            phase = Phase.valueOf(e.phase().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            phase = Phase.COMPENSATION_PENDING;
         }
-        return scope.write(source, "gem-journal-archive:" + entry.operationId(), () -> {
-            try {
-                Files.createDirectories(completedDirectory);
-                moveReplacing(source, target);
-            } catch (IOException exception) {
-                throw new CompletionException(exception);
-            }
-        }).handle((_, throwable) -> {
-            activeEntries.remove(entry.operationId());
-            if (throwable != null) {
-                plugin.getLogger().warning("Failed to archive gem operation " + entry.operationId() + ": "
-                        + rootCauseMessage(throwable));
-            }
-            return null;
-        });
+        GemPayload p = e.payload() != null ? e.payload() : new GemPayload(List.of(), List.of(), "");
+        return new Entry(e.operationId(), e.kind(), e.playerId(), phase,
+                p.currencies(), p.materials(), p.error());
     }
 
-    private Path activePath(String operationId) {
-        return activeDirectory.resolve(operationId + ".yml");
+    private record GemPayload(
+            List<Map<String, Object>> currencies,
+            List<Map<String, Object>> materials,
+            String error) {
     }
 
-    private AsyncYamlFiles asyncYamlFiles() {
-        resolveAsyncFiles();
-        return asyncYamlFiles;
-    }
+    private static final class GemCodec implements CraftOperationJournal.Codec<GemPayload> {
 
-    private FileScope fileScope() {
-        resolveAsyncFiles();
-        return fileScope;
-    }
-
-    private void resolveAsyncFiles() {
-        if (asyncYamlFiles != null) {
-            return;
+        @Override
+        public Map<String, Object> encode(GemPayload payload) {
+            Map<String, Object> values = new LinkedHashMap<>();
+            values.put("currencies", payload.currencies());
+            values.put("materials", payload.materials());
+            values.put("error", payload.error());
+            return values;
         }
-        synchronized (this) {
-            if (asyncYamlFiles != null) {
-                return;
+
+        @Override
+        public GemPayload decode(YamlSection section) {
+            return new GemPayload(
+                    maps(section.get("currencies")),
+                    maps(section.get("materials")),
+                    section.getString("error", ""));
+        }
+
+        private static List<Map<String, Object>> maps(Object value) {
+            if (!(value instanceof List<?> list)) {
+                return List.of();
             }
-            try {
-                EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-                FileScope scope = coreLib.asyncFileScope(plugin);
-                this.fileScope = scope;
-                this.asyncYamlFiles = new AsyncYamlFiles(scope);
-            } catch (RuntimeException | LinkageError failure) {
-                if (!asyncFilesUnavailableLogged) {
-                    asyncFilesUnavailableLogged = true;
-                    plugin.getLogger().warning("Gem operation journal cannot reach the CoreLib async file service: "
-                            + rootCauseMessage(failure));
+            List<Map<String, Object>> result = new ArrayList<>();
+            for (Object item : list) {
+                if (item instanceof YamlSection section) {
+                    result.add(section.asMap());
+                } else if (item instanceof Map<?, ?> map) {
+                    Map<String, Object> normalized = new LinkedHashMap<>();
+                    map.forEach((key, entry) -> normalized.put(String.valueOf(key), entry));
+                    result.add(normalized);
                 }
             }
+            return List.copyOf(result);
         }
-    }
-
-    private Throwable asyncFilesUnavailable(String operation) {
-        return new IllegalStateException(
-                "Gem operation journal async file service is unavailable for " + operation);
-    }
-
-    private Map<String, Object> encode(Entry entry) {
-        Map<String, Object> values = new LinkedHashMap<>();
-        values.put("operation_id", entry.operationId());
-        values.put("kind", entry.kind());
-        values.put("player_id", entry.playerId() == null ? "" : entry.playerId().toString());
-        values.put("phase", entry.phase().name());
-        values.put("currencies", entry.currencies());
-        values.put("materials", entry.materials());
-        values.put("error", entry.error());
-        return values;
-    }
-
-    private Entry decode(YamlSection section) {
-        UUID playerId = null;
-        try {
-            playerId = UUID.fromString(section.getString("player_id", ""));
-        } catch (IllegalArgumentException ignored) {
-        }
-        return new Entry(section.getString("operation_id", ""), section.getString("kind", ""), playerId,
-                Phase.valueOf(section.getString("phase", Phase.COMPENSATION_PENDING.name()).toUpperCase(Locale.ROOT)),
-                maps(section.get("currencies")), maps(section.get("materials")), section.getString("error", ""));
     }
 
     private List<Map<String, Object>> encodeCurrencies(List<GemDefinition.CurrencyCost> costs) {
         List<Map<String, Object>> values = new ArrayList<>();
         for (GemDefinition.CurrencyCost cost : costs) {
-            values.add(Map.of("provider", cost.provider(), "currency_id", cost.currencyId(), "amount", cost.amount()));
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("provider", cost.provider());
+            m.put("currency_id", cost.currencyId());
+            m.put("amount", cost.amount());
+            values.add(m);
         }
         return List.copyOf(values);
     }
@@ -526,7 +356,10 @@ public final class GemOperationJournal {
     private List<Map<String, Object>> encodeMaterials(List<GemDefinition.MaterialCost> costs) {
         List<Map<String, Object>> values = new ArrayList<>();
         for (GemDefinition.MaterialCost cost : costs) {
-            values.add(Map.of("item", ItemSourceUtil.toShorthand(cost.itemSource()), "amount", cost.amount()));
+            Map<String, Object> m = new LinkedHashMap<>();
+            m.put("item", ItemSourceUtil.toShorthand(cost.itemSource()));
+            m.put("amount", cost.amount());
+            values.add(m);
         }
         return List.copyOf(values);
     }
@@ -534,8 +367,11 @@ public final class GemOperationJournal {
     private List<GemDefinition.CurrencyCost> decodeCurrencies(List<Map<String, Object>> values) {
         List<GemDefinition.CurrencyCost> costs = new ArrayList<>();
         for (Map<String, Object> value : values) {
-            costs.add(new GemDefinition.CurrencyCost(text(value.get("provider")), text(value.get("currency_id")),
-                    number(value.get("amount")).doubleValue(), 0D, "", ""));
+            costs.add(new GemDefinition.CurrencyCost(
+                    text(value.get("provider")),
+                    text(value.get("currency_id")),
+                    number(value.get("amount")).doubleValue(),
+                    0D, "", ""));
         }
         return List.copyOf(costs);
     }
@@ -551,30 +387,13 @@ public final class GemOperationJournal {
         return List.copyOf(costs);
     }
 
-    private List<Map<String, Object>> maps(Object value) {
-        if (!(value instanceof List<?> list)) {
-            return List.of();
-        }
-        List<Map<String, Object>> result = new ArrayList<>();
-        for (Object item : list) {
-            if (item instanceof YamlSection section) {
-                result.add(section.asMap());
-            } else if (item instanceof Map<?, ?> map) {
-                Map<String, Object> normalized = new LinkedHashMap<>();
-                map.forEach((key, entry) -> normalized.put(String.valueOf(key), entry));
-                result.add(normalized);
-            }
-        }
-        return List.copyOf(result);
-    }
-
     private String text(Object value) {
         return value == null ? "" : String.valueOf(value);
     }
 
     private Number number(Object value) {
-        if (value instanceof Number number) {
-            return number;
+        if (value instanceof Number n) {
+            return n;
         }
         try {
             return Double.parseDouble(text(value));
@@ -583,7 +402,13 @@ public final class GemOperationJournal {
         }
     }
 
-    private record Entry(String operationId, String kind, UUID playerId, Phase phase,
-            List<Map<String, Object>> currencies, List<Map<String, Object>> materials, String error) {
+    private record Entry(
+            String operationId,
+            String kind,
+            UUID playerId,
+            Phase phase,
+            List<Map<String, Object>> currencies,
+            List<Map<String, Object>> materials,
+            String error) {
     }
 }

@@ -42,11 +42,11 @@ import emaki.jiuwu.craft.skills.service.PlayerSkillDataStore;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
 
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
-import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class SkillsGuiService {
 
@@ -396,12 +396,12 @@ public final class SkillsGuiService {
     }
 
     private ItemStack renderTriggerOption(Player player, GuiSlot slot, int slotIndex, int targetSlot) {
-        List<SkillTriggerDefinition> enabledTriggers = getEnabledTriggers();
+        List<TriggerDefinition> enabledTriggers = getEnabledTriggers();
         if (slotIndex < 0 || slotIndex >= enabledTriggers.size()) {
             return new ItemStack(Material.AIR);
         }
 
-        SkillTriggerDefinition trigger = enabledTriggers.get(slotIndex);
+        TriggerDefinition trigger = enabledTriggers.get(slotIndex);
 
         String conflict = stateService.checkTriggerConflict(player, targetSlot, trigger.id());
         boolean hasConflict = conflict != null;
@@ -646,9 +646,9 @@ public final class SkillsGuiService {
         return false;
     }
 
-    private List<SkillTriggerDefinition> getEnabledTriggers() {
-        List<SkillTriggerDefinition> result = new ArrayList<>();
-        for (SkillTriggerDefinition def : triggerRegistry.all().values()) {
+    private List<TriggerDefinition> getEnabledTriggers() {
+        List<TriggerDefinition> result = new ArrayList<>();
+        for (TriggerDefinition def : triggerRegistry.all().values()) {
             if (def.enabled() && def.category() == TriggerCategory.ACTIVE) {
                 result.add(def);
             }

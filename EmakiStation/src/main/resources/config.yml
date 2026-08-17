@@ -1,7 +1,7 @@
 # EmakiStation - 通用合成工作站
 #
 # 本文件的 version 必须与插件版本保持一致，插件会按 version 合并新增的默认键。
-version: "1.0.0"
+version: "1.0.1"
 
 # 语言文件名，对应 lang/<language>.yml
 language: "zh_CN"

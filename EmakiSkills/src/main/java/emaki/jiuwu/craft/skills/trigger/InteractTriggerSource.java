@@ -15,7 +15,11 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 
-public final class InteractTriggerSource implements SkillTriggerSource {
+import emaki.jiuwu.craft.corelib.trigger.TriggerDispatcher;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerSource;
+
+public final class InteractTriggerSource implements TriggerSource {
 
     private volatile boolean legacyDeprecationWarningLogged;
 

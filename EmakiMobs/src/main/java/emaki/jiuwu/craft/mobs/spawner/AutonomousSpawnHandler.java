@@ -3,12 +3,17 @@ package emaki.jiuwu.craft.mobs.spawner;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronParseException;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
+import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
@@ -26,7 +31,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class AutonomousSpawnHandler implements SpawnHandler {
 
     private final Plugin plugin;
-    private final SpawnConditionEvaluator conditionEvaluator;
+    private final MobIdentifier mobIdentifier;
     private final MobFactory mobFactory;
     private final CronScheduler cronScheduler = new CronScheduler();
     private final List<ScheduledTask> tasks = new CopyOnWriteArrayList<>();
@@ -34,10 +39,10 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
     private final Map<String, NamespacedKey> pdcKeyCache = new HashMap<>();
 
     public AutonomousSpawnHandler(Plugin plugin,
-                                  SpawnConditionEvaluator conditionEvaluator,
+                                  MobIdentifier mobIdentifier,
                                   MobFactory mobFactory) {
         this.plugin = plugin;
-        this.conditionEvaluator = conditionEvaluator;
+        this.mobIdentifier = mobIdentifier;
         this.mobFactory = mobFactory;
         // 永久日计时器：reload 时不取消，仅在插件关闭时由 Bukkit 自动取消
         plugin.getServer().getGlobalRegionScheduler()
@@ -52,7 +57,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
                 ScheduledTask task = plugin.getServer().getGlobalRegionScheduler()
                         .runAtFixedRate(plugin, t -> {
                             if (r.maxGlobal() > 0
-                                    && conditionEvaluator.countGlobal(r.mobId()) >= r.maxGlobal()) return;
+                                    && countGlobal(r.mobId()) >= r.maxGlobal()) return;
                             for (Player p : Bukkit.getOnlinePlayers()) {
                                 if (!r.worlds().isEmpty()
                                         && !r.worlds().contains(p.getWorld().getName())) continue;
@@ -65,7 +70,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
                 ScheduledTask task = plugin.getServer().getGlobalRegionScheduler()
                         .runAtFixedRate(plugin, t -> {
                             if (r.maxGlobal() > 0
-                                    && conditionEvaluator.countGlobal(r.mobId()) >= r.maxGlobal()) return;
+                                    && countGlobal(r.mobId()) >= r.maxGlobal()) return;
                             List<Player> candidates = new ArrayList<>(Bukkit.getOnlinePlayers());
                             if (!r.worlds().isEmpty()) {
                                 candidates.removeIf(p -> !r.worlds().contains(p.getWorld().getName()));
@@ -88,7 +93,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
                 try {
                     cronScheduler.schedule(plugin, expr, () -> {
                         if (r.maxGlobal() > 0
-                                && conditionEvaluator.countGlobal(r.mobId()) >= r.maxGlobal()) return;
+                                && countGlobal(r.mobId()) >= r.maxGlobal()) return;
                         for (Player p : Bukkit.getOnlinePlayers()) {
                             if (!r.worlds().isEmpty()
                                     && !r.worlds().contains(p.getWorld().getName())) continue;
@@ -136,7 +141,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
 
     private void triggerSpawnForWorld(World world, AutonomousSpawnRule rule) {
         if (rule.maxGlobal() > 0
-                && conditionEvaluator.countGlobal(rule.mobId()) >= rule.maxGlobal()) {
+                && countGlobal(rule.mobId()) >= rule.maxGlobal()) {
             return;
         }
         for (Player player : world.getPlayers()) {
@@ -147,7 +152,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
     private void attemptSpawnForPlayer(Player player, AutonomousSpawnRule rule) {
         Location origin = player.getLocation();
         for (int i = 0; i < 6; i++) {
-            Location candidate = conditionEvaluator.findSurface(
+            Location candidate = findSurface(
                     origin, rule.distance().min(), rule.distance().max());
             if (candidate == null) continue;
             int y = candidate.getBlockY();
@@ -157,12 +162,14 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
             if (!rule.biomes().isEmpty()
                     && !rule.biomes().contains(candidate.getBlock().getBiome())) continue;
             if (!rule.structures().isEmpty()
-                    && !conditionEvaluator.isInStructures(candidate, rule.structures())) continue;
-            if (!conditionEvaluator.matchesTimeOfDay(candidate.getWorld(), rule.timeOfDay())) continue;
+                    && !isInStructures(candidate, rule.structures())) continue;
+            if (!matchesTimeOfDay(candidate.getWorld(), rule.timeOfDay())) continue;
             if (rule.requireSurface()
                     && candidate.getBlock().getLightFromSky() < 15) continue;
             if (rule.maxNearby() > 0
-                    && conditionEvaluator.countNearby(candidate, rule.mobId(), 64) >= rule.maxNearby()) continue;
+                    && countNearby(candidate, rule.mobId(), 64) >= rule.maxNearby()) continue;
+            if (rule.condition().configured()
+                    && !emaki.jiuwu.craft.corelib.condition.ConditionEvaluator.evaluate(rule.condition(), null)) continue;
             int count = rule.count().min() >= rule.count().max()
                     ? rule.count().min()
                     : ThreadLocalRandom.current().nextInt(rule.count().min(), rule.count().max() + 1);
@@ -187,5 +194,57 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
 
     private void writeLastSpawnDay(World world, NamespacedKey key, long day) {
         world.getPersistentDataContainer().set(key, PersistentDataType.LONG, day);
+    }
+
+    private long countGlobal(String mobId) {
+        return Bukkit.getWorlds().stream()
+                .flatMap(w -> w.getLivingEntities().stream())
+                .filter(e -> mobId.equals(mobIdentifier.readId(e)))
+                .count();
+    }
+
+    private long countNearby(Location location, String mobId, int radius) {
+        World world = location.getWorld();
+        if (world == null) return 0;
+        return world.getNearbyEntities(location, radius, radius, radius).stream()
+                .filter(e -> e instanceof LivingEntity le && mobId.equals(mobIdentifier.readId(le)))
+                .count();
+    }
+
+    private Location findSurface(Location center, int minDist, int maxDist) {
+        World world = center.getWorld();
+        if (world == null) return null;
+        double angle = ThreadLocalRandom.current().nextDouble() * 2 * Math.PI;
+        int dist = minDist >= maxDist ? minDist : ThreadLocalRandom.current().nextInt(minDist, maxDist + 1);
+        int x = (int) (center.getX() + Math.cos(angle) * dist);
+        int z = (int) (center.getZ() + Math.sin(angle) * dist);
+        int y = world.getHighestBlockYAt(x, z);
+        Location candidate = new Location(world, x + 0.5, y + 1.0, z + 0.5);
+        Block above = candidate.getBlock();
+        Block ground = above.getRelative(0, -1, 0);
+        if (!above.isPassable() || !ground.getType().isSolid()) return null;
+        return candidate;
+    }
+
+    private boolean isInStructures(Location location, List<Structure> structures) {
+        Chunk chunk = location.getChunk();
+        for (var gen : chunk.getStructures()) {
+            if (structures.contains(gen.getStructure())
+                    && gen.getBoundingBox().contains(
+                            location.getX(), location.getY(), location.getZ())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean matchesTimeOfDay(World world, String timeOfDay) {
+        if (timeOfDay == null || "any".equalsIgnoreCase(timeOfDay)) return true;
+        long time = world.getTime();
+        return switch (timeOfDay.toLowerCase()) {
+            case "day"   -> time >= 1000 && time < 13000;
+            case "night" -> time >= 13000 || time < 1000;
+            default      -> true;
+        };
     }
 }

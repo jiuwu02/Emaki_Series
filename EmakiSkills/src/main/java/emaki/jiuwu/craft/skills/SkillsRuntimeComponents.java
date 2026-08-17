@@ -33,8 +33,8 @@ import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
 import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 
 record SkillsRuntimeComponents(
         YamlConfigLoader<AppConfig> appConfigLoader,

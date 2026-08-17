@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs.spawner;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import org.bukkit.block.Biome;
 import org.bukkit.generator.structure.Structure;
 
@@ -28,8 +29,15 @@ public record AutonomousSpawnRule(
         DistanceRange distance,
         int maxNearby,
         int maxGlobal,
-        CountRange count
+        CountRange count,
+        ConditionBlock condition
 ) implements SpawnRule {
+
+    public AutonomousSpawnRule {
+        if (condition == null) {
+            condition = ConditionBlock.empty();
+        }
+    }
 
     @Override
     public String type() {

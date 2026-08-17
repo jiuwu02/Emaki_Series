@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.skills.model.SkillParameterDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterType;
 import emaki.jiuwu.craft.skills.service.SkillLevelService;
 import emaki.jiuwu.craft.skills.service.SkillParameterResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 
 public final class SkillVariableResolver {
 

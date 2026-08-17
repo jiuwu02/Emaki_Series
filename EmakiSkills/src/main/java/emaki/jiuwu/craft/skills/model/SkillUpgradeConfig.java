@@ -5,13 +5,15 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.progression.Progression;
+import emaki.jiuwu.craft.corelib.progression.TableProgression;
 
 public record SkillUpgradeConfig(
         boolean enabled,
         int maxLevel,
         String guiTemplate,
         EconomyConfig economy,
-        Map<Integer, Double> successRates,
+        Progression<Double> successRateProgression,
         String failurePenalty,
         Map<Integer, SkillUpgradeLevel> levels
 ) {
@@ -22,14 +24,16 @@ public record SkillUpgradeConfig(
         maxLevel = Math.max(1, maxLevel);
         guiTemplate = Texts.isBlank(guiTemplate) ? DEFAULT_GUI_TEMPLATE : Texts.toStringSafe(guiTemplate);
         economy = economy == null ? EconomyConfig.disabled() : economy;
-        successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
+        successRateProgression = successRateProgression == null
+                ? new TableProgression<>(Map.of(), 100D)
+                : successRateProgression;
         failurePenalty = Texts.isBlank(failurePenalty) ? "none" : Texts.lower(failurePenalty);
         levels = levels == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(levels));
     }
 
     public static SkillUpgradeConfig disabled() {
         return new SkillUpgradeConfig(false, 1, DEFAULT_GUI_TEMPLATE,
-                EconomyConfig.disabled(), Map.of(), "none", Map.of());
+                EconomyConfig.disabled(), new TableProgression<>(Map.of(), 100D), "none", Map.of());
     }
 
     public double successRateFor(int targetLevel) {
@@ -37,7 +41,8 @@ public record SkillUpgradeConfig(
         if (level != null && level.successRate() != null) {
             return clampSuccessRate(level.successRate());
         }
-        return clampSuccessRate(successRates.getOrDefault(targetLevel, 100D));
+        Double rate = successRateProgression.valueAt(targetLevel);
+        return clampSuccessRate(rate == null ? 100D : rate);
     }
 
     public List<CurrencyEntry> effectiveCurrencies(int targetLevel) {

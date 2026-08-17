@@ -125,6 +125,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.attackBatchInvulnerabilityGate = new AttackBatchInvulnerabilityGate(this);
         this.perfectTakeoverCoordinator = new PerfectTakeoverCoordinator(this);
         refreshCaches();
+        registryService.registerDerivedAttributeProvider(new AttributePowerProvider(this));
     }
 
     @Override

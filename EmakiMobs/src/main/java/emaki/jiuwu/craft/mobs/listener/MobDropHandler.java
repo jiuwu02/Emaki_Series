@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs.listener;
 
+import emaki.jiuwu.craft.corelib.random.WeightedPool;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootEntryDefinition;
@@ -73,19 +74,11 @@ public final class MobDropHandler implements Listener {
     private void applyPool(EntityDeathEvent event, LootPoolDefinition pool, int lootingLevel) {
         int rolls = resolveRolls(pool.rolls());
         for (int i = 0; i < rolls; i++) {
-            int totalWeight = pool.entries().stream().mapToInt(LootEntryDefinition::weight).sum();
-            if (totalWeight <= 0) {
-                continue;
-            }
-            int roll = ThreadLocalRandom.current().nextInt(totalWeight);
-            int cumulative = 0;
+            WeightedPool<LootEntryDefinition> weightedPool = new WeightedPool<>();
             for (LootEntryDefinition entry : pool.entries()) {
-                cumulative += entry.weight();
-                if (roll < cumulative) {
-                    tryDropEntry(event, entry, lootingLevel);
-                    break;
-                }
+                weightedPool.add(entry, entry.weight());
             }
+            weightedPool.roll().ifPresent(entry -> tryDropEntry(event, entry, lootingLevel));
         }
     }
 

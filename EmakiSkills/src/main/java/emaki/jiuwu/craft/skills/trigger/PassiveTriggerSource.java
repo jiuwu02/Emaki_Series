@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronParseException;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 

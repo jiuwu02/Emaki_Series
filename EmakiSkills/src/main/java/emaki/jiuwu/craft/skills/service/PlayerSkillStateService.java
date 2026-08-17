@@ -10,6 +10,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerConflictResolver;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.api.event.PlayerSkillSlotChangeEvent;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
@@ -19,10 +23,6 @@ import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
-import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerConflictResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class PlayerSkillStateService {
 
@@ -322,7 +322,7 @@ public final class PlayerSkillStateService {
         if (triggerRegistry == null) {
             return false;
         }
-        SkillTriggerDefinition definition = triggerRegistry.get(triggerId);
+        TriggerDefinition definition = triggerRegistry.get(triggerId);
         return definition != null && definition.enabled() && definition.category() == TriggerCategory.ACTIVE;
     }
 

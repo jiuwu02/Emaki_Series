@@ -12,10 +12,10 @@ import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
+import emaki.jiuwu.craft.corelib.unlock.UnlockService;
 import emaki.jiuwu.craft.station.api.model.QueueEntryState;
 import emaki.jiuwu.craft.station.queue.CraftQueue;
 import emaki.jiuwu.craft.station.queue.QueueEntry;
-import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 
 public final class StationQueueRenderer {
 
@@ -32,7 +32,7 @@ public final class StationQueueRenderer {
             CraftQueue queue,
             int capacity,
             int purchased,
-            StationQueueUnlockService.Quote quote,
+            UnlockService.Quote quote,
             GuiTemplate.ResolvedSlot resolvedSlot) {
         if (state == null || resolvedSlot == null || resolvedSlot.definition() == null) {
             return null;
@@ -112,7 +112,7 @@ public final class StationQueueRenderer {
 
     private ItemStack renderPurchase(StationViewState state,
             GuiSlot slot,
-            StationQueueUnlockService.Quote quote) {
+            UnlockService.Quote quote) {
         String layoutId = state.station().queueLayoutId();
         Map<String, Object> values = new LinkedHashMap<>();
         if (quote == null || !quote.valid()) {
@@ -124,9 +124,9 @@ public final class StationQueueRenderer {
                     StationRenderFallbacks.purchaseUnavailable(reason));
         }
         values.put("slots", String.valueOf(quote.slots()));
-        values.put("cost", AmountDisplay.precise((long) quote.currencyCost()));
-        values.put("currency", quote.currencyId());
-        values.put("items", String.valueOf(quote.itemCosts().size()));
+        values.put("cost", AmountDisplay.precise((long) quote.currencyTotal()));
+        values.put("currency", quote.currencyProviderId());
+        values.put("items", String.valueOf(quote.itemTotals().size()));
         return GuiItemBuilder.build(slot.itemDefinition(), values, itemServiceSupplier.get());
     }
 

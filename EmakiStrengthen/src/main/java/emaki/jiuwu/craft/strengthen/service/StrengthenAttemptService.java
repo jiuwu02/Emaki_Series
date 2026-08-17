@@ -10,6 +10,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -23,6 +24,7 @@ import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -63,10 +65,9 @@ public final class StrengthenAttemptService {
     private final StrengthenPdcAttributeWriter pdcAttributeWriter;
     private final ItemOperationLedger operationLedger;
     private final ThreadOwnership threadOwnership;
-    private final Object lifecycleMonitor = new Object();
-    private final LinkedHashMap<String, JournalEntry> operationJournal = new LinkedHashMap<>();
-    private boolean accepting = true;
-    private int inFlight;
+    private final AtomicBoolean accepting = new AtomicBoolean(true);
+    private final CraftOperationJournal<JournalEntry> operationJournal =
+            CraftOperationJournal.ofMemory(MAX_JOURNAL_ENTRIES);
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
@@ -191,7 +192,7 @@ public final class StrengthenAttemptService {
                 : context.withOperationId(operationId);
         String journalKey = journalKey(player, operationId);
         int fingerprint = attemptFingerprint(safeContext);
-        AttemptStart start = beginOperation(journalKey, fingerprint);
+        AttemptStart start = beginOperation(journalKey, player == null ? null : player.getUniqueId(), fingerprint);
         if (start.existingResult() != null) {
             return start.existingResult();
         }
@@ -214,7 +215,7 @@ public final class StrengthenAttemptService {
                 result = AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
             }
             completeOperation(journalKey, fingerprint, result);
-            finishInFlight();
+            finishInFlight(journalKey);
             logOperation(player, operationId, "completed", result.outcome());
         }
         return result;
@@ -333,99 +334,61 @@ public final class StrengthenAttemptService {
     }
 
     public boolean accepting() {
-        synchronized (lifecycleMonitor) {
-            return accepting;
-        }
+        return accepting.get();
     }
 
     public void freezeAccepting() {
-        synchronized (lifecycleMonitor) {
-            accepting = false;
-        }
+        accepting.set(false);
     }
 
     public void resumeAccepting() {
-        synchronized (lifecycleMonitor) {
-            accepting = true;
-        }
+        accepting.set(true);
     }
 
     public boolean drain(long timeout, TimeUnit unit) {
-        long timeoutNanos = Math.max(0L, unit == null ? 0L : unit.toNanos(timeout));
-        long deadline = System.nanoTime() + timeoutNanos;
-        synchronized (lifecycleMonitor) {
-            while (inFlight > 0) {
-                long remaining = deadline - System.nanoTime();
-                if (remaining <= 0L) {
-                    return false;
-                }
-                try {
-                    TimeUnit.NANOSECONDS.timedWait(lifecycleMonitor, remaining);
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-            return true;
-        }
+        return operationJournal.drain(timeout, unit);
     }
 
     public Map<String, String> journalSnapshot() {
-        synchronized (lifecycleMonitor) {
-            Map<String, String> snapshot = new LinkedHashMap<>();
-            operationJournal.forEach((operationId, entry) -> snapshot.put(operationId,
-                    entry.result() == null ? "IN_FLIGHT" : entry.result().outcome().name()));
-            return Map.copyOf(snapshot);
-        }
+        Map<String, String> snapshot = new LinkedHashMap<>();
+        operationJournal.snapshot().forEach((operationId, entry) -> snapshot.put(operationId, entry.phase()));
+        return Map.copyOf(snapshot);
     }
 
-    private AttemptStart beginOperation(String journalKey, int fingerprint) {
-        synchronized (lifecycleMonitor) {
-            JournalEntry existing = operationJournal.get(journalKey);
-            if (existing != null) {
-                if (existing.fingerprint() != fingerprint) {
-                    return new AttemptStart(false, null, "strengthen.error.operation_conflict");
-                }
-                return existing.result() == null
-                        ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
-                        : new AttemptStart(false, existing.result(), "");
+    private AttemptStart beginOperation(String journalKey, UUID playerId, int fingerprint) {
+        CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
+                journalKey, OPERATION_NAMESPACE, playerId, new JournalEntry(fingerprint, null));
+        if (existing != null) {
+            JournalEntry payload = existing.payload();
+            if (payload.fingerprint() != fingerprint) {
+                return new AttemptStart(false, null, "strengthen.error.operation_conflict");
             }
-            if (!accepting) {
-                return new AttemptStart(false, null, "strengthen.error.not_accepting");
-            }
-            operationJournal.put(journalKey, new JournalEntry(fingerprint, null));
-            inFlight++;
-            pruneJournal();
-            return new AttemptStart(true, null, "");
+            return payload.result() == null
+                    ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
+                    : new AttemptStart(false, payload.result(), "");
         }
+        if (!accepting.get()) {
+            operationJournal.archive(journalKey);
+            return new AttemptStart(false, null, "strengthen.error.not_accepting");
+        }
+        pruneJournal();
+        return new AttemptStart(true, null, "");
     }
 
     private void completeOperation(String journalKey, int fingerprint, AttemptResult result) {
-        synchronized (lifecycleMonitor) {
-            operationJournal.put(journalKey, new JournalEntry(fingerprint, result));
-            pruneJournal();
-        }
+        operationJournal.update(journalKey, result.outcome().name(), new JournalEntry(fingerprint, result));
+        pruneJournal();
     }
 
-    private void finishInFlight() {
-        synchronized (lifecycleMonitor) {
-            inFlight = Math.max(0, inFlight - 1);
-            lifecycleMonitor.notifyAll();
-        }
+    private void finishInFlight(String journalKey) {
+        operationJournal.release(journalKey);
     }
 
     private void pruneJournal() {
-        if (operationJournal.size() <= MAX_JOURNAL_ENTRIES) {
-            return;
-        }
-        var iterator = operationJournal.entrySet().iterator();
-        while (operationJournal.size() > MAX_JOURNAL_ENTRIES && iterator.hasNext()) {
-            var entry = iterator.next();
-            AttemptResult result = entry.getValue().result();
-            if (result != null && !result.compensationPending()) {
-                iterator.remove();
-            }
-        }
+        operationJournal.prune(entry -> {
+            AttemptResult result = entry.payload() == null ? null : entry.payload().result();
+            return result != null && !result.compensationPending();
+        });
     }
 
     private String resolveOperationId(AttemptContext context) {

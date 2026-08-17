@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
+import emaki.jiuwu.craft.corelib.unlock.UnlockService;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.model.StorageResult;
@@ -396,7 +397,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
         StorageCapacity capacity = plugin.capacityService()
                 .capacityOf(storage, viewer, plugin.storageGuiService().slotsPerPage());
         int slots = plugin.unlockService().batchOptions().stream().findFirst().orElse(1);
-        StorageUnlockService.PurchaseResult result = plugin.unlockService()
+        UnlockService.UnlockResult result = plugin.unlockService()
                 .purchase(storage, viewer, capacity, slots, StorageOperationSource.GUI);
         if (result.success()) {
             plugin.messageService().send(viewer, "unlock.success", Map.of(

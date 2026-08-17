@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.trigger;
+package emaki.jiuwu.craft.corelib.trigger;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -13,14 +13,14 @@ public final class TriggerConflictResolver {
 
     private final Map<String, Set<String>> conflictMatrix = new HashMap<>();
 
-    public void buildFromDefinitions(Map<String, SkillTriggerDefinition> definitions) {
+    public void buildFromDefinitions(Map<String, TriggerDefinition> definitions) {
         conflictMatrix.clear();
 
         for (String id : definitions.keySet()) {
             conflictMatrix.computeIfAbsent(id, k -> new HashSet<>()).add(id);
         }
 
-        for (SkillTriggerDefinition def : definitions.values()) {
+        for (TriggerDefinition def : definitions.values()) {
             for (String other : def.incompatibleWith()) {
                 if (!definitions.containsKey(other)) {
                     LOGGER.warning("Trigger '" + def.id()

@@ -21,7 +21,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 
 public final class SkillScriptCastService {
 

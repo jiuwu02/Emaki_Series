@@ -10,6 +10,9 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDispatcher;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.BoundSkillTrigger;
 import emaki.jiuwu.craft.skills.model.CastAttemptResult;

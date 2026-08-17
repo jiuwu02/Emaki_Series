@@ -13,11 +13,11 @@ import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.service.PlayerSkillStateService;
-import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerCategory;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
 
 public final class TriggerSelectGuiHandler implements GuiSessionHandler {
 
@@ -76,13 +76,13 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
     }
 
     private void handleTriggerOptionClick(GuiSession session, GuiTemplate.ResolvedSlot slot, Player player) {
-        List<SkillTriggerDefinition> enabledTriggers = getEnabledTriggers();
+        List<TriggerDefinition> enabledTriggers = getEnabledTriggers();
         int index = slot.slotIndex();
         if (index < 0 || index >= enabledTriggers.size()) {
             return;
         }
 
-        SkillTriggerDefinition trigger = enabledTriggers.get(index);
+        TriggerDefinition trigger = enabledTriggers.get(index);
 
         String conflict = stateService.checkTriggerConflict(player, targetSlot, trigger.id());
         if (conflict != null) {
@@ -113,9 +113,9 @@ public final class TriggerSelectGuiHandler implements GuiSessionHandler {
         plugin.scheduling().runForEntity(plugin, player, onBack, () -> { });
     }
 
-    List<SkillTriggerDefinition> getEnabledTriggers() {
-        List<SkillTriggerDefinition> result = new ArrayList<>();
-        for (SkillTriggerDefinition def : triggerRegistry.all().values()) {
+    List<TriggerDefinition> getEnabledTriggers() {
+        List<TriggerDefinition> result = new ArrayList<>();
+        for (TriggerDefinition def : triggerRegistry.all().values()) {
             if (def.enabled() && def.category() == TriggerCategory.ACTIVE) {
                 result.add(def);
             }

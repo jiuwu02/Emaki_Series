@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs.spawner;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import org.bukkit.block.Biome;
 
 import java.util.Set;
@@ -13,8 +14,15 @@ public record NaturalSpawnRule(
         int lightLevelMax,
         double replacementChance,
         int maxNearby,
-        CountRange count
+        CountRange count,
+        ConditionBlock condition
 ) implements SpawnRule {
+
+    public NaturalSpawnRule {
+        if (condition == null) {
+            condition = ConditionBlock.empty();
+        }
+    }
 
     @Override
     public String type() {

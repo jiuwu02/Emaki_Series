@@ -2,56 +2,19 @@ package emaki.jiuwu.craft.skills.trigger;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.logging.Logger;
 
-public final class TriggerRegistry {
+import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
+import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
 
-    private static final Logger LOGGER = Logger.getLogger(TriggerRegistry.class.getName());
+public final class SkillTriggerDefaults {
 
-    private final Map<String, SkillTriggerDefinition> definitions = new LinkedHashMap<>();
-
-    public void register(SkillTriggerDefinition definition) {
-        definitions.put(definition.id(), definition);
+    private SkillTriggerDefaults() {
     }
 
-    public SkillTriggerDefinition get(String id) {
-        return definitions.get(id);
-    }
-
-    public Map<String, SkillTriggerDefinition> all() {
-        return Collections.unmodifiableMap(definitions);
-    }
-
-    public boolean isEnabled(String id) {
-        SkillTriggerDefinition def = definitions.get(id);
-        return def != null && def.enabled();
-    }
-
-    public String getDisplayName(String id) {
-        SkillTriggerDefinition def = definitions.get(id);
-        if (def != null) {
-            return def.displayName();
-        }
-        LOGGER.warning("Trigger '" + id + "' is not registered; falling back to [" + id + "]");
-        return "[" + id + "]";
-    }
-
-    public void clear() {
-        definitions.clear();
-    }
-
-    public void loadFromConfig(Map<String, SkillTriggerDefinition> configEntries) {
-        for (var entry : configEntries.entrySet()) {
-            definitions.put(entry.getKey(), entry.getValue());
-        }
-    }
-
-    public static List<SkillTriggerDefinition> defaultDefinitions() {
-        List<SkillTriggerDefinition> defs = new ArrayList<>();
+    public static List<TriggerDefinition> defaultDefinitions() {
+        List<TriggerDefinition> defs = new ArrayList<>();
 
         defs.add(simple("left_click", "[左键]"));
         defs.add(simple("right_click", "[右键]"));
@@ -66,8 +29,8 @@ public final class TriggerRegistry {
         return Collections.unmodifiableList(defs);
     }
 
-    public static List<SkillTriggerDefinition> defaultPassiveDefinitions() {
-        List<SkillTriggerDefinition> defs = new ArrayList<>();
+    public static List<TriggerDefinition> defaultPassiveDefinitions() {
+        List<TriggerDefinition> defs = new ArrayList<>();
 
         defs.add(passive("attack", "[攻击命中]"));
         defs.add(passive("damaged", "[受到伤害]"));
@@ -96,11 +59,11 @@ public final class TriggerRegistry {
         return Collections.unmodifiableList(defs);
     }
 
-    private static SkillTriggerDefinition simple(String id, String displayName) {
-        return new SkillTriggerDefinition(id, displayName, null, true, Set.of(), null);
+    private static TriggerDefinition simple(String id, String displayName) {
+        return new TriggerDefinition(id, displayName, null, true, Set.of(), null);
     }
 
-    private static SkillTriggerDefinition passive(String id, String displayName) {
-        return new SkillTriggerDefinition(id, displayName, null, true, Set.of(), null, TriggerCategory.PASSIVE);
+    private static TriggerDefinition passive(String id, String displayName) {
+        return new TriggerDefinition(id, displayName, null, true, Set.of(), null, TriggerCategory.PASSIVE);
     }
 }

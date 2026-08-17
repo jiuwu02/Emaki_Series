@@ -1,4 +1,4 @@
-version: "1.0.0"
+version: "1.0.1"
 language: zh_CN
 release_default_data: true
 drain_timeout_seconds: 30

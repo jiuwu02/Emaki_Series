@@ -249,7 +249,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 maxLevel,
                 section.getString("gui_template", SkillUpgradeConfig.DEFAULT_GUI_TEMPLATE),
                 economy,
-                successRates,
+                new emaki.jiuwu.craft.corelib.progression.TableProgression<>(successRates, 100D),
                 section.getString("failure_penalty", "none"),
                 levels
         );

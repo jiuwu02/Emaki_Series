@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSlotBinding;
-import emaki.jiuwu.craft.skills.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 
 public final class ActionBarService {
 

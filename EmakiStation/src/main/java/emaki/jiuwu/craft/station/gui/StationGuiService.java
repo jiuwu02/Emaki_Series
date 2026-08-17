@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.unlock.UnlockService;
 import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.config.GuiSettings;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
@@ -423,7 +424,7 @@ public final class StationGuiService {
         return QueueCapacity.effectiveLength(state.viewer(), state.station(), purchasedOf(state));
     }
 
-    private StationQueueUnlockService.Quote quoteOf(StationViewState state, int slots) {
+    private UnlockService.Quote quoteOf(StationViewState state, int slots) {
         if (purchaseService == null || unlockService == null) {
             return null;
         }

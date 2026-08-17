@@ -29,8 +29,6 @@ import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 
 final class ResourceManagementService {
 
-    private static final String HEALTH_RESOURCE_ID = "health";
-
     private final AttributeService service;
     private final Set<UUID> pendingEquipmentSyncs = ConcurrentHashMap.newKeySet();
     private volatile boolean healthDisplayScalingWarningLogged;
@@ -94,7 +92,7 @@ final class ResourceManagementService {
 
             double baselineValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
             double nextValue = baselineValue + (regenPerSecond * intervalSeconds);
-            boolean traceHealthRegen = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) && shouldDebugResource(player);
+            boolean traceHealthRegen = resourceDefinition.isHealth() && shouldDebugResource(player);
             ResourceState refreshed = syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
             if (traceHealthRegen) {
                 Map<String, Object> replacements = debugReplacements(
@@ -120,7 +118,14 @@ final class ResourceManagementService {
 
     public void scheduleJoinHealthSync(Player player) {
         schedulePlayer(player, "player_join", ResourceSyncReason.HEALTH_CHANGE, online -> {
-            ResourceState existingHealth = readResourceState(online, HEALTH_RESOURCE_ID);
+            ResourceDefinition healthDef = service.resourceDefinitions().values().stream()
+                    .filter(ResourceDefinition::isHealth)
+                    .findFirst()
+                    .orElse(null);
+            if (healthDef == null) {
+                return;
+            }
+            ResourceState existingHealth = readResourceState(online, healthDef.id());
             if (existingHealth == null || existingHealth.currentValue() <= 0D) {
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
             } else {
@@ -313,7 +318,7 @@ final class ResourceManagementService {
         );
         putResourceState(stateReplacements, "state", state);
         debugResource(player, writeState ? "resource.state_written" : "resource.state_unchanged", stateReplacements);
-        if (resourceDefinition.syncToBukkit() && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (resourceDefinition.syncToBukkit() && resourceDefinition.isHealth()) {
             syncHealthToBukkit(player, state, reason);
         }
         return state;
@@ -389,8 +394,8 @@ final class ResourceManagementService {
                 service.registryService().vanillaMappedAttributes()
         );
         for (ResourceDefinition resourceDefinition : service.resourceDefinitions().values()) {
-            Double override = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) ? healthOverride : null;
-            ResourceSyncReason effectiveReason = forceHealthToFull && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())
+            Double override = resourceDefinition.isHealth() ? healthOverride : null;
+            ResourceSyncReason effectiveReason = forceHealthToFull && resourceDefinition.isHealth()
                     ? ResourceSyncReason.INITIALIZE
                     : reason;
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
@@ -402,7 +407,7 @@ final class ResourceManagementService {
             ResourceDefinition resourceDefinition,
             double ownMax,
             ResourceSyncReason reason) {
-        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (!resourceDefinition.syncToBukkit() || !resourceDefinition.isHealth()) {
             return ownMax;
         }
         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
@@ -429,7 +434,7 @@ final class ResourceManagementService {
     private double resolveCurrentValueBaseline(Player player,
             ResourceDefinition resourceDefinition,
             ResourceState existing) {
-        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (!resourceDefinition.syncToBukkit() || !resourceDefinition.isHealth()) {
             return existing == null ? 0D : existing.currentValue();
         }
         return player.getHealth();
@@ -630,7 +635,11 @@ final class ResourceManagementService {
                 player,
                 () -> {
                     if (isPlayerUsable(player)) {
-                        ResourceState existingHealth = readResourceState(player, HEALTH_RESOURCE_ID);
+                        ResourceDefinition healthDef = service.resourceDefinitions().values().stream()
+                                .filter(ResourceDefinition::isHealth)
+                                .findFirst()
+                                .orElse(null);
+                        ResourceState existingHealth = healthDef != null ? readResourceState(player, healthDef.id()) : null;
                         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
                         Map<String, Object> replacements = debugReplacements(
                                 "player", player.getName(),

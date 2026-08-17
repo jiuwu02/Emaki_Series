@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
+import emaki.jiuwu.craft.attribute.formula.AttributeFormulaEvaluator;
 import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
@@ -40,7 +41,6 @@ import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -1155,16 +1155,8 @@ final class DamageCalculationService {
         context.put("healing_gross", grossRecovery);
         context.put("healing_resistance", resistance);
         evaluationContext = context.build().asMap();
-        double value = Texts.isBlank(recovery.expression())
-                ? grossRecovery * (1D - (resistance / 100D))
-                : ExpressionEngine.evaluate(recovery.expression(), evaluationContext);
-        if (recovery.minResult() != null) {
-            value = Math.max(value, recovery.minResult());
-        }
-        if (recovery.maxResult() != null) {
-            value = Math.min(value, recovery.maxResult());
-        }
-        return Math.max(0D, value);
+        double defaultValue = grossRecovery * (1D - (resistance / 100D));
+        return AttributeFormulaEvaluator.evaluate(recovery.expression(), evaluationContext, defaultValue, recovery.minResult(), recovery.maxResult());
     }
 
     private AttributeSnapshot snapshotForRecovery(DamageContext damageContext, DamageStageSource source) {

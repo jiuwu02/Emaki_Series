@@ -584,7 +584,17 @@ final class AttributeSnapshotCollector {
         if (values == null) {
             return;
         }
-        values.put("attribute_power", computeAttributePower(values));
+        for (var provider : service.registryService().orderedDerivedAttributeProviders()) {
+            if (provider == null) {
+                continue;
+            }
+            String attributeId = provider.attributeId();
+            if (attributeId == null || attributeId.isBlank()) {
+                continue;
+            }
+            double derivedValue = provider.compute(values);
+            values.put(attributeId, derivedValue);
+        }
     }
 
     private void applyCombatFusion(Map<String, Double> values) {
@@ -773,27 +783,6 @@ final class AttributeSnapshotCollector {
             total += values.getOrDefault(Texts.normalizeId(id), 0D);
         }
         return total;
-    }
-
-    private double computeAttributePower(Map<String, Double> values) {
-        if (values == null || values.isEmpty()) {
-            return 0D;
-        }
-        double total = 0D;
-        for (AttributeDefinition definition : service.registryService().attributeDefinitions()) {
-            if (definition == null || "attribute_power".equals(definition.id())) {
-                continue;
-            }
-            Double value = values.get(definition.id());
-            if (value == null) {
-                continue;
-            }
-            double score = service.attributeBalanceRegistry() == null
-                    ? definition.attributePower()
-                    : service.attributeBalanceRegistry().scoreOf(definition.id(), definition.attributePower());
-            total += value * score;
-        }
-        return Math.max(0D, total);
     }
 
     private record FusionRule(List<String> flatIds, List<String> percentIds, boolean clampPercentFactor) {

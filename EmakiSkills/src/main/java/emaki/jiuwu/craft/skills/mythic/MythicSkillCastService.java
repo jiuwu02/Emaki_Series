@@ -6,7 +6,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
-import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 
 public final class MythicSkillCastService {
 

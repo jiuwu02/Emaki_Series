@@ -145,22 +145,20 @@ public final class ConditionEvaluator {
     }
 
     private static boolean combine(List<Boolean> results, String conditionType, int requiredCount) {
-        String mode = Texts.lower(conditionType);
-        if (Objects.equals(mode, "any_of")) {
-            return results.stream().anyMatch(Boolean::booleanValue);
-        }
-        if (Objects.equals(mode, "none_of")) {
-            return results.stream().noneMatch(Boolean::booleanValue);
-        }
-        if (Objects.equals(mode, "at_least")) {
-            int count = requiredCount <= 0 ? 1 : requiredCount;
-            return results.stream().filter(Boolean::booleanValue).count() >= count;
-        }
-        if (Objects.equals(mode, "exactly")) {
-            int count = Math.max(0, requiredCount);
-            return results.stream().filter(Boolean::booleanValue).count() == count;
-        }
-        return results.stream().allMatch(Boolean::booleanValue);
+        ConditionCombineMode mode = ConditionCombineMode.fromString(conditionType);
+        return switch (mode) {
+            case ANY_OF -> results.stream().anyMatch(Boolean::booleanValue);
+            case NONE_OF -> results.stream().noneMatch(Boolean::booleanValue);
+            case AT_LEAST -> {
+                int count = requiredCount <= 0 ? 1 : requiredCount;
+                yield results.stream().filter(Boolean::booleanValue).count() >= count;
+            }
+            case EXACTLY -> {
+                int count = Math.max(0, requiredCount);
+                yield results.stream().filter(Boolean::booleanValue).count() == count;
+            }
+            case ALL_OF -> results.stream().allMatch(Boolean::booleanValue);
+        };
     }
 
 }

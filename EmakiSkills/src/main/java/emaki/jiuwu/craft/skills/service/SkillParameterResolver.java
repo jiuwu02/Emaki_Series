@@ -9,7 +9,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
-import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 
 public final class SkillParameterResolver {
 

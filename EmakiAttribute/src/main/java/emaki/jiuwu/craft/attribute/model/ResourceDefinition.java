@@ -11,7 +11,8 @@ public record ResourceDefinition(String id,
         double maxMax,
         boolean syncToBukkit,
         boolean fullOnInit,
-        double regenPerSecond) {
+        double regenPerSecond,
+        boolean isHealth) {
 
     public ResourceDefinition        {
         id = Texts.normalizeId(id);
@@ -30,7 +31,8 @@ public record ResourceDefinition(String id,
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "max_max"), Double.MAX_VALUE),
                 ConfigNodes.bool(raw, "sync_to_bukkit", false),
                 ConfigNodes.bool(raw, "full_on_init", true),
-                Numbers.tryParseDouble(ConfigNodes.get(raw, "regen_per_second"), 0D)
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "regen_per_second"), 0D),
+                ConfigNodes.bool(raw, "is_health", false)
         );
     }
 

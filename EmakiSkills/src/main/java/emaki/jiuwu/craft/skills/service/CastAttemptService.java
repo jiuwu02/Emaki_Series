@@ -40,7 +40,7 @@ import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
-import emaki.jiuwu.craft.skills.trigger.TriggerInvocation;
+import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
 
 public final class CastAttemptService {

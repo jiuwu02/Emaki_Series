@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.skills.trigger;
+package emaki.jiuwu.craft.corelib.trigger;
 
 import java.util.Collections;
 import java.util.LinkedHashMap;

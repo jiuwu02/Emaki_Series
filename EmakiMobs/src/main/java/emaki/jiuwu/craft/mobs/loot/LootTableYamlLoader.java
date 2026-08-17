@@ -1,54 +1,41 @@
 package emaki.jiuwu.craft.mobs.loot;
 
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
-public final class LootTableDefinitionLoader {
+public final class LootTableYamlLoader extends YamlDirectoryLoader<LootTableDefinition> {
 
-    private final Plugin plugin;
-
-    public LootTableDefinitionLoader(Plugin plugin) {
-        this.plugin = plugin;
+    public LootTableYamlLoader(JavaPlugin plugin) {
+        super(plugin);
     }
 
-    public Map<String, LootTableDefinition> loadAll() {
-        Map<String, LootTableDefinition> result = new HashMap<>();
-        File lootDir = new File(plugin.getDataFolder(), "loot_tables");
-        if (!lootDir.isDirectory()) {
-            return result;
-        }
-        File[] files = lootDir.listFiles((dir, name) -> name.endsWith(".yml"));
-        if (files == null) {
-            return result;
-        }
-        for (File file : files) {
-            LootTableDefinition def = parseFile(file);
-            if (def != null) {
-                result.put(def.mobId(), def);
-            }
-        }
-        return result;
+    @Override
+    protected String directoryName() {
+        return "loot_tables";
     }
 
-    private LootTableDefinition parseFile(File file) {
-        var config = YamlConfiguration.loadConfiguration(file);
+    @Override
+    protected String typeName() {
+        return "LootTable";
+    }
+
+    @Override
+    protected LootTableDefinition parse(File file, YamlSection config) {
         String mobId = config.getString("mob_id");
         if (mobId == null || mobId.isBlank()) {
             plugin.getLogger().warning("Loot table file '" + file.getName() + "' missing 'mob_id', skipping.");
             return null;
         }
         List<LootPoolDefinition> pools = new ArrayList<>();
-        var poolsSection = config.getConfigurationSection("pools");
+        YamlSection poolsSection = config.getSection("pools");
         if (poolsSection != null) {
             for (String poolKey : poolsSection.getKeys(false)) {
-                var poolSection = poolsSection.getConfigurationSection(poolKey);
+                YamlSection poolSection = poolsSection.getSection(poolKey);
                 if (poolSection != null) {
                     LootPoolDefinition pool = parsePool(poolSection);
                     if (pool != null) {
@@ -60,13 +47,19 @@ public final class LootTableDefinitionLoader {
         return new LootTableDefinition(mobId, pools);
     }
 
-    private LootPoolDefinition parsePool(ConfigurationSection section) {
-        Object rolls = section.get("rolls", 1);
+    @Override
+    protected String idOf(LootTableDefinition value) {
+        return value.mobId();
+    }
+
+    private LootPoolDefinition parsePool(YamlSection section) {
+        Object rolls = section.get("rolls");
+        if (rolls == null) rolls = 1;
         List<LootEntryDefinition> entries = new ArrayList<>();
-        var entriesSection = section.getConfigurationSection("entries");
+        YamlSection entriesSection = section.getSection("entries");
         if (entriesSection != null) {
             for (String entryKey : entriesSection.getKeys(false)) {
-                var entrySection = entriesSection.getConfigurationSection(entryKey);
+                YamlSection entrySection = entriesSection.getSection(entryKey);
                 if (entrySection != null) {
                     LootEntryDefinition entry = parseEntry(entrySection);
                     if (entry != null) {
@@ -78,7 +71,7 @@ public final class LootTableDefinitionLoader {
         return new LootPoolDefinition(rolls, entries);
     }
 
-    private LootEntryDefinition parseEntry(ConfigurationSection section) {
+    private LootEntryDefinition parseEntry(YamlSection section) {
         String item = section.getString("item");
         String emakiItem = section.getString("emaki_item");
         if ((item == null || item.isBlank()) && (emakiItem == null || emakiItem.isBlank())) {
@@ -87,10 +80,10 @@ public final class LootTableDefinitionLoader {
         int weight = section.getInt("weight", 1);
         double chance = section.getDouble("chance", 1.0);
         List<LootFunctionDefinition> functions = new ArrayList<>();
-        var functionsSection = section.getConfigurationSection("functions");
+        YamlSection functionsSection = section.getSection("functions");
         if (functionsSection != null) {
             for (String funcKey : functionsSection.getKeys(false)) {
-                var funcSection = functionsSection.getConfigurationSection(funcKey);
+                YamlSection funcSection = functionsSection.getSection(funcKey);
                 if (funcSection != null) {
                     LootFunctionDefinition func = parseFunction(funcSection);
                     if (func != null) {
@@ -105,12 +98,12 @@ public final class LootTableDefinitionLoader {
                 weight, chance, functions);
     }
 
-    private LootFunctionDefinition parseFunction(ConfigurationSection section) {
+    private LootFunctionDefinition parseFunction(YamlSection section) {
         String type = section.getString("type");
         if (type == null) {
             return null;
         }
-        var countSection = section.getConfigurationSection("count");
+        YamlSection countSection = section.getSection("count");
         LootFunctionDefinition.CountRange count = null;
         if (countSection != null) {
             int min = countSection.getInt("min", 1);

@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.mobs.loader;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.mobs.spawner.AutonomousSpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.CountRange;
 import emaki.jiuwu.craft.mobs.spawner.DistanceRange;
@@ -82,9 +84,10 @@ public final class SpawnRuleLoader {
         int lightMax = toInt(map.get("light_level_max"), 15);
         double chance = toDouble(map.get("replacement_chance"), 1.0);
         int maxNearby = toInt(map.get("max_nearby"), 0);
+        ConditionBlock condition = parseCondition(map.get("condition"));
         return new NaturalSpawnRule(
                 mobId, Set.copyOf(worlds), biomes, yMin, yMax, lightMax, chance, maxNearby,
-                parseCount(map));
+                parseCount(map), condition);
     }
 
     private AutonomousSpawnRule parseAutonomous(String mobId, Map<?, ?> map, String fileName) {
@@ -116,11 +119,12 @@ public final class SpawnRuleLoader {
         DistanceRange distance = parseDistanceRange(map, "distance");
         int maxNearby = toInt(map.get("max_nearby"), 0);
         int maxGlobal = toInt(map.get("max_global"), 0);
+        ConditionBlock condition = parseCondition(map.get("condition"));
         return new AutonomousSpawnRule(
                 mobId, trigger, intervalTicks, intervalDays, onDayStart, cronExpr,
                 Set.copyOf(worlds), biomes, List.copyOf(structures),
                 yMin, yMax, lightMax, timeOfDay, requireSurface,
-                distance, maxNearby, maxGlobal, parseCount(map));
+                distance, maxNearby, maxGlobal, parseCount(map), condition);
     }
 
     private List<Structure> parseStructures(List<String> keys, String fileName) {
@@ -192,5 +196,15 @@ public final class SpawnRuleLoader {
 
     private double toDouble(Object value, double fallback) {
         return value instanceof Number n ? n.doubleValue() : fallback;
+    }
+
+    private ConditionBlock parseCondition(Object raw) {
+        if (raw == null) {
+            return ConditionBlock.empty();
+        }
+        if (raw instanceof Map<?, ?> map) {
+            return ConditionBlock.fromConfig(new MapYamlSection(MapYamlSection.normalizeMap(map)));
+        }
+        return ConditionBlock.fromConfig(raw);
     }
 }
