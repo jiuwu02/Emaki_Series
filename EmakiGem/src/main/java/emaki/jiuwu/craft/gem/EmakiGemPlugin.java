@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
 import emaki.jiuwu.craft.gem.integration.GemItemLayerPreviewLifecycle;
+import emaki.jiuwu.craft.gem.integration.strengthen.GemStrengthenIntegration;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
@@ -78,6 +79,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private final GemLifecycleCoordinator lifecycleCoordinator = new GemLifecycleCoordinator();
     private final GemItemLayerPreviewLifecycle itemLayerPreviewLifecycle = new GemItemLayerPreviewLifecycle(this);
+    private final GemStrengthenIntegration strengthenIntegration = new GemStrengthenIntegration(this);
     private final GemCommandRouter commandRouter = new GemCommandRouter(this);
 
     private EmakiScheduling scheduling;
@@ -135,6 +137,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         registerEventHandlers();
         registerPublicApiService();
         itemLayerPreviewLifecycle.initialize();
+        strengthenIntegration.initialize();
         ensurePlaceholderExpansion();
         metrics = coreLib().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -150,6 +153,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             placeholderExpansion = null;
         }
         itemLayerPreviewLifecycle.close();
+        strengthenIntegration.close();
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
             stageRegistrar = null;

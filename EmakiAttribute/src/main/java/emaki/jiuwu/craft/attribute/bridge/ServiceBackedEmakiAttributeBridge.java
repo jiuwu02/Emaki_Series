@@ -19,9 +19,11 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.attribute.api.event.PlayerResourceConsumeEvent;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeExtensions;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeSlotProvider;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.SlotProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.api.model.ResourceDefinitionView;
@@ -29,6 +31,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
@@ -48,17 +51,20 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
     private final ItemContributionGateRegistry gateRegistry;
     private final ContributionProviderRegistrationRegistry contributionRegistry;
     private final PdcAttributeAccess pdcAccess;
+    private final AttributeSlotRegistry slotRegistry;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService,
             EmakiScheduling scheduling,
             ItemContributionGateRegistry gateRegistry,
             ContributionProviderRegistrationRegistry contributionRegistry,
-            PdcAttributeAccess pdcAccess) {
+            PdcAttributeAccess pdcAccess,
+            AttributeSlotRegistry slotRegistry) {
         this.attributeService = attributeService;
         this.scheduling = scheduling;
         this.gateRegistry = gateRegistry;
         this.contributionRegistry = contributionRegistry;
         this.pdcAccess = pdcAccess;
+        this.slotRegistry = slotRegistry;
     }
 
     @Override
@@ -344,6 +350,13 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         return gateRegistry == null
                 ? ItemContributionGateRegistration.noop()
                 : gateRegistry.register(owner, gate);
+    }
+
+    @Override
+    public SlotProviderRegistration registerSlotProvider(Plugin owner, AttributeSlotProvider provider) {
+        return slotRegistry == null
+                ? SlotProviderRegistration.noop()
+                : slotRegistry.register(owner, provider);
     }
 
     @Override

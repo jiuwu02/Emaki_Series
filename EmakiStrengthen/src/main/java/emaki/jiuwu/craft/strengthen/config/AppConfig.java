@@ -15,6 +15,10 @@ public final class AppConfig extends BaseAppConfig {
     private final Set<Integer> localBroadcastStars;
     private final Set<Integer> globalBroadcastStars;
     private final Map<Integer, Double> successRates;
+    private final int affixMaxLevel;
+    private final int affixCapacityMax;
+    private final int affixCapacityCostPerLevel;
+    private final double affixBonusPerLevel;
 
     public AppConfig(String language,
             String configVersion,
@@ -23,12 +27,31 @@ public final class AppConfig extends BaseAppConfig {
             List<Integer> localBroadcastStars,
             List<Integer> globalBroadcastStars,
             Map<Integer, Double> successRates) {
+        this(language, configVersion, releaseDefaultData, localBroadcastRadius, localBroadcastStars,
+                globalBroadcastStars, successRates, 10, 100, 10, 1.0D);
+    }
+
+    public AppConfig(String language,
+            String configVersion,
+            boolean releaseDefaultData,
+            int localBroadcastRadius,
+            List<Integer> localBroadcastStars,
+            List<Integer> globalBroadcastStars,
+            Map<Integer, Double> successRates,
+            int affixMaxLevel,
+            int affixCapacityMax,
+            int affixCapacityCostPerLevel,
+            double affixBonusPerLevel) {
         super(language, configVersion, "4.5.9");
         this.releaseDefaultData = releaseDefaultData;
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);
         this.globalBroadcastStars = toStarSet(globalBroadcastStars);
         this.successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
+        this.affixMaxLevel = Math.max(0, affixMaxLevel);
+        this.affixCapacityMax = Math.max(0, affixCapacityMax);
+        this.affixCapacityCostPerLevel = Math.max(0, affixCapacityCostPerLevel);
+        this.affixBonusPerLevel = Double.isFinite(affixBonusPerLevel) ? affixBonusPerLevel : 0D;
     }
 
     public static AppConfig defaults() {
@@ -66,6 +89,26 @@ public final class AppConfig extends BaseAppConfig {
 
     public Map<Integer, Double> successRates() {
         return successRates;
+    }
+
+    /** {@return 单条词条的强化等级上限；0 表示不限} */
+    public int affixMaxLevel() {
+        return affixMaxLevel;
+    }
+
+    /** {@return 装备的词条容量上限，写入词条层时作为缺省值} */
+    public int affixCapacityMax() {
+        return affixCapacityMax;
+    }
+
+    /** {@return 每提升一级词条占用的容量} */
+    public int affixCapacityCostPerLevel() {
+        return affixCapacityCostPerLevel;
+    }
+
+    /** {@return 每提升一级词条获得的属性增量} */
+    public double affixBonusPerLevel() {
+        return affixBonusPerLevel;
     }
 
     private static Set<Integer> toStarSet(List<Integer> stars) {

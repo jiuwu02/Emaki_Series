@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.gem.service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
@@ -69,7 +70,23 @@ public final class GemItemMatcher {
             return null;
         }
         Integer level = PDC.get(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER);
-        return new GemItemInstance(gemId, level == null ? 1 : level, System.currentTimeMillis());
+        Long updatedAt = PDC.get(itemStack, GEM_ITEM_PARTITION, "updated_at", PersistentDataType.LONG);
+        // instance_id / stage / data_version 由 GemItemFactory.writeInstanceFields 落盘；
+        // 旧物品没有这些键，紧凑构造器会补默认值（并分配一个新的 instance_id）。
+        String instanceId = PDC.get(itemStack, GEM_ITEM_PARTITION, "instance_id", PersistentDataType.STRING);
+        Integer stage = PDC.get(itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER);
+        Integer dataVersion = PDC.get(itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER);
+        return new GemItemInstance(
+                gemId,
+                level == null ? 1 : level,
+                updatedAt == null ? System.currentTimeMillis() : updatedAt,
+                instanceId,
+                stage == null ? 0 : stage,
+                List.of(),
+                Map.of(),
+                Map.of(),
+                dataVersion == null ? GemItemInstance.CURRENT_DATA_VERSION : dataVersion
+        );
     }
 
     public String readOpenerId(ItemStack itemStack) {

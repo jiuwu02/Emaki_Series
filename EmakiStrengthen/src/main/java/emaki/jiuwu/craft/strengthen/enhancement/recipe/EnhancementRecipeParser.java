@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
@@ -48,7 +49,7 @@ public final class EnhancementRecipeParser {
 
         List<MaterialSlotConfig> materials = parseMaterials(section.getMapList("materials"));
         List<CurrencyConfig> costs = parseCosts(section.getMapList("costs"));
-        Quantity chance = parseChance(section.get("chance"));
+        Quantity chance = parseChance(MaterialSlotConfig.quantityNode(section, "chance"));
         EnhancementRecipe.PityConfig pity = parsePity(section.getSection("pity"));
         Map<String, List<String>> actions = parseActions(section.getSection("actions"));
 
@@ -89,8 +90,11 @@ public final class EnhancementRecipeParser {
         }
 
         List<MaterialSlotConfig> materials = new ArrayList<>();
-        for (Object raw : rawList) {
-            MaterialSlotConfig config = MaterialSlotConfig.fromConfig(raw);
+        for (Map<?, ?> raw : rawList) {
+            if (raw == null) {
+                continue;
+            }
+            MaterialSlotConfig config = MaterialSlotConfig.fromConfig(new MapYamlSection(castKeys(raw)));
             if (config != null) {
                 materials.add(config);
             }
@@ -104,13 +108,26 @@ public final class EnhancementRecipeParser {
         }
 
         List<CurrencyConfig> costs = new ArrayList<>();
-        for (Object raw : rawList) {
-            CurrencyConfig config = CurrencyConfig.fromConfig(raw);
+        for (Map<?, ?> raw : rawList) {
+            if (raw == null) {
+                continue;
+            }
+            CurrencyConfig config = CurrencyConfig.fromConfig(new MapYamlSection(castKeys(raw)));
             if (config != null) {
                 costs.add(config);
             }
         }
         return List.copyOf(costs);
+    }
+
+    private static @NotNull Map<String, Object> castKeys(@NotNull Map<?, ?> raw) {
+        Map<String, Object> converted = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) {
+            if (entry.getKey() != null) {
+                converted.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        return converted;
     }
 
     private static @NotNull Quantity parseChance(@Nullable Object config) {
@@ -138,7 +155,7 @@ public final class EnhancementRecipeParser {
             int threshold = section.getInt("threshold", 10);
             trigger = PityTriggerConfig.threshold(threshold);
         } else if (section.contains("formula")) {
-            Quantity formula = Quantity.fromConfig(section.get("formula"));
+            Quantity formula = Quantity.fromConfig(MaterialSlotConfig.quantityNode(section, "formula"));
             if (formula == null) {
                 return null;
             }

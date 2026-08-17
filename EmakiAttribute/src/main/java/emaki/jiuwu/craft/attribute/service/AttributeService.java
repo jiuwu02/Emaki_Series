@@ -55,6 +55,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     private final AttackBatchInvulnerabilityGate attackBatchInvulnerabilityGate;
     private final PerfectTakeoverCoordinator perfectTakeoverCoordinator;
     private final PdcAttributeService pdcAttributeService;
+    private final AttributeSlotRegistry slotRegistry;
     private final TemporaryAttributeService temporaryAttributeService;
     private final ParentAttributeService parentAttributeService;
 
@@ -72,7 +73,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             ParentAttributeService parentAttributeService) {
         this(plugin, pdcService, asyncTaskScheduler, config, attributeRegistry, attributeBalanceRegistry,
                 damageTypeRegistry, defaultProfileRegistry, loreFormatRegistry, presetRegistry,
-                pdcAttributeService, parentAttributeService, null);
+                pdcAttributeService, parentAttributeService, null, null);
     }
 
     public AttributeService(EmakiAttributePlugin plugin,
@@ -87,7 +88,8 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
             AttributePresetRegistry presetRegistry,
             PdcAttributeService pdcAttributeService,
             ParentAttributeService parentAttributeService,
-            EmakiScheduling scheduling) {
+            EmakiScheduling scheduling,
+            AttributeSlotRegistry slotRegistry) {
         this.plugin = plugin;
         this.asyncTaskScheduler = asyncTaskScheduler;
         this.scheduling = scheduling;
@@ -100,6 +102,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         this.presetRegistry = presetRegistry;
         this.pdcAttributeService = pdcAttributeService;
         this.parentAttributeService = parentAttributeService;
+        this.slotRegistry = slotRegistry;
         this.loreParser = new LoreParser(attributeRegistry, loreFormatRegistry);
         this.damageEngine = new DamageEngine();
         this.asyncDamageEngine = new AsyncDamageEngine(asyncTaskScheduler, damageEngine);
@@ -240,6 +243,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
 
     PdcAttributeService pdcAttributeService() {
         return pdcAttributeService;
+    }
+
+    AttributeSlotRegistry slotRegistry() {
+        return slotRegistry;
     }
 
     @Override

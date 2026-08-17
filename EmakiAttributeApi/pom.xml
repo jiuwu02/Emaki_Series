@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-attribute-api</artifactId>
-    <version>4.7.1</version>
+    <version>4.7.2</version>
     <name>EmakiAttributeApi</name>
     <packaging>jar</packaging>
 

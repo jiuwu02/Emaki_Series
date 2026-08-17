@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -38,6 +39,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
         AttributePresetRegistry presetRegistry,
         PdcReadRuleLoader pdcReadRuleLoader,
         ItemContributionGateRegistry itemContributionGateRegistry,
+        AttributeSlotRegistry attributeSlotRegistry,
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry,
         LanguageLoader languageLoader,
         MessageService messageService,
@@ -65,6 +67,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(AttributePresetRegistry.class, presetRegistry),
                 RuntimeComponents.component(PdcReadRuleLoader.class, pdcReadRuleLoader),
                 RuntimeComponents.component(ItemContributionGateRegistry.class, itemContributionGateRegistry),
+                RuntimeComponents.component(AttributeSlotRegistry.class, attributeSlotRegistry),
                 RuntimeComponents.component(ContributionProviderRegistrationRegistry.class, contributionProviderRegistrationRegistry),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),

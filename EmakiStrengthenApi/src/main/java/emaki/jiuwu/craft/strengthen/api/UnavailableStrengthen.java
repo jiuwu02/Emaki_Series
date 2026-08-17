@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
+import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
 /** Unavailable no-op layers returned while no runtime bridge is installed. */
 final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperations {
@@ -79,6 +80,16 @@ final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperat
 
     @Override
     public EmakiResult<Integer> refreshPlayer(Player player) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Unit> registerEnhancementTarget(EnhancementTargetProvider provider) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Unit> unregisterEnhancementTarget(String providerId) {
         return EmakiResult.unavailable();
     }
 }

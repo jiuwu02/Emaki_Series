@@ -27,7 +27,7 @@ public record CurrencyConfig(
         if (Texts.isBlank(currencyId)) {
             return null;
         }
-        Quantity amount = Quantity.fromConfig(section.get("amount"));
+        Quantity amount = Quantity.fromConfig(MaterialSlotConfig.quantityNode(section, "amount"));
         return new CurrencyConfig(provider, currencyId, amount);
     }
 }

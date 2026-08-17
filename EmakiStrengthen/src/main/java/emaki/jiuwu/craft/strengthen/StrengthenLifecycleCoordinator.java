@@ -25,12 +25,21 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixTargetProvider;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EquipmentTargetProvider;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenActionCoordinator;
@@ -48,7 +57,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
+            "enhancement_recipes/example_enhancement_recipe.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
@@ -110,6 +120,19 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         StrengthenTransferService transferService = new StrengthenTransferService(plugin, attemptService);
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
+        EnhancementRecipeLoader enhancementRecipeLoader = new EnhancementRecipeLoader(plugin);
+        EnhancementTargetRegistry enhancementTargetRegistry = new EnhancementTargetRegistry();
+        enhancementTargetRegistry.register(new EquipmentTargetProvider(plugin));
+        AffixLayerCodec affixLayerCodec = new AffixLayerCodec(new PdcService("emaki_strengthen", "pdc", plugin.debugLogger()));
+        AffixSelectionService affixSelectionService = new AffixSelectionService(plugin, affixLayerCodec);
+        AffixTargetProvider affixTargetProvider = new AffixTargetProvider(plugin, affixLayerCodec, affixSelectionService);
+        enhancementTargetRegistry.register(affixTargetProvider);
+        InMemoryPityStateStore pityStateStore = new InMemoryPityStateStore();
+        EnhancementAttemptService enhancementAttemptService = new EnhancementAttemptService(
+                plugin,
+                enhancementTargetRegistry,
+                pityStateStore
+        );
         return new StrengthenRuntimeComponents(
                 executionDispatcher,
                 threadOwnership,
@@ -130,7 +153,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 attemptService,
                 transferService,
                 refreshService,
-                strengthenGuiService
+                strengthenGuiService,
+                enhancementRecipeLoader,
+                enhancementTargetRegistry,
+                pityStateStore,
+                enhancementAttemptService
         );
     }
 
@@ -149,6 +176,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                         plugin.languageLoader().load();
                         AppConfig candidate = plugin.appConfigLoader().load();
                         plugin.recipeLoader().load();
+                        plugin.enhancementRecipeLoader().load();
                         plugin.guiTemplateLoader().load();
                         return candidate;
                     },
@@ -159,6 +187,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
             StrengthenRecipeResolver.clearPatternCache();
+            // 配置可能改了保底阈值或分组，陈旧计数会按新阈值产生错误的触发判断。
+            if (plugin.pityStateStore() != null) {
+                plugin.pityStateStore().clear();
+            }
                 plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
@@ -197,6 +229,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                                 plugin.languageLoader().load();
                                 AppConfig candidate = plugin.appConfigLoader().load();
                                 plugin.recipeLoader().load();
+                                plugin.enhancementRecipeLoader().load();
                                 plugin.guiTemplateLoader().load();
                                 return candidate;
                             },
@@ -213,6 +246,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
+                // 配置可能改了保底阈值或分组，陈旧计数会按新阈值产生错误的触发判断。
+                if (plugin.pityStateStore() != null) {
+                    plugin.pityStateStore().clear();
+                }
             plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.refreshService().refreshOnlinePlayers();
@@ -287,7 +324,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 configuration.getInt("local_broadcast_radius", defaults.localBroadcastRadius()),
                 parseIntegerList(configuration.getSection("broadcast.local_stars"), configuration.get("broadcast.local_stars"), defaults.localBroadcastStars()),
                 parseIntegerList(configuration.getSection("broadcast.global_stars"), configuration.get("broadcast.global_stars"), defaults.globalBroadcastStars()),
-                parseSuccessRates(configuration.getSection("success_rates"), defaults.successRates())
+                parseSuccessRates(configuration.getSection("success_rates"), defaults.successRates()),
+                configuration.getInt("affix.max_level", defaults.affixMaxLevel()),
+                configuration.getInt("affix.capacity_max", defaults.affixCapacityMax()),
+                configuration.getInt("affix.capacity_cost_per_level", defaults.affixCapacityCostPerLevel()),
+                configuration.getDouble("affix.bonus_per_level", defaults.affixBonusPerLevel())
         );
     }
 

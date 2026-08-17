@@ -8,13 +8,10 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.IntFunction;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContribution;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
@@ -37,14 +34,6 @@ final class AttributeSnapshotCollector {
             AttributeValueKind.REGEN,
             AttributeValueKind.DERIVED
     );
-    private static final String[] EQUIPMENT_SLOT_NAMES = {
-            "main_hand",
-            "off_hand",
-            "helmet",
-            "chestplate",
-            "leggings",
-            "boots"
-    };
 
     private final AttributeService service;
     private final ScalingCurveProcessor scalingCurveProcessor = new ScalingCurveProcessor();
@@ -124,44 +113,26 @@ final class AttributeSnapshotCollector {
         if (player == null) {
             return AttributeSnapshot.empty("");
         }
-        PlayerInventory inventory = player.getInventory();
-        return collectCombatSnapshot(
-                player,
-                index -> switch (index) {
-                    case 0 -> inventory.getItemInMainHand();
-                    case 1 -> inventory.getItemInOffHand();
-                    case 2 -> inventory.getHelmet();
-                    case 3 -> inventory.getChestplate();
-                    case 4 -> inventory.getLeggings();
-                    case 5 -> inventory.getBoots();
-                    default -> null;
-                },
-                player
-        );
+        return collectCombatSnapshot(player, resolveSlotItems(player), player);
     }
 
     private AttributeSnapshot collectLivingCombatSnapshot(LivingEntity entity) {
-        EntityEquipment equipment = entity.getEquipment();
-        IntFunction<ItemStack> itemResolver = equipment == null ? null : index -> switch (index) {
-            case 0 -> equipment.getItemInMainHand();
-            case 1 -> equipment.getItemInOffHand();
-            case 2 -> equipment.getHelmet();
-            case 3 -> equipment.getChestplate();
-            case 4 -> equipment.getLeggings();
-            case 5 -> equipment.getBoots();
-            default -> null;
-        };
-        return collectCombatSnapshot(entity, itemResolver, null);
+        return collectCombatSnapshot(entity, resolveSlotItems(entity), null);
+    }
+
+    private Map<String, ItemStack> resolveSlotItems(LivingEntity entity) {
+        AttributeSlotRegistry registry = service.slotRegistry();
+        return registry == null ? Map.of() : registry.readSlots(entity);
     }
 
     private AttributeSnapshot collectCombatSnapshot(LivingEntity entity,
-            IntFunction<ItemStack> itemResolver,
+            Map<String, ItemStack> slotItems,
             Player playerOrNull) {
         List<String> signatureParts = new ArrayList<>();
         signatureParts.add("defaults:" + service.registryService().defaultProfilesSignature());
         signatureParts.add("attributes:" + service.registryService().attributeDefinitionsSignature());
-        if (itemResolver != null) {
-            collectEquipmentSignatures(itemResolver, playerOrNull, signatureParts);
+        if (slotItems != null && !slotItems.isEmpty()) {
+            collectEquipmentSignatures(slotItems, playerOrNull, signatureParts);
         }
         collectContributionProviderSignatures(entity, signatureParts);
         String temporarySignature = service.temporaryAttributeService().signature(entity);
@@ -186,8 +157,8 @@ final class AttributeSnapshotCollector {
 
         Map<String, Double> values = new LinkedHashMap<>();
         mergeValues(values, service.defaultAttributeValues());
-        if (itemResolver != null) {
-            collectEquipmentSnapshots(itemResolver, playerOrNull, values);
+        if (slotItems != null && !slotItems.isEmpty()) {
+            collectEquipmentSnapshots(slotItems, playerOrNull, values);
         }
         if (playerOrNull != null && service.parentAttributeService() != null) {
             mergeValues(values, service.parentAttributeService().contributionValues(playerOrNull));
@@ -207,30 +178,30 @@ final class AttributeSnapshotCollector {
         return snapshot;
     }
 
-    private void collectEquipmentSnapshots(IntFunction<ItemStack> itemResolver,
+    private void collectEquipmentSnapshots(Map<String, ItemStack> slotItems,
             Player player,
             Map<String, Double> values,
             List<String> signatureParts) {
-        collectEquipment(itemResolver, player, values, signatureParts);
+        collectEquipment(slotItems, player, values, signatureParts);
     }
 
-    private void collectEquipmentSignatures(IntFunction<ItemStack> itemResolver,
+    private void collectEquipmentSignatures(Map<String, ItemStack> slotItems,
             Player playerOrNull,
             List<String> signatureParts) {
-        collectEquipment(itemResolver, playerOrNull, null, signatureParts);
+        collectEquipment(slotItems, playerOrNull, null, signatureParts);
     }
 
-    private void collectEquipmentSnapshots(IntFunction<ItemStack> itemResolver,
+    private void collectEquipmentSnapshots(Map<String, ItemStack> slotItems,
             Player playerOrNull,
             Map<String, Double> values) {
-        collectEquipment(itemResolver, playerOrNull, values, null);
+        collectEquipment(slotItems, playerOrNull, values, null);
     }
 
-    private void collectEquipment(IntFunction<ItemStack> itemResolver,
+    private void collectEquipment(Map<String, ItemStack> slotItems,
             Player playerOrNull,
             Map<String, Double> values,
             List<String> signatureParts) {
-        if (itemResolver == null) {
+        if (slotItems == null || slotItems.isEmpty()) {
             return;
         }
         boolean collectValues = values != null;
@@ -238,9 +209,9 @@ final class AttributeSnapshotCollector {
         if (!collectValues && !collectSignatures) {
             return;
         }
-        for (int index = 0; index < EQUIPMENT_SLOT_NAMES.length; index++) {
-            ItemStack itemStack = itemResolver.apply(index);
-            String slotName = EQUIPMENT_SLOT_NAMES[index];
+        for (Map.Entry<String, ItemStack> slotEntry : slotItems.entrySet()) {
+            String slotName = slotEntry.getKey();
+            ItemStack itemStack = slotEntry.getValue();
             PdcAttributeService.PdcAttributeViews views = !service.config().readPdcAttributes()
                     ? null
                     : service.pdcAttributeService().collectContributionViews(playerOrNull, itemStack, slotName);
@@ -261,7 +232,7 @@ final class AttributeSnapshotCollector {
                 }
                 addEquipmentSignature(
                         signatureParts,
-                        index,
+                        slotName,
                         itemSnapshot.sourceSignature(),
                         null,
                         collectSignatures,
@@ -309,7 +280,7 @@ final class AttributeSnapshotCollector {
             }
             addEquipmentSignature(
                     signatureParts,
-                    index,
+                    slotName,
                     itemSnapshot.sourceSignature(),
                     views,
                     collectSignatures,
@@ -319,7 +290,7 @@ final class AttributeSnapshotCollector {
     }
 
     private void addEquipmentSignature(List<String> signatureParts,
-            int slotIndex,
+            String slotName,
             String itemSignature,
             PdcAttributeService.PdcAttributeViews views,
             boolean collectSignatures,
@@ -329,13 +300,13 @@ final class AttributeSnapshotCollector {
         }
         String gatePart = "condition_gate=" + Texts.toStringSafe(rejectingGateId);
         if (views == null) {
-            signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
+            signatureParts.add(slotName + ":" + SignatureUtil.combine(
                     itemSignature,
                     gatePart
             ));
             return;
         }
-        signatureParts.add(EQUIPMENT_SLOT_NAMES[slotIndex] + ":" + SignatureUtil.combine(
+        signatureParts.add(slotName + ":" + SignatureUtil.combine(
                 itemSignature,
                 views.filtered().sourceSignature(),
                 "declared_slots=" + String.join(",", views.declaredSlots()),

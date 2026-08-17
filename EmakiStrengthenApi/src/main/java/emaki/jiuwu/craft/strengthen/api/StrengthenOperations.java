@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
+import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
 /**
  * State-changing EmakiStrengthen operations.
@@ -156,4 +157,36 @@ public interface StrengthenOperations {
      */
     @NotNull
     EmakiResult<Integer> refreshPlayer(@Nullable Player player);
+
+    /**
+     * Registers an enhancement target provider, making its target type usable by enhancement recipes
+     * whose {@code target.provider} matches the provider id.
+     *
+     * <p>Registering an id that is already present replaces the previous provider rather than failing,
+     * which is what a reloading caller wants. Providers are not restored automatically when
+     * EmakiStrengthen reloads, so a caller that caches nothing should re-register from its own
+     * readiness listener.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param provider the provider to register; {@code null}, or one whose {@link
+     *                 EnhancementTargetProvider#id()} is blank, yields {@code INVALID_INPUT}
+     * @return {@link Unit} on success, or a classified failure
+     */
+    @NotNull
+    EmakiResult<Unit> registerEnhancementTarget(@Nullable EnhancementTargetProvider provider);
+
+    /**
+     * Removes a previously registered enhancement target provider.
+     *
+     * <p>Removing an id that is not registered is reported as {@code NOT_FOUND} rather than a silent
+     * success, so a caller can tell a stale id from a real removal.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param providerId the provider id to remove; {@code null} or blank yields {@code INVALID_INPUT}
+     * @return {@link Unit} on success, or a classified failure
+     */
+    @NotNull
+    EmakiResult<Unit> unregisterEnhancementTarget(@Nullable String providerId);
 }

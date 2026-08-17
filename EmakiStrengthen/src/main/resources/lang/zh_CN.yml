@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.7.1"
+version: "4.7.2"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -121,6 +121,11 @@ strengthen:
     insufficient_funds: "<red>本次强化所需费用不足: %costs%</red>"
     economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
     rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
+  enhancement:
+    no_provider: "<red>未提供强化目标 Provider。</red>"
+    blank_provider_id: "<red>强化目标 Provider ID 不能为空。</red>"
+    provider_not_found: "<red>未找到该强化目标 Provider。</red>"
+    provider_rejected: "<red>注册强化目标 Provider 失败。</red>"
   preview:
     failure_keep: "<gray>失败后保留当前星级，并累积强化值。</gray>"
     failure_drop: "<red>失败后掉落 1 星，并累积强化值。</red>"

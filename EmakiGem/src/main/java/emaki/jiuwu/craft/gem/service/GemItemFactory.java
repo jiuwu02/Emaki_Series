@@ -44,10 +44,56 @@ public final class GemItemFactory {
         }
         int normalizedLevel = Math.max(1, level);
         itemStack = applyGemPresentation(itemStack, definition, normalizedLevel);
-        PDC.set(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING, definition.id());
-        PDC.set(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER, normalizedLevel);
-        PDC.set(itemStack, GEM_ITEM_PARTITION, "updated_at", PersistentDataType.LONG, System.currentTimeMillis());
+        writeInstanceFields(itemStack, new GemItemInstance(definition.id(), normalizedLevel, System.currentTimeMillis()));
         return itemStack;
+    }
+
+    /**
+     * 就地把整份实例数据写回宝石物品，并按新等级刷新展示。
+     *
+     * <p>与 {@link #createGemItem} 的区别是不新建物品、不改数量，因此适合强化/升级流程在既有
+     * 物品上推进等级或阶段。{@code instanceId} / {@code affixes} / {@code matrices} /
+     * {@code extensions} / {@code dataVersion} 一并落盘，不会因为一次升级而丢失。
+     *
+     * @param itemStack 待写回的宝石物品；{@code null} 或空气直接忽略
+     * @param instance  目标实例数据；{@code null} 直接忽略
+     * @return 是否实际写入
+     */
+    public boolean applyInstance(ItemStack itemStack, GemItemInstance instance) {
+        if (itemStack == null || itemStack.getType().isAir() || instance == null) {
+            return false;
+        }
+        GemDefinition definition = plugin == null || plugin.gemLoader() == null
+                ? null
+                : plugin.gemLoader().get(instance.gemId());
+        if (definition == null) {
+            return false;
+        }
+        ItemStack presented = applyGemPresentation(itemStack, definition, instance.level());
+        if (presented != null && presented != itemStack && presented.hasItemMeta()) {
+            itemStack.setItemMeta(presented.getItemMeta());
+        }
+        writeInstanceFields(itemStack, instance);
+        return true;
+    }
+
+    /**
+     * 写入宝石实例的标量持久字段。
+     *
+     * <p>集中在一处，避免新建路径与写回路径对「哪些字段要落盘」产生分歧。
+     *
+     * <p>{@code affixes} / {@code matrices} / {@code extensions} 三个集合字段目前不写入宝石物品自身的
+     * PDC：它们已随宿主装备的 {@code GemState.socketAssignments} 往返（见 {@code GemItemInstance.toMap}），
+     * 而独立宝石物品上尚无产生这些数据的流程。等 EG-01 的 {@code stages} 重构落地、确有写入方时再补，
+     * 届时需要为集合类型提供 {@code SnapshotCodec}。
+     */
+    private void writeInstanceFields(ItemStack itemStack, GemItemInstance instance) {
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING, instance.gemId());
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER, instance.level());
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "updated_at", PersistentDataType.LONG, instance.updatedAt());
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "instance_id", PersistentDataType.STRING, instance.instanceId());
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER, instance.stage());
+        PDC.set(itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER, instance.dataVersion());
     }
 
     public ItemStack recreateGemItem(GemItemInstance instance, int amount) {

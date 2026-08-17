@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -84,6 +85,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
     private ItemContributionGateRegistry itemContributionGateRegistry;
+    private AttributeSlotRegistry attributeSlotRegistry;
     private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -283,6 +285,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         itemContributionGateRegistry = components.itemContributionGateRegistry();
+        attributeSlotRegistry = components.attributeSlotRegistry();
         contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
@@ -376,6 +379,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     public ItemContributionGateRegistry itemContributionGateRegistry() {
         return itemContributionGateRegistry;
+    }
+
+    public AttributeSlotRegistry attributeSlotRegistry() {
+        return attributeSlotRegistry;
     }
 
     public ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry() {

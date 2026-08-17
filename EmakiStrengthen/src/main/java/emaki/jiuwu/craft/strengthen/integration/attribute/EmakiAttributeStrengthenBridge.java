@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.integration.attribute;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Set;
 
@@ -23,6 +24,20 @@ public final class EmakiAttributeStrengthenBridge extends AbstractAttributePdcBr
     @Override
     public void copyPayloads(ItemStack fromItem, ItemStack toItem, Set<String> excludedSourceIds) {
         access().copy(fromItem, toItem, excludedSourceIds);
+    }
+
+    @Override
+    public Map<String, Map<String, Double>> readAllAttributes(ItemStack itemStack) {
+        if (itemStack == null || !usable()) {
+            return Map.of();
+        }
+        Map<String, Map<String, Double>> result = new LinkedHashMap<>();
+        access().readAll(itemStack).forEach((sourceId, payload) -> {
+            if (payload != null && !payload.attributes().isEmpty()) {
+                result.put(sourceId, Map.copyOf(payload.attributes()));
+            }
+        });
+        return Map.copyOf(result);
     }
 
     @Override

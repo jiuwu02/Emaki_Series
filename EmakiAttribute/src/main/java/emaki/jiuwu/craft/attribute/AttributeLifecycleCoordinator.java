@@ -49,6 +49,7 @@ import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -84,6 +85,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
         PdcReadRuleLoader pdcReadRuleLoader = new PdcReadRuleLoader(plugin);
         ItemContributionGateRegistry itemContributionGateRegistry = new ItemContributionGateRegistry(plugin.getLogger());
+        AttributeSlotRegistry attributeSlotRegistry = new AttributeSlotRegistry(plugin.getLogger());
         PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader, itemContributionGateRegistry);
         ParentAttributeDataStore parentAttributeDataStore = new ParentAttributeDataStore(plugin);
         ParentAttributeService parentAttributeService = new ParentAttributeService(plugin, parentAttributeDataStore);
@@ -103,7 +105,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcAttributeService,
                 parentAttributeService,
-                scheduling
+                scheduling,
+                attributeSlotRegistry
         );
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
                 new ContributionProviderRegistrationRegistry(attributeService);
@@ -112,7 +115,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 scheduling,
                 itemContributionGateRegistry,
                 contributionProviderRegistrationRegistry,
-                pdcAttributeService);
+                pdcAttributeService,
+                attributeSlotRegistry);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
@@ -125,6 +129,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                         plugin::damageIndicatorService,
                         () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
+                attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
                 guiService
         );
@@ -142,6 +147,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcReadRuleLoader,
                 itemContributionGateRegistry,
+                attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
                 languageLoader,
                 messageService,
@@ -362,6 +368,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         cancelRegenTask(currentTask);
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
+        }
+        if (plugin.attributeSlotRegistry() != null) {
+            plugin.attributeSlotRegistry().close();
         }
         if (plugin.contributionProviderRegistrationRegistry() != null) {
             plugin.contributionProviderRegistrationRegistry().close();

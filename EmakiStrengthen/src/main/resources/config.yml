@@ -8,7 +8,7 @@
 
 # 强化系统主配置
 # version 由资源同步维护
-version: "4.7.1"
+version: "4.7.2"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -43,3 +43,15 @@ success_rates:
   10: 14.0
   11: 8.0
   12: 4.0
+
+# 词条强化（ES-01 / ES-02）。与整件星级强化相互独立，不共用 currentStar。
+# 该容量也不与 Forge 的锻造材料容量共用。
+affix:
+  # 单条词条的强化等级上限；0 表示不限
+  max_level: 10
+  # 装备的词条容量上限
+  capacity_max: 100
+  # 每提升一级词条占用的容量；容量不足时禁止强化且不扣费
+  capacity_cost_per_level: 10
+  # 每提升一级词条获得的属性增量
+  bonus_per_level: 1.0

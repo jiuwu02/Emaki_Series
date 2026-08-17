@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.7.1"
+version: "4.7.2"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -128,6 +128,11 @@ strengthen:
     insufficient_funds: "<red>Insufficient funds for this strengthen: %costs%</red>"
     economy_provider_unavailable: "<red>Economy provider is currently unavailable.</red>"
     rebuild_failed: "<red>Failed to write strengthen result, operation aborted.</red>"
+  enhancement:
+    no_provider: "<red>No enhancement target provider was supplied.</red>"
+    blank_provider_id: "<red>Enhancement target provider id must not be blank.</red>"
+    provider_not_found: "<red>No such enhancement target provider is registered.</red>"
+    provider_rejected: "<red>Failed to register the enhancement target provider.</red>"
   preview:
     failure_keep: "<gray>On failure, keep current star and accumulate temper.</gray>"
     failure_drop: "<red>On failure, drop 1 star and accumulate temper.</red>"

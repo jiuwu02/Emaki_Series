@@ -10,9 +10,11 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeExtensions;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeSlotProvider;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.SlotProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
@@ -119,6 +121,11 @@ final class UnavailableAttribute implements AttributeCatalog, AttributeOperation
     @Override
     public ItemContributionGateRegistration registerItemContributionGate(Plugin owner, ItemContributionGate gate) {
         return ItemContributionGateRegistration.noop();
+    }
+
+    @Override
+    public SlotProviderRegistration registerSlotProvider(Plugin owner, AttributeSlotProvider provider) {
+        return SlotProviderRegistration.noop();
     }
 
     @Override

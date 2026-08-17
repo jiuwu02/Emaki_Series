@@ -1,0 +1,72 @@
+# 强化框架示例配方（Enhancement Recipe）
+#
+# 本文件演示 EnhancementRecipe 的六段结构：target / materials / costs / chance / pity / actions。
+# 注意：当前版本仅完成框架接线（配方可被加载、Target Provider 可被注册），
+# 尚未接入执行服务，因此本配方不会被任何强化流程实际执行。
+
+# 配方唯一 ID，缺失则整份配方被跳过
+id: example_equipment_enhance
+
+# 配方模式，决定语义分组；缺失则整份配方被跳过
+mode: equipment
+
+# 目标配置：provider 必须是已注册的 Target Provider ID
+# EmakiStrengthen 内置 equipment；其他插件通过
+# EmakiStrengthenApi.operations().registerEnhancementTarget(...) 注册自己的 Provider
+target:
+  provider: equipment
+  # filter 为自由键值对，交由具体 Provider 解释
+  filter:
+    item_type: SWORD
+
+# 材料槽列表：matcher 为 CoreLib Matcher 配置，quantity 为 CoreLib Quantity 配置
+# consume 取值：always / success / failure / never（默认 always）
+materials:
+  - matcher:
+      type: item_source
+      sources:
+        - "minecraft:diamond"
+    quantity: 2
+    consume: always
+  - matcher:
+      type: pdc_match
+      key: "emakiitem:item_type"
+      value: "enhance_stone"
+    quantity:
+      type: formula
+      expression: "1 + floor(target.level / 5)"
+    consume: success
+
+# 货币消耗列表：provider 为经济提供者 ID，currency_id 为货币 ID
+costs:
+  - provider: vault
+    currency_id: money
+    amount:
+      type: formula
+      expression: "100 * (target.level + 1)"
+
+# 成功率：可写为裸数值，或 Quantity 的 fixed / formula / lookup_table 形式
+chance:
+  type: formula
+  expression: "max(0.05, 0.9 - target.level * 0.05)"
+
+# 保底配置：group 缺失则整段 pity 被丢弃
+# scope: item / player
+# 触发条件二选一：threshold（整数）或 formula（Quantity）
+# effect: force_success / chance_bonus，chance_bonus 时用 bonus_value 指定加成
+pity:
+  scope: item
+  group: example_equipment_enhance
+  threshold: 10
+  effect: force_success
+  decay:
+    # type: reset / fixed_decay / proportional
+    type: reset
+    value: 0
+
+# 动作分组：键名自由，值为 CoreLib Action 行列表
+actions:
+  on_success:
+    - "sound: ITEM_TOTEM_USE"
+  on_failure:
+    - "sound: BLOCK_ANVIL_USE"

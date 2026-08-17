@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-gem</artifactId>
-    <version>2.7.0</version>
+    <version>2.7.1</version>
     <name>EmakiGem</name>
     <packaging>jar</packaging>
 
@@ -52,6 +52,12 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-attribute-api</artifactId>
             <version>${emaki.attribute.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-strengthen-api</artifactId>
+            <version>${emaki.strengthen.api.version}</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

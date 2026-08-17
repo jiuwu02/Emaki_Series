@@ -14,6 +14,10 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.service.ChanceCalculator;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
@@ -44,7 +48,11 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         StrengthenAttemptService attemptService,
         StrengthenTransferService transferService,
         StrengthenRefreshService refreshService,
-        StrengthenGuiService strengthenGuiService) implements RuntimeComponents {
+        StrengthenGuiService strengthenGuiService,
+        EnhancementRecipeLoader enhancementRecipeLoader,
+        EnhancementTargetRegistry enhancementTargetRegistry,
+        InMemoryPityStateStore pityStateStore,
+        EnhancementAttemptService enhancementAttemptService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -68,7 +76,11 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
                 RuntimeComponents.component(StrengthenAttemptService.class, attemptService),
                 RuntimeComponents.component(StrengthenTransferService.class, transferService),
                 RuntimeComponents.component(StrengthenRefreshService.class, refreshService),
-                RuntimeComponents.component(StrengthenGuiService.class, strengthenGuiService)
+                RuntimeComponents.component(StrengthenGuiService.class, strengthenGuiService),
+                RuntimeComponents.component(EnhancementRecipeLoader.class, enhancementRecipeLoader),
+                RuntimeComponents.component(EnhancementTargetRegistry.class, enhancementTargetRegistry),
+                RuntimeComponents.component(InMemoryPityStateStore.class, pityStateStore),
+                RuntimeComponents.component(EnhancementAttemptService.class, enhancementAttemptService)
         );
     }
 }

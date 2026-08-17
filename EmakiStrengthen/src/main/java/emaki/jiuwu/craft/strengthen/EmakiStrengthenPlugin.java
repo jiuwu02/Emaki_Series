@@ -42,6 +42,10 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
@@ -103,6 +107,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenTransferService transferService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
+    private EnhancementRecipeLoader enhancementRecipeLoader;
+    private EnhancementTargetRegistry enhancementTargetRegistry;
+    private InMemoryPityStateStore pityStateStore;
+    private EnhancementAttemptService enhancementAttemptService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
     private StrengthenStageRegistrar stageRegistrar;
@@ -226,6 +234,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         transferService = components.transferService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        enhancementRecipeLoader = components.enhancementRecipeLoader();
+        enhancementTargetRegistry = components.enhancementTargetRegistry();
+        pityStateStore = components.pityStateStore();
+        enhancementAttemptService = components.enhancementAttemptService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -278,6 +290,22 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenRecipeLoader recipeLoader() {
         return recipeLoader;
+    }
+
+    public EnhancementRecipeLoader enhancementRecipeLoader() {
+        return enhancementRecipeLoader;
+    }
+
+    public EnhancementTargetRegistry enhancementTargetRegistry() {
+        return enhancementTargetRegistry;
+    }
+
+    public InMemoryPityStateStore pityStateStore() {
+        return pityStateStore;
+    }
+
+    public EnhancementAttemptService enhancementAttemptService() {
+        return enhancementAttemptService;
     }
 
     public GuiTemplateLoader guiTemplateLoader() {

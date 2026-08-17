@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
+import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
@@ -176,6 +178,48 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
         } catch (RuntimeException | LinkageError exception) {
             return EmakiResult.internalError("strengthen.refresh.player_failed");
         }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Unit> registerEnhancementTarget(@Nullable EnhancementTargetProvider provider) {
+        if (provider == null) {
+            return EmakiResult.invalidInput("strengthen.enhancement.no_provider");
+        }
+        String providerId;
+        try {
+            providerId = provider.id();
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.provider_rejected");
+        }
+        if (Texts.isBlank(providerId)) {
+            return EmakiResult.invalidInput("strengthen.enhancement.blank_provider_id");
+        }
+        EnhancementTargetRegistry registry = plugin.enhancementTargetRegistry();
+        if (registry == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            registry.register(provider);
+            return EmakiResult.ok();
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.provider_rejected");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Unit> unregisterEnhancementTarget(@Nullable String providerId) {
+        if (Texts.isBlank(providerId)) {
+            return EmakiResult.invalidInput("strengthen.enhancement.blank_provider_id");
+        }
+        EnhancementTargetRegistry registry = plugin.enhancementTargetRegistry();
+        if (registry == null) {
+            return EmakiResult.unavailable();
+        }
+        if (registry.get(providerId) == null) {
+            return EmakiResult.notFound("strengthen.enhancement.provider_not_found");
+        }
+        registry.unregister(providerId);
+        return EmakiResult.ok();
     }
 
     private <T> EmakiResult<T> validatePlayer(Player player, String nullReasonKey) {
