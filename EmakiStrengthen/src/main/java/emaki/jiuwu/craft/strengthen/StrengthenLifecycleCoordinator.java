@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixTargetProvider;
@@ -56,9 +57,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
-            "enhancement_recipes/example_enhancement_recipe.yml");
+            "enhancement_recipes/example_enhancement_recipe.yml", "enhancement_recipes/example_affix_recipe.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
@@ -133,6 +134,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 enhancementTargetRegistry,
                 pityStateStore
         );
+        AffixGuiService affixGuiService = new AffixGuiService(
+                plugin,
+                guiService,
+                threadOwnership,
+                affixSelectionService,
+                affixTargetProvider,
+                affixLayerCodec
+        );
         return new StrengthenRuntimeComponents(
                 executionDispatcher,
                 threadOwnership,
@@ -157,7 +166,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 enhancementRecipeLoader,
                 enhancementTargetRegistry,
                 pityStateStore,
-                enhancementAttemptService
+                enhancementAttemptService,
+                affixSelectionService,
+                affixGuiService
         );
     }
 
@@ -294,6 +305,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
         if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
+        }
+        if (closeInventories && plugin.affixGuiService() != null) {
+            plugin.affixGuiService().clearAllSessions();
         }
         if (!attemptsDrained) {
             plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase

@@ -1,0 +1,55 @@
+# 词条强化示例配方（mode: affix）
+#
+# 由 /emakistrengthen affix [recipe] 打开的词条界面使用。与整件星级强化完全分离：
+# target.provider 为 affix 时，level 指「选中词条的强化等级」，temper 指「词条层剩余容量」，
+# 执行过程不读取也不写入整件装备的星级。
+
+# 配方唯一 ID，缺失则整份配方被跳过
+id: example_affix_enhance
+
+# 配方模式：affix 表示词条强化
+mode: affix
+
+# 目标配置：provider 必须为已注册的 affix Provider
+target:
+  provider: affix
+
+# 材料槽列表：matcher 为 CoreLib Matcher 配置，quantity 为 CoreLib Quantity 配置
+# consume 取值：always / success / failure / never（默认 always）
+materials:
+  - matcher:
+      type: item_source
+      sources:
+        - "minecraft:lapis_lazuli"
+    quantity: 1
+    consume: always
+
+# 货币消耗列表：词条等级越高越贵
+costs:
+  - provider: vault
+    currency_id: money
+    amount:
+      type: formula
+      expression: "50 * (target.level + 1)"
+
+# 成功率：随词条等级递减
+chance:
+  type: formula
+  expression: "max(0.1, 0.85 - target.level * 0.05)"
+
+# 保底配置：按玩家累计失败次数触发强制成功
+pity:
+  scope: player
+  group: example_affix_enhance
+  threshold: 8
+  effect: force_success
+  decay:
+    type: reset
+    value: 0
+
+# 动作分组：键名自由，值为 CoreLib Action 行列表
+actions:
+  on_success:
+    - "sound: BLOCK_ENCHANTMENT_TABLE_USE"
+  on_failure:
+    - "sound: BLOCK_ANVIL_LAND"

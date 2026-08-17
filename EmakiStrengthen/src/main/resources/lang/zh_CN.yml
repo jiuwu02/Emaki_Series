@@ -8,7 +8,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "4.7.2"
+version: "4.7.3"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -29,6 +29,7 @@ command:
     desc:
       help: "显示帮助信息"
       open: "打开强化界面"
+      affix: "打开词条强化界面"
       reload: "重载强化配置和 GUI"
       inspect: "查看手持物品强化状态"
       refresh: "刷新玩家背包中的强化层"
@@ -42,6 +43,10 @@ command:
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   refresh:
     success: "<green>已刷新 <aqua>%player%</aqua> 背包中的强化层。</green>"
+  affix:
+    no_recipe: "<red>当前没有任何 mode: affix 的词条强化配方。</red>"
+    recipe_not_found: "<red>未找到词条强化配方 <yellow>%recipe%</yellow>。</red>"
+    ambiguous_recipe: "<red>存在多个词条强化配方，请指定其中一个: <yellow>%recipes%</yellow></red>"
   setstar:
     success: "<green>主手物品已设置为 <gold>+%star%</gold>。</green>"
   clearstate:
@@ -121,11 +126,16 @@ strengthen:
     insufficient_funds: "<red>本次强化所需费用不足: %costs%</red>"
     economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
     rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
+    compensation_pending: "<red>本次强化已回滚，但费用返还尚未完成，请联系管理员并提供操作号 %operation_id%。</red>"
   enhancement:
+    no_player: "<red>需要玩家在线才能执行强化。</red>"
     no_provider: "<red>未提供强化目标 Provider。</red>"
     blank_provider_id: "<red>强化目标 Provider ID 不能为空。</red>"
     provider_not_found: "<red>未找到该强化目标 Provider。</red>"
     provider_rejected: "<red>注册强化目标 Provider 失败。</red>"
+  affix:
+    success: "<green>词条强化成功，等级提升至 <gold>%resulting_level%</gold>。</green>"
+    failure: "<yellow>词条强化失败，等级仍为 <gold>%resulting_level%</gold>。</yellow>"
   preview:
     failure_keep: "<gray>失败后保留当前星级，并累积强化值。</gray>"
     failure_drop: "<red>失败后掉落 1 星，并累积强化值。</red>"
@@ -167,6 +177,33 @@ gui:
     title: "<green>确认强化</green>"
     ineligible_title: "<red>无法强化</red>"
     ineligible_hint: "<gray>请先满足所有强化条件</gray>"
+  affix:
+    select:
+      title: "<gold>选择词条</gold>"
+      hint_no_target: "<gray>先放入装备才能列出可强化词条</gray>"
+      no_candidate: "<red>该装备没有可强化的词条</red>"
+      current: "<gray>当前词条: <yellow>%affix%</yellow> <dark_gray>(%index%/%total%)</dark_gray></gray>"
+      next_hint: "<gray>左键: 切换到下一条</gray>"
+      previous_hint: "<gray>右键: 切换到上一条</gray>"
+    preview:
+      title: "<gold>词条强化预览</gold>"
+      hint_no_target: "<gray>放入装备后显示前后值、容量、费用与概率</gray>"
+      unavailable: "<gray>暂无可用预览</gray>"
+      affix: "<gray>词条: <yellow>%affix%</yellow></gray>"
+      level: "<gray>等级: <gold>%previous%</gold> <dark_gray>-></dark_gray> <yellow>%resulting%</yellow></gray>"
+      capacity: "<gray>容量: <gold>%used%/%max%</gold> <dark_gray>(剩余 %remaining%)</dark_gray></gray>"
+      chance: "<gray>成功率: <green>%effective%%</green> <dark_gray>(基础 %base%%)</dark_gray></gray>"
+      pity_triggered: "<gold>保底已触发，本次强制成功 <dark_gray>(计数 %counter%)</dark_gray></gold>"
+      cost_free: "<gray>花费: <green>免费</green></gray>"
+      cost_header: "<gray>花费:</gray>"
+      cost_line: "<gold> - %amount% %name%</gold>"
+      material_ok: "<green> - %slot%: %supplied%/%required%</green>"
+      material_missing: "<red> - %slot%: %supplied%/%required%</red>"
+    confirm:
+      title: "<green>确认词条强化</green>"
+      hint: "<gray>点击执行本次词条强化</gray>"
+      ineligible_title: "<red>无法强化该词条</red>"
+      ineligible_hint: "<gray>请检查词条选择、容量、材料与费用</gray>"
 
 # Debug 模式消息
 debug:

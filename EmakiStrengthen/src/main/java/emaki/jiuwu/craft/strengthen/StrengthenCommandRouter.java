@@ -47,6 +47,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                 yield true;
             }
             case "open" -> handleOpen(sender);
+            case "affix" -> handleAffix(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
             case "refresh" -> handleRefresh(sender, args);
@@ -66,7 +67,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
+            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -92,6 +93,12 @@ final class StrengthenCommandRouter implements TabExecutor {
                     }
                 }
                 case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
+                        .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                        .forEach(result::add);
+                case "affix" -> plugin.enhancementRecipeLoader().all().values().stream()
+                        .filter(recipe -> recipe != null
+                                && "affix".equals(Texts.lower(recipe.target().provider())))
+                        .map(recipe -> recipe.id())
                         .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
                 default -> {
@@ -120,6 +127,24 @@ final class StrengthenCommandRouter implements TabExecutor {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[3]));
         }
         return result;
+    }
+
+    private boolean handleAffix(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (plugin.affixGuiService() == null) {
+            plugin.messageService().send(sender, "gui.open_failed");
+            return true;
+        }
+        String recipeId = args.length >= 2 ? args[1] : "";
+        plugin.affixGuiService().open(player, recipeId);
+        return true;
     }
 
     private boolean handleOpen(CommandSender sender) {
@@ -345,6 +370,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("open", plugin.messageService().message("command.help.desc.open"));
+        lines.put("affix [recipe]", plugin.messageService().message("command.help.desc.affix"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("refresh [player]", plugin.messageService().message("command.help.desc.refresh"));

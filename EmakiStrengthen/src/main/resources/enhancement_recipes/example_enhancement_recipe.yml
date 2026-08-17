@@ -1,8 +1,7 @@
 # 强化框架示例配方（Enhancement Recipe）
 #
 # 本文件演示 EnhancementRecipe 的六段结构：target / materials / costs / chance / pity / actions。
-# 注意：当前版本仅完成框架接线（配方可被加载、Target Provider 可被注册），
-# 尚未接入执行服务，因此本配方不会被任何强化流程实际执行。
+# 本配方会被通用强化执行服务实际执行；actions 段目前仅作配置声明，执行服务尚未派发动作行。
 
 # 配方唯一 ID，缺失则整份配方被跳过
 id: example_equipment_enhance

@@ -8,7 +8,7 @@
 # ============================================================
 
 # version is maintained by resource sync
-version: "4.7.2"
+version: "4.7.3"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -31,6 +31,7 @@ command:
     desc:
       help: "Show help"
       open: "Open strengthen GUI"
+      affix: "Open affix enhancement GUI"
       reload: "Reload strengthen config and GUI"
       inspect: "Inspect held item strengthen state"
       refresh: "Refresh strengthen layers in player inventory"
@@ -44,6 +45,10 @@ command:
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   refresh:
     success: "<green>Refreshed strengthen layers for <aqua>%player%</aqua>.</green>"
+  affix:
+    no_recipe: "<red>No enhancement recipe with mode: affix is loaded.</red>"
+    recipe_not_found: "<red>Affix enhancement recipe <yellow>%recipe%</yellow> was not found.</red>"
+    ambiguous_recipe: "<red>Multiple affix recipes exist, specify one: <yellow>%recipes%</yellow></red>"
   setstar:
     success: "<green>Main-hand item set to <gold>+%star%</gold>.</green>"
   clearstate:
@@ -128,11 +133,16 @@ strengthen:
     insufficient_funds: "<red>Insufficient funds for this strengthen: %costs%</red>"
     economy_provider_unavailable: "<red>Economy provider is currently unavailable.</red>"
     rebuild_failed: "<red>Failed to write strengthen result, operation aborted.</red>"
+    compensation_pending: "<red>This attempt was rolled back but the refund is still pending, contact an admin with operation id %operation_id%.</red>"
   enhancement:
+    no_player: "<red>An online player is required to run an enhancement.</red>"
     no_provider: "<red>No enhancement target provider was supplied.</red>"
     blank_provider_id: "<red>Enhancement target provider id must not be blank.</red>"
     provider_not_found: "<red>No such enhancement target provider is registered.</red>"
     provider_rejected: "<red>Failed to register the enhancement target provider.</red>"
+  affix:
+    success: "<green>Affix enhancement succeeded, level raised to <gold>%resulting_level%</gold>.</green>"
+    failure: "<yellow>Affix enhancement failed, level stays at <gold>%resulting_level%</gold>.</yellow>"
   preview:
     failure_keep: "<gray>On failure, keep current star and accumulate temper.</gray>"
     failure_drop: "<red>On failure, drop 1 star and accumulate temper.</red>"
@@ -175,6 +185,33 @@ gui:
     title: "<green>Confirm Strengthen</green>"
     ineligible_title: "<red>Cannot Strengthen</red>"
     ineligible_hint: "<gray>Please meet all strengthen conditions first</gray>"
+  affix:
+    select:
+      title: "<gold>Select Affix</gold>"
+      hint_no_target: "<gray>Place equipment to list enhanceable affixes</gray>"
+      no_candidate: "<red>This equipment has no enhanceable affix</red>"
+      current: "<gray>Current affix: <yellow>%affix%</yellow> <dark_gray>(%index%/%total%)</dark_gray></gray>"
+      next_hint: "<gray>Left click: next affix</gray>"
+      previous_hint: "<gray>Right click: previous affix</gray>"
+    preview:
+      title: "<gold>Affix Enhancement Preview</gold>"
+      hint_no_target: "<gray>Place equipment to see before/after, capacity, cost and chance</gray>"
+      unavailable: "<gray>No preview available</gray>"
+      affix: "<gray>Affix: <yellow>%affix%</yellow></gray>"
+      level: "<gray>Level: <gold>%previous%</gold> <dark_gray>-></dark_gray> <yellow>%resulting%</yellow></gray>"
+      capacity: "<gray>Capacity: <gold>%used%/%max%</gold> <dark_gray>(%remaining% left)</dark_gray></gray>"
+      chance: "<gray>Success rate: <green>%effective%%</green> <dark_gray>(base %base%%)</dark_gray></gray>"
+      pity_triggered: "<gold>Pity triggered, this attempt is forced to succeed <dark_gray>(counter %counter%)</dark_gray></gold>"
+      cost_free: "<gray>Cost: <green>Free</green></gray>"
+      cost_header: "<gray>Cost:</gray>"
+      cost_line: "<gold> - %amount% %name%</gold>"
+      material_ok: "<green> - %slot%: %supplied%/%required%</green>"
+      material_missing: "<red> - %slot%: %supplied%/%required%</red>"
+    confirm:
+      title: "<green>Confirm Affix Enhancement</green>"
+      hint: "<gray>Click to run this affix enhancement</gray>"
+      ineligible_title: "<red>Cannot enhance this affix</red>"
+      ineligible_hint: "<gray>Check affix selection, capacity, materials and cost</gray>"
 
 # Debug mode messages
 debug:

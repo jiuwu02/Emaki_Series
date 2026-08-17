@@ -1,12 +1,18 @@
 package emaki.jiuwu.craft.strengthen.enhancement;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -32,14 +38,8 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 /**
  * 执行强化框架配方的服务。
  *
- * <p>把 {@link EnhancementRecipe} 的六段配置跑成一次实际强化：解析目标 Provider、校验材料、
- * 计算成功率（含保底）、判定、按 {@link ConsumeTimingEnum} 扣除消耗、通过 Provider 写回结果。
- *
- * <p>与既有 {@code StrengthenAttemptService} 的分工：后者是整件星级强化的专用流程（含 journal、
- * 补偿事务、物品重建）；本服务是配方驱动的通用流程，目标类型由 Provider 决定。两者刻意不共用
- * 执行链——星级强化的事务语义比配方流程重，强行合并会把补偿逻辑带进所有目标类型。
- *
- * <p><strong>线程：</strong>玩家所属实体线程。本服务不自行调度。
+ * <p>所有目标类型共用材料、费用、概率、保底和事务阶段；目标层的具体读写仍完全由
+ * {@link EnhancementTargetProvider} 负责。调用方必须在持有目标物品的实体线程调用，本服务不自行调度。
  */
 public final class EnhancementAttemptService {
 
@@ -55,19 +55,26 @@ public final class EnhancementAttemptService {
         this.pityStateStore = pityStateStore;
     }
 
-    /**
-     * 执行一次强化尝试。
-     *
-     * @param player   发起玩家
-     * @param recipe   使用的配方
-     * @param target   待强化物品，成功时就地写回
-     * @param supplied 玩家提供的材料（GUI 槽位内容），可为空
-     * @return 执行结果；未提交时不会改动物品也不会扣费
-     */
+    /** 使用自动生成的 operation id 执行一次强化。 */
     public @NotNull EnhancementAttemptResult attempt(@Nullable Player player,
             @Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
             @Nullable List<ItemStack> supplied) {
+        return attempt(player, recipe, target, supplied, UUID.randomUUID().toString());
+    }
+
+    /**
+     * 执行一次强化尝试。
+     *
+     * <p>Provider 写回先在目标副本上完成并回读确认，之后才扣费；最终扣费、材料提交和目标 ItemMeta
+     * 提交任一阶段失败都会恢复材料并尝试退款。这样容量不足、Provider 静默失败不会造成先扣费。
+     */
+    public @NotNull EnhancementAttemptResult attempt(@Nullable Player player,
+            @Nullable EnhancementRecipe recipe,
+            @Nullable ItemStack target,
+            @Nullable List<ItemStack> supplied,
+            @Nullable String operationId) {
+        String operation = Texts.isBlank(operationId) ? UUID.randomUUID().toString() : operationId;
         if (player == null || !player.isOnline()) {
             return EnhancementAttemptResult.rejected("strengthen.enhancement.no_player");
         }
@@ -82,16 +89,76 @@ public final class EnhancementAttemptService {
             return EnhancementAttemptResult.rejected("strengthen.enhancement.provider_not_found",
                     Map.of("provider", recipe.target().provider()));
         }
-        return execute(player, recipe, target, supplied == null ? List.of() : supplied, provider);
+        List<ItemStack> suppliedItems = supplied == null ? List.of() : supplied;
+        ExecutionPlan plan = prepare(player, recipe, target, suppliedItems, provider);
+        if (!plan.valid()) {
+            return rejectedPlan(plan, operation);
+        }
+
+        boolean success = plan.forceSuccess() || CraftRollEngine.roll(plan.effectiveRate());
+        StrengthenEconomyService economy = plugin == null ? null : plugin.economyService();
+        StrengthenEconomyService.ChargeResult charge = chargeCurrencies(player, plan.costs(), economy, operation);
+        if (!charge.success()) {
+            if (charge.compensationPending()) {
+                return rejectedWithOperation("strengthen.error.compensation_pending", operation);
+            }
+            return rejectedWithOperation(charge.errorKey().isBlank()
+                    ? "strengthen.error.insufficient_funds" : charge.errorKey(), operation);
+        }
+
+        Map<ItemStack, Integer> materialAmounts = snapshotAmounts(plan.materialMatches());
+        try {
+            consumeMaterials(plan.materialMatches(), success);
+            if (success && !commitPreparedTarget(target, plan.preparedTarget())) {
+                restoreAmounts(materialAmounts);
+                return compensateAfterCommitFailure(player, economy, charge.appliedCosts(), operation,
+                        "strengthen.error.rebuild_failed");
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            restoreAmounts(materialAmounts);
+            warn("强化框架材料/目标提交失败", exception);
+            return compensateAfterCommitFailure(player, economy, charge.appliedCosts(), operation,
+                    "strengthen.error.rebuild_failed");
+        }
+
+        PityView updated;
+        try {
+            // pity 只有在费用、材料和目标提交均完成后才推进。
+            updated = updatePity(plan.recipe(), plan.pity(), success);
+        } catch (RuntimeException | LinkageError exception) {
+            // 目标已经提交，不能再伪装成未提交；记录异常并保留本次结果。
+            warn("强化框架保底状态写回失败", exception);
+            updated = plan.pity();
+        }
+        int resultingLevel = success ? plan.currentLevel() + 1 : plan.currentLevel();
+        return new EnhancementAttemptResult(true, success, "", Map.of(),
+                plan.currentLevel(), resultingLevel, plan.effectiveRate(), updated.counter(), plan.pity().triggered());
     }
 
     /**
-     * 解析配方声明的目标 Provider。
-     *
-     * <p>刻意按 {@code target.provider} 精确取用，而不是让注册中心用 {@code canHandle} 猜：内置
-     * equipment provider 对任何非空气物品都返回 true，一旦走猜测路径就会遮蔽 gem / affix 等其他
-     * 目标类型。同时仍要求该 Provider 认领这件物品，避免把宝石配方套在普通装备上。
+     * 解析一次尝试的只读预览。该方法不会扣费、扣材料、推进 pity 或改动原目标。
      */
+    public @NotNull EnhancementAttemptPreview preview(@Nullable Player player,
+            @Nullable EnhancementRecipe recipe,
+            @Nullable ItemStack target,
+            @Nullable List<ItemStack> supplied) {
+        if (player == null || !player.isOnline()) {
+            return EnhancementAttemptPreview.rejected("strengthen.enhancement.no_player");
+        }
+        if (recipe == null) {
+            return EnhancementAttemptPreview.rejected("strengthen.error.no_recipe");
+        }
+        if (target == null || target.getType().isAir()) {
+            return EnhancementAttemptPreview.rejected("strengthen.error.no_target");
+        }
+        EnhancementTargetProvider provider = resolveProvider(recipe, target);
+        if (provider == null) {
+            return EnhancementAttemptPreview.rejected("strengthen.enhancement.provider_not_found");
+        }
+        return prepare(player, recipe, target, supplied == null ? List.of() : supplied, provider).preview();
+    }
+
+    /** 解析配方声明的目标 Provider；不通过 canHandle 猜测 Provider。 */
     private @Nullable EnhancementTargetProvider resolveProvider(EnhancementRecipe recipe, ItemStack target) {
         if (targetRegistry == null) {
             return null;
@@ -109,27 +176,24 @@ public final class EnhancementAttemptService {
         }
     }
 
-    private void warn(String message, Throwable throwable) {
-        if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning(message + ": "
-                    + (throwable == null ? "unknown" : throwable.getMessage()));
-        }
-    }
-
-    private EnhancementAttemptResult execute(Player player,
+    private ExecutionPlan prepare(Player player,
             EnhancementRecipe recipe,
             ItemStack target,
             List<ItemStack> supplied,
             EnhancementTargetProvider provider) {
-        int currentLevel = provider.readLevel(target);
-        int currentTemper = provider.readTemper(target);
-        VariableContext variables = buildVariables(player, currentLevel, currentTemper);
-
-        List<MaterialMatch> materialMatches = matchMaterials(recipe, player, target, supplied, variables);
-        if (materialMatches == null) {
-            return EnhancementAttemptResult.rejected("strengthen.error.material_missing");
+        int currentLevel;
+        int currentTemper;
+        try {
+            currentLevel = Math.max(0, provider.readLevel(target));
+            currentTemper = Math.max(0, provider.readTemper(target));
+        } catch (RuntimeException | LinkageError exception) {
+            warn("目标 Provider 读取当前状态失败", exception);
+            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
         }
 
+        VariableContext variables = buildVariables(player, target, currentLevel, currentTemper);
+        List<MaterialMatch> materialMatches = matchMaterials(recipe, player, target, supplied, variables);
+        List<AttemptCost> costs = resolveCosts(recipe, variables);
         PityView pity = loadPity(recipe, player, target, provider);
         double baseRate = CraftRollEngine.clamp(recipe.chance().resolve(variables));
         double effectiveRate = baseRate;
@@ -145,45 +209,164 @@ public final class EnhancementAttemptService {
             }
         }
 
-        boolean success = forceSuccess || CraftRollEngine.roll(effectiveRate);
-
-        // 扣费在判定之后、写回之前：ConsumeTimingEnum 需要知道成败才能决定是否消耗。
-        if (!chargeCurrencies(player, recipe, variables)) {
-            return EnhancementAttemptResult.rejected("strengthen.error.insufficient_funds");
+        List<EnhancementAttemptPreview.MaterialRequirement> requirements = materialRequirements(recipe, supplied, variables);
+        if (materialMatches == null) {
+            EnhancementAttemptPreview preview = EnhancementAttemptPreview.invalid(
+                    "strengthen.error.material_missing", currentLevel, currentLevel + 1,
+                    baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
+            return new ExecutionPlan(false, recipe, currentLevel, currentTemper, null, pity,
+                    baseRate, effectiveRate, forceSuccess, costs, List.of(), preview);
         }
-        consumeMaterials(materialMatches, success);
 
-        int resultingLevel = success ? currentLevel + 1 : currentLevel;
-        if (success) {
+        ItemStack preparedTarget = null;
+        if (currentLevel < Integer.MAX_VALUE) {
             try {
-                provider.writeLevel(target, resultingLevel);
+                preparedTarget = target.clone();
+                provider.writeLevel(preparedTarget, currentLevel + 1);
+                int readBack = provider.readLevel(preparedTarget);
+                if (readBack != currentLevel + 1) {
+                    EnhancementAttemptPreview preview = EnhancementAttemptPreview.invalid(
+                            "strengthen.error.rebuild_failed", currentLevel, currentLevel + 1,
+                            baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
+                    return new ExecutionPlan(false, recipe, currentLevel, currentTemper, null, pity,
+                            baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
+                }
             } catch (RuntimeException | LinkageError exception) {
-                warn("目标 Provider '" + provider.id() + "' 写回等级失败", exception);
-                return EnhancementAttemptResult.rejected("strengthen.error.rebuild_failed");
+                warn("目标 Provider 预写回失败", exception);
+                EnhancementAttemptPreview preview = EnhancementAttemptPreview.invalid(
+                        "strengthen.error.rebuild_failed", currentLevel, currentLevel + 1,
+                        baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
+                return new ExecutionPlan(false, recipe, currentLevel, currentTemper, null, pity,
+                        baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
             }
         }
 
-        PityView updated = updatePity(recipe, pity, success);
-        return new EnhancementAttemptResult(true, success, "", Map.of(),
-                currentLevel, resultingLevel, effectiveRate, updated.counter(), pity.triggered());
+        EnhancementAttemptPreview preview = EnhancementAttemptPreview.valid(
+                recipe.id(), currentLevel, currentLevel + 1, baseRate, effectiveRate,
+                pity.counter(), pity.triggered(), costs, requirements);
+        return new ExecutionPlan(true, recipe, currentLevel, currentTemper, preparedTarget, pity,
+                baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
     }
 
-    private VariableContext buildVariables(Player player, int level, int temper) {
-        return VariableContext.builder(player)
+    private EnhancementAttemptResult rejectedPlan(ExecutionPlan plan, String operation) {
+        String errorKey = plan.preview() == null || plan.preview().errorKey().isBlank()
+                ? "strengthen.error.rebuild_failed" : plan.preview().errorKey();
+        return rejectedWithOperation(errorKey, operation);
+    }
+
+    private EnhancementAttemptResult rejectedWithOperation(String errorKey, String operation) {
+        Map<String, String> placeholders = Texts.isBlank(operation)
+                ? Map.of()
+                : Map.of("operation_id", operation);
+        return EnhancementAttemptResult.rejected(errorKey, placeholders);
+    }
+
+    private EnhancementAttemptResult compensateAfterCommitFailure(Player player,
+            StrengthenEconomyService economy,
+            List<AttemptCost> appliedCosts,
+            String operation,
+            String fallbackError) {
+        if (economy == null) {
+            return rejectedWithOperation("strengthen.error.compensation_pending", operation);
+        }
+        StrengthenEconomyService.RefundResult refund = economy.refundWithResult(player, appliedCosts, operation);
+        if (!refund.success()) {
+            return rejectedWithOperation("strengthen.error.compensation_pending", operation);
+        }
+        return rejectedWithOperation(fallbackError, operation);
+    }
+
+    private void warn(String message, Throwable throwable) {
+        if (plugin != null && plugin.getLogger() != null) {
+            plugin.getLogger().warning(message + ": "
+                    + (throwable == null ? "unknown" : String.valueOf(throwable.getMessage())));
+        }
+    }
+
+    private VariableContext buildVariables(Player player, ItemStack target, int level, int temper) {
+        VariableContext.Builder builder = VariableContext.builder(player)
                 .with("target.level", level)
                 .with("target.temper", temper)
-                // 同时暴露下划线形式：公式里两种写法都很常见，只支持一种会让配置方反复踩空。
                 .with("target_level", level)
-                .with("target_temper", temper)
-                .build();
+                .with("target_temper", temper);
+        readItemPdcVariables(builder, target);
+        return builder.build();
     }
 
-    /**
-     * 把配方的每个材料槽匹配到玩家提供的物品上。
-     *
-     * <p>返回 {@code null} 表示有材料槽未被满足，调用方必须整体拒绝——不能只扣一部分材料。
-     * 同一件提供物不会被两个槽位重复计数。
-     */
+    /** 将目标 ItemMeta 的 PDC 暴露给公式/Matcher，不依赖 Forge runtime 类。 */
+    private void readItemPdcVariables(VariableContext.Builder builder, ItemStack target) {
+        if (builder == null || target == null) {
+            return;
+        }
+        ItemMeta meta = target.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        for (NamespacedKey key : container.getKeys()) {
+            Object value = readPdcValue(container, key);
+            if (value == null) {
+                continue;
+            }
+            String generic = "item_pdc_" + key.getNamespace() + "_" + key.getKey();
+            builder.with(generic, value);
+            addForgeAliases(builder, key, value);
+        }
+    }
+
+    private Object readPdcValue(PersistentDataContainer container, NamespacedKey key) {
+        try {
+            if (container.has(key, PersistentDataType.STRING)) {
+                return container.get(key, PersistentDataType.STRING);
+            }
+            if (container.has(key, PersistentDataType.DOUBLE)) {
+                return container.get(key, PersistentDataType.DOUBLE);
+            }
+            if (container.has(key, PersistentDataType.FLOAT)) {
+                return container.get(key, PersistentDataType.FLOAT);
+            }
+            if (container.has(key, PersistentDataType.LONG)) {
+                return container.get(key, PersistentDataType.LONG);
+            }
+            if (container.has(key, PersistentDataType.INTEGER)) {
+                return container.get(key, PersistentDataType.INTEGER);
+            }
+            if (container.has(key, PersistentDataType.SHORT)) {
+                return container.get(key, PersistentDataType.SHORT);
+            }
+            if (container.has(key, PersistentDataType.BYTE)) {
+                return container.get(key, PersistentDataType.BYTE);
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            warn("读取目标物品 PDC 变量失败: " + key, exception);
+        }
+        return null;
+    }
+
+    private void addForgeAliases(VariableContext.Builder builder, NamespacedKey key, Object value) {
+        if (!"emakiforge".equalsIgnoreCase(key.getNamespace())) {
+            return;
+        }
+        String path = key.getKey().toLowerCase();
+        switch (path) {
+            case "forge.quality_id" -> {
+                builder.with("forge.quality_id", value).with("quality_id", value);
+            }
+            case "forge.quality_display" -> {
+                builder.with("forge.quality_display", value).with("quality_display", value);
+            }
+            case "forge.quality_multiplier" -> {
+                builder.with("forge.quality_multiplier", value).with("quality_multiplier", value);
+            }
+            case "forge.forge_recipe_id" -> {
+                builder.with("forge.forge_recipe_id", value).with("forge_recipe_id", value);
+            }
+            default -> {
+            }
+        }
+    }
+
+    /** 把配方的每个材料槽匹配到玩家提供的物品上。 */
     private @Nullable List<MaterialMatch> matchMaterials(EnhancementRecipe recipe,
             Player player,
             ItemStack target,
@@ -193,9 +376,9 @@ public final class EnhancementAttemptService {
             return List.of();
         }
         List<MaterialMatch> matches = new ArrayList<>();
-        // 记录每件提供物已被占用的数量，避免一件物品同时满足多个槽位。
-        Map<ItemStack, Integer> consumedPerStack = new LinkedHashMap<>();
-        for (MaterialSlotConfig slot : recipe.materials()) {
+        Map<ItemStack, Integer> consumedPerStack = new IdentityHashMap<>();
+        for (int slotIndex = 0; slotIndex < recipe.materials().size(); slotIndex++) {
+            MaterialSlotConfig slot = recipe.materials().get(slotIndex);
             int required = Math.max(0, slot.quantity().resolveInt(variables));
             if (required == 0) {
                 continue;
@@ -238,6 +421,86 @@ public final class EnhancementAttemptService {
         }
     }
 
+    private List<EnhancementAttemptPreview.MaterialRequirement> materialRequirements(
+            EnhancementRecipe recipe,
+            List<ItemStack> supplied,
+            VariableContext variables) {
+        List<EnhancementAttemptPreview.MaterialRequirement> result = new ArrayList<>();
+        for (int index = 0; index < recipe.materials().size(); index++) {
+            MaterialSlotConfig slot = recipe.materials().get(index);
+            int required = Math.max(0, slot.quantity().resolveInt(variables));
+            int available = 0;
+            if (supplied != null) {
+                for (ItemStack candidate : supplied) {
+                    if (candidate != null && !candidate.getType().isAir()) {
+                        available += candidate.getAmount();
+                    }
+                }
+            }
+            result.add(new EnhancementAttemptPreview.MaterialRequirement(
+                    "material_" + (index + 1), required, available, slot.consumeTiming()));
+        }
+        return List.copyOf(result);
+    }
+
+    private List<AttemptCost> resolveCosts(EnhancementRecipe recipe, VariableContext variables) {
+        if (recipe.costs().isEmpty()) {
+            return List.of();
+        }
+        List<AttemptCost> costs = new ArrayList<>();
+        for (CurrencyConfig currency : recipe.costs()) {
+            long amount = Math.max(0L, currency.amount().resolveLong(variables));
+            if (amount <= 0L) {
+                continue;
+            }
+            costs.add(new AttemptCost(currency.provider(), currency.currencyId(), currency.currencyId(), amount));
+        }
+        return List.copyOf(costs);
+    }
+
+    private StrengthenEconomyService.ChargeResult chargeCurrencies(Player player,
+            List<AttemptCost> costs,
+            StrengthenEconomyService economy,
+            String operation) {
+        if (costs == null || costs.isEmpty()) {
+            return StrengthenEconomyService.ChargeResult.success(List.of());
+        }
+        if (economy == null) {
+            return StrengthenEconomyService.ChargeResult.failure(
+                    "strengthen.error.economy_provider_unavailable", List.of());
+        }
+        try {
+            return economy.charge(player, costs, operation);
+        } catch (RuntimeException | LinkageError exception) {
+            warn("强化框架扣费失败", exception);
+            return StrengthenEconomyService.ChargeResult.failure(
+                    "strengthen.error.economy_provider_unavailable", List.of());
+        }
+    }
+
+    private Map<ItemStack, Integer> snapshotAmounts(List<MaterialMatch> matches) {
+        Map<ItemStack, Integer> snapshot = new IdentityHashMap<>();
+        if (matches != null) {
+            for (MaterialMatch match : matches) {
+                if (match != null && match.stack() != null) {
+                    snapshot.putIfAbsent(match.stack(), match.stack().getAmount());
+                }
+            }
+        }
+        return snapshot;
+    }
+
+    private void restoreAmounts(Map<ItemStack, Integer> snapshot) {
+        if (snapshot == null) {
+            return;
+        }
+        snapshot.forEach((stack, amount) -> {
+            if (stack != null) {
+                stack.setAmount(Math.max(0, amount));
+            }
+        });
+    }
+
     /** 按 {@link ConsumeTimingEnum} 实际扣减材料数量。 */
     private void consumeMaterials(List<MaterialMatch> matches, boolean success) {
         for (MaterialMatch match : matches) {
@@ -246,11 +509,7 @@ public final class EnhancementAttemptService {
             }
             ItemStack stack = match.stack();
             int remaining = stack.getAmount() - match.amount();
-            if (remaining <= 0) {
-                stack.setAmount(0);
-            } else {
-                stack.setAmount(remaining);
-            }
+            stack.setAmount(Math.max(0, remaining));
         }
     }
 
@@ -263,37 +522,15 @@ public final class EnhancementAttemptService {
         };
     }
 
-    /**
-     * 通过既有 {@code StrengthenEconomyService} 扣除货币。
-     *
-     * <p>刻意复用而不另写一套：该服务已实现多货币聚合、余额校验与失败补偿，重写会让两条强化路径
-     * 的扣费语义分叉。{@link CurrencyConfig} 逐条映射为 {@code AttemptCost}。
-     */
-    private boolean chargeCurrencies(Player player, EnhancementRecipe recipe, VariableContext variables) {
-        if (recipe.costs().isEmpty()) {
-            return true;
-        }
-        StrengthenEconomyService economy = plugin == null ? null : plugin.economyService();
-        if (economy == null) {
+    private boolean commitPreparedTarget(ItemStack target, ItemStack preparedTarget) {
+        if (target == null || preparedTarget == null) {
             return false;
         }
-        List<AttemptCost> costs = new ArrayList<>();
-        for (CurrencyConfig currency : recipe.costs()) {
-            long amount = Math.max(0L, currency.amount().resolveLong(variables));
-            if (amount <= 0L) {
-                continue;
-            }
-            costs.add(new AttemptCost(currency.provider(), currency.currencyId(), currency.currencyId(), amount));
-        }
-        if (costs.isEmpty()) {
-            return true;
-        }
-        try {
-            return economy.charge(player, costs).success();
-        } catch (RuntimeException | LinkageError exception) {
-            warn("强化框架扣费失败", exception);
+        ItemMeta preparedMeta = preparedTarget.getItemMeta();
+        if (preparedMeta == null) {
             return false;
         }
+        return target.setItemMeta(preparedMeta);
     }
 
     /** 读取当前保底状态，并判断本次是否已达触发条件。 */
@@ -318,11 +555,7 @@ public final class EnhancementAttemptService {
         return new PityView(scope, group, key, counter, triggered);
     }
 
-    /**
-     * 按成败推进保底计数。
-     *
-     * <p>失败累加，成功按 {@code decay} 规则衰减。{@code decay} 缺省视为 RESET，与解析层默认一致。
-     */
+    /** 按成败推进保底计数。 */
     private PityView updatePity(EnhancementRecipe recipe, PityView pity, boolean success) {
         if (pity.scope() == null || pityStateStore == null) {
             return pity;
@@ -346,13 +579,6 @@ public final class EnhancementAttemptService {
         return new PityView(pity.scope(), pity.group(), pity.key(), counter, pity.triggered());
     }
 
-    /**
-     * 解析保底计数的定位键。
-     *
-     * <p>item 作用域用 Provider 读到的配方 ID 加等级无法唯一定位一件物品，因此改用玩家 UUID 作为
-     * 退化键并在此说明：真正的按物品保底需要目标物品上有稳定实例 ID（如宝石的 instance_id），
-     * 待 Provider 能统一暴露实例标识后再收紧。
-     */
     private String pityKey(PityScopeEnum scope,
             Player player,
             ItemStack target,
@@ -374,5 +600,25 @@ public final class EnhancementAttemptService {
             @Nullable String key,
             int counter,
             boolean triggered) {
+    }
+
+    private record ExecutionPlan(boolean valid,
+            EnhancementRecipe recipe,
+            int currentLevel,
+            int currentTemper,
+            @Nullable ItemStack preparedTarget,
+            PityView pity,
+            double baseRate,
+            double effectiveRate,
+            boolean forceSuccess,
+            List<AttemptCost> costs,
+            List<MaterialMatch> materialMatches,
+            EnhancementAttemptPreview preview) {
+
+        static ExecutionPlan invalid(EnhancementRecipe recipe, String errorKey) {
+            EnhancementAttemptPreview preview = EnhancementAttemptPreview.rejected(errorKey);
+            return new ExecutionPlan(false, recipe, 0, 0, null,
+                    new PityView(null, null, null, 0, false), 0D, 0D, false, List.of(), List.of(), preview);
+        }
     }
 }

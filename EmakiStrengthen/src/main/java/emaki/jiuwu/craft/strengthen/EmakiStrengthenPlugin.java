@@ -43,6 +43,8 @@ import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
@@ -111,6 +113,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private EnhancementTargetRegistry enhancementTargetRegistry;
     private InMemoryPityStateStore pityStateStore;
     private EnhancementAttemptService enhancementAttemptService;
+    private AffixSelectionService affixSelectionService;
+    private AffixGuiService affixGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
     private StrengthenStageRegistrar stageRegistrar;
@@ -238,6 +242,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         enhancementTargetRegistry = components.enhancementTargetRegistry();
         pityStateStore = components.pityStateStore();
         enhancementAttemptService = components.enhancementAttemptService();
+        affixSelectionService = components.affixSelectionService();
+        affixGuiService = components.affixGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
         registerServices(components);
@@ -306,6 +312,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public EnhancementAttemptService enhancementAttemptService() {
         return enhancementAttemptService;
+    }
+
+    public AffixSelectionService affixSelectionService() {
+        return affixSelectionService;
+    }
+
+    public AffixGuiService affixGuiService() {
+        return affixGuiService;
     }
 
     public GuiTemplateLoader guiTemplateLoader() {
