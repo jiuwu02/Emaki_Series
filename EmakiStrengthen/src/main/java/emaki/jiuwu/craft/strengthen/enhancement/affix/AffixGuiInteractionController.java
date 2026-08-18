@@ -28,18 +28,15 @@ final class AffixGuiInteractionController {
     private final EmakiStrengthenPlugin plugin;
     private final AffixGuiRenderer renderer;
     private final AffixSelectionService selectionService;
-    private final AffixTargetProvider targetProvider;
     private final AffixLayerCodec layerCodec;
 
     AffixGuiInteractionController(EmakiStrengthenPlugin plugin,
             AffixGuiRenderer renderer,
             AffixSelectionService selectionService,
-            AffixTargetProvider targetProvider,
             AffixLayerCodec layerCodec) {
         this.plugin = plugin;
         this.renderer = renderer;
         this.selectionService = selectionService;
-        this.targetProvider = targetProvider;
         this.layerCodec = layerCodec;
     }
 
@@ -189,10 +186,6 @@ final class AffixGuiInteractionController {
         }
         state.setProcessing(true);
         EnhancementAttemptResult result;
-        UUID playerId = state.player().getUniqueId();
-        // affix Provider 依赖 ThreadLocal 操作者解析「选中词条」，执行前后必须成对绑定/解绑，
-        // 否则同线程后续任务会读到上一位玩家的选择。
-        targetProvider.bindOperator(playerId);
         try {
             ItemStack target = state.targetItem();
             result = plugin.enhancementAttemptService().attempt(
@@ -202,7 +195,6 @@ final class AffixGuiInteractionController {
                 consumeSuppliedMaterials(state);
             }
         } finally {
-            targetProvider.unbindOperator();
             state.setProcessing(false);
         }
         if (!result.committed()) {
@@ -254,15 +246,10 @@ final class AffixGuiInteractionController {
         state.setSelectedAffix(selectionService.selected(playerId, candidates));
         AffixLayer layer = layerCodec.readOrEmpty(target, capacityMax);
         state.setCapacity(layer.capacityUsed(), layer.capacityMax());
-        targetProvider.bindOperator(playerId);
-        try {
-            state.setPreview(plugin.enhancementAttemptService() == null
-                    ? null
-                    : plugin.enhancementAttemptService().preview(
-                            state.player(), state.recipe(), target, state.suppliedMaterials()));
-        } finally {
-            targetProvider.unbindOperator();
-        }
+        state.setPreview(plugin.enhancementAttemptService() == null
+                ? null
+                : plugin.enhancementAttemptService().preview(
+                        state.player(), state.recipe(), target, state.suppliedMaterials()));
     }
 
     private void returnStoredItems(AffixGuiSession state) {

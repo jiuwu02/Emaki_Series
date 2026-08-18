@@ -7,6 +7,8 @@ import java.util.Map;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityResult;
+
 /**
  * 一次强化框架执行的结果。
  *
@@ -32,11 +34,45 @@ public record EnhancementAttemptResult(boolean committed,
         int resultingLevel,
         double successRate,
         int pityCounter,
-        boolean pityTriggered) {
+        boolean pityTriggered,
+        @NotNull EnhancementPityResult pityResult) {
 
     public EnhancementAttemptResult {
         errorKey = errorKey == null ? "" : errorKey;
         placeholders = placeholders == null ? Map.of() : Map.copyOf(placeholders);
+        pityResult = pityResult == null ? EnhancementPityResult.empty() : pityResult;
+    }
+
+    /**
+     * Compatibility constructor retaining the original scalar pity payload.
+     */
+    public EnhancementAttemptResult(boolean committed,
+            boolean success,
+            @NotNull String errorKey,
+            @NotNull Map<String, String> placeholders,
+            int previousLevel,
+            int resultingLevel,
+            double successRate,
+            int pityCounter,
+            boolean pityTriggered) {
+        this(committed, success, errorKey, placeholders, previousLevel, resultingLevel,
+                successRate, pityCounter, pityTriggered, EnhancementPityResult.empty());
+    }
+
+    /**
+     * Constructs a result from the multi-track pity payload and derives the legacy scalar fields.
+     */
+    public EnhancementAttemptResult(boolean committed,
+            boolean success,
+            @NotNull String errorKey,
+            @NotNull Map<String, String> placeholders,
+            int previousLevel,
+            int resultingLevel,
+            double successRate,
+            @NotNull EnhancementPityResult pityResult) {
+        this(committed, success, errorKey, placeholders, previousLevel, resultingLevel, successRate,
+                pityResult == null ? 0 : pityResult.primaryCounter(),
+                pityResult != null && pityResult.triggered(), pityResult);
     }
 
     /** 构造一个未提交的失败结果。 */

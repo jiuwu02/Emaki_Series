@@ -27,7 +27,8 @@ public record EnhancementAttemptOutcome(@NotNull AttemptOutcome outcome,
         int pityCounter,
         boolean pityTriggered,
         @NotNull String operationId,
-        @NotNull Map<String, Object> replacements) {
+        @NotNull Map<String, Object> replacements,
+        @NotNull EnhancementPityResult pityResult) {
 
     public EnhancementAttemptOutcome {
         outcome = outcome == null ? AttemptOutcome.NOT_COMMITTED : outcome;
@@ -36,6 +37,46 @@ public record EnhancementAttemptOutcome(@NotNull AttemptOutcome outcome,
         materialInputs = copyItems(materialInputs);
         operationId = operationId == null ? "" : operationId;
         replacements = replacements == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(replacements));
+        pityResult = pityResult == null ? EnhancementPityResult.empty() : pityResult;
+    }
+
+    /**
+     * Compatibility constructor retaining the original scalar pity payload.
+     */
+    public EnhancementAttemptOutcome(@NotNull AttemptOutcome outcome,
+            boolean success,
+            @NotNull String recipeId,
+            @Nullable ItemStack resultItem,
+            @NotNull List<ItemStack> materialInputs,
+            int previousLevel,
+            int resultingLevel,
+            double successRate,
+            int pityCounter,
+            boolean pityTriggered,
+            @NotNull String operationId,
+            @NotNull Map<String, Object> replacements) {
+        this(outcome, success, recipeId, resultItem, materialInputs, previousLevel, resultingLevel,
+                successRate, pityCounter, pityTriggered, operationId, replacements,
+                EnhancementPityResult.empty());
+    }
+
+    /**
+     * Constructs an outcome from the multi-track pity payload and derives the legacy scalar fields.
+     */
+    public EnhancementAttemptOutcome(@NotNull AttemptOutcome outcome,
+            boolean success,
+            @NotNull String recipeId,
+            @Nullable ItemStack resultItem,
+            @NotNull List<ItemStack> materialInputs,
+            int previousLevel,
+            int resultingLevel,
+            double successRate,
+            @NotNull EnhancementPityResult pityResult,
+            @NotNull String operationId,
+            @NotNull Map<String, Object> replacements) {
+        this(outcome, success, recipeId, resultItem, materialInputs, previousLevel, resultingLevel,
+                successRate, pityResult == null ? 0 : pityResult.primaryCounter(),
+                pityResult != null && pityResult.triggered(), operationId, replacements, pityResult);
     }
 
     public boolean committed() {

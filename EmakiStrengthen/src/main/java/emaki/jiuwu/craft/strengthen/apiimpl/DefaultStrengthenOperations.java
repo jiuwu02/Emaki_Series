@@ -121,8 +121,7 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
                     result.previousLevel(),
                     result.resultingLevel(),
                     result.successRate(),
-                    result.pityCounter(),
-                    result.pityTriggered(),
+                    result.pityResult(),
                     operationId,
                     replacements
             );

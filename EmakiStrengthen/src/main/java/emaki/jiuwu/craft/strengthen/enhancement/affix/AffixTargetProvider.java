@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -27,9 +28,8 @@ import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
  *   <li>{@code recipeId} → 当前选中的词条 key。</li>
  * </ul>
  *
- * <p>「当前选中词条」由 {@link AffixSelectionService} 按玩家维护。框架接口不传玩家，因此本 Provider
- * 需要一个「当前操作者」上下文：由 GUI 在开始一次交互时通过 {@link #bindOperator} 绑定，结束时解绑。
- * 这是接口形态与词条强化需求之间的落差，不是设计偏好——框架的读写方法只接受 {@code ItemStack}。
+ * <p>「当前选中词条」由 {@link AffixSelectionService} 按玩家维护。强化框架优先调用带
+ * {@link Player} 的 context-aware 重载；{@link #bindOperator} 仅保留给仍调用旧 item-only 方法的兼容路径。
  */
 public final class AffixTargetProvider implements EnhancementTargetProvider {
 
@@ -87,11 +87,12 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public int readLevel(@Nullable ItemStack itemStack) {
-        String affixKey = resolveSelection(itemStack);
-        if (Texts.isBlank(affixKey)) {
-            return 0;
-        }
-        return layerCodec.readOrEmpty(itemStack, defaultCapacityMax()).affix(affixKey).level();
+        return readLevel(itemStack, operator.get());
+    }
+
+    @Override
+    public int readLevel(@Nullable Player player, @Nullable ItemStack itemStack) {
+        return readLevel(itemStack, playerId(player));
     }
 
     @Override
@@ -101,12 +102,26 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public @NotNull String readRecipeId(@Nullable ItemStack itemStack) {
-        return resolveSelection(itemStack);
+        return resolveSelection(itemStack, operator.get());
+    }
+
+    @Override
+    public @NotNull String readRecipeId(@Nullable Player player, @Nullable ItemStack itemStack) {
+        return resolveSelection(itemStack, playerId(player));
     }
 
     @Override
     public void writeLevel(@Nullable ItemStack itemStack, int level) {
-        String affixKey = resolveSelection(itemStack);
+        writeLevel(itemStack, level, operator.get());
+    }
+
+    @Override
+    public void writeLevel(@Nullable Player player, @Nullable ItemStack itemStack, int level) {
+        writeLevel(itemStack, level, playerId(player));
+    }
+
+    private void writeLevel(@Nullable ItemStack itemStack, int level, @Nullable UUID playerId) {
+        String affixKey = resolveSelection(itemStack, playerId);
         if (Texts.isBlank(affixKey) || itemStack == null) {
             return;
         }
@@ -177,8 +192,20 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         return selectionService.enhanceableAffixes(itemStack, maxAffixLevel());
     }
 
-    private String resolveSelection(ItemStack itemStack) {
-        return selectionService.selected(operator.get(), selectionService.affixes(itemStack));
+    private int readLevel(@Nullable ItemStack itemStack, @Nullable UUID playerId) {
+        String affixKey = resolveSelection(itemStack, playerId);
+        if (Texts.isBlank(affixKey)) {
+            return 0;
+        }
+        return layerCodec.readOrEmpty(itemStack, defaultCapacityMax()).affix(affixKey).level();
+    }
+
+    private @NotNull String resolveSelection(@Nullable ItemStack itemStack, @Nullable UUID playerId) {
+        return selectionService.selected(playerId, selectionService.affixes(itemStack));
+    }
+
+    private static @Nullable UUID playerId(@Nullable Player player) {
+        return player == null ? null : player.getUniqueId();
     }
 
     private int normalizeTargetLevel(int level) {

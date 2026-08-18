@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.progression.EnhancementProgressionResolver;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EquipmentTargetProvider;
@@ -141,14 +142,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         EnhancementAttemptService enhancementAttemptService = new EnhancementAttemptService(
                 plugin,
                 enhancementTargetRegistry,
-                pityStateStore
+                pityStateStore,
+                new EnhancementProgressionResolver()
         );
         AffixGuiService affixGuiService = new AffixGuiService(
                 plugin,
                 guiService,
                 threadOwnership,
                 affixSelectionService,
-                affixTargetProvider,
                 affixLayerCodec
         );
         return new StrengthenRuntimeComponents(

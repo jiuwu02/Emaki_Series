@@ -41,7 +41,6 @@ public final class AffixGuiService {
             GuiService guiService,
             ThreadOwnership threadOwnership,
             AffixSelectionService selectionService,
-            AffixTargetProvider targetProvider,
             AffixLayerCodec layerCodec) {
         this.plugin = plugin;
         this.guiService = guiService;
@@ -49,7 +48,7 @@ public final class AffixGuiService {
         this.selectionService = selectionService;
         this.renderer = new AffixGuiRenderer(plugin);
         this.interactionController = new AffixGuiInteractionController(
-                plugin, renderer, selectionService, targetProvider, layerCodec);
+                plugin, renderer, selectionService, layerCodec);
     }
 
     /**
