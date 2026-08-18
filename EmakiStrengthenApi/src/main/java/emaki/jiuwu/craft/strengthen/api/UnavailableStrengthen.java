@@ -11,6 +11,8 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
@@ -52,6 +54,12 @@ final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperat
 
     @Override
     public EmakiResult<AttemptResult> attempt(Player player, AttemptContext context) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<EnhancementAttemptOutcome> attemptEnhancement(Player player,
+            EnhancementAttemptContext context) {
         return EmakiResult.unavailable();
     }
 

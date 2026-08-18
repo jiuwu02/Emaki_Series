@@ -16,9 +16,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.gem.model.GemDefinition.CostConfig;
 import emaki.jiuwu.craft.gem.model.GemDefinition.CurrencyCost;
 import emaki.jiuwu.craft.gem.model.GemDefinition.ExtractReturn;
-import emaki.jiuwu.craft.gem.model.GemDefinition.GemUpgradeLevel;
+import emaki.jiuwu.craft.gem.model.GemDefinition.GemStage;
 import emaki.jiuwu.craft.gem.model.GemDefinition.MaterialCost;
-import emaki.jiuwu.craft.gem.model.GemDefinition.UpgradeConfig;
+import emaki.jiuwu.craft.gem.model.GemDefinition.StageConfig;
 
 final class GemDefinitionParser {
 
@@ -62,9 +62,9 @@ final class GemDefinitionParser {
                 parseCostConfig(section.getSection("inlay_cost")),
                 parseCostConfig(section.getSection("extract_cost")),
                 parseExtractReturn(section.getSection("extract_return")),
-                parseUpgradeConfig(section.contains("upgrade")
-                        ? section.getSection("upgrade")
-                        : section.getSection("stages")),
+                parseStageConfig(section.contains("stages")
+                        ? section.getSection("stages")
+                        : section.getSection("upgrade")),
                 parseActionLines(section.getSection("actions"), "inlay_success"),
                 parseActionLines(section.getSection("actions"), "extract_success")
         );
@@ -128,79 +128,41 @@ final class GemDefinitionParser {
         );
     }
 
-    static UpgradeConfig parseUpgradeConfig(YamlSection section) {
+    static StageConfig parseStageConfig(YamlSection section) {
         if (section == null) {
-            return UpgradeConfig.disabled();
+            return StageConfig.disabled();
         }
-        YamlSection economySection = section.getSection("economy");
-        List<CurrencyCost> currencies = new ArrayList<>();
-        List<Map<?, ?>> configuredCurrencies = economySection != null ? economySection.getMapList("currencies") : section.getMapList("currencies");
-        for (Map<?, ?> map : configuredCurrencies) {
-            CurrencyCost currencyCost = parseCurrencyCost(map);
-            if (currencyCost != null) {
-                currencies.add(currencyCost);
+        Map<Integer, GemStage> stages = new LinkedHashMap<>();
+        YamlSection configuredStages = section.getSection("levels");
+        if (configuredStages == null) {
+            configuredStages = section;
+        }
+        for (String key : configuredStages.getKeys(false)) {
+            Integer targetLevel = Numbers.tryParseInt(key, null);
+            if (targetLevel == null || targetLevel <= 1) {
+                continue;
+            }
+            GemStage stage = parseGemStage(targetLevel, configuredStages.getSection(key));
+            if (stage != null) {
+                stages.put(stage.targetLevel(), stage);
             }
         }
-        Map<Integer, Double> successRates = new LinkedHashMap<>();
-        YamlSection successRatesSection = section.getSection("success_rates");
-        if (successRatesSection != null) {
-            for (String key : successRatesSection.getKeys(false)) {
-                Integer targetLevel = Numbers.tryParseInt(key, null);
-                Double rate = Numbers.tryParseDouble(successRatesSection.get(key), null);
-                if (targetLevel != null && targetLevel > 1 && rate != null) {
-                    successRates.put(targetLevel, rate);
-                }
-            }
-        }
-        Map<Integer, GemUpgradeLevel> levels = new LinkedHashMap<>();
-        YamlSection levelsSection = section.getSection("levels");
-        if (levelsSection != null) {
-            for (String key : levelsSection.getKeys(false)) {
-                Integer targetLevel = Numbers.tryParseInt(key, null);
-                if (targetLevel == null || targetLevel <= 1) {
-                    continue;
-                }
-                GemUpgradeLevel level = parseGemUpgradeLevel(targetLevel, levelsSection.getSection(key));
-                if (level != null) {
-                    levels.put(level.targetLevel(), level);
-                }
-            }
-        }
-        return new UpgradeConfig(
-                section.getBoolean("enabled", false),
-                section.getInt("max_level", levels.isEmpty() ? 1 : levels.keySet().stream().mapToInt(Integer::intValue).max().orElse(1)),
-                currencies,
-                successRates,
+        int configuredMaxLevel = stages.isEmpty()
+                ? 1
+                : stages.keySet().stream().mapToInt(Integer::intValue).max().orElse(1);
+        return new StageConfig(
+                section.getBoolean("enabled", !stages.isEmpty()),
+                section.getInt("max_level", configuredMaxLevel),
                 section.getString("gui_template", ""),
-                section.getString("failure_penalty", "none"),
-                levels
+                stages
         );
     }
 
-    static GemUpgradeLevel parseGemUpgradeLevel(int targetLevel, YamlSection section) {
+    static GemStage parseGemStage(int targetLevel, YamlSection section) {
         if (section == null) {
             return null;
         }
-        List<MaterialCost> materials = new ArrayList<>();
-        for (Map<?, ?> map : section.getMapList("materials")) {
-            MaterialCost materialCost = parseMaterialCost(map);
-            if (materialCost != null) {
-                materials.add(materialCost);
-            }
-        }
-        YamlSection economySection = section.getSection("economy");
-        List<CurrencyCost> currencies = new ArrayList<>();
-        List<Map<?, ?>> configuredCurrencies = economySection != null ? economySection.getMapList("currencies") : section.getMapList("currencies");
-        for (Map<?, ?> map : configuredCurrencies) {
-            CurrencyCost currencyCost = parseCurrencyCost(map);
-            if (currencyCost != null) {
-                currencies.add(currencyCost);
-            }
-        }
-        double successChance = section.contains("success_rate")
-                ? section.getDouble("success_rate", 100D)
-                : -1D;
-        return new GemUpgradeLevel(
+        return new GemStage(
                 targetLevel,
                 section.getString("display_name", ""),
                 parseVariables(section),
@@ -208,13 +170,21 @@ final class GemDefinitionParser {
                 parseSkillEffects(section.getMapList("effects")),
                 parseNameActions(section),
                 parseLoreActions(section),
-                successChance,
-                currencies,
-                section.getString("failure_penalty", ""),
-                materials,
-                parseActionLines(section.getSection("actions"), "success"),
-                parseActionLines(section.getSection("actions"), "failure")
+                parseStringMap(section.getSection("matrices"))
         );
+    }
+
+    static Map<String, String> parseStringMap(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, String> values = new LinkedHashMap<>();
+        for (String key : section.getKeys(false)) {
+            if (Texts.isNotBlank(key) && section.get(key) != null) {
+                values.put(Texts.lower(key), Texts.toStringSafe(section.get(key)));
+            }
+        }
+        return Map.copyOf(values);
     }
 
     static Object parseNameActions(YamlSection section) {

@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
@@ -49,6 +51,24 @@ public interface StrengthenOperations {
      */
     @NotNull
     EmakiResult<AttemptResult> attempt(@Nullable Player player, @Nullable AttemptContext context);
+
+    /**
+     * Performs one provider-based generic enhancement attempt using an enhancement recipe.
+     *
+     * <p>Strengthen owns material matching/consumption, currency charging, chance, pity, idempotency,
+     * compensation and recipe actions. The registered target provider owns target recognition and the
+     * final level/stage write-back. The caller owns applying the returned cloned stacks to its GUI or
+     * inventory state.
+     *
+     * <p>A committed failed roll is returned as a successful API operation whose outcome has
+     * {@code success=false}. Rejected validation is returned as {@link EmakiResult.Failure}; unsettled
+     * compensation is returned as {@code Partial}.
+     *
+     * <p><strong>Thread:</strong> the player's entity-owner thread.
+     */
+    @NotNull
+    EmakiResult<EnhancementAttemptOutcome> attemptEnhancement(@Nullable Player player,
+            @Nullable EnhancementAttemptContext context);
 
     /**
      * Transfers strengthened stars from a source item to a target item.

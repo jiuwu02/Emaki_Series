@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.gem.integration.strengthen;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -46,7 +49,9 @@ public final class GemEnhancementTargetProvider implements EnhancementTargetProv
 
     @Override
     public boolean canHandle(@Nullable ItemStack itemStack) {
-        return readInstance(itemStack) != null;
+        GemItemInstance instance = readInstance(itemStack);
+        GemDefinition definition = readDefinition(instance);
+        return definition != null && definition.stages().enabled();
     }
 
     @Override
@@ -70,10 +75,13 @@ public final class GemEnhancementTargetProvider implements EnhancementTargetProv
     @Override
     public void writeLevel(@Nullable ItemStack itemStack, int level) {
         GemItemInstance current = readInstance(itemStack);
-        if (current == null) {
+        GemDefinition definition = readDefinition(current);
+        int targetLevel = Math.max(1, level);
+        if (definition == null || targetLevel > definition.stages().maxLevel()
+                || (targetLevel > 1 && definition.stage(targetLevel) == null)) {
             return;
         }
-        writeInstance(itemStack, withLevel(current, level));
+        writeInstance(itemStack, withLevel(current, definition, targetLevel));
     }
 
     @Override
@@ -94,10 +102,11 @@ public final class GemEnhancementTargetProvider implements EnhancementTargetProv
     @Override
     public void clearEnhancement(@Nullable ItemStack itemStack) {
         GemItemInstance current = readInstance(itemStack);
-        if (current == null) {
+        GemDefinition definition = readDefinition(current);
+        if (definition == null) {
             return;
         }
-        writeInstance(itemStack, withStage(withLevel(current, 1), 0));
+        writeInstance(itemStack, withLevel(current, definition, 1));
     }
 
     private GemItemInstance readInstance(ItemStack itemStack) {
@@ -110,8 +119,13 @@ public final class GemEnhancementTargetProvider implements EnhancementTargetProv
             return null;
         }
         // 只承认确实存在定义的宝石，避免把任意带残留 PDC 的物品当成宝石目标。
-        GemDefinition definition = plugin.gemLoader() == null ? null : plugin.gemLoader().get(instance.gemId());
-        return definition == null ? null : instance;
+        return readDefinition(instance) == null ? null : instance;
+    }
+
+    private GemDefinition readDefinition(GemItemInstance instance) {
+        return instance == null || plugin == null || plugin.gemLoader() == null
+                ? null
+                : plugin.gemLoader().get(instance.gemId());
     }
 
     private void writeInstance(ItemStack itemStack, GemItemInstance instance) {
@@ -121,15 +135,23 @@ public final class GemEnhancementTargetProvider implements EnhancementTargetProv
         plugin.itemFactory().applyInstance(itemStack, instance);
     }
 
-    private static GemItemInstance withLevel(GemItemInstance source, int level) {
+    private static GemItemInstance withLevel(GemItemInstance source, GemDefinition definition, int level) {
+        Map<String, String> matrices = new LinkedHashMap<>(source.matrices());
+        definition.matricesForLevel(level).forEach((key, value) -> {
+            if (Texts.isBlank(value)) {
+                matrices.remove(key);
+            } else {
+                matrices.put(key, value);
+            }
+        });
         return new GemItemInstance(
                 source.gemId(),
                 level,
                 System.currentTimeMillis(),
                 source.instanceId(),
-                source.stage(),
+                level <= 1 ? 0 : level,
                 source.affixes(),
-                source.matrices(),
+                matrices,
                 source.extensions(),
                 source.dataVersion()
         );

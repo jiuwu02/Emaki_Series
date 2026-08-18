@@ -141,9 +141,13 @@ extract_return:
 # 宝石分等级配置
 # ============================================================
 # 同一个宝石可以拥有多个等级，每个等级有各自的显示名与效果。
-# 高等级宝石由管理员直接发放(/emakigem give 或 give 类动作指定 level)，
-# 服务器内不提供升级台或升级动作。
-upgrade:
+# 高等级宝石可由管理员直接发放(/emakigem give 或 give 类动作指定 level)，
+# 也可由玩家在宝石 GUI 的「升级模式」中消耗材料与货币逐阶提升。
+# 升级的材料、费用、成功率、保底与动作全部由 EmakiStrengthen 的同名配方定义
+# (plugins/EmakiStrengthen/enhancement_recipes/<本宝石 id>.yml)，本文件只描述各阶段的效果。
+stages:
+  # 启用后，EmakiStrengthen 的 gem 配方可以驱动阶段升级。
+  enabled: true
   # 该宝石允许的最高等级，同时作为物品层预览的等级上界。
   max_level: 4
 

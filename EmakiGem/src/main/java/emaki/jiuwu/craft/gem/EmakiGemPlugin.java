@@ -365,6 +365,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return gemGuiService;
     }
 
+    public GemStrengthenIntegration strengthenIntegration() {
+        return strengthenIntegration;
+    }
+
     public GemResonanceLoader resonanceLoader() {
         return resonanceLoader;
     }

@@ -46,6 +46,10 @@ final class GemGuiRenderer {
                     text("mode_inlay_title", "Inlay Mode"),
                     text("mode_inlay_desc", "Hold a gem and click an opened empty slot"),
                     Material.GREEN_STAINED_GLASS_PANE);
+            case "mode_upgrade" -> buildModeButton(slot, state.mode() == GemGuiMode.UPGRADE,
+                    text("mode_upgrade_title", "Upgrade Mode"),
+                    text("mode_upgrade_desc", "Place a gem and recipe materials to upgrade"),
+                    Material.PURPLE_STAINED_GLASS_PANE);
             case "mode_extract" -> buildModeButton(slot, state.mode() == GemGuiMode.EXTRACT,
                     text("mode_extract_title", "Extract Mode"),
                     text("mode_extract_desc", "Click an inlaid gem slot"),
@@ -66,15 +70,129 @@ final class GemGuiRenderer {
     private ItemStack renderTargetItem(GemGuiSession state, GuiSlot slot) {
         ItemStack targetItem = state.targetItem();
         if (targetItem == null) {
-            return buildConfiguredItem(slot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, text("target_empty_name", "<aqua>Place Equipment</aqua>"), List.of(
-                    text("target_empty_lore_1", "<gray>Place gem equipment here</gray>"),
-                    common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
-            ));
+            String nameKey = state.mode() == GemGuiMode.UPGRADE ? "upgrade_target_empty_name" : "target_empty_name";
+            String loreKey = state.mode() == GemGuiMode.UPGRADE ? "upgrade_target_empty_lore_1" : "target_empty_lore_1";
+            return buildConfiguredItem(slot, Material.LIGHT_BLUE_STAINED_GLASS_PANE,
+                    text(nameKey, state.mode() == GemGuiMode.UPGRADE ? "<light_purple>Place Gem</light_purple>" : "<aqua>Place Equipment</aqua>"), List.of(
+                            text(loreKey, state.mode() == GemGuiMode.UPGRADE
+                                    ? "<gray>Place an upgradeable gem here</gray>"
+                                    : "<gray>Place gem equipment here</gray>"),
+                            common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
+                    ));
         }
         return targetItem.clone();
     }
 
+    private ItemStack renderUpgradeInfo(GemGuiSession state, GuiSlot slot) {
+        GemUpgradeView view = resolveUpgradeView(state);
+        List<String> lore = new ArrayList<>();
+        lore.add(text("mode_line", Map.of("mode", modeText(state.mode())),
+                "<gray>Current mode: <yellow>%mode%</yellow></gray>"));
+        if (view == null) {
+            lore.add(text("upgrade_no_target_line_1", "<red>No upgradeable gem placed</red>"));
+            lore.add(text("upgrade_no_target_line_2", "<gray>Place a staged gem in the target slot</gray>"));
+        } else {
+            lore.add(text("upgrade_current_level", Map.of("level", view.instance().level()),
+                    "<gray>Current level: <yellow>Lv.%level%</yellow></gray>"));
+            lore.add(text("upgrade_max_level", Map.of("max_level", view.definition().stages().maxLevel()),
+                    "<gray>Maximum level: <gold>Lv.%max_level%</gold></gray>"));
+            lore.add(view.nextStage() == null
+                    ? text("upgrade_already_max", "<green>This gem is already at its configured maximum stage</green>")
+                    : text("upgrade_next_stage", Map.of(
+                            "level", view.nextLevel(),
+                            "stage", nextStageName(view)),
+                            "<gray>Next stage: <light_purple>Lv.%level% %stage%</light_purple></gray>"));
+        }
+        lore.add(plugin.strengthenIntegration() != null && plugin.strengthenIntegration().available()
+                ? text("upgrade_framework_ready", "<green>Strengthen framework ready</green>")
+                : text("upgrade_framework_unavailable", "<red>Strengthen framework unavailable</red>"));
+        return buildConfiguredItem(slot, Material.ENCHANTED_BOOK,
+                text("upgrade_info_name", "<light_purple>Gem Upgrade</light_purple>"), lore);
+    }
+
+    private ItemStack renderUpgradeSummary(GemGuiSession state, GuiSlot slot) {
+        GemUpgradeView view = resolveUpgradeView(state);
+        int occupied = 0;
+        int totalAmount = 0;
+        for (ItemStack material : state.upgradeMaterials()) {
+            if (material != null && !material.getType().isAir()) {
+                occupied++;
+                totalAmount += material.getAmount();
+            }
+        }
+        List<String> lore = new ArrayList<>();
+        lore.add(text("upgrade_material_slots", Map.of("count", occupied),
+                "<gray>Filled material slots: <yellow>%count%</yellow></gray>"));
+        lore.add(text("upgrade_material_amount", Map.of("amount", totalAmount),
+                "<gray>Total material amount: <gold>%amount%</gold></gray>"));
+        if (view != null) {
+            lore.add(text("upgrade_recipe_id", Map.of("recipe", view.definition().id()),
+                    "<gray>Strengthen recipe: <aqua>%recipe%</aqua></gray>"));
+        }
+        lore.add(text("upgrade_material_help", "<gray>Place recipe materials in the seven lower slots</gray>"));
+        return buildConfiguredItem(slot, Material.AMETHYST_SHARD,
+                text("upgrade_summary_name", "<light_purple>Upgrade Materials</light_purple>"), lore);
+    }
+
+    private ItemStack renderUpgradeMaterialSlot(GemGuiSession state, int displayIndex, GuiSlot guiSlot) {
+        ItemStack material = state.upgradeMaterial(displayIndex);
+        if (material != null) {
+            return material;
+        }
+        return buildConfiguredItem(guiSlot, Material.PURPLE_STAINED_GLASS_PANE,
+                text("upgrade_material_slot_name", Map.of("slot", displayIndex + 1),
+                        "<light_purple>Upgrade Material #%slot%</light_purple>"), List.of(
+                        text("upgrade_material_slot_lore", "<gray>Place a material stack here</gray>"),
+                        common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
+                ));
+    }
+
+    private ItemStack renderUpgradePreview(GemGuiSession state, GuiSlot slot) {
+        GemUpgradeView view = resolveUpgradeView(state);
+        if (view == null || view.nextStage() == null) {
+            List<String> lore = new ArrayList<>();
+            lore.add(view == null
+                    ? text("upgrade_preview_empty", "<gray>Place an upgradeable gem to preview its next stage</gray>")
+                    : text("upgrade_already_max", "<green>This gem is already at its configured maximum stage</green>"));
+            return buildConfiguredItem(slot, Material.WRITABLE_BOOK,
+                    text("upgrade_preview_name", "<light_purple>Upgrade Preview</light_purple>"), lore);
+        }
+        ItemStack preview = plugin.itemFactory().createGemItem(view.definition(), view.nextLevel(), 1);
+        List<String> lore = List.of(
+                text("upgrade_preview_transition", Map.of(
+                        "previous_level", view.instance().level(),
+                        "resulting_level", view.nextLevel()),
+                        "<gray>Level: <yellow>%previous_level%</yellow> → <green>%resulting_level%</green></gray>"),
+                text("upgrade_preview_stage", Map.of("stage", nextStageName(view)),
+                        "<gray>Stage: <light_purple>%stage%</light_purple></gray>"),
+                text("preview_confirm_hint", "<green>Click confirm to execute</green>")
+        );
+        return preview == null
+                ? buildConfiguredItem(slot, Material.WRITABLE_BOOK,
+                        text("upgrade_preview_name", "<light_purple>Upgrade Preview</light_purple>"), lore)
+                : appendLore(preview, lore);
+    }
+
+    private GemUpgradeView resolveUpgradeView(GemGuiSession state) {
+        GemItemInstance instance = plugin.itemMatcher().readGemInstance(state == null ? null : state.targetItem());
+        GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+        if (definition == null || !definition.stages().enabled()) {
+            return null;
+        }
+        int nextLevel = instance.level() + 1;
+        return new GemUpgradeView(instance, definition, nextLevel, definition.stage(nextLevel));
+    }
+
+    private String nextStageName(GemUpgradeView view) {
+        return view == null || view.nextStage() == null || Texts.isBlank(view.nextStage().displayName())
+                ? "Lv." + (view == null ? "?" : view.nextLevel())
+                : view.nextStage().displayName();
+    }
+
     private ItemStack renderSocketInfo(GemGuiSession state, GuiSlot slot) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            return renderUpgradeInfo(state, slot);
+        }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
@@ -88,6 +206,7 @@ final class GemGuiRenderer {
         lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>%item%</gold></gray>"));
         lore.add(switch (state.mode()) {
             case INLAY -> text("inlay_help", "<gray>Hold a gem and click an opened empty slot</gray>");
+            case UPGRADE -> text("upgrade_help", "<gray>Place a gem and recipe materials, then confirm</gray>");
             case EXTRACT -> text("extract_help", "<gray>Click an inlaid gem slot</gray>");
             case OPEN_SOCKET -> text("default_help", "<gray>Equipment gem operation mode</gray>");
         });
@@ -96,6 +215,9 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderSocketSummary(GemGuiSession state, GuiSlot slot) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            return renderUpgradeSummary(state, slot);
+        }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
@@ -117,6 +239,9 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderSocketSlot(GemGuiSession state, int displayIndex, GuiSlot guiSlot) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            return renderUpgradeMaterialSlot(state, displayIndex, guiSlot);
+        }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
@@ -195,6 +320,9 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderPreviewDisplay(GemGuiSession state, GuiSlot slot) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            return renderUpgradePreview(state, slot);
+        }
         GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
         List<String> lore = new ArrayList<>();
         if (!pendingOperation.active()) {
@@ -233,6 +361,17 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderConfirm(GemGuiSession state, GuiSlot slot) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            GemUpgradeView view = resolveUpgradeView(state);
+            boolean active = view != null && view.nextStage() != null && !state.processing();
+            return buildConfiguredItem(slot,
+                    active ? Material.LIME_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE,
+                    text(active ? "upgrade_confirm_name_active" : "upgrade_confirm_name_inactive",
+                            active ? "<green>Upgrade Gem</green>" : "<gray>Upgrade Gem</gray>"),
+                    List.of(text(active ? "upgrade_confirm_active_lore" : "upgrade_confirm_inactive_lore",
+                            active ? "<gray>Click to execute the staged enhancement</gray>"
+                                    : "<dark_gray>Place a staged gem below its maximum level first</dark_gray>")));
+        }
         if (!state.pendingOperation().active()) {
             return buildConfiguredItem(slot, Material.GRAY_STAINED_GLASS_PANE, text("confirm_name_inactive", "<gray>Confirm Operation</gray>"), List.of(
                     text("confirm_inactive_lore", "<dark_gray>Please select a pending operation first</dark_gray>")
@@ -305,6 +444,7 @@ final class GemGuiRenderer {
     private String modeText(GemGuiMode mode) {
         return switch (mode) {
             case INLAY -> text("mode_inlay", "Inlay");
+            case UPGRADE -> text("mode_upgrade", "Upgrade");
             case EXTRACT -> text("mode_extract", "Extract");
             case OPEN_SOCKET -> text("mode_open_socket", "Open Socket");
         };
@@ -337,5 +477,11 @@ final class GemGuiRenderer {
     private String resolve(String key, Map<String, ?> placeholders, String fallback) {
         String value = plugin.messageService().message(key, placeholders);
         return Texts.isBlank(value) || key.equals(value) ? fallback : value;
+    }
+
+    private record GemUpgradeView(GemItemInstance instance,
+            GemDefinition definition,
+            int nextLevel,
+            GemDefinition.GemStage nextStage) {
     }
 }

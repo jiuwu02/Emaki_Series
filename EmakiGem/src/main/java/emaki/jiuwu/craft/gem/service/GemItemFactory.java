@@ -150,9 +150,9 @@ public final class GemItemFactory {
             return "";
         }
         String configuredDisplayName = "";
-        GemDefinition.GemUpgradeLevel upgradeLevel = definition.upgradeLevel(level);
-        if (upgradeLevel != null && Texts.isNotBlank(upgradeLevel.displayName())) {
-            configuredDisplayName = upgradeLevel.displayName();
+        GemDefinition.GemStage stage = definition.stage(level);
+        if (stage != null && Texts.isNotBlank(stage.displayName())) {
+            configuredDisplayName = stage.displayName();
         } else if (Texts.isNotBlank(definition.displayName())
                 && !definition.displayName().equalsIgnoreCase(definition.id())) {
             configuredDisplayName = definition.displayName();

@@ -8,7 +8,7 @@
 
 # 宝石系统主配置
 # version 由资源同步维护
-version: "2.7.1"
+version: "2.7.2"
 
 # 语言文件 ID
 language: "zh_CN"
@@ -88,7 +88,8 @@ permission:
   op_bypass: false
 
 gui:
-  # 默认打开模式: inlay | open。取出模式在 inlay GUI 内手动切换。
+  # 默认打开模式: inlay | upgrade | open。取出模式在 inlay GUI 内手动切换。
+  # upgrade 为宝石阶段升级模式，实际材料与费用由 EmakiStrengthen 的同名配方定义。
   default_mode: "inlay"
   # 关闭界面时是否自动保存状态
   save_on_close: false

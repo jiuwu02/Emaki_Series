@@ -16,8 +16,10 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -131,8 +133,13 @@ public final class EnhancementAttemptService {
             updated = plan.pity();
         }
         int resultingLevel = success ? plan.currentLevel() + 1 : plan.currentLevel();
-        return new EnhancementAttemptResult(true, success, "", Map.of(),
+        Map<String, String> resultPlaceholders = Map.of("operation_id", operation);
+        EnhancementAttemptResult result = new EnhancementAttemptResult(true, success, "", resultPlaceholders,
                 plan.currentLevel(), resultingLevel, plan.effectiveRate(), updated.counter(), plan.pity().triggered());
+        if (plugin.actionCoordinator() != null) {
+            plugin.actionCoordinator().triggerEnhancementActions(player, recipe, target, result, operation);
+        }
+        return result;
     }
 
     /**
@@ -377,6 +384,8 @@ public final class EnhancementAttemptService {
         }
         List<MaterialMatch> matches = new ArrayList<>();
         Map<ItemStack, Integer> consumedPerStack = new IdentityHashMap<>();
+        // 目标在整轮匹配中不变，只识别一次；候选逐个识别。
+        ItemSourceRef targetSource = identifySource(target);
         for (int slotIndex = 0; slotIndex < recipe.materials().size(); slotIndex++) {
             MaterialSlotConfig slot = recipe.materials().get(slotIndex);
             int required = Math.max(0, slot.quantity().resolveInt(variables));
@@ -391,7 +400,7 @@ public final class EnhancementAttemptService {
                 }
                 int alreadyUsed = consumedPerStack.getOrDefault(candidate, 0);
                 int available = candidate.getAmount() - alreadyUsed;
-                if (available <= 0 || !testMatcher(slot, candidate, target, player, variables)) {
+                if (available <= 0 || !testMatcher(slot, candidate, target, targetSource, player, variables)) {
                     continue;
                 }
                 int take = Math.min(available, remaining);
@@ -410,14 +419,31 @@ public final class EnhancementAttemptService {
     private boolean testMatcher(MaterialSlotConfig slot,
             ItemStack candidate,
             ItemStack target,
+            @Nullable ItemSourceRef targetSource,
             Player player,
             VariableContext variables) {
         try {
-            MatchContext context = new MatchContext(candidate, null, player, target, null, variables);
+            // item_source / compare_target 匹配器依赖已识别的物品源；缺失时它们只会一律判否。
+            MatchContext context = new MatchContext(candidate, identifySource(candidate), player,
+                    target, targetSource, variables);
             return slot.matcher().test(context);
         } catch (RuntimeException | LinkageError exception) {
             warn("材料 Matcher 判定抛出异常，视为不匹配", exception);
             return false;
+        }
+    }
+
+    /** {@return 物品对应的物品源引用；无法识别时为 {@code null}} */
+    private @Nullable ItemSourceRef identifySource(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir() || plugin == null) {
+            return null;
+        }
+        try {
+            ItemSourceService itemSourceService = plugin.coreItemSourceService();
+            return itemSourceService == null ? null : itemSourceService.identifyItem(itemStack);
+        } catch (RuntimeException | LinkageError exception) {
+            warn("识别材料物品源失败", exception);
+            return null;
         }
     }
 

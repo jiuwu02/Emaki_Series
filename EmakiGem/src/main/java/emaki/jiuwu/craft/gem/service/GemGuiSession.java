@@ -1,5 +1,9 @@
 package emaki.jiuwu.craft.gem.service;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
@@ -14,6 +18,8 @@ final class GemGuiSession implements GemPlayerGuiSession {
     private String currentTemplateId = "";
     private boolean templateSwitching;
     private ItemStack targetItem;
+    private final List<ItemStack> upgradeMaterials = new ArrayList<>();
+    private boolean processing;
     private PendingOperation pendingOperation = PendingOperation.none();
 
     GemGuiSession(Player player) {
@@ -79,6 +85,62 @@ final class GemGuiSession implements GemPlayerGuiSession {
         this.targetItem = cloneNonAir(targetItem);
         if (clearPending) {
             clearPendingOperation();
+        }
+    }
+
+    public ItemStack upgradeMaterial(int index) {
+        return index < 0 || index >= upgradeMaterials.size() ? null : cloneNonAir(upgradeMaterials.get(index));
+    }
+
+    public List<ItemStack> upgradeMaterials() {
+        if (upgradeMaterials.isEmpty()) {
+            return List.of();
+        }
+        List<ItemStack> copy = new ArrayList<>(upgradeMaterials.size());
+        for (ItemStack itemStack : upgradeMaterials) {
+            copy.add(cloneNonAir(itemStack));
+        }
+        return Collections.unmodifiableList(copy);
+    }
+
+    public void setUpgradeMaterial(int index, ItemStack itemStack) {
+        if (index < 0) {
+            return;
+        }
+        while (upgradeMaterials.size() <= index) {
+            upgradeMaterials.add(null);
+        }
+        upgradeMaterials.set(index, cloneNonAir(itemStack));
+        trimUpgradeMaterials();
+    }
+
+    public void setUpgradeMaterials(List<ItemStack> materials) {
+        upgradeMaterials.clear();
+        if (materials != null) {
+            for (ItemStack material : materials) {
+                upgradeMaterials.add(cloneNonAir(material));
+            }
+        }
+        trimUpgradeMaterials();
+    }
+
+    public List<ItemStack> takeUpgradeMaterials() {
+        List<ItemStack> materials = upgradeMaterials();
+        upgradeMaterials.clear();
+        return materials;
+    }
+
+    public boolean processing() {
+        return processing;
+    }
+
+    public void setProcessing(boolean processing) {
+        this.processing = processing;
+    }
+
+    private void trimUpgradeMaterials() {
+        while (!upgradeMaterials.isEmpty() && upgradeMaterials.get(upgradeMaterials.size() - 1) == null) {
+            upgradeMaterials.remove(upgradeMaterials.size() - 1);
         }
     }
 

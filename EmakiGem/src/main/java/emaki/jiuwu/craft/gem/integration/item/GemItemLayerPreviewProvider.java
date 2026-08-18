@@ -89,7 +89,7 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
         if (!inlay) {
             return new PreviewSelection(slotIndex, null, 1, false);
         }
-        int level = gem == null ? 1 : Numbers.clamp(Numbers.tryParseInt(requestOptions.get("level"), gem.level()), 1, gem.upgrade().maxLevel());
+        int level = gem == null ? 1 : Numbers.clamp(Numbers.tryParseInt(requestOptions.get("level"), gem.level()), 1, gem.stages().maxLevel());
         return new PreviewSelection(slotIndex, gem, level, gem != null);
     }
 
@@ -205,7 +205,7 @@ public final class GemItemLayerPreviewProvider implements ItemLayerPreviewProvid
             gemMap.put("displayName", gem.displayName());
             gemMap.put("type", gem.gemType());
             gemMap.put("level", gem.level());
-            gemMap.put("maxLevel", gem.upgrade().maxLevel());
+            gemMap.put("maxLevel", gem.stages().maxLevel());
             gemMap.put("actionCount", gem.inlaySuccessActions().size());
             gemMap.put("nameActionCount", actionCount(gem.nameActionsForLevel(gem.level())));
             gemMap.put("loreActionCount", actionCount(gem.loreActionsForLevel(gem.level())));

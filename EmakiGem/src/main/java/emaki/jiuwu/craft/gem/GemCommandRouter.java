@@ -74,7 +74,7 @@ final class GemCommandRouter implements TabExecutor {
         if (args.length == 2) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "gui" -> {
-                    for (String sub : List.of("inlay", "open")) {
+                    for (String sub : List.of("inlay", "upgrade", "open")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
@@ -140,6 +140,7 @@ final class GemCommandRouter implements TabExecutor {
         }
         return switch (args[1].toLowerCase(Locale.ROOT)) {
             case "inlay" -> handleGui(sender, GemGuiMode.INLAY);
+            case "upgrade" -> handleGui(sender, GemGuiMode.UPGRADE);
             case "open" -> handleGui(sender, GemGuiMode.OPEN_SOCKET);
             default -> {
                 plugin.messageService().send(sender, "general.invalid_args");
@@ -212,7 +213,7 @@ final class GemCommandRouter implements TabExecutor {
         ms.sendRaw(sender, ms.message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", ms.message("command.help.desc.help"));
-        lines.put("gui [inlay|open]", ms.message("command.help.desc.gui"));
+        lines.put("gui [inlay|upgrade|open]", ms.message("command.help.desc.gui"));
         lines.put("reload", ms.message("command.help.desc.reload"));
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));

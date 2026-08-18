@@ -1,5 +1,10 @@
 package emaki.jiuwu.craft.strengthen.apiimpl;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -12,10 +17,16 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.StrengthenOperations;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
@@ -59,6 +70,74 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             return EmakiResult.failure(attemptFailureKind(reasonKey), reasonKey, result.replacements());
         } catch (RuntimeException | LinkageError exception) {
             return EmakiResult.internalError("strengthen.error.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<EnhancementAttemptOutcome> attemptEnhancement(@Nullable Player player,
+            @Nullable EnhancementAttemptContext context) {
+        EmakiResult<EnhancementAttemptOutcome> validation = validatePlayer(player,
+                "strengthen.enhancement.no_player");
+        if (validation != null) {
+            return validation;
+        }
+        if (context == null || context.targetItem() == null || Texts.isBlank(context.recipeId())) {
+            return EmakiResult.invalidInput("strengthen.enhancement.invalid_request");
+        }
+        EnhancementAttemptService service = plugin.enhancementAttemptService();
+        EnhancementRecipe recipe = plugin.enhancementRecipeLoader() == null
+                ? null
+                : plugin.enhancementRecipeLoader().get(context.recipeId());
+        if (service == null || !plugin.contentReady()) {
+            return EmakiResult.unavailable();
+        }
+        if (recipe == null) {
+            return EmakiResult.notFound("strengthen.enhancement.recipe_not_found");
+        }
+        try {
+            ItemStack target = context.targetItem();
+            List<ItemStack> materials = new ArrayList<>(context.materialInputs());
+            EnhancementAttemptResult result = service.attempt(player, recipe, target, materials,
+                    context.operationId());
+            if (result == null) {
+                return EmakiResult.internalError("strengthen.enhancement.internal");
+            }
+            Map<String, Object> replacements = new LinkedHashMap<>();
+            result.toPlaceholders().forEach(replacements::put);
+            replacements.put("recipe_id", recipe.id());
+            String operationId = result.placeholders().getOrDefault("operation_id", context.operationId());
+            replacements.put("operation_id", operationId);
+            AttemptOutcome outcome = result.committed()
+                    ? (result.success() ? AttemptOutcome.COMMITTED_SUCCESS : AttemptOutcome.COMMITTED_FAILURE)
+                    : ("strengthen.error.compensation_pending".equals(result.errorKey())
+                            ? AttemptOutcome.COMPENSATION_PENDING
+                            : AttemptOutcome.NOT_COMMITTED);
+            EnhancementAttemptOutcome payload = new EnhancementAttemptOutcome(
+                    outcome,
+                    result.success(),
+                    recipe.id(),
+                    target,
+                    materials,
+                    result.previousLevel(),
+                    result.resultingLevel(),
+                    result.successRate(),
+                    result.pityCounter(),
+                    result.pityTriggered(),
+                    operationId,
+                    replacements
+            );
+            if (result.committed()) {
+                return EmakiResult.success(payload);
+            }
+            String reasonKey = Texts.isBlank(result.errorKey())
+                    ? "strengthen.enhancement.attempt_failed"
+                    : result.errorKey();
+            if (outcome == AttemptOutcome.COMPENSATION_PENDING) {
+                return EmakiResult.partial(payload, reasonKey);
+            }
+            return EmakiResult.failure(enhancementFailureKind(reasonKey), reasonKey, replacements);
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
         }
     }
 
@@ -241,6 +320,20 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
             case "strengthen.error.no_recipe" -> FailureKind.NOT_FOUND;
             case "strengthen.error.internal", "strengthen.error.rebuild_failed",
                     "strengthen.error.economy_provider_unavailable" -> FailureKind.INTERNAL_ERROR;
+            default -> FailureKind.REJECTED;
+        };
+    }
+
+    private static FailureKind enhancementFailureKind(String reasonKey) {
+        return switch (reasonKey) {
+            case "strengthen.enhancement.recipe_not_found",
+                    "strengthen.enhancement.provider_not_found" -> FailureKind.NOT_FOUND;
+            case "strengthen.enhancement.invalid_request",
+                    "strengthen.enhancement.no_target" -> FailureKind.INVALID_INPUT;
+            case "strengthen.enhancement.cancelled" -> FailureKind.CANCELLED;
+            case "strengthen.enhancement.internal",
+                    "strengthen.enhancement.write_failed",
+                    "strengthen.enhancement.economy_unavailable" -> FailureKind.INTERNAL_ERROR;
             default -> FailureKind.REJECTED;
         };
     }

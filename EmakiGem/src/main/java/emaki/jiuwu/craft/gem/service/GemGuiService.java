@@ -49,6 +49,10 @@ public final class GemGuiService {
     }
 
     public boolean open(Player player, GemGuiMode mode) {
+        return open(player, mode, null);
+    }
+
+    public boolean open(Player player, GemGuiMode mode, ItemStack initialItem) {
         if (player == null) {
             return false;
         }
@@ -57,13 +61,9 @@ public final class GemGuiService {
             return false;
         }
         return switch (normalizeMode(mode)) {
-            case INLAY, EXTRACT -> openEmptyGem(player, mode);
-            case OPEN_SOCKET -> openSocket(player, null);
+            case INLAY, UPGRADE, EXTRACT -> openGem(player, mode, initialItem);
+            case OPEN_SOCKET -> openSocket(player, initialItem);
         };
-    }
-
-    public boolean open(Player player, GemGuiMode mode, ItemStack initialItem) {
-        return open(player, mode);
     }
 
     public boolean openSocket(Player player) {
@@ -103,10 +103,6 @@ public final class GemGuiService {
             state.setTemplateSwitching(false);
         }
         return opened;
-    }
-
-    private boolean openEmptyGem(Player player, GemGuiMode mode) {
-        return openGem(player, mode, null);
     }
 
     private boolean openGem(Player player, GemGuiMode mode, ItemStack initialTarget) {
@@ -246,6 +242,7 @@ public final class GemGuiService {
     }
 
     private GemGuiMode normalizeGemMode(GemGuiMode mode) {
-        return GemGuiMode.INLAY;
+        GemGuiMode normalized = normalizeMode(mode);
+        return normalized == GemGuiMode.OPEN_SOCKET ? GemGuiMode.INLAY : normalized;
     }
 }

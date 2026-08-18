@@ -75,9 +75,9 @@
         <emaki.item.api.version>2.7.3</emaki.item.api.version>
         <emaki.skills.api.version>2.7.3</emaki.skills.api.version>
         <emaki.forge.api.version>4.7.2</emaki.forge.api.version>
-        <emaki.strengthen.api.version>4.7.4</emaki.strengthen.api.version>
+        <emaki.strengthen.api.version>4.7.5</emaki.strengthen.api.version>
         <emaki.cooking.api.version>4.2.1</emaki.cooking.api.version>
-        <emaki.gem.api.version>2.7.1</emaki.gem.api.version>
+        <emaki.gem.api.version>2.7.2</emaki.gem.api.version>
         <emaki.level.api.version>1.5.1</emaki.level.api.version>
         <emaki.codex.api.version>1.0.0</emaki.codex.api.version>
         <emaki.storage.api.version>1.0.1</emaki.storage.api.version>

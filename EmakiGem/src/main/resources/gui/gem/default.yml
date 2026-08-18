@@ -28,13 +28,14 @@ slots:
         tooltip_display:
           hide_tooltip: true
 
+  # 39/40/42 分别由 mode_inlay / mode_extract / mode_upgrade 占用，不能重复声明：
+  # GuiTemplate 用无序 Map 解析槽位，重复声明会让同一格由哪个定义生效变得不确定。
   bottom_frame:
     slots:
       - 36
       - 37
       - 38
       - 41
-      - 42
       - 43
       - 44
     item:
@@ -164,6 +165,17 @@ slots:
         custom_name: "<green>镶嵌模式</green>"
         lore:
           - "<gray>拖着宝石点击已开孔的空槽进入镶嵌预览</gray>"
+
+  mode_upgrade:
+    slots:
+      - 42
+    type: "mode_upgrade"
+    item:
+      source: "PURPLE_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<light_purple>升级模式</light_purple>"
+        lore:
+          - "<gray>放入宝石与强化材料，使用 Strengthen 执行升级</gray>"
 
   mode_extract:
     slots:

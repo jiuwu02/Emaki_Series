@@ -1,6 +1,10 @@
 package emaki.jiuwu.craft.gem.integration.strengthen;
 
+import java.util.List;
 import java.util.logging.Level;
+
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.readiness.ModuleReadinessPhase;
@@ -8,6 +12,8 @@ import emaki.jiuwu.craft.corelib.api.readiness.ReadinessRegistration;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 
 /**
  * 负责把 {@link GemEnhancementTargetProvider} 注册进 EmakiStrengthen 的强化目标注册中心。
@@ -58,6 +64,37 @@ public final class GemStrengthenIntegration {
             EmakiStrengthenApi.operations().unregisterEnhancementTarget(GemEnhancementTargetProvider.PROVIDER_ID);
         } catch (RuntimeException | LinkageError _) {
             // Strengthen 可能已先于 Gem 卸载；此处无需处理。
+        }
+    }
+
+    /** {@return Strengthen 运行时与公开 API 当前是否均可用} */
+    public boolean available() {
+        try {
+            return EmakiCoreLibApi.isModuleReady(STRENGTHEN_MODULE) && EmakiStrengthenApi.status().usable();
+        } catch (RuntimeException | LinkageError _) {
+            return false;
+        }
+    }
+
+    /**
+     * 通过 Strengthen 的公开 API 执行一次宝石升级；调用方负责把返回物品写回 GUI 会话。
+     */
+    public EmakiResult<EnhancementAttemptOutcome> attemptUpgrade(Player player,
+            String recipeId,
+            ItemStack target,
+            List<ItemStack> materials,
+            String operationId) {
+        if (!available()) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            return EmakiStrengthenApi.operations().attemptEnhancement(player,
+                    EnhancementAttemptContext.of(recipeId, target, materials, operationId));
+        } catch (RuntimeException | LinkageError exception) {
+            if (plugin != null && plugin.getLogger() != null) {
+                plugin.getLogger().log(Level.WARNING, "通过强化框架执行宝石升级失败。", exception);
+            }
+            return EmakiResult.internalError("strengthen.enhancement.internal");
         }
     }
 

@@ -1,10 +1,13 @@
 package emaki.jiuwu.craft.gem.service;
 
+import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
@@ -17,6 +20,7 @@ import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 
 final class GemGuiInteractionController {
 
@@ -62,6 +66,10 @@ final class GemGuiInteractionController {
     }
 
     private void handleSocketClick(GemGuiSession state, GuiClickContext click, int displayIndex) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            handleUpgradeMaterialClick(state, click, displayIndex);
+            return;
+        }
         ItemStack targetItem = state.mutableTargetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         if (itemDefinition == null) {
@@ -140,9 +148,33 @@ final class GemGuiInteractionController {
         renderer.refreshGui(state);
     }
 
+    private void handleUpgradeMaterialClick(GemGuiSession state, GuiClickContext click, int displayIndex) {
+        if (state == null || click == null || displayIndex < 0 || state.processing()) {
+            return;
+        }
+        ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
+        ItemStack currentItem = state.upgradeMaterial(displayIndex);
+        state.setUpgradeMaterial(displayIndex, cursorItem);
+        click.setCursor(currentItem);
+        renderer.refreshGui(state);
+    }
+
     private void handleTargetItemClick(GemGuiSession state, GuiClickContext click) {
         ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
         ItemStack targetItem = state.targetItem();
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            GemItemInstance instance = plugin.itemMatcher().readGemInstance(cursorItem);
+            GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+            if (cursorItem != null && (definition == null || !definition.stages().enabled())) {
+                plugin.messageService().send(state.player(), "gui.gem.upgrade_invalid_target");
+                return;
+            }
+            returnPendingInput(state);
+            state.setTargetItem(cursorItem);
+            click.setCursor(targetItem);
+            renderer.refreshGui(state);
+            return;
+        }
         if (cursorItem != null && plugin.stateService().resolveItemDefinition(cursorItem) == null) {
             plugin.messageService().send(state.player(), "gui.gem.invalid_target");
             return;
@@ -154,6 +186,10 @@ final class GemGuiInteractionController {
     }
 
     private void handleConfirm(GemGuiSession state) {
+        if (state.mode() == GemGuiMode.UPGRADE) {
+            executeUpgrade(state);
+            return;
+        }
         GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
         if (!pendingOperation.active()) {
             plugin.messageService().send(state.player(), "gui.gem.no_pending_action");
@@ -170,6 +206,94 @@ final class GemGuiInteractionController {
             case EXTRACT -> executeExtract(state, pendingOperation, player, targetItem);
             default -> plugin.messageService().send(player, "gui.gem.no_pending_action");
         }
+    }
+
+    private void executeUpgrade(GemGuiSession state) {
+        if (state.processing()) {
+            return;
+        }
+        Player player = state.player();
+        ItemStack targetItem = state.mutableTargetItem();
+        GemItemInstance instance = plugin.itemMatcher().readGemInstance(targetItem);
+        GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
+        if (player == null || targetItem == null || definition == null || !definition.stages().enabled()) {
+            plugin.messageService().send(player, "gui.gem.upgrade_target_required");
+            return;
+        }
+        int nextLevel = instance.level() + 1;
+        if (instance.level() >= definition.stages().maxLevel() || definition.stage(nextLevel) == null) {
+            plugin.messageService().send(player, "gui.gem.upgrade_max_level", Map.of(
+                    "level", instance.level(),
+                    "max_level", definition.stages().maxLevel()
+            ));
+            return;
+        }
+        if (plugin.strengthenIntegration() == null || !plugin.strengthenIntegration().available()) {
+            plugin.messageService().send(player, "gui.gem.upgrade_unavailable");
+            return;
+        }
+
+        state.setProcessing(true);
+        try {
+            EmakiResult<EnhancementAttemptOutcome> result = plugin.strengthenIntegration().attemptUpgrade(
+                    player,
+                    definition.id(),
+                    targetItem,
+                    state.upgradeMaterials(),
+                    "gem-upgrade:" + player.getUniqueId() + ":" + UUID.randomUUID()
+            );
+            if (result instanceof EmakiResult.Success<?> success
+                    && success.value() instanceof EnhancementAttemptOutcome outcome) {
+                applyUpgradeOutcome(state, player, outcome);
+            } else if (result instanceof EmakiResult.Partial<?> partial
+                    && partial.value() instanceof EnhancementAttemptOutcome outcome) {
+                state.setTargetItem(outcome.resultItem());
+                state.setUpgradeMaterials(outcome.materialInputs());
+                plugin.messageService().send(player, "gui.gem.upgrade_compensation_pending", Map.of(
+                        "operation_id", outcome.operationId()
+                ));
+            } else if (result instanceof EmakiResult.Failure<?> failure) {
+                sendUpgradeFailure(player, failure.reasonKey(), failure.placeholders());
+            } else {
+                plugin.messageService().send(player, "gui.gem.upgrade_failed", Map.of("reason", "unknown_result"));
+            }
+        } finally {
+            state.setProcessing(false);
+            renderer.refreshGui(state);
+        }
+    }
+
+    private void applyUpgradeOutcome(GemGuiSession state, Player player, EnhancementAttemptOutcome outcome) {
+        state.setTargetItem(outcome.resultItem());
+        state.setUpgradeMaterials(outcome.materialInputs());
+        plugin.messageService().send(player,
+                outcome.success() ? "gui.gem.upgrade_success" : "gui.gem.upgrade_roll_failed",
+                Map.of(
+                        "previous_level", outcome.previousLevel(),
+                        "resulting_level", outcome.resultingLevel(),
+                        "success_rate", outcome.successRate(),
+                        "pity_counter", outcome.pityCounter(),
+                        "operation_id", outcome.operationId()
+                ));
+    }
+
+    private void sendUpgradeFailure(Player player, String reasonKey, Map<String, Object> placeholders) {
+        // 这些键取自 EnhancementAttemptService/DefaultStrengthenOperations 的实际返回值；
+        // 强化框架的业务失败用 strengthen.error.*，只有请求层校验才用 strengthen.enhancement.*。
+        String messageKey = switch (Texts.toStringSafe(reasonKey)) {
+            case "emaki.api.unavailable", "strengthen.enhancement.provider_not_found" -> "gui.gem.upgrade_unavailable";
+            case "strengthen.error.no_recipe", "strengthen.enhancement.recipe_not_found" -> "gui.gem.upgrade_recipe_missing";
+            case "strengthen.error.material_missing" -> "gui.gem.upgrade_materials_invalid";
+            case "strengthen.error.insufficient_funds" -> "gui.gem.upgrade_insufficient_funds";
+            case "strengthen.error.economy_provider_unavailable" -> "gui.gem.upgrade_economy_unavailable";
+            case "strengthen.error.rebuild_failed" -> "gui.gem.upgrade_write_failed";
+            case "strengthen.error.no_target", "strengthen.enhancement.invalid_request" -> "gui.gem.upgrade_target_required";
+            case "strengthen.error.compensation_pending" -> "gui.gem.upgrade_compensation_pending";
+            default -> "gui.gem.upgrade_failed";
+        };
+        Map<String, Object> values = new java.util.LinkedHashMap<>(placeholders == null ? Map.of() : placeholders);
+        values.put("reason", Texts.toStringSafe(reasonKey));
+        plugin.messageService().send(player, messageKey, values);
     }
 
     private void executeInlay(GemGuiSession state, GemGuiSession.PendingOperation pendingOperation, Player player, ItemStack targetItem) {
@@ -254,6 +378,30 @@ final class GemGuiInteractionController {
         }
     }
 
+    private void switchMode(GemGuiSession state, GemGuiMode mode) {
+        if (state.mode() == mode) {
+            renderer.refreshGui(state);
+            return;
+        }
+        returnPendingInput(state);
+        if (state.mode() == GemGuiMode.UPGRADE && mode != GemGuiMode.UPGRADE) {
+            returnUpgradeMaterials(state);
+        }
+        state.setMode(mode);
+        renderer.refreshGui(state);
+    }
+
+    private void returnUpgradeMaterials(GemGuiSession state) {
+        if (state == null) {
+            return;
+        }
+        for (ItemStack material : state.takeUpgradeMaterials()) {
+            if (material != null && !material.getType().isAir()) {
+                InventoryItemUtil.giveOrDrop(state.player(), material);
+            }
+        }
+    }
+
     private ItemStack consumeOneFromCursor(GuiClickContext click) {
         ItemStack cursorItem = InventoryItemUtil.cloneNonAir(click.cursorItem());
         if (cursorItem == null) {
@@ -285,20 +433,9 @@ final class GemGuiInteractionController {
             }
             switch (Texts.lower(slot.definition().type())) {
                 case "target_item" -> handleTargetItemClick(state, click);
-                case "mode_inlay" -> {
-                    if (state.mode() != GemGuiMode.INLAY) {
-                        returnPendingInput(state);
-                        state.setMode(GemGuiMode.INLAY);
-                    }
-                    renderer.refreshGui(state);
-                }
-                case "mode_extract" -> {
-                    if (state.mode() != GemGuiMode.EXTRACT) {
-                        returnPendingInput(state);
-                        state.setMode(GemGuiMode.EXTRACT);
-                    }
-                    renderer.refreshGui(state);
-                }
+                case "mode_inlay" -> switchMode(state, GemGuiMode.INLAY);
+                case "mode_upgrade" -> switchMode(state, GemGuiMode.UPGRADE);
+                case "mode_extract" -> switchMode(state, GemGuiMode.EXTRACT);
                 case "socket_slot" -> handleSocketClick(state, click, slot.slotIndex());
                 case "confirm" -> handleConfirm(state);
                 default -> {
@@ -335,6 +472,7 @@ final class GemGuiInteractionController {
             if (pendingInput != null) {
                 InventoryItemUtil.giveOrDrop(state.player(), pendingInput);
             }
+            returnUpgradeMaterials(state);
             state.clearPendingOperation();
             if (cursorItem != null) {
                 InventoryItemUtil.giveOrDrop(state.player(), cursorItem);

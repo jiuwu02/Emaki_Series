@@ -33,7 +33,7 @@ public final class GemDefinition {
     private final CostConfig inlayCost;
     private final CostConfig extractCost;
     private final ExtractReturn extractReturn;
-    private final UpgradeConfig upgrade;
+    private final StageConfig stages;
     private final List<String> inlaySuccessActions;
     private final List<String> extractSuccessActions;
 
@@ -55,7 +55,7 @@ public final class GemDefinition {
             CostConfig inlayCost,
             CostConfig extractCost,
             ExtractReturn extractReturn,
-            UpgradeConfig upgrade,
+            StageConfig stages,
             List<String> inlaySuccessActions,
             List<String> extractSuccessActions) {
         this.id = Texts.lower(id);
@@ -76,7 +76,7 @@ public final class GemDefinition {
         this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
         this.extractCost = extractCost == null ? CostConfig.none() : extractCost;
         this.extractReturn = extractReturn == null ? ExtractReturn.defaults() : extractReturn;
-        this.upgrade = upgrade == null ? UpgradeConfig.disabled() : upgrade;
+        this.stages = stages == null ? StageConfig.disabled() : stages;
         this.inlaySuccessActions = inlaySuccessActions == null ? List.of() : List.copyOf(inlaySuccessActions);
         this.extractSuccessActions = extractSuccessActions == null ? List.of() : List.copyOf(extractSuccessActions);
     }
@@ -153,8 +153,8 @@ public final class GemDefinition {
         return extractReturn;
     }
 
-    public UpgradeConfig upgrade() {
-        return upgrade;
+    public StageConfig stages() {
+        return stages;
     }
 
     public List<String> inlaySuccessActions() {
@@ -174,8 +174,8 @@ public final class GemDefinition {
     }
 
     public String displayNameForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel != null && Texts.isNotBlank(upgradeLevel.displayName()) ? upgradeLevel.displayName() : displayName;
+        GemStage stage = stages.stage(level);
+        return stage != null && Texts.isNotBlank(stage.displayName()) ? stage.displayName() : displayName;
     }
 
     public Map<String, Double> statsForLevel(int level) {
@@ -187,32 +187,37 @@ public final class GemDefinition {
     }
 
     private Map<String, Object> rawStatsForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel == null || upgradeLevel.stats().isEmpty() ? stats : upgradeLevel.stats();
+        GemStage stage = stages.stage(level);
+        return stage == null || stage.stats().isEmpty() ? stats : stage.stats();
     }
 
     private Map<String, Object> rawAttributesForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel == null || upgradeLevel.attributes().isEmpty() ? attributes : upgradeLevel.attributes();
+        GemStage stage = stages.stage(level);
+        return stage == null || stage.attributes().isEmpty() ? attributes : stage.attributes();
     }
 
     public List<String> skillIdsForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel == null || upgradeLevel.skillIds().isEmpty() ? skillIds : upgradeLevel.skillIds();
+        GemStage stage = stages.stage(level);
+        return stage == null || stage.skillIds().isEmpty() ? skillIds : stage.skillIds();
     }
 
     public Object nameActionsForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel != null && upgradeLevel.nameActions() != null ? upgradeLevel.nameActions() : nameActions;
+        GemStage stage = stages.stage(level);
+        return stage != null && stage.nameActions() != null ? stage.nameActions() : nameActions;
     }
 
     public Object loreActionsForLevel(int level) {
-        GemUpgradeLevel upgradeLevel = upgrade.level(level);
-        return upgradeLevel != null && upgradeLevel.loreActions() != null ? upgradeLevel.loreActions() : loreActions;
+        GemStage stage = stages.stage(level);
+        return stage != null && stage.loreActions() != null ? stage.loreActions() : loreActions;
     }
 
-    public GemUpgradeLevel upgradeLevel(int level) {
-        return upgrade.level(level);
+    public Map<String, String> matricesForLevel(int level) {
+        GemStage stage = stages.stage(level);
+        return stage == null ? Map.of() : stage.matrices();
+    }
+
+    public GemStage stage(int level) {
+        return stages.stage(level);
     }
 
     public static GemDefinition fromConfig(YamlSection section) {
@@ -366,51 +371,40 @@ public final class GemDefinition {
         }
     }
 
-    public record UpgradeConfig(boolean enabled,
+    public record StageConfig(boolean enabled,
             int maxLevel,
-            List<CurrencyCost> currencies,
-            Map<Integer, Double> successRates,
             String guiTemplate,
-            String failurePenalty,
-            Map<Integer, GemUpgradeLevel> levels) {
+            Map<Integer, GemStage> stages) {
 
-        public UpgradeConfig {
+        public StageConfig {
             maxLevel = Math.max(1, maxLevel);
-            currencies = currencies == null ? List.of() : List.copyOf(currencies);
-            successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
             guiTemplate = Texts.toStringSafe(guiTemplate).trim();
-            failurePenalty = Texts.isBlank(failurePenalty) ? "none" : Texts.lower(failurePenalty);
-            levels = levels == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(levels));
+            stages = stages == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stages));
         }
 
-        public static UpgradeConfig disabled() {
-            return new UpgradeConfig(false, 1, List.of(), Map.of(), "", "none", Map.of());
+        public static StageConfig disabled() {
+            return new StageConfig(false, 1, "", Map.of());
         }
 
-        public GemUpgradeLevel level(int level) {
-            return levels.get(Math.max(1, level));
+        public GemStage stage(int level) {
+            return stages.get(Math.max(1, level));
         }
 
-        public static UpgradeConfig fromConfig(YamlSection section) {
-            return GemDefinitionParser.parseUpgradeConfig(section);
+        public static StageConfig fromConfig(YamlSection section) {
+            return GemDefinitionParser.parseStageConfig(section);
         }
     }
 
-    public record GemUpgradeLevel(int targetLevel,
+    public record GemStage(int targetLevel,
             String displayName,
             Map<String, Object> stats,
             Map<String, Object> attributes,
             List<String> skillIds,
             Object nameActions,
             Object loreActions,
-            double successChance,
-            List<CurrencyCost> currencies,
-            String failurePenalty,
-            List<MaterialCost> materials,
-            List<String> successActions,
-            List<String> failureActions) {
+            Map<String, String> matrices) {
 
-        public GemUpgradeLevel {
+        public GemStage {
             targetLevel = Math.max(2, targetLevel);
             displayName = Texts.toStringSafe(displayName);
             stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
@@ -418,16 +412,12 @@ public final class GemDefinition {
             skillIds = normalizeSkillIds(skillIds);
             nameActions = ConfigNodes.toPlainData(nameActions);
             loreActions = ConfigNodes.toPlainData(loreActions);
-            successChance = successChance < 0D ? -1D : Math.max(0D, Math.min(100D, successChance));
-            currencies = currencies == null ? List.of() : List.copyOf(currencies);
-            failurePenalty = Texts.toStringSafe(failurePenalty).trim();
-            materials = materials == null ? List.of() : List.copyOf(materials);
-            successActions = successActions == null ? List.of() : List.copyOf(successActions);
-            failureActions = failureActions == null ? List.of() : List.copyOf(failureActions);
+            matrices = matrices == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(matrices));
         }
 
-        public static GemUpgradeLevel fromConfig(int targetLevel, YamlSection section) {
-            return GemDefinitionParser.parseGemUpgradeLevel(targetLevel, section);
+        public static GemStage fromConfig(int targetLevel, YamlSection section) {
+            return GemDefinitionParser.parseGemStage(targetLevel, section);
         }
     }
+
 }
