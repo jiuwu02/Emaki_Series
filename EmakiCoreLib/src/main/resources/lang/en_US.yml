@@ -9,7 +9,7 @@
 
 # Emaki CoreLib Default Language File
 # version is maintained by resource sync
-version: "4.7.5"
+version: "4.7.7"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -580,7 +580,7 @@ debug:
   console:
     line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
-    status_header: "<gold>========== Debug Status ==========</gold>"
+    status_header: "<gold>========== %plugin% Debug Status ==========</gold>"
     status_enabled: "<green>Debug is enabled</green>"
     status_disabled: "<gray>Debug is disabled</gray>"
     tracked_players: "<gray>Tracked players: <yellow>%players%</yellow></gray>"
@@ -603,6 +603,10 @@ debug:
   item_source:
     resolve: "Resolve item source | input=%input% | result=%result%"
     create: "Create item | source=%source% | amount=%amount% | success=%success%"
+  pdc:
+    skill_payload: "Skill PDC payload mutation | operation=%operation% | item=%item% | amount=%amount% | before=%before% | after=%after% | committed=%committed% | reason=%reason%"
+    mutation: "PDC mutation | operation=%operation% | item=%item% | amount=%amount% | key=%key% | value=%value% | before=%before% | after=%after% | added=%added% | removed=%removed% | changed=%changed% | committed=%committed% | reason=%reason%"
+    cooking_history: "Cooking history PDC mutation | item=%item% | amount=%amount% | key=%key% | before=%before% | after=%after% | recipe=%recipe% | committed=%committed%"
 
 # Command messages
 command:

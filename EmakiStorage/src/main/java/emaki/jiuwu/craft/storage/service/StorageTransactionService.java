@@ -574,7 +574,7 @@ public final class StorageTransactionService {
                 entry == null ? 0L : entry.amount(), source, uniqueNote(key)));
         DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
         if (dl != null) {
-            dl.log("storage", storage.playerId(), "common.storage.withdraw", Map.of(
+            dl.log("storage", storage.playerId(), "storage.withdraw", Map.of(
                     "player", storage.playerId().toString(),
                     "item", textIndexer.identifierOf(key),
                     "amount", String.valueOf(applied),
@@ -712,7 +712,7 @@ public final class StorageTransactionService {
                 entry == null ? 0L : entry.amount(), source, uniqueNote(key)));
         DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
         if (dl != null) {
-            dl.log("storage", storage.playerId(), "common.storage.deposit", Map.of(
+            dl.log("storage", storage.playerId(), "storage.deposit", Map.of(
                     "player", storage.playerId().toString(),
                     "item", textIndexer.identifierOf(key),
                     "amount", String.valueOf(applied),

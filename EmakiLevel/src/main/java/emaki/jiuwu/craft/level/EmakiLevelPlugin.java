@@ -32,7 +32,6 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -111,7 +110,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private EmakiScheduling scheduling;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
-    private LanguageLoader debugLanguageLoader;
     private DebugLogger debugLogger;
     private DebugCommand debugCommand;
     private AbstractMessageService debugMessageService;
@@ -243,8 +241,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         publishLoading();
         closeAttributeBridge();
         messages.load(appConfig.language());
-        debugLanguageLoader.load();
-        debugLanguageLoader.setLanguage(appConfig.language());
         typeLoader.load(appConfig);
         requirementLoader.load();
         sourceRuleLoader.load();
@@ -303,11 +299,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private void initializeServices() {
         messages = new LevelMessageService(this);
         messages.load(appConfig.language());
-        debugLanguageLoader = new LanguageLoader(this);
-        debugLogger = new DebugLogger(this, debugLanguageLoader);
+        debugLogger = new DebugLogger(this, coreLib.languageLoader());
         debugMessageService = new AbstractMessageService(this, messages.message("general.prefix"),
                 messages::message, messages::message);
-        debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES);
+        debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES, getName());
         bootstrapService = new BootstrapService(
                 this,
                 messages,

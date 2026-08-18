@@ -104,7 +104,8 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
         ConfigPrecheckLifecycleSupport.register(new StationConfigPrecheckContributor(this));
         components.messageService().info("console.plugin_starting");

@@ -5,7 +5,7 @@
 # ============================================================
 
 # version 由资源同步维护
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -198,8 +198,7 @@ console:
       directory_not_readable: "目录不可读。"
 
 debug:
-  common:
-    storage:
-      deposit: "存入完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
-      withdraw: "取出完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
-      capacity: "容量重算 | 玩家=%player% | 已用=%used% | 总量=%total% | 溢出=%overflow%"
+  storage:
+    deposit: "存入完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
+    withdraw: "取出完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
+    capacity: "容量重算 | 玩家=%player% | 已用=%used% | 总量=%total% | 溢出=%overflow%"

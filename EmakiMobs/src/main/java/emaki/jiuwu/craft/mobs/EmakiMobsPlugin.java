@@ -59,6 +59,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
+        debugLogger().setFallbackLoader(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).languageLoader());
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         components.messageService().info("console.plugin_starting");
         components.bootstrapService().bootstrap();

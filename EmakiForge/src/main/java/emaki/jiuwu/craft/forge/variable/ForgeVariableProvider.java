@@ -70,27 +70,27 @@ public final class ForgeVariableProvider {
         NamespacedKey nsKey = new NamespacedKey(ForgePdcKeys.NAMESPACE, ForgePdcKeys.FORGE_PARTITION);
 
         // 注册 PDC 键映射：VariableContext 会自动解析这些键
-        builder.withPdc(makeKey(ForgePdcKeys.QUALITY_ID), PersistentDataType.STRING);
-        builder.withPdc(makeKey(ForgePdcKeys.QUALITY_DISPLAY), PersistentDataType.STRING);
-        builder.withPdc(makeKey(ForgePdcKeys.QUALITY_MULTIPLIER), PersistentDataType.STRING);
-        builder.withPdc(makeKey(ForgePdcKeys.FORGE_RECIPE_ID), PersistentDataType.STRING);
+        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_ID));
+        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_DISPLAY));
+        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_MULTIPLIER));
+        builder.withPdcString(makeKey(ForgePdcKeys.FORGE_RECIPE_ID));
 
         // 同时作为显式变量注入（优先级更高，避免 PDC 解析延迟）
         String qualityId = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_ID, PersistentDataType.STRING);
         if (Texts.isNotBlank(qualityId)) {
-            builder.withVariable("forge_quality_id", qualityId);
+            builder.with("forge_quality_id", qualityId);
         }
 
         String qualityDisplay = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_DISPLAY, PersistentDataType.STRING);
         if (Texts.isNotBlank(qualityDisplay)) {
-            builder.withVariable("forge_quality_display", qualityDisplay);
+            builder.with("forge_quality_display", qualityDisplay);
         }
 
         String multiplierStr = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER, PersistentDataType.STRING);
         if (Texts.isNotBlank(multiplierStr)) {
             try {
                 double multiplier = Double.parseDouble(multiplierStr);
-                builder.withVariable("forge_quality_multiplier", multiplier);
+                builder.with("forge_quality_multiplier", multiplier);
             } catch (NumberFormatException ignored) {
                 // 解析失败时跳过，VariableContext.getDouble 会返回 0.0
             }
@@ -98,7 +98,7 @@ public final class ForgeVariableProvider {
 
         String recipeId = PDC_SERVICE.get(item, partition, ForgePdcKeys.FORGE_RECIPE_ID, PersistentDataType.STRING);
         if (Texts.isNotBlank(recipeId)) {
-            builder.withVariable("forge_recipe_id", recipeId);
+            builder.with("forge_recipe_id", recipeId);
         }
 
         return builder;

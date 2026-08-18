@@ -9,7 +9,7 @@
 
 # Emaki CoreLib 默认语言文件
 # version 由资源同步维护
-version: "4.7.5"
+version: "4.7.7"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -555,7 +555,7 @@ debug:
   console:
     line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
-    status_header: "<gold>========== Debug 状态 ==========</gold>"
+    status_header: "<gold>========== %plugin% Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>%players%</yellow></gray>"
@@ -578,6 +578,10 @@ debug:
   item_source:
     resolve: "解析物品来源 | 输入=%input% | 结果=%result%"
     create: "创建物品 | 来源=%source% | 数量=%amount% | 成功=%success%"
+  pdc:
+    skill_payload: "技能 PDC 载荷变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 变更前=%before% | 变更后=%after% | 已提交=%committed% | 原因=%reason%"
+    mutation: "PDC 变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 键=%key% | 值=%value% | 变更前=%before% | 变更后=%after% | 新增=%added% | 移除=%removed% | 修改=%changed% | 已提交=%committed% | 原因=%reason%"
+    cooking_history: "烹饪历史 PDC 变更 | 物品=%item% | 数量=%amount% | 键=%key% | 变更前=%before% | 变更后=%after% | 配方=%recipe% | 已提交=%committed%"
 
 # 命令消息
 command:

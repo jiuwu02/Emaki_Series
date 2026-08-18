@@ -268,7 +268,8 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         externalManaBridge = components.externalManaBridge();
         mythicBridge = components.mythicBridge();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 

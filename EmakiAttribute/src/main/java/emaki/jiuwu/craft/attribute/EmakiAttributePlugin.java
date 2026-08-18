@@ -312,10 +312,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     private void initDebugLogger() {
-        LanguageLoader coreLanguageLoader = new LanguageLoader(this);
-        coreLanguageLoader.load();
-        setDebugLogger(new DebugLogger(this, coreLanguageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        setDebugLogger(new DebugLogger(this, languageLoader));
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
     }
 
     private void registerAttributeBridgeService() {

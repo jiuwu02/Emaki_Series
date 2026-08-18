@@ -247,7 +247,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         affixSelectionService = components.affixSelectionService();
         affixGuiService = components.affixGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 

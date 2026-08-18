@@ -231,7 +231,8 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         inlayService = components.inlayService();
         gemGuiService = components.gemGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 

@@ -188,7 +188,8 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         threadOwnership = components.threadOwnership();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 

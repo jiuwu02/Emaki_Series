@@ -270,7 +270,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         sessionManager = new StorageSessionManager(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 

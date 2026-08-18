@@ -401,7 +401,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         repairService = components.repairService();
         repairGuiService = components.repairGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         commandRouter = new ItemCommandRouter(this, scheduling);
         registerServices(components);
     }

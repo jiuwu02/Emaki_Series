@@ -306,8 +306,8 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         recipeBookGuiService = components.recipeBookGuiService();
         commandRouter = new ForgeCommandRouter(this, executionDispatcher, threadOwnership);
         itemRefreshListener = new ForgeItemRefreshListener(this, executionDispatcher);
-        setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        setDebugLogger(buildDebugLogger(languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
         runtimeSnapshot.set(ForgeRuntimeSnapshot.starting(components, appConfigLoader, languageLoader,
                 messageService, bootstrapService, recipeLoader, guiTemplateLoader));
@@ -589,7 +589,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         DebugLogger previousLogger = debugLogger();
         DebugCommand previousCommand = debugCommand;
         DebugLogger nextLogger = replacementDebugLogger(previousLogger, candidate.languageLoader());
-        DebugCommand nextCommand = new DebugCommand(nextLogger, DEBUG_MODULES);
+        DebugCommand nextCommand = new DebugCommand(nextLogger, DEBUG_MODULES, getName());
         boolean committed = false;
         try {
             nextForgeService.installLookupSnapshot(candidate.lookupSnapshot());
@@ -667,8 +667,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     }
 
+    private DebugLogger buildDebugLogger(LanguageLoader loader) {
+        DebugLogger debugLogger = new DebugLogger(this, loader);
+        debugLogger.setFallbackLoader(coreLib().languageLoader());
+        return debugLogger;
+    }
+
     private DebugLogger replacementDebugLogger(DebugLogger previous, LanguageLoader nextLanguageLoader) {
-        DebugLogger replacement = new DebugLogger(this, nextLanguageLoader);
+        DebugLogger replacement = buildDebugLogger(nextLanguageLoader);
         if (previous == null || !previous.isGlobalEnabled()) {
             return replacement;
         }

@@ -5,7 +5,7 @@
 # ============================================================
 
 # version is maintained by resource synchronisation
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -198,8 +198,7 @@ console:
       directory_not_readable: "The directory is not readable."
 
 debug:
-  common:
-    storage:
-      deposit: "deposit complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
-      withdraw: "withdraw complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
-      capacity: "capacity recomputed | player=%player% | used=%used% | total=%total% | overflow=%overflow%"
+  storage:
+    deposit: "deposit complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
+    withdraw: "withdraw complete | player=%player% | item=%item% | amount=%amount% | balance=%balance%"
+    capacity: "capacity recomputed | player=%player% | used=%used% | total=%total% | overflow=%overflow%"
