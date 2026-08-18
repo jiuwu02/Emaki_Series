@@ -65,6 +65,10 @@ public final class GemItemMatcher {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
+        GemItemInstance snapshot = PDC.readBlob(itemStack, GEM_ITEM_PARTITION, "instance_data", GemItemInstance.CODEC);
+        if (snapshot != null && Texts.isNotBlank(snapshot.gemId())) {
+            return snapshot;
+        }
         String gemId = PDC.get(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING);
         if (Texts.isBlank(gemId)) {
             return null;

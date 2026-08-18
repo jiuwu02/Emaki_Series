@@ -8,6 +8,7 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
 /**
  * 一枚宝石在物品上的实例数据。
@@ -32,6 +33,13 @@ public record GemItemInstance(String gemId,
 
     /** 当前实例数据结构版本。结构变更时递增，供迁移逻辑判断。 */
     public static final int CURRENT_DATA_VERSION = 1;
+
+    /** 独立宝石物品上的完整实例集合快照；兼容旧标量 PDC 字段作为回退来源。 */
+    public static final SnapshotCodec<GemItemInstance> CODEC = SnapshotCodec.versionedYaml(
+            CURRENT_DATA_VERSION,
+            GemItemInstance::toMap,
+            GemItemInstance::fromMap
+    );
 
     public GemItemInstance {
         gemId = Texts.lower(gemId);

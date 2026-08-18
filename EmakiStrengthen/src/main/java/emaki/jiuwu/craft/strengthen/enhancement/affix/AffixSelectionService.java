@@ -44,6 +44,22 @@ public final class AffixSelectionService {
      * @return 可强化词条 key 列表；读不到结构化属性时为空
      */
     public @NotNull List<String> enhanceableAffixes(@Nullable ItemStack itemStack, int maxLevel) {
+        List<String> affixes = affixes(itemStack);
+        if (affixes.isEmpty()) {
+            return List.of();
+        }
+        AffixLayer layer = layerCodec.readOrEmpty(itemStack, 0);
+        return affixes.stream()
+                .filter(key -> maxLevel <= 0 || layer.affix(key).level() < maxLevel)
+                .toList();
+    }
+
+    /**
+     * 列出物品上的全部基础词条，包括已达到强化上限的词条。
+     *
+     * <p>词条强化自己的属性来源必须排除，否则基础来源被移除后，强化增量会反过来把自己保留成候选词条。
+     */
+    public @NotNull List<String> affixes(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || plugin == null
                 || plugin.pdcAttributeGateway() == null) {
             return List.of();
@@ -52,13 +68,12 @@ public final class AffixSelectionService {
         if (bySource.isEmpty()) {
             return List.of();
         }
-        AffixLayer layer = layerCodec.readOrEmpty(itemStack, 0);
-        return bySource.values().stream()
-                .flatMap(attributes -> attributes.keySet().stream())
+        return bySource.entrySet().stream()
+                .filter(entry -> !AffixTargetProvider.ATTRIBUTE_SOURCE_ID.equals(Texts.lower(entry.getKey())))
+                .flatMap(entry -> entry.getValue().keySet().stream())
                 .map(Texts::lower)
                 .filter(Texts::isNotBlank)
                 .distinct()
-                .filter(key -> maxLevel <= 0 || layer.affix(key).level() < maxLevel)
                 .sorted()
                 .toList();
     }

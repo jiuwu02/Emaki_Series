@@ -56,6 +56,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
+    private static final String AFFIX_PDC_ATTRIBUTE_SOURCE_ID = AffixTargetProvider.ATTRIBUTE_SOURCE_ID;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
@@ -95,6 +96,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         StrengthenAttributeBridge pdcAttributeGateway = new StrengthenAttributeBridgeHolder(plugin.getLogger());
         pdcAttributeGateway.syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+        StrengthenAttributeBridge affixAttributeGateway = new StrengthenAttributeBridgeHolder(plugin.getLogger());
+        affixAttributeGateway.syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
         StrengthenRecipeResolver recipeResolver = new StrengthenRecipeResolver(
                 plugin,
                 coreLibPlugin.itemAssemblyService(),
@@ -126,7 +129,12 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         enhancementTargetRegistry.register(new EquipmentTargetProvider(plugin));
         AffixLayerCodec affixLayerCodec = new AffixLayerCodec(new PdcService("emaki_strengthen", "pdc", plugin.debugLogger()));
         AffixSelectionService affixSelectionService = new AffixSelectionService(plugin, affixLayerCodec);
-        AffixTargetProvider affixTargetProvider = new AffixTargetProvider(plugin, affixLayerCodec, affixSelectionService);
+        AffixTargetProvider affixTargetProvider = new AffixTargetProvider(
+                plugin,
+                affixLayerCodec,
+                affixSelectionService,
+                affixAttributeGateway
+        );
         enhancementTargetRegistry.register(affixTargetProvider);
         InMemoryPityStateStore pityStateStore = new InMemoryPityStateStore();
         EnhancementAttemptService enhancementAttemptService = new EnhancementAttemptService(
@@ -154,6 +162,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 guiService,
                 coreLibPlugin.itemSourceService(),
                 pdcAttributeGateway,
+                affixAttributeGateway,
                 recipeResolver,
                 chanceCalculator,
                 economyService,
@@ -202,8 +211,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             if (plugin.pityStateStore() != null) {
                 plugin.pityStateStore().clear();
             }
-                plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+            plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
             plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+            plugin.messageService().info("console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
             plugin.refreshService().refreshOnlinePlayers();
             plugin.messageService().info("console.recipes_loaded", Map.of(
                     "count", String.valueOf(plugin.recipeLoader().all().size())
@@ -261,8 +272,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 if (plugin.pityStateStore() != null) {
                     plugin.pityStateStore().clear();
                 }
-            plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
+                plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.messageService().info("console.pdc_source_registered", Map.of("source", PDC_ATTRIBUTE_SOURCE_ID));
+                plugin.messageService().info("console.pdc_source_registered", Map.of("source", AFFIX_PDC_ATTRIBUTE_SOURCE_ID));
                 plugin.refreshService().refreshOnlinePlayers();
                 plugin.messageService().info("console.recipes_loaded", Map.of(
                         "count", String.valueOf(plugin.recipeLoader().all().size())
@@ -291,6 +304,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
+        }
+        if (plugin.affixAttributeGateway() != null) {
+            plugin.affixAttributeGateway().shutdown();
         }
     }
 

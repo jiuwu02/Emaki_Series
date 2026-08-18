@@ -62,7 +62,9 @@ final class GemDefinitionParser {
                 parseCostConfig(section.getSection("inlay_cost")),
                 parseCostConfig(section.getSection("extract_cost")),
                 parseExtractReturn(section.getSection("extract_return")),
-                parseUpgradeConfig(section.getSection("upgrade")),
+                parseUpgradeConfig(section.contains("upgrade")
+                        ? section.getSection("upgrade")
+                        : section.getSection("stages")),
                 parseActionLines(section.getSection("actions"), "inlay_success"),
                 parseActionLines(section.getSection("actions"), "extract_success")
         );

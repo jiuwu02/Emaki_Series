@@ -100,6 +100,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private StrengthenAttributeBridge pdcAttributeGateway;
+    private StrengthenAttributeBridge affixAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -229,6 +230,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         guiService = components.guiService();
         coreItemSourceService = components.coreItemSourceService();
         pdcAttributeGateway = components.pdcAttributeGateway();
+        affixAttributeGateway = components.affixAttributeGateway();
         recipeResolver = components.recipeResolver();
         chanceCalculator = components.chanceCalculator();
         economyService = components.economyService();
@@ -357,6 +359,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    StrengthenAttributeBridge affixAttributeGateway() {
+        return affixAttributeGateway;
     }
 
     public StrengthenRecipeResolver recipeResolver() {

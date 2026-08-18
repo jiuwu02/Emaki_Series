@@ -78,14 +78,10 @@ public final class GemItemFactory {
     }
 
     /**
-     * 写入宝石实例的标量持久字段。
+     * 写入宝石实例的兼容标量字段与完整集合快照。
      *
-     * <p>集中在一处，避免新建路径与写回路径对「哪些字段要落盘」产生分歧。
-     *
-     * <p>{@code affixes} / {@code matrices} / {@code extensions} 三个集合字段目前不写入宝石物品自身的
-     * PDC：它们已随宿主装备的 {@code GemState.socketAssignments} 往返（见 {@code GemItemInstance.toMap}），
-     * 而独立宝石物品上尚无产生这些数据的流程。等 EG-01 的 {@code stages} 重构落地、确有写入方时再补，
-     * 届时需要为集合类型提供 {@code SnapshotCodec}。
+     * <p>标量字段保留给旧物品和外部 Matcher 兼容；{@code instance_data} 才是独立宝石实例的完整
+     * 持久化载荷，覆盖实例身份、阶段、词条、矩阵、扩展和数据版本。
      */
     private void writeInstanceFields(ItemStack itemStack, GemItemInstance instance) {
         PDC.set(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING, instance.gemId());
@@ -94,13 +90,20 @@ public final class GemItemFactory {
         PDC.set(itemStack, GEM_ITEM_PARTITION, "instance_id", PersistentDataType.STRING, instance.instanceId());
         PDC.set(itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER, instance.stage());
         PDC.set(itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER, instance.dataVersion());
+        PDC.writeBlob(itemStack, GEM_ITEM_PARTITION, "instance_data", GemItemInstance.CODEC, instance);
     }
 
     public ItemStack recreateGemItem(GemItemInstance instance, int amount) {
-        if (instance == null) {
+        if (instance == null || plugin == null || plugin.gemLoader() == null) {
             return null;
         }
-        return createGemItem(plugin.gemLoader().get(instance.gemId()), instance.level(), amount);
+        GemDefinition definition = plugin.gemLoader().get(instance.gemId());
+        ItemStack recreated = createGemItem(definition, instance.level(), amount);
+        if (recreated == null) {
+            return null;
+        }
+        writeInstanceFields(recreated, instance);
+        return recreated;
     }
 
     public Map<String, Object> gemPlaceholders(GemDefinition definition, int level, Integer oldLevel) {
