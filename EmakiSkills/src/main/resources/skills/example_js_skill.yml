@@ -66,12 +66,11 @@ variables:
     max: 1
 
 # ============================================================
-# 技能脚本 - JavaScript 示例
+# 技能脚本 - 旧版 JavaScript 写法迁移参考
 # ============================================================
-# 本示例展示三种 JS Stage 的使用方法：
-#   1. js_compute: 计算数值并存入变量（伤害倍率计算）
-#   2. js_entity: 筛选/标记实体目标（低血量目标标记）
-#   3. js_location: 计算动态坐标（圆形偏移粒子效果）
+# 下方动作行保留旧版参数形态，不能作为当前版本可直接运行的示例。
+# 当前三个 JS Stage 只接受 code 与 timeout 参数；脚本返回值仅进入动作结果的 script_result 数据，
+# 不会自动写入技能变量，也不会替换流水线中的实体或位置目标。
 script:
   enabled: true
   mode: "native"
@@ -87,21 +86,12 @@ script:
 
     hit:
       # ============================================================
-      # 示例 1: js_compute - 计算动态伤害倍率
+      # js_compute 计算动态伤害倍率
       # ============================================================
-      # 根据目标当前生命值百分比动态调整伤害：
-      #   - 生命值高于 80%：100% 伤害
-      #   - 生命值 30%-80%：线性递增到 150%
-      #   - 生命值低于 30%：200% 暴击伤害
-      #
-      # script: JavaScript 代码，可访问以下对象：
-      #   - player: BukkitPlayerExport（执行者）
-      #   - target: BukkitPlayerExport（目标，仅 js_entity 可用）
-      #   - context: EmakiContextExport（上下文变量）
-      #   - Math/Array/Promise 等 ECMAScript 标准库
-      #
-      # timeout_ms: 脚本超时时间（毫秒），超时后强制中断
-      # result_var: 脚本返回值存入的变量名，后续可用 %result_var% 引用
+      # 下方公式意图按目标生命百分比返回倍率，但当前 Stage 不会把返回值写入 damage_multiplier。
+      # js_compute 绑定 context；当前目标本身是玩家时还会绑定 player。
+      # 当前参数名为 code 与 timeout，timeout 单位毫秒，缺省值为 5000。
+      # 返回值只作为本段动作结果的 script_result 数据提供，不会自动创建占位符变量。
       - |
         js_compute script="""
           const targetHealth = context.getVariable('target.health');
@@ -122,20 +112,18 @@ script:
           return multiplier;
         """ timeout_ms=500 result_var=damage_multiplier
       
-      # 使用脚本计算的倍率应用伤害
+      # 使用 damage_multiplier 应用伤害；当前 js_compute 不会生成该变量。
       - "inherited | damage amount=%var.base_damage%*%damage_multiplier%"
       
-      # 根据倍率播放不同的粒子效果
+      # 按 damage_multiplier 选择粒子；当前管道不会自动提供该占位符。
       - "if %damage_multiplier%>=2.0 [ inherited | spawn_particle particle=crit_magic count=32 extra=0.15 ]"
       - "if %damage_multiplier%<2.0 [ inherited | spawn_particle particle=enchant count=16 extra=0.08 ]"
 
       # ============================================================
-      # 示例 2: js_entity - 动态实体筛选
+      # js_entity 动态筛选实体
       # ============================================================
-      # 筛选附近所有生命值低于 30% 的敌对实体，对它们造成额外伤害
-      #
-      # script: 返回 true 保留实体，返回 false 过滤掉
-      # target 对象代表当前正在判断的实体
+      # 当前 js_entity 仅对玩家实体目标执行，绑定 player 与 context。
+      # 脚本返回值不会保留或过滤目标；下方 target 绑定与布尔筛选写法属于旧版示例。
       - |
         nearby type=hostile range=5 |
         js_entity script="""
@@ -146,16 +134,11 @@ script:
         damage amount=%var.base_damage%*0.5
       
       # ============================================================
-      # 示例 3: js_location - 动态坐标计算
+      # js_location 计算动态坐标
       # ============================================================
-      # 在目标周围生成圆形分布的粒子效果
-      # 每个粒子的位置通过 JS 脚本计算（三角函数 + 随机偏移）
-      #
-      # count: 生成的坐标数量
-      # script: 返回相对偏移量的数组 [x, y, z]
-      # 脚本内可用特殊变量：
-      #   - index: 当前是第几个坐标（0 到 count-1）
-      #   - baseX/baseY/baseZ: 基准坐标（inherited 目标的位置）
+      # 当前 js_location 读取既有位置目标，绑定 location 与 context；目标关联玩家时还会绑定只读 player。
+      # 脚本返回值不会生成新坐标或替换位置目标；当前也没有 count、index、baseX/baseY/baseZ 参数或绑定。
+      # 下方圆形分布写法仅用于识别旧配置的迁移意图。
       - |
         inherited |
         js_location count=12 script="""
@@ -168,7 +151,7 @@ script:
         """ timeout_ms=500 |
         spawn_particle particle=end_rod count=1
 
-      # 发送伤害消息，包含动态计算的倍率
+      # 消息读取 damage_multiplier；当前管道不会自动提供该占位符。
       - 'send_message text="<aqua>智能法术命中，伤害倍率: %damage_multiplier%x</aqua>"'
 
     miss:

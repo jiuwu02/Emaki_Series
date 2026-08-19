@@ -1,21 +1,7 @@
-# ============================================================
-# EmakiAttribute 伤害类型定义 - 物理伤害
-# ============================================================
-# 此文件定义了一种伤害类型的完整计算流程。
-# 当触发对应事件时，系统按 stages 顺序依次计算伤害。
-#
-# 字段说明:
-#   id: 伤害类型标识符
-#   display_name: 显示名称
-#   aliases: 别名列表（用于命令和配置引用）
-#   allowed_events: 允许触发此伤害类型的事件
-#   hard_lock: 是否锁定为仅允许列出的事件触发
-#   stages: 伤害计算阶段列表
-#   recovery: 吸血/回复配置
-#   attacker_message/target_message: 伤害消息模板；填空字符串时不发送对应消息，可减少刷屏
-#
-# 文件放置位置: plugins/EmakiAttribute/damage_types/
-# ============================================================
+# EmakiAttribute 物理伤害类型示例。
+# damage_types/ 下每个 YAML 文件定义一种伤害流程；系统按 stages 顺序把前一阶段输出传给下一阶段。
+# id 为规范标识，aliases 提供引用别名；allowed_events 与 hard_lock 共同限制可映射的 Bukkit 伤害原因。
+# recovery 配置结算后的吸血/回复；attacker_message 与 target_message 为空时不发送对应消息。
 
 id: physical
 
@@ -31,19 +17,12 @@ allowed_events:
 # 是否锁定（true = 只有 allowed_events 中的事件才能触发）
 hard_lock: true
 
-# ============================================================
-# 伤害计算阶段
-# ============================================================
-# 按顺序执行，每个阶段的输出作为下一阶段的输入。
-# kind: 阶段类型（FLAT_PERCENT / CUSTOM）
-# source: 属性来源（ATTACKER / TARGET）
-# mode: 计算模式（ADD / MULTIPLY）
-# flat_attributes: 固定值属性列表
-# percent_attributes: 百分比属性列表
-# chance_attributes: 概率属性列表（用于暴击）
-# multiplier_attributes: 倍率属性列表（用于暴击伤害）
-# expression: 自定义计算表达式
-# variables: 本阶段可用的自定义变量（kind=CUSTOM 时被 expression 解析）
+# 伤害计算阶段。
+# kind：FLAT_PERCENT 或 CUSTOM；source：ATTACKER 或 TARGET；mode：ADD 或 MULTIPLY。
+# role：NORMAL / CRITICAL / DEFENSE / BLOCK；省略时会按常见阶段 id 推断。
+# flat_attributes、percent_attributes、chance_attributes、multiplier_attributes 分别汇总不同用途的属性。
+# CUSTOM 阶段通过 expression 计算；min/max_result、min/max_chance、min/max_multiplier 可限制结果范围。
+# variables 为当前阶段声明自定义变量，可由 expression 引用。
 #   每个变量的值可以是数值、表达式或随机数值配置，并可引用内置变量与其他变量：
 #     variables:
 #       soft_cap: 120
@@ -87,10 +66,7 @@ stages:
     expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
     min_result: 0
 
-# ============================================================
-# 吸血/回复配置
-# ============================================================
-# 伤害造成后，攻击者根据属性回复生命。
+# 吸血/回复配置：伤害结算后按攻击方与目标方属性计算回复量。
 recovery:
   source: ATTACKER
   resistance_source: TARGET

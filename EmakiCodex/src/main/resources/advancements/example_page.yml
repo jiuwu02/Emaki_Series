@@ -1,23 +1,17 @@
-# ============================================================
-# EmakiCodex 示例成就页
-# ============================================================
-# 一个文件 = 一个成就页（原版成就标签页）。
-# 新建一页只需在 advancements/ 下新建一个 yml 文件。
+# EmakiCodex 示例成就页。
+# advancements/ 下每个 YAML 文件定义一个原版成就标签页。
+# 成就键格式：emakicodex:<page_id>/<节点本地 id>；完成条件由插件设置为 impossible，
+# 通过 `/codex grant`、`codex_grant_advancement` 动作段或事件触发器授予。
 #
-# 成就 key 规则: emakicodex:<page_id>/<成就本地id>
-# 完成条件统一为 impossible，通过 /codex grant 或 codex-grant-advancement action 授予。
+# 节点坐标 x/y 仅在 PacketEvents 可用且 config.yml 的
+# advancement.packet-coordinates=true 时发送给客户端；否则按 parent 树自动排布。
+# x/y 同时为 0 视为未指定坐标。使用手工坐标时建议整页统一配置，避免重叠。
 #
-# 节点坐标 x/y（可选）：仅在安装了 PacketEvents 且 config.yml 的
-# advancement.packet-coordinates=true 时生效，用于精确指定节点在成就页 GUI 中的位置。
-# 未装 PacketEvents 时 x/y 被忽略，位置由客户端按 parent 树自动排布。
-# x/y 都为 0 视为“未设置”，该节点回退自动排布；要用坐标建议整页都配，避免节点重叠。
-#
-# 节点完成动作 actions.complete（可选）：
+# 节点完成动作示例：
 # actions:
 #   complete:
-#     - "sendmessage text=<green>达成成就！</green>"
+#     - "send_message text=<green>达成成就！</green>"
 #
-# ------------------------------------------------------------
 # 事件触发器 triggers.entries（可选）：
 # 在成就节点下写 triggers.entries，玩家完成对应事件且条件满足时自动授予该成就。
 # 需 config.yml 的 advancement.triggers-enabled=true（默认开）。

@@ -1,5 +1,5 @@
-# Runtime-neutral item component catalog for Paper.
-# Java and Web capability views should treat this resource as the maintained source of known IDs.
+# Paper 物品组件目录。
+# CoreLib 的 MinecraftItemComponentCatalog 从这里读取可识别的组件 ID 与值格式；资源缺失或解析失败时会回退到内置目录。
 components:
   - id: minecraft:max_stack_size
     format: integer 1..99

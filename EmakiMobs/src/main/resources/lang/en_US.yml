@@ -1,13 +1,8 @@
-# ============================================================
-# EmakiMobs Language File - English
-# ============================================================
-# This file contains all plugin message texts, supporting MiniMessage format.
-# Use the reload command to apply changes.
-#
-# File location: plugins/EmakiMobs/lang/
-# ============================================================
+# EmakiMobs English language resource.
+# Messages support MiniMessage; apply changes with the plugin's reload command.
+# version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -33,6 +28,9 @@ console:
   directory_create_failed: "Failed to create directory: %path%"
   mobs_loaded: "<gray>Loaded <yellow>%count%</yellow> mob definition(s)</gray>"
   reload_complete: "<green>Reload complete with <white>%count%</white> mob definition(s).</green>"
+  custom_actions_registered: "<gray>Registered <yellow>%registered%</yellow>/<yellow>%expected%</yellow> custom action component(s) with CoreLib.</gray>"
+  custom_action_registration_failed: "<yellow>Failed to register CoreLib %kind% <white>%id%</white>: <red>%reason%</red></yellow>"
+  custom_action_rebuild_hook_failed: "<yellow>Could not install the CoreLib action rebuild callback; custom actions may be unavailable after a CoreLib reload.</yellow>"
 
 loader:
   lang_directory_create_failed: "Failed to create language directory: %path%"

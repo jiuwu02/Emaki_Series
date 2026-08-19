@@ -1,11 +1,7 @@
-# ============================================================
-# EmakiCoreLib 对话框示例
-# ============================================================
-# 文件放置位置: plugins/EmakiCoreLib/dialogs/
-# 需要客户端 1.21.6 及以上；低版本客户端表现未经验证。
-#
-# 业务插件通过公开 API 展示: DialogApi.show(player, "example/notice")
-# ============================================================
+# EmakiCoreLib 原版对话框示例。
+# 文件位置：plugins/EmakiCoreLib/dialogs/。
+# 展示对话框需要 Minecraft 1.21.6+ 客户端，并且调用方位于目标玩家的所有者线程。
+# 业务插件通过 EmakiCoreLibApi.dialogs().show(player, "example/notice") 按 id 展示。
 
 # 对话框 id，跨插件唯一
 id: "example/notice"

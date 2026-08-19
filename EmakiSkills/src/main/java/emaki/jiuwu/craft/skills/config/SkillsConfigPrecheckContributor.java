@@ -62,10 +62,10 @@ public final class SkillsConfigPrecheckContributor extends AbstractModuleConfigP
             if (definition == null || definition.script() == null || !definition.script().enabled()) {
                 continue;
             }
-            runtime.precompile(definition.id(), definition.script());
-        }
-        for (SkillPipelineRuntime.PhaseDiagnostic entry : runtime.diagnostics()) {
-            addDiagnosticIssue(entry, issues);
+            for (SkillPipelineRuntime.PhaseDiagnostic entry
+                    : runtime.validate(definition.id(), definition.script())) {
+                addDiagnosticIssue(entry, issues);
+            }
         }
     }
 

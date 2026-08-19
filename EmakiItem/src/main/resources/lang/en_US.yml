@@ -1,11 +1,6 @@
-# ============================================================
-# EmakiItem 语言文件 - English
-# ============================================================
-# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
-# 修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiItem/lang/
-# ============================================================
+# EmakiItem English language resource.
+# Messages support MiniMessage; apply changes with the plugin's reload command.
+# version is maintained by the resource synchronization process and used to merge new default keys.
 
 version: "2.7.4"
 general:

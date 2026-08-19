@@ -1,12 +1,6 @@
-# ============================================================
-# EmakiAttribute 条件源 - EmakiItem 物品条件
-# ============================================================
-# 读取 EmakiItem 写入物品 PDC 中的条件表达式，
-# 并直接执行这些表达式来判断是否满足装备条件。
-# 这允许 EmakiItem 在物品定义中自由配置条件表达式。
-#
-# 文件放置位置: plugins/EmakiAttribute/conditions/
-# ============================================================
+# EmakiAttribute 条件源：EmakiItem 物品条件。
+# 从 EmakiItem 拥有的 condition_expressions 元数据读取条件文本并交给条件引擎求值；
+# 元数据不存在时由 require_match: false 跳过该条检查。
 
 # 是否启用此条件源
 enabled: true

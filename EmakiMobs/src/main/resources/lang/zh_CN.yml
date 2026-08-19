@@ -1,13 +1,8 @@
-# ============================================================
-# EmakiMobs 语言文件 - 简体中文
-# ============================================================
-# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
-# 修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiMobs/lang/
-# ============================================================
+# EmakiMobs 简体中文语言资源。
+# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -33,6 +28,9 @@ console:
   directory_create_failed: "创建目录失败: %path%"
   mobs_loaded: "<gray>已加载 <yellow>%count%</yellow> 个生物定义</gray>"
   reload_complete: "<green>重载完成，共 <white>%count%</white> 个生物定义。</green>"
+  custom_actions_registered: "<gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件。</gray>"
+  custom_action_registration_failed: "<yellow>注册 CoreLib %kind% <white>%id%</white> 失败：<red>%reason%</red></yellow>"
+  custom_action_rebuild_hook_failed: "<yellow>无法安装 CoreLib 动作重建回调；CoreLib 重载后自定义动作可能不可用。</yellow>"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"

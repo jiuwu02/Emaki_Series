@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
 
 public class AbstractMessageService implements LogMessages {
 
@@ -185,11 +184,17 @@ public class AbstractMessageService implements LogMessages {
         if (Texts.isBlank(text)) {
             return;
         }
-        if (includePrefixInLogs()) {
-            String loggedText = withPrefix(text);
-            Bukkit.getConsoleSender().sendMessage(render(loggedText));
+        Component component = render(text);
+        if (!includePrefixInLogs()) {
+            plugin.getLogger().log(level, MiniMessages.plain(component));
+            return;
+        }
+        if (level.intValue() >= Level.SEVERE.intValue()) {
+            plugin.getComponentLogger().error(component);
+        } else if (level.intValue() >= Level.WARNING.intValue()) {
+            plugin.getComponentLogger().warn(component);
         } else {
-            plugin.getLogger().log(level, MiniMessages.plain(render(text)));
+            plugin.getComponentLogger().info(component);
         }
     }
 }

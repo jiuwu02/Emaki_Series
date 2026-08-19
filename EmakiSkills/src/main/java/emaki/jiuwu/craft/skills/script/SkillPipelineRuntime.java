@@ -71,16 +71,16 @@ public final class SkillPipelineRuntime {
         });
     }
 
-    public void precompile(String skillId, SkillScriptDefinition script) {
-        if (script != null && script.enabled()) {
-            compiled(skillId, script);
+    public List<PhaseDiagnostic> validate(String skillId, SkillScriptDefinition script) {
+        if (script == null || !script.enabled()) {
+            return List.of();
         }
-    }
-
-    public List<PhaseDiagnostic> diagnostics() {
-        List<PhaseDiagnostic> all = new ArrayList<>();
-        cache.values().forEach(compiled -> all.addAll(compiled.diagnostics()));
-        return List.copyOf(all);
+        ActionEngine engine = engine();
+        if (engine == null) {
+            return List.of();
+        }
+        String key = Texts.isBlank(skillId) ? "" : Texts.normalizeId(skillId);
+        return compile(engine, key, script).diagnostics();
     }
 
     public void invalidateAll() {
@@ -93,9 +93,11 @@ public final class SkillPipelineRuntime {
             return null;
         }
         String key = Texts.isBlank(skillId) ? "" : Texts.normalizeId(skillId);
-        return cache.compute(key, (ignored, existing) -> existing != null && existing.engine() == engine
-                ? existing
-                : compile(engine, key, script));
+        return cache.compute(key, (ignored, existing) -> existing != null
+                && existing.engine() == engine
+                && existing.script().equals(script)
+                        ? existing
+                        : compile(engine, key, script));
     }
 
     private CompiledSkill compile(ActionEngine engine, String skillId, SkillScriptDefinition script) {
@@ -118,27 +120,10 @@ public final class SkillPipelineRuntime {
                 int lineNumber = index + 1;
                 result.diagnostics().forEach(diagnostic ->
                         diagnostics.add(new PhaseDiagnostic(skillId, phase, lineNumber, diagnostic)));
-                logCompileFailure(skillId, phase, lineNumber, result.diagnostics());
             }
             phases.put(phase, List.copyOf(compiled));
         }
-        return new CompiledSkill(engine, Map.copyOf(phases), List.copyOf(diagnostics));
-    }
-
-    private void logCompileFailure(String skillId,
-            SkillScriptPhase phase,
-            int lineNumber,
-            List<CompileDiagnostic> diagnostics) {
-        if (plugin == null) {
-            return;
-        }
-
-        String reason = plugin.coreLib() == null || plugin.coreLib().messageService() == null
-                ? String.valueOf(diagnostics)
-                : plugin.coreLib().messageService().renderFirstDiagnostic(diagnostics);
-        plugin.getLogger().warning("Skill script error in '"
-                + (Texts.isBlank(skillId) ? "unknown" : skillId) + "' phase " + phase.configKey()
-                + " line " + lineNumber + ": " + reason);
+        return new CompiledSkill(engine, script, Map.copyOf(phases), List.copyOf(diagnostics));
     }
 
     private ActionEngine engine() {
@@ -147,6 +132,7 @@ public final class SkillPipelineRuntime {
     }
 
     private record CompiledSkill(ActionEngine engine,
+            SkillScriptDefinition script,
             Map<SkillScriptPhase, List<CompiledPipeline>> phases,
             List<PhaseDiagnostic> diagnostics) {
 

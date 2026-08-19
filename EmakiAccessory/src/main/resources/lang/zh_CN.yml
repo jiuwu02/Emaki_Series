@@ -1,6 +1,6 @@
-# EmakiAccessory 简体中文语言文件
-#
-# 本文件的 version 必须与插件版本保持一致，插件会按 version 合并新增的默认键。
+# EmakiAccessory 简体中文语言资源。
+# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# version 由资源同步流程维护，用于合并新增默认键。
 version: "1.0.1"
 
 console:

@@ -64,6 +64,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components.messageService().info("console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
+        lifecycleCoordinator.registerCustomActions(this);
         registerCommandHandler();
         registerListeners();
         installPublicApi();
@@ -83,6 +84,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         if (!runtimeInitialized || components == null) {
             return;
         }
+        lifecycleCoordinator.unregisterCustomActions();
         HandlerList.unregisterAll(this);
         runtimeInitialized = false;
         components.messageService().info("console.plugin_stopped");

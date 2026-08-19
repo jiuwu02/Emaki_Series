@@ -1,19 +1,10 @@
-# ============================================================
-# EmakiAttribute 属性平衡配置
-# ============================================================
-# 此文件定义了所有属性的分组、角色和战力评分。
-# 用于属性系统的内部分类、战力计算和 UI 展示。
+# EmakiAttribute 属性语义与战力权重。
+# 文件位置：plugins/EmakiAttribute/attribute_balance.yml。
 #
-# attributes: 属性元数据定义
-#   group: 属性分组（格式: "大类.子类"）
-#   role: 属性角色（决定属性在战斗公式中的作用）
-#   summary: 属性简要说明
-#
-# scores: 战力评分权重
-#   每点属性值对应的战力分数，用于计算 attribute_power。
-#
-# 文件放置位置: plugins/EmakiAttribute/
-# ============================================================
+# attributes 提供 group、role、summary 等语义元数据；它们用于注册表查询与说明，
+# 不替代 damage_types/ 中实际参与伤害计算的阶段配置。
+# scores 定义每点属性值的战力权重，AttributePowerProvider 用它计算 attribute_power；
+# 未声明权重时回退到对应属性文件的 attribute_power。
 
 attributes:
   # ---- 资源类属性 ----
@@ -192,11 +183,8 @@ attributes:
     role: derived_power
     summary: "由其他属性推导出的战斗力"
 
-# ============================================================
-# 战力评分权重
-# ============================================================
-# 每点属性值对应的战力分数。
-# attribute_power = Σ(属性值 × 对应权重)
+# 战力评分权重。
+# attribute_power = Σ(属性值 × 对应权重)。
 scores:
   health: 0.35
   mana: 0.20

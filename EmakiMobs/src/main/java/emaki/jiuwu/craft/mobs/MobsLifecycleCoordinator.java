@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.mobs;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -12,6 +14,7 @@ import emaki.jiuwu.craft.mobs.action.source.AttackerSource;
 import emaki.jiuwu.craft.mobs.action.source.KillerSource;
 import emaki.jiuwu.craft.mobs.action.source.TargetSource;
 import emaki.jiuwu.craft.mobs.action.source.VictimSource;
+import emaki.jiuwu.craft.mobs.action.stage.SummonMobStage;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
@@ -38,6 +41,7 @@ import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
@@ -54,6 +58,8 @@ final class MobsLifecycleCoordinator
                     "spawn_rules/overworld_elites.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("mobs", "loot_tables", "spawn_rules");
+
+    private final List<CoreStageRegistration> customActionRegistrations = new ArrayList<>();
 
     @Override
     public MobsRuntimeComponents initialize(EmakiMobsPlugin plugin) {
@@ -102,10 +108,7 @@ final class MobsLifecycleCoordinator
         var mobExtensions = new DefaultMobExtensions();
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);
-        
-        // 注册 EmakiMobs 专属的选择器和 Stage 到 CoreLib
-        registerCustomActions(plugin);
-        
+
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, componentMapper, mobIdentifier, mobFactory,
                 appConfigLoader, bootstrapService, mobRegistry,
@@ -133,28 +136,64 @@ final class MobsLifecycleCoordinator
         return loadedMobs.size();
     }
 
-    /**
-     * 注册 EmakiMobs 的自定义选择器和 Stage 到 CoreLib ActionEngine。
-     */
-    private void registerCustomActions(JavaPlugin plugin) {
-        var components = ((EmakiMobsPlugin) plugin).components();
+    void registerCustomActions(EmakiMobsPlugin plugin) {
+        closeCustomActionRegistrations();
+        MobsRuntimeComponents components = plugin.components();
+        if (components == null) {
+            return;
+        }
 
-        // 注册上下文选择器
-        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
-                new emaki.jiuwu.craft.mobs.action.source.AttackerSource());
-        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
-                new emaki.jiuwu.craft.mobs.action.source.KillerSource());
-        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
-                new emaki.jiuwu.craft.mobs.action.source.VictimSource());
-        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionSource(plugin,
-                new emaki.jiuwu.craft.mobs.action.source.TargetSource());
+        int registered = 0;
+        for (CoreActionSource source : List.of(
+                new AttackerSource(),
+                new KillerSource(),
+                new VictimSource(),
+                new TargetSource())) {
+            CoreStageRegistration registration = EmakiCoreLibApi.registerActionSource(plugin, source);
+            if (rememberRegistration(plugin, "source", source.id(), registration)) {
+                registered++;
+            }
+        }
 
-        // 注册召唤 Stage
-        emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.registerActionStage(plugin,
-                new emaki.jiuwu.craft.mobs.action.stage.SummonMobStage(
-                        components.mobRegistry()::get,
-                        components.mobFactory()));
+        SummonMobStage summonMobStage = new SummonMobStage(
+                components.mobRegistry()::get,
+                components.mobFactory());
+        CoreStageRegistration summonRegistration = EmakiCoreLibApi.registerActionStage(plugin, summonMobStage);
+        if (rememberRegistration(plugin, "stage", summonMobStage.id(), summonRegistration)) {
+            registered++;
+        }
 
-        plugin.getLogger().info("已注册 4 个自定义选择器和 1 个自定义 Stage");
+        if (!EmakiCoreLibApi.onStageRegistryRebuilt(plugin, () -> registerCustomActions(plugin))) {
+            components.messageService().warning("console.custom_action_rebuild_hook_failed");
+        }
+        components.messageService().info("console.custom_actions_registered", Map.of(
+                "registered", registered,
+                "expected", 5));
+    }
+
+    void unregisterCustomActions() {
+        closeCustomActionRegistrations();
+    }
+
+    private boolean rememberRegistration(EmakiMobsPlugin plugin,
+            String kind,
+            String id,
+            CoreStageRegistration registration) {
+        if (registration.successful()) {
+            customActionRegistrations.add(registration);
+            return true;
+        }
+        plugin.components().messageService().warning("console.custom_action_registration_failed", Map.of(
+                "kind", kind,
+                "id", id,
+                "reason", registration.reasonKey()));
+        return false;
+    }
+
+    private void closeCustomActionRegistrations() {
+        for (CoreStageRegistration registration : customActionRegistrations) {
+            registration.close();
+        }
+        customActionRegistrations.clear();
     }
 }
