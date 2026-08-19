@@ -29,6 +29,7 @@ public final class GemOperationJournal {
     public enum Phase {
         PREPARED,
         CHARGED,
+        CANDIDATE_OPEN,
         STATE_COMMITTED,
         REWARD_PENDING,
         REWARDED,
@@ -234,7 +235,7 @@ public final class GemOperationJournal {
     private void applyRecovery(List<Entry> entries, GemEconomyService economyService) {
         for (Entry entry : entries) {
             switch (entry.phase()) {
-                case PREPARED, REWARDED -> advance(entry.operationId(), Phase.COMPLETED);
+                case PREPARED, CANDIDATE_OPEN, REWARDED -> advance(entry.operationId(), Phase.COMPLETED);
                 case STATE_COMMITTED, REWARD_PENDING -> rewardPending(entry.operationId(),
                         entry.error().isBlank() ? "reward_completion_unknown" : entry.error());
                 case CHARGED, COMPENSATION_PENDING -> recoverCompensation(entry, economyService);

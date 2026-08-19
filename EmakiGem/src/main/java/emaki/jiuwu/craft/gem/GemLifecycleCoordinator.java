@@ -49,6 +49,7 @@ import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemOperationJournal;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
+import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
@@ -113,6 +114,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 coreLibPlugin::economyManager,
                 coreLibPlugin.itemSourceService()
         );
+        GemRerollSessionService rerollSessionService = new GemRerollSessionService(plugin);
         GemActionCoordinator actionCoordinator = new GemActionCoordinator(plugin, plugin.actionLines());
         SocketOpenerService socketOpenerService = new SocketOpenerService(
                 plugin,
@@ -158,6 +160,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 pdcAttributeWriter,
                 stateService,
                 economyService,
+                rerollSessionService,
                 actionCoordinator,
                 socketOpenerService,
                 inlayService,

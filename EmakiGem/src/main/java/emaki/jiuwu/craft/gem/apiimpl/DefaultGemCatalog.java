@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.GemCatalog;
 import emaki.jiuwu.craft.gem.api.model.GemDefinitionView;
 import emaki.jiuwu.craft.gem.api.model.GemRelationshipCheck;
+import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -193,6 +194,14 @@ public final class DefaultGemCatalog implements GemCatalog {
         }
         return Set.copyOf(new LinkedHashSet<>(
                 plugin.snapshotBuilder().aggregateSkillIds(plugin.stateService().resolveState(equipment, itemDefinition))));
+    }
+
+    @Override
+    public Optional<GemRerollSessionView> rerollSession(java.util.UUID operatorId) {
+        if (!ready() || operatorId == null || plugin.rerollSessionService() == null) {
+            return Optional.empty();
+        }
+        return plugin.rerollSessionService().view(operatorId);
     }
 
     private GemRelationshipCheck firstAvailableSlotCheck(GemItemDefinition itemDefinition,

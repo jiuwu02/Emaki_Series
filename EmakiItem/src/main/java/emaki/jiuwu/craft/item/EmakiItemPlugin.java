@@ -69,6 +69,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
+import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
@@ -130,6 +131,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemFactory itemFactory;
     private EmakiItemUpdateService updateService;
     private EmakiItemSetService setService;
+    private EmakiItemStateService stateService;
     private EmakiItemActionService actionService;
     private EmakiItemConditionChecker conditionChecker;
     private ItemComponentInspector componentInspector;
@@ -392,6 +394,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         itemFactory = components.itemFactory();
         updateService = components.updateService();
         setService = components.setService();
+        stateService = components.stateService();
         actionService = components.actionService();
         conditionChecker = components.conditionChecker();
         componentInspector = components.componentInspector();
@@ -523,6 +526,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemSetService setService() {
         return setService;
+    }
+
+    public EmakiItemStateService stateService() {
+        return stateService;
     }
 
     public EmakiItemActionService actionService() {

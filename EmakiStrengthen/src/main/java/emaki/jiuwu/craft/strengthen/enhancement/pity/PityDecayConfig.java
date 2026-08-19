@@ -7,6 +7,9 @@ public record PityDecayConfig(
     double value
 ) {
     public PityDecayConfig {
+        if (!Double.isFinite(value)) {
+            throw new IllegalArgumentException("Decay value must be finite");
+        }
         if (type == PityDecayTypeEnum.FIXED_DECAY && value < 0) {
             throw new IllegalArgumentException("Fixed decay value cannot be negative");
         }

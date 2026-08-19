@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.strengthen.enhancement;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -13,7 +12,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -31,11 +29,11 @@ import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityTrack;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.ConsumeTimingEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
-import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityDecayTypeEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityEffectTypeEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityScopeEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityState;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.progression.EnhancementProgressionResolver;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
@@ -49,14 +47,18 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
  */
 public final class EnhancementAttemptService {
 
+    private static final int MAX_SAFE_LEVEL = 1_000_000;
+    private static final NamespacedKey PITY_OWNER_KEY = Objects.requireNonNull(
+            NamespacedKey.fromString("emakistrengthen:pity_owner_id"));
+
     private final EmakiStrengthenPlugin plugin;
     private final EnhancementTargetRegistry targetRegistry;
-    private final InMemoryPityStateStore pityStateStore;
+    private final PityStateStore pityStateStore;
     private final EnhancementProgressionResolver progressionResolver;
 
     public EnhancementAttemptService(EmakiStrengthenPlugin plugin,
             EnhancementTargetRegistry targetRegistry,
-            InMemoryPityStateStore pityStateStore,
+            PityStateStore pityStateStore,
             EnhancementProgressionResolver progressionResolver) {
         this.plugin = plugin;
         this.targetRegistry = targetRegistry;
@@ -98,10 +100,25 @@ public final class EnhancementAttemptService {
             return EnhancementAttemptResult.rejected("strengthen.enhancement.provider_not_found",
                     Map.of("provider", recipe.target().provider()));
         }
+        if (recipe.pity() != null && recipe.pity().counter().scope() == PityScopeEnum.ITEM
+                && !ensurePityOwner(target)) {
+            return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
+        }
+        String targetBinding;
+        try {
+            targetBinding = provider.readRecipeId(player, target);
+        } catch (RuntimeException | LinkageError exception) {
+            warn("目标 Provider 读取 binding 失败", exception);
+            return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
+        }
         List<ItemStack> suppliedItems = supplied == null ? List.of() : supplied;
         ExecutionPlan plan = prepare(player, recipe, target, suppliedItems, provider);
         if (!plan.valid()) {
             return rejectedPlan(plan, operation);
+        }
+        // Confirm the target has not changed between preparation and the irreversible roll/charge phase.
+        if (!sameTargetState(player, target, provider, plan.currentLevel(), plan.currentTemper(), targetBinding)) {
+            return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
         }
 
         boolean success = plan.forceSuccess() || CraftRollEngine.roll(plan.effectiveRate());
@@ -116,9 +133,11 @@ public final class EnhancementAttemptService {
         }
 
         Map<ItemStack, Integer> materialAmounts = snapshotAmounts(plan.materialMatches());
+        ItemStack originalTarget = target.clone();
         try {
             consumeMaterials(plan.materialMatches(), success);
-            if (success && !commitPreparedTarget(target, plan.preparedTarget())) {
+            if (success && !commitPreparedTarget(player, target, plan.preparedTarget(), originalTarget,
+                    provider, plan.targetLevel())) {
                 restoreAmounts(materialAmounts);
                 return compensateAfterCommitFailure(player, economy, charge.appliedCosts(), operation,
                         "strengthen.error.rebuild_failed");
@@ -203,8 +222,17 @@ public final class EnhancementAttemptService {
         try {
             currentLevel = Math.max(0, provider.readLevel(player, target));
             currentTemper = Math.max(0, provider.readTemper(player, target));
+            if (currentLevel >= MAX_SAFE_LEVEL) {
+                return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
+            }
         } catch (RuntimeException | LinkageError exception) {
             warn("目标 Provider 读取当前状态失败", exception);
+            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
+        }
+
+        VariableContext targetVariables = buildVariables(
+                player, target, currentLevel, currentTemper, currentLevel);
+        if (!matchesTargetFilter(recipe, target, targetVariables)) {
             return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
         }
 
@@ -223,8 +251,8 @@ public final class EnhancementAttemptService {
         List<MaterialMatch> materialMatches = matchMaterials(
                 recipe, player, target, supplied, variables, materialAmounts);
         List<AttemptCost> costs = progression.currentCosts();
-        PityView pity = loadPity(recipe, player, target, provider);
-        double baseRate = CraftRollEngine.clamp(progression.chance().current());
+        PityView pity = loadPity(recipe, player, target, provider, variables);
+        double baseRate = clampChance(progression.chance().current());
         double effectiveRate = baseRate;
         boolean forceSuccess = false;
         if (pity.triggered()) {
@@ -234,12 +262,12 @@ public final class EnhancementAttemptService {
                 effectiveRate = 1D;
             } else if (effectType == PityEffectTypeEnum.CHANCE_BONUS) {
                 Double bonus = recipe.pity().effect().bonusValue();
-                effectiveRate = CraftRollEngine.clamp(baseRate + (bonus == null ? 0D : bonus));
+                effectiveRate = clampChance(baseRate + (bonus == null ? 0D : bonus));
             }
         }
 
         List<EnhancementAttemptPreview.MaterialRequirement> requirements = materialRequirements(
-                recipe, supplied, materialAmounts);
+                recipe, player, target, supplied, variables, materialAmounts);
         if (materialMatches == null) {
             EnhancementAttemptPreview preview = EnhancementAttemptPreview.invalid(
                     "strengthen.error.material_missing", currentLevel, targetLevel,
@@ -248,7 +276,7 @@ public final class EnhancementAttemptService {
                     baseRate, effectiveRate, forceSuccess, costs, List.of(), preview);
         }
 
-        if (targetLevel <= currentLevel) {
+        if (targetLevel <= currentLevel || targetLevel > MAX_SAFE_LEVEL) {
             EnhancementAttemptPreview preview = EnhancementAttemptPreview.invalid(
                     "strengthen.error.rebuild_failed", currentLevel, targetLevel,
                     baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
@@ -340,81 +368,8 @@ public final class EnhancementAttemptService {
                 .with("target.current_level", currentLevel)
                 .with("target.previous_level", previousLevel)
                 .with("target.resulting_level", targetLevel);
-        readItemPdcVariables(builder, target);
+        EnhancementTargetVariables.enrich(builder, target);
         return builder.build();
-    }
-
-    /** 将目标 ItemMeta 的 PDC 暴露给公式/Matcher，不依赖 Forge runtime 类。 */
-    private void readItemPdcVariables(VariableContext.Builder builder, ItemStack target) {
-        if (builder == null || target == null) {
-            return;
-        }
-        ItemMeta meta = target.getItemMeta();
-        if (meta == null) {
-            return;
-        }
-        PersistentDataContainer container = meta.getPersistentDataContainer();
-        for (NamespacedKey key : container.getKeys()) {
-            Object value = readPdcValue(container, key);
-            if (value == null) {
-                continue;
-            }
-            String generic = "item_pdc_" + key.getNamespace() + "_" + key.getKey();
-            builder.with(generic, value);
-            addForgeAliases(builder, key, value);
-        }
-    }
-
-    private Object readPdcValue(PersistentDataContainer container, NamespacedKey key) {
-        try {
-            if (container.has(key, PersistentDataType.STRING)) {
-                return container.get(key, PersistentDataType.STRING);
-            }
-            if (container.has(key, PersistentDataType.DOUBLE)) {
-                return container.get(key, PersistentDataType.DOUBLE);
-            }
-            if (container.has(key, PersistentDataType.FLOAT)) {
-                return container.get(key, PersistentDataType.FLOAT);
-            }
-            if (container.has(key, PersistentDataType.LONG)) {
-                return container.get(key, PersistentDataType.LONG);
-            }
-            if (container.has(key, PersistentDataType.INTEGER)) {
-                return container.get(key, PersistentDataType.INTEGER);
-            }
-            if (container.has(key, PersistentDataType.SHORT)) {
-                return container.get(key, PersistentDataType.SHORT);
-            }
-            if (container.has(key, PersistentDataType.BYTE)) {
-                return container.get(key, PersistentDataType.BYTE);
-            }
-        } catch (RuntimeException | LinkageError exception) {
-            warn("读取目标物品 PDC 变量失败: " + key, exception);
-        }
-        return null;
-    }
-
-    private void addForgeAliases(VariableContext.Builder builder, NamespacedKey key, Object value) {
-        if (!"emakiforge".equalsIgnoreCase(key.getNamespace())) {
-            return;
-        }
-        String path = key.getKey().toLowerCase();
-        switch (path) {
-            case "forge.quality_id" -> {
-                builder.with("forge.quality_id", value).with("quality_id", value);
-            }
-            case "forge.quality_display" -> {
-                builder.with("forge.quality_display", value).with("quality_display", value);
-            }
-            case "forge.quality_multiplier" -> {
-                builder.with("forge.quality_multiplier", value).with("quality_multiplier", value);
-            }
-            case "forge.forge_recipe_id" -> {
-                builder.with("forge.forge_recipe_id", value).with("forge_recipe_id", value);
-            }
-            default -> {
-            }
-        }
     }
 
     /** 把配方的每个材料槽匹配到玩家提供的物品上。 */
@@ -480,6 +435,90 @@ public final class EnhancementAttemptService {
         }
     }
 
+    private boolean matchesTargetFilter(EnhancementRecipe recipe,
+            ItemStack target,
+            VariableContext variables) {
+        Map<String, Object> filter = recipe.target().filter();
+        if (filter == null || filter.isEmpty()) {
+            return true;
+        }
+        Map<String, Object> values = variables == null ? Map.of() : variables.toMap();
+        ItemSourceRef source = identifySource(target);
+        for (Map.Entry<String, Object> entry : filter.entrySet()) {
+            String key = Texts.lower(entry.getKey());
+            Object expected = entry.getValue();
+            Object actual;
+            if ("item_type".equals(key) || "material".equals(key)
+                    || "target.item_type".equals(key) || "target.material".equals(key)) {
+                actual = values.get("target_item_type");
+            } else if ("item_source".equals(key) || "target.item_source".equals(key)) {
+                actual = source == null ? "" : source.toString();
+            } else if (key.startsWith("variable.")) {
+                actual = values.get(key.substring("variable.".length()));
+            } else if (values.containsKey(key)) {
+                actual = values.get(key);
+            } else {
+                return false;
+            }
+            if (!sameFilterValue(actual, expected)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static boolean sameFilterValue(Object actual, Object expected) {
+        if (actual == null || expected == null) {
+            return actual == expected;
+        }
+        if (actual instanceof Number actualNumber && expected instanceof Number expectedNumber) {
+            return Double.compare(actualNumber.doubleValue(), expectedNumber.doubleValue()) == 0;
+        }
+        return String.valueOf(actual).equalsIgnoreCase(String.valueOf(expected));
+    }
+
+    private boolean ensurePityOwner(ItemStack target) {
+        if (target == null || target.getType().isAir()) {
+            return false;
+        }
+        ItemMeta meta = target.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        if (!meta.getPersistentDataContainer().has(PITY_OWNER_KEY, PersistentDataType.STRING)) {
+            meta.getPersistentDataContainer().set(PITY_OWNER_KEY, PersistentDataType.STRING, UUID.randomUUID().toString());
+            if (!target.setItemMeta(meta)) {
+                return false;
+            }
+        }
+        return target.getItemMeta() != null
+                && target.getItemMeta().getPersistentDataContainer().has(PITY_OWNER_KEY, PersistentDataType.STRING);
+    }
+
+    private boolean sameTargetState(Player player,
+            ItemStack target,
+            EnhancementTargetProvider provider,
+            int expectedLevel,
+            int expectedTemper,
+            String expectedBinding) {
+        try {
+            return target != null
+                    && !target.getType().isAir()
+                    && provider.canHandle(player, target)
+                    && provider.readLevel(player, target) == expectedLevel
+                    && provider.readTemper(player, target) == expectedTemper
+                    && Objects.equals(provider.readRecipeId(player, target), expectedBinding);
+        } catch (RuntimeException | LinkageError exception) {
+            warn("目标 Provider 执行前回读失败", exception);
+            return false;
+        }
+    }
+
+    private static int saturatedAdd(int left, int right) {
+        long value = (long) Math.max(0, left) + Math.max(0, right);
+        return value >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
+    }
+
     /** {@return 物品对应的物品源引用；无法识别时为 {@code null}} */
     private @Nullable ItemSourceRef identifySource(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || plugin == null) {
@@ -496,9 +535,13 @@ public final class EnhancementAttemptService {
 
     private List<EnhancementAttemptPreview.MaterialRequirement> materialRequirements(
             EnhancementRecipe recipe,
+            Player player,
+            ItemStack target,
             List<ItemStack> supplied,
+            VariableContext variables,
             List<Integer> requiredAmounts) {
         List<EnhancementAttemptPreview.MaterialRequirement> result = new ArrayList<>();
+        ItemSourceRef targetSource = identifySource(target);
         for (int index = 0; index < recipe.materials().size(); index++) {
             MaterialSlotConfig slot = recipe.materials().get(index);
             int required = index < requiredAmounts.size()
@@ -507,8 +550,9 @@ public final class EnhancementAttemptService {
             int available = 0;
             if (supplied != null) {
                 for (ItemStack candidate : supplied) {
-                    if (candidate != null && !candidate.getType().isAir()) {
-                        available += candidate.getAmount();
+                    if (candidate != null && !candidate.getType().isAir()
+                            && testMatcher(slot, candidate, target, targetSource, player, variables)) {
+                        available = saturatedAdd(available, candidate.getAmount());
                     }
                 }
             }
@@ -582,22 +626,39 @@ public final class EnhancementAttemptService {
         };
     }
 
-    private boolean commitPreparedTarget(ItemStack target, ItemStack preparedTarget) {
-        if (target == null || preparedTarget == null) {
+    private boolean commitPreparedTarget(Player player,
+            ItemStack target,
+            ItemStack preparedTarget,
+            ItemStack originalTarget,
+            EnhancementTargetProvider provider,
+            int expectedLevel) {
+        if (target == null || preparedTarget == null || originalTarget == null || provider == null) {
             return false;
         }
         ItemMeta preparedMeta = preparedTarget.getItemMeta();
-        if (preparedMeta == null) {
+        if (preparedMeta == null || !target.setItemMeta(preparedMeta)) {
             return false;
         }
-        return target.setItemMeta(preparedMeta);
+        try {
+            if (provider.readLevel(player, target) == expectedLevel) {
+                return true;
+            }
+        } catch (RuntimeException | LinkageError exception) {
+            warn("目标 Provider 提交后回读失败", exception);
+        }
+        ItemMeta originalMeta = originalTarget.getItemMeta();
+        if (originalMeta != null && !target.setItemMeta(originalMeta)) {
+            warn("目标 Provider 回读失败后的目标回滚失败", null);
+        }
+        return false;
     }
 
     /** 读取当前保底状态，并判断本次是否已达触发条件。 */
     private PityView loadPity(EnhancementRecipe recipe,
             Player player,
             ItemStack target,
-            EnhancementTargetProvider provider) {
+            EnhancementTargetProvider provider,
+            VariableContext variables) {
         EnhancementRecipe.PityConfig pity = recipe.pity();
         if (pity == null || pityStateStore == null) {
             return new PityView(null, null, null, 0, false);
@@ -609,9 +670,14 @@ public final class EnhancementAttemptService {
             return new PityView(null, null, null, 0, false);
         }
         PityState state = pityStateStore.load(scope.name(), group, key);
-        int counter = state == null ? 0 : state.getCounter();
+        int counter = state == null ? 0 : Math.max(0, state.getCounter());
         Integer threshold = pity.trigger().threshold();
-        boolean triggered = threshold != null && counter >= threshold;
+        if (threshold == null && pity.trigger().formula() != null) {
+            double resolved = pity.trigger().formula().resolve(variables == null
+                    ? VariableContext.builder(player).build() : variables);
+            threshold = finitePositiveInt(resolved, 0);
+        }
+        boolean triggered = threshold != null && threshold > 0 && counter >= threshold;
         return new PityView(scope, group, key, counter, triggered);
     }
 
@@ -628,11 +694,12 @@ public final class EnhancementAttemptService {
             double decayValue = recipe.pity().decay() == null ? 0D : recipe.pity().decay().value();
             counter = switch (decayType) {
                 case RESET -> 0;
-                case FIXED_DECAY -> Math.max(0, counter - (int) Math.round(decayValue));
+                case FIXED_DECAY -> (int) Math.max(0L,
+                        (long) counter - Math.min((long) Integer.MAX_VALUE, Math.round(decayValue)));
                 case PROPORTIONAL -> Math.max(0, (int) Math.floor(counter * (1D - decayValue)));
             };
         } else {
-            counter = counter + 1;
+            counter = counter >= Integer.MAX_VALUE ? Integer.MAX_VALUE : counter + 1;
         }
         PityState next = new PityState(counter, System.currentTimeMillis(), pity.triggered());
         pityStateStore.save(pity.scope().name(), pity.group(), pity.key(), next);
@@ -658,10 +725,27 @@ public final class EnhancementAttemptService {
         if (scope == PityScopeEnum.PLAYER) {
             return player.getUniqueId().toString();
         }
-        String recipeId = provider.readRecipeId(player, target);
-        return Texts.isBlank(recipeId)
-                ? player.getUniqueId().toString()
-                : player.getUniqueId() + ":" + recipeId;
+        ItemMeta meta = target == null ? null : target.getItemMeta();
+        String ownerId = meta == null ? null
+                : meta.getPersistentDataContainer().get(PITY_OWNER_KEY, PersistentDataType.STRING);
+        return Texts.isBlank(ownerId) ? "" : ownerId;
+    }
+
+    private static double clampChance(double value) {
+        if (!Double.isFinite(value)) {
+            return 0D;
+        }
+        return Math.max(0D, Math.min(1D, value));
+    }
+
+    private static int finitePositiveInt(double value, int fallback) {
+        if (!Double.isFinite(value) || value <= 0D) {
+            return fallback;
+        }
+        if (value >= Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return (int) Math.ceil(value);
     }
 
     private record MaterialMatch(ItemStack stack, int amount, ConsumeTimingEnum timing) {

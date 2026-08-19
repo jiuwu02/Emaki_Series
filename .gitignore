@@ -1,5 +1,6 @@
 # Java / Maven / IDE build output
-target/
+/target/
+/*/target/
 *.class
 
 # IDE / OS local files

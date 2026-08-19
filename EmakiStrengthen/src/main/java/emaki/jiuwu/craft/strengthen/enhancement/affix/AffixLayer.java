@@ -37,11 +37,14 @@ public record AffixLayer(int capacityMax, @NotNull Map<String, AffixState> affix
      * 极易漏改而导致容量永久泄漏。ES-02 要求的「返还容量」在这里是自动成立的。
      */
     public int capacityUsed() {
-        int used = 0;
+        long used = 0L;
         for (AffixState state : affixes.values()) {
             used += state.capacityCost();
+            if (used >= Integer.MAX_VALUE) {
+                return Integer.MAX_VALUE;
+            }
         }
-        return used;
+        return (int) used;
     }
 
     /** {@return 剩余可用容量} */

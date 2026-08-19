@@ -47,10 +47,23 @@ public final class EnhancementRecipeParser {
             return null;
         }
 
-        List<MaterialSlotConfig> materials = parseMaterials(section.getMapList("materials"));
-        List<CurrencyConfig> costs = parseCosts(section.getMapList("costs"));
+        List<Map<?, ?>> rawMaterials = section.getMapList("materials");
+        List<Map<?, ?>> rawCosts = section.getMapList("costs");
+        List<MaterialSlotConfig> materials = parseMaterials(rawMaterials);
+        List<CurrencyConfig> costs = parseCosts(rawCosts);
+        if ((rawMaterials != null && materials.size() != rawMaterials.size())
+                || (rawCosts != null && costs.size() != rawCosts.size())) {
+            return null;
+        }
         Quantity chance = parseChance(MaterialSlotConfig.quantityNode(section, "chance"));
-        EnhancementRecipe.PityConfig pity = parsePity(section.getSection("pity"));
+        if (chance == null) {
+            return null;
+        }
+        YamlSection pitySection = section.getSection("pity");
+        EnhancementRecipe.PityConfig pity = parsePity(pitySection);
+        if (pitySection != null && pity == null) {
+            return null;
+        }
         Map<String, List<String>> actions = parseActions(section.getSection("actions"));
 
         return new EnhancementRecipe(id, mode, target, materials, costs, chance, pity, actions);
@@ -130,12 +143,38 @@ public final class EnhancementRecipeParser {
         return converted;
     }
 
-    private static @NotNull Quantity parseChance(@Nullable Object config) {
-        Quantity quantity = Quantity.fromConfig(config);
-        if (quantity == null) {
+    private static @Nullable Quantity parseChance(@Nullable Object config) {
+        if (config == null) {
             return Quantity.fixed(1.0);
         }
-        return quantity;
+        if (config instanceof Number number && !Double.isFinite(number.doubleValue())) {
+            return null;
+        }
+        if (config instanceof String text) {
+            try {
+                if (!Double.isFinite(Double.parseDouble(text.trim()))) {
+                    return null;
+                }
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        if (config instanceof YamlSection section) {
+            String type = Texts.lower(section.getString("type", "fixed"));
+            if (!type.equals("fixed") && !type.equals("formula")
+                    && !type.equals("lookup_table") && !type.equals("table")) {
+                return null;
+            }
+            if (type.equals("formula") && Texts.isBlank(section.getString("expression", ""))) {
+                return null;
+            }
+            double fixed = section.getDouble("value", 1.0);
+            if (type.equals("fixed") && !Double.isFinite(fixed)) {
+                return null;
+            }
+        }
+        Quantity quantity = Quantity.fromConfig(config);
+        return quantity == null ? Quantity.fixed(1.0) : quantity;
     }
 
     private static @Nullable EnhancementRecipe.PityConfig parsePity(@Nullable YamlSection section) {
@@ -153,9 +192,18 @@ public final class EnhancementRecipeParser {
         PityTriggerConfig trigger;
         if (section.contains("threshold")) {
             int threshold = section.getInt("threshold", 10);
+            if (threshold <= 0) {
+                return null;
+            }
             trigger = PityTriggerConfig.threshold(threshold);
         } else if (section.contains("formula")) {
-            Quantity formula = Quantity.fromConfig(MaterialSlotConfig.quantityNode(section, "formula"));
+            Object formulaNode = MaterialSlotConfig.quantityNode(section, "formula");
+            if (formulaNode instanceof YamlSection formulaSection
+                    && "formula".equals(Texts.lower(formulaSection.getString("type", "fixed")))
+                    && Texts.isBlank(formulaSection.getString("expression", ""))) {
+                return null;
+            }
+            Quantity formula = Quantity.fromConfig(formulaNode);
             if (formula == null) {
                 return null;
             }
@@ -170,6 +218,12 @@ public final class EnhancementRecipeParser {
                 PityEffectTypeEnum.FORCE_SUCCESS
         );
         Double bonusValue = section.contains("bonus_value") ? section.getDouble("bonus_value") : null;
+        if (bonusValue != null && !Double.isFinite(bonusValue)) {
+            return null;
+        }
+        if (effectType == PityEffectTypeEnum.CHANCE_BONUS && (bonusValue == null || bonusValue <= 0D)) {
+            return null;
+        }
         PityEffectConfig effect = new PityEffectConfig(effectType, bonusValue);
 
         PityDecayConfig decay = parsePityDecay(section.getSection("decay"));
@@ -188,6 +242,11 @@ public final class EnhancementRecipeParser {
                 PityDecayTypeEnum.RESET
         );
         double value = section.getDouble("value", 0.0);
+        if (!Double.isFinite(value)
+                || (type == PityDecayTypeEnum.FIXED_DECAY && value < 0D)
+                || (type == PityDecayTypeEnum.PROPORTIONAL && (value < 0D || value > 1D))) {
+            return null;
+        }
 
         return new PityDecayConfig(type, value);
     }

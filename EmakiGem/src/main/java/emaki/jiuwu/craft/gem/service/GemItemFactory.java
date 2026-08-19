@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.gem.service;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -17,6 +18,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.model.GemAffix;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -43,8 +45,9 @@ public final class GemItemFactory {
             return null;
         }
         int normalizedLevel = Math.max(1, level);
-        itemStack = applyGemPresentation(itemStack, definition, normalizedLevel);
-        writeInstanceFields(itemStack, new GemItemInstance(definition.id(), normalizedLevel, System.currentTimeMillis()));
+        GemItemInstance instance = new GemItemInstance(definition.id(), normalizedLevel, System.currentTimeMillis());
+        itemStack = applyGemPresentation(itemStack, definition, instance);
+        writeInstanceFields(itemStack, instance);
         return itemStack;
     }
 
@@ -69,7 +72,7 @@ public final class GemItemFactory {
         if (definition == null) {
             return false;
         }
-        ItemStack presented = applyGemPresentation(itemStack, definition, instance.level());
+        ItemStack presented = applyGemPresentation(itemStack, definition, instance);
         if (presented != null && presented != itemStack && presented.hasItemMeta()) {
             itemStack.setItemMeta(presented.getItemMeta());
         }
@@ -123,18 +126,38 @@ public final class GemItemFactory {
         return placeholders;
     }
 
-    private ItemStack applyGemPresentation(ItemStack itemStack, GemDefinition definition, int level) {
-        if (itemStack == null || definition == null) {
+    private ItemStack applyGemPresentation(ItemStack itemStack, GemDefinition definition, GemItemInstance instance) {
+        if (itemStack == null || definition == null || instance == null) {
             return itemStack;
         }
+        int level = instance.level();
         Map<String, Object> placeholders = gemPlaceholders(definition, level, null);
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
         String displayName = resolveGemDisplayName(definition, level);
         if (Texts.isNotBlank(displayName)) {
             patches.put("minecraft:custom_name", ItemComponentPatch.set(displayName));
         }
-        if (!definition.lore().isEmpty()) {
-            patches.put("minecraft:lore", ItemComponentPatch.set(List.copyOf(definition.lore())));
+        List<String> lore = new ArrayList<>(definition.lore());
+        List<GemAffix> affixes = GemAffix.decodeAll(instance.affixes());
+        if (!affixes.isEmpty()) {
+            if (!lore.isEmpty()) {
+                lore.add("");
+            }
+            lore.add("<gray>Affixes</gray>");
+            for (GemAffix affix : affixes) {
+                GemDefinition.AffixPoolEntry configured = definition.reroll().pools().values().stream()
+                        .flatMap(List::stream)
+                        .filter(entry -> entry.id().equalsIgnoreCase(affix.id()))
+                        .findFirst()
+                        .orElse(null);
+                String name = configured == null ? affix.id() : configured.displayName();
+                lore.add("<gray>• <white>" + name + "</white> <dark_gray>[" + affix.stage()
+                        + "]</dark_gray> <green>" + Numbers.formatNumber(affix.value(), plugin.appConfig().numberFormat())
+                        + "</green></gray>");
+            }
+        }
+        if (!lore.isEmpty()) {
+            patches.put("minecraft:lore", ItemComponentPatch.set(List.copyOf(lore)));
         }
         if (definition.customModelData() != null) {
             patches.put("minecraft:custom_model_data", ItemComponentPatch.set(Map.of(

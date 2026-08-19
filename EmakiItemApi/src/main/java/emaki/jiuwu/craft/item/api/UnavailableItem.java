@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.api;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.entity.Player;
@@ -18,7 +19,7 @@ import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
 
 /** Shared no-op layers used while no EmakiItem runtime bridge is installed. */
-final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemMigration, ItemExtensions {
+final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemMigration, ItemExtensions, ItemState {
 
     private static final UnavailableItem INSTANCE = new UnavailableItem();
 
@@ -27,6 +28,7 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     static final ItemRepair REPAIR = INSTANCE;
     static final ItemMigration MIGRATION = INSTANCE;
     static final ItemExtensions EXTENSIONS = INSTANCE;
+    static final ItemState STATE = INSTANCE;
 
     private UnavailableItem() {
     }
@@ -145,5 +147,30 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     @Override
     public void unregisterLayerPreviews(Plugin owner) {
         // No registrations exist in the unavailable implementation.
+    }
+
+    @Override
+    public ItemStateSnapshot snapshot(ItemStack item) {
+        return new ItemStateSnapshot(item, Map.of());
+    }
+
+    @Override
+    public <T> java.util.Optional<T> get(ItemStack item, ItemStateKey<T> key) {
+        return java.util.Optional.empty();
+    }
+
+    @Override
+    public <T> ItemStateMutation<T> set(ItemStack item, ItemStateKey<T> key, T value) {
+        return ItemStateMutation.rejected(key, "unavailable", null);
+    }
+
+    @Override
+    public <T> ItemStateMutation<T> add(ItemStack item, ItemStateKey<T> key, Number amount) {
+        return ItemStateMutation.rejected(key, "unavailable", null);
+    }
+
+    @Override
+    public <T> ItemStateMutation<T> remove(ItemStack item, ItemStateKey<T> key) {
+        return ItemStateMutation.rejected(key, "unavailable", null);
     }
 }

@@ -138,7 +138,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 affixAttributeGateway
         );
         enhancementTargetRegistry.register(affixTargetProvider);
-        InMemoryPityStateStore pityStateStore = new InMemoryPityStateStore();
+        InMemoryPityStateStore pityStateStore = new InMemoryPityStateStore(
+                plugin.getDataFolder().toPath().resolve("pity-state.properties"));
+        pityStateStore.loadFromDisk();
         EnhancementAttemptService enhancementAttemptService = new EnhancementAttemptService(
                 plugin,
                 enhancementTargetRegistry,
@@ -209,9 +211,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
             StrengthenRecipeResolver.clearPatternCache();
-            // 配置可能改了保底阈值或分组，陈旧计数会按新阈值产生错误的触发判断。
+            // 保底状态按 scope/group/key 隔离；重载不应把可持久化的 owner 状态当作内存缓存清空。
             if (plugin.pityStateStore() != null) {
-                plugin.pityStateStore().clear();
+                plugin.pityStateStore().saveToDisk();
             }
             plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
             plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
@@ -270,9 +272,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
-                // 配置可能改了保底阈值或分组，陈旧计数会按新阈值产生错误的触发判断。
+                // 保底状态按 scope/group/key 隔离；异步重载同样保留 owner 持久化状态。
                 if (plugin.pityStateStore() != null) {
-                    plugin.pityStateStore().clear();
+                    plugin.pityStateStore().saveToDisk();
                 }
                 plugin.pdcAttributeGateway().syncRegistration(PDC_ATTRIBUTE_SOURCE_ID);
                 plugin.affixAttributeGateway().syncRegistration(AFFIX_PDC_ATTRIBUTE_SOURCE_ID);
@@ -302,6 +304,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     public void shutdown(EmakiStrengthenPlugin plugin) {
         freezeAndDrain(plugin, true, "shutdown");
+        if (plugin.pityStateStore() != null) {
+            plugin.pityStateStore().saveToDisk();
+        }
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {

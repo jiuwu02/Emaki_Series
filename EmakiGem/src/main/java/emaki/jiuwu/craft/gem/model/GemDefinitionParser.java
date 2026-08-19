@@ -65,6 +65,7 @@ final class GemDefinitionParser {
                 parseStageConfig(section.contains("stages")
                         ? section.getSection("stages")
                         : section.getSection("upgrade")),
+                parseRerollConfig(section.getSection("reroll")),
                 parseActionLines(section.getSection("actions"), "inlay_success"),
                 parseActionLines(section.getSection("actions"), "extract_success")
         );
@@ -125,6 +126,88 @@ final class GemDefinitionParser {
                 mode,
                 section.getInt("downgrade_levels", 1),
                 section.getDouble("degraded_chance", 0D)
+        );
+    }
+
+    static GemDefinition.RerollConfig parseRerollConfig(YamlSection section) {
+        if (section == null) {
+            return GemDefinition.RerollConfig.disabled();
+        }
+        List<String> diagnostics = new ArrayList<>();
+        boolean enabled = section.getBoolean("enabled", true);
+        String group = section.getString("group", "default");
+        int maxAffixes = Math.max(1, section.getInt("max_affixes", 1));
+        Map<String, List<GemDefinition.AffixPoolEntry>> pools = new LinkedHashMap<>();
+        YamlSection poolSection = section.getSection("pools");
+        if (poolSection == null) {
+            poolSection = section.getSection("affixes");
+        }
+        if (poolSection != null) {
+            for (String key : poolSection.getKeys(false)) {
+                Object raw = poolSection.get(key);
+                List<GemDefinition.AffixPoolEntry> entries = new ArrayList<>();
+                if (raw instanceof Iterable<?> iterable) {
+                    for (Object value : iterable) {
+                        GemDefinition.AffixPoolEntry entry = parseAffixPoolEntry(value, diagnostics);
+                        if (entry != null) {
+                            entries.add(entry);
+                        }
+                    }
+                } else if (raw instanceof YamlSection nested) {
+                    for (String entryKey : nested.getKeys(false)) {
+                        GemDefinition.AffixPoolEntry entry = parseAffixPoolEntry(nested.get(entryKey), diagnostics, entryKey);
+                        if (entry != null) {
+                            entries.add(entry);
+                        }
+                    }
+                }
+                if (!entries.isEmpty()) {
+                    pools.put(Texts.lower(key), List.copyOf(entries));
+                } else {
+                    diagnostics.add("reroll pool '" + key + "' is empty or invalid");
+                }
+            }
+        }
+        return new GemDefinition.RerollConfig(
+                enabled,
+                group,
+                maxAffixes,
+                pools,
+                CostConfig.fromConfig(section.getSection("full_cost")),
+                CostConfig.fromConfig(section.getSection("value_cost")),
+                diagnostics
+        );
+    }
+
+    private static GemDefinition.AffixPoolEntry parseAffixPoolEntry(Object raw, List<String> diagnostics) {
+        return parseAffixPoolEntry(raw, diagnostics, null);
+    }
+
+    private static GemDefinition.AffixPoolEntry parseAffixPoolEntry(Object raw,
+            List<String> diagnostics,
+            String fallbackId) {
+        String id = Texts.isBlank(fallbackId) ? ConfigNodes.string(raw, "id", "") : fallbackId;
+        if (Texts.isBlank(id)) {
+            diagnostics.add("reroll affix entry missing id");
+            return null;
+        }
+        double weight = Numbers.tryParseDouble(ConfigNodes.get(raw, "weight"), 1D);
+        double minValue = Numbers.tryParseDouble(ConfigNodes.get(raw, "min"),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "min_value"), 0D));
+        double maxValue = Numbers.tryParseDouble(ConfigNodes.get(raw, "max"),
+                Numbers.tryParseDouble(ConfigNodes.get(raw, "max_value"), minValue));
+        if (weight <= 0D) {
+            diagnostics.add("reroll affix '" + id + "' has non-positive weight");
+        }
+        return new GemDefinition.AffixPoolEntry(
+                id,
+                weight,
+                Numbers.tryParseInt(ConfigNodes.get(raw, "min_stage"), 1),
+                Numbers.tryParseInt(ConfigNodes.get(raw, "max_stage"), Integer.MAX_VALUE),
+                minValue,
+                maxValue,
+                ConfigNodes.string(raw, "display_name", id),
+                ConfigNodes.string(raw, "attribute_id", id)
         );
     }
 

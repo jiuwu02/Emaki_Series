@@ -52,6 +52,7 @@ import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
+import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
@@ -98,6 +99,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private GemSnapshotBuilder snapshotBuilder;
     private GemStateService stateService;
     private GemEconomyService economyService;
+    private GemRerollSessionService rerollSessionService;
     private GemActionCoordinator actionCoordinator;
     private SocketOpenerService socketOpenerService;
     private GemInlayService inlayService;
@@ -146,6 +148,9 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     @Override
     public void onDisable() {
         publicApiReady = false;
+        if (rerollSessionService != null) {
+            rerollSessionService.clearAll();
+        }
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("gem");
         if (placeholderExpansion != null) {
@@ -226,6 +231,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         snapshotBuilder = components.snapshotBuilder();
         stateService = components.stateService();
         economyService = components.economyService();
+        rerollSessionService = components.rerollSessionService();
         actionCoordinator = components.actionCoordinator();
         socketOpenerService = components.socketOpenerService();
         inlayService = components.inlayService();
@@ -348,6 +354,10 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GemEconomyService economyService() {
         return economyService;
+    }
+
+    public GemRerollSessionService rerollSessionService() {
+        return rerollSessionService;
     }
 
     public GemActionCoordinator actionCoordinator() {

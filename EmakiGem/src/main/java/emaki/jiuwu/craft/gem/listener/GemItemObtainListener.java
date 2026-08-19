@@ -41,7 +41,11 @@ public final class GemItemObtainListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        pendingRefreshes.remove(event.getPlayer().getUniqueId());
+        UUID playerId = event.getPlayer().getUniqueId();
+        pendingRefreshes.remove(playerId);
+        if (plugin.rerollSessionService() != null) {
+            plugin.rerollSessionService().abandon(playerId);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)

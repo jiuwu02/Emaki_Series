@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemGuiMode;
+import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 
 final class GemCommandRouter implements TabExecutor {
 
@@ -48,6 +49,7 @@ final class GemCommandRouter implements TabExecutor {
             case "gui" -> handleGuiCommand(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
+            case "reroll" -> handleReroll(sender, args);
             case "clearstate" -> handleClearState(sender);
             case "debug" -> handleDebug(sender, args);
             default -> {
@@ -61,7 +63,7 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "inspect", "clearstate", "debug")) {
+            for (String sub : List.of("help", "gui", "reload", "inspect", "reroll", "clearstate", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -81,6 +83,13 @@ final class GemCommandRouter implements TabExecutor {
                     }
                 }
                 case "inspect" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
+                case "reroll" -> {
+                    for (String sub : List.of("full", "value", "confirm", "cancel", "status")) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                            result.add(sub);
+                        }
+                    }
+                }
                 default -> {
                 }
             }
@@ -184,6 +193,60 @@ final class GemCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleReroll(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().sendRaw(sender, "<gray>/emakigem reroll <full|value|confirm|cancel|status></gray>");
+            return true;
+        }
+        GemRerollSessionService service = plugin.rerollSessionService();
+        if (service == null) {
+            plugin.messageService().sendRaw(sender, "<red>Gem reroll service unavailable</red>");
+            return true;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "full", "value" -> {
+                GemRerollSessionService.OperationType type = "full".equalsIgnoreCase(args[1])
+                        ? GemRerollSessionService.OperationType.FULL
+                        : GemRerollSessionService.OperationType.VALUE;
+                GemRerollSessionService.OpenResult result = service.open(player, type);
+                if (!result.success()) {
+                    plugin.messageService().sendRaw(sender, "<red>Reroll failed: " + result.errorKey() + "</red>");
+                    return true;
+                }
+                GemRerollSessionService.Session session = result.session();
+                plugin.messageService().sendRaw(sender, "<green>Candidate ready</green> <gray>(" + session.operationType().name().toLowerCase(Locale.ROOT)
+                        + "). Use <yellow>/emakigem reroll confirm</yellow> to accept.</gray>");
+            }
+            case "confirm" -> {
+                GemRerollSessionService.ActionResult result = service.confirm(player);
+                plugin.messageService().sendRaw(sender, result.success()
+                        ? "<green>Reroll candidate accepted.</green>"
+                        : "<red>Reroll confirm failed: " + result.errorKey() + "</red>");
+            }
+            case "cancel" -> {
+                boolean abandoned = service.abandon(player.getUniqueId());
+                plugin.messageService().sendRaw(sender, abandoned
+                        ? "<yellow>Reroll candidate abandoned.</yellow>"
+                        : "<gray>No open reroll candidate.</gray>");
+            }
+            case "status" -> service.view(player.getUniqueId()).ifPresentOrElse(session ->
+                    plugin.messageService().sendRaw(sender, "<gray>Reroll " + session.operationType()
+                            + ": <yellow>" + session.originalAffixes().size() + "</yellow> → <green>"
+                            + session.candidateAffixes().size() + " affixes</green>; expires " + session.expiryAt() + "</gray>"),
+                    () -> plugin.messageService().sendRaw(sender, "<gray>No open reroll candidate.</gray>"));
+            default -> plugin.messageService().sendRaw(sender, "<gray>/emakigem reroll <full|value|confirm|cancel|status></gray>");
+        }
+        return true;
+    }
+
     private boolean handleClearState(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             plugin.messageService().send(sender, "general.player_only");
@@ -216,6 +279,7 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("gui [inlay|upgrade|open]", ms.message("command.help.desc.gui"));
         lines.put("reload", ms.message("command.help.desc.reload"));
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
+        lines.put("reroll <full|value|confirm|cancel|status>", "Generate or accept a reroll candidate for the held gem");
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));
         lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));
         lines.forEach((name, description) -> ms.sendRaw(sender,

@@ -47,6 +47,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
+import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
@@ -136,6 +137,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 coreLibPlugin.itemAssemblyService(),
                 plugin.debugLogger()
         );
+        EmakiItemStateService stateService = new EmakiItemStateService();
         EmakiItemSetService setService = new EmakiItemSetService(
                 itemLoader,
                 setLoader,
@@ -180,6 +182,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 itemFactory,
                 updateService,
                 setService,
+                stateService,
                 actionService,
                 conditionChecker,
                 componentInspector,

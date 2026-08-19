@@ -66,6 +66,11 @@ public record GemItemInstance(String gemId,
         return gemId + ":" + level;
     }
 
+    /** Optimistic-lock version for state-changing loose-gem operations. */
+    public long version() {
+        return updatedAt;
+    }
+
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("gem_id", gemId);

@@ -8,6 +8,9 @@ public record PityEffectConfig(
     @Nullable Double bonusValue
 ) {
     public PityEffectConfig {
+        if (bonusValue != null && !Double.isFinite(bonusValue)) {
+            throw new IllegalArgumentException("Bonus value must be finite");
+        }
         if (type == PityEffectTypeEnum.CHANCE_BONUS && (bonusValue == null || bonusValue <= 0)) {
             throw new IllegalArgumentException("Bonus value must be positive for CHANCE_BONUS type");
         }

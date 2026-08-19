@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.gem.api.model.GemDefinitionView;
 import emaki.jiuwu.craft.gem.api.model.GemExtractOutcome;
 import emaki.jiuwu.craft.gem.api.model.GemInlayOutcome;
 import emaki.jiuwu.craft.gem.api.model.GemRelationshipCheck;
+import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
 
@@ -76,6 +77,11 @@ final class UnavailableGem implements GemCatalog, GemOperations {
     @Override
     public Set<String> aggregatedSkillIds(ItemStack equipment) {
         return Set.of();
+    }
+
+    @Override
+    public Optional<GemRerollSessionView> rerollSession(java.util.UUID operatorId) {
+        return Optional.empty();
     }
 
     @Override

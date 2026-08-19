@@ -27,8 +27,11 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         checkFile(new File(plugin.getDataFolder(), "config.yml"), "config.yml", issues);
         checkDirectory(new File(plugin.getDataFolder(), "recipes"), "recipes", issues);
+        checkDirectory(new File(plugin.getDataFolder(), "enhancement_recipes"), "enhancement_recipes", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
+        addLoaderIssues("enhancement_recipes",
+                plugin.enhancementRecipeLoader() == null ? null : plugin.enhancementRecipeLoader().issues(), issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

@@ -34,6 +34,7 @@ public final class GemDefinition {
     private final CostConfig extractCost;
     private final ExtractReturn extractReturn;
     private final StageConfig stages;
+    private final RerollConfig reroll;
     private final List<String> inlaySuccessActions;
     private final List<String> extractSuccessActions;
 
@@ -56,6 +57,7 @@ public final class GemDefinition {
             CostConfig extractCost,
             ExtractReturn extractReturn,
             StageConfig stages,
+            RerollConfig reroll,
             List<String> inlaySuccessActions,
             List<String> extractSuccessActions) {
         this.id = Texts.lower(id);
@@ -77,6 +79,7 @@ public final class GemDefinition {
         this.extractCost = extractCost == null ? CostConfig.none() : extractCost;
         this.extractReturn = extractReturn == null ? ExtractReturn.defaults() : extractReturn;
         this.stages = stages == null ? StageConfig.disabled() : stages;
+        this.reroll = reroll == null ? RerollConfig.disabled() : reroll;
         this.inlaySuccessActions = inlaySuccessActions == null ? List.of() : List.copyOf(inlaySuccessActions);
         this.extractSuccessActions = extractSuccessActions == null ? List.of() : List.copyOf(extractSuccessActions);
     }
@@ -155,6 +158,10 @@ public final class GemDefinition {
 
     public StageConfig stages() {
         return stages;
+    }
+
+    public RerollConfig reroll() {
+        return reroll;
     }
 
     public List<String> inlaySuccessActions() {
@@ -368,6 +375,77 @@ public final class GemDefinition {
                 case "degraded", "downgrade" -> "downgrade";
                 default -> "original";
             };
+        }
+    }
+
+    public record RerollConfig(boolean enabled,
+            String group,
+            int maxAffixes,
+            Map<String, List<AffixPoolEntry>> pools,
+            CostConfig fullCost,
+            CostConfig valueCost,
+            List<String> diagnostics) {
+
+        public RerollConfig {
+            group = Texts.isBlank(group) ? "default" : Texts.lower(group);
+            maxAffixes = Math.max(1, maxAffixes);
+            pools = copyPools(pools);
+            fullCost = fullCost == null ? CostConfig.none() : fullCost;
+            valueCost = valueCost == null ? CostConfig.none() : valueCost;
+            diagnostics = diagnostics == null ? List.of() : List.copyOf(diagnostics);
+        }
+
+        public static RerollConfig disabled() {
+            return new RerollConfig(false, "default", 1, Map.of(), CostConfig.none(), CostConfig.none(), List.of());
+        }
+
+        public List<AffixPoolEntry> poolFor(String requestedGroup, int stage) {
+            String key = Texts.isBlank(requestedGroup) ? group : Texts.lower(requestedGroup);
+            List<AffixPoolEntry> entries = pools.getOrDefault(key, pools.getOrDefault("default", List.of()));
+            return entries.stream().filter(entry -> entry.supportsStage(stage)).toList();
+        }
+
+        private static Map<String, List<AffixPoolEntry>> copyPools(Map<String, List<AffixPoolEntry>> source) {
+            if (source == null || source.isEmpty()) {
+                return Map.of();
+            }
+            Map<String, List<AffixPoolEntry>> copy = new LinkedHashMap<>();
+            source.forEach((key, value) -> {
+                String normalized = Texts.lower(key);
+                if (Texts.isNotBlank(normalized) && value != null && !value.isEmpty()) {
+                    copy.put(normalized, List.copyOf(value));
+                }
+            });
+            return Map.copyOf(copy);
+        }
+    }
+
+    public record AffixPoolEntry(String id,
+            double weight,
+            int minStage,
+            int maxStage,
+            double minValue,
+            double maxValue,
+            String displayName,
+            String attributeId) {
+
+        public AffixPoolEntry {
+            id = Texts.lower(id);
+            weight = Math.max(0D, weight);
+            minStage = Math.max(1, minStage);
+            maxStage = Math.max(minStage, maxStage);
+            if (minValue > maxValue) {
+                double swap = minValue;
+                minValue = maxValue;
+                maxValue = swap;
+            }
+            displayName = Texts.isBlank(displayName) ? id : displayName;
+            attributeId = Texts.isBlank(attributeId) ? id : Texts.lower(attributeId);
+        }
+
+        public boolean supportsStage(int stage) {
+            int normalized = Math.max(1, stage);
+            return normalized >= minStage && normalized <= maxStage;
         }
     }
 

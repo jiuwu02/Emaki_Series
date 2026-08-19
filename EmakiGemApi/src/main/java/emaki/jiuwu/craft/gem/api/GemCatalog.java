@@ -13,6 +13,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.gem.api.model.GemDefinitionView;
 import emaki.jiuwu.craft.gem.api.model.GemRelationshipCheck;
+import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
 
@@ -141,4 +142,13 @@ public interface GemCatalog {
      */
     @NotNull
     Set<String> aggregatedSkillIds(@Nullable ItemStack equipment);
+
+    /**
+     * Reads the active reroll candidate session for an operator.
+     *
+     * @param operatorId operator UUID
+     * @return the current candidate session, empty when none is open
+     */
+    @NotNull
+    Optional<GemRerollSessionView> rerollSession(@Nullable java.util.UUID operatorId);
 }

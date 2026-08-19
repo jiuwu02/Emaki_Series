@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemLayerPreviewService;
 import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
+import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
@@ -52,6 +53,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         EmakiItemFactory itemFactory,
         EmakiItemUpdateService updateService,
         EmakiItemSetService setService,
+        EmakiItemStateService stateService,
         EmakiItemActionService actionService,
         EmakiItemConditionChecker conditionChecker,
         ItemComponentInspector componentInspector,
@@ -84,6 +86,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(EmakiItemFactory.class, itemFactory),
                 RuntimeComponents.component(EmakiItemUpdateService.class, updateService),
                 RuntimeComponents.component(EmakiItemSetService.class, setService),
+                RuntimeComponents.component(EmakiItemStateService.class, stateService),
                 RuntimeComponents.component(EmakiItemActionService.class, actionService),
                 RuntimeComponents.component(EmakiItemConditionChecker.class, conditionChecker),
                 RuntimeComponents.component(ItemComponentInspector.class, componentInspector),

@@ -34,6 +34,7 @@ public final class DefaultEmakiGemApi implements EmakiGemApi.Bridge {
                 && plugin.itemMatcher() != null
                 && plugin.itemFactory() != null
                 && plugin.snapshotBuilder() != null
+                && plugin.rerollSessionService() != null
                 && plugin.inlayService() != null
                 && plugin.socketOpenerService() != null
                 && plugin.gemGuiService() != null

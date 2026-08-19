@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
+import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
@@ -44,6 +45,7 @@ record GemRuntimeComponents(EmakiScheduling scheduling,
         GemPdcAttributeWriter pdcAttributeWriter,
         GemStateService stateService,
         GemEconomyService economyService,
+        GemRerollSessionService rerollSessionService,
         GemActionCoordinator actionCoordinator,
         SocketOpenerService socketOpenerService,
         GemInlayService inlayService,
@@ -70,6 +72,7 @@ record GemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(GemPdcAttributeWriter.class, pdcAttributeWriter),
                 RuntimeComponents.component(GemStateService.class, stateService),
                 RuntimeComponents.component(GemEconomyService.class, economyService),
+                RuntimeComponents.component(GemRerollSessionService.class, rerollSessionService),
                 RuntimeComponents.component(GemActionCoordinator.class, actionCoordinator),
                 RuntimeComponents.component(SocketOpenerService.class, socketOpenerService),
                 RuntimeComponents.component(GemInlayService.class, inlayService),

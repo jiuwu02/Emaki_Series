@@ -7,6 +7,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
@@ -134,9 +135,10 @@ public final class ItemTriggerListener implements Listener {
                             "target", event.getEntity().getName(),
                             "damage", event.getDamage()
                     );
-                    run(attacker, definition, TriggerRegistry.LEFT_CLICK, placeholders);
-                    run(attacker, definition, "left_click_entity", placeholders);
-                    run(attacker, definition, TriggerRegistry.ATTACK, placeholders);
+                    ItemStack item = heldItem(attacker);
+                    run(attacker, definition, TriggerRegistry.LEFT_CLICK, placeholders, item);
+                    run(attacker, definition, "left_click_entity", placeholders, item);
+                    run(attacker, definition, TriggerRegistry.ATTACK, placeholders, item);
                 }
             }
         }
@@ -149,6 +151,26 @@ public final class ItemTriggerListener implements Listener {
                 ));
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDamageDealt(EntityDamageByEntityEvent event) {
+        if (event.getFinalDamage() <= 0D || !event.getEntity().isValid()) {
+            return;
+        }
+        Player attacker = playerDamager(event.getDamager());
+        if (attacker == null || !attacker.isValid()) {
+            return;
+        }
+        ItemStack item = heldItem(attacker);
+        EmakiItemDefinition definition = definition(item);
+        if (definition == null || !passes(attacker, definition, "damage_dealt", item)) {
+            return;
+        }
+        run(attacker, definition, "damage_dealt", Map.of(
+                "target", event.getEntity().getName(),
+                "damage", event.getFinalDamage()
+        ), item);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -172,8 +194,9 @@ public final class ItemTriggerListener implements Listener {
         if (definition == null || !passes(killer, definition, TriggerRegistry.KILL_ENTITY)) {
             return;
         }
+        ItemStack item = heldItem(killer);
         run(killer, definition, event.getEntity() instanceof Player ? TriggerRegistry.KILL_PLAYER : TriggerRegistry.KILL_ENTITY,
-                Map.of("target", event.getEntity().getName()));
+                Map.of("target", event.getEntity().getName(), "damage", 0D), item);
     }
 
     @EventHandler

@@ -125,7 +125,8 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         if (Texts.isBlank(affixKey) || itemStack == null) {
             return;
         }
-        AffixLayer currentLayer = layerCodec.readOrEmpty(itemStack, defaultCapacityMax());
+        AffixLayer storedLayer = layerCodec.read(itemStack);
+        AffixLayer currentLayer = storedLayer == null ? AffixLayer.empty(defaultCapacityMax()) : storedLayer;
         AffixState current = currentLayer.affix(affixKey);
         int targetLevel = normalizeTargetLevel(level);
         if (targetLevel == current.level()) {
@@ -137,25 +138,35 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
             nextLayer = currentLayer.without(affixKey);
         } else if (targetLevel > current.level()) {
             int levelDelta = targetLevel - current.level();
-            int capacityDelta = capacityCostPerLevel() * levelDelta;
-            // 容量不足时不写入。执行服务已在扣费前用 canAfford 拦过一次，这里是第二道防线，
-            // 保证任何绕过预检的调用路径也不会把容量写成负数。
+            long capacityDeltaLong = (long) capacityCostPerLevel() * levelDelta;
+            double bonusDelta = bonusPerLevel() * levelDelta;
+            if (capacityDeltaLong > Integer.MAX_VALUE || !Double.isFinite(bonusDelta)) {
+                return;
+            }
+            int capacityDelta = (int) capacityDeltaLong;
+            // 容量不足时不写入。执行服务会通过预写回 + read-back 在扣费前拦截，
+            // 这里是 Provider 自身的第二道防线。
             if (!currentLayer.canAfford(capacityDelta)) {
                 return;
             }
             nextLayer = currentLayer.with(new AffixState(
                     affixKey,
                     targetLevel,
-                    current.bonus() + bonusPerLevel() * levelDelta,
+                    current.bonus() + bonusDelta,
                     current.capacityCost() + capacityDelta
             ));
         } else {
             int levelDelta = current.level() - targetLevel;
+            long capacityDelta = (long) capacityCostPerLevel() * levelDelta;
+            double bonusDelta = bonusPerLevel() * levelDelta;
+            if (!Double.isFinite(bonusDelta)) {
+                return;
+            }
             nextLayer = currentLayer.with(new AffixState(
                     affixKey,
                     targetLevel,
-                    current.bonus() - bonusPerLevel() * levelDelta,
-                    Math.max(0, current.capacityCost() - capacityCostPerLevel() * levelDelta)
+                    current.bonus() - bonusDelta,
+                    (int) Math.max(0L, current.capacityCost() - capacityDelta)
             ));
         }
 
@@ -164,8 +175,13 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         if (!syncAttributePayload(itemStack, nextLayer)) {
             return;
         }
-        if (!layerCodec.write(itemStack, nextLayer)) {
+        if (!layerCodec.write(itemStack, nextLayer) || !nextLayer.equals(layerCodec.read(itemStack))) {
             syncAttributePayload(itemStack, currentLayer);
+            if (storedLayer == null) {
+                layerCodec.clear(itemStack);
+            } else {
+                layerCodec.write(itemStack, currentLayer);
+            }
         }
     }
 
@@ -181,11 +197,18 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public void clearEnhancement(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir() || !attributeGateway.available()) {
+            return;
+        }
         AffixLayer currentLayer = layerCodec.read(itemStack);
-        if (currentLayer == null || !syncAttributePayload(itemStack, AffixLayer.empty(currentLayer.capacityMax()))) {
+        int capacityMax = currentLayer == null ? defaultCapacityMax() : currentLayer.capacityMax();
+        if (!syncAttributePayload(itemStack, AffixLayer.empty(capacityMax))) {
             return;
         }
         layerCodec.clear(itemStack);
+        if (layerCodec.read(itemStack) != null && currentLayer != null) {
+            syncAttributePayload(itemStack, currentLayer);
+        }
     }
 
     private List<String> resolveEnhanceableCandidates(ItemStack itemStack) {
@@ -226,13 +249,19 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         }
         if (attributes.isEmpty()) {
             boolean hasPayload = attributeGateway.readAllAttributes(itemStack).containsKey(ATTRIBUTE_SOURCE_ID);
-            return !hasPayload || attributeGateway.clear(itemStack, ATTRIBUTE_SOURCE_ID);
+            if (hasPayload && !attributeGateway.clear(itemStack, ATTRIBUTE_SOURCE_ID)) {
+                return false;
+            }
+            return !attributeGateway.readAllAttributes(itemStack).containsKey(ATTRIBUTE_SOURCE_ID);
         }
         Map<String, String> meta = new LinkedHashMap<>();
         meta.put("layer", PROVIDER_ID);
         meta.put("capacity_max", String.valueOf(layer.capacityMax()));
         meta.put("capacity_used", String.valueOf(layer.capacityUsed()));
-        return attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, meta);
+        if (!attributeGateway.write(itemStack, ATTRIBUTE_SOURCE_ID, attributes, meta)) {
+            return false;
+        }
+        return attributes.equals(attributeGateway.readAllAttributes(itemStack).get(ATTRIBUTE_SOURCE_ID));
     }
 
     private int maxAffixLevel() {
