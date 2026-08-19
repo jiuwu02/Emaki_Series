@@ -1,20 +1,20 @@
-# ============================================================
-# EmakiAttribute 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiAttribute 主配置
 #
-# 文件放置位置: plugins/EmakiAttribute/config.yml
-# ============================================================
+# 控制属性来源、伤害接管、资源同步、格挡与伤害飘字。
+# 修改后按插件提供的重载命令应用。
+#
+# 文件位置：plugins/EmakiAttribute/config.yml
+#
 
-# 属性系统主配置
-# version 由资源同步维护
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
+#
 version: "4.7.3"
 
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: zh_CN
 
-# 是否释放内置示例资源。
-# false 时不会自动生成属性、伤害类型、读取规则、词条格式与平衡系数等默认数据。
+# 是否在启动时释放内置的属性、伤害类型与格式等默认示例数据。
+# 关闭后只加载已有数据，不主动生成缺失的默认示例。
 release_default_data: true
 
 # 物品属性来源策略。
@@ -28,9 +28,7 @@ attribute_sources:
   read_pdc_attributes: true
   require_lore_pdc_match: false
 
-# 是否接管未命中白名单的原版伤害
-# true 时，所有原版伤害都会进入 EA 结算；未命中的环境伤害会回退到默认伤害类型
-# false 时，只有白名单或 vanilla_event_damage.enabled 接管的伤害原因会进入 EA
+# 兼容保留项；当前配置解析器会读取此值，但当前运行时未发现进一步使用点。
 hard_lock_damage: true
 
 # 默认伤害类型 ID
@@ -42,24 +40,17 @@ default_damage_type: physical
 # physical：使用 physical_attack / physical_damage_bonus / physical_crit_* 等物理属性。
 projectile_damage_type: projectile
 
-# 原版事件伤害接管
-# enabled: true 时启用「完美接管」——不取消原版伤害事件，只把最终伤害数值替换为 EA 结算值，
-#          屏蔽原版护甲/抗性/魔法减伤、保留吸收之心与举盾格挡，原版副作用照常触发
-#          （着火僵尸点燃玩家、铁傀儡命中击飞、僵尸击退铁傀儡、荆棘、冻结、盾反等）。
-#          此时未在 allowed_damage_causes 中单独配置的原版伤害也会进入 EA 结算。
-# enabled: false 时使用「兼容模式」——取消原版事件后由 EA 合成重新施加伤害（含合成击退/受伤音效），
-#          只有 allowed_damage_causes 白名单内的伤害原因进入 EA；该模式下原版副作用可能缺失。
-# damage_type: 这些未单独映射的原版伤害统一使用的 EA 伤害类型。
-#          base_damage 会直接使用 Bukkit 事件里的原版伤害值，适合让原版物品、原版生物也有基础伤害。
+# 原版事件伤害接管模式。
+# enabled: true 时保留原版事件流程，并用 EA 结果替换伤害值；未单独映射的原版伤害也使用本模式。
+# enabled: false 时取消事件并由 EA 重新施加伤害；只有 allowed_damage_causes 中允许的原因进入 EA。
+# damage_type: 未单独映射的原版伤害使用的 EA 伤害类型；其基础伤害取自原版事件值。
 vanilla_event_damage:
   enabled: true
   damage_type: physical
 
-# 同批次攻击无视目标受伤间隔
-# enabled: true 时，同一攻击者在同一属性快照签名与同一伤害类型下产生的多段攻击
-#          （多重射击三箭、同一批多投射物、同签名连续命中等）互相不受原版受伤间隔限制，
-#          每一段都按 EA 结算值完整掉血；不同攻击者、换手后属性变化、不同伤害类型不共享批次。
-# window_ms: 批次有效时间窗，单位毫秒；超过该时间的同签名攻击视为新一轮攻击，重新受受伤间隔限制。
+# 同一攻击批次的受伤间隔处理。
+# enabled: true 时，同一攻击者、同一属性快照签名与同一伤害类型的多段命中可共享批次。
+# window_ms: 批次有效时间窗，单位：毫秒；超时后按新批次处理。
 same_signature_ignores_invulnerability:
   enabled: true
   window_ms: 500
@@ -196,8 +187,7 @@ damage_indicator:
       x: 0.4
       y: 0.15
       z: 0.4
-  # 抛物运动。轨迹为 p(t) = v·t + ½·a·t²，由客户端插值渲染，
-  # 飘字实体本身不移动，因此不产生传送开销。
+  # 抛物运动参数；轨迹由展示实体的关键帧插值呈现。
   motion:
     enabled: true
     # 关键帧间隔(tick)，同时是客户端插值时长。1 最平滑，值越大包越少、折线感越强。

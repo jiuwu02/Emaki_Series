@@ -1,25 +1,21 @@
-# ============================================================
-# EmakiCooking 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiCooking 主配置
 #
-# 文件放置位置: plugins/EmakiCooking/config.yml
-# ============================================================
-
-# 烹饪系统主配置
-# 原版物品 / 方块来源支持以下写法：
-# minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
-# 不再接受 minecraft:iron_axe
-# version 由资源同步维护
+# 控制工位交互、展示实体、七类工位运行参数与营养系统。
+# 修改后按插件提供的重载命令应用。
+# 文件位置：plugins/EmakiCooking/config.yml
+#
+# 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
+# 不使用 minecraft:iron_axe 这种冒号写法。
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
 version: "4.2.2"
 
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否写入默认 recipes
+# 是否在启动时释放内置的 recipes 等默认示例数据。
 release_default_data: true
 
-# 工位交互全局禁用世界；命中后插件不接管事件，保留原版方块行为
+# 全局禁用工位交互的世界列表；命中后不接管方块交互。
 station:
   disabled_worlds: []
 
@@ -28,16 +24,17 @@ input_rules:
   only_recipe_items: true
 
 display_entities:
-  # auto: 有 PacketEvents 时使用虚拟展示实体；不可用时回退 Bukkit 真实 ItemDisplay
-  # packet_events: 优先使用 PacketEvents，加载失败仍回退 Bukkit
-  # bukkit: 始终使用 Bukkit 真实 ItemDisplay
+  # 展示后端：auto 自动选择；packet_events 优先 PacketEvents；bukkit 使用真实展示实体。
+  # PacketEvents 后端不可用时会回退 Bukkit。
   backend: auto
+  # packet 后端可见距离，单位：方块。
   view_distance_blocks: 48
+  # packet 后端可见性刷新间隔，单位：tick。
   refresh_interval_ticks: 20
   wok:
+    # 炒锅内食材展示布局半径，单位：方块。
     layout_radius: 0.26
-  # 工位运行态文本展示实体（结果 / 过程 / 下一步引导）
-  # 文本实体跟随上面的 backend；只在工位运行时显示，结束/清空/取回/破坏后移除
+  # 工位运行时的结果、过程与下一步提示文本；生命周期跟随工位状态。
   text:
     enabled: true
     # billboard: fixed / vertical / horizontal / center（始终朝向玩家）
@@ -113,8 +110,8 @@ display_adjustments:
         rotation:
           z: "0.0-90.0"
 
-# 四类工位运行配置
-# block_item_sources 支持同时列出多个方块来源，命中任意一个即可作为对应工位：
+# 七类工位运行配置。
+# block_item_sources 可列出多个方块来源，命中任意一个即可识别为对应工位：
 #   - minecraft-iron_block
 #   - craftengine-emaki:wok
 #   - itemsadder-emaki:wok
@@ -393,29 +390,19 @@ stations:
         - "spawn_particle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3"
 
 # ============================================================
-# 营养系统（类膳食均衡 Diet）
+# 营养系统
 # ============================================================
-# 玩家吃东西增加营养值，营养值到达阈值后执行 CoreLib 动作（加 BUFF 等），
-# 多类营养同时满足后可触发"反胃"并用循环动作持续衰减全部营养。
+# 营养类型在 nutrition/<id>.yml 中定义，数值限制在对应类型的 min～max 范围内。
+# 食物规则、阈值 actions 与营养操作段均使用 CoreLib 动作流水线。
 #
-# 营养类型在 nutrition/<id>.yml 中定义（默认：水果/蔬菜/蛋白质/糖分/谷物），可自由增删。
-# 营养值会被限制在该类型的 min ~ max 之间。
+# 可用营养动作：cooking_add_nutrition、cooking_remove_nutrition、
+# cooking_set_nutrition、cooking_reset_nutrition、cooking_clear_nutrition。
+# add/remove/set 需要 type 与 amount，并作用于当前动作目标玩家。
+# PlaceholderAPI 占位符：%emakicooking_nutrition_<type>%、
+# %emakicooking_nutrition_<type>_max%、%emakicooking_nutrition_<type>_min%、
+# %emakicooking_nutrition_combo_count_<规则id>%。
 #
-# 营养动作（注册在 CoreLib，可在任意动作列表中使用）：
-#   emakicookingaddnutrition type=<类型> amount=<数值或表达式> [target=<玩家>]
-#   emakicookingremovenutrition type=<类型> amount=<数值>
-#   emakicookingsetnutrition type=<类型> amount=<数值>
-#
-# 占位符（需要 PlaceholderAPI）：
-#   %emakicooking_nutrition_<type>%       当前营养值
-#   %emakicooking_nutrition_<type>_max%   营养上限
-#   %emakicooking_nutrition_<type>_min%   营养下限
-#   %emakicooking_nutrition_combo_count_<规则id>%  组合规则当前达标的营养类型数量
-#
-# 反胃 / 持续 BUFF / 衰减都由下方阈值动作 + CoreLib 长期任务段（start_task/stop_task）拼装。
-# start_task 的 sequence 必须在 CoreLib 的 config.yml -> action.loop.templates 中定义。
-# 下面 thresholds 示例引用了 nutrition_decay / nutrition_well_fed 两个序列，
-# 请将以下内容粘贴到 plugins/EmakiCoreLib/config.yml 的 action.loop.templates 下：
+# start_task/stop_task 引用的 sequence 需配置在 EmakiCoreLib 的 action.loop.templates 中：
 #
 #   nutrition_decay:
 #     - 'cooking_remove_nutrition type=fruit amount=5'
@@ -427,14 +414,13 @@ stations:
 #   nutrition_well_fed:
 #     - 'give_potion_effect type=SATURATION level=1 duration=60'
 nutrition:
-  # 是否启用营养系统
+  # 是否启用营养系统。
   enabled: true
-  # 营养数据定时保存间隔（秒）；0 表示只在退出/关服时保存
+  # 玩家营养数据定时保存间隔，单位：秒；0 表示不启用定时保存。
   save_interval_seconds: 300
 
-  # 食物来源：吃下匹配 item_sources 中任意来源的物品时，按 nutrition 增加对应营养值。
-  # item_sources 支持：minecraft-xxx / craftengine-xxx / itemsadder-xxx / nexo-xxx / oraxen-xxx / mmoitems-xxx / neigeitems-xxx
-  # 原版、CraftEngine、ItemsAdder、Nexo、Oraxen 食物走原版食用事件；MMOItems、NeigeItems 食用走各自接入。
+  # 食物来源：食用命中 item_sources 的物品时，应用 nutrition 与 actions。
+  # 支持 minecraft、craftengine、itemsadder、nexo、oraxen、mmoitems、neigeitems 来源。
   food_sources:
     - item_sources:
         - minecraft-apple
@@ -485,10 +471,9 @@ nutrition:
         value: 80
         compare: ">="
         actions:
-          # 用长期任务持续给 BUFF；key 绑定玩家与营养类型，避免重复
-          # times 受 CoreLib config.yml 的 action.pipeline.max_repeat_times 限制（默认 100）；
-          # 需要更久就调高该值。BUFF 会在营养跌回阈值下方时由 on_recover 取消，
-          # 或在玩家离线时由 stop_when_offline 自动停止。
+          # 用长期任务持续给 BUFF；key 绑定玩家与营养类型，避免重复。
+          # times 受 EmakiCoreLib 的 action.loop.max_times 限制。
+          # 营养跌回阈值下方时由 on_recover 取消；玩家离线时也会停止。
           - "start_task sequence=nutrition_well_fed times=100 interval=40t key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type% on_conflict=replace stop_when_offline=true"
         on_recover:
           - "stop_task key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type%"
@@ -509,9 +494,9 @@ nutrition:
           - "send_message text=<red>你吃得太撑了，开始反胃……"
           - "play_sound sound=entity.player.burp volume=1.0 pitch=0.8"
           - "give_potion_effect type=NAUSEA level=1 duration=200"
-          # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
-          # 序列内的 stop_task 会在水果营养 <=0 时结束该任务。
-          # times 受 action.pipeline.max_repeat_times 限制（默认 100），需要更久请调高该值。
+          # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0。
+          # 序列内的 stop_task 会在水果营养 <=0 时结束任务。
+          # times 受 EmakiCoreLib 的 action.loop.max_times 限制。
           - "start_task sequence=nutrition_decay times=100 interval=40t key=nutrition_overeat:%caster.uuid% on_conflict=replace stop_when_offline=true"
         on_recover:
           - "stop_task key=nutrition_overeat:%caster.uuid%"

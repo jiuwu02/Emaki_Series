@@ -1,57 +1,48 @@
-# ============================================================
-# EmakiCoreLib 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiCoreLib 主配置
 #
-# 文件放置位置: plugins/EmakiCoreLib/config.yml
-# ============================================================
+# 为其他 Emaki 模块提供 GUI、展示实体、事件、动作管道、对话框与语言表能力。
+# 修改后按插件提供的重载命令应用。
+# 文件位置：plugins/EmakiCoreLib/config.yml
 
-# CoreLib 主配置
-# version 由资源同步维护
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
 version: "4.7.7"
 
-# 语言文件 ID，对应 lang/<language>.yml。
+# 语言文件名，对应 lang/<language>.yml。
 # 例如："zh_CN"、"en_US"。
 language: "zh_CN"
 
-# 是否释放内置示例资源。
-# 保留此开关以兼容既有配置文件；随 JavaScript 子系统移除，当前已无示例资源受它控制。
+# 兼容保留项；当前默认资源释放流程不由此开关控制。
 release_default_data: true
 
 # 统一 Debug 开关。
-# global_all 为 true 时，所有使用 CoreLib DebugLogger 的 Emaki 模块都会输出 Debug 日志；
-# 可用 /corelib debug all on|off 在运行时临时切换，重载后以此配置为准。
+# global_all 为 true 时，使用 CoreLib DebugLogger 的模块默认输出 Debug 日志。
+# 运行时可用 /corelib debug all on|off 临时切换；重载后重新读取本项。
 debug:
   global_all: false
 
-# 菜单(GUI)渲染后端
+# 菜单（GUI）渲染后端
 gui:
-  # 菜单后端类型，决定 Emaki 系列所有菜单如何呈现给玩家：
-  #   bukkit  - 实体菜单。打开真实服务端容器(默认)，行为最稳定，无需任何前置插件。
-  #   packet  - 发包虚拟菜单。直接发送容器封包，刷新不同行数时复用同一窗口，光标不会被重置；
-  #             由 CoreLib 内置，仅需额外安装 PacketEvents。未安装 PacketEvents 时自动回退为 bukkit。
-  #   auto    - 安装了 PacketEvents 则使用 packet 后端，否则使用 bukkit。
-  # 默认 bukkit：升级 CoreLib 不会改变现有菜单行为，需要时再安装 PacketEvents 并切换。
+  # 菜单后端类型：
+  #   bukkit：使用服务端容器；无需 PacketEvents。
+  #   packet：使用 PacketEvents 发包渲染；不可用时回退 bukkit。
+  #   auto：有可用 PacketEvents 时使用 packet，否则使用 bukkit。
+  # 默认 bukkit，便于在无额外前置时运行。
   backend: "bukkit"
-  # 同一玩家两次菜单点击的最小间隔(毫秒)，用于抑制连点与宏点击造成的重复结算。
-  # 0 表示不限制。被拦截的点击会被安全丢弃：菜单不会错乱，玩家也不会收到提示。
-  # 默认 100，正常手动点击不会触发；需要更严格时可上调，建议不超过 500。
+  # 同一玩家两次菜单点击的最小间隔，单位：毫秒；0 表示不限制。
+  # 间隔内的后续点击不会交给菜单业务处理。
   click_interval_ms: 100
 
-# 展示实体(Display Entity)渲染后端
-# 供伤害飘字、烹饪工位文本与物品展示等功能共用。
+# 展示实体渲染后端，供伤害飘字、工位文本与物品展示等功能共用。
 display:
   # 展示实体后端类型：
-  #   bukkit  - 真实体。生成服务端实体，无需前置插件；对附近所有玩家可见。
-  #   packet  - 发包虚拟实体。不进入区块存档、不占用服务端实体，支持只对指定玩家可见；
-  #             需要额外安装 PacketEvents，且服务端不低于 1.19.4。
-  #   auto    - 安装了 PacketEvents 且版本满足则使用 packet，否则 bukkit(默认)。
-  #   inherit - 跟随上方 gui.backend 的取值。
-  # 发包后端不可用时一律回退 bukkit，功能不会整体失效。
+  #   bukkit：使用服务端展示实体。
+  #   packet：使用 PacketEvents 发送虚拟展示实体；不可用时回退 bukkit。
+  #   auto：自动选择可用后端。
+  #   inherit：跟随 gui.backend。
   backend: "auto"
-  # 虚拟实体的可见距离(格)。仅 packet 后端生效。
+  # packet 后端的可见距离，单位：方块。
   view_distance_blocks: 48
-  # 虚拟实体可见性的重算间隔(tick)。仅 packet 后端生效，调小更灵敏但更耗性能。
+  # packet 后端重新计算可见性的间隔，单位：tick。
   refresh_interval_ticks: 20
 
 # MiniMessage 文本渲染
@@ -61,50 +52,44 @@ minimessage:
   # 这是“默认值”而非强制值：文本中显式写出 <i> 或 <italic> 仍然生效。
   default_no_italic: true
 
-# 原版语言表(服务端侧)
-# 原版物品与方块名由客户端翻译，服务端只持有 block.minecraft.campfire 这样的翻译键。
-# 需要在服务端拿到本地化名称的功能(例如按中文名搜索仓库)必须自备一份语言表。
+# 服务端侧原版语言表。
+# 供仓库名称搜索等需要本地化物品/方块名称的功能使用。
 vanilla_language:
-  # 总开关。默认关闭：首次启用会联网从 Mojang 官方资源索引下载语言文件。
-  # 下载结果缓存在 plugins/EmakiCoreLib/lang-cache/，之后启动不再联网。
-  # 下载失败不影响开服，仅相关功能保持不可用。
+  # 是否启用语言表下载与缓存；首次缺少缓存时会访问 Mojang 资源索引。
+  # 缓存位于 plugins/EmakiCoreLib/lang-cache/；下载失败时相关本地化功能不可用。
   enabled: false
-  # 要获取的原版语言 id，与客户端语言文件同名(zh_cn / en_us / zh_tw 等)。
+  # 原版语言 ID，与客户端语言文件名一致，例如 zh_cn、en_us、zh_tw。
   locale: "zh_cn"
 
-# 原版对话框(Dialog)
-# 基于服务端原生对话框能力，向玩家展示带说明文本、输入框与按钮的界面。
-# 需要客户端 1.21.6 及以上；低版本客户端的表现未经验证。
+# 原版对话框。
+# 用于向支持该协议能力的客户端展示文本、输入框与按钮。
 dialog:
-  # 总开关。关闭后不加载对话框定义，DialogApi 进入不可用状态。
+  # 总开关；关闭后不加载对话框定义，DialogApi 不可用。
   enabled: true
-  # 定义文件目录，相对 plugins/EmakiCoreLib/。目录内所有 .yml 均会被加载。
+  # 定义文件目录，相对 plugins/EmakiCoreLib/；加载目录内的 .yml 文件。
   directory: "dialogs"
 
-# 统一游戏事件层
-# CoreLib 注册一个共享监听器，捕获常见玩法事件(击杀/挖掘/合成/钓鱼/驯服/酿造等)，
-# 经内部事件总线转发给各 Emaki 插件(EmakiLevel、EmakiCodex ...)，避免各插件重复监听。
+# 统一游戏事件层。
+# CoreLib 捕获常见玩法事件并转发给订阅这些事件的 Emaki 模块。
 gameplay_events:
-  # 总开关。关闭后 CoreLib 不再发布游戏事件，依赖它的插件将收不到事件。
+  # 总开关；关闭后不再发布共享游戏事件。
   enabled: true
-  # entity_kill 的“最后攻击者”归因窗口(tick)。当 Bukkit 未直接记录击杀者时(如弓箭、延迟死亡)，
-  # 在此窗口内仍把击杀归因给最后一次攻击的玩家。仅为粗粒度上限，订阅方可再收紧。
+  # 无直接击杀者时保留“最后攻击玩家”的时间，单位：tick。
   last_damager_expire_ticks: 200
-  # brew_complete 的酿造归因保留窗口(tick)。酿造完成后，在此窗口内仍可把结果归因给最后操作酿造台的玩家。
-  # 这是一个“宽松上限”，只用于防止归因记录无限保留；真正的业务窗口由各订阅方自行收紧
-  # (例如 EmakiLevel 各来源的 attribution.expire_ticks，默认 1200)。默认 6000(约 5 分钟)，
-  # 需大于所有订阅方可能配置的业务窗口，避免在订阅方判断前被提前截断。
+  # 保留最后一次酿造台操作归因的时间，单位：tick。
+  # 订阅方可以使用更短的业务窗口。
   brew_attribution_expire_ticks: 6000
 
 action:
-  # 管道的加载期编译上限。超限直接拒绝该条配置并保留上一份有效配置，不静默截断。
+  # 动作管道的加载期编译上限；超限配置会被拒绝。
   pipeline:
-    # `every <间隔> times <次数>` 的次数上限。默认 100；写成 100000 会在加载期报错而不是被悄悄改小。
+    # every ... times ... 的最大重复次数。
     max_repeat_times: 100
-    # 序列(`run`)的最大嵌套深度。同时用于加载期环检测的兜底。
+    # run 序列的最大嵌套深度。
     max_sequence_depth: 8
-    # 分支(`if ... [ ... ]`)的最大嵌套深度。
+    # if 分支的最大嵌套深度。
     max_branch_depth: 16
+  # 长期循环任务的调度与数量限制。
   loop:
     enabled: true
     min_sync_interval: 5t
@@ -115,7 +100,7 @@ action:
     max_active_loops_per_plugin: 1000
     cancel_player_loops_on_quit: true
     cancel_plugin_loops_on_disable: true
-  # 命名序列。在管道中通过 `run 名称` 调用，可附带 key=value 参数。
+  # 命名动作序列，可在管道中通过 run <名称> 调用并传入 key=value 参数。
   templates:
     # reward_success_common:
     #   - 'self | send_message text="<green>成功获得 %var.result_item_name%</green>"'

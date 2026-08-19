@@ -26,7 +26,6 @@ public interface ItemMastery {
     /**
      * Reads the current immutable mastery snapshot for one item.
      *
-     * @param player    the acting player when the target provider requires player context
      * @param itemStack the item to inspect
      * @return the provider-owned snapshot, or a classified failure when unsupported or unavailable
      */

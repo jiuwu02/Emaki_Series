@@ -1,19 +1,16 @@
-# ============================================================
-# EmakiGem 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiGem 主配置
 #
-# 文件放置位置: plugins/EmakiGem/config.yml
-# ============================================================
+# 控制开孔器、镶嵌成功率、失败处理与宝石界面。
+# 修改后按插件提供的重载命令应用。
+# 文件位置：plugins/EmakiGem/config.yml
 
-# 宝石系统主配置
-# version 由资源同步维护
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
 version: "2.7.3"
 
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否写入默认资源
+# 是否在启动时释放插件内置的默认宝石数据。
 release_default_data: true
 
 socket_openers:
@@ -66,17 +63,15 @@ socket_openers:
         - "play_sound sound=entity.villager.no volume=1.0 pitch=0.8"
 
 inlay_success:
-  # false 时固定 100% 成功
+  # 是否启用成功率判定；关闭时按 100% 成功处理。
   enabled: true
-  # 默认成功率（百分比）
+  # 默认成功率，单位：百分比；源码会限制在 0–100。
   default_chance: 100.0
-  # 支持变量:
-  # %default_chance% %level_chance% %configured_chance% %level%
+  # 成功率公式。可使用：%default_chance%、%level_chance%、%configured_chance%、%level%。
   rate_formula: "%default_chance% - (%level% - 1) * 5"
-  # 镶嵌失败时的处理：
-  # return_gem: 不扣宝石，也不扣镶嵌成本
-  # destroy_gem: 扣宝石，并在判定前先扣镶嵌成本
-  # destroy_both: 扣宝石，不扣镶嵌成本
+  # 镶嵌失败时的资源处理：
+  # return_gem：返还宝石与镶嵌成本；destroy_gem：消耗宝石并扣除成本；
+  # destroy_both：消耗宝石但不扣除镶嵌成本。
   failure_action: "destroy_gem"
 
 number_format:
@@ -84,12 +79,12 @@ number_format:
   default: "0.##"
 
 permission:
-  # OP 是否跳过镶嵌、开孔、取出的消耗与条件检查
+  # OP 是否绕过镶嵌、开孔与取出操作的消耗及条件检查。
   op_bypass: false
 
 gui:
-  # 默认打开模式: inlay | upgrade | open。取出模式在 inlay GUI 内手动切换。
-  # upgrade 为宝石阶段升级模式，实际材料与费用由 EmakiStrengthen 的同名配方定义。
+  # 默认打开模式：inlay | upgrade | open；取出模式在 inlay 界面内切换。
+  # upgrade 的材料与费用由 EmakiStrengthen 中对应配方决定。
   default_mode: "inlay"
-  # 关闭界面时是否自动保存状态
+  # 关闭界面时是否保存当前操作状态。
   save_on_close: false

@@ -1,26 +1,23 @@
-# ============================================================
-# EmakiSkills 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiSkills 主配置
 #
-# 文件放置位置: plugins/EmakiSkills/config.yml
-# ============================================================
+# 控制技能槽、技能来源、施法模式、触发器与原生脚本执行限制。
+# 修改后按插件提供的重载命令应用。
+# 文件位置：plugins/EmakiSkills/config.yml
 
-# 主配置
-# version 由资源同步维护
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
 version: "2.7.4"
 
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否写入默认资源
+# 是否在启动时释放插件内置的默认技能数据。
 release_default_data: true
 
 slots:
-  # 默认技能槽数量
+  # 默认技能槽数量；小于 1 的值会按 1 处理。
   default_count: 3
 
-# 装备技能来源。默认合并 Lore 与物品 PDC；严格模式只保留同一物品、同一槽位中两侧共同的技能 ID。
+# 装备技能来源；默认合并 Lore 与 PDC，严格模式只保留两侧共同的技能 ID。
 skill_sources:
   read_lore_skills: true
   read_pdc_skills: true
@@ -35,37 +32,42 @@ skill_tags:
     mobility: 2
 
 cast_mode:
-  # F 键用于进入/退出施法模式。
-  # G 键为客户端本地按键，Spigot 服务端无法监听，ProtocolLib/PacketEvents 也无法获取。
+  # 兼容保留项；当前运行时会把施法模式入口固定为 F。
   entry_key: "f"
-  # 重登后是否恢复上次的施法模式
+  # 玩家重新加入后是否恢复上次的施法模式状态。
   restore_last_state_on_join: true
 
 cast_timing:
-  # 任意技能成功释放后的全局延迟，单位 tick
-  # 0 表示关闭
+  # 任意技能成功释放后的全局延迟，单位：tick；0 表示关闭。
   forced_global_cast_delay_ticks: 0
 
 actionbar:
+  # 是否启用技能状态 ActionBar。
   enabled: true
-  # 刷新间隔，单位 tick
+  # 刷新间隔，单位：tick；小于 1 的值会按 1 处理。
   refresh_interval_ticks: 10
-  # 施法模式下的显示模板
+  # 施法模式下的显示模板。
   template_cast_mode: "<gold>施法模式</gold> %slot_1% %slot_2% %slot_3%
     <gray>延迟:</gray> %forced_delay%"
-  # 非施法模式下的显示模板，空字符串表示不显示
+  # 非施法模式下的显示模板；空值会回退到源码默认文本，而不是关闭显示。
   template_idle: ""
 
-# 原生技能脚本引擎
+# 原生技能脚本执行器。
 script_engine:
+  # 总开关。
   enabled: true
+  # 未单独指定时使用的脚本模式。
   default_mode: "native"
+  # 某条动作失败后是否停止当前阶段。
   stop_on_failure: true
+  # 单个阶段允许的最大脚本行数；小于 1 的值会按 1 处理。
   max_lines_per_phase: 64
+  # 单条动作允许处理的最大目标数；小于 1 的值会按 1 处理。
   max_targets_per_action: 16
+  # 是否输出脚本执行调试信息。
   debug: false
 
-# 触发器配置
+# 主动触发器定义；incompatible_with 为空表示不声明互斥触发器。
 triggers:
   left_click:
     display_name: "[左键]"
@@ -141,26 +143,21 @@ triggers:
     enabled: true
     incompatible_with:
 
-# 主动触发器设置
+# 主动触发器设置。
 trigger_settings:
-  # 【临时兼容开关，下一个主版本移除】
-  # false（默认）: 已被其他插件取消的事件不再触发技能。
-  #   例如 WorldGuard、领地保护插件拦截了左右键/丢弃/切换快捷栏时，
-  #   技能不再扣蓝、不再进入冷却、不再执行动作。
-  # true: 恢复旧行为，即事件已被取消仍然触发技能。
-  #   仅供暂时无法适配的服务器过渡使用，启用后控制台会输出弃用告警。
+  # 是否兼容旧行为：即使 Bukkit 事件已被其他插件取消，仍继续分发技能触发。
+  # 建议保持 false，避免保护插件取消事件后仍消耗资源或执行技能。
   legacy_dispatch_cancelled_events: false
 
-# 被动触发器设置
+# 被动触发器设置。
 passive_trigger_settings:
-  # timer 被动触发器的检查间隔，单位 tick
+  # timer 的检查间隔，单位：tick；小于 1 的值会按 1 处理。
   timer_interval_ticks: 20
-  # combo_attack 连击触发器的超时间隔，单位 tick
-  # 超过此间隔未攻击则连击计数重置
+  # combo_attack 的超时，单位：tick；超时未攻击时重置连击计数。
   combo_timeout_ticks: 60
 
-# 被动触发器配置
-# 这些触发器由技能配置 passive_triggers 固定声明，玩家不能在 GUI 中修改。
+# 被动触发器定义。
+# 由技能文件的 passive_triggers 声明，玩家不能在 GUI 中修改。
 passive_triggers:
   attack:
     display_name: "[攻击命中]"

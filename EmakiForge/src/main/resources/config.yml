@@ -1,23 +1,21 @@
-# ============================================================
-# EmakiForge 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
+# EmakiForge 主配置
 #
-# 文件放置位置: plugins/EmakiForge/config.yml
-# ============================================================
+# 控制品质池、保底、结果展示、条件处理与历史保存。
+# 修改后按插件提供的重载命令应用。
+# 文件位置：plugins/EmakiForge/config.yml
 
-# 锻造系统主配置
-# version 由资源同步维护
+# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
 version: "4.7.3"
 
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否写入默认资源
+# 是否在启动时释放插件内置的默认锻造数据。
 release_default_data: true
 
 quality:
-  # 品质池。每项是一个可编辑记录：name 为品质名，weight 为抽取权重，multiplier 为结果倍率。
+  # 品质池；每项包含名称、抽取权重和结果倍率。
+  # 空或非法条目会被忽略；全部无效时回退到源码默认品质。
   tiers:
     - name: "平庸"
       weight: 60
@@ -38,17 +36,19 @@ quality:
       weight: 1
       multiplier: 1.2
 
-  # 随机失败时的回退品质
+  # 未命中有效品质名称时使用的回退品质；若该名称不存在则使用品质池首项。
   default_tier: "平庸"
 
   guarantee:
-    # 连续锻造达到阈值后的品质保底
+    # 是否启用连续失败后的最低品质保底。
     enabled: true
+    # 达到此连续次数后应用 minimum。
     threshold: 60
+    # 保底最低品质名称；不存在时回退到 default_tier。
     minimum: "无暇"
 
   item_meta:
-    # 是否将品质写入名称和 Lore
+    # 是否把品质对应的名称、Lore 与动作写入锻造结果。
     enabled: true
     tiers:
       有缺:
@@ -90,21 +90,24 @@ quality:
         action:
           - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的%var.forge_show_item%</color>"'
 
+# 数值展示格式；遵循 Java DecimalFormat 语法。
 number_format:
   default: "0.##"
   integer: "0"
   percentage: "0.##%"
 
 permission:
-  # OP 是否跳过锻造条件检查
+  # OP 是否绕过锻造条件检查。
   op_bypass: false
 
 condition:
-  # 条件表达式解析失败时，是否视为条件不通过
+  # 条件表达式解析失败时是否按条件不通过处理。
   invalid_as_failure: true
 
 history:
+  # 是否启用锻造历史记录。
   enabled: true
+  # 是否自动保存历史记录。
   auto_save: true
-  # 自动保存间隔，6000 tick = 5 分钟
+  # 自动保存间隔，单位：tick（20 tick = 1 秒）。
   save_interval: 6000
