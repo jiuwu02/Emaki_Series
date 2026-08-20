@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
@@ -54,6 +55,14 @@ final class GemGuiRenderer {
                     text("mode_extract_title", "Extract Mode"),
                     text("mode_extract_desc", "Click an inlaid gem slot"),
                     Material.YELLOW_STAINED_GLASS_PANE);
+            case "mode_reroll_full" -> buildModeButton(slot, state.mode() == GemGuiMode.REROLL_FULL,
+                    text("mode_reroll_full_title", "Reroll Mode"),
+                    text("mode_reroll_full_desc", "Hold the gem in your main hand and reroll every affix"),
+                    Material.MAGENTA_STAINED_GLASS_PANE);
+            case "mode_reroll_value" -> buildModeButton(slot, state.mode() == GemGuiMode.REROLL_VALUE,
+                    text("mode_reroll_value_title", "Recalibrate Mode"),
+                    text("mode_reroll_value_desc", "Hold the gem in your main hand and recalibrate affix values"),
+                    Material.CYAN_STAINED_GLASS_PANE);
             case "confirm" -> renderConfirm(state, slot);
             default -> GuiItemBuilder.build(slot.itemDefinition(), Map.of(),
                     plugin.coreLib().configuredItemService());
@@ -68,6 +77,13 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderTargetItem(GemGuiSession state, GuiSlot slot) {
+        if (state.rerollMode()) {
+            return buildConfiguredItem(slot, Material.MAGENTA_STAINED_GLASS_PANE,
+                    text("reroll_target_name", "<light_purple>Main-hand Gem</light_purple>"), List.of(
+                            text("reroll_target_lore_1", "<gray>Reroll always targets the gem in your main hand</gray>"),
+                            text("reroll_target_lore_2", "<dark_gray>This slot accepts no items</dark_gray>")
+                    ));
+        }
         ItemStack targetItem = state.targetItem();
         if (targetItem == null) {
             String nameKey = state.mode() == GemGuiMode.UPGRADE ? "upgrade_target_empty_name" : "target_empty_name";
@@ -193,6 +209,9 @@ final class GemGuiRenderer {
         if (state.mode() == GemGuiMode.UPGRADE) {
             return renderUpgradeInfo(state, slot);
         }
+        if (state.rerollMode()) {
+            return renderRerollInfo(state, slot);
+        }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
@@ -220,6 +239,9 @@ final class GemGuiRenderer {
         if (state.mode() == GemGuiMode.UPGRADE) {
             return renderUpgradeSummary(state, slot);
         }
+        if (state.rerollMode()) {
+            return renderRerollSummary(state, slot);
+        }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
@@ -240,9 +262,78 @@ final class GemGuiRenderer {
         return buildConfiguredItem(slot, Material.COMPASS, text("summary_name", "<gold>Gem Socket Summary</gold>"), lore);
     }
 
+    private ItemStack renderRerollInfo(GemGuiSession state, GuiSlot slot) {
+        List<String> lore = new ArrayList<>();
+        lore.add(text("mode_line", Map.of("mode", modeText(state.mode())),
+                "<gray>Current mode: <yellow>%mode%</yellow></gray>"));
+        GemRerollSessionView view = rerollView(state);
+        if (view == null) {
+            lore.add(state.mode() == GemGuiMode.REROLL_VALUE
+                    ? text("reroll_value_help", "<gray>Review the recalibrated values, then confirm</gray>")
+                    : text("reroll_full_help", "<gray>Review the reroll candidate, then confirm</gray>"));
+            lore.add(text("reroll_hold_hint", "<gray>Hold the gem in your main hand</gray>"));
+            lore.add(text("reroll_generate_hint", "<green>Click confirm to generate a candidate</green>"));
+            return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
+        }
+        lore.add(text("reroll_candidate_open", "<green>A candidate is awaiting confirmation</green>"));
+        lore.add(text("reroll_expires_in", Map.of("seconds", rerollRemainingSeconds(view)),
+                "<gray>Expires in: <gold>%seconds%s</gold></gray>"));
+        lore.add(text("reroll_confirm_hint", "<gray>Click confirm to write it to the gem</gray>"));
+        lore.add(text("reroll_cancel_hint", "<dark_gray>Switching mode or closing refunds the cost</dark_gray>"));
+        return buildConfiguredItem(slot, Material.BOOK, text("info_name", "<gold>Instructions</gold>"), lore);
+    }
+
+    private ItemStack renderRerollSummary(GemGuiSession state, GuiSlot slot) {
+        GemRerollSessionView view = rerollView(state);
+        List<String> lore = new ArrayList<>();
+        if (view == null) {
+            lore.add(text("reroll_summary_empty", "<gray>The candidate comparison appears after generating</gray>"));
+            return buildConfiguredItem(slot, Material.COMPASS,
+                    text("reroll_summary_name", "<gold>Reroll Comparison</gold>"), lore);
+        }
+        lore.add(text("reroll_original_header", "<gray>Current affixes:</gray>"));
+        lore.addAll(rerollAffixLines(view.originalAffixes(), "<dark_gray>- %affix%</dark_gray>",
+                "reroll_original_line", "reroll_none_line"));
+        lore.add("");
+        lore.add(text("reroll_candidate_header", "<gray>Candidate affixes:</gray>"));
+        lore.addAll(rerollAffixLines(view.candidateAffixes(), "<green>+ %affix%</green>",
+                "reroll_candidate_line", "reroll_none_line"));
+        return buildConfiguredItem(slot, Material.COMPASS,
+                text("reroll_summary_name", "<gold>Reroll Comparison</gold>"), lore);
+    }
+
+    private List<String> rerollAffixLines(List<String> affixes,
+            String fallback,
+            String lineKey,
+            String emptyKey) {
+        List<String> lines = new ArrayList<>();
+        if (affixes == null || affixes.isEmpty()) {
+            lines.add(text(emptyKey, "<dark_gray>- none</dark_gray>"));
+            return lines;
+        }
+        for (String affix : affixes) {
+            lines.add(text(lineKey, Map.of("affix", Texts.toStringSafe(affix)), fallback));
+        }
+        return lines;
+    }
+
+    private GemRerollSessionView rerollView(GemGuiSession state) {
+        if (state == null || state.player() == null || plugin.rerollSessionService() == null) {
+            return null;
+        }
+        return plugin.rerollSessionService().view(state.player().getUniqueId()).orElse(null);
+    }
+
+    private long rerollRemainingSeconds(GemRerollSessionView view) {
+        return view == null ? 0L : Math.max(0L, (view.expiryAt() - System.currentTimeMillis()) / 1000L);
+    }
+
     private ItemStack renderSocketSlot(GemGuiSession state, int displayIndex, GuiSlot guiSlot) {
         if (state.mode() == GemGuiMode.UPGRADE) {
             return renderUpgradeMaterialSlot(state, displayIndex, guiSlot);
+        }
+        if (state.rerollMode()) {
+            return hiddenSlot();
         }
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
@@ -325,6 +416,9 @@ final class GemGuiRenderer {
         if (state.mode() == GemGuiMode.UPGRADE) {
             return renderUpgradePreview(state, slot);
         }
+        if (state.rerollMode()) {
+            return renderRerollSummary(state, slot);
+        }
         GemGuiSession.PendingOperation pendingOperation = state.pendingOperation();
         List<String> lore = new ArrayList<>();
         if (!pendingOperation.active()) {
@@ -363,6 +457,17 @@ final class GemGuiRenderer {
     }
 
     private ItemStack renderConfirm(GemGuiSession state, GuiSlot slot) {
+        if (state.rerollMode()) {
+            boolean hasCandidate = rerollView(state) != null;
+            return buildConfiguredItem(slot,
+                    hasCandidate ? Material.LIME_STAINED_GLASS_PANE : Material.MAGENTA_STAINED_GLASS_PANE,
+                    text(hasCandidate ? "reroll_confirm_name_active" : "reroll_generate_name",
+                            hasCandidate ? "<green>Confirm Reroll</green>" : "<light_purple>Generate Candidate</light_purple>"),
+                    List.of(text(hasCandidate ? "reroll_confirm_active_lore" : "reroll_generate_lore",
+                            hasCandidate
+                                    ? "<gray>Click to write the candidate to your main-hand gem</gray>"
+                                    : "<gray>Click to charge the cost and generate a candidate</gray>")));
+        }
         if (state.mode() == GemGuiMode.UPGRADE) {
             GemUpgradeView view = resolveUpgradeView(state);
             boolean active = view != null && view.nextStage() != null && !state.processing();

@@ -76,7 +76,7 @@ final class GemCommandRouter implements TabExecutor {
         if (args.length == 2) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
                 case "gui" -> {
-                    for (String sub : List.of("inlay", "upgrade", "open")) {
+                    for (String sub : List.of("inlay", "upgrade", "extract", "reroll", "recalibrate", "open")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
@@ -150,6 +150,9 @@ final class GemCommandRouter implements TabExecutor {
         return switch (args[1].toLowerCase(Locale.ROOT)) {
             case "inlay" -> handleGui(sender, GemGuiMode.INLAY);
             case "upgrade" -> handleGui(sender, GemGuiMode.UPGRADE);
+            case "extract" -> handleGui(sender, GemGuiMode.EXTRACT);
+            case "reroll" -> handleGui(sender, GemGuiMode.REROLL_FULL);
+            case "recalibrate" -> handleGui(sender, GemGuiMode.REROLL_VALUE);
             case "open" -> handleGui(sender, GemGuiMode.OPEN_SOCKET);
             default -> {
                 plugin.messageService().send(sender, "general.invalid_args");
@@ -203,12 +206,12 @@ final class GemCommandRouter implements TabExecutor {
             return true;
         }
         if (args.length < 2) {
-            plugin.messageService().sendRaw(sender, "<gray>/emakigem reroll <full|value|confirm|cancel|status></gray>");
+            plugin.messageService().send(sender, "gem.reroll.usage");
             return true;
         }
         GemRerollSessionService service = plugin.rerollSessionService();
         if (service == null) {
-            plugin.messageService().sendRaw(sender, "<red>Gem reroll service unavailable</red>");
+            plugin.messageService().send(sender, "gem.reroll.unavailable");
             return true;
         }
         switch (args[1].toLowerCase(Locale.ROOT)) {
@@ -218,33 +221,46 @@ final class GemCommandRouter implements TabExecutor {
                         : GemRerollSessionService.OperationType.VALUE;
                 GemRerollSessionService.OpenResult result = service.open(player, type);
                 if (!result.success()) {
-                    plugin.messageService().sendRaw(sender, "<red>Reroll failed: " + result.errorKey() + "</red>");
+                    sendRerollError(sender, result.errorKey());
                     return true;
                 }
-                GemRerollSessionService.Session session = result.session();
-                plugin.messageService().sendRaw(sender, "<green>Candidate ready</green> <gray>(" + session.operationType().name().toLowerCase(Locale.ROOT)
-                        + "). Use <yellow>/emakigem reroll confirm</yellow> to accept.</gray>");
+                plugin.messageService().send(sender, "gem.reroll.opened", Map.of(
+                        "operation_type", operationTypeText(result.session().operationType())
+                ));
             }
             case "confirm" -> {
                 GemRerollSessionService.ActionResult result = service.confirm(player);
-                plugin.messageService().sendRaw(sender, result.success()
-                        ? "<green>Reroll candidate accepted.</green>"
-                        : "<red>Reroll confirm failed: " + result.errorKey() + "</red>");
+                if (result.success()) {
+                    plugin.messageService().send(sender, "gui.gem.reroll_confirmed", Map.of(
+                            "operation_id", result.session() == null ? "-" : result.session().operationId()
+                    ));
+                    return true;
+                }
+                sendRerollError(sender, result.errorKey());
             }
-            case "cancel" -> {
-                boolean abandoned = service.abandon(player.getUniqueId());
-                plugin.messageService().sendRaw(sender, abandoned
-                        ? "<yellow>Reroll candidate abandoned.</yellow>"
-                        : "<gray>No open reroll candidate.</gray>");
-            }
+            case "cancel" -> plugin.messageService().send(sender,
+                    service.abandon(player.getUniqueId()) ? "gem.reroll.cancelled" : "gem.reroll.session_missing");
             case "status" -> service.view(player.getUniqueId()).ifPresentOrElse(session ->
-                    plugin.messageService().sendRaw(sender, "<gray>Reroll " + session.operationType()
-                            + ": <yellow>" + session.originalAffixes().size() + "</yellow> → <green>"
-                            + session.candidateAffixes().size() + " affixes</green>; expires " + session.expiryAt() + "</gray>"),
-                    () -> plugin.messageService().sendRaw(sender, "<gray>No open reroll candidate.</gray>"));
-            default -> plugin.messageService().sendRaw(sender, "<gray>/emakigem reroll <full|value|confirm|cancel|status></gray>");
+                    plugin.messageService().send(sender, "gem.reroll.status", Map.of(
+                            "operation_type", session.operationType(),
+                            "original_count", session.originalAffixes().size(),
+                            "candidate_count", session.candidateAffixes().size(),
+                            "expires_in", Math.max(0L,
+                                    (session.expiryAt() - System.currentTimeMillis()) / 1000L)
+                    )),
+                    () -> plugin.messageService().send(sender, "gem.reroll.session_missing"));
+            default -> plugin.messageService().send(sender, "gem.reroll.usage");
         }
         return true;
+    }
+
+    private void sendRerollError(CommandSender sender, String errorKey) {
+        plugin.messageService().send(sender,
+                errorKey == null || errorKey.isBlank() ? "gui.gem.reroll_failed" : errorKey);
+    }
+
+    private String operationTypeText(GemRerollSessionService.OperationType type) {
+        return type == null ? "-" : type.name().toLowerCase(Locale.ROOT);
     }
 
     private boolean handleClearState(CommandSender sender) {

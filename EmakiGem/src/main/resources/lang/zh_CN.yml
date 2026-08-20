@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.5"
+version: "2.7.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -75,6 +75,25 @@ gem:
     insufficient_currency: "<red>货币不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
     insufficient_material: "<red>材料不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
     player_required: "<red>必须由玩家执行该操作。</red>"
+  reroll:
+    player_required: "<red>必须由玩家执行洗炼操作。</red>"
+    wrong_thread: "<red>当前线程无法操作该玩家，请稍后重试。</red>"
+    gem_required: "<red>请将要洗炼的宝石拿在主手。</red>"
+    disabled: "<red>该宝石未启用洗炼功能。</red>"
+    pool_empty: "<red>该宝石的洗炼词条池为空，无法生成候选。</red>"
+    pool_invalid: "<red>该宝石的洗炼词条池配置非法。</red>"
+    no_affixes: "<red>该宝石当前没有可重算数值的词条。</red>"
+    affix_not_configured: "<red>该宝石存在未在词条池中配置的词条，无法重算数值。</red>"
+    session_missing: "<yellow>当前没有待确认的洗炼候选。</yellow>"
+    session_closed: "<yellow>该洗炼候选已结束，请重新发起。</yellow>"
+    instance_changed: "<red>主手宝石已发生变化，洗炼候选已作废并退还费用。</red>"
+    config_incompatible: "<red>洗炼配置已变更，候选已作废并退还费用。</red>"
+    write_failed: "<red>洗炼结果写回失败，已退还费用。</red>"
+    opened: "<green>洗炼候选已生成</green><gray>（%operation_type%），使用 <yellow>/emakigem reroll confirm</yellow> 接受。</gray>"
+    cancelled: "<yellow>已放弃当前洗炼候选。</yellow>"
+    status: "<gray>洗炼 <yellow>%operation_type%</yellow>：词条 <yellow>%original_count%</yellow> → <green>%candidate_count%</green>，剩余 <gold>%expires_in%</gold> 秒。</gray>"
+    usage: "<gray>用法: /emakigem reroll <full|value|confirm|cancel|status></gray>"
+    unavailable: "<red>洗炼服务当前不可用。</red>"
 
 command:
   help:
@@ -152,6 +171,10 @@ gui:
     upgrade_failed: "<red>宝石升级失败：%reason%</red>"
     upgrade_roll_failed: "<yellow>宝石升级判定失败，当前等级保持为 Lv.%resulting_level%。</yellow>"
     upgrade_success: "<green>宝石升级成功：Lv.%previous_level% → Lv.%resulting_level%。</green>"
+    reroll_confirmed: "<green>洗炼结果已写入主手宝石。操作号: %operation_id%</green>"
+    reroll_failed: "<red>洗炼确认失败。</red>"
+    reroll_unavailable: "<red>洗炼服务当前不可用。</red>"
+    reroll_candidate_missing: "<yellow>当前没有洗炼候选，请先用 <gold>/emakigem reroll full</gold> 或 <gold>value</gold> 生成。</yellow>"
   open:
     target_required: "<red>请先放入一件可开孔装备。</red>"
     invalid_target: "<red>放入的物品不是可开孔的装备。</red>"

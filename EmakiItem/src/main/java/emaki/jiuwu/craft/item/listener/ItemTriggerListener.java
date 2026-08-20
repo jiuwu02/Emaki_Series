@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.listener;
 
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
@@ -29,8 +30,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.trigger.EquipmentSourceResolver;
+import emaki.jiuwu.craft.item.trigger.ProjectileSourceSnapshot;
 import emaki.jiuwu.craft.item.trigger.ProjectileTriggerResolver;
 import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -38,6 +42,12 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 public final class ItemTriggerListener implements Listener {
 
     private static final Map<String, Object> EMPTY_PLACEHOLDERS = Map.of();
+
+    private static final Set<String> WEAPON_SLOT = Set.of(EquipmentSlotMatcher.SLOT_MAIN_HAND);
+
+    private static final Set<String> HAND_SLOTS = Set.of(
+            EquipmentSlotMatcher.SLOT_MAIN_HAND,
+            EquipmentSlotMatcher.SLOT_OFF_HAND);
 
     private final EmakiItemPlugin plugin;
 
@@ -143,13 +153,15 @@ public final class ItemTriggerListener implements Listener {
             }
         }
         if (event.getEntity() instanceof Player victim) {
+            Map<String, Object> victimPlaceholders = Map.of(
+                    "attacker", event.getDamager().getName(),
+                    "damage", event.getDamage()
+            );
             EmakiItemDefinition definition = held(victim);
             if (definition != null && passes(victim, definition, TriggerRegistry.DAMAGED_BY_ENTITY)) {
-                run(victim, definition, TriggerRegistry.DAMAGED_BY_ENTITY, Map.of(
-                        "attacker", event.getDamager().getName(),
-                        "damage", event.getDamage()
-                ));
+                run(victim, definition, TriggerRegistry.DAMAGED_BY_ENTITY, victimPlaceholders);
             }
+            runForDefensiveSlots(victim, TriggerRegistry.DAMAGED_BY_ENTITY, victimPlaceholders);
         }
     }
 
@@ -159,18 +171,19 @@ public final class ItemTriggerListener implements Listener {
             return;
         }
         Player attacker = playerDamager(event.getDamager());
-        if (attacker == null || !attacker.isValid()) {
+        if (attacker == null || !attacker.isValid() || attacker.equals(event.getEntity())) {
             return;
         }
-        ItemStack item = heldItem(attacker);
-        EmakiItemDefinition definition = definition(item);
-        if (definition == null || !passes(attacker, definition, "damage_dealt", item)) {
-            return;
-        }
-        run(attacker, definition, "damage_dealt", Map.of(
+        Map<String, Object> placeholders = Map.of(
                 "target", event.getEntity().getName(),
                 "damage", event.getFinalDamage()
-        ), item);
+        );
+        ItemStack weapon = damageSourceItem(attacker, event.getDamager());
+        EmakiItemDefinition weaponDefinition = definition(weapon);
+        if (weaponDefinition != null && passes(attacker, weaponDefinition, "damage_dealt", weapon)) {
+            run(attacker, weaponDefinition, "damage_dealt", placeholders, weapon);
+        }
+        runForArmorSlots(attacker, "damage_dealt", placeholders);
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -178,10 +191,12 @@ public final class ItemTriggerListener implements Listener {
         if (event instanceof EntityDamageByEntityEvent || !(event.getEntity() instanceof Player player)) {
             return;
         }
+        Map<String, Object> placeholders = Map.of("damage", event.getDamage());
         EmakiItemDefinition definition = held(player);
         if (definition != null && passes(player, definition, TriggerRegistry.DAMAGED)) {
-            run(player, definition, TriggerRegistry.DAMAGED, Map.of("damage", event.getDamage()));
+            run(player, definition, TriggerRegistry.DAMAGED, placeholders);
         }
+        runForDefensiveSlots(player, TriggerRegistry.DAMAGED, placeholders);
     }
 
     @EventHandler
@@ -190,13 +205,24 @@ public final class ItemTriggerListener implements Listener {
         if (killer == null) {
             return;
         }
-        EmakiItemDefinition definition = held(killer);
-        if (definition == null || !passes(killer, definition, TriggerRegistry.KILL_ENTITY)) {
-            return;
+        String trigger = event.getEntity() instanceof Player
+                ? TriggerRegistry.KILL_PLAYER
+                : TriggerRegistry.KILL_ENTITY;
+        Map<String, Object> placeholders = Map.of("target", event.getEntity().getName(), "damage", 0D);
+        ItemStack weapon = killWeapon(event.getEntity(), killer);
+        EmakiItemDefinition definition = definition(weapon);
+        if (definition != null && passes(killer, definition, TriggerRegistry.KILL_ENTITY, weapon)) {
+            run(killer, definition, trigger, placeholders, weapon);
         }
-        ItemStack item = heldItem(killer);
-        run(killer, definition, event.getEntity() instanceof Player ? TriggerRegistry.KILL_PLAYER : TriggerRegistry.KILL_ENTITY,
-                Map.of("target", event.getEntity().getName(), "damage", 0D), item);
+        runForArmorSlots(killer, trigger, placeholders);
+    }
+
+    private ItemStack killWeapon(Entity victim, Player killer) {
+        if (victim instanceof LivingEntity living
+                && living.getLastDamageCause() instanceof EntityDamageByEntityEvent lastCause) {
+            return damageSourceItem(killer, lastCause.getDamager());
+        }
+        return heldItem(killer);
     }
 
     @EventHandler
@@ -208,12 +234,21 @@ public final class ItemTriggerListener implements Listener {
         }
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onShootBowSnapshot(EntityShootBowEvent event) {
+        if (event.getProjectile() instanceof Projectile projectile) {
+            snapshotProjectileSource(projectile, event.getBow());
+        }
+    }
+
     @EventHandler(ignoreCancelled = true)
     public void onShootBow(EntityShootBowEvent event) {
         if (event.getEntity() instanceof Player player) {
-            EmakiItemDefinition definition = held(player);
-            if (definition != null && passes(player, definition, TriggerRegistry.SHOOT_BOW)) {
-                run(player, definition, TriggerRegistry.SHOOT_BOW, Map.of("projectile_type", event.getProjectile().getType().name()));
+            ItemStack bow = event.getBow() == null ? heldItem(player) : event.getBow();
+            EmakiItemDefinition definition = definition(bow);
+            if (definition != null && passes(player, definition, TriggerRegistry.SHOOT_BOW, bow)) {
+                run(player, definition, TriggerRegistry.SHOOT_BOW,
+                        Map.of("projectile_type", event.getProjectile().getType().name()), bow);
             }
         }
     }
@@ -221,14 +256,19 @@ public final class ItemTriggerListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onProjectileLaunch(ProjectileLaunchEvent event) {
         Projectile projectile = event.getEntity();
+        if (projectile.getShooter() instanceof Player shooter && !ProjectileSourceSnapshot.has(projectile)) {
+            snapshotProjectileSource(projectile, heldItem(shooter));
+        }
         ProjectileTriggerResolver.ProjectileTriggers triggers = ProjectileTriggerResolver.resolve(projectile);
         if (triggers == null || triggers.launchTrigger() == null) {
             return;
         }
         if (projectile.getShooter() instanceof Player player) {
-            EmakiItemDefinition definition = held(player);
-            if (definition != null && passes(player, definition, triggers.launchTrigger())) {
-                run(player, definition, triggers.launchTrigger(), Map.of("projectile_type", projectile.getType().name()));
+            ItemStack launchItem = projectileSourceItem(projectile, player);
+            EmakiItemDefinition definition = definition(launchItem);
+            if (definition != null && passes(player, definition, triggers.launchTrigger(), launchItem)) {
+                run(player, definition, triggers.launchTrigger(),
+                        Map.of("projectile_type", projectile.getType().name()), launchItem);
             }
         }
     }
@@ -238,14 +278,16 @@ public final class ItemTriggerListener implements Listener {
         if (!(event.getEntity().getShooter() instanceof Player player)) {
             return;
         }
-        EmakiItemDefinition definition = held(player);
+        Projectile projectile = event.getEntity();
+        ItemStack sourceItem = projectileSourceItem(projectile, player);
+        EmakiItemDefinition definition = definition(sourceItem);
         if (definition == null) {
             return;
         }
-        Projectile projectile = event.getEntity();
         String hitTrigger = ProjectileTriggerResolver.hitOrLandTrigger(projectile, event.getHitEntity() != null);
-        if (hitTrigger != null && passes(player, definition, hitTrigger)) {
-            run(player, definition, hitTrigger, Map.of("projectile_type", projectile.getType().name()));
+        if (hitTrigger != null && passes(player, definition, hitTrigger, sourceItem)) {
+            run(player, definition, hitTrigger,
+                    Map.of("projectile_type", projectile.getType().name()), sourceItem);
         }
     }
 
@@ -347,5 +389,55 @@ public final class ItemTriggerListener implements Listener {
             return player;
         }
         return damager instanceof LivingEntity living && living.getKiller() != null ? living.getKiller() : null;
+    }
+
+    private ItemStack damageSourceItem(Player attacker, Entity damager) {
+        if (damager instanceof Projectile projectile) {
+            return projectileSourceItem(projectile, attacker);
+        }
+        return heldItem(attacker);
+    }
+
+    private ItemStack projectileSourceItem(Projectile projectile, Player shooter) {
+        ItemStack snapshot = ProjectileSourceSnapshot.read(projectile);
+        return snapshot == null ? heldItem(shooter) : snapshot;
+    }
+
+    private void snapshotProjectileSource(Projectile projectile, ItemStack launchItem) {
+        if (definition(launchItem) == null) {
+            return;
+        }
+        ProjectileSourceSnapshot.write(projectile, launchItem);
+    }
+
+    private void runForArmorSlots(Player player, String trigger, Map<String, Object> placeholders) {
+        runForEquippedSlots(player, trigger, placeholders, HAND_SLOTS);
+    }
+
+    private void runForDefensiveSlots(Player player, String trigger, Map<String, Object> placeholders) {
+        runForEquippedSlots(player, trigger, placeholders, WEAPON_SLOT);
+    }
+
+    private void runForEquippedSlots(Player player,
+            String trigger,
+            Map<String, Object> placeholders,
+            Set<String> skippedSlots) {
+        if (player == null) {
+            return;
+        }
+        for (EquipmentSourceResolver.EquipmentSource source : EquipmentSourceResolver.resolve(player)) {
+            if (skippedSlots.contains(source.slotName())) {
+                continue;
+            }
+            EmakiItemDefinition definition = definition(source.itemStack());
+            if (definition == null
+                    || !EquipmentSlotMatcher.matches(source.slotName(), definition.equipSlot())) {
+                continue;
+            }
+            if (!passes(player, definition, trigger, source.itemStack())) {
+                continue;
+            }
+            run(player, definition, trigger, placeholders, source.itemStack());
+        }
     }
 }

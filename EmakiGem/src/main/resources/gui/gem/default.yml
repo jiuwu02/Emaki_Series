@@ -28,7 +28,8 @@ slots:
         tooltip_display:
           hide_tooltip: true
 
-  # 39/40/42 分别由 mode_inlay / mode_extract / mode_upgrade 占用，不能重复声明：
+  # 39/40/42 分别由 mode_inlay / mode_extract / mode_upgrade 占用，
+  # 43/44 由 mode_reroll_full / mode_reroll_value 占用，均不能重复声明：
   # GuiTemplate 用无序 Map 解析槽位，重复声明会让同一格由哪个定义生效变得不确定。
   bottom_frame:
     slots:
@@ -36,8 +37,6 @@ slots:
       - 37
       - 38
       - 41
-      - 43
-      - 44
     item:
       source: "gray_stained_glass_pane"
       components:
@@ -187,3 +186,27 @@ slots:
         custom_name: "<yellow>取出模式</yellow>"
         lore:
           - "<gray>点击已镶嵌的宝石槽进入取出确认</gray>"
+
+  mode_reroll_full:
+    slots:
+      - 43
+    type: "mode_reroll_full"
+    item:
+      source: "MAGENTA_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<light_purple>洗炼模式</light_purple>"
+        lore:
+          - "<gray>把宝石拿在主手，重掷全部词条</gray>"
+          - "<gray>先生成候选，确认后才写入</gray>"
+
+  mode_reroll_value:
+    slots:
+      - 44
+    type: "mode_reroll_value"
+    item:
+      source: "CYAN_STAINED_GLASS_PANE"
+      components:
+        custom_name: "<aqua>调数模式</aqua>"
+        lore:
+          - "<gray>把宝石拿在主手，只重算词条数值</gray>"
+          - "<gray>先生成候选，确认后才写入</gray>"

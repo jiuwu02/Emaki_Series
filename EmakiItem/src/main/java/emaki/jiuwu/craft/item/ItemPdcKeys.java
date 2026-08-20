@@ -13,5 +13,8 @@ public final class ItemPdcKeys {
     /** 标记物品是否处于禁用状态（值为 {@code byte 1} 表示已禁用）。 */
     public static final NamespacedKey DISABLED = new NamespacedKey("emakiitem", "disabled");
 
+    public static final NamespacedKey PROJECTILE_SOURCE_ITEM =
+            new NamespacedKey("emakiitem", "projectile_source_item");
+
     private ItemPdcKeys() {}
 }

@@ -6,6 +6,7 @@ import java.util.List;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
+import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 
 public final class GemStageRegistrar {
 
@@ -28,7 +29,14 @@ public final class GemStageRegistrar {
                         + "': " + registration.reasonKey());
             }
         }
-        EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);
+        EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::rebuild);
+    }
+
+    private void rebuild() {
+        if (plugin.rerollSessionService() != null) {
+            plugin.rerollSessionService().clearAll(GemRerollSessionService.TerminationReason.RELOAD);
+        }
+        register();
     }
 
     public void unregister() {
