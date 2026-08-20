@@ -38,9 +38,6 @@ public final class EnhancementRecipeParser {
         }
 
         String mode = section.getString("mode", "");
-        if (Texts.isBlank(mode)) {
-            return null;
-        }
 
         EnhancementRecipe.TargetConfig target = parseTarget(section.getSection("target"));
         if (target == null) {

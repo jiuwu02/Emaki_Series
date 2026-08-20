@@ -2,10 +2,12 @@ package emaki.jiuwu.craft.strengthen.enhancement.recipe;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
@@ -25,12 +27,23 @@ public record EnhancementRecipe(
         @NotNull Map<String, List<String>> actions
 ) {
 
+    public static final String MODE_EQUIPMENT = "equipment";
+    public static final String MODE_AFFIX = "affix";
+    public static final String MODE_GEM = "gem";
+
+    public static final Set<String> LEGAL_MODES = Set.of(MODE_EQUIPMENT, MODE_AFFIX, MODE_GEM);
+
     public EnhancementRecipe {
         if (id == null || id.isBlank()) {
             throw new IllegalArgumentException("Recipe id cannot be null or blank");
         }
-        if (mode == null || mode.isBlank()) {
+        mode = Texts.normalizeId(mode);
+        if (mode.isBlank()) {
             throw new IllegalArgumentException("Recipe mode cannot be null or blank");
+        }
+        if (!LEGAL_MODES.contains(mode)) {
+            throw new IllegalArgumentException(
+                    "Recipe mode must be one of " + LEGAL_MODES + " but was '" + mode + "'");
         }
         if (target == null) {
             throw new IllegalArgumentException("Target config cannot be null");

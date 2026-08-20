@@ -430,8 +430,7 @@ public final class ItemTriggerListener implements Listener {
                 continue;
             }
             EmakiItemDefinition definition = definition(source.itemStack());
-            if (definition == null
-                    || !EquipmentSlotMatcher.matches(source.slotName(), definition.equipSlot())) {
+            if (definition == null || !matchesExactSlot(source.slotName(), definition.equipSlot())) {
                 continue;
             }
             if (!passes(player, definition, trigger, source.itemStack())) {
@@ -439,5 +438,11 @@ public final class ItemTriggerListener implements Listener {
             }
             run(player, definition, trigger, placeholders, source.itemStack());
         }
+    }
+
+    private boolean matchesExactSlot(String actualSlot, String requiredSlot) {
+        String normalizedRequired = EquipmentSlotMatcher.normalizeRequired(requiredSlot);
+        return !EquipmentSlotMatcher.SLOT_ALL.equals(normalizedRequired)
+                && normalizedRequired.equals(EquipmentSlotMatcher.normalizeActual(actualSlot));
     }
 }
