@@ -19,6 +19,8 @@ public final class AppConfig extends BaseAppConfig {
     private final int affixCapacityMax;
     private final int affixCapacityCostPerLevel;
     private final double affixBonusPerLevel;
+    private final boolean enhancementRejectContainerTarget;
+    private final EnhancementTuning enhancementTuning;
 
     public AppConfig(String language,
             String configVersion,
@@ -42,7 +44,45 @@ public final class AppConfig extends BaseAppConfig {
             int affixCapacityMax,
             int affixCapacityCostPerLevel,
             double affixBonusPerLevel) {
+        this(language, configVersion, releaseDefaultData, localBroadcastRadius, localBroadcastStars,
+                globalBroadcastStars, successRates, affixMaxLevel, affixCapacityMax,
+                affixCapacityCostPerLevel, affixBonusPerLevel, false);
+    }
+
+    public AppConfig(String language,
+            String configVersion,
+            boolean releaseDefaultData,
+            int localBroadcastRadius,
+            List<Integer> localBroadcastStars,
+            List<Integer> globalBroadcastStars,
+            Map<Integer, Double> successRates,
+            int affixMaxLevel,
+            int affixCapacityMax,
+            int affixCapacityCostPerLevel,
+            double affixBonusPerLevel,
+            boolean enhancementRejectContainerTarget) {
+        this(language, configVersion, releaseDefaultData, localBroadcastRadius, localBroadcastStars,
+                globalBroadcastStars, successRates, affixMaxLevel, affixCapacityMax,
+                affixCapacityCostPerLevel, affixBonusPerLevel, enhancementRejectContainerTarget,
+                EnhancementTuning.inert());
+    }
+
+    public AppConfig(String language,
+            String configVersion,
+            boolean releaseDefaultData,
+            int localBroadcastRadius,
+            List<Integer> localBroadcastStars,
+            List<Integer> globalBroadcastStars,
+            Map<Integer, Double> successRates,
+            int affixMaxLevel,
+            int affixCapacityMax,
+            int affixCapacityCostPerLevel,
+            double affixBonusPerLevel,
+            boolean enhancementRejectContainerTarget,
+            EnhancementTuning enhancementTuning) {
         super(language, configVersion, "4.5.9");
+        this.enhancementRejectContainerTarget = enhancementRejectContainerTarget;
+        this.enhancementTuning = enhancementTuning == null ? EnhancementTuning.inert() : enhancementTuning;
         this.releaseDefaultData = releaseDefaultData;
         this.localBroadcastRadius = Math.max(1, localBroadcastRadius);
         this.localBroadcastStars = toStarSet(localBroadcastStars);
@@ -109,6 +149,111 @@ public final class AppConfig extends BaseAppConfig {
     /** {@return 每提升一级词条获得的属性增量} */
     public double affixBonusPerLevel() {
         return affixBonusPerLevel;
+    }
+
+    public boolean enhancementRejectContainerTarget() {
+        return enhancementRejectContainerTarget;
+    }
+
+    public EnhancementTuning enhancementTuning() {
+        return enhancementTuning;
+    }
+
+    public boolean enhancementRejectContainerMaterial() {
+        return enhancementTuning.rejectContainerMaterial();
+    }
+
+    public double enhancementDiminishingPerLevel() {
+        return enhancementTuning.diminishingPerLevel();
+    }
+
+    public int enhancementDiminishingStartLevel() {
+        return enhancementTuning.diminishingStartLevel();
+    }
+
+    public double enhancementCostGrowthPerLevel() {
+        return enhancementTuning.costGrowthPerLevel();
+    }
+
+    public double enhancementCostGrowthMaxMultiplier() {
+        return enhancementTuning.costGrowthMaxMultiplier();
+    }
+
+    public double enhancementMinSuccessRate() {
+        return enhancementTuning.minSuccessRate();
+    }
+
+    public int enhancementFailureDemotionLevels() {
+        return enhancementTuning.failureDemotionLevels();
+    }
+
+    public int enhancementFailureDemotionFloor() {
+        return enhancementTuning.failureDemotionFloor();
+    }
+
+    public long enhancementPityRetryIntervalTicks() {
+        return enhancementTuning.pityRetryIntervalTicks();
+    }
+
+    public int enhancementPityRetryMaxAttempts() {
+        return enhancementTuning.pityRetryMaxAttempts();
+    }
+
+    public double enhancementMasteryExpPerAttempt() {
+        return enhancementTuning.masteryExpPerAttempt();
+    }
+
+    public double enhancementMasteryExpPerSuccess() {
+        return enhancementTuning.masteryExpPerSuccess();
+    }
+
+    public int enhancementMasterySoftCap() {
+        return enhancementTuning.masterySoftCap();
+    }
+
+    public record EnhancementTuning(boolean rejectContainerMaterial,
+            double diminishingPerLevel,
+            int diminishingStartLevel,
+            double costGrowthPerLevel,
+            double costGrowthMaxMultiplier,
+            double minSuccessRate,
+            int failureDemotionLevels,
+            int failureDemotionFloor,
+            long pityRetryIntervalTicks,
+            int pityRetryMaxAttempts,
+            double masteryExpPerAttempt,
+            double masteryExpPerSuccess,
+            int masterySoftCap) {
+
+        public EnhancementTuning {
+            diminishingPerLevel = normalizedRatio(diminishingPerLevel);
+            diminishingStartLevel = Math.max(1, diminishingStartLevel);
+            costGrowthPerLevel = nonNegative(costGrowthPerLevel);
+            costGrowthMaxMultiplier = nonNegative(costGrowthMaxMultiplier);
+            minSuccessRate = normalizedRatio(minSuccessRate);
+            failureDemotionLevels = Math.max(0, failureDemotionLevels);
+            failureDemotionFloor = Math.max(0, failureDemotionFloor);
+            pityRetryIntervalTicks = Math.max(0L, pityRetryIntervalTicks);
+            pityRetryMaxAttempts = Math.max(0, pityRetryMaxAttempts);
+            masteryExpPerAttempt = nonNegative(masteryExpPerAttempt);
+            masteryExpPerSuccess = nonNegative(masteryExpPerSuccess);
+            masterySoftCap = Math.max(0, masterySoftCap);
+        }
+
+        public static EnhancementTuning inert() {
+            return new EnhancementTuning(false, 0D, 1, 0D, 0D, 0D, 0, 0, 0L, 0, 0D, 0D, 0);
+        }
+
+        private static double normalizedRatio(double value) {
+            if (!Double.isFinite(value) || value <= 0D) {
+                return 0D;
+            }
+            return Math.min(1D, value);
+        }
+
+        private static double nonNegative(double value) {
+            return Double.isFinite(value) && value > 0D ? value : 0D;
+        }
     }
 
     private static Set<Integer> toStarSet(List<Integer> stars) {

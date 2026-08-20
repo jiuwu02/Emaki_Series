@@ -45,7 +45,9 @@ import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryProgressService;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
@@ -64,7 +66,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc", "pity");
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __
@@ -114,6 +116,8 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private EnhancementTargetRegistry enhancementTargetRegistry;
     private InMemoryPityStateStore pityStateStore;
     private EnhancementAttemptService enhancementAttemptService;
+    private PityPersistenceRetryScheduler pityRetryScheduler;
+    private MasteryProgressService masteryProgressService;
     private AffixSelectionService affixSelectionService;
     private AffixGuiService affixGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
@@ -137,6 +141,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
+        pityRetryScheduler.start();
         registerApi();
         registerActions();
         registerCommandHandler();
@@ -151,6 +156,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void onDisable() {
         contentReady = false;
         publishAbsent();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
         itemLayerPreviewLifecycle.close();
         lifecycleCoordinator.shutdown(this);
@@ -174,18 +182,30 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void reloadPluginState(boolean closeOpenInventories) {
         contentReady = false;
         publishLoading();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         lifecycleCoordinator.reload(this, closeOpenInventories);
         contentReady = true;
         publishReady();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.start();
+        }
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         contentReady = false;
         publishLoading();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenRun(() -> {
                     contentReady = true;
                     publishReady();
+                    if (pityRetryScheduler != null) {
+                        pityRetryScheduler.start();
+                    }
                 });
     }
 
@@ -242,8 +262,13 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         strengthenGuiService = components.strengthenGuiService();
         enhancementRecipeLoader = components.enhancementRecipeLoader();
         enhancementTargetRegistry = components.enhancementTargetRegistry();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         pityStateStore = components.pityStateStore();
         enhancementAttemptService = components.enhancementAttemptService();
+        masteryProgressService = components.masteryProgressService();
+        pityRetryScheduler = new PityPersistenceRetryScheduler(this);
         affixSelectionService = components.affixSelectionService();
         affixGuiService = components.affixGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -307,6 +332,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public EnhancementTargetRegistry enhancementTargetRegistry() {
         return enhancementTargetRegistry;
+    }
+
+    public PityPersistenceRetryScheduler pityRetryScheduler() {
+        return pityRetryScheduler;
+    }
+
+    public MasteryProgressService masteryProgressService() {
+        return masteryProgressService;
     }
 
     public InMemoryPityStateStore pityStateStore() {

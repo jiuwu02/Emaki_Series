@@ -10,6 +10,8 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptPreview;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementPreviewSession;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementTargetVariables;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 
 /**
@@ -31,6 +33,8 @@ final class AffixGuiSession {
     private GuiSession guiSession;
     private ItemStack targetItem;
     private EnhancementAttemptPreview preview;
+    private EnhancementTargetVariables.Snapshot frozenSnapshot;
+    private EnhancementPreviewSession previewSession;
     private List<String> candidates = List.of();
     private String selectedAffix = "";
     private int capacityUsed;
@@ -125,6 +129,23 @@ final class AffixGuiSession {
 
     void setPreview(EnhancementAttemptPreview preview) {
         this.preview = preview;
+    }
+
+    EnhancementTargetVariables.Snapshot frozenSnapshot() {
+        return frozenSnapshot;
+    }
+
+    EnhancementPreviewSession previewSession() {
+        return previewSession;
+    }
+
+    void setPreviewSession(EnhancementPreviewSession previewSession) {
+        this.previewSession = previewSession;
+        this.frozenSnapshot = previewSession == null ? null : previewSession.snapshot();
+    }
+
+    void setFrozenSnapshot(EnhancementTargetVariables.Snapshot frozenSnapshot) {
+        this.frozenSnapshot = frozenSnapshot;
     }
 
     List<String> candidates() {

@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.6"
+version: "2.7.7"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -50,6 +50,7 @@ console:
   pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
   gems_loaded: "<gray>已加载 <yellow>%count%</yellow> 个宝石</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  reroll_refresh_degraded: "<yellow>洗炼写回后的宝石刷新未生效 | 操作号=%operation_id% | 实例=%instance_id% | 刷新结果=%outcome% | 原因=%reason% | 期望指纹=%expected_fingerprint% | 实际指纹=%presented_fingerprint%</yellow>"
 
 loader:
   type:
@@ -174,7 +175,6 @@ gui:
     reroll_confirmed: "<green>洗炼结果已写入主手宝石。操作号: %operation_id%</green>"
     reroll_failed: "<red>洗炼确认失败。</red>"
     reroll_unavailable: "<red>洗炼服务当前不可用。</red>"
-    reroll_candidate_missing: "<yellow>当前没有洗炼候选，请先用 <gold>/emakigem reroll full</gold> 或 <gold>value</gold> 生成。</yellow>"
   open:
     target_required: "<red>请先放入一件可开孔装备。</red>"
     invalid_target: "<red>放入的物品不是可开孔的装备。</red>"
@@ -331,6 +331,7 @@ debug:
   state:
     read: "读取宝石状态 | 物品=%item% | 已开孔=%slots% | 已镶嵌=%gems%"
     write: "写入宝石状态 | 物品=%item% | 变更=%change%"
+    reroll_refresh_degraded: "洗炼刷新降级 | 操作号=%operation_id% | 实例=%instance_id% | 刷新结果=%outcome% | 原因=%reason% | 期望指纹=%expected_fingerprint% | 实际指纹=%presented_fingerprint%"
   refresh:
     complete: "宝石物品刷新完成 | 耗时=%duration_ms%ms | 原因=%reason%"
   gui:

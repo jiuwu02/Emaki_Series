@@ -349,6 +349,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         YamlSection numberFormat = configuration.getSection("number_format");
         YamlSection gui = configuration.getSection("gui");
         YamlSection condition = configuration.getSection("condition");
+        YamlSection reroll = configuration.getSection("reroll");
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
@@ -358,7 +359,17 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 numberFormat == null ? defaults.numberFormat() : numberFormat.getString("default", defaults.numberFormat()),
                 permission != null && permission.getBoolean("op_bypass", defaults.opBypass()),
                 parseGuiSettings(gui, defaults.gui()),
-                parseConditionConfig(condition, defaults.condition())
+                parseConditionConfig(condition, defaults.condition()),
+                parseRerollSettings(reroll, defaults.reroll())
+        );
+    }
+
+    private AppConfig.RerollSettings parseRerollSettings(YamlSection section, AppConfig.RerollSettings defaults) {
+        if (section == null || section.getKeys(false).isEmpty()) {
+            return defaults;
+        }
+        return new AppConfig.RerollSettings(
+                section.getInt("session_ttl_seconds", defaults.sessionTtlSeconds())
         );
     }
 

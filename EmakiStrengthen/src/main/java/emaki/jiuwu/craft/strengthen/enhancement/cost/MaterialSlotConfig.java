@@ -10,8 +10,29 @@ import emaki.jiuwu.craft.corelib.quantity.Quantity;
 public record MaterialSlotConfig(
         @NotNull Matcher matcher,
         @NotNull Quantity quantity,
-        @NotNull ConsumeTimingEnum consumeTiming
+        @NotNull ConsumeTimingEnum consumeTiming,
+        boolean required,
+        @NotNull TargetCompareEnum targetCompare
 ) {
+
+    public MaterialSlotConfig {
+        if (matcher == null) {
+            throw new IllegalArgumentException("Material matcher cannot be null");
+        }
+        if (quantity == null) {
+            throw new IllegalArgumentException("Material quantity cannot be null");
+        }
+        if (consumeTiming == null) {
+            throw new IllegalArgumentException("Material consume timing cannot be null");
+        }
+        targetCompare = targetCompare == null ? TargetCompareEnum.NONE : targetCompare;
+    }
+
+    public MaterialSlotConfig(@NotNull Matcher matcher,
+            @NotNull Quantity quantity,
+            @NotNull ConsumeTimingEnum consumeTiming) {
+        this(matcher, quantity, consumeTiming, true, TargetCompareEnum.NONE);
+    }
 
     public static @Nullable MaterialSlotConfig fromConfig(@Nullable Object config) {
         if (!(config instanceof YamlSection section)) {
@@ -23,7 +44,21 @@ public record MaterialSlotConfig(
                 section.getString("consume", "always"),
                 ConsumeTimingEnum.ALWAYS
         );
-        return new MaterialSlotConfig(matcher, quantity, timing);
+        boolean required = resolveRequired(section);
+        TargetCompareEnum targetCompare = TargetCompareEnum.fromStringOrDefault(
+                section.getString("target_compare", ""), TargetCompareEnum.NONE);
+        return new MaterialSlotConfig(matcher, quantity, timing, required, targetCompare);
+    }
+
+    private static boolean resolveRequired(@NotNull YamlSection section) {
+        if (section.contains("optional")) {
+            return !Boolean.TRUE.equals(section.getBoolean("optional", Boolean.FALSE));
+        }
+        return !Boolean.FALSE.equals(section.getBoolean("required", Boolean.TRUE));
+    }
+
+    public boolean comparesTarget() {
+        return targetCompare != TargetCompareEnum.NONE;
     }
 
     /**

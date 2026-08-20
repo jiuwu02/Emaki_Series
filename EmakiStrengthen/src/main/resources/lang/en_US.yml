@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "4.7.11"
+version: "4.7.12"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -33,7 +33,26 @@ command:
       clearstate: "Remove strengthen layer from main-hand item"
       clearcrack: "Clear main-hand item temper"
       givecatalyst: "Give strengthen material"
+      operation: "Query enhancement operation ids and compensation state"
+      pity: "Query, set, clear and diagnose pity counters"
       debug: "Manage debug tracking"
+  pity:
+    header: "<gold>========== Pity Counters (%count%) ==========</gold>"
+    line: "<yellow>%group%</yellow> <gray>scope=%scope% key=%key% counter=%counter% triggered=%triggered%</gray>"
+    empty: "<gray>No pity counter records exist.</gray>"
+    unavailable: "<red>The pity store is currently unavailable.</red>"
+    not_found: "<red>No matching pity record found.</red>"
+    set_success: "<green>Set the pity counter of <yellow>%group%</yellow> to <gold>%counter%</gold>.</green>"
+    clear_success: "<green>Cleared <gold>%count%</gold> pity records.</green>"
+    invalid_scope: "<red>Pity scope must be one of <yellow>%legal%</yellow>.</red>"
+    diagnose_header: "<gold>========== Pity Diagnostics ==========</gold>"
+    diagnose_line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
+  operation:
+    header: "<gold>========== Enhancement Operations (%count%) ==========</gold>"
+    line: "<yellow>%operation_id%</yellow> <gray>player=%player% phase=%phase% pending=%pending%</gray>"
+    empty: "<gray>No enhancement operations are currently retained.</gray>"
+    not_found: "<red>No operation id <yellow>%operation_id%</yellow>; it may already be settled and pruned.</red>"
+    unavailable: "<red>The enhancement runtime is unavailable, operation ids cannot be queried.</red>"
   inspect:
     header: "<gold>========== %player% Strengthen State ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
@@ -119,6 +138,8 @@ strengthen:
     unknown_material: "Unknown Material"
   error:
     no_target: "<red>Please place an item to strengthen first.</red>"
+    state_read_failed: "<red>Failed to read this item's strengthen state.</red>"
+    state_write_failed: "<red>Failed to write this item's strengthen state.</red>"
     no_source: "<red>This item cannot be identified as an Emaki item source.</red>"
     no_recipe: "<red>No matching strengthen recipe for this item.</red>"
     already_max: "<red>This item has already reached the maximum star level.</red>"
@@ -131,6 +152,7 @@ strengthen:
     not_accepting: "<red>The plugin is reloading or shutting down; strengthening is temporarily unavailable.</red>"
     operation_in_progress: "<yellow>The previous strengthen attempt is still being processed, please wait.</yellow>"
     operation_conflict: "<red>The item or materials differ from the original operation; the attempt was rejected.</red>"
+    condition_not_met: "<red>The conditions of this recipe are not currently met.</red>"
     internal: "<red>An internal error occurred; the strengthen attempt was not completed.</red>"
   enhancement:
     no_player: "<red>An online player is required to run an enhancement.</red>"
@@ -138,6 +160,14 @@ strengthen:
     blank_provider_id: "<red>Enhancement target provider id must not be blank.</red>"
     provider_not_found: "<red>No such enhancement target provider is registered.</red>"
     provider_rejected: "<red>Failed to register the enhancement target provider.</red>"
+    attribute_bridge_unavailable: "<red>The attribute system is unavailable; nothing was enhanced and nothing was charged.</red>"
+    refresh_failed: "<red>Failed to refresh the attributes and lore of the result; nothing was enhanced and nothing was charged.</red>"
+    target_changed: "<red>The target item changed between preview and confirmation; nothing was enhanced and nothing was charged.</red>"
+    container_target_rejected: "<red>Items inside a container cannot be enhanced directly, move it into your own inventory first.</red>"
+    container_material_rejected: "<red>Items inside a container cannot be used as enhancement materials, move them into your own inventory first.</red>"
+    operation_not_found: "<red>No such operation id; it may already be settled and pruned.</red>"
+  mastery:
+    absent: "<yellow>This item carries no mastery record yet.</yellow>"
   affix:
     success: "<green>Affix enhancement succeeded, level raised to <gold>%resulting_level%</gold>.</green>"
     failure: "<yellow>Affix enhancement failed, level stays at <gold>%resulting_level%</gold>.</yellow>"
@@ -213,7 +243,17 @@ gui:
 
 # Debug mode messages
 debug:
+  affix:
+    bridge_unavailable: "Affix attribute bridge unavailable | stage=%stage% | source=%source% | error_key=%error_key%"
+    refresh_failed: "Affix refresh failed | reason=%reason% | item=%item% | error_key=%error_key%"
   attempt:
+    refresh_failed: "Refresh phase failed | provider=%provider% | reason=%reason% | error_key=%error_key%"
+    condition_rejected: "Recipe conditions rejected | recipe=%recipe% | condition_type=%condition_type% | required=%required%"
+    target_changed: "Target changed | operation_id=%operation_id% | expected_version=%expected_version% | actual_version=%actual_version% | expected_instance=%expected_instance% | actual_instance=%actual_instance%"
+    container_rejected: "Container-backed target rejected | item=%item% | error_key=%error_key%"
+    container_material_rejected: "Container-backed materials rejected | count=%count% | error_key=%error_key%"
+    plan_recomputed: "Preview plan stale and recomputed | recipe=%recipe% | reason=%reason%"
+    pdc_unreadable: "PDC read failure | count=%count% | keys=%keys% | provider=%provider%"
     operation: "Strengthen operation | operation_id=%operation_id% | outcome=%outcome% | phase=%phase%"
     start: "Strengthen start | player=%player% | item=%item% | current_star=%star%"
     probability: "Probability calc | base=%base% | bonus=%bonus% | final=%final%"
@@ -221,6 +261,8 @@ debug:
     success: "Strengthen success | new_star=%star%"
     failed: "Strengthen failed | type=%type% | temper=%crack%"
     destroyed: "Strengthen destroyed | item=%item%"
+  pity:
+    retry_flush: "Pity flush retry | attempt=%attempt% | records=%records% | outcome=%outcome%"
   state:
     read: "Read strengthen state | item=%item% | star=%star% | temper=%crack% | recipe=%recipe%"
     write: "Write strengthen state | item=%item% | change=%change%"

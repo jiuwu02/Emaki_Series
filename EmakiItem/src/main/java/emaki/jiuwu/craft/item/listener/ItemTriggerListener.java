@@ -34,6 +34,7 @@ import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.trigger.EquipmentSourceResolver;
+import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.trigger.ProjectileSourceSnapshot;
 import emaki.jiuwu.craft.item.trigger.ProjectileTriggerResolver;
 import emaki.jiuwu.craft.item.ItemPdcKeys;
@@ -178,12 +179,20 @@ public final class ItemTriggerListener implements Listener {
                 "target", event.getEntity().getName(),
                 "damage", event.getFinalDamage()
         );
+        ProficiencyGuard.Session guard = plugin.proficiencyGuard()
+                .session(attacker, "damage_dealt", targetIdentity(event.getEntity()));
         ItemStack weapon = damageSourceItem(attacker, event.getDamager());
         EmakiItemDefinition weaponDefinition = definition(weapon);
-        if (weaponDefinition != null && passes(attacker, weaponDefinition, "damage_dealt", weapon)) {
+        if (weaponDefinition != null
+                && guard.admits(weaponDefinition.id(), EquipmentSlotMatcher.SLOT_MAIN_HAND)
+                && passes(attacker, weaponDefinition, "damage_dealt", weapon)) {
             run(attacker, weaponDefinition, "damage_dealt", placeholders, weapon);
         }
-        runForArmorSlots(attacker, "damage_dealt", placeholders);
+        runForArmorSlots(attacker, "damage_dealt", placeholders, guard);
+    }
+
+    private String targetIdentity(Entity target) {
+        return target == null ? "" : target.getUniqueId().toString();
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -209,12 +218,16 @@ public final class ItemTriggerListener implements Listener {
                 ? TriggerRegistry.KILL_PLAYER
                 : TriggerRegistry.KILL_ENTITY;
         Map<String, Object> placeholders = Map.of("target", event.getEntity().getName(), "damage", 0D);
+        ProficiencyGuard.Session guard = plugin.proficiencyGuard()
+                .session(killer, trigger, targetIdentity(event.getEntity()));
         ItemStack weapon = killWeapon(event.getEntity(), killer);
         EmakiItemDefinition definition = definition(weapon);
-        if (definition != null && passes(killer, definition, TriggerRegistry.KILL_ENTITY, weapon)) {
+        if (definition != null
+                && guard.admits(definition.id(), EquipmentSlotMatcher.SLOT_MAIN_HAND)
+                && passes(killer, definition, TriggerRegistry.KILL_ENTITY, weapon)) {
             run(killer, definition, trigger, placeholders, weapon);
         }
-        runForArmorSlots(killer, trigger, placeholders);
+        runForArmorSlots(killer, trigger, placeholders, guard);
     }
 
     private ItemStack killWeapon(Entity victim, Player killer) {
@@ -410,18 +423,22 @@ public final class ItemTriggerListener implements Listener {
         ProjectileSourceSnapshot.write(projectile, launchItem);
     }
 
-    private void runForArmorSlots(Player player, String trigger, Map<String, Object> placeholders) {
-        runForEquippedSlots(player, trigger, placeholders, HAND_SLOTS);
+    private void runForArmorSlots(Player player,
+            String trigger,
+            Map<String, Object> placeholders,
+            ProficiencyGuard.Session guard) {
+        runForEquippedSlots(player, trigger, placeholders, HAND_SLOTS, guard);
     }
 
     private void runForDefensiveSlots(Player player, String trigger, Map<String, Object> placeholders) {
-        runForEquippedSlots(player, trigger, placeholders, WEAPON_SLOT);
+        runForEquippedSlots(player, trigger, placeholders, WEAPON_SLOT, null);
     }
 
     private void runForEquippedSlots(Player player,
             String trigger,
             Map<String, Object> placeholders,
-            Set<String> skippedSlots) {
+            Set<String> skippedSlots,
+            ProficiencyGuard.Session guard) {
         if (player == null) {
             return;
         }
@@ -431,6 +448,9 @@ public final class ItemTriggerListener implements Listener {
             }
             EmakiItemDefinition definition = definition(source.itemStack());
             if (definition == null || !matchesDeclaredSlot(source.slotName(), definition.equipSlot())) {
+                continue;
+            }
+            if (guard != null && !guard.admits(definition.id(), source.slotName())) {
                 continue;
             }
             if (!passes(player, definition, trigger, source.itemStack())) {

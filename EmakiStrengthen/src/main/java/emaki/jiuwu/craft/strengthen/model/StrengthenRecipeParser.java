@@ -218,6 +218,33 @@ public final class StrengthenRecipeParser {
         return result;
     }
 
+    public static Map<String, StarStageMaterialRule> parseStageMaterialRules(YamlSection section) {
+        YamlSection stars = section == null ? null : section.getSection("stars");
+        if (stars == null) {
+            return Map.of();
+        }
+        Map<String, StarStageMaterialRule> rules = new LinkedHashMap<>();
+        for (String key : stars.getKeys(false)) {
+            Integer targetStar = Numbers.tryParseInt(key, null);
+            YamlSection stageSection = stars.getSection(key);
+            if (targetStar == null || targetStar <= 0 || stageSection == null) {
+                continue;
+            }
+            List<Map<?, ?>> rawMaterials = stageSection.getMapList("materials");
+            if (rawMaterials == null) {
+                continue;
+            }
+            for (Map<?, ?> rawEntry : rawMaterials) {
+                StarStageMaterialRule rule = StarStageMaterialRule.fromRawEntry(rawEntry);
+                if (!rule.constrains()) {
+                    continue;
+                }
+                rules.put(StarStageMaterialRule.key(targetStar, parseMaterialItem(rawEntry)), rule);
+            }
+        }
+        return Map.copyOf(rules);
+    }
+
     static List<StarStageMaterial> parseStageMaterials(List<Map<?, ?>> rawEntries) {
         if (rawEntries == null || rawEntries.isEmpty()) {
             return List.of();

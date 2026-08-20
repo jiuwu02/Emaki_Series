@@ -7,12 +7,20 @@ import java.util.UUID;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayer;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayerCodec;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 
 /**
@@ -39,20 +47,50 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
     /** 词条强化独立属性来源，不能复用整件星级强化的来源。 */
     public static final String ATTRIBUTE_SOURCE_ID = "strengthen_affix";
 
+    public static final String ERROR_BRIDGE_UNAVAILABLE = "strengthen.enhancement.attribute_bridge_unavailable";
+
+    public static final String ERROR_REFRESH_FAILED = "strengthen.enhancement.refresh_failed";
+
+    private static final String DEBUG_MODULE = "attempt";
+
     private final EmakiStrengthenPlugin plugin;
     private final AffixLayerCodec layerCodec;
     private final AffixSelectionService selectionService;
     private final StrengthenAttributeBridge attributeGateway;
+    private final MasteryLayerCodec masteryCodec;
     private final ThreadLocal<UUID> operator = new ThreadLocal<>();
 
     public AffixTargetProvider(EmakiStrengthenPlugin plugin,
             AffixLayerCodec layerCodec,
             AffixSelectionService selectionService,
             StrengthenAttributeBridge attributeGateway) {
+        this(plugin, layerCodec, selectionService, attributeGateway, null);
+    }
+
+    public AffixTargetProvider(EmakiStrengthenPlugin plugin,
+            AffixLayerCodec layerCodec,
+            AffixSelectionService selectionService,
+            StrengthenAttributeBridge attributeGateway,
+            @Nullable MasteryLayerCodec masteryCodec) {
         this.plugin = plugin;
         this.layerCodec = layerCodec;
         this.selectionService = selectionService;
         this.attributeGateway = attributeGateway;
+        this.masteryCodec = masteryCodec;
+    }
+
+    @Override
+    public @NotNull EmakiResult<ItemMasteryView> masterySnapshot(@Nullable ItemStack itemStack) {
+        if (masteryCodec == null) {
+            return EmakiResult.unavailable();
+        }
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("strengthen.error.no_target");
+        }
+        MasteryLayer layer = masteryCodec.read(itemStack);
+        return layer == null
+                ? EmakiResult.notFound("strengthen.mastery.absent")
+                : EmakiResult.success(layer.toView());
     }
 
     /**
@@ -118,6 +156,46 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
     @Override
     public void writeLevel(@Nullable Player player, @Nullable ItemStack itemStack, int level) {
         writeLevel(itemStack, level, playerId(player));
+    }
+
+    @Override
+    public @NotNull EmakiResult<Unit> refreshPresentation(@Nullable Player player,
+            @Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput(ERROR_REFRESH_FAILED);
+        }
+        if (!attributeGateway.available()) {
+            logBridgeUnavailable(player, "refresh_presentation");
+            return EmakiResult.failure(FailureKind.REJECTED, ERROR_BRIDGE_UNAVAILABLE);
+        }
+        AffixLayer layer = layerCodec.readOrEmpty(itemStack, defaultCapacityMax());
+        if (!syncAttributePayload(itemStack, layer)) {
+            logRefreshFailure(player, itemStack, "attribute_payload_mismatch");
+            return EmakiResult.failure(FailureKind.INTERNAL_ERROR, ERROR_REFRESH_FAILED);
+        }
+        return refreshItemPresentation(player, itemStack);
+    }
+
+    private @NotNull EmakiResult<Unit> refreshItemPresentation(@Nullable Player player, ItemStack itemStack) {
+        try {
+            if (!EmakiItemApi.status().usable()) {
+                return EmakiResult.ok();
+            }
+            EmakiResult<ItemStack> refreshed = EmakiItemApi.operations().refresh(itemStack);
+            ItemStack rebuilt = refreshed.optionalValue().orElse(null);
+            if (rebuilt == null) {
+                return EmakiResult.ok();
+            }
+            ItemMeta rebuiltMeta = rebuilt.getItemMeta();
+            if (rebuiltMeta != null && !itemStack.setItemMeta(rebuiltMeta)) {
+                logRefreshFailure(player, itemStack, "lore_commit_rejected");
+                return EmakiResult.failure(FailureKind.INTERNAL_ERROR, ERROR_REFRESH_FAILED);
+            }
+            return EmakiResult.ok();
+        } catch (RuntimeException | LinkageError exception) {
+            logRefreshFailure(player, itemStack, exception.getClass().getSimpleName());
+            return EmakiResult.failure(FailureKind.INTERNAL_ERROR, ERROR_REFRESH_FAILED);
+        }
     }
 
     private void writeLevel(@Nullable ItemStack itemStack, int level, @Nullable UUID playerId) {
@@ -197,7 +275,11 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public void clearEnhancement(@Nullable ItemStack itemStack) {
-        if (itemStack == null || itemStack.getType().isAir() || !attributeGateway.available()) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return;
+        }
+        if (!attributeGateway.available()) {
+            logBridgeUnavailable(null, "clear_enhancement");
             return;
         }
         AffixLayer currentLayer = layerCodec.read(itemStack);
@@ -237,8 +319,37 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         return maxLevel <= 0 ? normalized : Math.min(normalized, maxLevel);
     }
 
+    private void logBridgeUnavailable(@Nullable Player player, String stage) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log(DEBUG_MODULE, player, "debug.affix.bridge_unavailable", Map.of(
+                "stage", stage,
+                "source", ATTRIBUTE_SOURCE_ID,
+                "error_key", ERROR_BRIDGE_UNAVAILABLE));
+        plugin.getLogger().warning("词条强化属性桥不可用 | 阶段=" + stage
+                + " | 来源=" + ATTRIBUTE_SOURCE_ID + " | 错误键=" + ERROR_BRIDGE_UNAVAILABLE);
+    }
+
+    private void logRefreshFailure(@Nullable Player player, ItemStack itemStack, String reason) {
+        if (plugin == null || plugin.debugLogger() == null) {
+            return;
+        }
+        plugin.debugLogger().log(DEBUG_MODULE, player, "debug.affix.refresh_failed", Map.of(
+                "reason", reason,
+                "item", itemStack == null ? "-" : itemStack.getType().name(),
+                "error_key", ERROR_REFRESH_FAILED));
+        plugin.getLogger().warning("词条强化刷新失败 | 原因=" + reason
+                + " | 物品=" + (itemStack == null ? "-" : itemStack.getType().name())
+                + " | 错误键=" + ERROR_REFRESH_FAILED);
+    }
+
     private boolean syncAttributePayload(ItemStack itemStack, AffixLayer layer) {
-        if (itemStack == null || itemStack.getType().isAir() || layer == null || !attributeGateway.available()) {
+        if (itemStack == null || itemStack.getType().isAir() || layer == null) {
+            return false;
+        }
+        if (!attributeGateway.available()) {
+            logBridgeUnavailable(null, "sync_attribute_payload");
             return false;
         }
         Map<String, Double> attributes = new LinkedHashMap<>();

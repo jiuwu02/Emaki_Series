@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.11"
+version: "4.7.12"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -31,7 +31,26 @@ command:
       clearstate: "移除主手物品上的强化层"
       clearcrack: "清除主手物品强化值"
       givecatalyst: "发放强化材料"
+      operation: "查询强化操作号与补偿状态"
+      pity: "查询、设置、清除与诊断保底计数"
       debug: "管理 Debug 追踪"
+  pity:
+    header: "<gold>========== 保底计数（%count% 条） ==========</gold>"
+    line: "<yellow>%group%</yellow> <gray>作用域=%scope% 键=%key% 计数=%counter% 已触发=%triggered%</gray>"
+    empty: "<gray>当前没有任何保底计数记录。</gray>"
+    unavailable: "<red>保底存储当前不可用。</red>"
+    not_found: "<red>未找到匹配的保底记录。</red>"
+    set_success: "<green>已将 <yellow>%group%</yellow> 的保底计数设为 <gold>%counter%</gold>。</green>"
+    clear_success: "<green>已清除 <gold>%count%</gold> 条保底记录。</green>"
+    invalid_scope: "<red>保底作用域只能是 <yellow>%legal%</yellow>。</red>"
+    diagnose_header: "<gold>========== 保底诊断 ==========</gold>"
+    diagnose_line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
+  operation:
+    header: "<gold>========== 强化操作日志（%count% 条） ==========</gold>"
+    line: "<yellow>%operation_id%</yellow> <gray>玩家=%player% 阶段=%phase% 待补偿=%pending%</gray>"
+    empty: "<gray>当前没有保留中的强化操作。</gray>"
+    not_found: "<red>未找到操作号 <yellow>%operation_id%</yellow>，它可能已经结算并被清理。</red>"
+    unavailable: "<red>强化框架当前不可用，无法查询操作号。</red>"
   inspect:
     header: "<gold>========== %player% 的强化状态 ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
@@ -112,6 +131,8 @@ strengthen:
     unknown_material: "未知材料"
   error:
     no_target: "<red>请先放入需要强化的物品。</red>"
+    state_read_failed: "<red>读取该物品的强化状态失败。</red>"
+    state_write_failed: "<red>写入该物品的强化状态失败。</red>"
     no_source: "<red>该物品无法识别为 Emaki 物品来源。</red>"
     no_recipe: "<red>当前物品未命中可用的强化配方。</red>"
     already_max: "<red>该物品已经达到最高星级。</red>"
@@ -124,6 +145,7 @@ strengthen:
     not_accepting: "<red>插件正在重载或关闭，暂时无法执行强化，请稍后再试。</red>"
     operation_in_progress: "<yellow>上一次强化仍在处理中，请稍候。</yellow>"
     operation_conflict: "<red>本次强化的物品或材料与原操作不一致，已拒绝执行。</red>"
+    condition_not_met: "<red>当前不满足该配方的强化条件。</red>"
     internal: "<red>强化过程中发生内部错误，未完成本次强化。</red>"
   enhancement:
     no_player: "<red>需要玩家在线才能执行强化。</red>"
@@ -131,6 +153,14 @@ strengthen:
     blank_provider_id: "<red>强化目标 Provider ID 不能为空。</red>"
     provider_not_found: "<red>未找到该强化目标 Provider。</red>"
     provider_rejected: "<red>注册强化目标 Provider 失败。</red>"
+    attribute_bridge_unavailable: "<red>属性系统当前不可用，本次强化未执行也未扣费。</red>"
+    refresh_failed: "<red>强化结果的属性与描述刷新失败，本次强化未执行也未扣费。</red>"
+    target_changed: "<red>目标物品在预览与确认之间发生变化，本次强化未执行也未扣费。</red>"
+    container_target_rejected: "<red>不能直接强化容器内的物品，请先将其放入自己的背包。</red>"
+    container_material_rejected: "<red>不能使用容器内的物品作为强化材料，请先将其放入自己的背包。</red>"
+    operation_not_found: "<red>未找到该操作号，它可能已经结算并被清理。</red>"
+  mastery:
+    absent: "<yellow>该物品尚未记录熟练度。</yellow>"
   affix:
     success: "<green>词条强化成功，等级提升至 <gold>%resulting_level%</gold>。</green>"
     failure: "<yellow>词条强化失败，等级仍为 <gold>%resulting_level%</gold>。</yellow>"
@@ -205,7 +235,17 @@ gui:
 
 # Debug 模式消息
 debug:
+  affix:
+    bridge_unavailable: "词条属性桥不可用 | 阶段=%stage% | 来源=%source% | 错误键=%error_key%"
+    refresh_failed: "词条刷新失败 | 原因=%reason% | 物品=%item% | 错误键=%error_key%"
   attempt:
+    refresh_failed: "刷新阶段失败 | Provider=%provider% | 原因=%reason% | 错误键=%error_key%"
+    condition_rejected: "配方条件未通过 | 配方=%recipe% | 条件类型=%condition_type% | 需要数=%required%"
+    target_changed: "目标已变化 | 操作 ID=%operation_id% | 期望版本=%expected_version% | 实际版本=%actual_version% | 期望实例=%expected_instance% | 实际实例=%actual_instance%"
+    container_rejected: "拒绝容器内目标 | 物品=%item% | 错误键=%error_key%"
+    container_material_rejected: "拒绝容器内材料 | 数量=%count% | 错误键=%error_key%"
+    plan_recomputed: "预览计划已失效并重算 | 配方=%recipe% | 原因=%reason%"
+    pdc_unreadable: "PDC 读取失败 | 数量=%count% | 键=%keys% | Provider=%provider%"
     operation: "强化操作日志 | 操作 ID=%operation_id% | 结果=%outcome% | 阶段=%phase%"
     start: "开始强化 | 玩家=%player% | 物品=%item% | 当前星级=%star%"
     probability: "概率计算 | 基础=%base% | 加成=%bonus% | 最终=%final%"
@@ -213,6 +253,8 @@ debug:
     success: "强化成功 | 新星级=%star%"
     failed: "强化失败 | 类型=%type% | 强化值=%crack%"
     destroyed: "强化破碎 | 物品=%item%"
+  pity:
+    retry_flush: "保底落盘重试 | 次数=%attempt% | 记录数=%records% | 结果=%outcome%"
   state:
     read: "读取强化状态 | 物品=%item% | 星级=%star% | 强化值=%crack% | 配方=%recipe%"
     write: "写入强化状态 | 物品=%item% | 变更=%change%"

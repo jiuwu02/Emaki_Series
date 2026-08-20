@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.6"
+version: "2.7.7"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -81,6 +81,11 @@ number_format:
 permission:
   # OP 是否绕过镶嵌、开孔与取出操作的消耗及条件检查。
   op_bypass: false
+
+reroll:
+  # 洗炼候选会话的存活时间，单位：秒；超时后候选作废并退还费用。
+  # 源码会限制在 1 秒以上；变更后仅对新生成的候选生效。
+  session_ttl_seconds: 120
 
 gui:
   # 默认打开模式：inlay | upgrade | open；取出模式在 inlay 界面内切换。

@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "2.7.6"
+version: "2.7.7"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -56,6 +56,7 @@ console:
   pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
   gems_loaded: "<gray>Loaded <yellow>%count%</yellow> gem(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  reroll_refresh_degraded: "<yellow>Gem refresh after the reroll write-back did not take effect | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%</yellow>"
 
 loader:
   type:
@@ -200,7 +201,6 @@ gui:
     reroll_confirmed: "<green>The reroll result was written to your main-hand gem. Operation: %operation_id%</green>"
     reroll_failed: "<red>Reroll confirmation failed.</red>"
     reroll_unavailable: "<red>The reroll service is currently unavailable.</red>"
-    reroll_candidate_missing: "<yellow>No reroll candidate is open. Generate one with <gold>/emakigem reroll full</gold> or <gold>value</gold>.</yellow>"
   open:
     target_required: "<red>Please place an equipment that supports socket opening first.</red>"
     invalid_target:
@@ -359,6 +359,7 @@ debug:
   state:
     read: "Read gem state | Item=%item% | Opened=%slots% | Inlaid=%gems%"
     write: "Write gem state | Item=%item% | Change=%change%"
+    reroll_refresh_degraded: "Reroll refresh degraded | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%"
   refresh:
     complete: "Gem item refresh complete | duration=%duration_ms%ms | reason=%reason%"
   gui:

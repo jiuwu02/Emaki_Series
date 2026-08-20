@@ -4,18 +4,28 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayer;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayerCodec;
 
 public final class EquipmentTargetProvider implements EnhancementTargetProvider {
 
     private static final String PROVIDER_ID = "equipment";
 
     private final EmakiStrengthenPlugin plugin;
+    private final MasteryLayerCodec masteryCodec;
 
     public EquipmentTargetProvider(EmakiStrengthenPlugin plugin) {
+        this(plugin, null);
+    }
+
+    public EquipmentTargetProvider(EmakiStrengthenPlugin plugin, @Nullable MasteryLayerCodec masteryCodec) {
         this.plugin = plugin;
+        this.masteryCodec = masteryCodec;
     }
 
     @Override
@@ -59,6 +69,30 @@ public final class EquipmentTargetProvider implements EnhancementTargetProvider 
     @Override
     public void writeRecipeId(@Nullable ItemStack itemStack, @Nullable String recipeId) {
         applyState(itemStack, readLevel(itemStack), readTemper(itemStack), recipeId);
+    }
+
+    @Override
+    public @NotNull String readInstanceId(@Nullable ItemStack itemStack) {
+        if (masteryCodec == null) {
+            return "";
+        }
+        MasteryLayer layer = masteryCodec.read(itemStack);
+        return layer == null ? "" : layer.instanceId();
+    }
+
+    @Override
+    public @NotNull EmakiResult<ItemMasteryView> masterySnapshot(@Nullable ItemStack itemStack) {
+        if (masteryCodec == null) {
+            return EmakiResult.unavailable();
+        }
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("strengthen.error.no_target");
+        }
+        MasteryLayer layer = masteryCodec.read(itemStack);
+        if (layer == null) {
+            return EmakiResult.notFound("strengthen.mastery.absent");
+        }
+        return EmakiResult.success(layer.toView());
     }
 
     @Override

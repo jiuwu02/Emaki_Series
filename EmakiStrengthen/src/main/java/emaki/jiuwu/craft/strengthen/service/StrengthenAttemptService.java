@@ -79,7 +79,7 @@ public final class StrengthenAttemptService {
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
-        this.materialPlanResolver = new MaterialPlanResolver(recipeResolver);
+        this.materialPlanResolver = new MaterialPlanResolver(recipeResolver, plugin);
         this.chanceCalculator = chanceCalculator;
         this.economyService = economyService;
         this.snapshotBuilder = snapshotBuilder;
@@ -153,7 +153,8 @@ public final class StrengthenAttemptService {
             return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
-        MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(context, stage);
+        MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(
+                context, stage, player, recipe.id());
         if (Texts.isNotBlank(materials.errorKey())) {
             return new AttemptPreview(false, materials.errorKey(), state, recipe, state.currentStar(), targetStar, 0D, List.of(),
                     state.currentStar(), state.temperLevel(), false, 0, Map.of(), Set.of(), materials.requiredMaterials(), materials.optionalMaterials());

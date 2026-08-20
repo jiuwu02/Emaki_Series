@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.item.papi;
 
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -8,8 +10,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.placeholder.AbstractEmakiPlaceholderExpansion;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.api.ItemStateKey;
 
 public final class ItemPlaceholderExpansion extends AbstractEmakiPlaceholderExpansion {
 
@@ -43,8 +47,47 @@ public final class ItemPlaceholderExpansion extends AbstractEmakiPlaceholderExpa
             case "held_components" -> plugin.componentInspector().idList(held);
             case "held_components_raw" -> plugin.componentInspector().raw(held);
             case "loaded_count" -> Integer.toString(plugin.itemLoader().all().size());
-            default -> resolveComponentPlaceholder(held, normalized);
+            case "held_state_keys" -> resolveStateKeys(held);
+            case "held_state_revision" -> Long.toString(plugin.stateService().snapshot(held).metadata().revision());
+            case "held_state_instance" -> plugin.stateService().snapshot(held).metadata().instanceId();
+            case "held_state_schema" -> Integer.toString(plugin.stateService().snapshot(held).metadata().schemaVersion());
+            case "held_state_valid" -> plugin.stateService().snapshot(held).metadata().valid() ? "1" : "0";
+            default -> resolveStatePlaceholder(held, normalized);
         };
+    }
+
+    private String resolveStatePlaceholder(ItemStack held, String params) {
+        if (params.startsWith("held_state_has_")) {
+            return findStateValue(held, params.substring("held_state_has_".length())) == null ? "0" : "1";
+        }
+        if (params.startsWith("held_state_")) {
+            Object value = findStateValue(held, params.substring("held_state_".length()));
+            return value == null ? "" : String.valueOf(value);
+        }
+        return resolveComponentPlaceholder(held, params);
+    }
+
+    private Object findStateValue(ItemStack held, String key) {
+        String normalizedKey = Texts.toStringSafe(key).trim().toLowerCase(Locale.ROOT);
+        if (normalizedKey.isBlank() || held == null || held.getType().isAir()) {
+            return null;
+        }
+        for (Map.Entry<ItemStateKey<?>, Object> entry : plugin.stateService().snapshot(held).values().entrySet()) {
+            if (entry.getKey().key().equals(normalizedKey)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private String resolveStateKeys(ItemStack held) {
+        if (held == null || held.getType().isAir()) {
+            return "";
+        }
+        return plugin.stateService().snapshot(held).values().keySet().stream()
+                .map(ItemStateKey::key)
+                .sorted()
+                .collect(Collectors.joining(","));
     }
 
     private String resolveComponentPlaceholder(ItemStack held, String params) {

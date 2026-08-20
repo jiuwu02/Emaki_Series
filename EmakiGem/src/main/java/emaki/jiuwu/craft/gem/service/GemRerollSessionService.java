@@ -152,36 +152,33 @@ public final class GemRerollSessionService {
     private record ConfirmedEntry(Session session, long confirmedAt, long expiryAt) {
     }
 
-    private static final long DEFAULT_TTL_MILLIS = 120_000L;
     private static final long DEFAULT_CONFIRMED_TTL_MILLIS = 30_000L;
     private static final int DEFAULT_CONFIRMED_CAPACITY = 256;
+    private static final String DEBUG_REROLL_MODULE = "state";
 
     private final EmakiGemPlugin plugin;
     private final GemRerollCandidateGenerator generator;
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, ConfirmedEntry> recentConfirmed = new ConcurrentHashMap<>();
     private final Map<UUID, Object> sessionLocks = new ConcurrentHashMap<>();
-    private final long ttlMillis;
     private final long confirmedTtlMillis;
     private final int confirmedCapacity;
 
     public GemRerollSessionService(EmakiGemPlugin plugin) {
-        this(plugin, DEFAULT_TTL_MILLIS, DEFAULT_CONFIRMED_TTL_MILLIS, DEFAULT_CONFIRMED_CAPACITY);
-    }
-
-    public GemRerollSessionService(EmakiGemPlugin plugin, long ttlMillis) {
-        this(plugin, ttlMillis, DEFAULT_CONFIRMED_TTL_MILLIS, DEFAULT_CONFIRMED_CAPACITY);
+        this(plugin, DEFAULT_CONFIRMED_TTL_MILLIS, DEFAULT_CONFIRMED_CAPACITY);
     }
 
     GemRerollSessionService(EmakiGemPlugin plugin,
-            long ttlMillis,
             long confirmedTtlMillis,
             int confirmedCapacity) {
         this.plugin = plugin;
         this.generator = new GemRerollCandidateGenerator();
-        this.ttlMillis = Math.max(1_000L, ttlMillis);
         this.confirmedTtlMillis = Math.max(1_000L, confirmedTtlMillis);
         this.confirmedCapacity = Math.max(1, confirmedCapacity);
+    }
+
+    private long sessionTtlMillis() {
+        return Math.max(1_000L, plugin.appConfig().reroll().sessionTtlMillis());
     }
 
     public OpenResult open(Player player, OperationType operationType) {
@@ -234,7 +231,7 @@ public final class GemRerollSessionService {
             String configFingerprint = configFingerprint(definition, operationType);
             String instanceFingerprint = instanceFingerprint(original);
             Session created = new Session(playerId, operationId, original, generated.candidate(), operationType,
-                    charge, now, now + ttlMillis, configFingerprint, instanceFingerprint);
+                    charge, now, now + sessionTtlMillis(), configFingerprint, instanceFingerprint);
             journal().rerollGenerated(operationId, operationType, original, generated.candidate(),
                     configFingerprint, instanceFingerprint, created.createdAt(), created.expiryAt());
             sessions.put(playerId, created);
@@ -288,7 +285,8 @@ public final class GemRerollSessionService {
                 return ActionResult.failure("gem.reroll.write_failed", session);
             }
             player.getInventory().setItemInMainHand(held);
-            GemItemObtainListener.refreshInventory(plugin, player);
+            observeCandidateRefresh(player, session,
+                    GemItemObtainListener.refreshInventory(plugin, player));
             session.terminal(TerminalState.CONFIRMED, TerminationReason.CONFIRMED, false);
             sessions.remove(player.getUniqueId(), session);
             journal().rerollTerminal(session.operationId(), GemOperationJournal.Phase.CONFIRMED,
@@ -435,6 +433,35 @@ public final class GemRerollSessionService {
             completion.complete(null);
         });
         return completion;
+    }
+
+    private void observeCandidateRefresh(Player player,
+            Session session,
+            GemItemObtainListener.RefreshOutcome outcome) {
+        String candidateFingerprint = instanceFingerprint(session.candidate());
+        GemItemInstance presented = plugin.itemMatcher().readStoredGemInstance(
+                player.getInventory().getItemInMainHand());
+        String presentedFingerprint = instanceFingerprint(presented);
+        boolean matched = candidateFingerprint.equals(presentedFingerprint);
+        if (outcome.refreshed() && matched) {
+            return;
+        }
+        String reason = outcome.refreshed() ? "candidate_not_presented" : outcome.key();
+        journal().rerollRefreshDegraded(session.operationId(), reason);
+        Map<String, Object> fields = Map.of(
+                "operation_id", session.operationId(),
+                "instance_id", session.instanceId(),
+                "outcome", outcome.key(),
+                "reason", reason,
+                "expected_fingerprint", candidateFingerprint,
+                "presented_fingerprint", presentedFingerprint
+        );
+        if (plugin.messageService() != null) {
+            plugin.messageService().warning("console.reroll_refresh_degraded", fields);
+        }
+        if (plugin.debugLogger() != null) {
+            plugin.debugLogger().log(DEBUG_REROLL_MODULE, player, "state.reroll_refresh_degraded", fields);
+        }
     }
 
     private Session active(UUID playerId) {

@@ -32,7 +32,9 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
+import emaki.jiuwu.craft.item.model.ItemStateConfigParser;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
+import emaki.jiuwu.craft.item.model.ProficiencyGuardConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
@@ -48,6 +50,8 @@ import emaki.jiuwu.craft.item.service.EmakiItemMigrationService;
 import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
+import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
+import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.service.EmakiItemSourceResolver;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
@@ -137,7 +141,19 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 coreLibPlugin.itemAssemblyService(),
                 plugin.debugLogger()
         );
-        EmakiItemStateService stateService = new EmakiItemStateService();
+        EmakiItemStateService stateService = new EmakiItemStateService(
+                () -> plugin.appConfig().itemState(),
+                plugin::debugLogger
+        );
+        ItemStatePreservationService statePreservation = new ItemStatePreservationService(
+                stateService,
+                plugin::debugLogger
+        );
+        updateService.bindStatePreservation(statePreservation);
+        ProficiencyGuard proficiencyGuard = new ProficiencyGuard(
+                () -> plugin.appConfig().proficiencyGuard(),
+                plugin::debugLogger
+        );
         EmakiItemSetService setService = new EmakiItemSetService(
                 itemLoader,
                 setLoader,
@@ -183,6 +199,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 updateService,
                 setService,
                 stateService,
+                statePreservation,
+                proficiencyGuard,
                 actionService,
                 conditionChecker,
                 componentInspector,
@@ -423,7 +441,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 parseSetBonus(configuration.getSection("set_bonus")),
                 configuration.getBoolean("mythicmobs.enabled", true),
                 configuration.getBoolean("mythicmobs.drops.enabled", true),
-                mythicDropNames
+                mythicDropNames,
+                ItemStateConfigParser.parse(configuration.getSection("item_state")),
+                ProficiencyGuardConfig.parse(configuration.getSection("proficiency_guard"))
         );
     }
 

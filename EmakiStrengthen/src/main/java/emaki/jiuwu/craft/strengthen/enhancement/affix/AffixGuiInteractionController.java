@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptPreview;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementPreviewSession;
 
 /**
  * 词条强化 GUI 的点击分发。
@@ -191,8 +192,9 @@ final class AffixGuiInteractionController {
         EnhancementAttemptResult result;
         try {
             ItemStack target = state.targetItem();
-            result = plugin.enhancementAttemptService().attempt(
-                    state.player(), state.recipe(), target, state.suppliedMaterials(), state.operationId());
+            result = plugin.enhancementAttemptService().attemptWithPreview(
+                    state.player(), state.recipe(), target, state.suppliedMaterials(), state.operationId(),
+                    state.previewSession());
             if (result.committed()) {
                 state.setTargetItem(target);
                 consumeSuppliedMaterials(state);
@@ -242,6 +244,7 @@ final class AffixGuiInteractionController {
             state.setSelectedAffix("");
             state.setCapacity(0, 0);
             state.setPreview(null);
+            state.setPreviewSession(null);
             return;
         }
         int maxLevel = plugin.appConfig() == null ? 0 : plugin.appConfig().affixMaxLevel();
@@ -252,10 +255,15 @@ final class AffixGuiInteractionController {
         state.setSelectedAffix(selectionService.selected(playerId, candidates));
         AffixLayer layer = layerCodec.readOrEmpty(target, capacityMax);
         state.setCapacity(layer.capacityUsed(), layer.capacityMax());
-        state.setPreview(plugin.enhancementAttemptService() == null
-                ? null
-                : plugin.enhancementAttemptService().preview(
-                        state.player(), state.recipe(), target, state.suppliedMaterials()));
+        if (plugin.enhancementAttemptService() == null) {
+            state.setPreview(null);
+            state.setPreviewSession(null);
+            return;
+        }
+        EnhancementPreviewSession session = plugin.enhancementAttemptService().previewSession(
+                state.player(), state.recipe(), target, state.suppliedMaterials());
+        state.setPreview(session.preview());
+        state.setPreviewSession(session);
     }
 
     private void returnStoredItems(AffixGuiSession state) {

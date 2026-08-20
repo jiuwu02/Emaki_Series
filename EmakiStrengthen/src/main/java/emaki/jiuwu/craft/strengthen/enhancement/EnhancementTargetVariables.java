@@ -26,7 +26,45 @@ public final class EnhancementTargetVariables {
 
     private static final String FORGE_NAMESPACE = "emakiforge";
 
+    public static final String FORGE_PATH_QUALITY_ID = "forge.quality_id";
+    public static final String FORGE_PATH_QUALITY_DISPLAY = "forge.quality_display";
+    public static final String FORGE_PATH_QUALITY_MULTIPLIER = "forge.quality_multiplier";
+    public static final String FORGE_PATH_RECIPE_ID = "forge.forge_recipe_id";
+
+    public static final String VARIABLE_MULTIPLIER_VALID = "forge_quality_multiplier_valid";
+    public static final String VARIABLE_PDC_READ_ERRORS = "target_pdc_read_error_count";
+
+    public static final double DEFAULT_QUALITY_MULTIPLIER = 1D;
+
+    private static final Map<String, List<String>> FORGE_ALIASES = Map.of(
+            FORGE_PATH_QUALITY_ID, List.of("forge_quality_id", "forge.quality_id", "quality_id"),
+            FORGE_PATH_QUALITY_DISPLAY,
+            List.of("forge_quality_display", "forge.quality_display", "quality_display"),
+            FORGE_PATH_QUALITY_MULTIPLIER,
+            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier"),
+            FORGE_PATH_RECIPE_ID, List.of("forge_recipe_id", "forge.forge_recipe_id"));
+
     private EnhancementTargetVariables() {
+    }
+
+    public static @NotNull Map<String, List<String>> forgeAliasContract() {
+        return FORGE_ALIASES;
+    }
+
+    public static @NotNull List<String> forgeAliases(@Nullable String path) {
+        return FORGE_ALIASES.getOrDefault(Texts.toStringSafe(path).toLowerCase(Locale.ROOT), List.of());
+    }
+
+    public static @NotNull String forgeNamespace() {
+        return FORGE_NAMESPACE;
+    }
+
+    public static double coerceQualityMultiplier(@Nullable Object raw) {
+        return finiteDouble(raw, DEFAULT_QUALITY_MULTIPLIER).value();
+    }
+
+    public static boolean validQualityMultiplier(@Nullable Object raw) {
+        return finiteDouble(raw, DEFAULT_QUALITY_MULTIPLIER).valid();
     }
 
     public static @NotNull Snapshot capture(@Nullable Player player,
@@ -41,7 +79,9 @@ public final class EnhancementTargetVariables {
         Map<String, Object> layers = new LinkedHashMap<>();
         Map<String, Object> audit = new LinkedHashMap<>();
         Map<String, Object> meta = readMeta(target);
-        int unreadable = readPdc(target, pdc, effects, layers, audit, meta);
+        List<String> unreadableKeys = new ArrayList<>();
+        readPdc(target, pdc, effects, layers, audit, meta, unreadableKeys);
+        int unreadable = unreadableKeys.size();
         String instanceId = provider == null ? "" : safeString(() -> provider.readInstanceId(player, target));
         if (Texts.isBlank(instanceId)) {
             instanceId = findIdentityValue(pdc, "instance_id", "owner_id", "uuid");
@@ -66,7 +106,7 @@ public final class EnhancementTargetVariables {
         Map<String, Object> variables = buildVariables(target, providerId, instanceId, version, level, temper,
                 recipeId, pdc, effects, layers, audit, meta, unreadable);
         return new Snapshot(providerId, instanceId, version, level, temper, recipeId,
-                pdc, effects, layers, audit, meta, variables, unreadable);
+                pdc, effects, layers, audit, meta, variables, unreadable, unreadableKeys);
     }
 
     public static void enrich(@NotNull VariableContext.Builder builder, @Nullable ItemStack target) {
@@ -136,25 +176,25 @@ public final class EnhancementTargetVariables {
         return Map.copyOf(variables);
     }
 
-    private static int readPdc(ItemStack target,
+    private static void readPdc(ItemStack target,
             Map<String, Object> pdc,
             Map<String, Object> effects,
             Map<String, Object> layers,
             Map<String, Object> audit,
-            Map<String, Object> meta) {
+            Map<String, Object> meta,
+            List<String> unreadableKeys) {
         if (target == null || target.getType().isAir()) {
-            return 0;
+            return;
         }
         ItemMeta itemMeta = target.getItemMeta();
         if (itemMeta == null) {
-            return 0;
+            return;
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        int unreadable = 0;
         for (NamespacedKey key : container.getKeys()) {
             Object value = read(container, key);
             if (value == null) {
-                unreadable++;
+                unreadableKeys.add(key.getNamespace() + ":" + key.getKey());
                 continue;
             }
             String canonical = key.getNamespace() + ":" + key.getKey();
@@ -173,7 +213,6 @@ public final class EnhancementTargetVariables {
                 meta.put(canonical, value);
             }
         }
-        return unreadable;
     }
 
     private static Map<String, Object> readMeta(ItemStack target) {
@@ -261,26 +300,21 @@ public final class EnhancementTargetVariables {
                 return;
             }
             String path = canonical.substring(separator + 1).toLowerCase(Locale.ROOT);
-            switch (path) {
-                case "forge.quality_id" -> aliases(variables, value,
-                        "forge_quality_id", "forge.quality_id", "quality_id");
-                case "forge.quality_display" -> aliases(variables, value,
-                        "forge_quality_display", "forge.quality_display", "quality_display");
-                case "forge.quality_multiplier" -> {
-                    NumberResult result = finiteDouble(value, 1D);
-                    aliases(variables, result.value(),
-                            "forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier");
-                    variables.put("forge_quality_multiplier_valid", result.valid() ? 1 : 0);
-                }
-                case "forge.forge_recipe_id" -> aliases(variables, value,
-                        "forge_recipe_id", "forge.forge_recipe_id");
-                default -> {
-                }
+            List<String> names = FORGE_ALIASES.get(path);
+            if (names == null) {
+                return;
             }
+            if (FORGE_PATH_QUALITY_MULTIPLIER.equals(path)) {
+                NumberResult result = finiteDouble(value, DEFAULT_QUALITY_MULTIPLIER);
+                aliases(variables, result.value(), names);
+                variables.put(VARIABLE_MULTIPLIER_VALID, result.valid() ? 1 : 0);
+                return;
+            }
+            aliases(variables, value, names);
         });
     }
 
-    private static void aliases(Map<String, Object> variables, Object value, String... names) {
+    private static void aliases(Map<String, Object> variables, Object value, List<String> names) {
         for (String name : names) {
             variables.put(name, value);
         }
@@ -364,7 +398,8 @@ public final class EnhancementTargetVariables {
             @NotNull Map<String, Object> audit,
             @NotNull Map<String, Object> meta,
             @NotNull Map<String, Object> variables,
-            int unreadablePdcCount) {
+            int unreadablePdcCount,
+            @NotNull List<String> unreadablePdcKeys) {
 
         public Snapshot {
             providerId = Texts.toStringSafe(providerId);
@@ -379,7 +414,25 @@ public final class EnhancementTargetVariables {
             audit = audit == null ? Map.of() : Map.copyOf(audit);
             meta = meta == null ? Map.of() : Map.copyOf(meta);
             variables = variables == null ? Map.of() : Map.copyOf(variables);
+            unreadablePdcKeys = unreadablePdcKeys == null ? List.of() : List.copyOf(unreadablePdcKeys);
             unreadablePdcCount = Math.max(0, unreadablePdcCount);
+        }
+
+        public Snapshot(@NotNull String providerId,
+                @NotNull String instanceId,
+                @NotNull String version,
+                int level,
+                int temper,
+                @NotNull String recipeId,
+                @NotNull Map<String, Object> pdc,
+                @NotNull Map<String, Object> effects,
+                @NotNull Map<String, Object> layers,
+                @NotNull Map<String, Object> audit,
+                @NotNull Map<String, Object> meta,
+                @NotNull Map<String, Object> variables,
+                int unreadablePdcCount) {
+            this(providerId, instanceId, version, level, temper, recipeId, pdc, effects, layers,
+                    audit, meta, variables, unreadablePdcCount, List.of());
         }
 
         public boolean sameIdentityAndVersion(@Nullable Snapshot other) {

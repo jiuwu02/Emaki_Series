@@ -25,6 +25,30 @@ import emaki.jiuwu.craft.gem.model.GemState;
 
 public final class GemItemObtainListener implements Listener {
 
+    public enum RefreshOutcome {
+        APPLIED("applied"),
+        UNCHANGED("unchanged"),
+        PLUGIN_MISSING("plugin_missing"),
+        PLAYER_MISSING("player_missing"),
+        STATE_SERVICE_MISSING("state_service_missing"),
+        ITEM_MATCHER_MISSING("item_matcher_missing"),
+        ITEM_FACTORY_MISSING("item_factory_missing");
+
+        private final String key;
+
+        RefreshOutcome(String key) {
+            this.key = key;
+        }
+
+        public String key() {
+            return key;
+        }
+
+        public boolean refreshed() {
+            return this == APPLIED || this == UNCHANGED;
+        }
+    }
+
     private final EmakiGemPlugin plugin;
     private final EmakiScheduling scheduling;
     private final Set<UUID> pendingRefreshes = ConcurrentHashMap.newKeySet();
@@ -95,9 +119,21 @@ public final class GemItemObtainListener implements Listener {
         }
     }
 
-    public static void refreshInventory(EmakiGemPlugin plugin, Player player) {
-        if (plugin == null || player == null || plugin.stateService() == null || plugin.itemMatcher() == null || plugin.itemFactory() == null) {
-            return;
+    public static RefreshOutcome refreshInventory(EmakiGemPlugin plugin, Player player) {
+        if (plugin == null) {
+            return RefreshOutcome.PLUGIN_MISSING;
+        }
+        if (player == null) {
+            return RefreshOutcome.PLAYER_MISSING;
+        }
+        if (plugin.stateService() == null) {
+            return RefreshOutcome.STATE_SERVICE_MISSING;
+        }
+        if (plugin.itemMatcher() == null) {
+            return RefreshOutcome.ITEM_MATCHER_MISSING;
+        }
+        if (plugin.itemFactory() == null) {
+            return RefreshOutcome.ITEM_FACTORY_MISSING;
         }
         PlayerInventory inventory = player.getInventory();
         boolean changed = false;
@@ -118,6 +154,7 @@ public final class GemItemObtainListener implements Listener {
         if (changed) {
             player.updateInventory();
         }
+        return changed ? RefreshOutcome.APPLIED : RefreshOutcome.UNCHANGED;
     }
 
     private static boolean shouldReplace(ItemStack current, ItemStack refreshed) {

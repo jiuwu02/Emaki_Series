@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -49,6 +50,7 @@ public final class EmakiItemUpdateService {
     private final ItemOperationLedger operationLedger;
     private final PdcService pdcService;
     private final PdcPartition itemPartition;
+    private ItemStatePreservationService statePreservation;
 
     public EmakiItemUpdateService(EmakiItemLoader itemLoader,
             EmakiItemIdResolver idResolver,
@@ -83,6 +85,10 @@ public final class EmakiItemUpdateService {
         this.operationLedger = new ItemOperationLedger(debugLogger);
         this.pdcService = new PdcService("emaki", "pdc", debugLogger);
         this.itemPartition = pdcService.partition("item");
+    }
+
+    public void bindStatePreservation(ItemStatePreservationService preservation) {
+        this.statePreservation = preservation;
     }
 
     public ItemStack updateIfNeeded(ItemStack original, String trigger) {
@@ -333,6 +339,21 @@ public final class EmakiItemUpdateService {
     }
 
     private ItemStack rebuild(ItemStack original,
+            EmakiItemDefinition definition,
+            ItemUpdateConfig updateConfig,
+            String identityId,
+            ItemOperationLedger.ReadResult readResult) {
+        ItemStateSnapshot preservedState = statePreservation == null
+                ? null
+                : statePreservation.capture(original);
+        ItemStack rebuilt = rebuildStack(original, definition, updateConfig, identityId, readResult);
+        if (statePreservation != null && rebuilt != null && rebuilt != original) {
+            statePreservation.reapply(rebuilt, preservedState, "rebuild");
+        }
+        return rebuilt;
+    }
+
+    private ItemStack rebuildStack(ItemStack original,
             EmakiItemDefinition definition,
             ItemUpdateConfig updateConfig,
             String identityId,

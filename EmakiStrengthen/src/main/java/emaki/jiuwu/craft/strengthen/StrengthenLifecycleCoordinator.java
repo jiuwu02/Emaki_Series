@@ -35,6 +35,8 @@ import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayerCodec;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryProgressService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
@@ -128,14 +130,18 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         StrengthenGuiService strengthenGuiService = new StrengthenGuiService(plugin, guiService, attemptService, threadOwnership);
         EnhancementRecipeLoader enhancementRecipeLoader = new EnhancementRecipeLoader(plugin);
         EnhancementTargetRegistry enhancementTargetRegistry = new EnhancementTargetRegistry();
-        enhancementTargetRegistry.register(new EquipmentTargetProvider(plugin));
-        AffixLayerCodec affixLayerCodec = new AffixLayerCodec(new PdcService("emaki_strengthen", "pdc", plugin.debugLogger()));
+        PdcService strengthenPdcService = new PdcService("emaki_strengthen", "pdc", plugin.debugLogger());
+        MasteryLayerCodec masteryLayerCodec = new MasteryLayerCodec(strengthenPdcService);
+        MasteryProgressService masteryProgressService = new MasteryProgressService(plugin, masteryLayerCodec);
+        enhancementTargetRegistry.register(new EquipmentTargetProvider(plugin, masteryLayerCodec));
+        AffixLayerCodec affixLayerCodec = new AffixLayerCodec(strengthenPdcService);
         AffixSelectionService affixSelectionService = new AffixSelectionService(plugin, affixLayerCodec);
         AffixTargetProvider affixTargetProvider = new AffixTargetProvider(
                 plugin,
                 affixLayerCodec,
                 affixSelectionService,
-                affixAttributeGateway
+                affixAttributeGateway,
+                masteryLayerCodec
         );
         enhancementTargetRegistry.register(affixTargetProvider);
         InMemoryPityStateStore pityStateStore = new InMemoryPityStateStore(
@@ -145,7 +151,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 plugin,
                 enhancementTargetRegistry,
                 pityStateStore,
-                new EnhancementProgressionResolver()
+                new EnhancementProgressionResolver(),
+                affixLayerCodec,
+                masteryProgressService
         );
         AffixGuiService affixGuiService = new AffixGuiService(
                 plugin,
@@ -181,7 +189,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 pityStateStore,
                 enhancementAttemptService,
                 affixSelectionService,
-                affixGuiService
+                affixGuiService,
+                masteryProgressService
         );
     }
 
@@ -375,7 +384,37 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 configuration.getInt("affix.max_level", defaults.affixMaxLevel()),
                 configuration.getInt("affix.capacity_max", defaults.affixCapacityMax()),
                 configuration.getInt("affix.capacity_cost_per_level", defaults.affixCapacityCostPerLevel()),
-                configuration.getDouble("affix.bonus_per_level", defaults.affixBonusPerLevel())
+                configuration.getDouble("affix.bonus_per_level", defaults.affixBonusPerLevel()),
+                configuration.getBoolean("enhancement.reject_container_target",
+                        defaults.enhancementRejectContainerTarget()),
+                parseEnhancementTuning(configuration, defaults.enhancementTuning())
+        );
+    }
+
+    private AppConfig.EnhancementTuning parseEnhancementTuning(YamlSection configuration,
+            AppConfig.EnhancementTuning defaults) {
+        return new AppConfig.EnhancementTuning(
+                configuration.getBoolean("enhancement.reject_container_material",
+                        defaults.rejectContainerMaterial()),
+                configuration.getDouble("enhancement.diminishing_returns.per_level",
+                        defaults.diminishingPerLevel()),
+                configuration.getInt("enhancement.diminishing_returns.start_level",
+                        defaults.diminishingStartLevel()),
+                configuration.getDouble("enhancement.cost_growth.per_level", defaults.costGrowthPerLevel()),
+                configuration.getDouble("enhancement.cost_growth.max_multiplier",
+                        defaults.costGrowthMaxMultiplier()),
+                configuration.getDouble("enhancement.min_success_rate", defaults.minSuccessRate()),
+                configuration.getInt("enhancement.failure_demotion.levels", defaults.failureDemotionLevels()),
+                configuration.getInt("enhancement.failure_demotion.floor_level",
+                        defaults.failureDemotionFloor()),
+                configuration.getInt("enhancement.pity_retry.interval_ticks",
+                        (int) defaults.pityRetryIntervalTicks()),
+                configuration.getInt("enhancement.pity_retry.max_attempts", defaults.pityRetryMaxAttempts()),
+                configuration.getDouble("enhancement.mastery.exp_per_attempt",
+                        defaults.masteryExpPerAttempt()),
+                configuration.getDouble("enhancement.mastery.exp_per_success",
+                        defaults.masteryExpPerSuccess()),
+                configuration.getInt("enhancement.mastery.soft_cap", defaults.masterySoftCap())
         );
     }
 

@@ -9,12 +9,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jetbrains.annotations.NotNull;
+
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
 
 public final class StrengthenRecipeLoader {
@@ -23,6 +26,7 @@ public final class StrengthenRecipeLoader {
     private final Object stateLock = new Object();
     private final Map<String, StrengthenRecipe> recipes = new LinkedHashMap<>();
     private final Map<String, String> materialCatalog = new LinkedHashMap<>();
+    private final Map<String, Map<String, StarStageMaterialRule>> materialRules = new LinkedHashMap<>();
     private final List<String> issues = new ArrayList<>();
 
     public StrengthenRecipeLoader(EmakiStrengthenPlugin plugin) {
@@ -33,6 +37,7 @@ public final class StrengthenRecipeLoader {
         synchronized (stateLock) {
             recipes.clear();
             materialCatalog.clear();
+            materialRules.clear();
             issues.clear();
             File directory = plugin.dataPath("recipes").toFile();
             if (!directory.exists()) {
@@ -96,6 +101,23 @@ public final class StrengthenRecipeLoader {
         }
     }
 
+    public @NotNull StarStageMaterialRule materialRule(String recipeId, int targetStar, String itemToken) {
+        synchronized (stateLock) {
+            Map<String, StarStageMaterialRule> rules = materialRules.get(Texts.lower(recipeId));
+            if (rules == null) {
+                return StarStageMaterialRule.inert();
+            }
+            StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(targetStar, itemToken));
+            return rule == null ? StarStageMaterialRule.inert() : rule;
+        }
+    }
+
+    public boolean hasMaterialRules() {
+        synchronized (stateLock) {
+            return !materialRules.isEmpty();
+        }
+    }
+
     private void loadFile(File file) {
         try {
             YamlSection configuration = YamlFiles.load(file);
@@ -117,6 +139,11 @@ public final class StrengthenRecipeLoader {
                 return;
             }
             recipes.put(recipeId, recipe);
+            Map<String, StarStageMaterialRule> rules =
+                    StrengthenRecipeParser.parseStageMaterialRules(configuration);
+            if (!rules.isEmpty()) {
+                materialRules.put(recipeId, rules);
+            }
             indexMaterials(recipe);
         } catch (Exception exception) {
             issue("loader.load_failed", Map.of(

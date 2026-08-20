@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.strengthen.api;
 
+import java.util.List;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.ApiStatus;
@@ -12,6 +14,9 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementOperationView;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityStateView;
+import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
@@ -209,4 +214,147 @@ public interface StrengthenOperations {
      */
     @NotNull
     EmakiResult<Unit> unregisterEnhancementTarget(@Nullable String providerId);
+
+    /**
+     * Looks up one enhancement operation in the transaction journal.
+     *
+     * <p>This is the query path for an operation id handed to a player alongside a
+     * {@code strengthen.error.compensation_pending} message. An id that is absent is reported as
+     * {@code NOT_FOUND}, which for a settled operation legitimately means "already pruned" rather
+     * than "never existed": the runtime keeps unsettled entries and drops completed ones.
+     *
+     * <p>The lookup is read-only. It neither retries compensation nor mutates the journal.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param operationId the operation id to look up; {@code null} or blank yields
+     *                    {@code INVALID_INPUT}
+     * @return the journal view, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<EnhancementOperationView> enhancementOperation(@Nullable String operationId) {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Lists the enhancement operations still held in the transaction journal.
+     *
+     * <p>Retained entries are the in-flight ones and those whose compensation has not settled, so an
+     * empty list is the healthy steady state rather than a sign the journal is unavailable. Use
+     * {@link EnhancementOperationView#compensationPending()} to separate entries that need operator
+     * attention from ones merely still running.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @return the retained operations, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<List<EnhancementOperationView>> enhancementOperations() {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Lists stored pity counter records, optionally narrowed to one group.
+     *
+     * <p>An empty list is a legitimate result meaning no counter has been written yet, not a sign the
+     * store is unavailable. Records whose group carries an isolation suffix are included when
+     * {@code group} matches their base group, so an operator does not have to know the suffix.
+     *
+     * <p>The listing is read-only. It neither advances nor resets any counter.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param group the counter group to filter by; {@code null} or blank lists every record
+     * @return the matching records, or a classified failure when the pity store is unavailable
+     */
+    @NotNull
+    default EmakiResult<List<EnhancementPityStateView>> pityStates(@Nullable String group) {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Overwrites one pity counter.
+     *
+     * <p>This writes the counter the runtime will read on the next attempt, so it can both arm and
+     * disarm a pending guarantee. The write only updates memory and marks the store dirty; it is
+     * flushed by the normal lifecycle or retry path rather than synchronously.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param scope    the counter scope, {@code player} or {@code item}; an unknown value yields
+     *                 {@code INVALID_INPUT}
+     * @param group    the counter group exactly as stored, including any isolation suffix; blank
+     *                 yields {@code INVALID_INPUT}
+     * @param ownerKey the owner identity within the scope; blank yields {@code INVALID_INPUT}
+     * @param counter  the new counter value; negative values are clamped to {@code 0}
+     * @return {@link Unit} on success, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<Unit> setPityCounter(@Nullable String scope,
+            @Nullable String group,
+            @Nullable String ownerKey,
+            int counter) {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Removes every pity record belonging to one group.
+     *
+     * <p>Records whose group carries an isolation suffix are removed together with the base group, so
+     * clearing {@code weapon_pity} also clears {@code weapon_pity#level=7}. A count of {@code 0} is a
+     * legitimate success meaning the group held no records.
+     *
+     * <p><strong>Thread:</strong> any thread.
+     *
+     * @param group the base counter group; {@code null} or blank yields {@code INVALID_INPUT}
+     * @return the number of records removed, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<Integer> clearPityGroup(@Nullable String group) {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Overwrites one item's accumulated mastery experience and returns the resulting snapshot.
+     *
+     * <p>This replaces the total rather than adding to it, so it can both grant and revoke progress.
+     * Level and current-level experience are derived from the total, and milestones are rebuilt to match,
+     * which means a lowered total also drops the milestones it no longer justifies.
+     *
+     * <p>The supplied stack is modified in place. Nothing is written back to any inventory, so a caller
+     * holding a detached copy must apply it themselves.
+     *
+     * <p><strong>Thread:</strong> the owner thread of whatever holds the stack. A detached copy may be
+     * processed on the caller's current thread.
+     *
+     * @param itemStack the stack whose mastery is rewritten; {@code null} or air yields
+     *                  {@code INVALID_INPUT}
+     * @param totalExp  the new accumulated experience total; negative or non-finite yields
+     *                  {@code INVALID_INPUT}
+     * @return the snapshot after the write, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<ItemMasteryView> setMastery(@Nullable ItemStack itemStack, double totalExp) {
+        return EmakiResult.unavailable();
+    }
+
+    /**
+     * Removes one item's entire mastery layer.
+     *
+     * <p>Clearing an item that carries no mastery is reported as {@code NOT_FOUND} rather than a silent
+     * success, so a caller can tell a stale reference from a real removal. A cleared item is
+     * indistinguishable from one that never accumulated mastery: the instance id is dropped too, so
+     * later progress starts under a fresh identity.
+     *
+     * <p>The supplied stack is modified in place.
+     *
+     * <p><strong>Thread:</strong> the owner thread of whatever holds the stack.
+     *
+     * @param itemStack the stack to clear; {@code null} or air yields {@code INVALID_INPUT}
+     * @return {@link Unit} on success, or a classified failure
+     */
+    @NotNull
+    default EmakiResult<Unit> clearMastery(@Nullable ItemStack itemStack) {
+        return EmakiResult.unavailable();
+    }
 }

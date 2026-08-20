@@ -105,15 +105,16 @@ public final class ItemStateStage implements CoreActionStage {
         ItemStateKey<Object> key;
         try { key = new ItemStateKey<>(ItemStateSchema.NAMESPACE, ItemStateSchema.PARTITION, arguments.getString("key"), type); }
         catch (RuntimeException exception) { return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG, "action.stage.item_state.bad_key"); }
+        Player holder = resolveHolder(context);
         ItemStateMutation<Object> result;
         if (operation == Operation.REMOVE) {
-            result = state.remove(target.item(), key);
+            result = state.remove(target.item(), key, holder);
         } else if (operation == Operation.ADD) {
-            result = state.add(target.item(), key, arguments.getDouble("amount", 0D));
+            result = state.add(target.item(), key, arguments.getDouble("amount", 0D), holder);
         } else {
             Object value = parse(type, arguments.getString("value"));
             if (value == null) return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG, "action.stage.item_state.bad_value");
-            result = state.set(target.item(), key, value);
+            result = state.set(target.item(), key, value, holder);
         }
         if (result.rejected()) return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED, "action.stage.item_state.rejected", Map.of("reason", result.reason()));
         target.commit(target.item());
@@ -148,8 +149,14 @@ public final class ItemStateStage implements CoreActionStage {
         return null;
     }
 
+    private Player resolveHolder(CoreStageContext context) {
+        return context.currentTarget().entityOrNull() instanceof Player target
+                ? target
+                : context.caster().entityOrNull() instanceof Player caster ? caster : null;
+    }
+
     private Target resolveTarget(CoreStageContext context, CoreResolvedArguments arguments) {
-        Player player = context.currentTarget().entityOrNull() instanceof Player p ? p : context.caster().entityOrNull() instanceof Player p ? p : null;
+        Player player = resolveHolder(context);
         String rawSlot = arguments.getString("slot", "");
         if (!rawSlot.isBlank()) {
             StageSupport.Slot slot = StageSupport.slot(rawSlot, "mainhand");

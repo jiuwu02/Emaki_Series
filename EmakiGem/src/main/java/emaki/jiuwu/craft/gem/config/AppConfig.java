@@ -22,6 +22,7 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean opBypass;
     private final GuiSettings gui;
     private final ConditionConfig condition;
+    private final RerollSettings reroll;
 
     public AppConfig(String language,
             String configVersion,
@@ -31,7 +32,8 @@ public final class AppConfig extends BaseAppConfig {
             String numberFormat,
             boolean opBypass,
             GuiSettings gui,
-            ConditionConfig condition) {
+            ConditionConfig condition,
+            RerollSettings reroll) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.socketOpeners = socketOpeners == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(socketOpeners));
@@ -40,6 +42,7 @@ public final class AppConfig extends BaseAppConfig {
         this.opBypass = opBypass;
         this.gui = gui == null ? GuiSettings.defaults() : gui;
         this.condition = condition == null ? ConditionConfig.defaults() : condition;
+        this.reroll = reroll == null ? RerollSettings.defaults() : reroll;
     }
 
     public static AppConfig defaults() {
@@ -52,7 +55,8 @@ public final class AppConfig extends BaseAppConfig {
                 "0.##",
                 false,
                 GuiSettings.defaults(),
-                ConditionConfig.defaults()
+                ConditionConfig.defaults(),
+                RerollSettings.defaults()
         );
     }
 
@@ -84,6 +88,10 @@ public final class AppConfig extends BaseAppConfig {
         return condition;
     }
 
+    public RerollSettings reroll() {
+        return reroll;
+    }
+
     public record InlaySuccessConfig(boolean enabled,
             double defaultChance,
             String rateFormula,
@@ -110,6 +118,23 @@ public final class AppConfig extends BaseAppConfig {
 
         public static GuiSettings defaults() {
             return new GuiSettings(GemGuiMode.INLAY, false);
+        }
+    }
+
+    public record RerollSettings(int sessionTtlSeconds) {
+
+        public static final int DEFAULT_SESSION_TTL_SECONDS = 120;
+
+        public RerollSettings {
+            sessionTtlSeconds = Math.max(1, sessionTtlSeconds);
+        }
+
+        public static RerollSettings defaults() {
+            return new RerollSettings(DEFAULT_SESSION_TTL_SECONDS);
+        }
+
+        public long sessionTtlMillis() {
+            return sessionTtlSeconds * 1000L;
         }
     }
 

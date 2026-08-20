@@ -19,7 +19,16 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.api.StrengthenOperations;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementOperationView;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityStateView;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
 
 final class StrengthenCommandRouter implements TabExecutor {
 
@@ -55,6 +64,8 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "clearstate" -> handleClearState(sender);
             case "clearcrack" -> handleClearCrack(sender);
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
+            case "operation" -> handleOperation(sender, args);
+            case "pity" -> handlePity(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -67,7 +78,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
+            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -95,6 +106,24 @@ final class StrengthenCommandRouter implements TabExecutor {
                 case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
                         .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
+                case "operation" -> {
+                    if ("list".startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                        result.add("list");
+                    }
+                    if (plugin.enhancementAttemptService() != null) {
+                        plugin.enhancementAttemptService().operationViews().stream()
+                                .map(EnhancementOperationView::operationId)
+                                .filter(id -> id.startsWith(args[1]))
+                                .forEach(result::add);
+                    }
+                }
+                case "pity" -> {
+                    for (String sub : List.of("list", "set", "clear", "diagnose")) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                            result.add(sub);
+                        }
+                    }
+                }
                 case "affix" -> plugin.enhancementRecipeLoader().all().values().stream()
                         .filter(recipe -> recipe != null
                                 && "affix".equals(Texts.lower(recipe.target().provider())))
@@ -223,6 +252,147 @@ final class StrengthenCommandRouter implements TabExecutor {
                 "value", state.firstReachFlags().isEmpty() ? "-" : state.firstReachFlags()
         )));
         return true;
+    }
+
+    private boolean handleOperation(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        EnhancementAttemptService service = plugin.enhancementAttemptService();
+        if (service == null) {
+            plugin.messageService().send(sender, "command.operation.unavailable");
+            return true;
+        }
+        if (args.length >= 2 && !"list".equalsIgnoreCase(args[1])) {
+            EnhancementOperationView view = service.operationView(args[1]);
+            if (view == null) {
+                plugin.messageService().send(sender, "command.operation.not_found",
+                        Map.of("operation_id", args[1]));
+                return true;
+            }
+            sendOperationLine(sender, view);
+            return true;
+        }
+        List<EnhancementOperationView> views = service.operationViews();
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.operation.header",
+                Map.of("count", views.size())));
+        if (views.isEmpty()) {
+            plugin.messageService().send(sender, "command.operation.empty");
+            return true;
+        }
+        views.forEach(view -> sendOperationLine(sender, view));
+        return true;
+    }
+
+    private boolean handlePity(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        InMemoryPityStateStore store = plugin.pityStateStore();
+        if (store == null) {
+            plugin.messageService().send(sender, "command.pity.unavailable");
+            return true;
+        }
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "list";
+        return switch (action) {
+            case "diagnose" -> handlePityDiagnose(sender, store);
+            case "set" -> handlePitySet(sender, args);
+            case "clear" -> handlePityClear(sender, args);
+            default -> handlePityList(sender, args);
+        };
+    }
+
+    private boolean handlePityList(CommandSender sender, String[] args) {
+        String group = args.length >= 3 ? args[2] : "";
+        EmakiResult<List<EnhancementPityStateView>> result = pityOperations().pityStates(group);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.unavailable");
+            return true;
+        }
+        List<EnhancementPityStateView> views = result.orElse(List.of());
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.pity.header",
+                Map.of("count", views.size())));
+        if (views.isEmpty()) {
+            plugin.messageService().send(sender, "command.pity.empty");
+            return true;
+        }
+        for (EnhancementPityStateView view : views) {
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.pity.line", Map.of(
+                    "group", view.group(),
+                    "scope", view.scope(),
+                    "key", view.ownerKey(),
+                    "counter", view.counter(),
+                    "triggered", view.triggered()
+            )));
+        }
+        return true;
+    }
+
+    private boolean handlePitySet(CommandSender sender, String[] args) {
+        if (args.length < 6) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Integer counter = Numbers.tryParseInt(args[5], null);
+        if (counter == null || counter < 0) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        EmakiResult<Unit> result = pityOperations().setPityCounter(args[2], args[3], args[4], counter);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.invalid_scope",
+                    Map.of("legal", "player, item"));
+            return true;
+        }
+        plugin.messageService().send(sender, "command.pity.set_success",
+                Map.of("group", args[3], "counter", counter));
+        return true;
+    }
+
+    private boolean handlePityClear(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        EmakiResult<Integer> result = pityOperations().clearPityGroup(args[2]);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.not_found");
+            return true;
+        }
+        plugin.messageService().send(sender, "command.pity.clear_success",
+                Map.of("count", result.orElse(0)));
+        return true;
+    }
+
+    private boolean handlePityDiagnose(CommandSender sender, InMemoryPityStateStore store) {
+        PityPersistenceRetryScheduler scheduler = plugin.pityRetryScheduler();
+        plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.pity.diagnose_header"));
+        Map<String, Object> lines = new LinkedHashMap<>();
+        lines.put("records", store.size());
+        lines.put("dirty", store.isDirty());
+        lines.put("persistent", store.persistent());
+        lines.put("retry_running", scheduler != null && scheduler.running());
+        lines.put("retry_attempts", scheduler == null ? 0 : scheduler.attemptCount());
+        lines.forEach((key, value) -> plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.pity.diagnose_line",
+                        Map.of("key", key, "value", value))));
+        return true;
+    }
+
+    private StrengthenOperations pityOperations() {
+        return EmakiStrengthenApi.operations();
+    }
+
+    private void sendOperationLine(CommandSender sender, EnhancementOperationView view) {
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.operation.line", Map.of(
+                "operation_id", view.operationId(),
+                "player", view.playerId() == null ? "-" : view.playerId().toString(),
+                "phase", view.phase().isBlank() ? "-" : view.phase(),
+                "pending", view.compensationPending()
+        )));
     }
 
     private boolean handleRefresh(CommandSender sender, String[] args) {
@@ -378,6 +548,8 @@ final class StrengthenCommandRouter implements TabExecutor {
         lines.put("clearstate", plugin.messageService().message("command.help.desc.clearstate"));
         lines.put("clearcrack", plugin.messageService().message("command.help.desc.clearcrack"));
         lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));
+        lines.put("operation [list|<id>]", plugin.messageService().message("command.help.desc.operation"));
+        lines.put("pity [list|set|clear|diagnose] [...]", plugin.messageService().message("command.help.desc.pity"));
         lines.put("debug <status|player|module|all> [...]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));

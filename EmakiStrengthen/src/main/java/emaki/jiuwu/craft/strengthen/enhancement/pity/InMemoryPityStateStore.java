@@ -9,8 +9,10 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.nio.file.StandardOpenOption;
 import java.util.Base64;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Properties;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.NotNull;
@@ -140,6 +142,53 @@ public final class InMemoryPityStateStore implements PityStateStore {
     /** {@return 是否存在尚未写入持久化文件的内存变更} */
     public boolean isDirty() {
         return dirty;
+    }
+
+    public boolean persistent() {
+        return persistenceFile != null;
+    }
+
+    public synchronized boolean flushToDisk() {
+        if (!dirty) {
+            return true;
+        }
+        if (persistenceFile == null) {
+            dirty = false;
+            return true;
+        }
+        if (persist()) {
+            dirty = false;
+            return true;
+        }
+        return false;
+    }
+
+    public @NotNull Map<String, PityState> snapshot() {
+        Map<String, PityState> copy = new LinkedHashMap<>();
+        states.forEach((composite, state) -> copy.put(composite, state.copy()));
+        return Map.copyOf(copy);
+    }
+
+    public int removeGroup(@NotNull String group) {
+        String normalized = Texts.lower(group);
+        if (Texts.isBlank(normalized)) {
+            return 0;
+        }
+        int removed = 0;
+        for (String composite : Set.copyOf(states.keySet())) {
+            String[] parts = composite.split("\\|", 3);
+            if (parts.length != 3) {
+                continue;
+            }
+            if (parts[1].equals(normalized) || parts[1].startsWith(normalized + "#")) {
+                states.remove(composite);
+                removed++;
+            }
+        }
+        if (removed > 0) {
+            dirty = true;
+        }
+        return removed;
     }
 
     private synchronized boolean persist() {

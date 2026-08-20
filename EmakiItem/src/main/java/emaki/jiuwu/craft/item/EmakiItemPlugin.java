@@ -53,6 +53,8 @@ import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.integration.ItemContributionGateLifecycle;
 import emaki.jiuwu.craft.item.listener.ItemDurabilityListener;
 import emaki.jiuwu.craft.item.listener.ItemRepairListener;
+import emaki.jiuwu.craft.item.listener.ItemStateBoundaryListener;
+import emaki.jiuwu.craft.item.listener.ItemStateDerivationListener;
 import emaki.jiuwu.craft.item.listener.ItemTriggerListener;
 import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
@@ -76,12 +78,15 @@ import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
+import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
+import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
 
 public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
-    private static final Set<String> DEBUG_MODULES = Set.of("create", "update", "identify", "set", "item_operation", "pdc");
+    private static final Set<String> DEBUG_MODULES =
+            Set.of("create", "update", "identify", "set", "item_operation", "pdc", "item_state", "proficiency");
     private static final String STARTUP_ASCII = """
              ______  __    __  ______  __  __   __  __  ______  ______  __    __  ______
             /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\ \\/\\__  _\\/\\  ___\\/\\ "-./  \\/\\  ___\\
@@ -132,6 +137,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemUpdateService updateService;
     private EmakiItemSetService setService;
     private EmakiItemStateService stateService;
+    private ItemStatePreservationService statePreservation;
+    private ProficiencyGuard proficiencyGuard;
     private EmakiItemActionService actionService;
     private EmakiItemConditionChecker conditionChecker;
     private ItemComponentInspector componentInspector;
@@ -395,6 +402,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         updateService = components.updateService();
         setService = components.setService();
         stateService = components.stateService();
+        statePreservation = components.statePreservation();
+        proficiencyGuard = components.proficiencyGuard();
         actionService = components.actionService();
         conditionChecker = components.conditionChecker();
         componentInspector = components.componentInspector();
@@ -434,6 +443,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         );
         getServer().getPluginManager().registerEvents(new ItemDurabilityListener(this, repairService), this);
         getServer().getPluginManager().registerEvents(new ItemRepairListener(this, repairService), this);
+        getServer().getPluginManager().registerEvents(new ItemStateDerivationListener(this), this);
+        getServer().getPluginManager().registerEvents(new ItemStateBoundaryListener(this), this);
     }
 
     private void registerMythicDrops() {
@@ -530,6 +541,14 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemStateService stateService() {
         return stateService;
+    }
+
+    public ItemStatePreservationService statePreservation() {
+        return statePreservation;
+    }
+
+    public ProficiencyGuard proficiencyGuard() {
+        return proficiencyGuard;
     }
 
     public EmakiItemActionService actionService() {

@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
@@ -62,6 +63,7 @@ final class ItemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "components", "component" -> handleComponents(sender, args);
             case "repair" -> handleRepair(sender);
+            case "state" -> handleState(sender, args);
             case "update" -> handleUpdate(sender, args);
             case "alias" -> handleAlias(sender, args);
             case "migrate" -> handleMigrate(sender, args);
@@ -78,7 +80,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "repair", "update", "alias", "migrate", "reload", "debug")) {
+            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -109,6 +111,17 @@ final class ItemCommandRouter implements TabExecutor {
                 }
             }
             return result;
+        }
+        if (args.length == 2 && "state".equalsIgnoreCase(args[0])) {
+            for (String sub : List.of("query", "repair", "recompute")) {
+                if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                    result.add(sub);
+                }
+            }
+            return result;
+        }
+        if (args.length == 3 && "state".equalsIgnoreCase(args[0])) {
+            return CommandTabHelper.completeOnlinePlayers(args[2]);
         }
         if (args.length == 2) {
             switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -372,6 +385,91 @@ final class ItemCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleState(CommandSender sender, String[] args) {
+        String operation = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "query";
+        boolean mutating = "repair".equals(operation) || "recompute".equals(operation);
+        String permission = mutating ? PERMISSION_ADMIN : PERMISSION_INSPECT;
+        if (!sender.hasPermission(permission)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : (sender instanceof Player self ? self : null);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        return switch (operation) {
+            case "query" -> sendStateQuery(sender, target);
+            case "repair" -> runStateRepair(sender, target);
+            case "recompute" -> runStateRecompute(sender, target);
+            default -> {
+                plugin.messageService().send(sender, "command.state.usage");
+                yield true;
+            }
+        };
+    }
+
+    private boolean sendStateQuery(CommandSender sender, Player target) {
+        ItemStack held = target.getInventory().getItemInMainHand();
+        if (held == null || held.getType().isAir()) {
+            plugin.messageService().send(sender, "command.state.no_item", Map.of("player", target.getName()));
+            return true;
+        }
+        ItemStateSnapshot snapshot = plugin.stateService().snapshot(held);
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.state.header", Map.of(
+                "player", target.getName(),
+                "count", snapshot.values().size()
+        )));
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.state.meta", Map.of(
+                "schema", snapshot.metadata().schemaVersion(),
+                "revision", snapshot.metadata().revision(),
+                "instance", valueOrDash(snapshot.metadata().instanceId()),
+                "valid", snapshot.metadata().valid()
+        )));
+        snapshot.values().forEach((key, value) -> plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.state.line", Map.of(
+                        "key", key.key(),
+                        "type", key.type().name().toLowerCase(Locale.ROOT),
+                        "value", String.valueOf(value)
+                ))));
+        return true;
+    }
+
+    private boolean runStateRepair(CommandSender sender, Player target) {
+        runForPlayer(target, "state_repair", () -> {
+            ItemStack held = target.getInventory().getItemInMainHand();
+            if (held == null || held.getType().isAir()) {
+                runForSender(sender, () -> plugin.messageService().send(sender, "command.state.no_item",
+                        Map.of("player", target.getName())));
+                return;
+            }
+            ItemStateSnapshot repaired = plugin.stateService().repair(held);
+            target.getInventory().setItemInMainHand(held);
+            runForSender(sender, () -> plugin.messageService().send(sender, "command.state.repaired", Map.of(
+                    "player", target.getName(),
+                    "schema", repaired.metadata().schemaVersion(),
+                    "valid", repaired.metadata().valid()
+            )));
+        });
+        return true;
+    }
+
+    private boolean runStateRecompute(CommandSender sender, Player target) {
+        runForPlayer(target, "state_recompute", () -> {
+            int changed = plugin.updateService().updatePlayerItems(target, "state_recompute");
+            changed += plugin.setService().refreshEquippedSets(target, "state_recompute");
+            if (changed > 0) {
+                plugin.scheduleAttributeEquipmentSync(target);
+            }
+            int total = changed;
+            runForSender(sender, () -> plugin.messageService().send(sender, "command.state.recomputed", Map.of(
+                    "player", target.getName(),
+                    "count", total
+            )));
+        });
+        return true;
+    }
+
     private boolean handleUpdate(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_UPDATE)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -621,6 +719,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("components [yaml] [player] [component_id]", plugin.messageService().message("command.help.desc.components"));
         lines.put("repair", plugin.messageService().message("command.help.desc.repair"));
+        lines.put("state query|repair|recompute [player]", plugin.messageService().message("command.help.desc.state"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
         lines.put("alias list|add|remove", "管理物品 ID alias。");
         lines.put("migrate id|inventory", "预览或执行物品 ID 迁移。");

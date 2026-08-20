@@ -6,6 +6,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 
 /**
@@ -185,5 +186,31 @@ public interface EnhancementTargetProvider {
     /** Context-aware variant of {@link #readVersion(ItemStack)}. */
     default @NotNull String readVersion(@Nullable Player player, @Nullable ItemStack itemStack) {
         return readVersion(itemStack);
+    }
+
+    /**
+     * Rebuilds the presentation layer — lore, attribute payload, display metadata — of a stack whose
+     * enhancement level was just written.
+     *
+     * <p>The enhancement runtime calls this <strong>inside the transaction, on the prepared clone,
+     * before any cost is charged</strong>. A provider that reports failure therefore aborts the whole
+     * attempt while the player still owns their currency and materials; it never produces a
+     * "charged but unchanged" item. Implementations must not assume the stack is the one held by a
+     * player, and must not write to any inventory.
+     *
+     * <p>The default returns {@link EmakiResult#ok()} because a provider whose {@code writeLevel}
+     * already produces its own final presentation has nothing left to do. Override this only when the
+     * level write leaves lore or attributes stale, and return a classified failure — rather than a
+     * silent success — when a required bridge is missing, so the runtime can surface a specific
+     * reason key instead of a generic write-back error.
+     *
+     * @param player    the acting player, when the operation is player-scoped
+     * @param itemStack the prepared stack to refresh in place
+     * @return {@link Unit} when the presentation is current, or a classified failure carrying a
+     *         reason key describing why the refresh could not complete
+     */
+    default @NotNull EmakiResult<Unit> refreshPresentation(@Nullable Player player,
+            @Nullable ItemStack itemStack) {
+        return EmakiResult.ok();
     }
 }

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.strengthen.enhancement.recipe;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
@@ -11,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
@@ -19,6 +21,7 @@ import emaki.jiuwu.craft.strengthen.enhancement.pity.PityDecayConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityDecayTypeEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityEffectConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityEffectTypeEnum;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityIsolationEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityScopeEnum;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityTriggerConfig;
 
@@ -61,9 +64,16 @@ public final class EnhancementRecipeParser {
         if (pitySection != null && pity == null) {
             return null;
         }
+        List<Map<?, ?>> rawTracks = section.getMapList("pity_tracks");
+        List<EnhancementRecipe.PityConfig> pityTracks = parsePityTracks(rawTracks);
+        if (rawTracks != null && pityTracks.size() != rawTracks.size()) {
+            return null;
+        }
         Map<String, List<String>> actions = parseActions(section.getSection("actions"));
+        ConditionBlock conditions = ConditionBlock.fromRoot(section, true, false);
 
-        return new EnhancementRecipe(id, mode, target, materials, costs, chance, pity, actions);
+        return new EnhancementRecipe(id, mode, target, materials, costs, chance, pity, actions,
+                conditions, pityTracks);
     }
 
     private static @Nullable EnhancementRecipe.TargetConfig parseTarget(@Nullable YamlSection section) {
@@ -174,6 +184,23 @@ public final class EnhancementRecipeParser {
         return quantity == null ? Quantity.fixed(1.0) : quantity;
     }
 
+    private static @NotNull List<EnhancementRecipe.PityConfig> parsePityTracks(@Nullable List<Map<?, ?>> rawList) {
+        if (rawList == null || rawList.isEmpty()) {
+            return List.of();
+        }
+        List<EnhancementRecipe.PityConfig> tracks = new ArrayList<>();
+        for (Map<?, ?> raw : rawList) {
+            if (raw == null) {
+                continue;
+            }
+            EnhancementRecipe.PityConfig track = parsePity(new MapYamlSection(castKeys(raw)));
+            if (track != null) {
+                tracks.add(track);
+            }
+        }
+        return List.copyOf(tracks);
+    }
+
     private static @Nullable EnhancementRecipe.PityConfig parsePity(@Nullable YamlSection section) {
         if (section == null) {
             return null;
@@ -224,8 +251,13 @@ public final class EnhancementRecipeParser {
         PityEffectConfig effect = new PityEffectConfig(effectType, bonusValue);
 
         PityDecayConfig decay = parsePityDecay(section.getSection("decay"));
+        List<String> rawIsolate = section.getStringList("isolate");
+        List<PityIsolationEnum> isolate = PityIsolationEnum.parseAll(rawIsolate);
+        if (rawIsolate != null && isolate.size() != new LinkedHashSet<>(rawIsolate).size()) {
+            return null;
+        }
 
-        return new EnhancementRecipe.PityConfig(counter, trigger, effect, decay);
+        return new EnhancementRecipe.PityConfig(counter, trigger, effect, decay, isolate);
     }
 
     private static @Nullable PityDecayConfig parsePityDecay(@Nullable YamlSection section) {

@@ -173,6 +173,17 @@ public final class GemOperationJournal {
         save(current.withPhase(current.phase(), current.payload().withEvent("duplicate_confirm")));
     }
 
+    public void rerollRefreshDegraded(String operationId, String reason) {
+        Entry current = load(operationId);
+        if (current == null) {
+            return;
+        }
+        String resolved = reason == null || reason.isBlank() ? "refresh_unknown" : reason;
+        save(current.withPhase(current.phase(), current.payload()
+                .withError(resolved)
+                .withEvent("refresh_degraded:" + resolved)));
+    }
+
     public boolean beginCompensation(String operationId, String reason) {
         Entry current = load(operationId);
         if (current == null || !compensationGates.add(operationId)) {

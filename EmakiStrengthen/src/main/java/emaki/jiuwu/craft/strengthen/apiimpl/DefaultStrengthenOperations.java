@@ -21,11 +21,19 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementOperationView;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityStateView;
+import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayer;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryProgressService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityScopeEnum;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityState;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
@@ -282,6 +290,162 @@ public final class DefaultStrengthenOperations implements StrengthenOperations {
         } catch (RuntimeException | LinkageError exception) {
             return EmakiResult.internalError("strengthen.enhancement.provider_rejected");
         }
+    }
+
+    @Override
+    public @NotNull EmakiResult<EnhancementOperationView> enhancementOperation(@Nullable String operationId) {
+        if (Texts.isBlank(operationId)) {
+            return EmakiResult.invalidInput("strengthen.enhancement.invalid_request");
+        }
+        EnhancementAttemptService service = plugin.enhancementAttemptService();
+        if (service == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            EnhancementOperationView view = service.operationView(operationId);
+            return view == null
+                    ? EmakiResult.notFound("strengthen.enhancement.operation_not_found")
+                    : EmakiResult.success(view);
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<List<EnhancementOperationView>> enhancementOperations() {
+        EnhancementAttemptService service = plugin.enhancementAttemptService();
+        if (service == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            return EmakiResult.success(service.operationViews());
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<List<EnhancementPityStateView>> pityStates(@Nullable String group) {
+        InMemoryPityStateStore store = plugin.pityStateStore();
+        if (store == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            String filter = Texts.lower(group);
+            List<EnhancementPityStateView> views = new ArrayList<>();
+            store.snapshot().forEach((composite, state) -> {
+                String[] parts = composite.split("\\|", 3);
+                if (parts.length != 3) {
+                    return;
+                }
+                EnhancementPityStateView view = new EnhancementPityStateView(parts[0], parts[1], parts[2],
+                        state.getCounter(), state.getLastTriggerTime(), state.isTriggered());
+                if (Texts.isBlank(filter) || filter.equals(Texts.lower(view.baseGroup()))) {
+                    views.add(view);
+                }
+            });
+            return EmakiResult.success(List.copyOf(views));
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Unit> setPityCounter(@Nullable String scope,
+            @Nullable String group,
+            @Nullable String ownerKey,
+            int counter) {
+        if (Texts.isBlank(group) || Texts.isBlank(ownerKey)) {
+            return EmakiResult.invalidInput("strengthen.enhancement.invalid_request");
+        }
+        PityScopeEnum resolvedScope = parsePityScope(scope);
+        if (resolvedScope == null) {
+            return EmakiResult.invalidInput("strengthen.enhancement.invalid_request");
+        }
+        InMemoryPityStateStore store = plugin.pityStateStore();
+        if (store == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            PityState existing = store.load(resolvedScope.name(), group, ownerKey);
+            store.save(resolvedScope.name(), group, ownerKey, new PityState(Math.max(0, counter),
+                    existing == null ? System.currentTimeMillis() : existing.getLastTriggerTime(),
+                    existing != null && existing.isTriggered()));
+            return EmakiResult.ok();
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Integer> clearPityGroup(@Nullable String group) {
+        if (Texts.isBlank(group)) {
+            return EmakiResult.invalidInput("strengthen.enhancement.invalid_request");
+        }
+        InMemoryPityStateStore store = plugin.pityStateStore();
+        if (store == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            return EmakiResult.success(store.removeGroup(group));
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.enhancement.internal");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<ItemMasteryView> setMastery(@Nullable ItemStack itemStack, double totalExp) {
+        if (itemStack == null || itemStack.getType().isAir() || !Double.isFinite(totalExp) || totalExp < 0D) {
+            return EmakiResult.invalidInput("strengthen.error.no_target");
+        }
+        MasteryProgressService service = plugin.masteryProgressService();
+        if (service == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            if (!service.overwriteTotalExp(itemStack, totalExp)) {
+                return EmakiResult.internalError("strengthen.error.state_write_failed");
+            }
+            MasteryLayer written = service.read(itemStack);
+            return written == null
+                    ? EmakiResult.internalError("strengthen.error.state_read_failed")
+                    : EmakiResult.success(written.toView());
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.error.state_write_failed");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Unit> clearMastery(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("strengthen.error.no_target");
+        }
+        MasteryProgressService service = plugin.masteryProgressService();
+        if (service == null) {
+            return EmakiResult.unavailable();
+        }
+        try {
+            if (service.read(itemStack) == null) {
+                return EmakiResult.notFound("strengthen.mastery.absent");
+            }
+            return service.clear(itemStack)
+                    ? EmakiResult.ok()
+                    : EmakiResult.internalError("strengthen.error.state_write_failed");
+        } catch (RuntimeException | LinkageError exception) {
+            return EmakiResult.internalError("strengthen.error.state_write_failed");
+        }
+    }
+
+    private static @Nullable PityScopeEnum parsePityScope(@Nullable String scope) {
+        if (Texts.isBlank(scope)) {
+            return null;
+        }
+        for (PityScopeEnum candidate : PityScopeEnum.values()) {
+            if (candidate.name().equalsIgnoreCase(scope.trim())) {
+                return candidate;
+            }
+        }
+        return null;
     }
 
     @Override

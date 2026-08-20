@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiItem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.9"
+version: "2.7.10"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -44,6 +44,115 @@ set_bonus:
     interact: true
     # 执行 EmakiItem 相关命令时允许触发套装刷新。
     command: true
+
+# 物品自定义状态（item_state）设置。
+# 作用于 emaki:item_state PDC 分区，由 item_state_* 动作段与 API 读写。
+# 本段全部为增量配置：不写任何内容时行为与旧版本一致。
+item_state:
+  # 是否按 fields 声明的 min/max 钳制写入值。
+  # 关闭后仅保留溢出保护，不做配置化钳制。
+  clamp: true
+
+  # add 操作在字段缺失时，是否用 fields 的 default 作为起始值。
+  # 关闭后字段缺失仍直接拒绝（reason=missing_state）。
+  fill_defaults: true
+
+  # 字段声明。键名即状态键名，未声明的字段不受钳制/默认值/阈值影响。
+  # type: integer | long | double | boolean | string
+  # 只有数值类型才支持 min/max 与 thresholds。
+  fields: {}
+  #  proficiency:
+  #    type: double
+  #    default: 0.0
+  #    min: 0.0
+  #    max: 100000.0
+  #    # 阈值：键名即阈值 ID，跨越时派发 ItemStateThresholdEvent。
+  #    thresholds:
+  #      tier_1:
+  #        value: 100.0
+  #        # once=true 时同一阈值只奖励一次，直到数值回落到阈值之下重新武装。
+  #        # 默认 false（每次跨越都奖励），一次性策略需显式开启。
+  #        once: false
+  #        # 是否在向下跨越（回落）时也执行奖励。
+  #        reward_on_fall: false
+  #        # 奖励动作行，与物品 actions 同语法。
+  #        actions: []
+  #        # 奖励消息的语言键，留空不发送。
+  #        message_key: ""
+  #        # 奖励音效，留空不播放。
+  #        sound: ""
+  #        sound_volume: 1.0
+  #        sound_pitch: 1.0
+  #        # 是否在奖励后刷新 Lore/属性派生。
+  #        refresh_derived: true
+
+  # 按 schema 版本的迁移步骤。留空表示不迁移，repair 行为与旧版本一致。
+  # 每一步声明 from/to，并可重命名、改类型或丢弃字段。
+  migrations: {}
+  #  v1_to_v2:
+  #    from: 1
+  #    to: 2
+  #    rename:
+  #      old_key: new_key
+  #    retype:
+  #      some_key: double
+  #    drop:
+  #      - obsolete_key
+
+  # 状态保全策略。
+  preservation:
+    # 物品 rebuild 后校验状态是否仍在，缺失时用重建前快照回填。
+    # 只在状态确实丢失时才写入，正常路径为无操作。
+    verify_rebuild: true
+    # 以下边界默认关闭：开启后会在对应时机修复损坏的状态元数据。
+    repair_on_pickup: false
+    repair_on_drop: false
+    repair_on_trade: false
+    repair_on_container_transfer: false
+    repair_on_join: false
+
+  # 状态变更驱动的派生刷新。
+  derivation:
+    # 总开关。默认关闭，避免为既有服务器引入额外刷新开销。
+    enabled: false
+    # 刷新套装 Lore。
+    refresh_lore: true
+    # 同步属性。
+    refresh_attributes: true
+    # 允许在缺少持有者信息时扫描在线玩家定位物品。
+    scan_holder: true
+    # 派生刷新与阈值奖励的最大递归深度，用于阻断自触发循环。
+    max_depth: 2
+
+# 熟练度派发防刷设置。
+# 作用于 damage_dealt / kill_entity / kill_player 的槽位派发。
+# 除 dedupe_per_event 外全部默认关闭或无限，不改变既有获取速率。
+proficiency_guard:
+  # 同一物品定义在一次事件中只派发一次。
+  # 默认开启，修复「同一定义同时存在于多个槽位时按槽各触发一次」。
+  dedupe_per_event: true
+
+  # 单次事件最多派发次数。0 表示不限制。
+  max_dispatches_per_event: 0
+
+  # 对同一目标的冷却秒数。0 表示无冷却。
+  same_target_cooldown_seconds: 0
+
+  # 每日软上限。0 表示无上限。
+  # 计数保存在内存中，按服务器本地日期跨天重置，不跨重启保留。
+  daily_soft_cap: 0
+
+  # 超过软上限后的递减系数，取值 (0, 1]。1.0 表示不递减（超限直接拒绝）。
+  decay_factor: 1.0
+
+  # 递减后的最低通过概率下限，取值 [0, 1]。
+  decay_minimum_ratio: 0.0
+
+  # 受本段约束的触发器名单。
+  guarded_triggers:
+    - "damage_dealt"
+    - "kill_entity"
+    - "kill_player"
 
 # MythicMobs 集成设置。
 # 未安装 MythicMobs 时自动跳过，不影响其他功能。

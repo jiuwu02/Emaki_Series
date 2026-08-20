@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.9"
+version: "2.7.10"
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个命令。</red>"
@@ -55,6 +55,7 @@ console:
   directory_create_failed: "创建目录失败: %path%"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
+  item_state_unknown_sound: "<yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
 command:
   help:
     header: "<gold>EmakiItem 命令</gold>"
@@ -67,6 +68,7 @@ command:
       inspect: "检查主手 EmakiItem"
       components: "输出主手物品组件（默认 JSON，可选 yaml）"
       repair: "打开物品修复界面"
+      state: "查询、修复或重算主手物品自定义状态"
       update: "刷新玩家物品更新和套装 Lore"
       reload: "重载配置和物品定义"
       debug: "管理 Debug 模式"
@@ -81,6 +83,14 @@ command:
     no_item: "<red><white>%player%</white> 主手没有物品。</red>"
     empty: "<yellow><white>%player%</white> 主手物品没有可展示组件。</yellow>"
     not_found: "<red>找不到组件: <white>%id%</white></red>"
+  state:
+    usage: "<red>用法：</red> <yellow>/ei state query|repair|recompute [player]</yellow>"
+    no_item: "<red><white>%player%</white> 主手没有物品。</red>"
+    header: "<aqua>%player%</aqua><gray> 主手物品状态</gray> <dark_gray>(%count% 个字段)</dark_gray>"
+    meta: "<gray>schema=<white>%schema%</white> revision=<white>%revision%</white> instance=<white>%instance%</white> valid=<white>%valid%</white></gray>"
+    line: "<gray>- <white>%key%</white> <dark_gray>(%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
+    repaired: "<green>已修复 <aqua>%player%</aqua> 主手物品状态元数据（schema=<white>%schema%</white>, valid=<white>%valid%</white>）。</green>"
+    recomputed: "<green>已重算 <aqua>%player%</aqua> 的状态派生，共处理 <white>%count%</white> 件。</green>"
 repair:
   gui_open_failed: "<red>修复界面不可用，请检查 gui/repair_gui.yml。</red>"
   inventory_full: "<yellow>背包空间不足，剩余物品已掉落在脚下。</yellow>"
@@ -159,3 +169,9 @@ debug:
   identify:
     start: "识别物品 | 材质=%material% | PDC=%pdc%"
     result: "识别结果 | ID=%id%"
+  item_state:
+    migrated: "状态迁移已应用 | 源版本=%from% | 目标版本=%to% | 已重命名=%renamed% | 已改类型=%retyped% | 已丢弃=%dropped%"
+    preserved: "状态保全 | 原因=%reason% | 结果=%outcome% | 字段数=%fields%"
+    recursion_blocked: "状态派生递归已阻断 | 阶段=%stage% | 阈值=%threshold_id% | 深度=%depth%"
+  proficiency:
+    guard_blocked: "熟练度派发被拦截 | 触发器=%trigger% | 定义=%definition% | 槽位=%slot% | 裁决=%verdict%"

@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "2.7.9"
+version: "2.7.10"
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
   no_permission: "<red>You do not have permission.</red>"
@@ -55,6 +55,7 @@ console:
   directory_create_failed: "Failed to create directory: %path%"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops registered</gray>"
+  item_state_unknown_sound: "<yellow>Unresolvable item_state threshold sound: <white>%sound%</white></yellow>"
 command:
   help:
     header: "<gold>EmakiItem Commands</gold>"
@@ -67,6 +68,7 @@ command:
       inspect: "Inspect held EmakiItem"
       components: "Print held item components (JSON by default, optional yaml)"
       repair: "Open the item repair GUI"
+      state: "Query, repair or recompute held item custom state"
       update: "Refresh item updates and set lore"
       reload: "Reload config and items"
       debug: "Manage debug tracking"
@@ -81,6 +83,14 @@ command:
     no_item: "<red><white>%player%</white> is not holding an item.</red>"
     empty: "<yellow><white>%player%</white>'s held item has no displayable components.</yellow>"
     not_found: "<red>Component not found: <white>%id%</white></red>"
+  state:
+    usage: "<red>Usage:</red> <yellow>/ei state query|repair|recompute [player]</yellow>"
+    no_item: "<red><white>%player%</white> is not holding an item.</red>"
+    header: "<gold>%player%</gold><gray> held item state</gray> <dark_gray>(%count% fields)</dark_gray>"
+    meta: "<gray>schema=<white>%schema%</white> revision=<white>%revision%</white> instance=<white>%instance%</white> valid=<white>%valid%</white></gray>"
+    line: "<gray>- <white>%key%</white> <dark_gray>(%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
+    repaired: "<green>Repaired held item state metadata for <aqua>%player%</aqua> (schema=<white>%schema%</white>, valid=<white>%valid%</white>).</green>"
+    recomputed: "<green>Recomputed state derivations for <aqua>%player%</aqua>, <white>%count%</white> items processed.</green>"
 repair:
   gui_open_failed: "<red>Repair GUI is unavailable. Please check gui/repair_gui.yml.</red>"
   inventory_full: "<yellow>Your inventory is full. Remaining items were dropped nearby.</yellow>"
@@ -159,3 +169,9 @@ debug:
   identify:
     start: "Item identify | Material=%material% | PDC=%pdc%"
     result: "Identify result | ID=%id%"
+  item_state:
+    migrated: "State migration applied | from=%from% | to=%to% | renamed=%renamed% | retyped=%retyped% | dropped=%dropped%"
+    preserved: "State preserved | reason=%reason% | outcome=%outcome% | fields=%fields%"
+    recursion_blocked: "State derivation recursion blocked | stage=%stage% | threshold=%threshold_id% | depth=%depth%"
+  proficiency:
+    guard_blocked: "Proficiency dispatch blocked | trigger=%trigger% | definition=%definition% | slot=%slot% | verdict=%verdict%"

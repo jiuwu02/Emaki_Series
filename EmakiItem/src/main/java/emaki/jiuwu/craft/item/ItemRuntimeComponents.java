@@ -33,6 +33,8 @@ import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
+import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
+import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 
 record ItemRuntimeComponents(EmakiScheduling scheduling,
         YamlConfigLoader<AppConfig> appConfigLoader,
@@ -54,6 +56,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         EmakiItemUpdateService updateService,
         EmakiItemSetService setService,
         EmakiItemStateService stateService,
+        ItemStatePreservationService statePreservation,
+        ProficiencyGuard proficiencyGuard,
         EmakiItemActionService actionService,
         EmakiItemConditionChecker conditionChecker,
         ItemComponentInspector componentInspector,
@@ -87,6 +91,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(EmakiItemUpdateService.class, updateService),
                 RuntimeComponents.component(EmakiItemSetService.class, setService),
                 RuntimeComponents.component(EmakiItemStateService.class, stateService),
+                RuntimeComponents.component(ItemStatePreservationService.class, statePreservation),
+                RuntimeComponents.component(ProficiencyGuard.class, proficiencyGuard),
                 RuntimeComponents.component(EmakiItemActionService.class, actionService),
                 RuntimeComponents.component(EmakiItemConditionChecker.class, conditionChecker),
                 RuntimeComponents.component(ItemComponentInspector.class, componentInspector),
