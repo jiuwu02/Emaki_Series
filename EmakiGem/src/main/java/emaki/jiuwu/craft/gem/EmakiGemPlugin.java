@@ -40,6 +40,7 @@ import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
 import emaki.jiuwu.craft.gem.integration.GemItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.gem.integration.strengthen.GemStrengthenIntegration;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
+import emaki.jiuwu.craft.gem.listener.GemPlayerLifecycleListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
@@ -149,7 +150,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     public void onDisable() {
         publicApiReady = false;
         if (rerollSessionService != null) {
-            rerollSessionService.clearAll();
+            rerollSessionService.clearAll(GemRerollSessionService.TerminationReason.DISABLE);
         }
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("gem");
@@ -261,6 +262,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             getServer().getPluginManager().registerEvents(guiService, this);
         }
         getServer().getPluginManager().registerEvents(new GemItemObtainListener(this, scheduling), this);
+        getServer().getPluginManager().registerEvents(new GemPlayerLifecycleListener(this), this);
     }
 
     private void registerPublicApiService() {

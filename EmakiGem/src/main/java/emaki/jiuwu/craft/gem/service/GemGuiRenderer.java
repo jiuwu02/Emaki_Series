@@ -208,6 +208,8 @@ final class GemGuiRenderer {
             case INLAY -> text("inlay_help", "<gray>Hold a gem and click an opened empty slot</gray>");
             case UPGRADE -> text("upgrade_help", "<gray>Place a gem and recipe materials, then confirm</gray>");
             case EXTRACT -> text("extract_help", "<gray>Click an inlaid gem slot</gray>");
+            case REROLL_FULL -> text("reroll_full_help", "<gray>Review the reroll candidate, then confirm</gray>");
+            case REROLL_VALUE -> text("reroll_value_help", "<gray>Review the recalibrated values, then confirm</gray>");
             case OPEN_SOCKET -> text("default_help", "<gray>Equipment gem operation mode</gray>");
         });
         lore.add(text("unopened_help", "<gray>Use the socket opening GUI for unopened slots</gray>"));
@@ -446,6 +448,8 @@ final class GemGuiRenderer {
             case INLAY -> text("mode_inlay", "Inlay");
             case UPGRADE -> text("mode_upgrade", "Upgrade");
             case EXTRACT -> text("mode_extract", "Extract");
+            case REROLL_FULL -> text("mode_reroll_full", "Reroll");
+            case REROLL_VALUE -> text("mode_reroll_value", "Recalibrate");
             case OPEN_SOCKET -> text("mode_open_socket", "Open Socket");
         };
     }

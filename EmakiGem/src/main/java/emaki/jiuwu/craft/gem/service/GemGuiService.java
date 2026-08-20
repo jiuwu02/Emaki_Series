@@ -61,7 +61,7 @@ public final class GemGuiService {
             return false;
         }
         return switch (normalizeMode(mode)) {
-            case INLAY, UPGRADE, EXTRACT -> openGem(player, mode, initialItem);
+            case INLAY, UPGRADE, EXTRACT, REROLL_FULL, REROLL_VALUE -> openGem(player, mode, initialItem);
             case OPEN_SOCKET -> openSocket(player, initialItem);
         };
     }

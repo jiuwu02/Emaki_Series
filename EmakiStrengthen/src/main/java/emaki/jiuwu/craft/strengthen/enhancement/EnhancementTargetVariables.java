@@ -1,53 +1,155 @@
 package emaki.jiuwu.craft.strengthen.enhancement;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
 
 import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
+import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
-/** Central target ItemStack PDC variable and compatibility-alias contract. */
-final class EnhancementTargetVariables {
+public final class EnhancementTargetVariables {
 
     private static final String FORGE_NAMESPACE = "emakiforge";
 
     private EnhancementTargetVariables() {
     }
 
-    static void enrich(@NotNull VariableContext.Builder builder, ItemStack target) {
-        // Stable defaults make formulas and target-aware matchers deterministic when Forge metadata is absent.
+    public static @NotNull Snapshot capture(@Nullable Player player,
+            @Nullable ItemStack target,
+            @Nullable EnhancementTargetProvider provider) {
+        String providerId = provider == null ? "" : safeProviderId(provider);
+        int level = provider == null ? 0 : safeNonNegative(() -> provider.readLevel(player, target));
+        int temper = provider == null ? 0 : safeNonNegative(() -> provider.readTemper(player, target));
+        String recipeId = provider == null ? "" : safeString(() -> provider.readRecipeId(player, target));
+        Map<String, Object> pdc = new LinkedHashMap<>();
+        Map<String, Object> effects = new LinkedHashMap<>();
+        Map<String, Object> layers = new LinkedHashMap<>();
+        Map<String, Object> audit = new LinkedHashMap<>();
+        Map<String, Object> meta = readMeta(target);
+        int unreadable = readPdc(target, pdc, effects, layers, audit, meta);
+        String instanceId = provider == null ? "" : safeString(() -> provider.readInstanceId(player, target));
+        if (Texts.isBlank(instanceId)) {
+            instanceId = findIdentityValue(pdc, "instance_id", "owner_id", "uuid");
+        }
+        String explicitVersion = provider == null ? "" : safeString(() -> provider.readVersion(player, target));
+        if (Texts.isBlank(explicitVersion)) {
+            explicitVersion = findIdentityValue(pdc, "data_version", "state_version", "update_version", "revision", "version");
+        }
+        Map<String, Object> versionData = new LinkedHashMap<>();
+        versionData.put("provider", providerId);
+        versionData.put("instance", instanceId);
+        versionData.put("explicit_version", explicitVersion);
+        versionData.put("level", level);
+        versionData.put("temper", temper);
+        versionData.put("recipe", recipeId);
+        versionData.put("pdc", pdc);
+        versionData.put("effects", effects);
+        versionData.put("layers", layers);
+        versionData.put("audit", audit);
+        versionData.put("meta", meta);
+        String version = SignatureUtil.stableSignature(versionData);
+        Map<String, Object> variables = buildVariables(target, providerId, instanceId, version, level, temper,
+                recipeId, pdc, effects, layers, audit, meta, unreadable);
+        return new Snapshot(providerId, instanceId, version, level, temper, recipeId,
+                pdc, effects, layers, audit, meta, variables, unreadable);
+    }
+
+    public static void enrich(@NotNull VariableContext.Builder builder, @Nullable ItemStack target) {
+        enrich(builder, capture(null, target, null));
+    }
+
+    public static void enrich(@NotNull VariableContext.Builder builder, @NotNull Snapshot snapshot) {
+        builder.withAll(snapshot.variables());
+    }
+
+    private static Map<String, Object> buildVariables(ItemStack target,
+            String providerId,
+            String instanceId,
+            String version,
+            int level,
+            int temper,
+            String recipeId,
+            Map<String, Object> pdc,
+            Map<String, Object> effects,
+            Map<String, Object> layers,
+            Map<String, Object> audit,
+            Map<String, Object> meta,
+            int unreadable) {
+        Map<String, Object> variables = new LinkedHashMap<>();
         String material = target == null || target.getType().isAir() ? "" : target.getType().name();
-        builder.with("target_item_type", material)
-                .with("target.item_type", material)
-                .with("item_type", material)
-                .with("target_material", material)
-                .with("target.material", material)
-                .with("forge_quality_id", "")
-                .with("forge_quality_display", "")
-                .with("forge_quality_multiplier", 1D)
-                .with("forge_recipe_id", "")
-                .with("forge.quality_id", "")
-                .with("forge.quality_display", "")
-                .with("forge.quality_multiplier", 1D)
-                .with("forge.forge_recipe_id", "")
-                .with("quality_id", "")
-                .with("quality_display", "")
-                .with("quality_multiplier", 1D)
-                .with("forge_quality_multiplier_valid", 1)
-                .with("target_pdc_read_error_count", 0);
+        variables.put("target_item_type", material);
+        variables.put("target.item_type", material);
+        variables.put("item_type", material);
+        variables.put("target_material", material);
+        variables.put("target.material", material);
+        variables.put("target_provider", providerId);
+        variables.put("target.provider", providerId);
+        variables.put("provider", providerId);
+        variables.put("target_instance", instanceId);
+        variables.put("target.instance", instanceId);
+        variables.put("target_instance_id", instanceId);
+        variables.put("target.instance_id", instanceId);
+        variables.put("target_version", version);
+        variables.put("target.version", version);
+        variables.put("target_level", level);
+        variables.put("target.level", level);
+        variables.put("target_temper", temper);
+        variables.put("target.temper", temper);
+        variables.put("target_recipe", recipeId);
+        variables.put("target.recipe", recipeId);
+        variables.put("target_recipe_id", recipeId);
+        variables.put("target.recipe_id", recipeId);
+        variables.put("forge_quality_id", "");
+        variables.put("forge_quality_display", "");
+        variables.put("forge_quality_multiplier", 1D);
+        variables.put("forge_recipe_id", "");
+        variables.put("forge.quality_id", "");
+        variables.put("forge.quality_display", "");
+        variables.put("forge.quality_multiplier", 1D);
+        variables.put("forge.forge_recipe_id", "");
+        variables.put("quality_id", "");
+        variables.put("quality_display", "");
+        variables.put("quality_multiplier", 1D);
+        variables.put("forge_quality_multiplier_valid", 1);
+        variables.put("target_pdc_read_error_count", unreadable);
+        pdc.forEach((key, value) -> variables.put("item_pdc_" + key.replace(':', '_'), value));
+        addForgeAliases(variables, pdc);
+        effects.forEach((key, value) -> variables.put("target_effect_" + normalizeVariableKey(key), value));
+        layers.forEach((key, value) -> variables.put("target_layer_" + normalizeVariableKey(key), value));
+        audit.forEach((key, value) -> variables.put("target_audit_" + normalizeVariableKey(key), value));
+        meta.forEach((key, value) -> variables.put("target_meta_" + normalizeVariableKey(key), value));
+        return Map.copyOf(variables);
+    }
+
+    private static int readPdc(ItemStack target,
+            Map<String, Object> pdc,
+            Map<String, Object> effects,
+            Map<String, Object> layers,
+            Map<String, Object> audit,
+            Map<String, Object> meta) {
         if (target == null || target.getType().isAir()) {
-            return;
+            return 0;
         }
-        ItemMeta meta = target.getItemMeta();
-        if (meta == null) {
-            return;
+        ItemMeta itemMeta = target.getItemMeta();
+        if (itemMeta == null) {
+            return 0;
         }
-        PersistentDataContainer container = meta.getPersistentDataContainer();
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
         int unreadable = 0;
         for (NamespacedKey key : container.getKeys()) {
             Object value = read(container, key);
@@ -55,10 +157,60 @@ final class EnhancementTargetVariables {
                 unreadable++;
                 continue;
             }
-            builder.with("item_pdc_" + key.getNamespace() + "_" + key.getKey(), value);
-            addForgeAliases(builder, key, value);
+            String canonical = key.getNamespace() + ":" + key.getKey();
+            pdc.put(canonical, value);
+            String path = key.getKey().toLowerCase(Locale.ROOT);
+            if (path.contains("effect")) {
+                effects.put(canonical, value);
+            }
+            if (path.contains("layer")) {
+                layers.put(canonical, value);
+            }
+            if (path.contains("audit")) {
+                audit.put(canonical, value);
+            }
+            if (path.contains("meta")) {
+                meta.put(canonical, value);
+            }
         }
-        builder.with("target_pdc_read_error_count", unreadable);
+        return unreadable;
+    }
+
+    private static Map<String, Object> readMeta(ItemStack target) {
+        if (target == null || target.getType().isAir()) {
+            return Map.of();
+        }
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("material", target.getType().name());
+        ItemMeta meta = target.getItemMeta();
+        if (meta == null) {
+            return Map.copyOf(values);
+        }
+        if (meta.hasDisplayName()) {
+            values.put("display_name", meta.getDisplayName());
+        }
+        if (meta.hasLore() && meta.getLore() != null) {
+            values.put("lore", List.copyOf(meta.getLore()));
+        }
+        if (meta.hasCustomModelData()) {
+            values.put("custom_model_data", meta.getCustomModelData());
+        }
+        values.put("unbreakable", meta.isUnbreakable());
+        if (meta instanceof Damageable damageable && damageable.hasDamage()) {
+            values.put("damage", damageable.getDamage());
+        }
+        Map<String, Integer> enchantments = new LinkedHashMap<>();
+        meta.getEnchants().forEach((enchantment, level) -> enchantments.put(enchantment.getKey().toString(), level));
+        if (!enchantments.isEmpty()) {
+            values.put("enchantments", enchantments);
+        }
+        if (!meta.getItemFlags().isEmpty()) {
+            List<String> flags = new ArrayList<>();
+            meta.getItemFlags().forEach(flag -> flags.add(flag.name()));
+            flags.sort(String::compareTo);
+            values.put("item_flags", List.copyOf(flags));
+        }
+        return Map.copyOf(values);
     }
 
     private static Object read(PersistentDataContainer container, NamespacedKey key) {
@@ -84,39 +236,71 @@ final class EnhancementTargetVariables {
             if (container.has(key, PersistentDataType.BYTE)) {
                 return container.get(key, PersistentDataType.BYTE);
             }
+            if (container.has(key, PersistentDataType.BYTE_ARRAY)) {
+                byte[] bytes = container.get(key, PersistentDataType.BYTE_ARRAY);
+                return bytes == null ? null : SignatureUtil.stableSignature(bytes);
+            }
+            if (container.has(key, PersistentDataType.INTEGER_ARRAY)) {
+                int[] values = container.get(key, PersistentDataType.INTEGER_ARRAY);
+                return values == null ? null : SignatureUtil.stableSignature(values);
+            }
+            if (container.has(key, PersistentDataType.LONG_ARRAY)) {
+                long[] values = container.get(key, PersistentDataType.LONG_ARRAY);
+                return values == null ? null : SignatureUtil.stableSignature(values);
+            }
         } catch (RuntimeException | LinkageError ignored) {
-            // Unsupported or corrupt PDC types remain absent and retain the documented defaults.
+            return null;
         }
         return null;
     }
 
-    private static void addForgeAliases(VariableContext.Builder builder, NamespacedKey key, Object rawValue) {
-        if (!FORGE_NAMESPACE.equalsIgnoreCase(key.getNamespace())) {
-            return;
-        }
-        String path = key.getKey().toLowerCase(Locale.ROOT);
-        switch (path) {
-            case "forge.quality_id" -> aliases(builder, rawValue,
-                    "forge_quality_id", "forge.quality_id", "quality_id");
-            case "forge.quality_display" -> aliases(builder, rawValue,
-                    "forge_quality_display", "forge.quality_display", "quality_display");
-            case "forge.quality_multiplier" -> {
-                NumberResult result = finiteDouble(rawValue, 1D);
-                aliases(builder, result.value(),
-                        "forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier");
-                builder.with("forge_quality_multiplier_valid", result.valid() ? 1 : 0);
+    private static void addForgeAliases(Map<String, Object> variables, Map<String, Object> pdc) {
+        pdc.forEach((canonical, value) -> {
+            int separator = canonical.indexOf(':');
+            if (separator <= 0 || !FORGE_NAMESPACE.equalsIgnoreCase(canonical.substring(0, separator))) {
+                return;
             }
-            case "forge.forge_recipe_id" -> aliases(builder, rawValue,
-                    "forge_recipe_id", "forge.forge_recipe_id");
-            default -> {
+            String path = canonical.substring(separator + 1).toLowerCase(Locale.ROOT);
+            switch (path) {
+                case "forge.quality_id" -> aliases(variables, value,
+                        "forge_quality_id", "forge.quality_id", "quality_id");
+                case "forge.quality_display" -> aliases(variables, value,
+                        "forge_quality_display", "forge.quality_display", "quality_display");
+                case "forge.quality_multiplier" -> {
+                    NumberResult result = finiteDouble(value, 1D);
+                    aliases(variables, result.value(),
+                            "forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier");
+                    variables.put("forge_quality_multiplier_valid", result.valid() ? 1 : 0);
+                }
+                case "forge.forge_recipe_id" -> aliases(variables, value,
+                        "forge_recipe_id", "forge.forge_recipe_id");
+                default -> {
+                }
             }
+        });
+    }
+
+    private static void aliases(Map<String, Object> variables, Object value, String... names) {
+        for (String name : names) {
+            variables.put(name, value);
         }
     }
 
-    private static void aliases(VariableContext.Builder builder, Object value, String... names) {
-        for (String name : names) {
-            builder.with(name, value);
+    private static String findIdentityValue(Map<String, Object> values, String... suffixes) {
+        for (String suffix : suffixes) {
+            for (Map.Entry<String, Object> entry : values.entrySet()) {
+                String key = entry.getKey().toLowerCase(Locale.ROOT);
+                if ((key.endsWith(":" + suffix) || key.endsWith("." + suffix) || key.endsWith("_" + suffix))
+                        && Texts.isNotBlank(Texts.toStringSafe(entry.getValue()))) {
+                    return Texts.toStringSafe(entry.getValue());
+                }
+            }
         }
+        return "";
+    }
+
+    private static String normalizeVariableKey(String value) {
+        return Texts.toStringSafe(value).toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]+", "_");
     }
 
     private static NumberResult finiteDouble(Object value, double fallback) {
@@ -131,6 +315,86 @@ final class EnhancementTargetVariables {
         }
     }
 
+    private static String safeProviderId(EnhancementTargetProvider provider) {
+        try {
+            return Texts.toStringSafe(provider.id());
+        } catch (RuntimeException | LinkageError exception) {
+            return "";
+        }
+    }
+
+    private static int safeNonNegative(IntReader reader) {
+        try {
+            return Math.max(0, reader.read());
+        } catch (RuntimeException | LinkageError exception) {
+            return 0;
+        }
+    }
+
+    private static String safeString(StringReader reader) {
+        try {
+            return Texts.toStringSafe(reader.read());
+        } catch (RuntimeException | LinkageError exception) {
+            return "";
+        }
+    }
+
+    @FunctionalInterface
+    private interface IntReader {
+        int read();
+    }
+
+    @FunctionalInterface
+    private interface StringReader {
+        String read();
+    }
+
     private record NumberResult(double value, boolean valid) {
+    }
+
+    public record Snapshot(@NotNull String providerId,
+            @NotNull String instanceId,
+            @NotNull String version,
+            int level,
+            int temper,
+            @NotNull String recipeId,
+            @NotNull Map<String, Object> pdc,
+            @NotNull Map<String, Object> effects,
+            @NotNull Map<String, Object> layers,
+            @NotNull Map<String, Object> audit,
+            @NotNull Map<String, Object> meta,
+            @NotNull Map<String, Object> variables,
+            int unreadablePdcCount) {
+
+        public Snapshot {
+            providerId = Texts.toStringSafe(providerId);
+            instanceId = Texts.toStringSafe(instanceId);
+            version = Texts.toStringSafe(version);
+            level = Math.max(0, level);
+            temper = Math.max(0, temper);
+            recipeId = Texts.toStringSafe(recipeId);
+            pdc = pdc == null ? Map.of() : Map.copyOf(pdc);
+            effects = effects == null ? Map.of() : Map.copyOf(effects);
+            layers = layers == null ? Map.of() : Map.copyOf(layers);
+            audit = audit == null ? Map.of() : Map.copyOf(audit);
+            meta = meta == null ? Map.of() : Map.copyOf(meta);
+            variables = variables == null ? Map.of() : Map.copyOf(variables);
+            unreadablePdcCount = Math.max(0, unreadablePdcCount);
+        }
+
+        public boolean sameIdentityAndVersion(@Nullable Snapshot other) {
+            if (other == null || !Objects.equals(providerId, other.providerId)
+                    || !Objects.equals(version, other.version)) {
+                return false;
+            }
+            if (Texts.isNotBlank(instanceId) || Texts.isNotBlank(other.instanceId)) {
+                return Objects.equals(instanceId, other.instanceId);
+            }
+            return level == other.level && temper == other.temper && Objects.equals(recipeId, other.recipeId);
+        }
+
+        public void enrichVariables(@NotNull VariableContext.Builder builder) {
+            builder.withAll(variables);
+        }
     }
 }

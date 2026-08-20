@@ -1,8 +1,11 @@
 package emaki.jiuwu.craft.item.service;
 
+import java.math.BigDecimal;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.UUID;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -13,69 +16,110 @@ import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.item.api.ItemState;
 import emaki.jiuwu.craft.item.api.ItemStateKey;
+import emaki.jiuwu.craft.item.api.ItemStateMetadata;
 import emaki.jiuwu.craft.item.api.ItemStateMutation;
 import emaki.jiuwu.craft.item.api.ItemStateSchema;
 import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.api.ItemStateType;
 import emaki.jiuwu.craft.item.api.event.ItemStateChangeEvent;
 
-/** PDC-backed implementation of the public item-state API. */
 public final class EmakiItemStateService implements ItemState {
 
-    /** Restores missing or mismatched state values after an item rebuild and verifies PDC readback. */
     public boolean restoreSnapshot(ItemStack item, ItemStateSnapshot snapshot) {
-        if (item == null || snapshot == null) {
+        if (item == null || item.getType().isAir() || snapshot == null) {
             return false;
         }
-        PersistentDataContainer container = pdc(item);
-        if (container == null) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
             return false;
         }
-        boolean valid = true;
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        ItemStateMetadata current = readMetadata(pdc);
+        String instanceId = snapshot.metadata().instanceId().isBlank()
+                ? current.instanceId()
+                : snapshot.metadata().instanceId();
+        if (instanceId.isBlank()) {
+            instanceId = UUID.randomUUID().toString();
+        }
+        long baseRevision = Math.max(snapshot.metadata().revision(), current.revision());
+        long revision = increment(baseRevision);
+        boolean changed = false;
         for (Map.Entry<ItemStateKey<?>, Object> entry : snapshot.values().entrySet()) {
             ItemStateKey<?> key = entry.getKey();
-            Object expected = entry.getValue();
-            Object actual = read(container, key);
-            if (!java.util.Objects.equals(expected, actual)) {
-                @SuppressWarnings({"rawtypes", "unchecked"}) ItemStateMutation<?> mutation = set(item,
-                        (ItemStateKey) key, expected);
-                valid &= mutation.committed();
+            if (key == null || ItemStateSchema.metadataKey(key)) {
+                continue;
             }
-            Object verified = read(pdc(item), key);
-            valid &= java.util.Objects.equals(expected, verified);
+            Object expected = key.type().coerce(entry.getValue());
+            if (expected == null) {
+                return false;
+            }
+            Object actual = read(pdc, key);
+            if (!Objects.equals(expected, actual)) {
+                writeValue(pdc, key, expected);
+                changed = true;
+            }
         }
-        return valid;
+        writeMetadata(pdc, new ItemStateMetadata(
+                ItemStateSchema.CURRENT_SCHEMA_VERSION,
+                revision,
+                instanceId,
+                false));
+        if (!item.setItemMeta(meta)) {
+            return false;
+        }
+        ItemStateSnapshot verified = snapshot(item);
+        for (Map.Entry<ItemStateKey<?>, Object> entry : snapshot.values().entrySet()) {
+            if (ItemStateSchema.metadataKey(entry.getKey())) {
+                continue;
+            }
+            if (!Objects.equals(entry.getValue(), verified.values().get(entry.getKey()))) {
+                return false;
+            }
+        }
+        ItemStateMetadata verifiedMetadata = verified.metadata();
+        return verifiedMetadata.valid()
+                && Objects.equals(instanceId, verifiedMetadata.instanceId())
+                && verifiedMetadata.revision() == revision
+                && (changed || revision >= baseRevision);
     }
 
     @Override
     public ItemStateSnapshot snapshot(ItemStack item) {
-        Map<ItemStateKey<?>, Object> values = new LinkedHashMap<>();
-        PersistentDataContainer pdc = pdc(item);
-        if (pdc == null) {
-            return new ItemStateSnapshot(item, values);
+        return readSnapshot(item, null);
+    }
+
+    @Override
+    public ItemStateSnapshot repair(ItemStack item) {
+        ItemMeta meta = itemMeta(item);
+        if (meta == null) {
+            return new ItemStateSnapshot(item, Map.of(), ItemStateMetadata.empty());
         }
-        for (NamespacedKey namespacedKey : pdc.getKeys()) {
-            if (!namespacedKey.getNamespace().equals(ItemStateSchema.NAMESPACE)
-                    || !namespacedKey.getKey().startsWith(ItemStateSchema.PARTITION + ".")) {
-                continue;
-            }
-            String field = namespacedKey.getKey();
-            String key = field.substring(ItemStateSchema.PARTITION.length() + 1);
-            Object value = readAny(pdc, namespacedKey);
-            if (value == null) {
-                continue;
-            }
-            ItemStateType type = typeOf(value);
-            if (type != null) {
-                values.put(new ItemStateKey<>(ItemStateSchema.NAMESPACE, ItemStateSchema.PARTITION, key, type), value);
-            }
+        PersistentDataContainer pdc = meta.getPersistentDataContainer();
+        ItemStateMetadata current = readMetadata(pdc);
+        if (current.valid()) {
+            return readSnapshot(item, current);
         }
-        return new ItemStateSnapshot(item, values);
+        String instanceId = current.instanceId().isBlank() ? UUID.randomUUID().toString() : current.instanceId();
+        ItemStateMetadata repaired = new ItemStateMetadata(
+                ItemStateSchema.CURRENT_SCHEMA_VERSION,
+                Math.max(0L, current.revision()),
+                instanceId,
+                false);
+        writeMetadata(pdc, repaired);
+        if (!item.setItemMeta(meta)) {
+            return readSnapshot(item, new ItemStateMetadata(
+                    repaired.schemaVersion(), repaired.revision(), repaired.instanceId(), true));
+        }
+        ItemStateSnapshot verified = readSnapshot(item, null);
+        return verified.metadata().valid()
+                ? verified
+                : new ItemStateSnapshot(item, verified.values(), new ItemStateMetadata(
+                        repaired.schemaVersion(), repaired.revision(), repaired.instanceId(), true));
     }
 
     @Override
     public <T> Optional<T> get(ItemStack item, ItemStateKey<T> key) {
-        if (key == null) {
+        if (key == null || ItemStateSchema.metadataKey(key)) {
             return Optional.empty();
         }
         PersistentDataContainer pdc = pdc(item);
@@ -84,7 +128,8 @@ public final class EmakiItemStateService implements ItemState {
         }
         Object value = read(pdc, key);
         return value != null && key.javaType().isInstance(value)
-                ? Optional.of(key.javaType().cast(value)) : Optional.empty();
+                ? Optional.of(key.javaType().cast(value))
+                : Optional.empty();
     }
 
     @Override
@@ -93,7 +138,13 @@ public final class EmakiItemStateService implements ItemState {
     }
 
     private <T> ItemStateMutation<T> setValue(ItemStack item, ItemStateKey<T> key, T value, boolean clamped) {
-        Object coerced = key == null ? null : key.type().coerce(value);
+        if (key == null) {
+            return ItemStateMutation.rejected(null, "invalid_key", null);
+        }
+        if (ItemStateSchema.metadataKey(key)) {
+            return ItemStateMutation.rejected(key, "metadata_reserved", null);
+        }
+        Object coerced = key.type().coerce(value);
         if (coerced == null) {
             return ItemStateMutation.rejected(key, "invalid_type", null);
         }
@@ -103,11 +154,16 @@ public final class EmakiItemStateService implements ItemState {
             return ItemStateMutation.rejected(key, "item_missing", null);
         }
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        T old = get(item, key).orElse(null);
+        T old = readTyped(pdc, key);
         if (hasWrongType(pdc, key)) {
             return ItemStateMutation.rejected(key, "wrong_type", old);
         }
+        ItemStateMetadata current = readMetadata(pdc);
+        if (Objects.equals(old, typedValue) && current.valid()) {
+            return ItemStateMutation.committed(key, old, typedValue, numericDelta(key.type(), old, typedValue), clamped);
+        }
         writeValue(pdc, key, typedValue);
+        writeMetadata(pdc, nextMetadata(current));
         boolean committed = item.setItemMeta(meta);
         ItemStateMutation<T> result = ItemStateMutation.committed(key, old, typedValue,
                 numericDelta(key.type(), old, typedValue), clamped);
@@ -130,26 +186,30 @@ public final class EmakiItemStateService implements ItemState {
         Object next;
         try {
             next = switch (key.type()) {
-                case INTEGER -> {
-                    if (amount.doubleValue() != amount.intValue()) {
-                        yield null;
-                    }
-                    yield Math.addExact((Integer) old, amount.intValue());
-                }
-                case LONG -> {
-                    if (amount.doubleValue() != amount.longValue()) {
-                        yield null;
-                    }
-                    yield Math.addExact((Long) old, amount.longValue());
-                }
+                case INTEGER -> amount.doubleValue() == amount.intValue()
+                        ? Math.addExact((Integer) old, amount.intValue()) : null;
+                case LONG -> amount.doubleValue() == amount.longValue()
+                        ? Math.addExact((Long) old, amount.longValue()) : null;
                 case DOUBLE -> ((Double) old) + amount.doubleValue();
                 default -> null;
             };
         } catch (ArithmeticException overflow) {
             clamped = true;
             next = amount.doubleValue() >= 0D
-                    ? switch (key.type()) { case INTEGER -> Integer.MAX_VALUE; case LONG -> Long.MAX_VALUE; default -> Double.MAX_VALUE; }
-                    : switch (key.type()) { case INTEGER -> Integer.MIN_VALUE; case LONG -> Long.MIN_VALUE; default -> -Double.MAX_VALUE; };
+                    ? switch (key.type()) {
+                        case INTEGER -> Integer.MAX_VALUE;
+                        case LONG -> Long.MAX_VALUE;
+                        default -> Double.MAX_VALUE;
+                    }
+                    : switch (key.type()) {
+                        case INTEGER -> Integer.MIN_VALUE;
+                        case LONG -> Long.MIN_VALUE;
+                        default -> -Double.MAX_VALUE;
+                    };
+        }
+        if (next instanceof Double doubleValue && !Double.isFinite(doubleValue)) {
+            clamped = true;
+            next = amount.doubleValue() >= 0D ? Double.MAX_VALUE : -Double.MAX_VALUE;
         }
         if (next == null) {
             return ItemStateMutation.rejected(key, "invalid_amount", old);
@@ -161,14 +221,17 @@ public final class EmakiItemStateService implements ItemState {
     @Override
     public <T> ItemStateMutation<T> remove(ItemStack item, ItemStateKey<T> key) {
         if (key == null) {
-            return ItemStateMutation.rejected(key, "invalid_key", null);
+            return ItemStateMutation.rejected(null, "invalid_key", null);
+        }
+        if (ItemStateSchema.metadataKey(key)) {
+            return ItemStateMutation.rejected(key, "metadata_reserved", null);
         }
         ItemMeta meta = itemMeta(item);
         if (meta == null) {
             return ItemStateMutation.rejected(key, "item_missing", null);
         }
         PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        T old = get(item, key).orElse(null);
+        T old = readTyped(pdc, key);
         if (hasWrongType(pdc, key)) {
             return ItemStateMutation.rejected(key, "wrong_type", old);
         }
@@ -176,6 +239,7 @@ public final class EmakiItemStateService implements ItemState {
             return ItemStateMutation.rejected(key, "missing_state", null);
         }
         pdc.remove(namespacedKey(key));
+        writeMetadata(pdc, nextMetadata(readMetadata(pdc)));
         boolean committed = item.setItemMeta(meta);
         ItemStateMutation<T> result = ItemStateMutation.committed(key, old, null, null, false);
         if (committed) {
@@ -183,6 +247,66 @@ public final class EmakiItemStateService implements ItemState {
             return result;
         }
         return ItemStateMutation.rejected(key, "commit_failed", old);
+    }
+
+    private ItemStateSnapshot readSnapshot(ItemStack item, ItemStateMetadata metadataOverride) {
+        Map<ItemStateKey<?>, Object> values = new LinkedHashMap<>();
+        PersistentDataContainer pdc = pdc(item);
+        if (pdc == null) {
+            return new ItemStateSnapshot(item, values, metadataOverride == null ? ItemStateMetadata.empty() : metadataOverride);
+        }
+        for (NamespacedKey namespacedKey : pdc.getKeys()) {
+            if (!ItemStateSchema.NAMESPACE.equals(namespacedKey.getNamespace())
+                    || !namespacedKey.getKey().startsWith(ItemStateSchema.PARTITION + ".")) {
+                continue;
+            }
+            String keyName = namespacedKey.getKey().substring(ItemStateSchema.PARTITION.length() + 1);
+            if (keyName.startsWith(ItemStateSchema.METADATA_PREFIX)) {
+                continue;
+            }
+            Object value = readAny(pdc, namespacedKey);
+            if (value == null) {
+                continue;
+            }
+            try {
+                ItemStateType type = typeOf(value);
+                if (type != null) {
+                    values.put(ItemStateSchema.key(keyName, type), value);
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        ItemStateMetadata metadata = metadataOverride == null ? readMetadata(pdc) : metadataOverride;
+        return new ItemStateSnapshot(item, values, metadata);
+    }
+
+    private static ItemStateMetadata readMetadata(PersistentDataContainer pdc) {
+        if (pdc == null) {
+            return ItemStateMetadata.empty();
+        }
+        Integer schema = pdc.get(namespacedKey(ItemStateSchema.SCHEMA_VERSION), PersistentDataType.INTEGER);
+        Long revision = pdc.get(namespacedKey(ItemStateSchema.REVISION), PersistentDataType.LONG);
+        String instanceId = pdc.get(namespacedKey(ItemStateSchema.INSTANCE_ID), PersistentDataType.STRING);
+        int resolvedSchema = schema == null ? ItemStateSchema.CURRENT_SCHEMA_VERSION : schema;
+        long resolvedRevision = revision == null ? 0L : Math.max(0L, revision);
+        boolean valid = schema != null && schema == ItemStateSchema.CURRENT_SCHEMA_VERSION
+                && revision != null && revision >= 0L && instanceId != null && !instanceId.isBlank();
+        return new ItemStateMetadata(resolvedSchema, resolvedRevision, instanceId == null ? "" : instanceId, !valid);
+    }
+
+    private static ItemStateMetadata nextMetadata(ItemStateMetadata current) {
+        String instanceId = current.instanceId().isBlank() ? UUID.randomUUID().toString() : current.instanceId();
+        return new ItemStateMetadata(ItemStateSchema.CURRENT_SCHEMA_VERSION, increment(current.revision()), instanceId, false);
+    }
+
+    private static void writeMetadata(PersistentDataContainer pdc, ItemStateMetadata metadata) {
+        pdc.set(namespacedKey(ItemStateSchema.SCHEMA_VERSION), PersistentDataType.INTEGER, ItemStateSchema.CURRENT_SCHEMA_VERSION);
+        pdc.set(namespacedKey(ItemStateSchema.REVISION), PersistentDataType.LONG, Math.max(0L, metadata.revision()));
+        pdc.set(namespacedKey(ItemStateSchema.INSTANCE_ID), PersistentDataType.STRING, metadata.instanceId());
+    }
+
+    private static long increment(long value) {
+        return value == Long.MAX_VALUE ? Long.MAX_VALUE : Math.max(0L, value) + 1L;
     }
 
     private static PersistentDataContainer pdc(ItemStack item) {
@@ -198,8 +322,13 @@ public final class EmakiItemStateService implements ItemState {
         return ObjectsHolder.key(key.namespacedPath());
     }
 
+    private static <T> T readTyped(PersistentDataContainer pdc, ItemStateKey<T> key) {
+        Object value = read(pdc, key);
+        return value == null || !key.javaType().isInstance(value) ? null : key.javaType().cast(value);
+    }
+
     private static Object read(PersistentDataContainer pdc, ItemStateKey<?> key) {
-        if (hasWrongType(pdc, key)) {
+        if (pdc == null || key == null || hasWrongType(pdc, key)) {
             return null;
         }
         return switch (key.type()) {
@@ -215,6 +344,9 @@ public final class EmakiItemStateService implements ItemState {
     }
 
     private static boolean hasWrongType(PersistentDataContainer pdc, ItemStateKey<?> key) {
+        if (pdc == null || key == null) {
+            return true;
+        }
         NamespacedKey namespacedKey = namespacedKey(key);
         if (!pdc.getKeys().contains(namespacedKey)) {
             return false;
@@ -265,11 +397,27 @@ public final class EmakiItemStateService implements ItemState {
     private static Number numericDelta(ItemStateType type, Object old, Object value) {
         if (!type.numeric() || old == null || value == null) return null;
         return switch (type) {
-            case INTEGER -> ((Integer) value) - ((Integer) old);
-            case LONG -> ((Long) value) - ((Long) old);
+            case INTEGER -> subtractInteger((Integer) value, (Integer) old);
+            case LONG -> subtractLong((Long) value, (Long) old);
             case DOUBLE -> ((Double) value) - ((Double) old);
             default -> null;
         };
+    }
+
+    private static Number subtractInteger(int value, int old) {
+        try {
+            return Math.subtractExact(value, old);
+        } catch (ArithmeticException exception) {
+            return BigDecimal.valueOf(value).subtract(BigDecimal.valueOf(old));
+        }
+    }
+
+    private static Number subtractLong(long value, long old) {
+        try {
+            return Math.subtractExact(value, old);
+        } catch (ArithmeticException exception) {
+            return BigDecimal.valueOf(value).subtract(BigDecimal.valueOf(old));
+        }
     }
 
     private static final class ObjectsHolder {

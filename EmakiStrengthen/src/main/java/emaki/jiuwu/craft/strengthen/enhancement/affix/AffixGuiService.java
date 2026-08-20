@@ -65,7 +65,7 @@ public final class AffixGuiService {
         if (threadOwnership != null && !threadOwnership.isEntityOwned(player)) {
             return false;
         }
-        if (plugin.attemptService() != null && !plugin.attemptService().accepting()) {
+        if (!plugin.enhancementAttemptService().accepting()) {
             plugin.messageService().send(player, "gui.open_failed");
             return false;
         }

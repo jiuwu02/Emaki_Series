@@ -170,6 +170,9 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public void reload(EmakiGemPlugin plugin, boolean closeInventories) {
+        if (plugin.rerollSessionService() != null) {
+            plugin.rerollSessionService().clearAll(GemRerollSessionService.TerminationReason.RELOAD);
+        }
         if (closeInventories) {
             plugin.gemGuiService().clearAllSessions();
         }
@@ -209,9 +212,13 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        CompletableFuture<Void> sessionsClosed = closeInventories
+        CompletableFuture<Void> rerollsClosed = plugin.rerollSessionService() == null
+                ? CompletableFuture.completedFuture(null)
+                : plugin.rerollSessionService().clearAllAsync(GemRerollSessionService.TerminationReason.RELOAD);
+        CompletableFuture<Void> guiSessionsClosed = closeInventories
                 ? plugin.gemGuiService().clearAllSessionsAsync()
                 : CompletableFuture.completedFuture(null);
+        CompletableFuture<Void> sessionsClosed = CompletableFuture.allOf(rerollsClosed, guiSessionsClosed);
         if (scheduler == null) {
             return sessionsClosed.thenRun(() -> reloadNow(plugin));
         }
@@ -302,6 +309,9 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     public void shutdown(EmakiGemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("gem");
+        if (plugin.rerollSessionService() != null) {
+            plugin.rerollSessionService().clearAll(GemRerollSessionService.TerminationReason.DISABLE);
+        }
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
         }

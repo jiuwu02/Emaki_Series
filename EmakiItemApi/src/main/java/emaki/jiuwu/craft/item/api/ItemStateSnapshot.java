@@ -8,9 +8,17 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 
 /** Immutable read-only view of the typed item states stored on one stack. */
-public record ItemStateSnapshot(@NotNull ItemStack item, @NotNull Map<ItemStateKey<?>, Object> values) {
+public record ItemStateSnapshot(@NotNull ItemStack item,
+        @NotNull Map<ItemStateKey<?>, Object> values,
+        @NotNull ItemStateMetadata metadata) {
+
+    public ItemStateSnapshot(ItemStack item, Map<ItemStateKey<?>, Object> values) {
+        this(item, values, ItemStateMetadata.empty());
+    }
+
     public ItemStateSnapshot {
         values = values == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(values));
+        metadata = metadata == null ? ItemStateMetadata.empty() : metadata;
     }
 
     @Override
@@ -28,5 +36,10 @@ public record ItemStateSnapshot(@NotNull ItemStack item, @NotNull Map<ItemStateK
 
     public boolean contains(ItemStateKey<?> key) {
         return key != null && values.containsKey(key);
+    }
+
+    /** {@return whether metadata was repaired while creating this snapshot} */
+    public boolean repaired() {
+        return metadata.repaired();
     }
 }

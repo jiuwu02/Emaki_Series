@@ -18,6 +18,7 @@ final class GemGuiSession implements GemPlayerGuiSession {
     private String currentTemplateId = "";
     private boolean templateSwitching;
     private ItemStack targetItem;
+    private boolean returnTargetOnClose = true;
     private final List<ItemStack> upgradeMaterials = new ArrayList<>();
     private boolean processing;
     private PendingOperation pendingOperation = PendingOperation.none();
@@ -40,6 +41,10 @@ final class GemGuiSession implements GemPlayerGuiSession {
 
     public GemGuiMode mode() {
         return mode;
+    }
+
+    public boolean rerollMode() {
+        return mode == GemGuiMode.REROLL_FULL || mode == GemGuiMode.REROLL_VALUE;
     }
 
     public void setMode(GemGuiMode mode) {
@@ -74,8 +79,18 @@ final class GemGuiSession implements GemPlayerGuiSession {
     }
 
     public void setTargetItem(ItemStack targetItem) {
-        setTargetItem(targetItem, true);
+        this.targetItem = targetItem;
+        clearPendingOperation();
     }
+
+    public boolean returnTargetOnClose() {
+        return returnTargetOnClose;
+    }
+
+    public void setReturnTargetOnClose(boolean returnTargetOnClose) {
+        this.returnTargetOnClose = returnTargetOnClose;
+    }
+
 
     public void setTargetItemPreservingPending(ItemStack targetItem) {
         setTargetItem(targetItem, false);

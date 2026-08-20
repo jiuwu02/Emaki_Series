@@ -324,17 +324,24 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.attemptService() != null) {
             plugin.attemptService().freezeAccepting();
         }
+        if (plugin.enhancementAttemptService() != null) {
+            plugin.enhancementAttemptService().freezeAccepting();
+        }
         boolean attemptsDrained = plugin.attemptService() == null
                 || plugin.attemptService().drain(5L, TimeUnit.SECONDS);
+        boolean enhancementsDrained = plugin.enhancementAttemptService() == null
+                || plugin.enhancementAttemptService().drain(5L, TimeUnit.SECONDS);
         if (closeInventories && plugin.strengthenGuiService() != null) {
             plugin.strengthenGuiService().clearAllSessions();
         }
         if (closeInventories && plugin.affixGuiService() != null) {
             plugin.affixGuiService().clearAllSessions();
         }
-        if (!attemptsDrained) {
+        if (!attemptsDrained || !enhancementsDrained) {
             plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
-                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot()));
+                    + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
+                    + " | enhancements=" + (plugin.enhancementAttemptService() == null
+                            ? Map.of() : plugin.enhancementAttemptService().journalSnapshot()));
             return false;
         }
         return true;
@@ -346,6 +353,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         }
         if (plugin.attemptService() != null) {
             plugin.attemptService().resumeAccepting();
+        }
+        if (plugin.enhancementAttemptService() != null) {
+            plugin.enhancementAttemptService().resumeAccepting();
         }
     }
 

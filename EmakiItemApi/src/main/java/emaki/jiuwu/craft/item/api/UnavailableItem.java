@@ -151,7 +151,12 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
 
     @Override
     public ItemStateSnapshot snapshot(ItemStack item) {
-        return new ItemStateSnapshot(item, Map.of());
+        return new ItemStateSnapshot(item, Map.of(), ItemStateMetadata.empty());
+    }
+
+    @Override
+    public ItemStateSnapshot repair(ItemStack item) {
+        return new ItemStateSnapshot(item, Map.of(), ItemStateMetadata.empty());
     }
 
     @Override

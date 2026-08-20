@@ -158,4 +158,32 @@ public interface EnhancementTargetProvider {
     default void clearEnhancement(@Nullable Player player, @Nullable ItemStack itemStack) {
         clearEnhancement(itemStack);
     }
+
+    /**
+     * Reads a stable provider-owned instance identifier when one is available.
+     *
+     * <p>The default is empty so providers compiled against the original contract remain valid.
+     */
+    default @NotNull String readInstanceId(@Nullable ItemStack itemStack) {
+        return "";
+    }
+
+    /** Context-aware variant of {@link #readInstanceId(ItemStack)}. */
+    default @NotNull String readInstanceId(@Nullable Player player, @Nullable ItemStack itemStack) {
+        return readInstanceId(itemStack);
+    }
+
+    /**
+     * Reads a provider-owned version or revision marker when one is available.
+     *
+     * <p>The default is empty so providers compiled against the original contract remain valid.
+     */
+    default @NotNull String readVersion(@Nullable ItemStack itemStack) {
+        return "";
+    }
+
+    /** Context-aware variant of {@link #readVersion(ItemStack)}. */
+    default @NotNull String readVersion(@Nullable Player player, @Nullable ItemStack itemStack) {
+        return readVersion(itemStack);
+    }
 }

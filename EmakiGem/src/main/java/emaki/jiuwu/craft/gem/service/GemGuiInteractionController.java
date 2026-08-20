@@ -186,6 +186,10 @@ final class GemGuiInteractionController {
     }
 
     private void handleConfirm(GemGuiSession state) {
+        if (state.rerollMode()) {
+            executeRerollConfirm(state);
+            return;
+        }
         if (state.mode() == GemGuiMode.UPGRADE) {
             executeUpgrade(state);
             return;
@@ -205,6 +209,35 @@ final class GemGuiInteractionController {
             case INLAY -> executeInlay(state, pendingOperation, player, targetItem);
             case EXTRACT -> executeExtract(state, pendingOperation, player, targetItem);
             default -> plugin.messageService().send(player, "gui.gem.no_pending_action");
+        }
+    }
+
+    private void executeRerollConfirm(GemGuiSession state) {
+        if (state.processing() || plugin.rerollSessionService() == null) {
+            return;
+        }
+        state.setProcessing(true);
+        try {
+            GemRerollSessionService.ActionResult result = plugin.rerollSessionService()
+                    .confirm(state.player());
+            if (result.success() && result.session() != null) {
+                state.setTargetItem(null);
+                state.setReturnTargetOnClose(false);
+                plugin.messageService().send(state.player(), "gui.gem.reroll_confirmed", Map.of(
+                        "operation_id", result.session().operationId()
+                ));
+                plugin.scheduling().runForEntity(plugin, state.player(), () -> {
+                    if (state.player() != null && state.player().isOnline()) {
+                        state.player().closeInventory();
+                    }
+                }, null);
+            } else {
+                String errorKey = result.errorKey();
+                plugin.messageService().send(state.player(),
+                        errorKey == null || errorKey.isBlank() ? "gui.gem.reroll_failed" : errorKey);
+            }
+        } finally {
+            state.setProcessing(false);
         }
     }
 
@@ -458,6 +491,10 @@ final class GemGuiInteractionController {
                 state.setTemplateSwitching(false);
                 return;
             }
+            if (state.rerollMode() && plugin.rerollSessionService() != null) {
+                plugin.rerollSessionService().abandon(state.player().getUniqueId(),
+                        GemRerollSessionService.TerminationReason.GUI_CLOSE);
+            }
             ItemStack cursorItem = close != null && close.player() != null
                     ? InventoryItemUtil.cloneNonAir(close.player().getItemOnCursor())
                     : null;
@@ -465,7 +502,7 @@ final class GemGuiInteractionController {
             if (cursorItem != null) {
                 close.player().setItemOnCursor(null);
             }
-            if (state.mutableTargetItem() != null) {
+            if (state.mutableTargetItem() != null && state.returnTargetOnClose()) {
                 InventoryItemUtil.giveOrDrop(state.player(), state.mutableTargetItem());
                 state.setTargetItem(null);
             }

@@ -2,11 +2,14 @@ package emaki.jiuwu.craft.strengthen.enhancement;
 
 import java.util.ArrayList;
 import java.util.IdentityHashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -19,6 +22,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
@@ -48,6 +52,8 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 public final class EnhancementAttemptService {
 
     private static final int MAX_SAFE_LEVEL = 1_000_000;
+    private static final String OPERATION_NAMESPACE = "strengthen_enhancement";
+    private static final int MAX_JOURNAL_ENTRIES = 256;
     private static final NamespacedKey PITY_OWNER_KEY = Objects.requireNonNull(
             NamespacedKey.fromString("emakistrengthen:pity_owner_id"));
 
@@ -55,6 +61,9 @@ public final class EnhancementAttemptService {
     private final EnhancementTargetRegistry targetRegistry;
     private final PityStateStore pityStateStore;
     private final EnhancementProgressionResolver progressionResolver;
+    private final CraftOperationJournal<JournalEntry> operationJournal =
+            CraftOperationJournal.ofMemory(MAX_JOURNAL_ENTRIES);
+    private final AtomicBoolean accepting = new AtomicBoolean(true);
 
     public EnhancementAttemptService(EmakiStrengthenPlugin plugin,
             EnhancementTargetRegistry targetRegistry,
@@ -64,6 +73,28 @@ public final class EnhancementAttemptService {
         this.targetRegistry = targetRegistry;
         this.pityStateStore = pityStateStore;
         this.progressionResolver = Objects.requireNonNull(progressionResolver, "progressionResolver");
+    }
+
+    public boolean accepting() {
+        return accepting.get();
+    }
+
+    public void freezeAccepting() {
+        accepting.set(false);
+    }
+
+    public void resumeAccepting() {
+        accepting.set(true);
+    }
+
+    public boolean drain(long timeout, TimeUnit unit) {
+        return operationJournal.drain(timeout, unit);
+    }
+
+    public @NotNull Map<String, String> journalSnapshot() {
+        Map<String, String> snapshot = new LinkedHashMap<>();
+        operationJournal.snapshot().forEach((key, entry) -> snapshot.put(key, entry.phase()));
+        return Map.copyOf(snapshot);
     }
 
     /** 使用自动生成的 operation id 执行一次强化。 */
@@ -86,6 +117,37 @@ public final class EnhancementAttemptService {
             @Nullable List<ItemStack> supplied,
             @Nullable String operationId) {
         String operation = Texts.isBlank(operationId) ? UUID.randomUUID().toString() : operationId;
+        String journalKey = journalKey(player, operation);
+        int fingerprint = attemptFingerprint(recipe, target, supplied);
+        AttemptStart start = beginOperation(journalKey, player == null ? null : player.getUniqueId(), fingerprint);
+        if (start.existingResult() != null) {
+            return start.existingResult();
+        }
+        if (!start.started()) {
+            return rejectedWithOperation(start.errorKey(), operation);
+        }
+        EnhancementAttemptResult result = null;
+        try {
+            result = attemptOnce(player, recipe, target, supplied, operation);
+            return result;
+        } catch (RuntimeException | LinkageError exception) {
+            warn("强化框架执行失败", exception);
+            result = rejectedWithOperation("strengthen.error.internal", operation);
+            return result;
+        } finally {
+            if (result == null) {
+                result = rejectedWithOperation("strengthen.error.internal", operation);
+            }
+            completeOperation(journalKey, fingerprint, result);
+            finishInFlight(journalKey);
+        }
+    }
+
+    private @NotNull EnhancementAttemptResult attemptOnce(@Nullable Player player,
+            @Nullable EnhancementRecipe recipe,
+            @Nullable ItemStack target,
+            @Nullable List<ItemStack> supplied,
+            @NotNull String operation) {
         if (player == null || !player.isOnline()) {
             return EnhancementAttemptResult.rejected("strengthen.enhancement.no_player");
         }
@@ -104,21 +166,10 @@ public final class EnhancementAttemptService {
                 && !ensurePityOwner(target)) {
             return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
         }
-        String targetBinding;
-        try {
-            targetBinding = provider.readRecipeId(player, target);
-        } catch (RuntimeException | LinkageError exception) {
-            warn("目标 Provider 读取 binding 失败", exception);
-            return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
-        }
         List<ItemStack> suppliedItems = supplied == null ? List.of() : supplied;
         ExecutionPlan plan = prepare(player, recipe, target, suppliedItems, provider);
         if (!plan.valid()) {
             return rejectedPlan(plan, operation);
-        }
-        // Confirm the target has not changed between preparation and the irreversible roll/charge phase.
-        if (!sameTargetState(player, target, provider, plan.currentLevel(), plan.currentTemper(), targetBinding)) {
-            return rejectedWithOperation("strengthen.error.rebuild_failed", operation);
         }
 
         boolean success = plan.forceSuccess() || CraftRollEngine.roll(plan.effectiveRate());
@@ -217,33 +268,25 @@ public final class EnhancementAttemptService {
             ItemStack target,
             List<ItemStack> supplied,
             EnhancementTargetProvider provider) {
-        int currentLevel;
-        int currentTemper;
-        try {
-            currentLevel = Math.max(0, provider.readLevel(player, target));
-            currentTemper = Math.max(0, provider.readTemper(player, target));
-            if (currentLevel >= MAX_SAFE_LEVEL) {
-                return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
-            }
-        } catch (RuntimeException | LinkageError exception) {
-            warn("目标 Provider 读取当前状态失败", exception);
-            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
+        EnhancementTargetVariables.Snapshot snapshot = EnhancementTargetVariables.capture(player, target, provider);
+        int currentLevel = snapshot.level();
+        int currentTemper = snapshot.temper();
+        if (currentLevel >= MAX_SAFE_LEVEL) {
+            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed", snapshot);
         }
 
-        VariableContext targetVariables = buildVariables(
-                player, target, currentLevel, currentTemper, currentLevel);
+        VariableContext targetVariables = buildVariablesFromSnapshot(player, snapshot, currentLevel);
         if (!matchesTargetFilter(recipe, target, targetVariables)) {
-            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
+            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed", snapshot);
         }
 
         EnhancementProgressionResolver.Resolution progression;
         try {
             progression = progressionResolver.resolve(recipe, currentLevel,
-                    evaluationLevel -> buildVariables(
-                            player, target, currentLevel, currentTemper, evaluationLevel));
+                    evaluationLevel -> buildVariablesFromSnapshot(player, snapshot, evaluationLevel));
         } catch (RuntimeException | LinkageError exception) {
             warn("强化进度解析失败", exception);
-            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed");
+            return ExecutionPlan.invalid(recipe, "strengthen.error.rebuild_failed", snapshot);
         }
         int targetLevel = progression.levels().targetLevel();
         VariableContext variables = progression.variables();
@@ -273,7 +316,7 @@ public final class EnhancementAttemptService {
                     "strengthen.error.material_missing", currentLevel, targetLevel,
                     baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
             return new ExecutionPlan(false, recipe, currentLevel, targetLevel, currentTemper, null, pity,
-                    baseRate, effectiveRate, forceSuccess, costs, List.of(), preview);
+                    baseRate, effectiveRate, forceSuccess, costs, List.of(), preview, snapshot);
         }
 
         if (targetLevel <= currentLevel || targetLevel > MAX_SAFE_LEVEL) {
@@ -281,7 +324,7 @@ public final class EnhancementAttemptService {
                     "strengthen.error.rebuild_failed", currentLevel, targetLevel,
                     baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
             return new ExecutionPlan(false, recipe, currentLevel, targetLevel, currentTemper, null, pity,
-                    baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
+                    baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview, snapshot);
         }
 
         ItemStack preparedTarget;
@@ -294,7 +337,7 @@ public final class EnhancementAttemptService {
                         "strengthen.error.rebuild_failed", currentLevel, targetLevel,
                         baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
                 return new ExecutionPlan(false, recipe, currentLevel, targetLevel, currentTemper, null, pity,
-                        baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
+                        baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview, snapshot);
             }
         } catch (RuntimeException | LinkageError exception) {
             warn("目标 Provider 预写回失败", exception);
@@ -302,14 +345,68 @@ public final class EnhancementAttemptService {
                     "strengthen.error.rebuild_failed", currentLevel, targetLevel,
                     baseRate, effectiveRate, pity.counter(), pity.triggered(), costs, requirements);
             return new ExecutionPlan(false, recipe, currentLevel, targetLevel, currentTemper, null, pity,
-                    baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
+                    baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview, snapshot);
         }
 
         EnhancementAttemptPreview preview = EnhancementAttemptPreview.valid(
                 recipe.id(), currentLevel, targetLevel, baseRate, effectiveRate,
                 pity.counter(), pity.triggered(), costs, requirements);
         return new ExecutionPlan(true, recipe, currentLevel, targetLevel, currentTemper, preparedTarget, pity,
-                baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview);
+                baseRate, effectiveRate, forceSuccess, costs, materialMatches, preview, snapshot);
+    }
+
+    private String journalKey(@Nullable Player player, String operationId) {
+        return (player == null ? "-" : player.getUniqueId().toString()) + ":" + operationId;
+    }
+
+
+    private int attemptFingerprint(@Nullable EnhancementRecipe recipe,
+            @Nullable ItemStack target,
+            @Nullable List<ItemStack> supplied) {
+        return Objects.hash(recipe == null ? "" : recipe.id(), target,
+                supplied == null ? List.of() : supplied);
+    }
+
+
+    private AttemptStart beginOperation(String journalKey, @Nullable UUID playerId, int fingerprint) {
+        CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
+                journalKey, OPERATION_NAMESPACE, playerId, new JournalEntry(fingerprint, null));
+        if (existing != null) {
+            JournalEntry payload = existing.payload();
+            if (payload == null || payload.fingerprint() != fingerprint) {
+                return new AttemptStart(false, null, "strengthen.error.operation_conflict");
+            }
+            return payload.result() == null
+                    ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
+                    : new AttemptStart(false, payload.result(), "");
+        }
+        if (!accepting.get()) {
+            operationJournal.archive(journalKey);
+            return new AttemptStart(false, null, "strengthen.error.not_accepting");
+        }
+        pruneJournal();
+        return new AttemptStart(true, null, "");
+    }
+
+    private void completeOperation(String journalKey, int fingerprint, EnhancementAttemptResult result) {
+        String phase = result.committed()
+                ? (result.success() ? "COMMITTED_SUCCESS" : "COMMITTED_FAILURE")
+                : ("strengthen.error.compensation_pending".equals(result.errorKey())
+                        ? "COMPENSATION_PENDING" : "NOT_COMMITTED");
+        operationJournal.update(journalKey, phase, new JournalEntry(fingerprint, result));
+        pruneJournal();
+    }
+
+    private void finishInFlight(String journalKey) {
+        operationJournal.release(journalKey);
+    }
+
+
+    private void pruneJournal() {
+        operationJournal.prune(entry -> {
+            EnhancementAttemptResult result = entry.payload() == null ? null : entry.payload().result();
+            return result != null && !"strengthen.error.compensation_pending".equals(result.errorKey());
+        });
     }
 
     private EnhancementAttemptResult rejectedPlan(ExecutionPlan plan, String operation) {
@@ -347,20 +444,18 @@ public final class EnhancementAttemptService {
         }
     }
 
-    private VariableContext buildVariables(Player player,
-            ItemStack target,
-            int currentLevel,
-            int temper,
+    private VariableContext buildVariablesFromSnapshot(Player player,
+            EnhancementTargetVariables.Snapshot snapshot,
             int evaluationLevel) {
+        int currentLevel = snapshot.level();
+        int temper = snapshot.temper();
         int targetLevel = currentLevel == Integer.MAX_VALUE ? Integer.MAX_VALUE : currentLevel + 1;
         int previousLevel = Math.max(0, currentLevel - 1);
         VariableContext.Builder builder = VariableContext.builder(player)
-                // Legacy aliases keep their existing meaning for the current-level resolution.
                 .with("target.level", evaluationLevel)
                 .with("target.temper", temper)
                 .with("target_level", evaluationLevel)
                 .with("target_temper", temper)
-                // Explicit level window aliases support formula progressions without +1/-1 duplication.
                 .with("current_level", currentLevel)
                 .with("previous_level", previousLevel)
                 .with("resulting_level", targetLevel)
@@ -368,9 +463,10 @@ public final class EnhancementAttemptService {
                 .with("target.current_level", currentLevel)
                 .with("target.previous_level", previousLevel)
                 .with("target.resulting_level", targetLevel);
-        EnhancementTargetVariables.enrich(builder, target);
+        snapshot.enrichVariables(builder);
         return builder.build();
     }
+
 
     /** 把配方的每个材料槽匹配到玩家提供的物品上。 */
     private @Nullable List<MaterialMatch> matchMaterials(EnhancementRecipe recipe,
@@ -493,25 +589,6 @@ public final class EnhancementAttemptService {
         }
         return target.getItemMeta() != null
                 && target.getItemMeta().getPersistentDataContainer().has(PITY_OWNER_KEY, PersistentDataType.STRING);
-    }
-
-    private boolean sameTargetState(Player player,
-            ItemStack target,
-            EnhancementTargetProvider provider,
-            int expectedLevel,
-            int expectedTemper,
-            String expectedBinding) {
-        try {
-            return target != null
-                    && !target.getType().isAir()
-                    && provider.canHandle(player, target)
-                    && provider.readLevel(player, target) == expectedLevel
-                    && provider.readTemper(player, target) == expectedTemper
-                    && Objects.equals(provider.readRecipeId(player, target), expectedBinding);
-        } catch (RuntimeException | LinkageError exception) {
-            warn("目标 Provider 执行前回读失败", exception);
-            return false;
-        }
     }
 
     private static int saturatedAdd(int left, int right) {
@@ -758,6 +835,16 @@ public final class EnhancementAttemptService {
             boolean triggered) {
     }
 
+
+    private record AttemptStart(boolean started,
+            @Nullable EnhancementAttemptResult existingResult,
+            String errorKey) {
+    }
+
+
+    private record JournalEntry(int fingerprint, @Nullable EnhancementAttemptResult result) {
+    }
+
     private record ExecutionPlan(boolean valid,
             EnhancementRecipe recipe,
             int currentLevel,
@@ -770,12 +857,13 @@ public final class EnhancementAttemptService {
             boolean forceSuccess,
             List<AttemptCost> costs,
             List<MaterialMatch> materialMatches,
-            EnhancementAttemptPreview preview) {
+            EnhancementAttemptPreview preview,
+            EnhancementTargetVariables.Snapshot snapshot) {
 
-        static ExecutionPlan invalid(EnhancementRecipe recipe, String errorKey) {
+        static ExecutionPlan invalid(EnhancementRecipe recipe, String errorKey, EnhancementTargetVariables.Snapshot snapshot) {
             EnhancementAttemptPreview preview = EnhancementAttemptPreview.rejected(errorKey);
             return new ExecutionPlan(false, recipe, 0, 0, 0, null,
-                    new PityView(null, null, null, 0, false), 0D, 0D, false, List.of(), List.of(), preview);
+                    new PityView(null, null, null, 0, false), 0D, 0D, false, List.of(), List.of(), preview, snapshot);
         }
     }
 }

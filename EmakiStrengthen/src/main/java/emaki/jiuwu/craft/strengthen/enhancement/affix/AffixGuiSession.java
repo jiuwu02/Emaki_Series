@@ -36,6 +36,7 @@ final class AffixGuiSession {
     private int capacityUsed;
     private int capacityMax;
     private boolean processing;
+    private String operationId = "";
 
     AffixGuiSession(Player player, EnhancementRecipe recipe) {
         this.player = player;
@@ -67,6 +68,18 @@ final class AffixGuiSession {
 
     void setTargetItem(ItemStack targetItem) {
         this.targetItem = cloneNonAir(targetItem);
+    }
+
+    String operationId() {
+        return operationId;
+    }
+
+    void setOperationId(String operationId) {
+        this.operationId = operationId == null ? "" : operationId.trim();
+    }
+
+    void clearOperationId() {
+        this.operationId = "";
     }
 
     ItemStack materialInput(int index) {
@@ -156,6 +169,7 @@ final class AffixGuiSession {
         for (int index = 0; index < materialInputs.size(); index++) {
             materialInputs.set(index, null);
         }
+        clearOperationId();
     }
 
     static ItemStack cloneNonAir(ItemStack itemStack) {

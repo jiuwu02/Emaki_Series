@@ -177,25 +177,31 @@ final class AffixGuiInteractionController {
     }
 
     private void handleConfirm(AffixGuiSession state) {
-        if (state.targetItem() == null || plugin.enhancementAttemptService() == null) {
+        if (state.processing() || state.targetItem() == null || plugin.enhancementAttemptService() == null) {
             return;
         }
         EnhancementAttemptPreview preview = state.preview();
         if (preview == null || !preview.valid()) {
             return;
         }
+        if (Texts.isBlank(state.operationId())) {
+            state.setOperationId(UUID.randomUUID().toString());
+        }
         state.setProcessing(true);
         EnhancementAttemptResult result;
         try {
             ItemStack target = state.targetItem();
             result = plugin.enhancementAttemptService().attempt(
-                    state.player(), state.recipe(), target, state.suppliedMaterials());
+                    state.player(), state.recipe(), target, state.suppliedMaterials(), state.operationId());
             if (result.committed()) {
                 state.setTargetItem(target);
                 consumeSuppliedMaterials(state);
             }
         } finally {
             state.setProcessing(false);
+        }
+        if (!"strengthen.error.compensation_pending".equals(result.errorKey())) {
+            state.clearOperationId();
         }
         if (!result.committed()) {
             plugin.messageService().send(state.player(), result.errorKey(), result.placeholders());

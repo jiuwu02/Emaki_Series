@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "4.7.9"
+version: "4.7.10"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -128,6 +128,10 @@ strengthen:
     economy_provider_unavailable: "<red>Economy provider is currently unavailable.</red>"
     rebuild_failed: "<red>Failed to write strengthen result, operation aborted.</red>"
     compensation_pending: "<red>This attempt was rolled back but the refund is still pending, contact an admin with operation id %operation_id%.</red>"
+    not_accepting: "<red>The plugin is reloading or shutting down; strengthening is temporarily unavailable.</red>"
+    operation_in_progress: "<yellow>The previous strengthen attempt is still being processed, please wait.</yellow>"
+    operation_conflict: "<red>The item or materials differ from the original operation; the attempt was rejected.</red>"
+    internal: "<red>An internal error occurred; the strengthen attempt was not completed.</red>"
   enhancement:
     no_player: "<red>An online player is required to run an enhancement.</red>"
     no_provider: "<red>No enhancement target provider was supplied.</red>"

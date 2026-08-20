@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.gem.api.model.GemExtractOutcome;
 import emaki.jiuwu.craft.gem.api.model.GemInlayOutcome;
+import emaki.jiuwu.craft.gem.api.model.GemRerollOutcome;
 
 /**
  * State-changing gem operations.

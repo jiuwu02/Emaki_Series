@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.9"
+version: "4.7.10"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -121,6 +121,10 @@ strengthen:
     economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
     rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
     compensation_pending: "<red>本次强化已回滚，但费用返还尚未完成，请联系管理员并提供操作号 %operation_id%。</red>"
+    not_accepting: "<red>插件正在重载或关闭，暂时无法执行强化，请稍后再试。</red>"
+    operation_in_progress: "<yellow>上一次强化仍在处理中，请稍候。</yellow>"
+    operation_conflict: "<red>本次强化的物品或材料与原操作不一致，已拒绝执行。</red>"
+    internal: "<red>强化过程中发生内部错误，未完成本次强化。</red>"
   enhancement:
     no_player: "<red>需要玩家在线才能执行强化。</red>"
     no_provider: "<red>未提供强化目标 Provider。</red>"
