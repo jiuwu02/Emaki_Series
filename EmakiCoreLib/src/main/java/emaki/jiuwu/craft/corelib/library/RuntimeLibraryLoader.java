@@ -73,7 +73,7 @@ public final class RuntimeLibraryLoader {
         return List.copyOf(prepared);
     }
 
-    private static final String GRAALVM_VERSION = "25.0.3";
+    private static final String GRAALVM_VERSION = "25.2.4";
 
     private List<RuntimeLibrary> libraries() {
         return List.of(
