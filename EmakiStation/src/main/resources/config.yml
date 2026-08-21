@@ -2,7 +2,7 @@
 #
 # 控制工作站队列、容量限制、EmakiStorage 通道、持久化与界面刷新。
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "1.0.2"
+version: "1.0.3"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

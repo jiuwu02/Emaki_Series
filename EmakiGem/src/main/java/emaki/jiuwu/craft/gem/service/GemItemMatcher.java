@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.gem.service;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -12,10 +11,10 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
-import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
@@ -134,23 +133,25 @@ public final class GemItemMatcher {
             if (definition == null) {
                 continue;
             }
-            if (matchesItemSource(definition, identified)
-                    && matchesSlotGroups(definition, itemStack.getType())
-                    && matchesLore(definition, itemStack)) {
+            if (matchesSlotGroups(definition, itemStack.getType())
+                    && satisfiesMatcher(definition.matcher(), itemStack, identified)) {
                 return definition;
             }
         }
         return null;
     }
 
-    private boolean matchesItemSource(GemItemDefinition definition, ItemSourceRef identified) {
-        if (definition.itemSources().isEmpty()) {
+    private boolean satisfiesMatcher(Matcher matcher, ItemStack itemStack, ItemSourceRef identified) {
+        if (matcher == null) {
             return true;
         }
-        if (identified == null) {
+        try {
+            return matcher.test(MatchContext.of(itemStack, identified, null));
+        } catch (RuntimeException | LinkageError failure) {
+            plugin.getLogger().warning("Gem matcher evaluation failed, treating the item as unmatched: "
+                    + failure.getMessage());
             return false;
         }
-        return definition.itemSources().stream().anyMatch(source -> ItemSourceUtil.matches(source, identified));
     }
 
     private boolean matchesSlotGroups(GemItemDefinition definition, Material material) {
@@ -164,24 +165,6 @@ public final class GemItemMatcher {
             }
         }
         return false;
-    }
-
-    private boolean matchesLore(GemItemDefinition definition, ItemStack itemStack) {
-        if (definition.loreContains().isEmpty()) {
-            return true;
-        }
-        List<String> plainLore = new ArrayList<>();
-        List<String> lore = ItemTextBridge.loreLines(itemStack == null ? null : itemStack.getItemMeta());
-        if (lore != null) {
-            lore.stream().map(MiniMessages::plainText).forEach(plainLore::add);
-        }
-        String fullText = String.join("\n", plainLore).toLowerCase(Locale.ROOT);
-        for (String token : definition.loreContains()) {
-            if (!fullText.contains(Texts.lower(token))) {
-                return false;
-            }
-        }
-        return true;
     }
 
     private boolean matchesGroup(String materialType, String group) {
@@ -211,24 +194,36 @@ public final class GemItemMatcher {
             return config == null || !config.enabled() ? List.of() : List.of(config);
         }
         ItemSourceRef identified = identifyItem(itemStack);
-        if (identified == null) {
-            return List.of();
-        }
         return plugin.appConfig().socketOpeners().values().stream()
                 .filter(config -> config != null && config.enabled())
-                .filter(config -> config.itemSource() != null && ItemSourceUtil.matches(config.itemSource(), identified))
+                .filter(config -> acceptsOpenerItem(config, itemStack, identified))
                 .toList();
+    }
+
+    private boolean acceptsOpenerItem(SocketOpenerConfig config, ItemStack itemStack, ItemSourceRef identified) {
+        if (config.matcher() != null) {
+            return satisfiesMatcher(config.matcher(), itemStack, identified);
+        }
+        return identified != null
+                && config.itemSource() != null
+                && ItemSourceUtil.matches(config.itemSource(), identified);
     }
 
     private GemDefinition matchGemDefinitionBySource(ItemStack itemStack) {
         ItemSourceRef identified = identifyItem(itemStack);
-        if (identified == null) {
-            return null;
-        }
         List<GemDefinition> matches = plugin.gemLoader().all().values().stream()
-                .filter(definition -> definition != null && definition.itemSource() != null)
-                .filter(definition -> ItemSourceUtil.matches(definition.itemSource(), identified))
+                .filter(definition -> definition != null)
+                .filter(definition -> acceptsGemItem(definition, itemStack, identified))
                 .toList();
         return matches.size() == 1 ? matches.getFirst() : null;
+    }
+
+    private boolean acceptsGemItem(GemDefinition definition, ItemStack itemStack, ItemSourceRef identified) {
+        if (definition.matcher() != null) {
+            return satisfiesMatcher(definition.matcher(), itemStack, identified);
+        }
+        return identified != null
+                && definition.itemSource() != null
+                && ItemSourceUtil.matches(definition.itemSource(), identified);
     }
 }

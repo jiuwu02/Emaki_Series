@@ -16,21 +16,25 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.item.ComponentPath;
+import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
 /**
  * 统一的物品匹配器接口，用于配方材料校验、条件判断等场景。
  * <p>
- * 支持六种匹配器类型：
+ * 支持以下匹配器类型：
  * <ul>
  *   <li>{@code item_source}: 按物品类型识别（原版/自定义物品源）</li>
  *   <li>{@code pdc_match}: 按 PDC 键值匹配，支持类型和比较符</li>
  *   <li>{@code lore_match}: 按 Lore 文本匹配（包含/完全/正则）</li>
+ *   <li>{@code component}: 按 Minecraft 物品组件及其内部取值匹配</li>
  *   <li>{@code variable_expr}: 表达式或 PAPI 条件</li>
  *   <li>{@code compare_target}: 与目标装备比较</li>
- *   <li>{@code all}/{@code any}: 组合逻辑运算</li>
+ *   <li>{@code all_of}/{@code any_of}/{@code none_of}/{@code at_least}/{@code exactly}: 组合逻辑运算</li>
  * </ul>
  * <p>
  * 配置格式示例：
@@ -38,8 +42,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
  * matcher:
  *   type: item_source
  *   sources:
- *     - "minecraft:diamond"
- *     - "mmoitems:SWORD:FLAME_BLADE"
+ *     - "minecraft-diamond"
+ *     - "mmoitems-SWORD-FLAME_BLADE"
  *
  * matcher:
  *   type: pdc_match
@@ -54,6 +58,13 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
  *   mode: contains
  *
  * matcher:
+ *   type: component
+ *   component: enchantments
+ *   path: sharpness
+ *   operator: ">="
+ *   value: 5
+ *
+ * matcher:
  *   type: variable_expr
  *   expression: "player_level >= 10 && pdc_emakiforge_quality > 3"
  *
@@ -62,16 +73,27 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
  *   matchers:
  *     - { type: item_source, sources: ["minecraft:diamond_sword"] }
  *     - { type: pdc_match, key: "emakiforge:enchant_level", operator: ">=", value: 5 }
+ *
+ * matcher:
+ *   type: at_least
+ *   required_count: 2
+ *   matchers:
+ *     - { type: component, component: enchantments, path: sharpness, operator: ">=", value: 5 }
+ *     - { type: component, component: custom_name, operator: contains, value: "炎" }
+ *     - { type: component, component: rarity, operator: "==", value: epic }
  * }</pre>
  */
 public sealed interface Matcher permits
         Matcher.ItemSourceMatcher,
         Matcher.PdcMatcher,
         Matcher.LoreMatcher,
+        Matcher.ComponentMatcher,
         Matcher.VariableExprMatcher,
         Matcher.CompareTargetMatcher,
         Matcher.AllMatcher,
-        Matcher.AnyMatcher {
+        Matcher.AnyMatcher,
+        Matcher.NoneMatcher,
+        Matcher.CountMatcher {
 
     /**
      * 测试物品是否匹配。
@@ -91,20 +113,43 @@ public sealed interface Matcher permits
         if (config == null) {
             return new AllMatcher(List.of());
         }
-        if (!(config instanceof YamlSection section)) {
-            return new AllMatcher(List.of());
+        YamlSection section = asSection(config);
+        if (section == null) {
+            ComponentMatcherSupport.LOGGER.warning("Matcher config is not a mapping and will never match: "
+                    + config.getClass().getSimpleName() + " -> " + config);
+            return new AnyMatcher(List.of());
         }
         String type = Texts.lower(section.getString("type", "item_source"));
         return switch (type) {
             case "item_source" -> parseItemSource(section);
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
+            case "component", "component_match" -> parseComponentMatch(section);
             case "variable_expr", "expr", "expression" -> parseVariableExpr(section);
             case "compare_target", "target" -> parseCompareTarget(section);
-            case "all", "and" -> parseAll(section);
-            case "any", "or" -> parseAny(section);
+            case "all_of", "all", "and" -> parseAll(section);
+            case "any_of", "any", "or" -> parseAny(section);
+            case "none_of", "none", "not" -> parseNone(section);
+            case "at_least" -> parseCount(section, CountMode.AT_LEAST);
+            case "exactly" -> parseCount(section, CountMode.EXACTLY);
             default -> new AllMatcher(List.of());
         };
+    }
+
+    private static @Nullable YamlSection asSection(@NotNull Object config) {
+        if (config instanceof YamlSection section) {
+            return section;
+        }
+        if (config instanceof Map<?, ?> map) {
+            Map<String, Object> keyed = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() != null) {
+                    keyed.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
+            }
+            return new MapYamlSection(keyed);
+        }
+        return null;
     }
 
     private static @NotNull Matcher parseItemSource(@NotNull YamlSection section) {
@@ -154,6 +199,34 @@ public sealed interface Matcher permits
         return new LoreMatcher(pattern, mode);
     }
 
+    private static @NotNull Matcher parseComponentMatch(@NotNull YamlSection section) {
+        String componentId = ItemComponentSnapshot.normalizeComponentId(section.getString("component", ""));
+        if (componentId.isEmpty()) {
+            return rejectComponentMatcher("missing 'component' key");
+        }
+        Object expected = section.get("value");
+        String operator = Texts.lower(section.getString("operator", expected == null ? "exists" : "=="));
+        ComponentOperator resolved = ComponentOperator.fromConfig(operator);
+        if (resolved == null) {
+            return rejectComponentMatcher("unknown operator '" + operator + "' for component " + componentId);
+        }
+        if (resolved.requiresValue() && expected == null) {
+            return rejectComponentMatcher("operator '" + operator + "' requires a 'value' for component " + componentId);
+        }
+        if (ComponentMatcherSupport.isNonValued(componentId)
+                && resolved != ComponentOperator.EXISTS
+                && resolved != ComponentOperator.ABSENT) {
+            return rejectComponentMatcher(componentId
+                    + " is a unit component and only supports exists/absent, got '" + operator + "'");
+        }
+        return new ComponentMatcher(componentId, ComponentPath.parse(section.getString("path", "")), resolved, expected);
+    }
+
+    private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
+        ComponentMatcherSupport.LOGGER.warning("Component matcher rejected at load time, it will never match: " + reason + ".");
+        return new AnyMatcher(List.of());
+    }
+
     private static @NotNull Matcher parseVariableExpr(@NotNull YamlSection section) {
         String expression = section.getString("expression", "true");
         return new VariableExprMatcher(expression);
@@ -166,17 +239,25 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher parseAll(@NotNull YamlSection section) {
-        List<Matcher> matchers = new ArrayList<>();
-        List<?> matcherList = section.getList("matchers");
-        if (matcherList != null) {
-            for (Object item : matcherList) {
-                matchers.add(fromConfig(item));
-            }
-        }
-        return new AllMatcher(matchers);
+        return new AllMatcher(parseChildren(section));
     }
 
     private static @NotNull Matcher parseAny(@NotNull YamlSection section) {
+        return new AnyMatcher(parseChildren(section));
+    }
+
+    private static @NotNull Matcher parseNone(@NotNull YamlSection section) {
+        return new NoneMatcher(parseChildren(section));
+    }
+
+    private static @NotNull Matcher parseCount(@NotNull YamlSection section, @NotNull CountMode mode) {
+        List<Matcher> matchers = parseChildren(section);
+        Integer configured = section.getInt("required_count", 1);
+        int required = configured == null ? 1 : configured;
+        return new CountMatcher(matchers, mode, Math.max(0, required));
+    }
+
+    private static @NotNull List<Matcher> parseChildren(@NotNull YamlSection section) {
         List<Matcher> matchers = new ArrayList<>();
         List<?> matcherList = section.getList("matchers");
         if (matcherList != null) {
@@ -184,7 +265,7 @@ public sealed interface Matcher permits
                 matchers.add(fromConfig(item));
             }
         }
-        return new AnyMatcher(matchers);
+        return matchers;
     }
 
     private static @Nullable NamespacedKey parseNamespacedKey(@NotNull String keyStr) {
@@ -216,6 +297,60 @@ public sealed interface Matcher permits
         CONTAINS,
         EXACT,
         REGEX
+    }
+
+    enum CountMode {
+        AT_LEAST,
+        EXACTLY
+    }
+
+    enum ComponentOperator {
+        EXISTS(false),
+        ABSENT(false),
+        EQUALS(true),
+        NOT_EQUALS(true),
+        GREATER(true),
+        GREATER_OR_EQUAL(true),
+        LESS(true),
+        LESS_OR_EQUAL(true),
+        CONTAINS(true),
+        STARTS_WITH(true),
+        ENDS_WITH(true),
+        REGEX(true),
+        HAS_KEY(true),
+        HAS_VALUE(true),
+        SIZE(true);
+
+        private final boolean requiresValue;
+
+        ComponentOperator(boolean requiresValue) {
+            this.requiresValue = requiresValue;
+        }
+
+        boolean requiresValue() {
+            return requiresValue;
+        }
+
+        static @Nullable ComponentOperator fromConfig(@NotNull String operator) {
+            return switch (operator) {
+                case "exists", "present" -> EXISTS;
+                case "absent", "missing" -> ABSENT;
+                case "==", "equals", "=" -> EQUALS;
+                case "!=", "not_equals" -> NOT_EQUALS;
+                case ">", "greater_than" -> GREATER;
+                case ">=", "greater_or_equal" -> GREATER_OR_EQUAL;
+                case "<", "less_than" -> LESS;
+                case "<=", "less_or_equal" -> LESS_OR_EQUAL;
+                case "contains" -> CONTAINS;
+                case "starts_with" -> STARTS_WITH;
+                case "ends_with" -> ENDS_WITH;
+                case "regex", "pattern" -> REGEX;
+                case "has_key" -> HAS_KEY;
+                case "has_value" -> HAS_VALUE;
+                case "size" -> SIZE;
+                default -> null;
+            };
+        }
     }
 
     record ItemSourceMatcher(@NotNull List<ItemSourceRef> sources) implements Matcher {
@@ -334,6 +469,36 @@ public sealed interface Matcher permits
         }
     }
 
+    record ComponentMatcher(@NotNull String componentId,
+            @NotNull ComponentPath path,
+            @NotNull ComponentOperator operator,
+            @Nullable Object expectedValue) implements Matcher {
+
+        @Override
+        public boolean test(@NotNull MatchContext context) {
+            if (context.item() == null || context.item().getType().isAir()) {
+                return false;
+            }
+            ItemComponentSnapshot snapshot = ItemComponentSnapshot.of(context.item());
+            if (operator == ComponentOperator.EXISTS) {
+                return snapshot.present(componentId);
+            }
+            if (operator == ComponentOperator.ABSENT) {
+                return !snapshot.present(componentId);
+            }
+            List<Object> candidates = snapshot.resolve(componentId, path);
+            if (candidates.isEmpty()) {
+                return false;
+            }
+            for (Object candidate : candidates) {
+                if (ComponentMatcherSupport.compare(candidate, expectedValue, operator)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+    }
+
     record VariableExprMatcher(@NotNull String expression) implements Matcher {
         @Override
         public boolean test(@NotNull MatchContext context) {
@@ -439,6 +604,43 @@ public sealed interface Matcher permits
                 }
             }
             return false;
+        }
+    }
+
+    record NoneMatcher(@NotNull List<Matcher> matchers) implements Matcher {
+        public NoneMatcher {
+            matchers = List.copyOf(matchers);
+        }
+
+        @Override
+        public boolean test(@NotNull MatchContext context) {
+            for (Matcher matcher : matchers) {
+                if (matcher.test(context)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+
+    record CountMatcher(@NotNull List<Matcher> matchers, @NotNull CountMode mode, int requiredCount) implements Matcher {
+        public CountMatcher {
+            matchers = List.copyOf(matchers);
+            requiredCount = Math.max(0, requiredCount);
+        }
+
+        @Override
+        public boolean test(@NotNull MatchContext context) {
+            int satisfied = 0;
+            for (Matcher matcher : matchers) {
+                if (matcher.test(context)) {
+                    satisfied++;
+                }
+            }
+            return switch (mode) {
+                case AT_LEAST -> satisfied >= requiredCount;
+                case EXACTLY -> satisfied == requiredCount;
+            };
         }
     }
 }

@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -322,11 +323,47 @@ public final class FermentationBarrelRuntimeService implements Listener {
             if (!recipeService.canUseRecipe(recipe, player)) {
                 continue;
             }
-            if (actual.equals(aggregateExpected(recipe))) {
+            if (actual.equals(aggregateExpected(recipe)) && matchesInputMatchers(recipe, state, player)) {
                 return recipe;
             }
         }
         return null;
+    }
+
+    private boolean matchesInputMatchers(RecipeDocument recipe, FermentationBarrelState state, Player player) {
+        for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
+            Matcher matcher = CookingMatchers.parse(input, "matcher");
+            if (matcher == null) {
+                continue;
+            }
+            String expectedSource = firstSource(input.get("item_sources"));
+            if (Texts.isBlank(expectedSource)) {
+                continue;
+            }
+            if (!matchesSlotWithSource(state, expectedSource, matcher, player)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean matchesSlotWithSource(FermentationBarrelState state,
+            String expectedSource,
+            Matcher matcher,
+            Player player) {
+        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
+            if (!expectedSource.equalsIgnoreCase(entry.getValue())) {
+                continue;
+            }
+            ItemStack stored = StoredItemCodec.deserialize(state.slotItemData(entry.getKey()));
+            if (stored == null || stored.getType().isAir()) {
+                continue;
+            }
+            if (!CookingMatchers.test(matcher, stored, ItemSourceUtil.parse(entry.getValue()), player)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private Map<String, Integer> aggregateActual(FermentationBarrelState state) {

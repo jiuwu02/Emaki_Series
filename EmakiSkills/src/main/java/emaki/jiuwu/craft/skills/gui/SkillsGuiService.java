@@ -23,7 +23,12 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshotScope;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -597,12 +602,39 @@ public final class SkillsGuiService {
     }
 
     private long countMaterial(Player player, MaterialCost material) {
-        if (player == null || material == null || Texts.isBlank(material.item())) {
+        if (player == null || material == null) {
+            return 0L;
+        }
+        if (material.matcher() != null) {
+            return countMatcherMaterial(player, material.matcher());
+        }
+        if (Texts.isBlank(material.item())) {
             return 0L;
         }
         return InventoryItemUtil.countItems(player,
                 plugin.coreLib().itemSourceService(),
                 ItemSourceUtil.parse(material.item()));
+    }
+
+    private long countMatcherMaterial(Player player, Matcher matcher) {
+        ItemSourceService itemSourceService = plugin.coreLib().itemSourceService();
+        long total = 0L;
+        try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
+            for (ItemStack stack : player.getInventory().getContents()) {
+                if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
+                    continue;
+                }
+                ItemSourceRef source = itemSourceService == null ? null : itemSourceService.identifyItem(stack);
+                if (matcher.test(MatchContext.of(stack, source, player))) {
+                    total += stack.getAmount();
+                }
+            }
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Skill upgrade material matcher threw and counts as zero: "
+                    + exception.getClass().getSimpleName());
+            return 0L;
+        }
+        return total;
     }
 
     private Map<String, Object> upgradeBaseReplacements(SkillDefinition definition, UpgradePreview preview) {

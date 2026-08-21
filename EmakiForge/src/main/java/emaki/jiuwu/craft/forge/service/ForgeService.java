@@ -463,7 +463,7 @@ public final class ForgeService {
         if (recipe == null || guiItems == null) {
             return List.of();
         }
-        return layerSnapshotBuilder.collectQualityModifiers(layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems));
+        return layerSnapshotBuilder.collectQualityModifiers(layerSnapshotBuilder.collectMaterialContributions(null, recipe, guiItems));
     }
 
     private boolean isPreparationThreadOwned(Player player) {

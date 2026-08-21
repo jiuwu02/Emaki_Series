@@ -40,15 +40,51 @@ cost:
 # 单个配方的材料种类数不受 GUI 槽位数限制。仓库通道按 long 直扣，
 # 背包通道受原版每格 64 上限约束。
 #
-# 注意：材料分配是贪心的，没有回溯。当同一个物品能满足多条需求时，
-# 会分配给先声明的那一条。极少数情况下这会让一个理论可行的配方匹配失败，
-# 拆分配方即可规避。
+# 物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_sword。
+# 下面 matcher 里 component 的组件 ID 与 path 资源 ID 用【冒号】。
+#
+# 两种分配模型，按本配方是否出现 matcher 决定，一个配方只走其中一种：
+#
+#   1) 全部材料只写 item_sources（下面第一条）——沿用原有聚合计数模型，
+#      背包 + 仓库两通道都参与，分配是贪心的、没有回溯。当同一个物品能
+#      满足多条需求时会分配给先声明的那一条，极少数情况下会让理论可行的
+#      配方匹配失败，拆分配方即可规避。
+#
+#   2) 任意一条材料写了 matcher（下面第二条）——整条配方改走最大二分匹配
+#      分配（带容量最大流），不会再因为声明顺序不巧而失配。代价是
+#      【只从背包扣料，不走仓库通道】：matcher 判定的是具体物品栈的组件，
+#      而仓库只按物品模板记数、拿不到逐栈组件，无法参与判定。
+#      需要仓库供料的配方请不要写 matcher。
 materials:
   - item_sources:
       - "minecraft-iron_ingot"
     amount: 9
     # consume: false 表示只校验持有、不扣除（用于"需要工具在手"这类需求）
     consume: true
+
+  # matcher 写法示例（默认注释掉，取消注释即生效，但整条配方会变成仅背包供料）。
+  #
+  # matcher 可以单独写，也可以和 item_sources 并存：
+  #   两者都写时，item_sources 被忽略，判定完全由 matcher 决定，
+  #   item_sources 只剩下"给界面提供图标与名称"的作用。
+  #   只写 matcher 时界面没有图标可取，会显示屏障占位 +
+  #   texts.recipe.material_matcher 的文案。
+  #
+  # 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
+  #          at_least + required_count、exactly + required_count
+  # component 的 operator 全集：
+  #   exists / absent、==、!=、>、>=、<、<=、
+  #   contains / starts_with / ends_with、regex、has_key / has_value、size
+  #
+  # - matcher:
+  #     type: all_of
+  #     matchers:
+  #       # 物品源子条件仍用连字符简写
+  #       - { type: item_source, sources: ["minecraft-iron_ingot"] }
+  #       # 组件 ID 用冒号形状；custom_name 等价于 minecraft:custom_name
+  #       - { type: component, component: custom_name, operator: contains, value: "精铁" }
+  #   amount: 2
+  #   consume: true
 
 result:
   outputs:

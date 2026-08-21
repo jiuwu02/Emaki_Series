@@ -8,8 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -17,9 +16,8 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 public final class GemItemDefinition {
 
     private final String id;
-    private final List<ItemSourceRef> itemSources;
     private final List<String> slotGroups;
-    private final List<String> loreContains;
+    private final Matcher matcher;
     private final List<SocketSlot> slots;
     private final Set<Integer> defaultOpenSlots;
     private final Set<String> allowedGemTypes;
@@ -29,9 +27,8 @@ public final class GemItemDefinition {
     private final GuiSettings guiSettings;
 
     public GemItemDefinition(String id,
-            List<ItemSourceRef> itemSources,
             List<String> slotGroups,
-            List<String> loreContains,
+            Matcher matcher,
             List<SocketSlot> slots,
             Set<Integer> defaultOpenSlots,
             Set<String> allowedGemTypes,
@@ -40,9 +37,8 @@ public final class GemItemDefinition {
             GemItemObtainConfig obtainConfig,
             GuiSettings guiSettings) {
         this.id = Texts.lower(id);
-        this.itemSources = itemSources == null ? List.of() : List.copyOf(itemSources);
         this.slotGroups = slotGroups == null ? List.of() : List.copyOf(slotGroups);
-        this.loreContains = loreContains == null ? List.of() : List.copyOf(loreContains);
+        this.matcher = matcher;
         this.slots = slots == null ? List.of() : slots.stream()
                 .filter(slot -> slot != null && slot.index() >= 0)
                 .sorted(Comparator.comparingInt(SocketSlot::index))
@@ -59,16 +55,12 @@ public final class GemItemDefinition {
         return id;
     }
 
-    public List<ItemSourceRef> itemSources() {
-        return itemSources;
-    }
-
     public List<String> slotGroups() {
         return slotGroups;
     }
 
-    public List<String> loreContains() {
-        return loreContains;
+    public Matcher matcher() {
+        return matcher;
     }
 
     public List<SocketSlot> slots() {
@@ -133,22 +125,11 @@ public final class GemItemDefinition {
         if (Texts.isBlank(id)) {
             return null;
         }
-        YamlSection match = section.getSection("match");
-        Object itemSourcesRaw = match == null ? null : match.get("item_sources");
-        Object slotGroupsRaw = match == null ? null : match.get("slot_groups");
-        Object loreContainsRaw = match == null ? null : match.get("lore_contains");
-        List<ItemSourceRef> itemSources = new ArrayList<>();
-        for (Object raw : ConfigNodes.asObjectList(itemSourcesRaw)) {
-            ItemSourceRef itemSource = ItemSourceUtil.parse(raw);
-            if (itemSource != null) {
-                itemSources.add(itemSource);
-            }
-        }
-        List<String> slotGroups = Texts.asStringList(slotGroupsRaw).stream()
+        List<String> slotGroups = Texts.asStringList(section.get("slot_groups")).stream()
                 .filter(Texts::isNotBlank)
                 .map(Texts::lower)
                 .toList();
-        List<String> loreContains = Texts.asStringList(loreContainsRaw);
+        YamlSection matcherSection = section.getSection("matcher");
         List<SocketSlot> slots = parseSlots(section);
         YamlSection gui = section.getSection("gui");
         Set<String> allowedGemTypes = new LinkedHashSet<>();
@@ -166,9 +147,8 @@ public final class GemItemDefinition {
         }
         return new GemItemDefinition(
                 id,
-                itemSources,
                 slotGroups,
-                loreContains,
+                matcherSection == null ? null : Matcher.fromConfig(matcherSection),
                 slots,
                 defaultOpenSlots,
                 allowedGemTypes,

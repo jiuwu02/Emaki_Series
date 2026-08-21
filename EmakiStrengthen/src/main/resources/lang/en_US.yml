@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "4.7.12"
+version: "4.7.14"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -35,7 +35,25 @@ command:
       givecatalyst: "Give strengthen material"
       operation: "Query enhancement operation ids and compensation state"
       pity: "Query, set, clear and diagnose pity counters"
+      convert_legacy: "Convert legacy match blocks in recipes/ to matcher and top-level fields"
       debug: "Manage debug tracking"
+  convert_legacy:
+    header: "<gold>========== Legacy match conversion (%mode%, %files% files) ==========</gold>"
+    mode:
+      dry_run: "dry run"
+      apply: "apply"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  Backed up as <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>Converted %converted%, no legacy block %skipped%, key conflict %conflict%, unconvertible %unconvertible%, failed %failed%.</gray>"
+    dry_run_hint: "<yellow>The above is a dry run; no file was written. Run <white>/emakistrengthen convert-legacy confirm</white> to write and back up the originals.</yellow>"
+    nothing_to_do: "<gray>No configuration needs conversion.</gray>"
+    status:
+      converted: "convertible"
+      no_legacy_block: "no legacy block"
+      conflict: "key conflict, left unchanged"
+      unconvertible: "field has no equivalent, left unchanged"
+      failed: "conversion failed, left unchanged"
   pity:
     header: "<gold>========== Pity Counters (%count%) ==========</gold>"
     line: "<yellow>%group%</yellow> <gray>scope=%scope% key=%key% counter=%counter% triggered=%triggered%</gray>"

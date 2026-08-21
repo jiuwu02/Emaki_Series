@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
@@ -87,6 +88,9 @@ public final class EnhancementRecipeParser {
         }
 
         YamlSection filterSection = section.getSection("filter");
+        if (filterSection != null && declaresMatcherType(filterSection)) {
+            return new EnhancementRecipe.TargetConfig(provider, null, Matcher.fromConfig(filterSection));
+        }
         Map<String, Object> filter = null;
         if (filterSection != null) {
             Map<String, Object> filterMap = new LinkedHashMap<>();
@@ -102,6 +106,10 @@ public final class EnhancementRecipeParser {
         }
 
         return new EnhancementRecipe.TargetConfig(provider, filter);
+    }
+
+    private static boolean declaresMatcherType(@NotNull YamlSection filterSection) {
+        return Texts.isNotBlank(filterSection.getString("type", ""));
     }
 
     private static @NotNull List<MaterialSlotConfig> parseMaterials(@Nullable List<Map<?, ?>> rawList) {

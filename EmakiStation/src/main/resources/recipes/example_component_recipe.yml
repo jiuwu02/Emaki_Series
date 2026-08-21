@@ -1,0 +1,132 @@
+# EmakiStation 组件条件示例配方
+#
+# 这个文件专门演示 matcher（物品组件条件）的写法，与 example_recipe.yml 分开放，
+# 是为了不影响那条开箱即用的铁块压制配方。
+#
+# ┌── 两条服主必须先知道的行为约束 ────────────────────────────────────────┐
+# │                                                                        │
+# │ 1) 本配方【故意】要求普通原版物品不具备的组件条件（自定义名、附魔等级），  │
+# │    所以刚装上插件时它在界面里会一直显示"材料不足"。这是示范用的预期表现，  │
+# │    不是配置错误。想让它可完成，请把下面 matcher 的条件改成你服上真实存在   │
+# │    的物品特征。                                                        │
+# │                                                                        │
+# │ 2) 【重要】一条配方里只要出现任意一个 matcher，整条配方就切换到"栈模型"：  │
+# │    改用最大二分匹配分配材料，并且【只从背包扣料、不再走仓库通道】。        │
+# │    原因是 matcher 判定的是具体物品栈上的组件，而仓库只按物品模板记数、     │
+# │    拿不到逐栈组件，无法参与判定。                                       │
+# │    → 即使工作站开了 channels.storage，仓库里的材料也不会计入本配方。      │
+# │    → 需要仓库供料的配方，请不要写 matcher，改用纯 item_sources。         │
+# │                                                                        │
+# └────────────────────────────────────────────────────────────────────────┘
+id: "component_demo_blade"
+display_name: "<light_purple>组件条件示例</light_purple>"
+
+station_ids:
+  - "blacksmith"
+
+tags:
+  - "blacksmith"
+
+permission: ""
+
+# 设为 false 可以让这条示范配方彻底不出现在目录里。
+# 默认 true，好让服主进游戏就能看到 matcher 需求在界面上长什么样
+# （尤其是只写 matcher、没有 item_sources 的那条会显示成屏障占位）。
+visible: true
+
+duration_seconds: 10
+
+cost:
+  type: "vault"
+  amount: 0
+
+# 材料需求。
+#
+# 形状速查：
+#   物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_sword
+#   component 的组件 ID 与 path 资源 ID 用【冒号】：
+#     component: custom_name   等价于 minecraft:custom_name
+#     path: sharpness          等价于 minecraft:sharpness
+#
+# 组合五态（type 取值）：
+#   all_of（别名 all / and）        全部子条件满足
+#   any_of（别名 any / or）         任一子条件满足
+#   none_of（别名 none / not）      全部子条件都不满足
+#   at_least + required_count       至少 N 条满足
+#   exactly  + required_count       恰好 N 条满足
+#
+# component 的 operator 全集：
+#   exists / absent
+#   == / != / > / >= / < / <=
+#   contains / starts_with / ends_with
+#   regex
+#   has_key / has_value
+#   size
+materials:
+  # 第 1 条：matcher 与 item_sources 并存。
+  #
+  # 两者都写时，【判定完全由 matcher 决定，item_sources 不参与判定】，
+  # 它只剩一个作用：给界面提供图标和物品名。
+  # 所以这里的 item_sources 写的是 matcher 内部同一个物品源，保持一致。
+  - item_sources:
+      - "minecraft-iron_ingot"
+    amount: 2
+    consume: true
+    matcher:
+      type: all_of
+      matchers:
+        - { type: item_source, sources: ["minecraft-iron_ingot"] }
+        - { type: component, component: custom_name, operator: contains, value: "精铁" }
+
+  # 第 2 条：只写 matcher，不写 item_sources。
+  #
+  # 这种"matcher-only"需求没有可枚举的物品身份，界面拿不到图标，
+  # 会显示成屏障占位 + gui/station_preview.yml 里 texts.recipe.material_matcher 的文案
+  # （默认"自定义条件"）。可以改那个键来自定义显示。
+  #
+  # at_least + required_count: 2 的含义是"下面三条里至少满足两条"。
+  - amount: 1
+    consume: true
+    matcher:
+      type: at_least
+      required_count: 2
+      matchers:
+        - { type: component, component: enchantments, path: sharpness, operator: ">=", value: 5 }
+        - { type: component, component: custom_name, operator: contains, value: "炎" }
+        - { type: component, component: rarity, operator: "==", value: epic }
+
+  # 第 3 条：none_of —— 用来表达"不能带某个组件"。
+  #
+  # consume: false 表示只校验持有、不扣除。
+  # 这里的含义是"必须持有一个未被标记为无法破坏的铁镐"。
+  - item_sources:
+      - "minecraft-iron_pickaxe"
+    amount: 1
+    consume: false
+    matcher:
+      type: all_of
+      matchers:
+        - { type: item_source, sources: ["minecraft-iron_pickaxe"] }
+        - type: none_of
+          matchers:
+            - { type: component, component: unbreakable, operator: exists }
+
+result:
+  outputs:
+    - item_sources:
+        - "minecraft-iron_block"
+      amount: 1
+  actions: []
+
+condition:
+  invalid_as_failure: true
+  entries: []
+
+display_condition:
+  invalid_as_failure: false
+  entries: []
+
+actions:
+  pre: []
+  success: []
+  failure: []

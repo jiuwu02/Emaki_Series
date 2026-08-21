@@ -147,7 +147,7 @@ public final class LevelGameplaySubscriber {
                 "result_amount", amount,
                 "result_type", event.result().getType().name()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("craft_item")) {
-            SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result());
+            SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result(), event.player());
             if (rule != null) {
                 sourceService.award(event.player(), source, rule,
                         Map.of("result_amount", amount, "result_type", event.result().getType().name()), "craft_item");
@@ -161,7 +161,7 @@ public final class LevelGameplaySubscriber {
                 "result_amount", event.amount(),
                 "result_type", event.result().getType().name()));
         for (SourceRuleConfig source : plugin.sourceRuleLoader().byTrigger("furnace_extract")) {
-            SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result());
+            SourceRuleConfig.Rule rule = sourceService.matchItem(source, event.result(), event.player());
             if (rule != null) {
                 sourceService.award(event.player(), source, rule,
                         Map.of("result_amount", event.amount(), "result_type", event.result().getType().name()), "furnace_extract");

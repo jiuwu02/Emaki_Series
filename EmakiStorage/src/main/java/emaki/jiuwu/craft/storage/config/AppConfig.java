@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Locale;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.storage.model.SearchQuery;
 import emaki.jiuwu.craft.storage.model.SortMode;
 
@@ -177,15 +178,20 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    public record DepositFilter(FilterMode mode, List<String> entries) {
+    public record DepositFilter(FilterMode mode, List<String> entries, Matcher matcher) {
 
-        public DepositFilter(FilterMode mode, List<String> entries) {
+        public DepositFilter(FilterMode mode, List<String> entries, Matcher matcher) {
             this.mode = mode;
             this.entries = List.copyOf(entries);
+            this.matcher = matcher;
+        }
+
+        public boolean empty() {
+            return entries.isEmpty() && matcher == null;
         }
 
         public static DepositFilter defaults() {
-            return new DepositFilter(FilterMode.BLACKLIST, List.of());
+            return new DepositFilter(FilterMode.BLACKLIST, List.of(), null);
         }
     }
 

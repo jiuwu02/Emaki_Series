@@ -63,10 +63,15 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
-# 推荐优先使用 source_ids 精确绑定示例物品源；请将下方演示 ID 替换为你的实际物品源。
-# slot_groups 是粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位。
-match:
-  source_ids:
+# matcher 是 CoreLib 统一匹配器配置，决定哪些物品能套用此配方。
+# 推荐优先用 type: item_source 精确绑定示例物品源；请将下方演示 ID 替换为你的实际物品源。
+# 另有三个顶层字段与 matcher 取 AND（都成立才命中），按需添加：
+#   slot_groups     粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位
+#   stats_any       只要拥有其中任一 EmakiAttribute 属性即满足
+#   source_patterns 对物品源简写做正则（忽略大小写，部分匹配）
+matcher:
+  type: item_source
+  sources:
     - "emakiitem-example_branch_blade"
 
 # ============================================================

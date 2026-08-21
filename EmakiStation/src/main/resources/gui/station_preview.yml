@@ -184,6 +184,9 @@ texts:
     station.recipe_condition_failed: "不满足合成条件"
     station.queue_not_loaded: "数据尚未加载完成"
     station.pending_claim_limit: "待领取的产物太多了"
+  recipe:
+    # 材料只写了 matcher、没有 item_sources 时代替物品名显示的文案。
+    material_matcher: "<light_purple>自定义条件</light_purple>"
   output_state:
     storage_first: "<aqua>仓库优先</aqua>"
     backpack_first: "<white>背包优先</white>"

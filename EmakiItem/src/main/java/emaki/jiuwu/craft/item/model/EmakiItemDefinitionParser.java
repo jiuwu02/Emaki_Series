@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -325,10 +326,11 @@ public final class EmakiItemDefinitionParser {
                 continue;
             }
             List<ItemSourceRef> itemSources = parseRepairItemSources(entry);
+            Matcher matcher = parseRepairMatcher(entry);
             int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
             String restore = Texts.toStringSafe(ConfigNodes.get(entry, "restore"));
-            if (!itemSources.isEmpty() && Texts.isNotBlank(restore)) {
-                materials.add(new RepairMaterial(itemSources, amount, restore));
+            if ((!itemSources.isEmpty() || matcher != null) && Texts.isNotBlank(restore)) {
+                materials.add(new RepairMaterial(itemSources, amount, restore, matcher));
             }
         }
         RepairEconomyConfig economy = parseRepairEconomy(section.getSection("economy"));
@@ -336,6 +338,17 @@ public final class EmakiItemDefinitionParser {
         List<String> onDisabled = normalizedList(section.get("on_disabled"));
         List<String> onRepaired = normalizedList(section.get("on_repaired"));
         return new RepairConfig(true, materials, economy, disabledDisplay, onDisabled, onRepaired);
+    }
+
+    private Matcher parseRepairMatcher(Map<?, ?> entry) {
+        Object rawMatcher = ConfigNodes.get(entry, "matcher");
+        if (rawMatcher instanceof YamlSection matcherSection) {
+            return matcherSection.isEmpty() ? null : Matcher.fromConfig(matcherSection);
+        }
+        if (rawMatcher instanceof Map<?, ?> matcherMap) {
+            return matcherMap.isEmpty() ? null : Matcher.fromConfig(matcherMap);
+        }
+        return null;
     }
 
     private List<ItemSourceRef> parseRepairItemSources(Map<?, ?> entry) {

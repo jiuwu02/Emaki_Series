@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.7"
+version: "2.7.9"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -112,7 +112,26 @@ command:
       reload: "重载宝石配置与资源"
       inspect: "查看主手装备的宝石状态"
       clearstate: "移除主手物品上的宝石层"
+      convert_legacy: "把 items/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 模式"
+
+  convert_legacy:
+    header: "<gold>========== 旧 match 块转换（%mode%，共 %files% 个文件） ==========</gold>"
+    mode:
+      dry_run: "预演"
+      apply: "写入"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>转换 %converted% 个、无旧块 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
+    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakigem convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    status:
+      converted: "可转换"
+      no_legacy_block: "无旧块"
+      conflict: "键冲突，已保留原样"
+      unconvertible: "字段无等价写法，已保留原样"
+      failed: "转换失败，已保留原样"
 
   inspect:
     header: "<gold>宝石状态检查 - %player%</gold>"

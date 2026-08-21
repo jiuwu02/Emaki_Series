@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 final class WokSettings {
 
@@ -41,6 +42,10 @@ final class WokSettings {
 
     List<ItemSourceRef> spatulaSources() {
         return CookingSettingsService.parseSources(configuration.get().get("stations.wok.spatula_item_sources"));
+    }
+
+    Matcher spatulaMatcher() {
+        return CookingMatchers.parse(configuration.get(), "stations.wok.spatula_matcher");
     }
 
     List<CookingSettingsService.HeatLevelRule> heatLevels() {

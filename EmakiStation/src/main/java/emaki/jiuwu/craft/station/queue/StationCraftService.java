@@ -113,7 +113,7 @@ public final class StationCraftService {
             RecipeDefinition recipe,
             long batch,
             MergedMaterialChannel.Availability availability) {
-        MergedMaterialChannel.DebitPlan plan = materialChannel.plan(recipe, batch, availability);
+        MergedMaterialChannel.DebitPlan plan = materialChannel.plan(player, recipe, batch, availability);
         if (plan == null) {
             return CompletableFuture.completedFuture(
                     EmakiResult.rejected("station.insufficient_materials"));

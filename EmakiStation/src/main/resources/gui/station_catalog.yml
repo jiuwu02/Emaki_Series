@@ -180,6 +180,8 @@ texts:
     cost_keep: "<gray>需持有 <white>%material%</white> x<yellow>%amount%</yellow> <dark_gray>(不消耗)</dark_gray></gray>"
     material_line: "<gray>- <white>%material%</white> x<yellow>%amount%</yellow></gray>"
     material_none: "<dark_gray>无</dark_gray>"
+    # 材料只写了 matcher、没有 item_sources 时代替物品名显示的文案。
+    material_matcher: "<light_purple>自定义条件</light_purple>"
   output_state:
     storage_first: "<aqua>仓库优先</aqua>"
     backpack_first: "<white>背包优先</white>"

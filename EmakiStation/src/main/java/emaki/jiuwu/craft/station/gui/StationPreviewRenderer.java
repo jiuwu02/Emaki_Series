@@ -87,23 +87,25 @@ public final class StationPreviewRenderer {
             return null;
         }
         MaterialRequirement requirement = requirements.get(offset);
-        ItemSourceRef primary = requirement.sources().getFirst();
+        ItemSourceRef primary = requirement.primarySource();
         long required = requirement.totalFor(state.batch());
         long owned = state.availability().totalOf(requirement);
-        ItemStack icon = itemSourceService == null ? null : itemSourceService.createItem(primary, 1);
+        ItemStack icon = itemSourceService == null || primary == null
+                ? null
+                : itemSourceService.createItem(primary, 1);
         if (icon == null || icon.getType().isAir()) {
             icon = new ItemStack(Material.BARRIER);
         }
         applyRequiredAmount(icon, required);
         Map<String, Object> values = new LinkedHashMap<>();
-        values.put("material", displayNameOf(primary));
+        values.put("material", materialNameOf(state, requirement));
         values.put("required", AmountDisplay.compact(required));
         values.put("required_exact", AmountDisplay.precise(required));
         values.put("owned", AmountDisplay.compact(owned));
         values.put("owned_exact", AmountDisplay.precise(owned));
         values.put("satisfied", owned >= required ? "true" : "false");
         values.put("consumed", requirement.consume() ? "true" : "false");
-        values.put("alternatives", String.valueOf(requirement.sources().size() - 1));
+        values.put("alternatives", String.valueOf(Math.max(0, requirement.sources().size() - 1)));
         values.put("index", String.valueOf(offset + 1));
         values.put("page", String.valueOf(state.materialPage() + 1));
         values.put("pages", String.valueOf(GuiPagination.totalPages(requirements.size(), pageSize)));
@@ -209,6 +211,15 @@ public final class StationPreviewRenderer {
         }
         String name = itemSourceService.displayName(source);
         return name == null || name.isBlank() ? source.identifier() : name;
+    }
+
+    private String materialNameOf(StationViewState state, MaterialRequirement requirement) {
+        ItemSourceRef primary = requirement.primarySource();
+        if (primary != null) {
+            return displayNameOf(primary);
+        }
+        return guiSupport.text(state.station().previewLayoutId(), "texts.recipe.material_matcher",
+                "Custom condition", Map.of());
     }
 
     private static long totalOutput(RecipeDefinition recipe, long batch) {

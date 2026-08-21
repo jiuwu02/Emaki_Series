@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public record SourceRuleConfig(String id,
         boolean enabled,
@@ -85,7 +86,8 @@ public record SourceRuleConfig(String id,
             Set<String> resultItemSources,
             Set<String> potionTypes,
             Set<String> mobIds,
-            String expFormula) {
+            String expFormula,
+            Matcher matcher) {
 
         public Rule {
             entityTypes = normalizeSet(entityTypes);
@@ -105,7 +107,8 @@ public record SourceRuleConfig(String id,
                     new LinkedHashSet<>(stringList(map.get("result_item_sources"))),
                     normalizedStringSet(map.get("potion_types")),
                     normalizedStringSet(map.get("mob_ids")),
-                    string(map.get("exp_formula"), "0")
+                    string(map.get("exp_formula"), "0"),
+                    map.get("matcher") == null ? null : Matcher.fromConfig(map.get("matcher"))
             );
         }
     }

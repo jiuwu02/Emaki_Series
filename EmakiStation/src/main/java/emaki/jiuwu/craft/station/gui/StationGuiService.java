@@ -52,7 +52,6 @@ import emaki.jiuwu.craft.station.queue.QueueUnlockService;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.station.api.model.QueueEntryState;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 
@@ -127,8 +126,7 @@ public final class StationGuiService {
         this.dismantleRenderer = new DismantleGuiRenderer(itemSourceService,
                 () -> guiService.configuredItemService(), guiSupport);
         this.dismantleController = new DismantleGuiInteractionController(dismantleService,
-                new OutputDelivery(itemSourceService, storageChannel),
-                itemSourceService);
+                new OutputDelivery(itemSourceService, storageChannel));
     }
 
     public EmakiResult<Unit> open(Player player, String stationId) {
@@ -250,11 +248,8 @@ public final class StationGuiService {
             if (item == null || item.getType().isAir()) {
                 continue;
             }
-            ItemSourceRef ref = itemSourceService.identifyItem(item);
-            if (ref == null) {
-                continue;
-            }
-            List<DismantleRecipeDefinition> matches = dismantleService.findMatching(ref, station.id());
+            List<DismantleRecipeDefinition> matches =
+                    dismantleService.findMatching(item, station.id(), player);
             if (!matches.isEmpty()) {
                 recipe = matches.getFirst();
                 break;
@@ -357,11 +352,11 @@ public final class StationGuiService {
         }
         state.availability(state.availability(), now);
         materialChannel.snapshotAsync(state.viewer(), state.station(), recipe)
-                .thenAccept(availability -> {
+                .thenAccept(availability -> materialChannel.runOnOwner(state.viewer(), () -> {
                     state.availability(availability, System.currentTimeMillis());
                     updateBlockReason(state);
                     redraw(state);
-                });
+                }));
     }
 
     private void updateBlockReason(StationViewState state) {
@@ -376,7 +371,7 @@ public final class StationGuiService {
             state.blockReason(gate.reasonKey());
             return;
         }
-        if (materialChannel.plan(recipe, state.batch(), state.availability()) == null) {
+        if (materialChannel.plan(state.viewer(), recipe, state.batch(), state.availability()) == null) {
             state.blockReason("insufficient_materials");
             return;
         }
@@ -393,7 +388,7 @@ public final class StationGuiService {
         if (recipe == null) {
             return 0L;
         }
-        long byMaterials = materialChannel.maxBatch(recipe, state.availability());
+        long byMaterials = materialChannel.maxBatch(state.viewer(), recipe, state.availability());
         if (!recipe.cost().charges()) {
             return byMaterials;
         }

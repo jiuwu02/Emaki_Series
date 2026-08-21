@@ -3,14 +3,19 @@ package emaki.jiuwu.craft.item.model;
 import java.util.List;
 import java.util.Objects;
 
+import org.jetbrains.annotations.Nullable;
+
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public record RepairMaterial(List<ItemSourceRef> itemSources,
         int amount,
-        String restoreRaw) {
+        String restoreRaw,
+        @Nullable Matcher matcher) {
 
     public RepairMaterial {
         itemSources = itemSources == null ? List.of() : itemSources.stream()
@@ -20,8 +25,16 @@ public record RepairMaterial(List<ItemSourceRef> itemSources,
         restoreRaw = Texts.toStringSafe(restoreRaw).trim();
     }
 
+    public RepairMaterial(List<ItemSourceRef> itemSources, int amount, String restoreRaw) {
+        this(itemSources, amount, restoreRaw, null);
+    }
+
     public boolean hasItemSources() {
         return !itemSources.isEmpty();
+    }
+
+    public boolean hasMatcher() {
+        return matcher != null;
     }
 
     public boolean matches(ItemSourceRef source) {
@@ -29,6 +42,16 @@ public record RepairMaterial(List<ItemSourceRef> itemSources,
             return false;
         }
         return itemSources.stream().anyMatch(expected -> ItemSourceUtil.matches(source, expected));
+    }
+
+    public boolean matches(MatchContext context) {
+        if (context == null) {
+            return false;
+        }
+        if (matcher != null) {
+            return matcher.test(context);
+        }
+        return matches(context.itemSource());
     }
 
     public String displaySources() {

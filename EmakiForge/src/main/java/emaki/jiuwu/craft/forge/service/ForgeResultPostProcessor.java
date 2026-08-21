@@ -43,7 +43,7 @@ final class ForgeResultPostProcessor {
         if (preparedForge == null || resultItem == null) {
             return;
         }
-        List<ForgeMaterialContribution> materials = layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems);
+        List<ForgeMaterialContribution> materials = layerSnapshotBuilder.collectMaterialContributions(player, recipe, guiItems);
         pdcAttributeWriter.apply(
                 recipe,
                 materials,

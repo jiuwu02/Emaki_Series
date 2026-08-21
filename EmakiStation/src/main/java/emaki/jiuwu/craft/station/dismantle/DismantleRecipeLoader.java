@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
 public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRecipeDefinition> {
@@ -71,6 +72,7 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             return null;
         }
 
+        YamlSection matcherSection = configuration.getSection("matcher");
         return new DismantleRecipeDefinition(
                 id,
                 configuration.getString("display_name", id),
@@ -80,7 +82,8 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
                 rolls,
                 pool,
                 configuration.getString("permission", ""),
-                ConditionBlock.fromRoot(configuration, true, false));
+                ConditionBlock.fromRoot(configuration, true, false),
+                matcherSection == null ? null : Matcher.fromConfig(matcherSection));
     }
 
     private RollsRange parseRolls(YamlSection configuration) {

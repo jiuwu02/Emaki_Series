@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 
 public final class Recipe {
     public record QualityConfig(boolean enabled,
@@ -317,6 +318,42 @@ public final class Recipe {
         for (ForgeMaterial material : materials) {
             if (material.optional() == optional && material.matches(source)) {
                 return material;
+            }
+        }
+        return null;
+    }
+
+    public ForgeMaterial findMaterialMatching(MatchContext context) {
+        if (context == null) {
+            return null;
+        }
+        for (ForgeMaterial material : materials) {
+            if (material.matches(context)) {
+                return material;
+            }
+        }
+        return null;
+    }
+
+    public ForgeMaterial findMaterialMatching(MatchContext context, boolean optional) {
+        if (context == null) {
+            return null;
+        }
+        for (ForgeMaterial material : materials) {
+            if (material.optional() == optional && material.matches(context)) {
+                return material;
+            }
+        }
+        return null;
+    }
+
+    public BlueprintRequirement findBlueprintRequirementMatching(MatchContext context) {
+        if (context == null) {
+            return null;
+        }
+        for (BlueprintRequirement requirement : blueprintRequirements) {
+            if (requirement != null && requirement.matches(context)) {
+                return requirement;
             }
         }
         return null;

@@ -17,6 +17,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
 
 public final class ItemComponentInspector {
 
@@ -60,10 +61,10 @@ public final class ItemComponentInspector {
         if (value.isEmpty()) {
             return ComponentValueParseResult.failure("Component value cannot be blank.");
         }
-        String unquoted = unquote(value);
+        String unquoted = ComponentValueParser.unquote(value);
         String candidate = unquoted == null ? value : unquoted;
-        Object parsed = JsonParser.parse(candidate);
-        if (parsed != JsonParser.INVALID) {
+        Object parsed = ComponentValueParser.parse(candidate);
+        if (parsed != ComponentValueParser.INVALID) {
             return ComponentValueParseResult.success(parsed);
         }
         if (unquoted != null) {
@@ -72,8 +73,8 @@ public final class ItemComponentInspector {
         if (looksStructured(value)) {
             return ComponentValueParseResult.failure("Malformed structured component value.");
         }
-        Object scalar = parseScalar(value);
-        return ComponentValueParseResult.success(scalar == JsonParser.INVALID ? value : scalar);
+        Object scalar = ComponentValueParser.parseScalar(value);
+        return ComponentValueParseResult.success(scalar == ComponentValueParser.INVALID ? value : scalar);
     }
 
     public String value(ItemStack itemStack, String componentId) {
@@ -201,21 +202,7 @@ public final class ItemComponentInspector {
     }
 
     private Object parseJsonishValue(String raw) {
-        String value = Texts.toStringSafe(raw).trim();
-        if (value.isEmpty()) {
-            return true;
-        }
-        String unquoted = unquote(value);
-        String candidate = unquoted == null ? value : unquoted;
-        Object parsed = JsonParser.parse(candidate);
-        if (parsed != JsonParser.INVALID) {
-            return parsed;
-        }
-        if (unquoted != null) {
-            return unquoted;
-        }
-        Object scalar = parseScalar(value);
-        return scalar == JsonParser.INVALID ? value : scalar;
+        return ComponentValueParser.parseLenient(raw);
     }
 
     private boolean looksStructured(String value) {
@@ -224,66 +211,6 @@ public final class ItemComponentInspector {
         }
         char first = value.charAt(0);
         return first == '{' || first == '[' || first == '"' || first == '\'';
-    }
-
-    private static Object parseScalar(String value) {
-        if ("true".equalsIgnoreCase(value)) {
-            return true;
-        }
-        if ("false".equalsIgnoreCase(value)) {
-            return false;
-        }
-        if ("null".equalsIgnoreCase(value)) {
-            return null;
-        }
-        try {
-            if (!value.isEmpty() && value.indexOf('.') < 0 && value.indexOf('e') < 0 && value.indexOf('E') < 0) {
-                return Long.parseLong(value);
-            }
-            return Double.parseDouble(value);
-        } catch (NumberFormatException ignored) {
-            return JsonParser.INVALID;
-        }
-    }
-
-    private String unquote(String value) {
-        if (value.length() < 2) {
-            return null;
-        }
-        char quote = value.charAt(0);
-        if ((quote != '"' && quote != '\'') || value.charAt(value.length() - 1) != quote) {
-            return null;
-        }
-        StringBuilder builder = new StringBuilder(value.length() - 2);
-        for (int index = 1; index < value.length() - 1; index++) {
-            char current = value.charAt(index);
-            if (current != '\\' || index + 1 >= value.length() - 1) {
-                builder.append(current);
-                continue;
-            }
-            char next = value.charAt(++index);
-            switch (next) {
-                case 'n' -> builder.append('\n');
-                case 'r' -> builder.append('\r');
-                case 't' -> builder.append('\t');
-                case 'b' -> builder.append('\b');
-                case 'f' -> builder.append('\f');
-                case 'u' -> {
-                    if (index + 4 < value.length() - 1) {
-                        try {
-                            builder.append((char) Integer.parseInt(value.substring(index + 1, index + 5), 16));
-                            index += 4;
-                        } catch (NumberFormatException ignored) {
-                            builder.append('u');
-                        }
-                    } else {
-                        builder.append('u');
-                    }
-                }
-                default -> builder.append(next);
-            }
-        }
-        return builder.toString();
     }
 
     private ItemMeta meta(ItemStack itemStack) {
@@ -436,285 +363,6 @@ public final class ItemComponentInspector {
             id = id == null ? "" : id;
             value = value == null ? "" : value;
         }
-    }
-
-    private static final class JsonParser {
-
-        private static final Object INVALID = new Object();
-
-        private final String text;
-        private int index;
-
-        private JsonParser(String text) {
-            this.text = text == null ? "" : text;
-        }
-
-        static Object parse(String text) {
-            JsonParser parser = new JsonParser(text);
-            Object value = parser.readValue();
-            parser.skipWhitespace();
-            return value == INVALID || parser.index != parser.text.length() ? INVALID : value;
-        }
-
-        private Object readValue() {
-            skipWhitespace();
-            if (index >= text.length()) {
-                return INVALID;
-            }
-            char current = text.charAt(index);
-            return switch (current) {
-                case '{' -> readObject();
-                case '[' -> readArray();
-                case '"', '\'' -> readString();
-                case 't', 'f' -> readBooleanOrBare();
-                case 'n' -> readNullOrBare();
-                default -> readNumberOrBare();
-            };
-        }
-
-        private Object readObject() {
-            Map<String, Object> result = new LinkedHashMap<>();
-            index++;
-            skipWhitespace();
-            if (consume('}')) {
-                return result;
-            }
-            while (index < text.length()) {
-                Object key = readObjectKey();
-                if (!(key instanceof String stringKey)) {
-                    return INVALID;
-                }
-                skipWhitespace();
-                if (!consume(':')) {
-                    return INVALID;
-                }
-                Object value = readValue();
-                if (value == INVALID) {
-                    return INVALID;
-                }
-                result.put(stringKey, value);
-                skipWhitespace();
-                if (consume('}')) {
-                    return result;
-                }
-                if (!consume(',')) {
-                    return INVALID;
-                }
-            }
-            return INVALID;
-        }
-
-        private Object readArray() {
-            List<Object> result = new ArrayList<>();
-            index++;
-            skipWhitespace();
-            if (consume(']')) {
-                return result;
-            }
-            while (index < text.length()) {
-                Object value = readValue();
-                if (value == INVALID) {
-                    return INVALID;
-                }
-                result.add(value);
-                skipWhitespace();
-                if (consume(']')) {
-                    return result;
-                }
-                if (!consume(',')) {
-                    return INVALID;
-                }
-            }
-            return INVALID;
-        }
-
-        private Object readString() {
-            if (index >= text.length()) {
-                return INVALID;
-            }
-            char quote = text.charAt(index);
-            if (quote != '"' && quote != '\'') {
-                return INVALID;
-            }
-            index++;
-            StringBuilder builder = new StringBuilder();
-            while (index < text.length()) {
-                char current = text.charAt(index++);
-                if (current == quote) {
-                    return builder.toString();
-                }
-                if (current != '\\') {
-                    builder.append(current);
-                    continue;
-                }
-                if (index >= text.length()) {
-                    return INVALID;
-                }
-                char escaped = text.charAt(index++);
-                switch (escaped) {
-                    case '"' -> builder.append('"');
-                    case '\'' -> builder.append('\'');
-                    case '\\' -> builder.append('\\');
-                    case '/' -> builder.append('/');
-                    case 'b' -> builder.append('\b');
-                    case 'f' -> builder.append('\f');
-                    case 'n' -> builder.append('\n');
-                    case 'r' -> builder.append('\r');
-                    case 't' -> builder.append('\t');
-                    case 'u' -> {
-                        if (index + 4 > text.length()) {
-                            return INVALID;
-                        }
-                        try {
-                            builder.append((char) Integer.parseInt(text.substring(index, index + 4), 16));
-                        } catch (NumberFormatException ignored) {
-                            return INVALID;
-                        }
-                        index += 4;
-                    }
-                    default -> builder.append(escaped);
-                }
-            }
-            return INVALID;
-        }
-
-        private Object readObjectKey() {
-            skipWhitespace();
-            if (index >= text.length()) {
-                return INVALID;
-            }
-            char current = text.charAt(index);
-            if (current == '"' || current == '\'') {
-                return readString();
-            }
-            int start = index;
-            while (index < text.length()) {
-                current = text.charAt(index);
-                if (current == ':' || Character.isWhitespace(current)) {
-                    break;
-                }
-                index++;
-            }
-            String key = text.substring(start, index).trim();
-            return key.isEmpty() ? INVALID : key;
-        }
-
-        private Object readBooleanOrBare() {
-            if (text.startsWith("true", index) && boundary(index + 4)) {
-                index += 4;
-                return true;
-            }
-            if (text.startsWith("false", index) && boundary(index + 5)) {
-                index += 5;
-                return false;
-            }
-            return readBareValue();
-        }
-
-        private Object readNullOrBare() {
-            if (text.startsWith("null", index) && boundary(index + 4)) {
-                index += 4;
-                return null;
-            }
-            return readBareValue();
-        }
-
-        private Object readNumberOrBare() {
-            int start = index;
-            Object number = readNumber();
-            if (number != INVALID && boundary(index)) {
-                return number;
-            }
-            index = start;
-            return readBareValue();
-        }
-
-        private Object readNumber() {
-            int start = index;
-            if (index < text.length() && text.charAt(index) == '-') {
-                index++;
-            }
-            while (index < text.length() && Character.isDigit(text.charAt(index))) {
-                index++;
-            }
-            boolean floating = false;
-            if (index < text.length() && text.charAt(index) == '.') {
-                floating = true;
-                index++;
-                while (index < text.length() && Character.isDigit(text.charAt(index))) {
-                    index++;
-                }
-            }
-            if (index < text.length() && (text.charAt(index) == 'e' || text.charAt(index) == 'E')) {
-                floating = true;
-                index++;
-                if (index < text.length() && (text.charAt(index) == '+' || text.charAt(index) == '-')) {
-                    index++;
-                }
-                while (index < text.length() && Character.isDigit(text.charAt(index))) {
-                    index++;
-                }
-            }
-            if (start == index || (start + 1 == index && text.charAt(start) == '-')) {
-                return INVALID;
-            }
-            try {
-                String raw = text.substring(start, index);
-                if (floating) {
-                    double parsed = Double.parseDouble(raw);
-                    return Double.isFinite(parsed) ? parsed : INVALID;
-                }
-                return Long.parseLong(raw);
-            } catch (NumberFormatException ignored) {
-                return INVALID;
-            }
-        }
-
-        private Object readBareValue() {
-            int start = index;
-            int depth = 0;
-            while (index < text.length()) {
-                char current = text.charAt(index);
-                if (depth == 0 && (current == ',' || current == '}' || current == ']')) {
-                    break;
-                }
-                if (current == '[' || current == '{' || current == '(') {
-                    depth++;
-                } else if (current == ']' || current == '}' || current == ')') {
-                    depth = Math.max(0, depth - 1);
-                }
-                index++;
-            }
-            String value = text.substring(start, index).trim();
-            if (value.isEmpty()) {
-                return INVALID;
-            }
-            Object scalar = parseScalar(value);
-            return scalar == INVALID ? value : scalar;
-        }
-
-        private boolean boundary(int position) {
-            return position >= text.length()
-                    || Character.isWhitespace(text.charAt(position))
-                    || text.charAt(position) == ','
-                    || text.charAt(position) == '}'
-                    || text.charAt(position) == ']';
-        }
-
-        private void skipWhitespace() {
-            while (index < text.length() && Character.isWhitespace(text.charAt(index))) {
-                index++;
-            }
-        }
-
-        private boolean consume(char expected) {
-            if (index < text.length() && text.charAt(index) == expected) {
-                index++;
-                return true;
-            }
-            return false;
-        }
-
     }
 
     private static final class JsonWriter {

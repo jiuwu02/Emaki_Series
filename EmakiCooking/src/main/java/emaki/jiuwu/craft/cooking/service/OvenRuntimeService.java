@@ -716,7 +716,8 @@ public final class OvenRuntimeService implements Listener {
             return null;
         }
         for (CookingSettingsService.OvenFuelRule rule : settingsService.ovenFuels()) {
-            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)) {
+            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)
+                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }

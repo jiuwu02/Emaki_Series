@@ -50,7 +50,8 @@ final class OvenSettings {
             result.add(new CookingSettingsService.OvenFuelRule(
                     source,
                     duration == null ? 0 : Math.max(0, duration),
-                    heat == null ? 0 : Math.max(0, heat)
+                    heat == null ? 0 : Math.max(0, heat),
+                    CookingMatchers.parse(normalized, "matcher")
             ));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);

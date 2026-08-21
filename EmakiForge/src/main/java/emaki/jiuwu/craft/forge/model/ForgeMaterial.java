@@ -12,6 +12,8 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public final class ForgeMaterial {
 
@@ -71,6 +73,8 @@ public final class ForgeMaterial {
     private final int capacityCost;
     private final List<MaterialEffect> effects;
     private final ItemSourceRef source;
+    private final Matcher matcher;
+    private final String matcherKey;
 
     public ForgeMaterial(String item,
             int amount,
@@ -78,12 +82,25 @@ public final class ForgeMaterial {
             int capacityCost,
             List<MaterialEffect> effects,
             ItemSourceRef source) {
+        this(item, amount, optional, capacityCost, effects, source, null, "");
+    }
+
+    public ForgeMaterial(String item,
+            int amount,
+            boolean optional,
+            int capacityCost,
+            List<MaterialEffect> effects,
+            ItemSourceRef source,
+            Matcher matcher,
+            String matcherKey) {
         this.item = item;
         this.amount = amount;
         this.optional = optional;
         this.capacityCost = capacityCost;
         this.effects = List.copyOf(effects);
         this.source = source;
+        this.matcher = matcher;
+        this.matcherKey = matcherKey == null ? "" : matcherKey;
     }
 
     public static ForgeMaterial fromConfig(YamlSection section) {
@@ -98,9 +115,22 @@ public final class ForgeMaterial {
         return other != null && ItemSourceUtil.matches(source, other);
     }
 
+    public boolean matches(MatchContext context) {
+        if (context == null) {
+            return false;
+        }
+        if (matcher != null) {
+            return matcher.test(context);
+        }
+        return matches(context.itemSource());
+    }
+
     public String key() {
         String shorthand = ItemSourceUtil.toShorthand(source);
-        return shorthand == null ? "" : Texts.lower(shorthand);
+        if (Texts.isBlank(shorthand)) {
+            return matcherKey;
+        }
+        return Texts.lower(shorthand);
     }
 
     public int forgeCapacityBonus() {
@@ -238,6 +268,9 @@ public final class ForgeMaterial {
         result.put("optional", optional);
         result.put("capacity_cost", capacityCost);
         result.put("effects", effectData);
+        if (Texts.isNotBlank(matcherKey)) {
+            result.put("matcher", matcherKey);
+        }
         return result;
     }
 
@@ -321,5 +354,9 @@ public final class ForgeMaterial {
 
     public ItemSourceRef source() {
         return source;
+    }
+
+    public Matcher matcher() {
+        return matcher;
     }
 }

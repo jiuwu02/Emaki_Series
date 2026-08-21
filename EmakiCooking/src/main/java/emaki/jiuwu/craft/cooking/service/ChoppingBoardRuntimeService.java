@@ -480,7 +480,7 @@ public final class ChoppingBoardRuntimeService {
             return false;
         }
         if (settingsService.onlyRecipeItems(StationType.CHOPPING_BOARD)
-                && recipeService.findChoppingBoardRecipe(shorthand, player) == null) {
+                && recipeService.findChoppingBoardRecipe(shorthand, player, hand) == null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
             interaction.cancel();
             return true;
@@ -588,6 +588,10 @@ public final class ChoppingBoardRuntimeService {
         if (shorthand == null || shorthand.isBlank() || !matchesInputSource(shorthand, state.inputSource())) {
             return false;
         }
+        if (recipeService.findChoppingBoardRecipe(shorthand, player) != null
+                && recipeService.findChoppingBoardRecipe(shorthand, player, hand) == null) {
+            return false;
+        }
         if (settingsService.choppingSpaceRestriction() && block.getRelative(BlockFace.UP).getType() != Material.AIR) {
             return false;
         }
@@ -668,7 +672,7 @@ public final class ChoppingBoardRuntimeService {
         }
         for (ItemSourceRef tool : settingsService.choppingToolSources()) {
             if (ItemSourceUtil.matches(tool, source)) {
-                return true;
+                return CookingMatchers.test(settingsService.choppingToolMatcher(), itemStack, source, null);
             }
         }
         return false;

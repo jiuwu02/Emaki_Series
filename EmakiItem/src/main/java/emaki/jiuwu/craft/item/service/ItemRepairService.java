@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.ItemPdcKeys;
@@ -160,17 +161,19 @@ public final class ItemRepairService {
         if (!definition.repair().enabled() || !definition.repair().hasRepairMaterials()) {
             return null;
         }
-        ItemSourceService sourceService = itemSourceService;
-        ItemSourceRef repairItemSource = sourceService == null ? null : sourceService.identifyItem(repairItem);
-        if (repairItemSource == null) {
-            return null;
-        }
+        MatchContext context = matchContext(repairItem);
         for (RepairMaterial material : definition.repair().materials()) {
-            if (material.matches(repairItemSource)) {
+            if (material.matches(context)) {
                 return material;
             }
         }
         return null;
+    }
+
+    private MatchContext matchContext(ItemStack itemStack) {
+        ItemSourceService sourceService = itemSourceService;
+        ItemSourceRef source = sourceService == null ? null : sourceService.identifyItem(itemStack);
+        return MatchContext.of(itemStack, source, null);
     }
 
     @Nullable
@@ -193,17 +196,12 @@ public final class ItemRepairService {
         if (providedMaterials == null || providedMaterials.isEmpty() || material == null) {
             return 0L;
         }
-        ItemSourceService sourceService = itemSourceService;
-        if (sourceService == null) {
-            return 0L;
-        }
         long total = 0L;
         for (ItemStack itemStack : providedMaterials.values()) {
             if (itemStack == null || itemStack.getType().isAir()) {
                 continue;
             }
-            ItemSourceRef source = sourceService.identifyItem(itemStack);
-            if (material.matches(source)) {
+            if (material.matches(matchContext(itemStack))) {
                 total += itemStack.getAmount();
             }
         }
@@ -217,6 +215,9 @@ public final class ItemRepairService {
     private MaterialDebit debitProvidedMaterial(Map<Integer, ItemStack> providedMaterials, RepairMaterial material) {
         if (providedMaterials == null || material == null || material.amount() <= 0) {
             return MaterialDebit.committed(List.of());
+        }
+        if (material.hasMatcher()) {
+            return debitMatchedMaterial(providedMaterials, material);
         }
         if (itemSourceService == null) {
             return MaterialDebit.failure();
@@ -248,6 +249,40 @@ public final class ItemRepairService {
             return MaterialDebit.failure();
         }
         return MaterialDebit.committed(plans);
+    }
+
+    private MaterialDebit debitMatchedMaterial(Map<Integer, ItemStack> providedMaterials, RepairMaterial material) {
+        long remaining = material.amount();
+        List<InventoryItemUtil.SlotRemoval> removals = new ArrayList<>();
+        for (Map.Entry<Integer, ItemStack> entry : providedMaterials.entrySet()) {
+            if (remaining <= 0L) {
+                break;
+            }
+            ItemStack itemStack = entry.getValue();
+            if (itemStack == null || itemStack.getType().isAir()) {
+                continue;
+            }
+            if (!material.matches(matchContext(itemStack))) {
+                continue;
+            }
+            int take = (int) Math.min(remaining, itemStack.getAmount());
+            if (take <= 0) {
+                continue;
+            }
+            ItemStack after = itemStack.clone();
+            after.setAmount(itemStack.getAmount() - take);
+            removals.add(new InventoryItemUtil.SlotRemoval(entry.getKey(), itemStack, after));
+            remaining -= take;
+        }
+        if (remaining > 0L) {
+            return MaterialDebit.failure();
+        }
+        InventoryItemUtil.RemovalPlan plan =
+                new InventoryItemUtil.RemovalPlan(material.amount(), material.amount(), removals);
+        if (!InventoryItemUtil.applyRemoval(providedMaterials, plan)) {
+            return MaterialDebit.failure();
+        }
+        return MaterialDebit.committed(List.of(plan));
     }
 
     private boolean rollbackMaterial(Map<Integer, ItemStack> providedMaterials,

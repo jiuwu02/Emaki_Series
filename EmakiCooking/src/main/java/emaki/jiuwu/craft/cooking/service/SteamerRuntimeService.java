@@ -847,7 +847,8 @@ public final class SteamerRuntimeService implements Listener {
             return null;
         }
         for (CookingSettingsService.SteamerFuelRule rule : settingsService.steamerFuels()) {
-            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)) {
+            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)
+                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }
@@ -860,7 +861,8 @@ public final class SteamerRuntimeService implements Listener {
             return null;
         }
         for (CookingSettingsService.SteamerMoistureRule rule : settingsService.steamerMoistureSources()) {
-            if (rule != null && ItemSourceUtil.matches(rule.inputSource(), identified)) {
+            if (rule != null && ItemSourceUtil.matches(rule.inputSource(), identified)
+                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }

@@ -11,6 +11,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import java.util.logging.Logger;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -19,8 +20,11 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshotScope;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.storage.api.event.StorageBatchEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageDepositEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageWithdrawEvent;
@@ -38,6 +42,8 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.model.StorageReservation;
 
 public final class StorageTransactionService {
+
+    private static final Logger LOGGER = Logger.getLogger(StorageTransactionService.class.getName());
 
     private final ItemSourceService itemSourceService;
     private final StorageCapacityService capacityService;
@@ -646,10 +652,11 @@ public final class StorageTransactionService {
     }
 
     private boolean passesFilter(ItemStack template, AppConfig.DepositFilter filter) {
-        if (filter.mode() == AppConfig.FilterMode.OFF || filter.entries().isEmpty()) {
+        if (filter.mode() == AppConfig.FilterMode.OFF || filter.empty()) {
             return filter.mode() != AppConfig.FilterMode.WHITELIST;
         }
-        boolean listed = matchesAnyToken(template, filter.entries());
+        boolean listed = matchesAnyToken(template, filter.entries())
+                || matchesFilterMatcher(template, filter.matcher());
         return filter.mode() == AppConfig.FilterMode.WHITELIST ? listed : !listed;
     }
 
@@ -670,6 +677,20 @@ public final class StorageTransactionService {
             }
         }
         return false;
+    }
+
+    private boolean matchesFilterMatcher(ItemStack template, Matcher matcher) {
+        if (matcher == null) {
+            return false;
+        }
+        ItemSourceRef actual = itemSourceService == null ? null : itemSourceService.identifyItem(template);
+        try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
+            return matcher.test(MatchContext.of(template, actual, null));
+        } catch (RuntimeException exception) {
+            LOGGER.warning("[storage] deposit_filter matcher threw and is treated as no match: "
+                    + exception.getClass().getSimpleName());
+            return false;
+        }
     }
 
     private boolean isUnique(ItemStack template) {

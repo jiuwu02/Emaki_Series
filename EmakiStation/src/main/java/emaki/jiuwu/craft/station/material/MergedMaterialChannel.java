@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.station.material;
 
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -9,11 +10,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.matcher.MaterialAllocation;
 import emaki.jiuwu.craft.station.api.model.ConsumedMaterial;
 import emaki.jiuwu.craft.station.api.model.MaterialChannel;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
@@ -66,19 +69,37 @@ public final class MergedMaterialChannel {
         }
     }
 
-    public record DebitPlan(Map<ItemSourceRef, Long> fromBackpack, Map<ItemSourceRef, Long> fromStorage) {
+    public record StackDebit(int slotIndex, ItemStack expected, ItemSourceRef source, int amount) {
+
+        public StackDebit {
+            expected = expected == null ? null : expected.clone();
+        }
+    }
+
+    public record DebitPlan(Map<ItemSourceRef, Long> fromBackpack,
+            Map<ItemSourceRef, Long> fromStorage,
+            List<StackDebit> fromStacks) {
 
         public DebitPlan {
             fromBackpack = fromBackpack == null ? Map.of() : Map.copyOf(fromBackpack);
             fromStorage = fromStorage == null ? Map.of() : Map.copyOf(fromStorage);
+            fromStacks = fromStacks == null ? List.of() : List.copyOf(fromStacks);
+        }
+
+        public DebitPlan(Map<ItemSourceRef, Long> fromBackpack, Map<ItemSourceRef, Long> fromStorage) {
+            this(fromBackpack, fromStorage, List.of());
         }
 
         public boolean touchesStorage() {
             return !fromStorage.isEmpty();
         }
 
+        public boolean stackResolved() {
+            return !fromStacks.isEmpty();
+        }
+
         public boolean empty() {
-            return fromBackpack.isEmpty() && fromStorage.isEmpty();
+            return fromBackpack.isEmpty() && fromStorage.isEmpty() && fromStacks.isEmpty();
         }
     }
 
@@ -146,11 +167,114 @@ public final class MergedMaterialChannel {
         return new DebitPlan(fromBackpack, fromStorage);
     }
 
+    public DebitPlan plan(Player player, RecipeDefinition recipe, long batch, Availability availability) {
+        if (recipe == null) {
+            return null;
+        }
+        if (!matcherDriven(recipe)) {
+            return plan(recipe, batch, availability);
+        }
+        if (player == null) {
+            return null;
+        }
+        List<BackpackChannel.SlotStack> snapshot = backpackChannel.snapshotStacks(player);
+        MaterialAllocation allocation = RecipeMatcher.allocate(recipe,
+                stacksOf(snapshot),
+                stack -> backpackChannel.contextOf(player, stack),
+                batch);
+        if (!allocation.satisfied()) {
+            return null;
+        }
+        return debitPlanOf(recipe, snapshot, allocation);
+    }
+
     public long maxBatch(RecipeDefinition recipe, Availability availability) {
         if (recipe == null || availability == null) {
             return 0L;
         }
         return RecipeMatcher.maxBatch(recipe, availability.combined());
+    }
+
+    public long maxBatch(Player player, RecipeDefinition recipe, Availability availability) {
+        if (recipe == null) {
+            return 0L;
+        }
+        if (!matcherDriven(recipe)) {
+            return maxBatch(recipe, availability);
+        }
+        if (player == null) {
+            return 0L;
+        }
+        List<BackpackChannel.SlotStack> snapshot = backpackChannel.snapshotStacks(player);
+        return RecipeMatcher.maxBatch(recipe,
+                stacksOf(snapshot),
+                stack -> backpackChannel.contextOf(player, stack),
+                stackCeilingOf(snapshot));
+    }
+
+    public static boolean matcherDriven(RecipeDefinition recipe) {
+        if (recipe == null) {
+            return false;
+        }
+        for (MaterialRequirement requirement : recipe.requirements()) {
+            if (requirement.hasMatcher()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static List<ItemStack> stacksOf(List<BackpackChannel.SlotStack> snapshot) {
+        List<ItemStack> stacks = new ArrayList<>(snapshot.size());
+        for (BackpackChannel.SlotStack slotStack : snapshot) {
+            stacks.add(slotStack.stack());
+        }
+        return stacks;
+    }
+
+    private static long stackCeilingOf(List<BackpackChannel.SlotStack> snapshot) {
+        long ceiling = 0L;
+        for (BackpackChannel.SlotStack slotStack : snapshot) {
+            ceiling = plus(ceiling, slotStack.stack().getAmount());
+        }
+        return ceiling;
+    }
+
+    private DebitPlan debitPlanOf(RecipeDefinition recipe,
+            List<BackpackChannel.SlotStack> snapshot,
+            MaterialAllocation allocation) {
+        Map<ItemStack, Integer> slots = new IdentityHashMap<>();
+        for (BackpackChannel.SlotStack slotStack : snapshot) {
+            slots.put(slotStack.stack(), slotStack.slotIndex());
+        }
+        List<MaterialRequirement> requirements = recipe.requirements();
+        List<StackDebit> debits = new ArrayList<>();
+        for (MaterialAllocation.Assignment assignment : allocation.assignments()) {
+            int index = assignment.requirementIndex();
+            if (index < 0 || index >= requirements.size()) {
+                return null;
+            }
+            if (!requirements.get(index).consume() || assignment.amount() <= 0) {
+                continue;
+            }
+            Integer slotIndex = slots.get(assignment.stack());
+            if (slotIndex == null) {
+                return null;
+            }
+            ItemSourceRef source = backpackChannel.identify(assignment.stack());
+            if (source == null) {
+                return null;
+            }
+            debits.add(new StackDebit(slotIndex, assignment.stack(), source, assignment.amount()));
+        }
+        return new DebitPlan(Map.of(), Map.of(), debits);
+    }
+
+    public void runOnOwner(Player player, Runnable work) {
+        if (player == null || work == null) {
+            return;
+        }
+        dispatcher.runEntity(plugin, player, work);
     }
 
     public CompletableFuture<EmakiResult<List<ConsumedMaterial>>> debitAsync(Player player, DebitPlan plan) {
@@ -160,6 +284,12 @@ public final class MergedMaterialChannel {
         }
         if (plan.empty()) {
             return CompletableFuture.completedFuture(EmakiResult.success(List.of()));
+        }
+        if (plan.stackResolved()) {
+            List<ConsumedMaterial> consumed = backpackChannel.consumeStacks(player, plan.fromStacks());
+            return CompletableFuture.completedFuture(consumed == null
+                    ? EmakiResult.rejected("station.insufficient_materials")
+                    : EmakiResult.success(consumed));
         }
         if (!plan.touchesStorage()) {
             List<ConsumedMaterial> consumed = backpackChannel.consume(player, plan.fromBackpack());

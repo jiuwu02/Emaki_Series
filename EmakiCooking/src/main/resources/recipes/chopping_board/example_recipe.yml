@@ -25,6 +25,42 @@ input:
     - "minecraft-carrot"
   amount: 1
 
+  # ----------------------------------------------------------
+  # 可选：matcher 组件条件（在 item_sources 之外追加细化判定）
+  # ----------------------------------------------------------
+  # item_sources 决定"是哪种物品"，matcher 决定"这一枚具体够不够格"。
+  # 两者并存：先按 item_sources 命中配方，再用 matcher 复核玩家放入的那一枚。
+  # 不写 matcher（或留空）时行为与旧版完全一致，不影响任何现有配方。
+  #
+  # 注意书写差异：
+  #   物品源简写用【连字符】       —— "minecraft-carrot"
+  #   组件 ID / path 用【冒号】     —— component: custom_name / path: "minecraft:sharpness"
+  #
+  # 下例含义：必须是胡萝卜，且物品名里带"极上"二字，才算这条配方的输入。
+  # 取消注释即可启用。
+  #
+  # matcher:
+  #   type: all_of
+  #   matchers:
+  #     - { type: item_source, sources: ["minecraft-carrot"] }
+  #     - { type: component, component: custom_name, operator: contains, value: "极上" }
+  #
+  # 更多可用写法：
+  #   operator 可选 exists / absent / == / != / > / >= / < / <=
+  #                contains / starts_with / ends_with / regex
+  #                has_key / has_value / size
+  #   组合类型 all_of(and) / any_of(or) / none_of(not)
+  #           at_least + required_count / exactly + required_count
+  #
+  # 例：附魔锋利 >= 3，且不是被标记为"次品"的物品
+  # matcher:
+  #   type: all_of
+  #   matchers:
+  #     - { type: component, component: enchantments, path: "minecraft:sharpness", operator: ">=", value: 3 }
+  #     - type: none_of
+  #       matchers:
+  #         - { type: component, component: custom_name, operator: contains, value: "次品" }
+
 # ============================================================
 # 切割参数
 # ============================================================

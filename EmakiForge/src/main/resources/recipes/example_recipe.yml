@@ -28,9 +28,36 @@ forge_capacity: 35
 # ============================================================
 # 锻造前必须拥有的物品（不消耗，仅检测持有）。
 # 用于实现"需要先获得配方图纸"的玩法。
+#
+# 两种写法：
+#   ① item_sources: 只按物品来源判定（原有写法，保持不变）
+#   ② matcher:      按通用匹配器判定，可读取组件取值并用五态组合器组合
+# 二者同时存在时以 matcher 为准，item_sources 仅用于该条目的显示名。
+#
+# ⚠ 写法差异（易错点）：
+#   物品源简写用连字符：  "minecraft-enchanted_book"
+#   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
+# ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
+#   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
+#
+# ⚠ 不要为同一种图纸写两个条目（一个 item_sources、一个 matcher）：两个条目
+#   的计数键不同，会被当成两种图纸，要求玩家同时持有。要么替换、要么像下面
+#   这样把两种可接受形态写进同一个 matcher 的 any_of 里。
 blueprint_requirements:
+  # item_sources 在这里仍然保留：matcher 存在时它不参与判定，只用于显示名。
+  # matcher 用 any_of 接受两种图纸形态，其中第二种再用 all_of 追加组件条件：
+  #   ① 普通附魔书
+  #   ② 带 custom_model_data 标记的知识书（"官方发放的配方图纸"）
   - item_sources:
       - "minecraft-enchanted_book"
+    matcher:
+      type: any_of
+      matchers:
+        - { type: item_source, sources: ["minecraft-enchanted_book"] }
+        - type: all_of
+          matchers:
+            - { type: item_source, sources: ["minecraft-knowledge_book"] }
+            - { type: component, component: custom_model_data, path: "floats[0]", operator: "==", value: 1.0 }
     amount: 1
 
 # ============================================================
@@ -50,6 +77,20 @@ blueprint_requirements:
 #   - type: "name_action"     → 修改物品名称
 #   - type: "lore_action"     → 修改物品 Lore
 #   - type: "capacity_bonus"  → 扩展锻造容量（特殊类型）
+#
+# 材料判定有两种写法：
+#   ① item_sources: 只按物品来源判定（原有写法，本文件下面全部材料都用它）
+#   ② matcher:      按通用匹配器判定，可读取组件取值并用五态组合器组合
+# 同一条目里 matcher 存在时以 matcher 为准；item_sources 仅用于显示名。
+# 只写 matcher 不写 item_sources 也合法，此时该材料的计数键由 matcher
+# 内容派生（GUI 里显示为该派生键）。
+#
+# ⚠ 写法差异（易错点）：
+#   物品源简写用连字符：  "minecraft-iron_ingot"
+#   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
+#
+# ⚠ 判定顺序：同一物品按材料声明顺序取第一个匹配者，先声明的宽条件会
+#   遮蔽后声明的窄条件。窄条件请写在前面。
 materials:
   # ---- 基础材料：铁锭（提供物理属性）----
   - item_sources:
@@ -169,6 +210,79 @@ materials:
       # capacity_bonus: 特殊效果类型，增加锻造容量上限
       - type: "capacity_bonus"
         value: 20
+
+  # ---- matcher 示例①：任何"锋利 III 以上"的附魔物品 ----
+  # 不限定物品源，只看组件取值：enchantments 组件下 minecraft:sharpness 的等级。
+  # path 写附魔的资源 ID（冒号形式）；operator 支持 >= > <= < == != 等。
+  # 这类材料没有 item_sources，计数键由 matcher 内容派生。
+  - matcher:
+      type: component
+      component: enchantments
+      path: "minecraft:sharpness"
+      operator: ">="
+      value: 3
+    amount: 1
+    optional: true
+    capacity_cost: 6
+    effects:
+      - type: "variables"
+        variables:
+          inherited_sharpness: 4
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 4.0
+
+  # ---- matcher 示例②：三项品相条件满足任意两项即可 ----
+  # at_least + required_count: 子条件里至少成立 required_count 条才算匹配。
+  # 组合五态：all_of（全部成立）/ any_of（任一成立）/ none_of（全部不成立）
+  #          / at_least（至少 N 条）/ exactly（恰好 N 条）。
+  # 后两者需配合 required_count；子条件写在 matchers 列表里，可继续嵌套。
+  #
+  # 这里同时演示三种不同的组件读取方式：
+  #   rarity      → 枚举值，用 == 比较
+  #   custom_name → 文本组件，用 contains 做子串匹配
+  #   unbreakable → 单元组件（无值），只支持 exists / absent
+  - matcher:
+      type: at_least
+      required_count: 2
+      matchers:
+        - { type: component, component: rarity, operator: "==", value: epic }
+        - { type: component, component: custom_name, operator: contains, value: "锻" }
+        - { type: component, component: unbreakable, operator: exists }
+    amount: 1
+    optional: true
+    capacity_cost: 10
+    effects:
+      - type: "variables"
+        variables:
+          masterwork_bonus: 8
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 8.0
+      - type: "name_action"
+        name_actions:
+          - action: "append_suffix"
+            value: "<light_purple> [名匠]"
+
+  # ---- matcher 示例③：物品源 + 组件条件同时成立 ----
+  # all_of 把"物品必须是某个源"和"组件取值必须匹配"绑在一起，
+  # 用于把一类物品收窄为"官方发放的那一批"。
+  # 注意两种写法的分隔符差异：sources 用连字符，component/path 用冒号。
+  - matcher:
+      type: all_of
+      matchers:
+        - { type: item_source, sources: ["minecraft-amethyst_shard"] }
+        - { type: component, component: custom_model_data, path: "floats[0]", operator: "==", value: 1.0 }
+    amount: 1
+    optional: true
+    capacity_cost: 4
+    effects:
+      - type: "variables"
+        variables:
+          durability_bonus: 5
+      - type: "ea_attribute"
+        ea_attributes:
+          max_health: 5.0
 
 # ============================================================
 # 可选材料数量限制

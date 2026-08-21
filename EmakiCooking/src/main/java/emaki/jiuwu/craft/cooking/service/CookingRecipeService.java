@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -40,11 +41,19 @@ public final class CookingRecipeService {
     }
 
     public RecipeDocument findChoppingBoardRecipe(String inputSource, Player player) {
-        return findByInput(plugin.choppingBoardRecipeLoader().all().values(), inputSource, player);
+        return findChoppingBoardRecipe(inputSource, player, null);
+    }
+
+    public RecipeDocument findChoppingBoardRecipe(String inputSource, Player player, ItemStack itemStack) {
+        return findByInput(plugin.choppingBoardRecipeLoader().all().values(), inputSource, player, itemStack);
     }
 
     public RecipeDocument findGrinderRecipe(String inputSource, Player player) {
-        return findByInput(plugin.grinderRecipeLoader().all().values(), inputSource, player);
+        return findGrinderRecipe(inputSource, player, null);
+    }
+
+    public RecipeDocument findGrinderRecipe(String inputSource, Player player, ItemStack itemStack) {
+        return findByInput(plugin.grinderRecipeLoader().all().values(), inputSource, player, itemStack);
     }
 
     public RecipeDocument grinderRecipeById(String recipeId) {
@@ -101,7 +110,11 @@ public final class CookingRecipeService {
     }
 
     public RecipeDocument findSteamerRecipe(String inputSource, Player player) {
-        return findByInput(plugin.steamerRecipeLoader().all().values(), inputSource, player);
+        return findSteamerRecipe(inputSource, player, null);
+    }
+
+    public RecipeDocument findSteamerRecipe(String inputSource, Player player, ItemStack itemStack) {
+        return findByInput(plugin.steamerRecipeLoader().all().values(), inputSource, player, itemStack);
     }
 
     public int steamerRequiredSteam(RecipeDocument recipe) {
@@ -109,7 +122,11 @@ public final class CookingRecipeService {
     }
 
     public RecipeDocument findOvenRecipe(String inputSource, Player player) {
-        return findByInput(plugin.ovenRecipeLoader().all().values(), inputSource, player);
+        return findOvenRecipe(inputSource, player, null);
+    }
+
+    public RecipeDocument findOvenRecipe(String inputSource, Player player, ItemStack itemStack) {
+        return findByInput(plugin.ovenRecipeLoader().all().values(), inputSource, player, itemStack);
     }
 
     public int ovenBakeTimeSeconds(RecipeDocument recipe) {
@@ -149,7 +166,11 @@ public final class CookingRecipeService {
     }
 
     public RecipeDocument findJuicerRecipe(String inputSource, Player player) {
-        return findByInput(plugin.juicerRecipeLoader().all().values(), inputSource, player);
+        return findJuicerRecipe(inputSource, player, null);
+    }
+
+    public RecipeDocument findJuicerRecipe(String inputSource, Player player, ItemStack itemStack) {
+        return findByInput(plugin.juicerRecipeLoader().all().values(), inputSource, player, itemStack);
     }
 
     public int juicerPressesRequired(RecipeDocument recipe) {
@@ -199,6 +220,10 @@ public final class CookingRecipeService {
             return List.of();
         }
         return parseItemSources(recipe.configuration().get("container.item_sources"));
+    }
+
+    public Matcher juicerContainerMatcher(RecipeDocument recipe) {
+        return recipe == null ? null : CookingMatchers.parse(recipe.configuration(), "container.matcher");
     }
 
     public Collection<RecipeDocument> fermentationBarrelRecipes() {
@@ -346,7 +371,7 @@ public final class CookingRecipeService {
             if (wokHeatLevel(recipe) > 0 && wokHeatLevel(recipe) != heatLevel) {
                 continue;
             }
-            if (matchesWokIngredientPrefix(recipe, actualIngredients)) {
+            if (matchesWokIngredientPrefix(recipe, actualIngredients, player)) {
                 return true;
             }
         }
@@ -432,7 +457,10 @@ public final class CookingRecipeService {
         return Integer.compare(actualValue, expected);
     }
 
-    private RecipeDocument findByInput(Collection<RecipeDocument> recipes, String inputSource, Player player) {
+    private RecipeDocument findByInput(Collection<RecipeDocument> recipes,
+            String inputSource,
+            Player player,
+            ItemStack itemStack) {
         if (recipes == null || recipes.isEmpty() || Texts.isBlank(inputSource)) {
             return null;
         }
@@ -452,12 +480,23 @@ public final class CookingRecipeService {
             if (!canUseRecipe(recipe, player)) {
                 continue;
             }
+            if (!matchesInputMatcher(recipe, itemStack, expected, player)) {
+                continue;
+            }
             return recipe;
         }
         return null;
     }
 
-    private boolean matchesWokIngredientPrefix(RecipeDocument recipe, List<WokIngredientInput> actualIngredients) {
+    private boolean matchesInputMatcher(RecipeDocument recipe, ItemStack itemStack, ItemSourceRef source, Player player) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return true;
+        }
+        Matcher matcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
+        return CookingMatchers.test(matcher, itemStack, source, player);
+    }
+
+    private boolean matchesWokIngredientPrefix(RecipeDocument recipe, List<WokIngredientInput> actualIngredients, Player player) {
         List<Map<String, Object>> expectedIngredients = wokIngredients(recipe);
         if (expectedIngredients.isEmpty() || actualIngredients.size() > expectedIngredients.size()) {
             return false;
@@ -473,6 +512,9 @@ public final class CookingRecipeService {
             if (!ItemSourceUtil.matches(ItemSourceUtil.parse(expectedSource), ItemSourceUtil.parse(actual.source()))) {
                 return false;
             }
+            if (!matchesIngredientMatcher(expected, actual, player)) {
+                return false;
+            }
             if (actual.amount() > expectedAmount) {
                 return false;
             }
@@ -481,6 +523,15 @@ public final class CookingRecipeService {
             }
         }
         return true;
+    }
+
+    private boolean matchesIngredientMatcher(Map<String, Object> expected, WokIngredientInput actual, Player player) {
+        ItemStack itemStack = actual.itemStack();
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return true;
+        }
+        Matcher matcher = CookingMatchers.parse(expected, "matcher");
+        return CookingMatchers.test(matcher, itemStack, ItemSourceUtil.parse(actual.source()), player);
     }
 
     private String firstSourceShorthand(Object raw) {
@@ -594,11 +645,15 @@ public final class CookingRecipeService {
         return values;
     }
 
-    public record WokIngredientInput(String source, int amount) {
+    public record WokIngredientInput(String source, int amount, ItemStack itemStack) {
 
         public WokIngredientInput {
             source = Texts.toStringSafe(source);
             amount = Math.max(1, amount);
+        }
+
+        public WokIngredientInput(String source, int amount) {
+            this(source, amount, null);
         }
     }
 }

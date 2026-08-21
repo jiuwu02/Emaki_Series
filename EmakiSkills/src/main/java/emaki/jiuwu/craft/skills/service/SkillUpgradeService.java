@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.skills.service;
 
 import java.util.ArrayList;
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -10,6 +11,7 @@ import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
@@ -24,6 +26,11 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.MaterialAllocation;
+import emaki.jiuwu.craft.corelib.matcher.MaterialAllocator;
+import emaki.jiuwu.craft.corelib.matcher.MaterialRequest;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -49,12 +56,13 @@ public final class SkillUpgradeService {
         }
     }
 
-    public record MaterialCost(String item, int amount, String displayName) {
+    public record MaterialCost(String item, int amount, String displayName, Matcher matcher, int configIndex) {
 
         public MaterialCost {
             item = Texts.toStringSafe(item);
             amount = Math.max(1, amount);
             displayName = Texts.toStringSafe(displayName);
+            configIndex = Math.max(0, configIndex);
         }
     }
 
@@ -331,17 +339,31 @@ public final class SkillUpgradeService {
             return List.of();
         }
         List<MaterialCost> result = new ArrayList<>();
-        for (SkillUpgradeConfig.MaterialCost material : level.materials()) {
-            if (material == null || Texts.isBlank(material.item())) {
+        List<SkillUpgradeConfig.MaterialCost> configured = level.materials();
+        for (int index = 0; index < configured.size(); index++) {
+            SkillUpgradeConfig.MaterialCost material = configured.get(index);
+            if (material == null) {
+                continue;
+            }
+            boolean blankItem = Texts.isBlank(material.item());
+            if (blankItem && material.matcher() == null) {
                 continue;
             }
             result.add(new MaterialCost(
                     material.item(),
                     material.amount(),
-                    resolveMaterialDisplayName(material.item())
+                    blankItem
+                            ? matcherDisplayName(index)
+                            : resolveMaterialDisplayName(material.item()),
+                    material.matcher(),
+                    index
             ));
         }
         return List.copyOf(result);
+    }
+
+    private String matcherDisplayName(int configIndex) {
+        return "matcher#" + (configIndex + 1);
     }
 
     private CostCheckResult checkCosts(Player player, UpgradePreview preview) {
@@ -364,7 +386,11 @@ public final class SkillUpgradeService {
                 ));
             }
         }
-        for (ResolvedMaterialCost material : aggregateMaterials(preview.materials())) {
+        List<ResolvedMaterialCost> resolved = aggregateMaterials(preview.materials());
+        for (ResolvedMaterialCost material : resolved) {
+            if (material.matcher() != null) {
+                continue;
+            }
             long available = InventoryItemUtil.countItems(player, itemSourceService, material.source());
             if (available < material.amount()) {
                 return CostCheckResult.fail("upgrade.insufficient_materials", Map.of(
@@ -373,6 +399,16 @@ public final class SkillUpgradeService {
                         "available", available
                 ));
             }
+        }
+        MatcherMaterialPlan matcherPlan = planMatcherMaterials(player, resolved);
+        if (matcherPlan.present() && !matcherPlan.allocation().satisfied()) {
+            MaterialAllocation.Shortage shortage = matcherPlan.allocation().shortages().getFirst();
+            ResolvedMaterialCost material = matcherPlan.costs().get(shortage.requirementIndex());
+            return CostCheckResult.fail("upgrade.insufficient_materials", Map.of(
+                    "material", material.displayName(),
+                    "required", shortage.required(),
+                    "available", shortage.allocated()
+            ));
         }
         return CostCheckResult.ok();
     }
@@ -385,22 +421,39 @@ public final class SkillUpgradeService {
         for (CurrencyCost c : aggregateCurrencies(preview.currencies())) {
             currencies.add(new CostTransaction.CurrencyCharge(c.provider(), c.currencyId(), c.amount()));
         }
+        List<ResolvedMaterialCost> resolved = aggregateMaterials(preview.materials());
         List<CostTransaction.MaterialSource> materials = new ArrayList<>();
-        for (ResolvedMaterialCost m : aggregateMaterials(preview.materials())) {
+        for (ResolvedMaterialCost m : resolved) {
+            if (m.matcher() != null) {
+                continue;
+            }
             List<ItemSourceRef> srcs = m.source() != null ? List.of(m.source()) : List.of();
             materials.add(CostTransaction.ofParsed(srcs, List.of(), m.amount()));
         }
         CostReceipt receipt = CostTransaction.execute(player, economyManager(), itemSourceService, currencies, materials);
-        if (receipt.success()) {
-            return ChargeResult.committed(receipt);
+        if (!receipt.success()) {
+            boolean compensated = receipt.compensationComplete();
+            return switch (receipt.failureReason()) {
+                case ECONOMY_UNAVAILABLE -> ChargeResult.fail("upgrade.economy_unavailable", Map.of(), compensated);
+                case INSUFFICIENT_FUNDS -> ChargeResult.fail("upgrade.insufficient_funds", Map.of(), compensated);
+                case INSUFFICIENT_MATERIALS -> ChargeResult.fail("upgrade.insufficient_materials", Map.of(), compensated);
+                default -> ChargeResult.fail("upgrade.invalid", Map.of(), compensated);
+            };
         }
-        boolean compensated = receipt.compensationComplete();
-        return switch (receipt.failureReason()) {
-            case ECONOMY_UNAVAILABLE -> ChargeResult.fail("upgrade.economy_unavailable", Map.of(), compensated);
-            case INSUFFICIENT_FUNDS -> ChargeResult.fail("upgrade.insufficient_funds", Map.of(), compensated);
-            case INSUFFICIENT_MATERIALS -> ChargeResult.fail("upgrade.insufficient_materials", Map.of(), compensated);
-            default -> ChargeResult.fail("upgrade.invalid", Map.of(), compensated);
-        };
+        MatcherMaterialPlan matcherPlan = planMatcherMaterials(player, resolved);
+        if (!matcherPlan.present()) {
+            return ChargeResult.committed(receipt, null);
+        }
+        if (!matcherPlan.allocation().satisfied()) {
+            return ChargeResult.fail("upgrade.insufficient_materials", Map.of(),
+                    receipt.rollback().complete());
+        }
+        InventoryItemUtil.RemovalPlan removalPlan = matcherRemovalPlan(player, matcherPlan);
+        if (removalPlan == null || !InventoryItemUtil.applyRemoval(player.getInventory(), removalPlan)) {
+            return ChargeResult.fail("upgrade.insufficient_materials", Map.of(),
+                    receipt.rollback().complete());
+        }
+        return ChargeResult.committed(receipt, removalPlan);
     }
 
     private List<CurrencyCost> aggregateCurrencies(List<CurrencyCost> currencies) {
@@ -430,16 +483,82 @@ public final class SkillUpgradeService {
             if (material == null || material.amount() <= 0) {
                 continue;
             }
+            if (material.matcher() != null) {
+                MaterialKey key = new MaterialKey(null, "", material.configIndex() + 1);
+                aggregated.put(key, new ResolvedMaterialCost(
+                        null, material.amount(), material.displayName(), material.matcher()));
+                continue;
+            }
             ItemSourceRef source = ItemSourceUtil.parse(material.item());
-            MaterialKey key = new MaterialKey(source, source == null ? Texts.lower(material.item()) : "");
+            MaterialKey key = new MaterialKey(source, source == null ? Texts.lower(material.item()) : "", 0);
             ResolvedMaterialCost existing = aggregated.get(key);
             long amount = existing == null
                     ? material.amount()
                     : Math.min(Integer.MAX_VALUE, (long) existing.amount() + material.amount());
             String displayName = existing == null ? material.displayName() : existing.displayName();
-            aggregated.put(key, new ResolvedMaterialCost(source, (int) amount, displayName));
+            aggregated.put(key, new ResolvedMaterialCost(source, (int) amount, displayName, null));
         }
         return List.copyOf(aggregated.values());
+    }
+
+    private MatcherMaterialPlan planMatcherMaterials(Player player, List<ResolvedMaterialCost> resolved) {
+        List<ResolvedMaterialCost> costs = new ArrayList<>();
+        List<MaterialRequest> requests = new ArrayList<>();
+        for (ResolvedMaterialCost material : resolved) {
+            if (material.matcher() == null) {
+                continue;
+            }
+            costs.add(material);
+            requests.add(new MaterialRequest(material.matcher(), material.amount()));
+        }
+        if (requests.isEmpty()) {
+            return new MatcherMaterialPlan(List.of(), null, Map.of());
+        }
+        ItemStack[] contents = player.getInventory().getContents();
+        List<ItemStack> candidates = new ArrayList<>();
+        Map<ItemStack, Integer> slots = new IdentityHashMap<>();
+        for (int slot = 0; slot < contents.length; slot++) {
+            ItemStack stack = contents[slot];
+            if (stack == null || stack.getType().isAir() || stack.getAmount() <= 0) {
+                continue;
+            }
+            candidates.add(stack);
+            slots.put(stack, slot);
+        }
+        MaterialAllocation allocation = MaterialAllocator.allocate(requests, candidates,
+                stack -> MatchContext.of(stack, identify(stack), player));
+        return new MatcherMaterialPlan(List.copyOf(costs), allocation, slots);
+    }
+
+    private ItemSourceRef identify(ItemStack stack) {
+        return itemSourceService == null ? null : itemSourceService.identifyItem(stack);
+    }
+
+    private InventoryItemUtil.RemovalPlan matcherRemovalPlan(Player player, MatcherMaterialPlan plan) {
+        Map<Integer, Integer> perSlot = new LinkedHashMap<>();
+        long total = 0L;
+        for (MaterialAllocation.Assignment assignment : plan.allocation().assignments()) {
+            Integer slot = plan.slots().get(assignment.stack());
+            if (slot == null) {
+                continue;
+            }
+            perSlot.merge(slot, assignment.amount(), Integer::sum);
+            total += assignment.amount();
+        }
+        ItemStack[] contents = player.getInventory().getContents();
+        List<InventoryItemUtil.SlotRemoval> removals = new ArrayList<>();
+        for (Map.Entry<Integer, Integer> entry : perSlot.entrySet()) {
+            int slot = entry.getKey();
+            ItemStack before = slot < 0 || slot >= contents.length ? null : contents[slot];
+            if (before == null) {
+                return null;
+            }
+            ItemStack after = before.clone();
+            after.setAmount(before.getAmount() - entry.getValue());
+            removals.add(new InventoryItemUtil.SlotRemoval(slot, before.clone(),
+                    after.getAmount() <= 0 ? null : after));
+        }
+        return new InventoryItemUtil.RemovalPlan(total, total, removals);
     }
 
     private boolean restoreLevelAfterCommitFailure(Player player,
@@ -461,11 +580,17 @@ public final class SkillUpgradeService {
     }
 
     private boolean rollbackCharge(Player player, ChargeResult chargeResult) {
-        CostReceipt receipt = chargeResult == null ? null : chargeResult.receipt();
-        if (receipt == null) {
+        if (chargeResult == null) {
             return true;
         }
-        return receipt.rollback().complete();
+        boolean matcherRestored = true;
+        InventoryItemUtil.RemovalPlan matcherRemoval = chargeResult.matcherRemoval();
+        if (matcherRemoval != null) {
+            matcherRestored = InventoryItemUtil.rollbackRemoval(player.getInventory(), matcherRemoval);
+        }
+        CostReceipt receipt = chargeResult.receipt();
+        boolean receiptRestored = receipt == null || receipt.rollback().complete();
+        return matcherRestored && receiptRestored;
     }
 
     private void applyFailurePenalty(Player player, SkillDefinition definition, int currentLevel, String failurePenalty) {
@@ -612,10 +737,11 @@ public final class SkillUpgradeService {
             String messageKey,
             Map<String, Object> placeholders,
             boolean compensationComplete,
-            CostReceipt receipt) {
+            CostReceipt receipt,
+            InventoryItemUtil.RemovalPlan matcherRemoval) {
 
-        private static ChargeResult committed(CostReceipt receipt) {
-            return new ChargeResult(true, "", Map.of(), true, receipt);
+        private static ChargeResult committed(CostReceipt receipt, InventoryItemUtil.RemovalPlan matcherRemoval) {
+            return new ChargeResult(true, "", Map.of(), true, receipt, matcherRemoval);
         }
 
         private static ChargeResult fail(String messageKey,
@@ -625,6 +751,7 @@ public final class SkillUpgradeService {
                     messageKey,
                     placeholders == null ? Map.of() : Map.copyOf(placeholders),
                     compensationComplete,
+                    null,
                     null);
         }
     }
@@ -633,12 +760,21 @@ public final class SkillUpgradeService {
 
     }
 
-    private record MaterialKey(ItemSourceRef source, String unresolvedToken) {
+    private record MaterialKey(ItemSourceRef source, String unresolvedToken, int matcherOrdinal) {
 
     }
 
-    private record ResolvedMaterialCost(ItemSourceRef source, int amount, String displayName) {
+    private record ResolvedMaterialCost(ItemSourceRef source, int amount, String displayName, Matcher matcher) {
 
+    }
+
+    private record MatcherMaterialPlan(List<ResolvedMaterialCost> costs,
+            MaterialAllocation allocation,
+            Map<ItemStack, Integer> slots) {
+
+        private boolean present() {
+            return allocation != null;
+        }
     }
 
     private EconomyManager economyManager() {

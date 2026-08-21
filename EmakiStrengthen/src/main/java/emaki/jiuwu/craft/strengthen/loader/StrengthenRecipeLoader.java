@@ -10,11 +10,13 @@ import java.util.List;
 import java.util.Map;
 
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
@@ -27,6 +29,7 @@ public final class StrengthenRecipeLoader {
     private final Map<String, StrengthenRecipe> recipes = new LinkedHashMap<>();
     private final Map<String, String> materialCatalog = new LinkedHashMap<>();
     private final Map<String, Map<String, StarStageMaterialRule>> materialRules = new LinkedHashMap<>();
+    private final Map<String, Matcher> recipeMatchers = new LinkedHashMap<>();
     private final List<String> issues = new ArrayList<>();
 
     public StrengthenRecipeLoader(EmakiStrengthenPlugin plugin) {
@@ -38,6 +41,7 @@ public final class StrengthenRecipeLoader {
             recipes.clear();
             materialCatalog.clear();
             materialRules.clear();
+            recipeMatchers.clear();
             issues.clear();
             File directory = plugin.dataPath("recipes").toFile();
             if (!directory.exists()) {
@@ -118,6 +122,18 @@ public final class StrengthenRecipeLoader {
         }
     }
 
+    public @Nullable Matcher recipeMatcher(String recipeId) {
+        synchronized (stateLock) {
+            return Texts.isBlank(recipeId) ? null : recipeMatchers.get(Texts.lower(recipeId));
+        }
+    }
+
+    public boolean hasRecipeMatchers() {
+        synchronized (stateLock) {
+            return !recipeMatchers.isEmpty();
+        }
+    }
+
     private void loadFile(File file) {
         try {
             YamlSection configuration = YamlFiles.load(file);
@@ -139,6 +155,10 @@ public final class StrengthenRecipeLoader {
                 return;
             }
             recipes.put(recipeId, recipe);
+            Matcher recipeMatcher = StrengthenRecipeParser.parseRecipeMatcher(configuration);
+            if (recipeMatcher != null) {
+                recipeMatchers.put(recipeId, recipeMatcher);
+            }
             Map<String, StarStageMaterialRule> rules =
                     StrengthenRecipeParser.parseStageMaterialRules(configuration);
             if (!rules.isEmpty()) {

@@ -10,6 +10,7 @@ import java.util.Set;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -37,6 +38,7 @@ final class GemDefinitionParser {
         if (itemSource == null) {
             return null;
         }
+        YamlSection matcherSection = section.getSection("matcher");
         Set<String> socketCompatibility = new LinkedHashSet<>();
         for (String value : section.getStringList("socket_compatibility")) {
             if (Texts.isNotBlank(value)) {
@@ -50,6 +52,7 @@ final class GemDefinitionParser {
                 section.getString("gem_type", "universal"),
                 section.getInt("level", 1),
                 itemSource,
+                matcherSection == null ? null : Matcher.fromConfig(matcherSection),
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseVariables(section),
                 parseAttributes(section),

@@ -7,11 +7,9 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
-import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.api.model.PendingOutput;
 import emaki.jiuwu.craft.station.gui.StationSlotType;
@@ -21,14 +19,11 @@ public final class DismantleGuiInteractionController {
 
     private final DismantleService dismantleService;
     private final OutputDelivery outputDelivery;
-    private final ItemSourceService itemSourceService;
 
     public DismantleGuiInteractionController(DismantleService dismantleService,
-            OutputDelivery outputDelivery,
-            ItemSourceService itemSourceService) {
+            OutputDelivery outputDelivery) {
         this.dismantleService = dismantleService;
         this.outputDelivery = outputDelivery;
-        this.itemSourceService = itemSourceService;
     }
 
     public void onClick(DismantleViewState state,
@@ -104,15 +99,12 @@ public final class DismantleGuiInteractionController {
     private boolean consumeInput(DismantleViewState state, DismantleRecipeDefinition recipe) {
         Player player = state.viewer();
         PlayerInventory inv = player.getInventory();
-        ItemSourceRef target = recipe.inputSource();
         for (int i = 0; i < inv.getSize(); i++) {
             ItemStack item = inv.getItem(i);
             if (item == null || item.getType().isAir()) {
                 continue;
             }
-            ItemSourceRef identified = itemSourceService == null ? null
-                    : itemSourceService.identifyItem(item);
-            if (!target.equals(identified)) {
+            if (!dismantleService.accepts(recipe, item, player)) {
                 continue;
             }
             if (item.getAmount() > 1) {

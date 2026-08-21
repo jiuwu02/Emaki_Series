@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "2.7.7"
+version: "2.7.9"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -120,7 +120,26 @@ command:
       reload: "Reload gem configuration and resources"
       inspect: "View gem status of main hand equipment"
       clearstate: "Remove gem layer from main hand item"
+      convert_legacy: "Convert legacy match blocks in items/ to matcher and top-level fields"
       debug: "Manage debug mode"
+
+  convert_legacy:
+    header: "<gold>========== Legacy match conversion (%mode%, %files% files) ==========</gold>"
+    mode:
+      dry_run: "dry run"
+      apply: "apply"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  Backed up as <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>Converted %converted%, no legacy block %skipped%, key conflict %conflict%, unconvertible %unconvertible%, failed %failed%.</gray>"
+    dry_run_hint: "<yellow>The above is a dry run; no file was written. Run <white>/emakigem convert-legacy confirm</white> to write and back up the originals.</yellow>"
+    nothing_to_do: "<gray>No configuration needs conversion.</gray>"
+    status:
+      converted: "convertible"
+      no_legacy_block: "no legacy block"
+      conflict: "key conflict, left unchanged"
+      unconvertible: "field has no equivalent, left unchanged"
+      failed: "conversion failed, left unchanged"
 
   inspect:
     header: "<gold>Gem Status Check - %player%</gold>"

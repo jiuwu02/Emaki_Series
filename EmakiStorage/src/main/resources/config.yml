@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiStorage/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "1.0.2"
+version: "1.0.3"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -124,6 +124,24 @@ behavior:
   deposit_filter:
     mode: blacklist # blacklist | whitelist | off
     entries: # CoreLib ItemSource token 列表；留空表示没有条目。
+    # 可选的 matcher 判定，与上面的 entries 并存（取"或"）：
+    # 命中 entries 任一 token，或命中 matcher，都算"在名单里"，
+    # 再由 mode 决定放行(whitelist)还是拒绝(blacklist)。
+    # entries 与 matcher 同时留空时，本筛选等于关闭，行为与旧版逐字一致。
+    #
+    # 形状差异（容易写错，注意区分）：
+    #   entries 的物品源简写用连字符：  "minecraft-diamond"
+    #   组件 ID 与 path 用冒号：        component: minecraft:enchantments / path: minecraft:sharpness
+    #   组件 ID 省略命名空间时默认补 minecraft:，所以 enchantments 等价于 minecraft:enchantments
+    #
+    # operator 可用：exists / absent、==、!=、>、>=、<、<=、
+    #                contains / starts_with / ends_with、regex、has_key / has_value、size
+    #
+    # 下例配合 mode: blacklist，表示"带自定义名称的物品一律不许存入"：
+    # matcher:
+    #   type: component
+    #   component: custom_name
+    #   operator: exists
   # 是否允许存入带唯一标记的物品，例如 EmakiItem 实例 UUID。
   allow_unique_items: true
   # 单槽达到上限后，是否允许同一物品继续占用后续槽位。

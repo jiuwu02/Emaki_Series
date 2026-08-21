@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.forge.service;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.bukkit.entity.Player;
+
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.GuiItems;
@@ -16,8 +18,8 @@ final class ForgeMaterialContributionCollector {
         this.usagePlanner = new ForgeMaterialUsagePlanner(plugin);
     }
 
-    List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
-        List<ForgeMaterialContribution> materials = usagePlanner.collectMaterialContributions(recipe, guiItems);
+    List<ForgeMaterialContribution> collectMaterialContributions(Player player, Recipe recipe, GuiItems guiItems) {
+        List<ForgeMaterialContribution> materials = usagePlanner.collectMaterialContributions(player, recipe, guiItems);
         materials.sort((left, right) -> Integer.compare(left.sequence(), right.sequence()));
         return materials;
     }

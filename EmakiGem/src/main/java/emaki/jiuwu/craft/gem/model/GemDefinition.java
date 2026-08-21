@@ -10,6 +10,7 @@ import java.util.Set;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -21,6 +22,7 @@ public final class GemDefinition {
     private final String gemType;
     private final int level;
     private final ItemSourceRef itemSource;
+    private final Matcher matcher;
     private final Integer customModelData;
     private final Map<String, Object> stats;
     private final Map<String, Object> attributes;
@@ -44,6 +46,7 @@ public final class GemDefinition {
             String gemType,
             int level,
             ItemSourceRef itemSource,
+            Matcher matcher,
             Integer customModelData,
             Map<String, Object> stats,
             Map<String, Object> attributes,
@@ -66,6 +69,7 @@ public final class GemDefinition {
         this.gemType = Texts.isBlank(gemType) ? "universal" : Texts.lower(gemType);
         this.level = Math.max(1, level);
         this.itemSource = itemSource;
+        this.matcher = matcher;
         this.customModelData = customModelData;
         this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
         this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
@@ -106,6 +110,10 @@ public final class GemDefinition {
 
     public ItemSourceRef itemSource() {
         return itemSource;
+    }
+
+    public Matcher matcher() {
+        return matcher;
     }
 
     public Integer customModelData() {

@@ -256,6 +256,31 @@ upgrade:
         - item_sources:
             - "minecraft-nether_star"
           amount: 1
+        # 可选的 matcher 材料项，与上面的 item_sources 写法并存。
+        # 同一条材料项里 matcher 优先：写了 matcher 就只走 matcher，item_sources 被忽略。
+        # 不写 matcher 的材料项行为与旧版逐字一致。
+        #
+        # 聚合差异（重要）：item_sources 材料项会按物品源合并同类项累加数量；
+        # matcher 材料项无法判等价，因此每一项都独立成项、彼此不合并，
+        # 也不会与 item_sources 材料项合并。同一背包物品不会被两项重复计入。
+        #
+        # 形状差异（容易写错，注意区分）：
+        #   物品源简写用连字符：      "minecraft-diamond"
+        #   组件 ID 与 path 用冒号：  component: minecraft:enchantments / path: minecraft:sharpness
+        #   组件 ID 省略命名空间时默认补 minecraft:，所以 custom_name 等价于 minecraft:custom_name
+        #
+        # operator 可用：exists / absent、==、!=、>、>=、<、<=、
+        #                contains / starts_with / ends_with、regex、has_key / has_value、size
+        #
+        # 组合逻辑：all_of（全部满足）/ any_of（任一满足）/ none_of（全部不满足）/
+        #           at_least + required_count（至少 N 条）/ exactly + required_count（恰好 N 条）
+        # 下例要求"是钻石，且自定义名里含灵字"两条同时满足：
+        - matcher:
+            type: all_of
+            matchers:
+              - { type: item_source, sources: ["minecraft-diamond"] }
+              - { type: component, component: custom_name, operator: contains, value: "灵" }
+          amount: 1
       success_rate: 40.0
       actions:
         success:

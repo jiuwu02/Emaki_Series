@@ -10,8 +10,11 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshotScope;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.api.ExpSourceContext;
@@ -116,10 +119,16 @@ public final class SourceExperienceService {
         return null;
     }
 
-    public SourceRuleConfig.Rule matchItem(SourceRuleConfig source, ItemStack itemStack) {
+    public SourceRuleConfig.Rule matchItem(SourceRuleConfig source, ItemStack itemStack, Player player) {
         ItemSourceService itemSourceService = plugin.coreLib().itemSourceService();
         ItemSourceRef actual = itemSourceService.identifyItem(itemStack);
         for (SourceRuleConfig.Rule rule : source.rules()) {
+            if (rule.matcher() != null) {
+                if (testMatcher(rule.matcher(), itemStack, actual, player)) {
+                    return rule;
+                }
+                continue;
+            }
             if (rule.resultItemSources().isEmpty()) {
                 return rule;
             }
@@ -131,5 +140,15 @@ public final class SourceExperienceService {
             }
         }
         return null;
+    }
+
+    private boolean testMatcher(Matcher matcher, ItemStack itemStack, ItemSourceRef actual, Player player) {
+        try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
+            return matcher.test(MatchContext.of(itemStack, actual, player));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("Source rule matcher threw and is treated as no match: "
+                    + exception.getClass().getSimpleName());
+            return false;
+        }
     }
 }

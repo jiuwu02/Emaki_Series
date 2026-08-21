@@ -6,6 +6,7 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -13,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 public record SocketOpenerConfig(String id,
         boolean enabled,
         ItemSourceRef itemSource,
+        Matcher matcher,
         Integer customModelData,
         String displayName,
         List<String> lore,
@@ -51,10 +53,12 @@ public record SocketOpenerConfig(String id,
                 gemTypes.add(Texts.lower(value));
             }
         }
+        YamlSection matcherSection = section.getSection("matcher");
         return new SocketOpenerConfig(
                 normalizedId,
                 section.getBoolean("enabled", true),
                 ItemSourceUtil.parse(section.get("item_sources")),
+                matcherSection == null ? null : Matcher.fromConfig(matcherSection),
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 section.getString("display_name", normalizedId),
                 section.getStringList("lore"),

@@ -59,7 +59,10 @@ final class SteamerSettings {
                 continue;
             }
             Integer duration = CookingSettingsService.configurationValueToInt(normalized.get("duration_seconds"), 0);
-            result.add(new CookingSettingsService.SteamerFuelRule(source, duration == null ? 0 : Math.max(0, duration)));
+            result.add(new CookingSettingsService.SteamerFuelRule(
+                    source,
+                    duration == null ? 0 : Math.max(0, duration),
+                    CookingMatchers.parse(normalized, "matcher")));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }
@@ -74,7 +77,11 @@ final class SteamerSettings {
             }
             ItemSourceRef output = ItemSourceUtil.parse(normalized.get("item_sources"));
             Integer moisture = CookingSettingsService.configurationValueToInt(normalized.get("moisture"), 0);
-            result.add(new CookingSettingsService.SteamerMoistureRule(input, output, moisture == null ? 0 : Math.max(0, moisture)));
+            result.add(new CookingSettingsService.SteamerMoistureRule(
+                    input,
+                    output,
+                    moisture == null ? 0 : Math.max(0, moisture),
+                    CookingMatchers.parse(normalized, "input_matcher")));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }

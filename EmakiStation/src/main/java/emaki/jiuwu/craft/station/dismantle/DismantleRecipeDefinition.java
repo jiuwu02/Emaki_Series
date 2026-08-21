@@ -5,6 +5,8 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public record DismantleRecipeDefinition(
         String id,
@@ -15,7 +17,8 @@ public record DismantleRecipeDefinition(
         RollsRange rolls,
         List<DismantlePoolEntry> pool,
         String permission,
-        ConditionBlock condition) {
+        ConditionBlock condition,
+        Matcher matcher) {
 
     public DismantleRecipeDefinition {
         if (id == null) {
@@ -38,11 +41,37 @@ public record DismantleRecipeDefinition(
         condition = condition == null ? ConditionBlock.empty() : condition;
     }
 
+    public DismantleRecipeDefinition(String id,
+            String displayName,
+            String stationId,
+            Set<String> tags,
+            ItemSourceRef inputSource,
+            RollsRange rolls,
+            List<DismantlePoolEntry> pool,
+            String permission,
+            ConditionBlock condition) {
+        this(id, displayName, stationId, tags, inputSource, rolls, pool, permission, condition, null);
+    }
+
     public boolean hasPermission() {
         return !permission.isBlank();
     }
 
     public boolean hasScopedStation() {
         return !stationId.isBlank();
+    }
+
+    public boolean hasMatcher() {
+        return matcher != null;
+    }
+
+    public boolean acceptsInput(MatchContext context) {
+        if (context == null) {
+            return false;
+        }
+        if (matcher != null) {
+            return matcher.test(context);
+        }
+        return inputSource.equals(context.itemSource());
     }
 }

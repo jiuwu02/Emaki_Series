@@ -149,7 +149,7 @@ final class ForgeGuiRenderer {
 
     private void appendRequirementLines(List<String> lines, ForgeGuiSession state, Recipe recipe) {
         Map<String, Integer> placedAmounts = stateSupport.usagePlanner(state)
-                .placedAmounts(recipe, state.toGuiItems());
+                .placedAmounts(state.player(), recipe, state.toGuiItems());
         for (ForgeMaterial material : recipe.requiredMaterials()) {
             if (material == null) {
                 continue;
@@ -169,7 +169,7 @@ final class ForgeGuiRenderer {
     private String materialDisplayName(ForgeMaterial material) {
         String item = material == null ? "" : material.item();
         if (Texts.isBlank(item)) {
-            return "";
+            return material == null ? "" : material.key();
         }
         String displayName = EmakiCoreLibApi.itemDisplayName(item).orElse("");
         return Texts.isBlank(displayName) ? item : displayName;

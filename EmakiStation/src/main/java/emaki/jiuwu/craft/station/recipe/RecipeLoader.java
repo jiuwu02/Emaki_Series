@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
 public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
@@ -144,7 +145,9 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 continue;
             }
             List<ItemSourceRef> sources = parseSources(file, recipeId, entry);
-            if (sources.isEmpty()) {
+            YamlSection matcherSection = entry.getSection("matcher");
+            Matcher matcher = matcherSection == null ? null : Matcher.fromConfig(matcherSection);
+            if (sources.isEmpty() && matcher == null) {
                 continue;
             }
             long amount = readLong(entry.get("amount"), 1L);
@@ -154,7 +157,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 continue;
             }
             parsed.add(new MaterialRequirement(sources, amount,
-                    entry.getBoolean("consume", Boolean.TRUE)));
+                    entry.getBoolean("consume", Boolean.TRUE), matcher));
         }
         return parsed;
     }

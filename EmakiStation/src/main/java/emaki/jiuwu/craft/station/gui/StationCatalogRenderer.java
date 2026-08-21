@@ -137,7 +137,7 @@ public final class StationCatalogRenderer {
                 continue;
             }
             lines.add(guiSupport.text(layoutId, "texts.recipe.cost_keep", "Requires holding %material% x%amount%",
-                    Map.of("material", displayNameOf(requirement.sources().getFirst()),
+                    Map.of("material", materialNameOf(layoutId, requirement),
                             "amount", AmountDisplay.precise(requirement.amount()))));
         }
         return lines;
@@ -150,9 +150,9 @@ public final class StationCatalogRenderer {
                 continue;
             }
             lines.add(guiSupport.text(layoutId, "texts.recipe.material_line", "%material% x%amount%",
-                    Map.of("material", displayNameOf(requirement.sources().getFirst()),
+                    Map.of("material", materialNameOf(layoutId, requirement),
                             "amount", AmountDisplay.precise(requirement.amount()),
-                            "alternatives", String.valueOf(requirement.sources().size() - 1))));
+                            "alternatives", String.valueOf(alternativesOf(requirement)))));
         }
         if (lines.isEmpty()) {
             lines.add(guiSupport.text(layoutId, "texts.recipe.material_none", "No materials", Map.of()));
@@ -215,6 +215,19 @@ public final class StationCatalogRenderer {
         }
         String name = itemSourceService.displayName(source);
         return name == null || name.isBlank() ? source.identifier() : name;
+    }
+
+    private String materialNameOf(String layoutId, MaterialRequirement requirement) {
+        ItemSourceRef primary = requirement.primarySource();
+        if (primary != null) {
+            return displayNameOf(primary);
+        }
+        return guiSupport.text(layoutId, "texts.recipe.material_matcher",
+                "Custom condition", Map.of());
+    }
+
+    private static int alternativesOf(MaterialRequirement requirement) {
+        return Math.max(0, requirement.sources().size() - 1);
     }
 
     private static long totalOutput(RecipeDefinition recipe, long batch) {

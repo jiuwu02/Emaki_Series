@@ -7,7 +7,7 @@
 # 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
 # 不使用 minecraft:iron_axe 这种冒号写法。
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.2.2"
+version: "4.2.3"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -138,6 +138,16 @@ stations:
     # 识别为厨刀的物品来源
     tool_item_sources:
       - minecraft-iron_axe
+    # 可选：在 tool_item_sources 之外追加组件条件，进一步筛选合格厨刀
+    # tool_item_sources 决定"是哪种物品"，tool_matcher 决定"这一把够不够格"
+    # 不配置 tool_matcher 时行为与旧版完全一致
+    # 物品源简写用【连字符】，组件 ID / path 用【冒号】
+    # tool_matcher:
+    #   type: component
+    #   component: enchantments
+    #   path: "minecraft:sharpness"
+    #   operator: ">="
+    #   value: 2
     cut_damage:
       enabled: true
       chance: 10
@@ -178,6 +188,13 @@ stations:
     # 识别为锅铲的物品来源
     spatula_item_sources:
       - minecraft-iron_shovel
+    # 可选：在 spatula_item_sources 之外追加组件条件，进一步筛选合格锅铲
+    # 不配置 spatula_matcher 时行为与旧版完全一致
+    # spatula_matcher:
+    #   type: component
+    #   component: custom_name
+    #   operator: contains
+    #   value: "厨神"
     # 下方方块命中 source 后，解析为对应火候等级
     # 自定义热源没有可直接切换的 lit 状态时，可增加 lit_item_sources 作为替换兜底
     heat_levels:
@@ -266,10 +283,17 @@ stations:
     # 加燃料后是否点亮下方热源外观
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
+    # 每条燃料可选加 matcher，在 item_sources 之外追加组件条件
+    # 不配置 matcher 时行为与旧版完全一致
     fuels:
       - item_sources:
           - minecraft-stick
         duration_seconds: 5
+        # matcher:
+        #   type: component
+        #   component: custom_name
+        #   operator: contains
+        #   value: "油浸"
       - item_sources:
           - minecraft-coal
         duration_seconds: 80
@@ -277,12 +301,19 @@ stations:
           - minecraft-charcoal
         duration_seconds: 80
     # 水分输入规则
+    # 每条规则可选加 input_matcher，对"投入的那一枚"追加组件条件
+    # 注意：这里筛选的是 input_item_sources 一侧；item_sources 是产出的空容器
     moisture_rules:
       - input_item_sources:
           - minecraft-water_bucket
         item_sources:
           - minecraft-bucket
         moisture: 120
+        # input_matcher:
+        #   type: component
+        #   component: custom_name
+        #   operator: contains
+        #   value: "山泉"
       - input_item_sources:
           - minecraft-potion
         item_sources:
@@ -320,6 +351,8 @@ stations:
       max: 80
       decay_per_second: 5
     # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
+    # 每条燃料可选加 matcher，在 item_sources 之外追加组件条件
+    # 不配置 matcher 时行为与旧版完全一致
     fuels:
       - item_sources:
           - minecraft-stick
@@ -357,6 +390,13 @@ stations:
     default_serving_ml: 250
     container_item_sources:
       - minecraft-glass_bottle
+    # 可选：在 container_item_sources 之外追加组件条件，筛选合格盛取容器
+    # 配方内也可用 container.matcher 覆盖单个配方的容器要求
+    # container_matcher:
+    #   type: component
+    #   component: custom_name
+    #   operator: contains
+    #   value: "水晶"
     actions:
       press:
         - "play_sound sound=block.piston.extend volume=0.6 pitch=1.2"
@@ -421,12 +461,19 @@ nutrition:
 
   # 食物来源：食用命中 item_sources 的物品时，应用 nutrition 与 actions。
   # 支持 minecraft、craftengine、itemsadder、nexo、oraxen、mmoitems、neigeitems 来源。
+  # 每条规则可选加 matcher，在 item_sources 之外追加组件条件；
+  # 例如只让"名字含【慢炖】的苹果"给出加倍营养。不配置 matcher 时行为与旧版完全一致。
   food_sources:
     - item_sources:
         - minecraft-apple
         - minecraft-sweet_berries
       nutrition:
         fruit: 20
+      # matcher:
+      #   type: component
+      #   component: custom_name
+      #   operator: contains
+      #   value: "慢炖"
     - item_sources:
         - minecraft-golden_apple
         - minecraft-enchanted_golden_apple

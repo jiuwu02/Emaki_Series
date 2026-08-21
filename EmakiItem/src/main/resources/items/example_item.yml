@@ -225,6 +225,16 @@ repair:
         - "minecraft-netherite_ingot"
       amount: 1
       restore: 500
+    # 新写法：用 matcher 做更精细的材料判定。
+    # matcher 存在时优先于 item_sources；缺省 matcher 时行为与上面两条一致。
+    # 下例要求：既是钻石，又满足 custom_name 组件包含"精炼"。
+    - matcher:
+        type: all_of
+        matchers:
+          - { type: item_source, sources: ["minecraft-diamond"] }
+          - { type: component, component: custom_name, operator: contains, value: "精炼" }
+      amount: 1
+      restore: 400
   economy:
     enabled: true
     restore: "100%"

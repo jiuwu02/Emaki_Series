@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.8"
+version: "2.7.9"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -13,6 +13,20 @@ language: "zh_CN"
 # 是否在启动时释放插件内置的默认宝石数据。
 release_default_data: true
 
+# 开孔器定义。每个条目声明"哪些物品算这个开孔器"。
+#
+# 判定方式二选一，matcher 非空时优先，否则退回 item_sources：
+#   item_sources: 旧写法，按物品源匹配。原版物品用连字符，如 "minecraft-blaze_rod"。
+#   matcher:      新写法，支持组件条件与组合逻辑。type: component 的 component /
+#                 path 里的资源 ID 用冒号，如 "minecraft:sharpness"（命名空间可省略写 sharpness）。
+#
+# matcher 的组合类型：all_of（全部成立）、any_of（任一成立）、none_of（全部不成立）、
+# at_least + required_count（至少 N 条成立）、exactly + required_count（恰好 N 条成立）。
+# 组合类型用 matchers: 列出子条件，子条件本身也可以再嵌套组合。
+#
+# 两种形状不要混写：物品源是连字符 minecraft-blaze_rod，组件 ID 是冒号 minecraft:custom_name。
+#
+# opens_gem_types / consume_on_success / actions 的语义与判定方式无关，两种写法都一样生效。
 socket_openers:
   # 攻击向插槽开孔器
   attack_drill:
@@ -60,6 +74,34 @@ socket_openers:
         - "play_sound sound=block.amethyst_block.chime volume=1.0 pitch=1.2"
       failure:
         - 'send_message text="<red>该装备没有可开启的预留插槽。</red>"'
+        - "play_sound sound=entity.villager.no volume=1.0 pitch=0.8"
+
+  # 传说开孔器：matcher 组合写法示例，默认关闭。
+  # 含义是"只有名字里含传说的烈焰棒才算这个开孔器"，普通烈焰棒不算。
+  # matcher 非空时完全接管判定，此条目下不需要再写 item_sources。
+  # 启用会让这类物品在开孔界面被识别为开孔器，确认过判定范围后再改成 true。
+  legendary_drill:
+    enabled: false
+    matcher:
+      type: all_of
+      matchers:
+        - type: item_source
+          sources:
+            - "minecraft-blaze_rod"
+        - type: component
+          component: custom_name
+          operator: contains
+          value: "传说"
+    opens_gem_types:
+      - "attack"
+      - "defense"
+    consume_on_success: true
+    actions:
+      success:
+        - 'send_message text="<gold>传说开孔器撬开了一个宝石插槽！</gold>"'
+        - "play_sound sound=block.anvil.use volume=1.0 pitch=1.3"
+      failure:
+        - 'send_message text="<red>该装备没有可由传说开孔器开启的预留插槽。</red>"'
         - "play_sound sound=entity.villager.no volume=1.0 pitch=0.8"
 
 inlay_success:

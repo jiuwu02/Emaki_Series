@@ -15,7 +15,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.gem.legacy.LegacyGemConfigRewriter;
+import emaki.jiuwu.craft.gem.legacy.LegacyGemConfigRewriter.FileReport;
+import emaki.jiuwu.craft.gem.legacy.LegacyGemConfigRewriter.RunReport;
+import emaki.jiuwu.craft.gem.legacy.LegacyGemConfigRewriter.Status;
 import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemGuiMode;
@@ -51,6 +56,7 @@ final class GemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "reroll" -> handleReroll(sender, args);
             case "clearstate" -> handleClearState(sender);
+            case "convert-legacy" -> handleConvertLegacy(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -63,7 +69,7 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "inspect", "reroll", "clearstate", "debug")) {
+            for (String sub : List.of("help", "gui", "reload", "inspect", "reroll", "clearstate", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -85,6 +91,13 @@ final class GemCommandRouter implements TabExecutor {
                 case "inspect" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "reroll" -> {
                     for (String sub : List.of("full", "value", "confirm", "cancel", "status")) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                            result.add(sub);
+                        }
+                    }
+                }
+                case "convert-legacy" -> {
+                    for (String sub : List.of("confirm", "--apply")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
@@ -287,6 +300,59 @@ final class GemCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleConvertLegacy(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        boolean apply = args.length >= 2
+                && ("confirm".equalsIgnoreCase(args[1]) || "--apply".equalsIgnoreCase(args[1]));
+        LegacyGemConfigRewriter rewriter = new LegacyGemConfigRewriter(
+                plugin.dataPath("items"), plugin.getLogger());
+        RunReport report = rewriter.run(apply);
+        var ms = plugin.messageService();
+        ms.sendRaw(sender, ms.message("command.convert_legacy.header", Map.of(
+                "mode", ms.message(apply ? "command.convert_legacy.mode.apply" : "command.convert_legacy.mode.dry_run"),
+                "files", report.files().size()
+        )));
+        for (FileReport file : report.files()) {
+            sendConvertLegacyFile(sender, file, apply);
+        }
+        ms.sendRaw(sender, ms.message("command.convert_legacy.summary", Map.of(
+                "converted", report.count(Status.CONVERTED),
+                "skipped", report.count(Status.NO_LEGACY_BLOCK),
+                "conflict", report.count(Status.CONFLICT),
+                "unconvertible", report.count(Status.UNCONVERTIBLE),
+                "failed", report.count(Status.FAILED)
+        )));
+        if (!apply) {
+            ms.send(sender, report.hasConvertible()
+                    ? "command.convert_legacy.dry_run_hint"
+                    : "command.convert_legacy.nothing_to_do");
+        }
+        return true;
+    }
+
+    private void sendConvertLegacyFile(CommandSender sender, FileReport file, boolean apply) {
+        var ms = plugin.messageService();
+        if (file.status() == Status.NO_LEGACY_BLOCK) {
+            return;
+        }
+        ms.sendRaw(sender, ms.message("command.convert_legacy.file", Map.of(
+                "file", file.fileName(),
+                "status", ms.message("command.convert_legacy.status." + Texts.lower(file.status().name())),
+                "detail", file.detail()
+        )));
+        if (apply && Texts.isNotBlank(file.backupName())) {
+            ms.sendRaw(sender, ms.message("command.convert_legacy.backup", Map.of("backup", file.backupName())));
+        }
+        if (!apply) {
+            for (String line : file.diff()) {
+                ms.sendRaw(sender, ms.message("command.convert_legacy.diff_line", Map.of("line", line)));
+            }
+        }
+    }
+
     private void sendHelp(CommandSender sender) {
         var ms = plugin.messageService();
         ms.sendRaw(sender, ms.message("command.help.header"));
@@ -297,6 +363,7 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
         lines.put("reroll <full|value|confirm|cancel|status>", "Generate or accept a reroll candidate for the held gem");
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));
+        lines.put("convert-legacy [confirm]", ms.message("command.help.desc.convert_legacy"));
         lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));
         lines.forEach((name, description) -> ms.sendRaw(sender,
                 ms.message("command.help.line", Map.of("cmd", name, "desc", description))));

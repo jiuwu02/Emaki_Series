@@ -25,13 +25,13 @@ materials:
   - matcher:
       type: item_source
       sources:
-        - "minecraft:lapis_lazuli"
+        - "minecraft-lapis_lazuli"
     quantity: 1
     consume: always
   - matcher:
       type: item_source
       sources:
-        - "minecraft:amethyst_shard"
+        - "minecraft-amethyst_shard"
     quantity: 1
     consume: success
     required: false

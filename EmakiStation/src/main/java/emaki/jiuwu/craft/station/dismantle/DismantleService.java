@@ -7,13 +7,28 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.math.Randoms;
 import emaki.jiuwu.craft.corelib.random.WeightedPool;
 
 public final class DismantleService {
 
     private final Map<String, DismantleRecipeDefinition> byId = new ConcurrentHashMap<>();
+
+    private final ItemSourceService itemSourceService;
+
+    public DismantleService() {
+        this(null);
+    }
+
+    public DismantleService(ItemSourceService itemSourceService) {
+        this.itemSourceService = itemSourceService;
+    }
 
     public void reload(List<DismantleRecipeDefinition> recipes) {
         byId.clear();
@@ -42,6 +57,39 @@ public final class DismantleService {
             results.add(recipe);
         }
         return Collections.unmodifiableList(results);
+    }
+
+    public List<DismantleRecipeDefinition> findMatching(ItemStack input, String stationId) {
+        return findMatching(input, stationId, null);
+    }
+
+    public List<DismantleRecipeDefinition> findMatching(ItemStack input, String stationId, Player player) {
+        if (input == null || input.getType().isAir()) {
+            return List.of();
+        }
+        MatchContext context = MatchContext.of(input, identify(input), player);
+        List<DismantleRecipeDefinition> results = new ArrayList<>();
+        for (DismantleRecipeDefinition recipe : byId.values()) {
+            if (!recipe.acceptsInput(context)) {
+                continue;
+            }
+            if (recipe.hasScopedStation() && !recipe.stationId().equals(stationId)) {
+                continue;
+            }
+            results.add(recipe);
+        }
+        return Collections.unmodifiableList(results);
+    }
+
+    public boolean accepts(DismantleRecipeDefinition recipe, ItemStack input, Player player) {
+        if (recipe == null || input == null || input.getType().isAir()) {
+            return false;
+        }
+        return recipe.acceptsInput(MatchContext.of(input, identify(input), player));
+    }
+
+    public ItemSourceRef identify(ItemStack input) {
+        return itemSourceService == null ? null : itemSourceService.identifyItem(input);
     }
 
     public Optional<DismantleRecipeDefinition> findById(String recipeId) {

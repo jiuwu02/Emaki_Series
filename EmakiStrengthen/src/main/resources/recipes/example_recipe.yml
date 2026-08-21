@@ -67,13 +67,51 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
-# 定义哪些物品可以使用此配方进行强化。
-# 推荐优先使用 source_ids 精确绑定 EmakiItem / ItemSource，避免示例配方泛匹配所有武器。
-# slot_groups 是粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位。
-# 也支持 lore_contains（Lore 包含指定文本）和 stats_any（拥有指定属性）。
-match:
-  source_ids:
-    - "emakiitem-example_item"
+# matcher 是 CoreLib 统一匹配器配置，决定哪些物品可以使用此配方进行强化。
+# 推荐优先用 type: item_source 精确绑定 EmakiItem / ItemSource，避免示例配方泛匹配所有武器。
+#
+# type: component 按 Minecraft 物品组件取值判定，字段含义：
+#   component: 组件 ID（如 enchantments / rarity / custom_name / unbreakable）
+#   path: 组件内部取值路径（可选，如附魔 ID）
+#   operator: exists / absent / == / != / > / >= / < / <= /
+#             contains / starts_with / ends_with / regex /
+#             has_key / has_value / size
+#   value: 期望值（operator 为 exists / absent 时不需要）
+#
+# 单条件写法（只允许锋利 5 及以上的物品套用此配方）：
+# matcher:
+#   type: component
+#   component: enchantments
+#   path: sharpness
+#   operator: ">="
+#   value: 5
+#
+# 下面启用的是组合写法：物品源与组件条件同时成立才命中。
+matcher:
+  type: all_of
+  matchers:
+    - { type: item_source, sources: ["emakiitem-example_item"] }
+    - { type: component, component: custom_name, operator: exists }
+
+# ------------------------------------------------------------
+# 三个顶层匹配字段（与 matcher 取 AND，都成立才命中）
+# ------------------------------------------------------------
+# 它们不属于组件匹配范畴，所以不写进 matcher：
+#   slot_groups     粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），
+#                   不是 main_hand/helmet 这类具体装备槽位
+#   stats_any       只要拥有其中任一属性即满足（读 EmakiAttribute 属性）
+#   source_patterns 对物品源简写做正则（忽略大小写，部分匹配即算命中）
+slot_groups:
+  - "weapon"
+
+# 下面两项默认注释掉：它们与上方 matcher 取 AND，若同时启用会让本示例永不命中。
+#   stats_any 在 ★0 时物品还没有物理伤害属性，写上会导致首次强化就无法匹配；
+#   source_patterns 要求物品源简写形如 mmoitems-SWORD...，与上方绑定的
+#   emakiitem-example_item 互斥。按你的实际物品源改写后再启用。
+#stats_any:
+#  - "physical_attack"
+#source_patterns:
+#  - "^mmoitems-SWORD"
 
 # ============================================================
 # 全局名称与 Lore 修改
@@ -131,6 +169,20 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 2
+      # 材料同样支持可选 matcher，与该条目的 item_sources 取 AND：
+      # 物品先要通过 item_sources 判定，再通过 matcher 才算合格材料。
+      # 星级区间条件仍由 min_target_star / max_target_star 控制，不写进 matcher。
+      # 下面这条要求金粒的自定义名称里含“炎”字，未改名的普通金粒不满足。
+      # 标记 optional 以免影响示例配方开服即可跑通的默认体验。
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: 1
+        optional: true
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "炎"
 
   # ★2+: 使用 replace_line 更新已有行
   2:

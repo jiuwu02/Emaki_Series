@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -438,7 +439,7 @@ public final class EnhancementAttemptService {
         }
 
         VariableContext targetVariables = buildVariablesFromSnapshot(player, snapshot, currentLevel);
-        if (!matchesTargetFilter(recipe, target, targetVariables)) {
+        if (!matchesTargetFilter(recipe, player, target, targetVariables)) {
             return ExecutionPlan.invalid(recipe, ERROR_REBUILD_FAILED, snapshot);
         }
         if (!satisfiesRecipeConditions(recipe, player, target, targetVariables)) {
@@ -899,8 +900,13 @@ public final class EnhancementAttemptService {
     }
 
     private boolean matchesTargetFilter(EnhancementRecipe recipe,
+            @Nullable Player player,
             ItemStack target,
             VariableContext variables) {
+        Matcher filterMatcher = recipe.target().filterMatcher();
+        if (filterMatcher != null) {
+            return testTargetFilterMatcher(filterMatcher, player, target, variables);
+        }
         Map<String, Object> filter = recipe.target().filter();
         if (filter == null || filter.isEmpty()) {
             return true;
@@ -928,6 +934,23 @@ public final class EnhancementAttemptService {
             }
         }
         return true;
+    }
+
+    private boolean testTargetFilterMatcher(Matcher filterMatcher,
+            @Nullable Player player,
+            ItemStack target,
+            VariableContext variables) {
+        try {
+            VariableContext effective = variables == null
+                    ? VariableContext.builder(player).build()
+                    : variables;
+            MatchContext context = new MatchContext(target, identifySource(target), player,
+                    target, identifySource(target), effective);
+            return filterMatcher.test(context);
+        } catch (RuntimeException | LinkageError exception) {
+            warn("目标 Matcher 判定抛出异常，视为不匹配", exception);
+            return false;
+        }
     }
 
     private static boolean sameFilterValue(Object actual, Object expected) {

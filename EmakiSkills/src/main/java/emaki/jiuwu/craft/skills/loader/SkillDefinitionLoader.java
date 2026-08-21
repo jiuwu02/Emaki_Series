@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.skills.model.CostOperation;
@@ -349,14 +350,16 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 continue;
             }
             String item = Texts.asStringList(map.get("item_sources")).stream().findFirst().orElse("");
-            if (item.isBlank()) {
+            Matcher matcher = map.get("matcher") == null ? null : Matcher.fromConfig(map.get("matcher"));
+            if (item.isBlank() && matcher == null) {
                 continue;
             }
             materials.add(new SkillUpgradeConfig.MaterialCost(
                     item,
                     intValue(parseInt(map.get("amount"), 1), 1),
                     parseBoolean(map.get("optional"), false),
-                    parseBoolean(map.get("protection"), false)
+                    parseBoolean(map.get("protection"), false),
+                    matcher
             ));
         }
         return List.copyOf(materials);

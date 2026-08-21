@@ -409,9 +409,9 @@ public final class WokRuntimeService {
             return false;
         }
         if (state == null || !state.hasIngredients()) {
-            return addFirstIngredient(interaction, block, player, coordinates, state, heatLevel, source);
+            return addFirstIngredient(interaction, block, player, coordinates, state, heatLevel, source, hand);
         }
-        return appendIngredient(interaction, block, player, coordinates, state, heatLevel, source);
+        return appendIngredient(interaction, block, player, coordinates, state, heatLevel, source, hand);
     }
 
     private boolean addFirstIngredient(StationInteraction interaction,
@@ -420,20 +420,21 @@ public final class WokRuntimeService {
             StationCoordinates coordinates,
             WokState state,
             int heatLevel,
-            String source) {
+            String source,
+            ItemStack hand) {
         if (heatLevel <= 0) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "wok.no_heat", Map.of());
             interaction.cancel();
             return true;
         }
         if (settingsService.onlyRecipeItems(StationType.WOK)
-                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source, hand), player, heatLevel)) {
             debugStation("station.ingredient_rejected", Map.of(
                     "player", player.getName(),
                     "station", coordinates.runtimeKey(),
                     "item", source,
                     "reason", "first_ingredient_not_in_any_recipe",
-                    "candidates", String.valueOf(candidateIngredients(state, source)),
+                    "candidates", String.valueOf(candidateIngredients(state, source, hand)),
                     "heat", heatLevel
             ));
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
@@ -465,15 +466,16 @@ public final class WokRuntimeService {
             StationCoordinates coordinates,
             WokState state,
             int heatLevel,
-            String source) {
+            String source,
+            ItemStack hand) {
         if (settingsService.onlyRecipeItems(StationType.WOK)
-                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source), player, heatLevel)) {
+                && !recipeService.canAcceptWokIngredientPrefix(candidateIngredients(state, source, hand), player, heatLevel)) {
             debugStation("station.ingredient_rejected", Map.of(
                     "player", player.getName(),
                     "station", coordinates.runtimeKey(),
                     "item", source,
                     "reason", "prefix_not_in_any_recipe",
-                    "candidates", String.valueOf(candidateIngredients(state, source)),
+                    "candidates", String.valueOf(candidateIngredients(state, source, hand)),
                     "heat", heatLevel
             ));
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
@@ -1013,7 +1015,7 @@ public final class WokRuntimeService {
         }
         for (ItemSourceRef tool : settingsService.wokSpatulaSources()) {
             if (ItemSourceUtil.matches(tool, source)) {
-                return true;
+                return CookingMatchers.test(settingsService.wokSpatulaMatcher(), itemStack, source, null);
             }
         }
         return false;
@@ -1368,7 +1370,7 @@ public final class WokRuntimeService {
         return shorthand == null ? "" : shorthand;
     }
 
-    private List<CookingRecipeService.WokIngredientInput> candidateIngredients(WokState state, String source) {
+    private List<CookingRecipeService.WokIngredientInput> candidateIngredients(WokState state, String source, ItemStack hand) {
         if (Texts.isBlank(source)) {
             return List.of();
         }
@@ -1381,9 +1383,9 @@ public final class WokRuntimeService {
         int lastIndex = candidates.size() - 1;
         if (lastIndex >= 0 && sourceMatches(candidates.get(lastIndex).source(), source)) {
             CookingRecipeService.WokIngredientInput last = candidates.get(lastIndex);
-            candidates.set(lastIndex, new CookingRecipeService.WokIngredientInput(last.source(), last.amount() + 1));
+            candidates.set(lastIndex, new CookingRecipeService.WokIngredientInput(last.source(), last.amount() + 1, hand));
         } else {
-            candidates.add(new CookingRecipeService.WokIngredientInput(source, 1));
+            candidates.add(new CookingRecipeService.WokIngredientInput(source, 1, hand));
         }
         return List.copyOf(candidates);
     }

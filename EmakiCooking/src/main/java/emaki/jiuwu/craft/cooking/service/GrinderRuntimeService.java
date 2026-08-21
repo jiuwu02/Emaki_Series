@@ -222,7 +222,7 @@ public final class GrinderRuntimeService {
         }
         ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
-        RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player);
+        RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player, hand);
         if (recipe == null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.no_recipe", Map.of());
             interaction.cancel();

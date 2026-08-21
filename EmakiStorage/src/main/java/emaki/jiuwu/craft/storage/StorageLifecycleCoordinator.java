@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -260,13 +261,15 @@ final class StorageLifecycleCoordinator
                         Math.max(0L, longValue(amounts, "shift_right", defaults.withdrawAmounts().shiftRight())));
 
         YamlSection filter = section.getSection("deposit_filter");
+        YamlSection filterMatcher = filter == null ? null : filter.getSection("matcher");
         AppConfig.DepositFilter depositFilter = filter == null
                 ? defaults.depositFilter()
                 : new AppConfig.DepositFilter(
                         AppConfig.FilterMode.fromId(filter.getString("mode", null),
                                 defaults.depositFilter().mode()),
                         filter.getStringList("entries") == null
-                                ? List.of() : filter.getStringList("entries"));
+                                ? List.of() : filter.getStringList("entries"),
+                        filterMatcher == null ? null : Matcher.fromConfig(filterMatcher));
 
         YamlSection withdrawPrompt = section.getSection("withdraw_prompt");
         boolean withdrawPromptEnabled = withdrawPrompt == null

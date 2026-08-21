@@ -194,6 +194,9 @@ public final class NutritionService {
             if (!matchesAny(rule.itemSources(), source)) {
                 continue;
             }
+            if (!CookingMatchers.test(rule.matcher(), itemStack, source, player)) {
+                continue;
+            }
             ruleMatched = true;
             PlayerNutritionData updated = dataStore.mutateActive(player.getUniqueId(), typeRegistry.asMap(), data -> {
                 for (Map.Entry<String, Double> entry : rule.nutrition().entrySet()) {

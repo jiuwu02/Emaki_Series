@@ -39,7 +39,7 @@ final class ForgeLayerSnapshotBuilder {
             QualitySettings.QualityTier qualityTier,
             long forgedAt,
             Player player) {
-        return buildLayerSnapshot(recipe, collectMaterialContributions(recipe, guiItems), multiplier, qualityTier, forgedAt, player);
+        return buildLayerSnapshot(recipe, collectMaterialContributions(player, recipe, guiItems), multiplier, qualityTier, forgedAt, player);
     }
 
     EmakiItemLayerSnapshot buildLayerSnapshot(Recipe recipe,
@@ -69,8 +69,8 @@ final class ForgeLayerSnapshotBuilder {
         );
     }
 
-    List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
-        return contributionCollector.collectMaterialContributions(recipe, guiItems);
+    List<ForgeMaterialContribution> collectMaterialContributions(Player player, Recipe recipe, GuiItems guiItems) {
+        return contributionCollector.collectMaterialContributions(player, recipe, guiItems);
     }
 
     List<ForgeMaterial.QualityModifier> collectQualityModifiers(List<ForgeMaterialContribution> materials) {

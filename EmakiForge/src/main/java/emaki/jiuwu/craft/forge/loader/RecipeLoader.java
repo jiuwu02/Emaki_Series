@@ -534,13 +534,15 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     private void validateRecipeSources(File file, YamlSection configuration, Recipe recipe) {
         List<Object> blueprints = ConfigNodes.asObjectList(configuration.get("blueprint_requirements"));
         for (int index = 0; index < blueprints.size(); index++) {
+            Object entry = blueprints.get(index);
             validateAlternativeGroup(file, recipe.id(), "blueprint_requirements[" + index + "].item_sources",
-                    ConfigNodes.get(blueprints.get(index), "item_sources"), true, inputSourceTypes);
+                    ConfigNodes.get(entry, "item_sources"), !ConfigNodes.contains(entry, "matcher"), inputSourceTypes);
         }
         List<Object> materials = ConfigNodes.asObjectList(configuration.get("materials"));
         for (int index = 0; index < materials.size(); index++) {
+            Object entry = materials.get(index);
             validateAlternativeGroup(file, recipe.id(), "materials[" + index + "].item_sources",
-                    ConfigNodes.get(materials.get(index), "item_sources"), true, inputSourceTypes);
+                    ConfigNodes.get(entry, "item_sources"), !ConfigNodes.contains(entry, "matcher"), inputSourceTypes);
         }
         Object success = ConfigNodes.get(configuration.get("result"), "success");
         List<Object> outputs = ConfigNodes.asObjectList(ConfigNodes.get(success, "outputs"));

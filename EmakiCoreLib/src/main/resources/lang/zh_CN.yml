@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.9"
+version: "4.7.10"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -430,6 +430,13 @@ capability:
     missing_owner: "<red>[能力] 未提供发布方插件，能力发布被拒绝</red>"
     empty: "<red>[能力] 能力集合为空，能力发布被拒绝</red>"
     duplicate: "<red>[能力] 该能力标识已被占用，能力发布被拒绝</red>"
+
+# 材料分配缺口报告（联合短缺表述，不做单点归因）
+allocation:
+  shortage:
+    combined: "<red>这组材料凑不出：<yellow>%slots%</yellow> 个槽位合计还缺 <yellow>%missing%</yellow> 个可用物品</red>"
+    slot_detail: "<gray>- 槽位 <aqua>%slot%</aqua> 需 <yellow>%required%</yellow>，当前可分配 <yellow>%allocated%</yellow></gray>"
+    hint: "<gray>提示：多个槽位可能争用同一批物品，补齐任意一处未必消除缺口，请按上面的合计数量准备。</gray>"
 
 # Debug 模式消息
 debug:

@@ -24,10 +24,35 @@ level: 1
 # ============================================================
 # 宝石物品来源
 # ============================================================
-# 用于识别哪个物品是这颗宝石。
+# 用于识别哪个物品是这颗宝石，同时也是发放宝石时的构造底材，必填。
 # 格式: "提供者-物品ID"，minecraft 原版物品使用 "minecraft-物品名"
 item_sources:
   - "minecraft-redstone"
+
+# ============================================================
+# 宝石识别条件（可选）
+# ============================================================
+# matcher 只影响"玩家手里这枚物品算不算这颗宝石"的识别判定，
+# 不影响 item_sources 的构造底材职责——发放宝石时始终用 item_sources 构造。
+#
+# matcher 非空时接管识别判定，item_sources 不再参与识别；留空则按 item_sources 识别。
+#
+# 注意两种 ID 形状不同，不要混写：
+#   物品源用连字符 —— "minecraft-redstone"
+#   组件用冒号     —— component / path 里写 "minecraft:custom_name"，命名空间可省略
+#
+# 下例含义：只有名字含"红宝石"的红石才算这颗宝石，普通红石不算。
+# 默认注释掉，避免示例宝石开箱即用时被组件条件挡住；需要时去掉注释即可生效。
+#matcher:
+#  type: all_of
+#  matchers:
+#    - type: item_source
+#      sources:
+#        - "minecraft-redstone"
+#    - type: component
+#      component: custom_name
+#      operator: contains
+#      value: "红宝石"
 
 # 自定义模型数据（可选，用于资源包识别）
 custom_model_data: 1001

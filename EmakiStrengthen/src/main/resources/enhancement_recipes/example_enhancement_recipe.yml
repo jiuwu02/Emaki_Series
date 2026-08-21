@@ -24,7 +24,7 @@ materials:
   - matcher:
       type: item_source
       sources:
-        - "minecraft:diamond"
+        - "minecraft-diamond"
     quantity: 2
     consume: always
   - matcher:

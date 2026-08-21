@@ -11,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
@@ -121,13 +122,22 @@ public record EnhancementRecipe(
 
     public record TargetConfig(
             @NotNull String provider,
-            @Nullable Map<String, Object> filter
+            @Nullable Map<String, Object> filter,
+            @Nullable Matcher filterMatcher
     ) {
         public TargetConfig {
             if (provider == null || provider.isBlank()) {
                 throw new IllegalArgumentException("Target provider cannot be null or blank");
             }
             filter = filter == null ? null : Map.copyOf(filter);
+        }
+
+        public TargetConfig(@NotNull String provider, @Nullable Map<String, Object> filter) {
+            this(provider, filter, null);
+        }
+
+        public boolean filterConfigured() {
+            return filterMatcher != null || (filter != null && !filter.isEmpty());
         }
     }
 

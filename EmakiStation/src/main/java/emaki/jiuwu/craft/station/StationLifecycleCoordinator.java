@@ -53,7 +53,9 @@ final class StationLifecycleCoordinator
             "gui/station_queue.yml",
             "gui/station_dismantle.yml",
             "recipes/example_recipe.yml",
+            "recipes/example_component_recipe.yml",
             "recipes_dismantle/example_dismantle_recipe.yml",
+            "recipes_dismantle/example_component_dismantle_recipe.yml",
             "stations_dismantle/example_dismantle_station.yml",
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
@@ -93,7 +95,7 @@ final class StationLifecycleCoordinator
         RecipeLoader recipeLoader = new RecipeLoader(plugin, config.limitSettings().warnMaterialTypes());
         DismantleStationLoader dismantleStationLoader = new DismantleStationLoader(plugin);
         DismantleRecipeLoader dismantleRecipeLoader = new DismantleRecipeLoader(plugin);
-        DismantleService dismantleService = new DismantleService();
+        DismantleService dismantleService = new DismantleService(coreLibPlugin.itemSourceService());
 
         StationCapabilities capabilities = StationCapabilities.probe();
         BackpackChannel backpackChannel = new BackpackChannel(coreLibPlugin.itemSourceService());

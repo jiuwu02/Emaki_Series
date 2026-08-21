@@ -17,8 +17,33 @@ tags:
 permission: ""
 
 # 输入物品——放入分解格的物品必须匹配此来源。
-# 格式与普通配方的 item_source 一致。
+# 格式与普通配方的 item_source 一致，用【连字符】：
+#   minecraft-iron_block、emakiitem-example_sword
 input_source: "minecraft-iron_block"
+
+# 可选：输入物品的组件条件。
+#
+# 写了 matcher 时【input_source 不再参与判定】，是否可分解完全由 matcher 决定；
+# input_source 仍必填，仅用于界面显示与配置自检。
+# 不写 matcher 时行为逐字不变：仍按 input_source 相等判定。
+#
+# 组件 ID 与 path 资源 ID 用【冒号】形状（enchantments 等价于 minecraft:enchantments，
+# path 里的 sharpness 等价于 minecraft:sharpness）。
+#
+# 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
+#          at_least + required_count、exactly + required_count
+# component 的 operator 全集：
+#   exists / absent、==、!=、>、>=、<、<=、
+#   contains / starts_with / ends_with、regex、has_key / has_value、size
+#
+# 下面这条示例的含义是"只接受锋利 3 及以上的物品"：
+#
+# matcher:
+#   type: component
+#   component: enchantments
+#   path: sharpness
+#   operator: ">="
+#   value: 3
 
 # 每次分解的投掷次数。
 # 写法一：固定次数
