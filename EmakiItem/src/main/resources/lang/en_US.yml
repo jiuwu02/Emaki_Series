@@ -170,6 +170,7 @@ debug:
     start: "Item identify | Material=%material% | PDC=%pdc%"
     result: "Identify result | ID=%id%"
   item_state:
+    clamped: "State value clamped | field=%field% | requested=%requested% | stored=%stored%"
     migrated: "State migration applied | from=%from% | to=%to% | renamed=%renamed% | retyped=%retyped% | dropped=%dropped%"
     preserved: "State preserved | reason=%reason% | outcome=%outcome% | fields=%fields%"
     recursion_blocked: "State derivation recursion blocked | stage=%stage% | threshold=%threshold_id% | depth=%depth%"

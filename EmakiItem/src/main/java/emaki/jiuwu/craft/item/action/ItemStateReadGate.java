@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.item.api.ItemStateSchema;
 import emaki.jiuwu.craft.item.api.ItemStateType;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 
-/** Reads one item state and publishes stable pipeline variables. */
 public final class ItemStateReadGate implements CoreActionGate {
     private final EmakiItemStateService state;
 

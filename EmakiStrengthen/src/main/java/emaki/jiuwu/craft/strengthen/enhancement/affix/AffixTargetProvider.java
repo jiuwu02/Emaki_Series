@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.strengthen.enhancement.affix;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.entity.Player;
@@ -18,33 +19,16 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
+import emaki.jiuwu.craft.strengthen.api.model.TargetSnapshotCategory;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayer;
 import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryLayerCodec;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 
-/**
- * 把「装备上的某一条词条」暴露为强化框架的目标类型。
- *
- * <p>按 ES-01 与整件星级强化完全分离：本 Provider 维护词条层（{@link AffixLayer}）及其
- * 独立结构化属性来源，<strong>不触碰整件装备的 {@code currentStar}</strong>。
- *
- * <p>字段映射：
- * <ul>
- *   <li>{@code level} → 当前选中词条的强化等级；</li>
- *   <li>{@code temper} → 词条层剩余容量，让配方公式能据此写条件；</li>
- *   <li>{@code recipeId} → 当前选中的词条 key。</li>
- * </ul>
- *
- * <p>「当前选中词条」由 {@link AffixSelectionService} 按玩家维护。强化框架优先调用带
- * {@link Player} 的 context-aware 重载；{@link #bindOperator} 仅保留给仍调用旧 item-only 方法的兼容路径。
- */
 public final class AffixTargetProvider implements EnhancementTargetProvider {
 
-    /** 与配方 {@code target.provider} 对应的 Provider ID。 */
     public static final String PROVIDER_ID = "affix";
 
-    /** 词条强化独立属性来源，不能复用整件星级强化的来源。 */
     public static final String ATTRIBUTE_SOURCE_ID = "strengthen_affix";
 
     public static final String ERROR_BRIDGE_UNAVAILABLE = "strengthen.enhancement.attribute_bridge_unavailable";
@@ -93,12 +77,6 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 : EmakiResult.success(layer.toView());
     }
 
-    /**
-     * 绑定当前线程上的操作者，使 {@code readLevel} 等方法能解析出「选中的词条」。
-     *
-     * <p>用 ThreadLocal 而非字段：强化在玩家所属实体线程上执行，Folia 下不同玩家可能并行，
-     * 单个字段会串味。
-     */
     public void bindOperator(@Nullable UUID playerId) {
         if (playerId == null) {
             operator.remove();
@@ -107,7 +85,6 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
         }
     }
 
-    /** 解绑当前线程的操作者。必须在一次交互结束时调用，否则会泄漏到后续任务。 */
     public void unbindOperator() {
         operator.remove();
     }
@@ -118,8 +95,14 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
     }
 
     @Override
+    public @NotNull Map<TargetSnapshotCategory, Set<String>> snapshotPartitions() {
+        return Map.of(
+                TargetSnapshotCategory.LAYER, Set.of(AffixLayerCodec.partitionPath()),
+                TargetSnapshotCategory.AUDIT, Set.of(MasteryLayerCodec.partitionPath()));
+    }
+
+    @Override
     public boolean canHandle(@Nullable ItemStack itemStack) {
-        // 只认领「确实有可强化词条」的物品，避免遮蔽 equipment / gem 等其他目标类型。
         return !resolveEnhanceableCandidates(itemStack).isEmpty();
     }
 
@@ -222,8 +205,6 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 return;
             }
             int capacityDelta = (int) capacityDeltaLong;
-            // 容量不足时不写入。执行服务会通过预写回 + read-back 在扣费前拦截，
-            // 这里是 Provider 自身的第二道防线。
             if (!currentLayer.canAfford(capacityDelta)) {
                 return;
             }
@@ -248,8 +229,6 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
             ));
         }
 
-        // 先改独立属性来源，再写词条账本。通用执行服务在克隆件上调用本方法；若第二步失败，
-        // read-back 仍会看到旧等级并拒绝提交，因此玩家物品不会出现半写状态。
         if (!syncAttributePayload(itemStack, nextLayer)) {
             return;
         }
@@ -265,12 +244,10 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public void writeTemper(@Nullable ItemStack itemStack, int temper) {
-        // temper 映射为「剩余容量」，是派生只读量，不接受直接写入。
     }
 
     @Override
     public void writeRecipeId(@Nullable ItemStack itemStack, @Nullable String recipeId) {
-        // 选中词条由玩家在 GUI 中决定，不由强化流程改写。
     }
 
     @Override

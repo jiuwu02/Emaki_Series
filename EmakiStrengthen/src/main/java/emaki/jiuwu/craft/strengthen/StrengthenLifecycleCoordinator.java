@@ -220,7 +220,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             }
             plugin.languageLoader().setLanguage(plugin.appConfig().language());
             StrengthenRecipeResolver.clearPatternCache();
-            // 保底状态按 scope/group/key 隔离；重载不应把可持久化的 owner 状态当作内存缓存清空。
             if (plugin.pityStateStore() != null) {
                 plugin.pityStateStore().saveToDisk();
             }
@@ -281,7 +280,6 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
-                // 保底状态按 scope/group/key 隔离；异步重载同样保留 owner 持久化状态。
                 if (plugin.pityStateStore() != null) {
                     plugin.pityStateStore().saveToDisk();
                 }

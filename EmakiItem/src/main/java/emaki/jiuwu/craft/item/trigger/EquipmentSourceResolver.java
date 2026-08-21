@@ -55,8 +55,4 @@ public final class EquipmentSourceResolver {
         }
         return sources;
     }
-
-    public static String slotName(EquipmentSlot slot) {
-        return slot == null ? "" : SLOT_NAMES.getOrDefault(slot, EquipmentSlotMatcher.SLOT_ALL);
-    }
 }

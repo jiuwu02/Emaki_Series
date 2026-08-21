@@ -131,22 +131,18 @@ public final class AppConfig extends BaseAppConfig {
         return successRates;
     }
 
-    /** {@return 单条词条的强化等级上限；0 表示不限} */
     public int affixMaxLevel() {
         return affixMaxLevel;
     }
 
-    /** {@return 装备的词条容量上限，写入词条层时作为缺省值} */
     public int affixCapacityMax() {
         return affixCapacityMax;
     }
 
-    /** {@return 每提升一级词条占用的容量} */
     public int affixCapacityCostPerLevel() {
         return affixCapacityCostPerLevel;
     }
 
-    /** {@return 每提升一级词条获得的属性增量} */
     public double affixBonusPerLevel() {
         return affixBonusPerLevel;
     }

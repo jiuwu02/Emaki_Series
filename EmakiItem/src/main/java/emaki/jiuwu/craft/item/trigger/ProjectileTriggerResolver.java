@@ -9,21 +9,11 @@ import org.bukkit.entity.Trident;
 
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 
-/**
- * Resolves projectile entity types to their corresponding trigger IDs via a
- * registration table, replacing inline {@code instanceof} dispatch in event
- * listeners.
- *
- * <p><b>Registration order matters:</b> more-specific types (e.g. {@link Trident})
- * must be registered before their supertypes (e.g. {@link AbstractArrow})
- * because resolution uses {@link Class#isInstance} with first-match semantics.
- */
 public final class ProjectileTriggerResolver {
 
     public record ProjectileTriggers(String launchTrigger, String hitTrigger, String landTrigger) {
     }
 
-    // Ordered map: specific subtypes must appear before their supertypes.
     private static final Map<Class<? extends Projectile>, ProjectileTriggers> TABLE;
 
     static {
@@ -37,10 +27,6 @@ public final class ProjectileTriggerResolver {
     private ProjectileTriggerResolver() {
     }
 
-    /**
-     * Returns the trigger set registered for this projectile type, or
-     * {@code null} if the type is unregistered.
-     */
     public static ProjectileTriggers resolve(Projectile projectile) {
         for (var entry : TABLE.entrySet()) {
             if (entry.getKey().isInstance(projectile)) {
@@ -50,13 +36,6 @@ public final class ProjectileTriggerResolver {
         return null;
     }
 
-    /**
-     * Convenience accessor for the hit or land trigger of this projectile.
-     *
-     * @param hitEntity {@code true} when the projectile hit a living entity,
-     *                  {@code false} when it landed on a block
-     * @return the matching trigger ID, or {@code null} when unregistered
-     */
     public static String hitOrLandTrigger(Projectile projectile, boolean hitEntity) {
         ProjectileTriggers triggers = resolve(projectile);
         if (triggers == null) return null;

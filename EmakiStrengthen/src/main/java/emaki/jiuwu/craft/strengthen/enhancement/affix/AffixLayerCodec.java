@@ -15,15 +15,8 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
-/**
- * 词条强化层的 PDC 读写。
- *
- * <p>整层以一个 YAML blob 落在 Strengthen 自己的 {@code strengthen.affix} 分区下，与整件星级强化
- * 的状态、以及 Forge 的锻造容量互不干扰。
- */
 public final class AffixLayerCodec {
 
-    /** 分区路径。与 Forge 的锻造容量刻意分离，见 ES-02。 */
     private static final String PARTITION_PATH = "strengthen.affix";
     private static final String FIELD = "layer";
     private static final int SCHEMA_VERSION = 1;
@@ -38,7 +31,10 @@ public final class AffixLayerCodec {
         this.codec = SnapshotCodec.yaml(AffixLayerCodec::encode, AffixLayerCodec::decode);
     }
 
-    /** {@return 物品上的词条层；没有写过时返回 {@code null}} */
+    public static @NotNull String partitionPath() {
+        return PARTITION_PATH;
+    }
+
     public @Nullable AffixLayer read(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
@@ -46,18 +42,11 @@ public final class AffixLayerCodec {
         return pdcService.readBlob(itemStack, partition, FIELD, codec);
     }
 
-    /**
-     * {@return 物品上的词条层，缺失时以 {@code defaultCapacityMax} 生成一个空层}
-     *
-     * @param itemStack          目标物品
-     * @param defaultCapacityMax 缺省最大容量
-     */
     public @NotNull AffixLayer readOrEmpty(@Nullable ItemStack itemStack, int defaultCapacityMax) {
         AffixLayer stored = read(itemStack);
         return stored == null ? AffixLayer.empty(defaultCapacityMax) : stored;
     }
 
-    /** 就地写回词条层。 */
     public boolean write(@Nullable ItemStack itemStack, @Nullable AffixLayer layer) {
         if (itemStack == null || itemStack.getType().isAir() || layer == null) {
             return false;
@@ -65,7 +54,6 @@ public final class AffixLayerCodec {
         return pdcService.writeBlob(itemStack, partition, FIELD, codec, layer);
     }
 
-    /** 移除物品上的词条层。 */
     public void clear(@Nullable ItemStack itemStack) {
         if (itemStack != null && !itemStack.getType().isAir()) {
             pdcService.remove(itemStack, partition, FIELD);
@@ -76,7 +64,6 @@ public final class AffixLayerCodec {
         Map<String, Object> data = new LinkedHashMap<>();
         data.put(SnapshotCodec.SCHEMA_VERSION_FIELD, SCHEMA_VERSION);
         data.put("affix_capacity_max", layer.capacityMax());
-        // 已用容量是派生值，落盘只为便于外部（如 PAPI / 调试）直接读取，恢复时不作为真相来源。
         data.put("affix_capacity_used", layer.capacityUsed());
         List<Map<String, Object>> affixes = new ArrayList<>();
         for (AffixState state : layer.affixes().values()) {
@@ -114,7 +101,6 @@ public final class AffixLayerCodec {
                 ));
             }
         }
-        // affix_capacity_used 刻意不回读：由 AffixLayer.capacityUsed() 从明细求和，避免两份真相。
         return new AffixLayer(capacityMax, affixes);
     }
 }

@@ -18,12 +18,6 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptPreview;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementPreviewSession;
 
-/**
- * 词条强化 GUI 的点击分发。
- *
- * <p>ES-05 的键位契约在此实现：词条选择槽左键切换下一条、右键切换上一条。目标槽与材料槽沿用
- * 既有星级 GUI 的取放语义（光标交换、Shift 快速放入、关闭时归还），但代码独立，不改动旧控制器。
- */
 final class AffixGuiInteractionController {
 
     private final EmakiStrengthenPlugin plugin;
@@ -74,8 +68,6 @@ final class AffixGuiInteractionController {
 
             @Override
             public void onClose(GuiSession session, GuiCloseContext close) {
-                // 与整件星级 GUI 一致：光标上的物品在关闭时不会自动回到背包，必须先取下再归还，
-                // 否则玩家把目标或材料拿在光标上直接关界面就会丢件。
                 ItemStack cursorItem = close != null && close.player() != null
                         ? AffixGuiSession.cloneNonAir(close.player().getItemOnCursor())
                         : null;

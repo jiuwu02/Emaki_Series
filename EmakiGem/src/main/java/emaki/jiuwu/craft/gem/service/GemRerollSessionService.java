@@ -366,14 +366,6 @@ public final class GemRerollSessionService {
                 session.terminalState().name().toLowerCase());
     }
 
-    public boolean matchesCurrentTarget(Player player, Session session) {
-        if (player == null || session == null || !owned(player)) {
-            return false;
-        }
-        return matches(session, plugin.itemMatcher().readStoredGemInstance(
-                player.getInventory().getItemInMainHand()));
-    }
-
     public CompletableFuture<Void> recover(GemOperationJournal.RerollSnapshot snapshot) {
         CompletableFuture<Void> completion = new CompletableFuture<>();
         if (snapshot == null || !snapshot.complete()) {

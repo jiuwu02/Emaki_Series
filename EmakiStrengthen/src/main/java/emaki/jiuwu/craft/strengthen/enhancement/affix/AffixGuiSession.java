@@ -14,15 +14,6 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementPreviewSession;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementTargetVariables;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 
-/**
- * 词条强化 GUI 的会话状态。
- *
- * <p>刻意不复用整件星级强化的 {@code StrengthenGuiSession}：后者保存 {@code AttemptPreview} 与星级
- * 结算阶段，词条流程保存的是通用强化预览与选中词条，两者的字段含义不同，混用会让任一侧的语义
- * 被另一侧牵着改。
- *
- * <p><strong>线程：</strong>仅在玩家所属实体线程读写。
- */
 final class AffixGuiSession {
 
     private static final int MATERIAL_SLOT_COUNT = 4;

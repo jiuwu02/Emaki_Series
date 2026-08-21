@@ -71,11 +71,14 @@ loader:
 
 gem:
   error:
+    condition_not_met: "<red>当前不满足该操作的条件要求。</red>"
     invalid_equipment: "<red>%player% 的物品不是可镶嵌装备。</red>"
     insufficient_cost: "<red>所需货币或材料不足。</red>"
     insufficient_currency: "<red>货币不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
     insufficient_material: "<red>材料不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
     player_required: "<red>必须由玩家执行该操作。</red>"
+  operation:
+    cancelled: "<yellow>该操作已被其他插件取消。</yellow>"
   reroll:
     player_required: "<red>必须由玩家执行洗炼操作。</red>"
     wrong_thread: "<red>当前线程无法操作该玩家，请稍后重试。</red>"
@@ -172,7 +175,9 @@ gui:
     upgrade_failed: "<red>宝石升级失败：%reason%</red>"
     upgrade_roll_failed: "<yellow>宝石升级判定失败，当前等级保持为 Lv.%resulting_level%。</yellow>"
     upgrade_success: "<green>宝石升级成功：Lv.%previous_level% → Lv.%resulting_level%。</green>"
+    upgrade_max_level: "<yellow>该宝石已达最高等级 <gold>Lv.%max_level%</gold>，当前 <gray>Lv.%level%</gray>。</yellow>"
     reroll_confirmed: "<green>洗炼结果已写入主手宝石。操作号: %operation_id%</green>"
+    reroll_restart_confirm: "<yellow>上一轮洗炼已完成。再次点击确认将<red>开启新一轮并再次扣费</red>；如不需要请关闭界面。</yellow>"
     reroll_failed: "<red>洗炼确认失败。</red>"
     reroll_unavailable: "<red>洗炼服务当前不可用。</red>"
   open:

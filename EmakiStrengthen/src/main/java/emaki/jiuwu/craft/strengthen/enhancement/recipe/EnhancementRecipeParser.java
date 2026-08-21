@@ -254,7 +254,8 @@ public final class EnhancementRecipeParser {
         List<String> rawIsolate = section.getStringList("isolate");
         List<PityIsolationEnum> isolate = PityIsolationEnum.parseAll(rawIsolate);
         if (rawIsolate != null && isolate.size() != new LinkedHashSet<>(rawIsolate).size()) {
-            return null;
+            throw new IllegalArgumentException("pity isolate declares unknown or duplicate dimension in "
+                    + rawIsolate + "; legal values are " + PityIsolationEnum.legalTokens());
         }
 
         return new EnhancementRecipe.PityConfig(counter, trigger, effect, decay, isolate);

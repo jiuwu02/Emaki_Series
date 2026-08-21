@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.item.model.ItemStateConfig;
 public final class EmakiItemStateService implements ItemState {
 
     private static final String THRESHOLD_MASK_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_mask.";
+    private static final String THRESHOLD_LAYOUT_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_layout.";
 
     private final Supplier<ItemStateConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
@@ -197,6 +198,9 @@ public final class EmakiItemStateService implements ItemState {
         if (config.clampEnabled() && field != null && field.bounded() && key.type().numeric()) {
             Object bounded = clampToBounds(key.type(), coerced, field);
             boundsClamped = bounded != null && !Objects.equals(bounded, coerced);
+            if (boundsClamped) {
+                logClamp(key, coerced, bounded, holder);
+            }
             if (bounded != null) {
                 coerced = bounded;
             }
@@ -222,10 +226,10 @@ public final class EmakiItemStateService implements ItemState {
                 : ItemStateThresholdEvaluator.evaluate(field,
                         old instanceof Number number ? number : null,
                         typedValue instanceof Number number ? number : null,
-                        readThresholdMask(pdc, key));
+                        readThresholdMask(pdc, key, field));
         writeValue(pdc, key, typedValue);
         if (thresholds != null && thresholds.maskChanged()) {
-            writeThresholdMask(pdc, key, thresholds.mask());
+            writeThresholdMask(pdc, key, field, thresholds.mask());
         }
         writeMetadata(pdc, nextMetadata(current));
         boolean committed = item.setItemMeta(meta);
@@ -309,22 +313,49 @@ public final class EmakiItemStateService implements ItemState {
         return null;
     }
 
-    private static long readThresholdMask(PersistentDataContainer pdc, ItemStateKey<?> key) {
+    private static long readThresholdMask(PersistentDataContainer pdc,
+            ItemStateKey<?> key,
+            ItemStateConfig.Field field) {
         Long mask = pdc.get(thresholdMaskKey(key), PersistentDataType.LONG);
-        return mask == null ? 0L : mask;
+        if (mask == null || mask == 0L) {
+            return 0L;
+        }
+        Integer storedLayout = pdc.get(thresholdLayoutKey(key), PersistentDataType.INTEGER);
+        return storedLayout != null && storedLayout == thresholdLayoutSignature(field) ? mask : 0L;
     }
 
-    private static void writeThresholdMask(PersistentDataContainer pdc, ItemStateKey<?> key, long mask) {
+    private static void writeThresholdMask(PersistentDataContainer pdc,
+            ItemStateKey<?> key,
+            ItemStateConfig.Field field,
+            long mask) {
         if (mask == 0L) {
             pdc.remove(thresholdMaskKey(key));
+            pdc.remove(thresholdLayoutKey(key));
             return;
         }
         pdc.set(thresholdMaskKey(key), PersistentDataType.LONG, mask);
+        pdc.set(thresholdLayoutKey(key), PersistentDataType.INTEGER, thresholdLayoutSignature(field));
+    }
+
+    private static int thresholdLayoutSignature(ItemStateConfig.Field field) {
+        if (field == null) {
+            return 0;
+        }
+        int signature = 1;
+        for (ItemStateConfig.Threshold threshold : field.thresholds()) {
+            signature = 31 * signature + threshold.id().hashCode();
+        }
+        return signature;
     }
 
     private static NamespacedKey thresholdMaskKey(ItemStateKey<?> key) {
         return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
                 + "." + THRESHOLD_MASK_PREFIX + key.key());
+    }
+
+    private static NamespacedKey thresholdLayoutKey(ItemStateKey<?> key) {
+        return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
+                + "." + THRESHOLD_LAYOUT_PREFIX + key.key());
     }
 
     @Override
@@ -418,6 +449,7 @@ public final class EmakiItemStateService implements ItemState {
         }
         pdc.remove(namespacedKey(key));
         pdc.remove(thresholdMaskKey(key));
+        pdc.remove(thresholdLayoutKey(key));
         writeMetadata(pdc, nextMetadata(readMetadata(pdc)));
         boolean committed = item.setItemMeta(meta);
         ItemStateMutation<T> result = ItemStateMutation.committed(key, old, null, null, false);
@@ -484,6 +516,17 @@ public final class EmakiItemStateService implements ItemState {
         }
         pdc.remove(source);
         writeValue(pdc, ItemStateSchema.key(name, target), converted);
+    }
+
+    private void logClamp(ItemStateKey<?> key, Object requested, Object stored, Player holder) {
+        DebugLogger debugLogger = debugLogger();
+        if (debugLogger == null || !debugLogger.shouldLog("item_state", holder)) {
+            return;
+        }
+        debugLogger.log("item_state", holder, "item_state.clamped", Map.of(
+                "field", key.key(),
+                "requested", String.valueOf(requested),
+                "stored", String.valueOf(stored)));
     }
 
     private void logMigration(ItemStateConfig.Migration step) {

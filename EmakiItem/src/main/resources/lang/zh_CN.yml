@@ -170,6 +170,7 @@ debug:
     start: "识别物品 | 材质=%material% | PDC=%pdc%"
     result: "识别结果 | ID=%id%"
   item_state:
+    clamped: "状态值已钳制 | 字段=%field% | 请求值=%requested% | 实际写入=%stored%"
     migrated: "状态迁移已应用 | 源版本=%from% | 目标版本=%to% | 已重命名=%renamed% | 已改类型=%retyped% | 已丢弃=%dropped%"
     preserved: "状态保全 | 原因=%reason% | 结果=%outcome% | 字段数=%fields%"
     recursion_blocked: "状态派生递归已阻断 | 阶段=%stage% | 阈值=%threshold_id% | 深度=%depth%"

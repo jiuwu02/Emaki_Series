@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.strengthen.api.target;
 
+import java.util.Map;
+import java.util.Set;
+
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -8,6 +11,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
+import emaki.jiuwu.craft.strengthen.api.model.TargetSnapshotCategory;
 
 /**
  * Reads and writes the enhancement layer of one target type.
@@ -212,5 +216,28 @@ public interface EnhancementTargetProvider {
     default @NotNull EmakiResult<Unit> refreshPresentation(@Nullable Player player,
             @Nullable ItemStack itemStack) {
         return EmakiResult.ok();
+    }
+
+    /**
+     * Declares which PDC key prefixes this provider owns for each structured snapshot category, so the
+     * enhancement runtime can classify a target's persistent data by contract instead of by guessing
+     * from key spelling.
+     *
+     * <p>Each returned prefix is matched against a target key's <em>path</em> — the part after the
+     * namespace — case-insensitively, and a key is assigned to a category when its path equals a
+     * declared prefix or starts with that prefix followed by {@code .}. A key may legitimately land in
+     * several categories, and keys matching no prefix stay in the flat {@code item_pdc_*} view.
+     *
+     * <p>The default returns an empty map, which makes the runtime fall back to its historical
+     * substring heuristic. That fallback keeps providers compiled against the original contract
+     * working, but it cannot distinguish {@code side_effect_audit} from {@code effect}, so a provider
+     * that cares about accurate {@code target_effect_*} / {@code target_layer_*} /
+     * {@code target_audit_*} / {@code target_meta_*} variables should override this and name its own
+     * partitions.
+     *
+     * @return category to owned path prefixes; an empty map requests the legacy heuristic
+     */
+    default @NotNull Map<TargetSnapshotCategory, Set<String>> snapshotPartitions() {
+        return Map.of();
     }
 }

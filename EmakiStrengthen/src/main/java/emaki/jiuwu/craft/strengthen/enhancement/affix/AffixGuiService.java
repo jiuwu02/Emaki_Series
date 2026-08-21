@@ -16,17 +16,8 @@ import emaki.jiuwu.craft.corelib.session.PlayerSessionMap;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 
-/**
- * 词条强化 GUI 的入口服务。
- *
- * <p>只由显式的 {@code affix} 子命令触发，不接管 {@code /emakistrengthen open}——整件星级强化的
- * 入口、模板与结算保持原样（计划 3.1）。
- *
- * <p><strong>线程：</strong>{@link #open} 必须在玩家所属实体线程调用。
- */
 public final class AffixGuiService {
 
-    /** 词条 GUI 的模板 ID，对应 {@code gui/affix_strengthen_gui.yml}。 */
     public static final String TEMPLATE_ID = "affix_strengthen_gui";
 
     private final EmakiStrengthenPlugin plugin;
@@ -51,13 +42,6 @@ public final class AffixGuiService {
                 plugin, renderer, selectionService, layerCodec);
     }
 
-    /**
-     * 打开词条强化 GUI。
-     *
-     * @param player   发起玩家
-     * @param recipeId 指定配方 ID；为空时自动解析唯一的 {@code mode: affix} 配方
-     * @return 是否成功打开
-     */
     public boolean open(Player player, String recipeId) {
         if (player == null || guiService == null || plugin.enhancementAttemptService() == null) {
             return false;
@@ -98,7 +82,6 @@ public final class AffixGuiService {
         return true;
     }
 
-    /** 关闭全部词条 GUI 会话，物品由各会话的 onClose 归还。 */
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
             plugin.getLogger().warning("Failed to close all affix GUI sessions: " + throwable.getMessage());
@@ -106,7 +89,6 @@ public final class AffixGuiService {
         });
     }
 
-    /** {@return 关闭全部词条 GUI 会话的异步结果} */
     public CompletableFuture<Void> clearAllSessionsAsync() {
         return guiService.closeAllAsync().whenComplete((_, _) -> {
             sessions.clear();
@@ -136,7 +118,6 @@ public final class AffixGuiService {
             return null;
         }
         if (candidates.size() > 1) {
-            // 候选不唯一时不猜测：猜错会让玩家用另一套费用/概率强化（计划 3.1）。
             plugin.messageService().send(player, "command.affix.ambiguous_recipe", Map.of(
                     "recipes", String.join(", ", candidates.stream().map(EnhancementRecipe::id).toList())
             ));
@@ -145,7 +126,6 @@ public final class AffixGuiService {
         return candidates.getFirst();
     }
 
-    /** {@return 该玩家当前的词条 GUI 会话；没有时为 {@code null}} */
     AffixGuiSession session(Player player) {
         return sessions.get(player);
     }

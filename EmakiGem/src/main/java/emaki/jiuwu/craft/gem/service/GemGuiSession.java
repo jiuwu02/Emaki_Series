@@ -22,9 +22,28 @@ final class GemGuiSession implements GemPlayerGuiSession {
     private final List<ItemStack> upgradeMaterials = new ArrayList<>();
     private boolean processing;
     private PendingOperation pendingOperation = PendingOperation.none();
+    private boolean rerollCompletedOnce;
+    private boolean rerollRestartAcknowledged;
 
     GemGuiSession(Player player) {
         this.player = player;
+    }
+
+    public boolean rerollCompletedOnce() {
+        return rerollCompletedOnce;
+    }
+
+    public void markRerollCompleted() {
+        this.rerollCompletedOnce = true;
+        this.rerollRestartAcknowledged = false;
+    }
+
+    public boolean rerollRestartAcknowledged() {
+        return rerollRestartAcknowledged;
+    }
+
+    public void setRerollRestartAcknowledged(boolean rerollRestartAcknowledged) {
+        this.rerollRestartAcknowledged = rerollRestartAcknowledged;
     }
 
     public Player player() {

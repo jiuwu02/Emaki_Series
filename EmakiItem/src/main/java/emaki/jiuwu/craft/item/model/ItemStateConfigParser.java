@@ -62,9 +62,6 @@ public final class ItemStateConfigParser {
         }
         List<ItemStateConfig.Threshold> thresholds = new ArrayList<>();
         for (String rawId : section.getKeys(false)) {
-            if (thresholds.size() >= ItemStateConfig.MAX_THRESHOLDS_PER_FIELD) {
-                break;
-            }
             YamlSection entry = section.getSection(rawId);
             if (entry == null) {
                 continue;
@@ -86,7 +83,9 @@ public final class ItemStateConfigParser {
                     entry.getBoolean("refresh_derived", true)));
         }
         thresholds.sort((left, right) -> left.value().compareTo(right.value()));
-        return thresholds;
+        return thresholds.size() <= ItemStateConfig.MAX_THRESHOLDS_PER_FIELD
+                ? thresholds
+                : new ArrayList<>(thresholds.subList(0, ItemStateConfig.MAX_THRESHOLDS_PER_FIELD));
     }
 
     private static List<ItemStateConfig.Migration> parseMigrations(YamlSection section) {

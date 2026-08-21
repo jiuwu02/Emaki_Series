@@ -47,13 +47,22 @@ public final class ItemPlaceholderExpansion extends AbstractEmakiPlaceholderExpa
             case "held_components" -> plugin.componentInspector().idList(held);
             case "held_components_raw" -> plugin.componentInspector().raw(held);
             case "loaded_count" -> Integer.toString(plugin.itemLoader().all().size());
-            case "held_state_keys" -> resolveStateKeys(held);
-            case "held_state_revision" -> Long.toString(plugin.stateService().snapshot(held).metadata().revision());
-            case "held_state_instance" -> plugin.stateService().snapshot(held).metadata().instanceId();
-            case "held_state_schema" -> Integer.toString(plugin.stateService().snapshot(held).metadata().schemaVersion());
-            case "held_state_valid" -> plugin.stateService().snapshot(held).metadata().valid() ? "1" : "0";
+            case "held_state_keys" -> resolveReservedStatePlaceholder(held, normalized, resolveStateKeys(held));
+            case "held_state_revision" -> resolveReservedStatePlaceholder(held, normalized,
+                    Long.toString(plugin.stateService().snapshot(held).metadata().revision()));
+            case "held_state_instance" -> resolveReservedStatePlaceholder(held, normalized,
+                    plugin.stateService().snapshot(held).metadata().instanceId());
+            case "held_state_schema" -> resolveReservedStatePlaceholder(held, normalized,
+                    Integer.toString(plugin.stateService().snapshot(held).metadata().schemaVersion()));
+            case "held_state_valid" -> resolveReservedStatePlaceholder(held, normalized,
+                    plugin.stateService().snapshot(held).metadata().valid() ? "1" : "0");
             default -> resolveStatePlaceholder(held, normalized);
         };
+    }
+
+    private String resolveReservedStatePlaceholder(ItemStack held, String params, String metadataValue) {
+        Object shadowed = findStateValue(held, params.substring("held_state_".length()));
+        return shadowed == null ? metadataValue : String.valueOf(shadowed);
     }
 
     private String resolveStatePlaceholder(ItemStack held, String params) {

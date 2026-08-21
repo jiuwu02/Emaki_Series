@@ -17,12 +17,6 @@ import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptPreview;
 
-/**
- * 词条强化 GUI 的槽位渲染。
- *
- * <p>ES-05 要求确认前能看到旧值、新值、容量、费用与概率，因此这些数字全部取自
- * {@link EnhancementAttemptPreview}——与确认时真正执行的解析同源，避免展示值和扣费值分叉。
- */
 final class AffixGuiRenderer {
 
     private final EmakiStrengthenPlugin plugin;

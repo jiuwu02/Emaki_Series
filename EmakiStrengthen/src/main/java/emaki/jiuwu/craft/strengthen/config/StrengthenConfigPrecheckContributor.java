@@ -68,6 +68,7 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
             }
             checkMaterialSlots(entry.getKey(), loaded, issues);
             checkPityTracks(entry.getKey(), loaded.value(), issues);
+            checkModeProviderAgreement(entry.getKey(), loaded.value(), issues);
         }
     }
 
@@ -136,6 +137,19 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
                         + " target level changes", issues);
             }
         }
+    }
+
+    private void checkModeProviderAgreement(String recipeId,
+            EnhancementRecipe recipe,
+            List<ConfigPrecheckIssue> issues) {
+        String provider = Texts.lower(recipe.target().provider());
+        if (Texts.isBlank(provider) || provider.equals(recipe.mode())) {
+            return;
+        }
+        addIssue("enhancement_recipes", WARN, "recipe '" + recipeId + "' declares mode '" + recipe.mode()
+                + "' but target provider '" + provider
+                + "'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder,"
+                + " so the two disagreeing is usually a configuration mistake", issues);
     }
 
     private static Object rawValue(Map<?, ?> raw, String key) {

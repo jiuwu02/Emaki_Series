@@ -17,13 +17,6 @@ import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 
-/**
- * Resolves every level-dependent value used by one generic enhancement attempt.
- *
- * <p>The resolver freezes the previous, current and target level variable contexts once, then derives
- * chance, material quantities and currency costs from those immutable snapshots. Preview and execution
- * can therefore share one resolution instead of evaluating formulas independently.
- */
 public final class EnhancementProgressionResolver {
 
     public @NotNull Resolution resolve(@NotNull EnhancementRecipe recipe,

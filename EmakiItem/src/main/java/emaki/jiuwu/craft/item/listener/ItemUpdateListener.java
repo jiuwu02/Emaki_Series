@@ -138,6 +138,9 @@ public final class ItemUpdateListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         pendingRefresh.remove(event.getPlayer().getUniqueId());
         plugin.setService().clearCachedState(event.getPlayer().getUniqueId());
+        if (plugin.proficiencyGuard() != null) {
+            plugin.proficiencyGuard().forget(event.getPlayer().getUniqueId());
+        }
     }
 
     private ClickedArea clickedArea(InventoryClickEvent event) {

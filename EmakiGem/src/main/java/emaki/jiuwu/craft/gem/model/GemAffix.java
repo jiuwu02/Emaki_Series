@@ -8,7 +8,6 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** A rolled affix stored on a loose gem instance. */
 public record GemAffix(String id, int stage, double value) {
 
     public GemAffix {

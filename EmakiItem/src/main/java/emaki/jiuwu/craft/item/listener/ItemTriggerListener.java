@@ -224,7 +224,7 @@ public final class ItemTriggerListener implements Listener {
         EmakiItemDefinition definition = definition(weapon);
         if (definition != null
                 && guard.admits(definition.id(), EquipmentSlotMatcher.SLOT_MAIN_HAND)
-                && passes(killer, definition, TriggerRegistry.KILL_ENTITY, weapon)) {
+                && passes(killer, definition, trigger, weapon)) {
             run(killer, definition, trigger, placeholders, weapon);
         }
         runForArmorSlots(killer, trigger, placeholders, guard);

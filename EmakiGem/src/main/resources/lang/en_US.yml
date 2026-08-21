@@ -78,11 +78,14 @@ loader:
 
 gem:
   error:
+    condition_not_met: "<red>The conditions for this operation are not met.</red>"
     invalid_equipment: "<red>%player%'s item is not an inlayable equipment.</red>"
     insufficient_cost: "<red>Insufficient currency or materials.</red>"
     insufficient_currency: "<red>Insufficient currency: missing <yellow>%display_name%</yellow>, required <gold>%required%</gold>, available <gray>%available%</gray>.</red>"
     insufficient_material: "<red>Insufficient material: missing <yellow>%display_name%</yellow>, required <gold>%required%</gold>, available <gray>%available%</gray>.</red>"
     player_required: "<red>This operation must be performed by a player.</red>"
+  operation:
+    cancelled: "<yellow>The operation was cancelled by another plugin.</yellow>"
   reroll:
     player_required: "<red>Only a player can perform a reroll.</red>"
     wrong_thread: "<red>Cannot operate on that player from the current thread, please retry.</red>"
@@ -198,7 +201,9 @@ gui:
     upgrade_failed: "<red>Gem upgrade failed: %reason%</red>"
     upgrade_roll_failed: "<yellow>The upgrade roll failed; the gem remains at level %resulting_level%.</yellow>"
     upgrade_success: "<green>Gem upgrade succeeded: Lv.%previous_level% → Lv.%resulting_level%.</green>"
+    upgrade_max_level: "<yellow>This gem is already at the maximum level <gold>Lv.%max_level%</gold>, currently <gray>Lv.%level%</gray>.</yellow>"
     reroll_confirmed: "<green>The reroll result was written to your main-hand gem. Operation: %operation_id%</green>"
+    reroll_restart_confirm: "<yellow>The previous reroll is complete. Clicking confirm again <red>starts a new round and charges you again</red>; close the interface if you do not want that.</yellow>"
     reroll_failed: "<red>Reroll confirmation failed.</red>"
     reroll_unavailable: "<red>The reroll service is currently unavailable.</red>"
   open:

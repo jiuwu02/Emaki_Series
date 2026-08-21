@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
@@ -20,6 +21,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
+import emaki.jiuwu.craft.strengthen.api.model.TargetSnapshotCategory;
 import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
 public final class EnhancementTargetVariables {
@@ -80,7 +82,7 @@ public final class EnhancementTargetVariables {
         Map<String, Object> audit = new LinkedHashMap<>();
         Map<String, Object> meta = readMeta(target);
         List<String> unreadableKeys = new ArrayList<>();
-        readPdc(target, pdc, effects, layers, audit, meta, unreadableKeys);
+        readPdc(target, declaredPartitions(provider), pdc, effects, layers, audit, meta, unreadableKeys);
         int unreadable = unreadableKeys.size();
         String instanceId = provider == null ? "" : safeString(() -> provider.readInstanceId(player, target));
         if (Texts.isBlank(instanceId)) {
@@ -176,7 +178,21 @@ public final class EnhancementTargetVariables {
         return Map.copyOf(variables);
     }
 
+    private static Map<TargetSnapshotCategory, Set<String>> declaredPartitions(
+            EnhancementTargetProvider provider) {
+        if (provider == null) {
+            return Map.of();
+        }
+        try {
+            Map<TargetSnapshotCategory, Set<String>> declared = provider.snapshotPartitions();
+            return declared == null ? Map.of() : declared;
+        } catch (RuntimeException | LinkageError ignored) {
+            return Map.of();
+        }
+    }
+
     private static void readPdc(ItemStack target,
+            Map<TargetSnapshotCategory, Set<String>> partitions,
             Map<String, Object> pdc,
             Map<String, Object> effects,
             Map<String, Object> layers,
@@ -200,19 +216,70 @@ public final class EnhancementTargetVariables {
             String canonical = key.getNamespace() + ":" + key.getKey();
             pdc.put(canonical, value);
             String path = key.getKey().toLowerCase(Locale.ROOT);
-            if (path.contains("effect")) {
-                effects.put(canonical, value);
+            if (partitions.isEmpty()) {
+                classifyByHeuristic(path, canonical, value, effects, layers, audit, meta);
+                continue;
             }
-            if (path.contains("layer")) {
-                layers.put(canonical, value);
+            classifyByContract(partitions, path, canonical, value, effects, layers, audit, meta);
+        }
+    }
+
+    private static void classifyByHeuristic(String path,
+            String canonical,
+            Object value,
+            Map<String, Object> effects,
+            Map<String, Object> layers,
+            Map<String, Object> audit,
+            Map<String, Object> meta) {
+        if (path.contains("effect")) {
+            effects.put(canonical, value);
+        }
+        if (path.contains("layer")) {
+            layers.put(canonical, value);
+        }
+        if (path.contains("audit")) {
+            audit.put(canonical, value);
+        }
+        if (path.contains("meta")) {
+            meta.put(canonical, value);
+        }
+    }
+
+    private static void classifyByContract(Map<TargetSnapshotCategory, Set<String>> partitions,
+            String path,
+            String canonical,
+            Object value,
+            Map<String, Object> effects,
+            Map<String, Object> layers,
+            Map<String, Object> audit,
+            Map<String, Object> meta) {
+        for (Map.Entry<TargetSnapshotCategory, Set<String>> entry : partitions.entrySet()) {
+            if (entry.getKey() == null || !matchesAnyPrefix(path, entry.getValue())) {
+                continue;
             }
-            if (path.contains("audit")) {
-                audit.put(canonical, value);
-            }
-            if (path.contains("meta")) {
-                meta.put(canonical, value);
+            switch (entry.getKey()) {
+                case EFFECT -> effects.put(canonical, value);
+                case LAYER -> layers.put(canonical, value);
+                case AUDIT -> audit.put(canonical, value);
+                case META -> meta.put(canonical, value);
             }
         }
+    }
+
+    private static boolean matchesAnyPrefix(String path, Set<String> prefixes) {
+        if (prefixes == null || prefixes.isEmpty()) {
+            return false;
+        }
+        for (String prefix : prefixes) {
+            if (Texts.isBlank(prefix)) {
+                continue;
+            }
+            String normalized = prefix.trim().toLowerCase(Locale.ROOT);
+            if (path.equals(normalized) || path.startsWith(normalized + ".")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Map<String, Object> readMeta(ItemStack target) {

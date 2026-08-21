@@ -61,12 +61,6 @@ public record MaterialSlotConfig(
         return targetCompare != TargetCompareEnum.NONE;
     }
 
-    /**
-     * Resolves a Quantity node that may be written either as a nested typed section or as a bare
-     * scalar. {@code YamlSection.get} unwraps a nested map into a plain {@code Map}, which
-     * {@code Quantity.fromConfig} rejects, so a section must be fetched through
-     * {@code getSection} instead.
-     */
     public static @Nullable Object quantityNode(@NotNull YamlSection section, @NotNull String path) {
         YamlSection nested = section.getSection(path);
         return nested != null ? nested : section.get(path);

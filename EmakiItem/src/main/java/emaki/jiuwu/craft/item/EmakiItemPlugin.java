@@ -197,6 +197,9 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             stageRegistrar.unregister();
             stageRegistrar = null;
         }
+        if (proficiencyGuard != null) {
+            proficiencyGuard.reset();
+        }
         EmakiItemApi.uninstall(itemApiBridge);
         lifecycleCoordinator.shutdown(this);
     }

@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
@@ -442,8 +443,10 @@ public final class EmakiItemUpdateService {
     }
 
     private boolean hasAssemblyData(ItemStack itemStack) {
-        return pdcService.has(itemStack, itemPartition, "schema_version", PersistentDataType.INTEGER)
-                && pdcService.has(itemStack, itemPartition, "base_source", PersistentDataType.STRING);
+        return pdcService.has(itemStack, itemPartition,
+                        ItemPdcKeys.ASSEMBLY_FIELD_SCHEMA_VERSION, PersistentDataType.INTEGER)
+                && pdcService.has(itemStack, itemPartition,
+                        ItemPdcKeys.ASSEMBLY_FIELD_BASE_SOURCE, PersistentDataType.STRING);
     }
 
     private void writeAssemblyBasePresentation(ItemStack assemblyState, ItemStack rebuiltBase) {
@@ -452,16 +455,18 @@ public final class EmakiItemUpdateService {
             return;
         }
         if (ItemTextBridge.hasCustomName(itemMeta)) {
-            pdcService.set(assemblyState, itemPartition, "base_custom_name", PersistentDataType.STRING,
+            pdcService.set(assemblyState, itemPartition, ItemPdcKeys.ASSEMBLY_FIELD_BASE_CUSTOM_NAME,
+                    PersistentDataType.STRING,
                     MiniMessages.serialize(ItemTextBridge.customName(itemMeta)));
         } else {
-            pdcService.remove(assemblyState, itemPartition, "base_custom_name");
+            pdcService.remove(assemblyState, itemPartition, ItemPdcKeys.ASSEMBLY_FIELD_BASE_CUSTOM_NAME);
         }
         List<String> lore = ItemTextBridge.loreLines(itemMeta);
         if (lore == null || lore.isEmpty()) {
-            pdcService.remove(assemblyState, itemPartition, "base_lore");
+            pdcService.remove(assemblyState, itemPartition, ItemPdcKeys.ASSEMBLY_FIELD_BASE_LORE);
         } else {
-            pdcService.set(assemblyState, itemPartition, "base_lore", PersistentDataType.STRING,
+            pdcService.set(assemblyState, itemPartition, ItemPdcKeys.ASSEMBLY_FIELD_BASE_LORE,
+                    PersistentDataType.STRING,
                     YamlFiles.dump(Map.of("lore", lore)));
         }
     }

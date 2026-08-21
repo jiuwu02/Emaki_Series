@@ -15,22 +15,8 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 
-/**
- * 负责把 {@link GemEnhancementTargetProvider} 注册进 EmakiStrengthen 的强化目标注册中心。
- *
- * <p>用常驻就绪监听而非一次性 {@code whenReady}：Strengthen 的注册中心在其自身 shutdown/重载时会
- * 被清空，只注册一次会导致 Strengthen 重载后宝石目标静默消失。监听每次 READY 转换都重新注册，
- * 注册中心按 Provider ID 覆盖写入，因此重复注册是幂等的。
- *
- * <p>按 {@code ModuleReadinessListener} 的约定，回调内不再注册 {@code whenReady}，也不假设回调
- * 运行在任何特定线程——注册中心自身是同步的，可从任意线程调用。
- */
 public final class GemStrengthenIntegration {
 
-    /**
-     * 目标模块名以字面量书写，而非引用 EmakiStrengthen API 的常量：引用常量会把该类拖入类加载
-     * 期，Strengthen 缺失时直接 NoClassDefFoundError。
-     */
     private static final String STRENGTHEN_MODULE = "EmakiStrengthen";
 
     private final EmakiGemPlugin plugin;
@@ -40,7 +26,6 @@ public final class GemStrengthenIntegration {
         this.plugin = plugin;
     }
 
-    /** 挂载就绪监听；若 Strengthen 当前已就绪，立即补一次注册。 */
     public void initialize() {
         if (plugin == null) {
             return;
@@ -50,24 +35,20 @@ public final class GemStrengthenIntegration {
                 registerProvider();
             }
         });
-        // 已就绪时注册监听刻意不会立即回调（见 ModuleReadinessListener 约定），所以这里主动补一次。
         if (EmakiCoreLibApi.isModuleReady(STRENGTHEN_MODULE)) {
             registerProvider();
         }
     }
 
-    /** 撤销就绪监听，并在 Strengthen 仍在线时移除本插件注册的 Provider。 */
     public void close() {
         registration.close();
         registration = ReadinessRegistration.inactive();
         try {
             EmakiStrengthenApi.operations().unregisterEnhancementTarget(GemEnhancementTargetProvider.PROVIDER_ID);
         } catch (RuntimeException | LinkageError _) {
-            // Strengthen 可能已先于 Gem 卸载；此处无需处理。
         }
     }
 
-    /** {@return Strengthen 运行时与公开 API 当前是否均可用} */
     public boolean available() {
         try {
             return EmakiCoreLibApi.isModuleReady(STRENGTHEN_MODULE) && EmakiStrengthenApi.status().usable();
@@ -76,9 +57,6 @@ public final class GemStrengthenIntegration {
         }
     }
 
-    /**
-     * 通过 Strengthen 的公开 API 执行一次宝石升级；调用方负责把返回物品写回 GUI 会话。
-     */
     public EmakiResult<EnhancementAttemptOutcome> attemptUpgrade(Player player,
             String recipeId,
             ItemStack target,

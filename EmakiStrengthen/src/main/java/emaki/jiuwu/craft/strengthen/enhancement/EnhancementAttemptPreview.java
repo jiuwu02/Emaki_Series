@@ -8,12 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptCost;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.ConsumeTimingEnum;
 
-/**
- * 一次通用强化尝试在不产生副作用的情况下解析出的预览。
- *
- * <p>预览与执行共用同一套目标读取、材料匹配、保底和费用解析逻辑，避免 GUI 展示值与确认时
- * 实际扣费/判定值分叉。调用方仍需在目标所属线程上读取物品；玩家上下文由执行服务显式传给 Provider。
- */
 public record EnhancementAttemptPreview(
         boolean valid,
         @NotNull String errorKey,

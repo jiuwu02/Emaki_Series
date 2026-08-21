@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemAffix;
 
-/** Generates reroll candidates without mutating the formal gem instance. */
 public final class GemRerollCandidateGenerator {
 
     public record GenerationResult(boolean success, String errorKey, GemItemInstance candidate) {

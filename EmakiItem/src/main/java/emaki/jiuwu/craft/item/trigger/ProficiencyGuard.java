@@ -131,12 +131,20 @@ public final class ProficiencyGuard {
         targetCooldowns.entrySet().removeIf(entry -> now - entry.getValue() >= window * 4L);
     }
 
+    private void pruneDailyCounters(LocalDate today) {
+        if (dailyCounters.size() < 4096) {
+            return;
+        }
+        dailyCounters.values().removeIf(counter -> !counter.day.equals(today));
+    }
+
     private boolean passesSoftCap(Session session, String definitionId, ProficiencyGuardConfig config) {
         String key = session.actor.getUniqueId() + "|" + session.trigger + "|" + definitionId;
         LocalDate today = LocalDate.now();
         DailyCounter counter = dailyCounters.compute(key, (ignored, current) -> current == null || !current.day.equals(today)
                 ? new DailyCounter(today)
                 : current);
+        pruneDailyCounters(today);
         int count = counter.increment();
         if (count <= config.dailySoftCap()) {
             return true;

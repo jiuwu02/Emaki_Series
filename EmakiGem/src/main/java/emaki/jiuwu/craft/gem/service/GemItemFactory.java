@@ -51,17 +51,6 @@ public final class GemItemFactory {
         return itemStack;
     }
 
-    /**
-     * 就地把整份实例数据写回宝石物品，并按新等级刷新展示。
-     *
-     * <p>与 {@link #createGemItem} 的区别是不新建物品、不改数量，因此适合强化/升级流程在既有
-     * 物品上推进等级或阶段。{@code instanceId} / {@code affixes} / {@code matrices} /
-     * {@code extensions} / {@code dataVersion} 一并落盘，不会因为一次升级而丢失。
-     *
-     * @param itemStack 待写回的宝石物品；{@code null} 或空气直接忽略
-     * @param instance  目标实例数据；{@code null} 直接忽略
-     * @return 是否实际写入
-     */
     public boolean applyInstance(ItemStack itemStack, GemItemInstance instance) {
         if (itemStack == null || itemStack.getType().isAir() || instance == null) {
             return false;
@@ -80,12 +69,6 @@ public final class GemItemFactory {
         return true;
     }
 
-    /**
-     * 写入宝石实例的兼容标量字段与完整集合快照。
-     *
-     * <p>标量字段保留给旧物品和外部 Matcher 兼容；{@code instance_data} 才是独立宝石实例的完整
-     * 持久化载荷，覆盖实例身份、阶段、词条、矩阵、扩展和数据版本。
-     */
     private void writeInstanceFields(ItemStack itemStack, GemItemInstance instance) {
         PDC.set(itemStack, GEM_ITEM_PARTITION, "id", PersistentDataType.STRING, instance.gemId());
         PDC.set(itemStack, GEM_ITEM_PARTITION, "level", PersistentDataType.INTEGER, instance.level());

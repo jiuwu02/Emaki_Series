@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiItem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.10"
+version: "2.7.11"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -60,6 +60,14 @@ item_state:
   # 字段声明。键名即状态键名，未声明的字段不受钳制/默认值/阈值影响。
   # type: integer | long | double | boolean | string
   # 只有数值类型才支持 min/max 与 thresholds。
+  #
+  # 出厂为空表示：clamp、default 与 migrations 三条路径均无作用点，
+  # 既存物品的 state 值不会被静默改写。按下方注释取消注释即可启用。
+  #
+  # 每个字段最多 64 个阈值（受 LONG 位图限制）。声明超过 64 个时，
+  # 按 value 升序保留最小的 64 个，其余丢弃；保留集合与 YAML 书写顺序无关。
+  # 阈值集合发生增删改后，该字段已记录的「一次性阈值」latch 会整体重新武装，
+  # 因此 once=true 的阈值在改配置后可能再奖励一次，而不会错配到别的阈值上。
   fields: {}
   #  proficiency:
   #    type: double

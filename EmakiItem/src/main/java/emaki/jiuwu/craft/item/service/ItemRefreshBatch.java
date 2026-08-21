@@ -3,20 +3,13 @@ package emaki.jiuwu.craft.item.service;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
-import org.bukkit.inventory.meta.ItemMeta;
-import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 
 public final class ItemRefreshBatch {
-
-    private static final NamespacedKey OPERATIONS_KEY = Objects.requireNonNull(
-            NamespacedKey.fromString("emaki:item.operations"));
 
     private final PlayerInventory inventory;
     private final ItemOperationLedger operationLedger;
@@ -61,19 +54,15 @@ public final class ItemRefreshBatch {
         ItemStack current = inventory.getItem(slot);
         ItemStack expected = current == null ? null : current.clone();
         ItemOperationLedger.ReadResult ledgerRead;
-        if (expected == null || expected.getType().isAir() || !operationsFieldPresent(expected)) {
+        if (expected == null || expected.getType().isAir()) {
             ledgerRead = ItemOperationLedger.ReadResult.absent();
         } else {
             ledgerRead = operationLedger.read(expected);
-            ledgerDecodes++;
+            if (ledgerRead.status() != ItemOperationLedger.ReadStatus.ABSENT) {
+                ledgerDecodes++;
+            }
         }
         return new SlotSnapshot(slot, expected, ledgerRead);
-    }
-
-    private boolean operationsFieldPresent(ItemStack itemStack) {
-        ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null
-                && itemMeta.getPersistentDataContainer().has(OPERATIONS_KEY, PersistentDataType.STRING);
     }
 
     record SlotSnapshot(int slot, ItemStack expected, ItemOperationLedger.ReadResult ledgerRead) {

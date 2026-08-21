@@ -10,17 +10,6 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
-/**
- * 一枚宝石在物品上的实例数据。
- *
- * <p>{@code gemId} 指向宝石定义，其余字段是这一枚宝石独有的运行时状态：{@code instanceId}
- * 唯一标识该实例（镶嵌、取出、交易、重启后保持不变），{@code stage} 表示阶段，
- * {@code affixes} / {@code matrices} 保存词条与矩阵，{@code extensions} 按插件命名空间存放
- * 第三方数据，{@code dataVersion} 供后续结构变更做迁移判断。
- *
- * <p>整体通过 {@link #toMap()} / {@link #fromMap(Map)} 往返持久化，因此新增字段会自动随
- * {@code GemState} 的 socket_assignments 一起落盘。
- */
 public record GemItemInstance(String gemId,
         int level,
         long updatedAt,
@@ -31,10 +20,8 @@ public record GemItemInstance(String gemId,
         Map<String, Map<String, String>> extensions,
         int dataVersion) {
 
-    /** 当前实例数据结构版本。结构变更时递增，供迁移逻辑判断。 */
     public static final int CURRENT_DATA_VERSION = 1;
 
-    /** 独立宝石物品上的完整实例集合快照；兼容旧标量 PDC 字段作为回退来源。 */
     public static final SnapshotCodec<GemItemInstance> CODEC = SnapshotCodec.versionedYaml(
             CURRENT_DATA_VERSION,
             GemItemInstance::toMap,
@@ -53,11 +40,6 @@ public record GemItemInstance(String gemId,
         dataVersion = dataVersion <= 0 ? CURRENT_DATA_VERSION : dataVersion;
     }
 
-    /**
-     * 以宝石定义与等级创建一枚全新实例，自动生成 {@code instanceId} 并采用当前数据版本。
-     *
-     * <p>其余实例字段留空，等待镶嵌/升级流程填充。
-     */
     public GemItemInstance(String gemId, int level, long updatedAt) {
         this(gemId, level, updatedAt, null, 0, List.of(), Map.of(), Map.of(), CURRENT_DATA_VERSION);
     }
@@ -66,7 +48,6 @@ public record GemItemInstance(String gemId,
         return gemId + ":" + level;
     }
 
-    /** Optimistic-lock version for state-changing loose-gem operations. */
     public long version() {
         return updatedAt;
     }
@@ -79,7 +60,6 @@ public record GemItemInstance(String gemId,
         map.put("instance_id", instanceId);
         map.put("stage", stage);
         map.put("data_version", dataVersion);
-        // 空集合不落盘，避免为每枚普通宝石写入三个恒空的容器。
         if (!affixes.isEmpty()) {
             map.put("affixes", List.copyOf(affixes));
         }
@@ -106,7 +86,6 @@ public record GemItemInstance(String gemId,
                 gemId,
                 Numbers.tryParseInt(map.get("level"), 1),
                 Numbers.tryParseLong(map.get("updated_at"), System.currentTimeMillis()),
-                // 旧数据没有 instance_id：紧凑构造器会补一个新的，等价于「首次迁移时分配身份」。
                 Texts.toStringSafe(map.get("instance_id")),
                 Numbers.tryParseInt(map.get("stage"), 0),
                 readStringList(map.get("affixes")),

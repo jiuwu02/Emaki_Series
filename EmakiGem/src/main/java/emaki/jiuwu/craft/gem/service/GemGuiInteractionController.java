@@ -228,6 +228,13 @@ final class GemGuiInteractionController {
             return;
         }
         if (plugin.rerollSessionService().session(state.player().getUniqueId()).isEmpty()) {
+            if (state.rerollCompletedOnce() && !state.rerollRestartAcknowledged()) {
+                state.setRerollRestartAcknowledged(true);
+                plugin.messageService().send(state.player(), "gui.gem.reroll_restart_confirm");
+                renderer.refreshGui(state);
+                return;
+            }
+            state.setRerollRestartAcknowledged(false);
             openRerollCandidate(state);
             return;
         }
@@ -238,6 +245,7 @@ final class GemGuiInteractionController {
             if (result.success() && result.session() != null) {
                 state.setTargetItem(null);
                 state.setReturnTargetOnClose(false);
+                state.markRerollCompleted();
                 plugin.messageService().send(state.player(), "gui.gem.reroll_confirmed", Map.of(
                         "operation_id", result.session().operationId()
                 ));
@@ -344,8 +352,6 @@ final class GemGuiInteractionController {
     }
 
     private void sendUpgradeFailure(Player player, String reasonKey, Map<String, Object> placeholders) {
-        // 这些键取自 EnhancementAttemptService/DefaultStrengthenOperations 的实际返回值；
-        // 强化框架的业务失败用 strengthen.error.*，只有请求层校验才用 strengthen.enhancement.*。
         String messageKey = switch (Texts.toStringSafe(reasonKey)) {
             case "emaki.api.unavailable", "strengthen.enhancement.provider_not_found" -> "gui.gem.upgrade_unavailable";
             case "strengthen.error.no_recipe", "strengthen.enhancement.recipe_not_found" -> "gui.gem.upgrade_recipe_missing";

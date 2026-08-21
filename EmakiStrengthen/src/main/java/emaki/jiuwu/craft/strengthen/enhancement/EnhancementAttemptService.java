@@ -55,12 +55,6 @@ import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.service.StrengthenEconomyService;
 
-/**
- * 执行强化框架配方的服务。
- *
- * <p>所有目标类型共用材料、费用、概率、保底和事务阶段；目标层的具体读写仍完全由
- * {@link EnhancementTargetProvider} 负责。调用方必须在持有目标物品的实体线程调用，本服务不自行调度。
- */
 public final class EnhancementAttemptService {
 
     private static final int MAX_SAFE_LEVEL = 1_000_000;
@@ -189,7 +183,6 @@ public final class EnhancementAttemptService {
         return separator < 0 ? journalKey : journalKey.substring(separator + 1);
     }
 
-    /** 使用自动生成的 operation id 执行一次强化。 */
     public @NotNull EnhancementAttemptResult attempt(@Nullable Player player,
             @Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
@@ -197,12 +190,6 @@ public final class EnhancementAttemptService {
         return attempt(player, recipe, target, supplied, UUID.randomUUID().toString());
     }
 
-    /**
-     * 执行一次强化尝试。
-     *
-     * <p>Provider 写回先在目标副本上完成并回读确认，之后才扣费；最终扣费、材料提交和目标 ItemMeta
-     * 提交任一阶段失败都会恢复材料并尝试退款。这样容量不足、Provider 静默失败不会造成先扣费。
-     */
     public @NotNull EnhancementAttemptResult attempt(@Nullable Player player,
             @Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
@@ -362,9 +349,6 @@ public final class EnhancementAttemptService {
         return result;
     }
 
-    /**
-     * 解析一次尝试的只读预览。该方法不会扣费、扣材料、推进 pity 或改动原目标。
-     */
     public @NotNull EnhancementAttemptPreview preview(@Nullable Player player,
             @Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
@@ -421,7 +405,6 @@ public final class EnhancementAttemptService {
         return candidate;
     }
 
-    /** 解析配方声明的目标 Provider；不通过 canHandle 猜测 Provider。 */
     private @Nullable EnhancementTargetProvider resolveProvider(@Nullable Player player,
             EnhancementRecipe recipe,
             ItemStack target) {
@@ -980,7 +963,6 @@ public final class EnhancementAttemptService {
         return value >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
     }
 
-    /** {@return 物品对应的物品源引用；无法识别时为 {@code null}} */
     private @Nullable ItemSourceRef identifySource(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || plugin == null) {
             return null;
@@ -1158,7 +1140,6 @@ public final class EnhancementAttemptService {
         });
     }
 
-    /** 按 {@link ConsumeTimingEnum} 实际扣减材料数量。 */
     private void consumeMaterials(List<MaterialMatch> matches, boolean success) {
         for (MaterialMatch match : matches) {
             if (!shouldConsume(match.timing(), success)) {
