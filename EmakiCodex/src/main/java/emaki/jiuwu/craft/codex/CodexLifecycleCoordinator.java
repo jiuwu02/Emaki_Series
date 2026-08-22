@@ -24,7 +24,6 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
@@ -52,7 +51,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 });
 
@@ -161,9 +161,4 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return value == null ? fallback : value;
     }
 
-    private boolean shouldReleaseDefaultData(EmakiCodexPlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        Boolean value = configuration.getBoolean("release_default_data", true);
-        return value == null || value;
-    }
 }

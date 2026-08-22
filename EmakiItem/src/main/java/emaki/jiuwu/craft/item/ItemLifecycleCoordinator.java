@@ -28,7 +28,6 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
@@ -96,7 +95,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
 
                     @Override
@@ -474,11 +474,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 section.getBoolean("interact", true),
                 section.getBoolean("command", true)
         );
-    }
-
-    private boolean shouldReleaseDefaultData(EmakiItemPlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
     }
 
     private void closeItemSourceResolver() {

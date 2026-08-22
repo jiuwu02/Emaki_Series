@@ -1,45 +1,28 @@
 package emaki.jiuwu.craft.item.integration;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-public final class ItemAttributeBridgeHolder implements ItemAttributeBridge {
+import emaki.jiuwu.craft.corelib.integration.AbstractPluginBridgeHolder;
+
+public final class ItemAttributeBridgeHolder extends AbstractPluginBridgeHolder<ItemAttributeBridge>
+        implements ItemAttributeBridge {
 
     private static final String ATTRIBUTE_PLUGIN_NAME = "EmakiAttribute";
     private static final String BRIDGE_CLASS =
             "emaki.jiuwu.craft.item.integration.attribute.EmakiAttributeItemBridge";
 
-    private final Logger logger;
-    private volatile ItemAttributeBridge delegate = ItemAttributeBridge.UNAVAILABLE;
-    private volatile String registeredSourceId;
-
     public ItemAttributeBridgeHolder(Logger logger) {
-        this.logger = logger;
+        super(logger, ATTRIBUTE_PLUGIN_NAME, BRIDGE_CLASS, ItemAttributeBridge.UNAVAILABLE);
     }
 
     @Override
-    public boolean available() {
-        return resolve().available();
-    }
-
-    @Override
-    public void syncRegistration(String sourceId) {
-        registeredSourceId = sourceId;
-        resolve().syncRegistration(sourceId);
-    }
-
-    @Override
-    public void shutdown() {
-        ItemAttributeBridge current = delegate;
-        delegate = ItemAttributeBridge.UNAVAILABLE;
-        registeredSourceId = null;
-        current.shutdown();
+    protected ItemAttributeBridge cast(Object bridge) {
+        return bridge instanceof ItemAttributeBridge resolved ? resolved : ItemAttributeBridge.UNAVAILABLE;
     }
 
     @Override
@@ -78,48 +61,5 @@ public final class ItemAttributeBridgeHolder implements ItemAttributeBridge {
     @Override
     public void scheduleEquipmentSync(Player player) {
         resolve().scheduleEquipmentSync(player);
-    }
-
-    private ItemAttributeBridge resolve() {
-        boolean enabled = Bukkit.getPluginManager().isPluginEnabled(ATTRIBUTE_PLUGIN_NAME);
-        ItemAttributeBridge current = delegate;
-        if (!enabled) {
-            if (current != ItemAttributeBridge.UNAVAILABLE) {
-                delegate = ItemAttributeBridge.UNAVAILABLE;
-            }
-            return ItemAttributeBridge.UNAVAILABLE;
-        }
-        if (current != ItemAttributeBridge.UNAVAILABLE) {
-            return current;
-        }
-        ItemAttributeBridge resolved = load();
-        delegate = resolved;
-        String sourceId = registeredSourceId;
-        if (sourceId != null) {
-            resolved.syncRegistration(sourceId);
-        }
-        return resolved;
-    }
-
-    private ItemAttributeBridge load() {
-        try {
-            Class<?> bridgeClass = Class.forName(BRIDGE_CLASS, true, getClass().getClassLoader());
-            Object bridge = bridgeClass.getMethod("create").invoke(null);
-            return bridge instanceof ItemAttributeBridge resolved ? resolved : ItemAttributeBridge.UNAVAILABLE;
-        } catch (ReflectiveOperationException | LinkageError exception) {
-            if (logger != null) {
-                logger.warning("Failed to initialize EmakiAttribute integration: " + detail(exception));
-            }
-            return ItemAttributeBridge.UNAVAILABLE;
-        }
-    }
-
-    private String detail(Throwable throwable) {
-        Throwable resolved = throwable instanceof InvocationTargetException invocation
-                && invocation.getCause() != null
-                ? invocation.getCause()
-                : throwable;
-        String message = resolved.getMessage();
-        return message == null || message.isBlank() ? resolved.getClass().getSimpleName() : message;
     }
 }

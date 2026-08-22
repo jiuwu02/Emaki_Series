@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -117,7 +118,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         PlayerDataStore playerDataStore = new PlayerDataStore(plugin, () -> playerDataFiles);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
-        BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
+        BootstrapService bootstrapService = createBootstrapService(plugin, messageService, appConfigLoader);
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         var threadOwnership = coreLibPlugin.threadOwnership();
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(),
@@ -308,7 +309,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         loadCandidateAppConfigReadOnly(appConfigLoader);
         validateCandidateLanguagesReadOnly(new File(plugin.getDataFolder(), "lang"));
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
-        BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
+        BootstrapService bootstrapService = createBootstrapService(plugin, messageService, appConfigLoader);
         RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionEngine,
                 plugin.itemIdentifierService(), true);
         ForgeGuiTemplateLoader guiTemplateLoader = new ForgeGuiTemplateLoader(
@@ -435,36 +436,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private List<File> discoverYamlFiles(File directory) {
-        List<File> files = new ArrayList<>();
-        collectYamlFiles(directory, files);
-        files.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
-        return List.copyOf(files);
+        return List.copyOf(YamlDirectoryLoader.collectYamlFiles(directory));
     }
 
-    private void collectYamlFiles(File directory, List<File> sink) {
-        if (directory == null || sink == null || !directory.exists()) {
-            return;
-        }
-        File[] entries = directory.listFiles();
-        if (entries == null) {
-            return;
-        }
-        for (File entry : entries) {
-            if (entry == null) {
-                continue;
-            }
-            if (entry.isDirectory()) {
-                collectYamlFiles(entry, sink);
-                continue;
-            }
-            String name = entry.getName().toLowerCase(Locale.ROOT);
-            if (name.endsWith(".yml") || name.endsWith(".yaml")) {
-                sink.add(entry);
-            }
-        }
-    }
-
-    private BootstrapService createBootstrapService(EmakiForgePlugin plugin, MessageService messageService) {
+    private BootstrapService createBootstrapService(EmakiForgePlugin plugin,
+            MessageService messageService,
+            YamlConfigLoader<AppConfig> appConfigLoader) {
         return new BootstrapService(
                 plugin,
                 messageService,
@@ -475,7 +452,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 }
         );
@@ -1028,11 +1006,6 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 history == null || history.getBoolean("auto_save", true),
                 history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)
         );
-    }
-
-    private boolean shouldReleaseDefaultData(EmakiForgePlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

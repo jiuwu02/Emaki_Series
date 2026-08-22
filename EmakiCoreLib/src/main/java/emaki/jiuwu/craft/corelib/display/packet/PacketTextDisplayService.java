@@ -33,6 +33,7 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
@@ -49,8 +50,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     private final ExecutionDispatcher executionDispatcher;
     private final DisplayMotionRunner motionRunner;
     private final Map<String, VirtualText> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
+    private final DisplayLifetimeTracker lifetime;
     private final TaskToken refreshTask;
 
     public PacketTextDisplayService(Plugin plugin,
@@ -60,6 +60,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         this.settings = settings;
         this.executionDispatcher = executionDispatcher;
         this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         int interval = Math.max(1, settings.refreshIntervalTicks());
         this.refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
@@ -79,11 +80,11 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         if (display == null) {
             display = new VirtualText(VirtualEntityIds.next(), UUID.randomUUID(), spec);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            lifetime.trackGroupMember(spec.groupKey(), key);
 
             startMotion(key, display);
             refreshEntry(display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
             return;
         }
         display.spec = spec;
@@ -98,7 +99,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             }
         }
         refreshEntry(display);
-        scheduleExpiry(spec);
+        lifetime.scheduleExpiry(spec);
     }
 
     @Override
@@ -123,7 +124,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -136,7 +137,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -145,18 +146,15 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
     @Override
     public void shutdown() {
-        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
+        lifetime.cancelAllExpiry();
         motionRunner.shutdown();
-        cancelQuietly(refreshTask);
+        lifetime.cancelQuietly(refreshTask);
         HandlerList.unregisterAll(this);
         for (VirtualText display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
     }
 
     @Override
@@ -264,44 +262,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         }
     }
 
-    private void scheduleExpiry(TextDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskToken handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskToken handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
         for (String key : Set.copyOf(keys)) {
-            cancelQuietly(expiryTasks.remove(key));
+            lifetime.cancelExpiry(key);
             motionRunner.cancel(key);
             VirtualText display = displays.remove(key);
             if (display != null) {
@@ -311,20 +278,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         motionRunner.cancel(key);
         VirtualText display = displays.remove(key);
         if (display != null) {
             destroyForAllVisible(display);
         }
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     @EventHandler

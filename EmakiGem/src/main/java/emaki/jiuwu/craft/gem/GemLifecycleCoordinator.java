@@ -91,7 +91,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 }
         );
@@ -440,11 +441,6 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 conditionGroup.requiredCount(),
                 condition.invalidAsFailure()
         );
-    }
-
-    private boolean shouldReleaseDefaultData(EmakiGemPlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
     }
 
     private List<String> staticFiles(EmakiGemPlugin plugin) {

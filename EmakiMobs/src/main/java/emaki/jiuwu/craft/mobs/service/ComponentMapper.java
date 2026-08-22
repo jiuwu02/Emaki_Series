@@ -45,7 +45,13 @@ public final class ComponentMapper {
     }
 
     private void registerAll() {
-        // === Bukkit Attributes ===
+        registerBukkitAttributes();
+        registerGeneralBehavior();
+        registerEquipment();
+        registerTypeSpecific();
+    }
+
+    private void registerBukkitAttributes() {
         registerAttribute("max_health", Attribute.MAX_HEALTH, true);
         registerAttribute("movement_speed", Attribute.MOVEMENT_SPEED, false);
         registerAttribute("attack_damage", Attribute.ATTACK_DAMAGE, false);
@@ -68,8 +74,9 @@ public final class ComponentMapper {
         registerAttribute("oxygen_bonus", Attribute.OXYGEN_BONUS, false);
         registerAttribute("water_movement_efficiency", Attribute.WATER_MOVEMENT_EFFICIENCY, false);
         registerAttribute("movement_efficiency", Attribute.MOVEMENT_EFFICIENCY, false);
+    }
 
-        // === General behavior ===
+    private void registerGeneralBehavior() {
         handlers.put("custom_name", (entity, value) ->
                 entity.customName(MiniMessage.miniMessage().deserialize(String.valueOf(value))));
         handlers.put("custom_name_visible", (entity, value) ->
@@ -111,8 +118,9 @@ public final class ComponentMapper {
         });
         handlers.put("potion_effect", (entity, value) ->
                 applyPotionEffect(entity, value));
+    }
 
-        // === Equipment ===
+    private void registerEquipment() {
         handlers.put("helmet", (e, v) -> applyEquipment(e, v, EquipmentSlot.HEAD));
         handlers.put("chestplate", (e, v) -> applyEquipment(e, v, EquipmentSlot.CHEST));
         handlers.put("leggings", (e, v) -> applyEquipment(e, v, EquipmentSlot.LEGS));
@@ -120,8 +128,9 @@ public final class ComponentMapper {
         handlers.put("main_hand", (e, v) -> applyEquipment(e, v, EquipmentSlot.HAND));
         handlers.put("off_hand", (e, v) -> applyEquipment(e, v, EquipmentSlot.OFF_HAND));
         handlers.put("equipment", (e, v) -> applyEquipmentMap(e, v));
+    }
 
-        // === Type-specific ===
+    private void registerTypeSpecific() {
         handlers.put("is_baby", (entity, value) -> {
             boolean baby = parseBoolean(value);
             if (entity instanceof Ageable a) {

@@ -228,14 +228,14 @@ public abstract class YamlDirectoryLoader<T> {
         return configuration == null ? new MapYamlSection() : configuration.copy();
     }
 
-    private List<File> collectYamlFiles(File directory) {
+    public static List<File> collectYamlFiles(File directory) {
         List<File> files = new ArrayList<>();
         collectYamlFiles(directory, files);
         files.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
         return files;
     }
 
-    private void collectYamlFiles(File directory, List<File> sink) {
+    private static void collectYamlFiles(File directory, List<File> sink) {
         if (directory == null || sink == null || !directory.exists()) {
             return;
         }

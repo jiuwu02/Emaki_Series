@@ -4,7 +4,9 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-public interface ForgeAttributeBridge {
+import emaki.jiuwu.craft.corelib.integration.PluginBridge;
+
+public interface ForgeAttributeBridge extends PluginBridge {
 
     ForgeAttributeBridge UNAVAILABLE = new ForgeAttributeBridge() {
     };

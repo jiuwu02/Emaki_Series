@@ -72,7 +72,8 @@ final class StorageLifecycleCoordinator
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 });
 
@@ -493,9 +494,4 @@ final class StorageLifecycleCoordinator
         return fallback;
     }
 
-    private boolean shouldReleaseDefaultData(EmakiStoragePlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        Boolean value = configuration.getBoolean("release_default_data", true);
-        return value == null || value;
-    }
 }

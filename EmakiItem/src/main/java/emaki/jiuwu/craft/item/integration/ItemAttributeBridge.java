@@ -6,7 +6,9 @@ import java.util.Set;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-public interface ItemAttributeBridge {
+import emaki.jiuwu.craft.corelib.integration.PluginBridge;
+
+public interface ItemAttributeBridge extends PluginBridge {
 
     ItemAttributeBridge UNAVAILABLE = new ItemAttributeBridge() {
     };

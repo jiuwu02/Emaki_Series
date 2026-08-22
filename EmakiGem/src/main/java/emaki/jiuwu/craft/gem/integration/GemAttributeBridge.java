@@ -5,7 +5,9 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-public interface GemAttributeBridge {
+import emaki.jiuwu.craft.corelib.integration.PluginBridge;
+
+public interface GemAttributeBridge extends PluginBridge {
 
     GemAttributeBridge UNAVAILABLE = new GemAttributeBridge() {
     };

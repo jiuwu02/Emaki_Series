@@ -10,9 +10,9 @@ import org.bukkit.entity.Display;
 import org.bukkit.entity.TextDisplay;
 import org.bukkit.plugin.Plugin;
 
-import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
@@ -24,13 +24,13 @@ public final class BukkitTextDisplayService implements TextDisplayService {
     private final ExecutionDispatcher executionDispatcher;
     private final DisplayMotionRunner motionRunner;
     private final Map<String, TextDisplay> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
+    private final DisplayLifetimeTracker lifetime;
 
     public BukkitTextDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
         this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
     }
 
     @Override
@@ -62,7 +62,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             display.teleport(location);
             apply(display, spec);
             startMotion(spec, display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         }, () -> {
             removeMapOnly(spec.groupKey(), key);
             spawnAtLocation(spec);
@@ -91,7 +91,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -104,7 +104,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -113,10 +113,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     @Override
     public void shutdown() {
-        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
+        lifetime.cancelAllExpiry();
         motionRunner.shutdown();
         for (Map.Entry<String, TextDisplay> entry : Map.copyOf(displays).entrySet()) {
             TextDisplay display = entry.getValue();
@@ -130,7 +127,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             }
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
     }
 
     @Override
@@ -184,10 +181,10 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             }
             TextDisplay display = location.getWorld().spawn(location, TextDisplay.class);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            lifetime.trackGroupMember(spec.groupKey(), key);
             apply(display, spec);
             startMotion(spec, display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         });
     }
 
@@ -209,39 +206,8 @@ public final class BukkitTextDisplayService implements TextDisplayService {
                 }, () -> motionRunner.cancel(key)));
     }
 
-    private void scheduleExpiry(TextDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskToken handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskToken handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -251,7 +217,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         motionRunner.cancel(key);
         TextDisplay display = displays.get(key);
         if (display == null) {
@@ -271,14 +237,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     private void removeMapOnly(String groupKey, String key) {
         displays.remove(key);
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     private boolean sameWorld(Location left, Location right) {

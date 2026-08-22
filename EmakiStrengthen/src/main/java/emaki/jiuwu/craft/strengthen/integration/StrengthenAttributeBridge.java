@@ -5,7 +5,9 @@ import java.util.Set;
 
 import org.bukkit.inventory.ItemStack;
 
-public interface StrengthenAttributeBridge {
+import emaki.jiuwu.craft.corelib.integration.PluginBridge;
+
+public interface StrengthenAttributeBridge extends PluginBridge {
 
     StrengthenAttributeBridge UNAVAILABLE = new StrengthenAttributeBridge() {
     };

@@ -111,7 +111,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 }
         );
@@ -390,11 +391,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 configuration.getString("version", defaults.configVersion()),
                 configuration.getBoolean("release_default_data", defaults.releaseDefaultData())
         );
-    }
-
-    private boolean shouldReleaseDefaultData(EmakiCookingPlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
     }
 
     private List<String> staticFiles(EmakiCookingPlugin plugin) {

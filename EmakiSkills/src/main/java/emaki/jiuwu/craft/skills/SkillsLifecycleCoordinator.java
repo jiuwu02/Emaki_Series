@@ -94,7 +94,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
                     }
                 }
         );
@@ -593,11 +594,6 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             plugin.passiveTriggerSource().reloadCronTasks(
                     plugin, plugin.skillDefinitionLoader().all().values());
         }
-    }
-
-    private boolean shouldReleaseDefaultData(EmakiSkillsPlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
     }
 
     private List<String> staticFiles(EmakiSkillsPlugin plugin) {

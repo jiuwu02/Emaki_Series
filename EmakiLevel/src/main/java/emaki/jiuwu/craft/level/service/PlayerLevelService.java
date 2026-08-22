@@ -13,7 +13,7 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
@@ -42,7 +42,7 @@ import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 
 public final class PlayerLevelService {
 
-    private final Plugin plugin;
+    private final JavaPlugin plugin;
     private final LevelTypeRegistry typeRegistry;
     private final RequirementService requirementService;
     private final PlayerLevelDataStore dataStore;
@@ -58,7 +58,7 @@ public final class PlayerLevelService {
     private final Consumer<PlayerLevelData> dataChangeListener;
     private AppConfig config;
 
-    public PlayerLevelService(Plugin plugin,
+    public PlayerLevelService(JavaPlugin plugin,
             LevelTypeRegistry typeRegistry,
             RequirementService requirementService,
             PlayerLevelDataStore dataStore,
