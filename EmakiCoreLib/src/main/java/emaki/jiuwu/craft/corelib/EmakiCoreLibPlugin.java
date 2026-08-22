@@ -132,7 +132,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
-    private CapabilityProbe platformCapabilities;
+    CapabilityProbe platformCapabilities;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private CorePluginLifecycle corePluginLifecycle;
@@ -162,7 +162,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
-    private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
+    final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
     private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
     private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
@@ -499,7 +499,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         );
     }
 
-    private CompletionStage<Void> finalizeCoreRuntimeAsync() {
+    CompletionStage<Void> finalizeCoreRuntimeAsync() {
         CompletionStage<Void> guiShutdown = CompletableFuture.completedFuture(null);
         if (guiBackendRegistry != null) {
             try {
@@ -564,59 +564,27 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void initializeServices() {
-        CoreLibConfig config = configModel == null ? CoreLibConfig.defaults() : configModel;
-        MiniMessages.configureDefaultNoItalic(config.miniMessageConfig().defaultNoItalic());
-        languageLoader = new LanguageLoader(this, "lang", "lang", config.language(), "zh_CN");
-        messageService = new MessageService(this, languageLoader);
-        bStatsService = new BStatsService(this, messageService);
-        debugLogger = new DebugLogger(this, languageLoader);
-        itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
-        configuredItemService = new ConfiguredItemService(this, itemSourceService);
-        configPrecheckService = new ConfigPrecheckService(messageService);
-
-        stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
-        performanceMonitor = new PerformanceMonitor();
-        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(
-                "emaki-corelib-async",
-                performanceMonitor);
-        asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
-        asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
-        loadVanillaLanguageTableAsync();
-        corePluginLifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
-        corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
-        languageLoader.load();
-        guiBackendRegistry = new GuiBackendRegistry(messageService);
-        guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
-        GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
-        guiBackend = new RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
-        itemAssemblyService = new EmakiItemAssemblyService(
-                namespaceRegistry,
-                itemLayerCodecRegistry,
-                itemSourceService,
-                debugLogger
-        );
-        itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
-        String displayBackend = config.displayConfig().resolveBackend(config.guiConfig().backend());
-        DisplayRuntimeSettings displaySettings =
-                DisplayRuntimeSettings.of(
-                        config.displayConfig().viewDistanceBlocks(),
-                        config.displayConfig().refreshIntervalTicks());
-        textDisplayService = DisplayServiceFactory.createTextService(
-                this, displayBackend, displaySettings, executionDispatcher);
-        itemDisplayService = DisplayServiceFactory.createItemService(
-                this, displayBackend, displaySettings, executionDispatcher);
-        dialogService = new DialogService(
-                this,
-                new DialogLoader(this, config.dialogConfig().directory()),
-                itemSourceService,
-                executionDispatcher);
-        dialogService.setEnabled(config.dialogConfig().enabled());
-        dialogService.load();
-        gameplayEventPublisher = new GameplayEventPublisher(
-                this, executionDispatcher, eventBus,
-                () -> configModel == null ? null : configModel.gameplayEventConfig(),
-                mythicMobBridge);
-        getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
+        CoreLibRuntimeComponents components = new CoreLibLifecycleCoordinator().initialize(this);
+        languageLoader = components.languageLoader();
+        messageService = components.messageService();
+        bStatsService = components.bStatsService();
+        debugLogger = components.debugLogger();
+        itemSourceIntegrationCoordinator = components.itemSourceIntegrationCoordinator();
+        configuredItemService = components.configuredItemService();
+        configPrecheckService = components.configPrecheckService();
+        stageDispatcher = components.stageDispatcher();
+        performanceMonitor = components.performanceMonitor();
+        asyncTaskScheduler = components.asyncTaskScheduler();
+        asyncFileService = components.asyncFileService();
+        asyncYamlFiles = components.asyncYamlFiles();
+        corePluginLifecycle = components.corePluginLifecycle();
+        guiBackendRegistry = components.guiBackendRegistry();
+        guiBackend = components.guiBackend();
+        itemAssemblyService = components.itemAssemblyService();
+        textDisplayService = components.textDisplayService();
+        itemDisplayService = components.itemDisplayService();
+        dialogService = components.dialogService();
+        gameplayEventPublisher = components.gameplayEventPublisher();
         refreshServiceRegistry();
     }
 
@@ -881,7 +849,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return vanillaTranslationService;
     }
 
-    private void loadVanillaLanguageTableAsync() {
+    void loadVanillaLanguageTableAsync(AsyncTaskScheduler scheduler) {
         CoreLibConfig currentConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
         CoreLibConfig.VanillaLanguageConfig languageConfig = currentConfig.vanillaLanguageConfig();
         if (languageConfig == null || !languageConfig.enabled()) {
@@ -890,7 +858,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         String locale = languageConfig.locale();
         String minecraftVersion = resolveMinecraftVersion();
         Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
-        asyncTaskScheduler.runAsync("corelib-vanilla-language", () -> {
+        scheduler.runAsync("corelib-vanilla-language", () -> {
             VanillaLanguageDownloader downloader =
                     new VanillaLanguageDownloader(getLogger(), cacheDirectory);
             Map<String, String> table = downloader.load(minecraftVersion, locale);

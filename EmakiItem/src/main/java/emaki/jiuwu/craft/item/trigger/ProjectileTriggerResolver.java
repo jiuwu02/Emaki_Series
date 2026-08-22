@@ -7,7 +7,7 @@ import org.bukkit.entity.AbstractArrow;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.Trident;
 
-import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.api.trigger.TriggerIds;
 
 public final class ProjectileTriggerResolver {
 
@@ -19,9 +19,9 @@ public final class ProjectileTriggerResolver {
     static {
         TABLE = new LinkedHashMap<>();
         TABLE.put(Trident.class,
-                new ProjectileTriggers(TriggerRegistry.SHOOT_TRIDENT, TriggerRegistry.TRIDENT_HIT, TriggerRegistry.TRIDENT_LAND));
+                new ProjectileTriggers(TriggerIds.SHOOT_TRIDENT, TriggerIds.TRIDENT_HIT, TriggerIds.TRIDENT_LAND));
         TABLE.put(AbstractArrow.class,
-                new ProjectileTriggers(null, TriggerRegistry.ARROW_HIT, TriggerRegistry.ARROW_LAND));
+                new ProjectileTriggers(null, TriggerIds.ARROW_HIT, TriggerIds.ARROW_LAND));
     }
 
     private ProjectileTriggerResolver() {

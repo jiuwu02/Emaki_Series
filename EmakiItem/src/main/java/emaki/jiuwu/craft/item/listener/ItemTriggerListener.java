@@ -31,7 +31,7 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
-import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.api.trigger.TriggerIds;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.trigger.EquipmentSourceResolver;
 import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
@@ -60,35 +60,35 @@ public final class ItemTriggerListener implements Listener {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         EmakiItemDefinition definition = held(player);
-        if (definition == null || !passes(player, definition, TriggerRegistry.LEFT_CLICK)) {
+        if (definition == null || !passes(player, definition, TriggerIds.LEFT_CLICK)) {
             return;
         }
         switch (event.getAction()) {
             case LEFT_CLICK_AIR -> {
-                run(player, definition, TriggerRegistry.LEFT_CLICK, EMPTY_PLACEHOLDERS);
+                run(player, definition, TriggerIds.LEFT_CLICK, EMPTY_PLACEHOLDERS);
                 run(player, definition, "left_click_air", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, TriggerRegistry.SHIFT_LEFT_CLICK, EMPTY_PLACEHOLDERS);
+                    run(player, definition, TriggerIds.SHIFT_LEFT_CLICK, EMPTY_PLACEHOLDERS);
                 }
             }
             case LEFT_CLICK_BLOCK -> {
-                run(player, definition, TriggerRegistry.LEFT_CLICK, EMPTY_PLACEHOLDERS);
+                run(player, definition, TriggerIds.LEFT_CLICK, EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, TriggerRegistry.SHIFT_LEFT_CLICK, EMPTY_PLACEHOLDERS);
+                    run(player, definition, TriggerIds.SHIFT_LEFT_CLICK, EMPTY_PLACEHOLDERS);
                 }
             }
             case RIGHT_CLICK_AIR -> {
-                run(player, definition, TriggerRegistry.RIGHT_CLICK, EMPTY_PLACEHOLDERS);
+                run(player, definition, TriggerIds.RIGHT_CLICK, EMPTY_PLACEHOLDERS);
                 run(player, definition, "right_click_air", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, TriggerRegistry.SHIFT_RIGHT_CLICK, EMPTY_PLACEHOLDERS);
+                    run(player, definition, TriggerIds.SHIFT_RIGHT_CLICK, EMPTY_PLACEHOLDERS);
                 }
             }
             case RIGHT_CLICK_BLOCK -> {
-                run(player, definition, TriggerRegistry.RIGHT_CLICK, EMPTY_PLACEHOLDERS);
+                run(player, definition, TriggerIds.RIGHT_CLICK, EMPTY_PLACEHOLDERS);
                 run(player, definition, "right_click_block", EMPTY_PLACEHOLDERS);
                 if (player.isSneaking()) {
-                    run(player, definition, TriggerRegistry.SHIFT_RIGHT_CLICK, EMPTY_PLACEHOLDERS);
+                    run(player, definition, TriggerIds.SHIFT_RIGHT_CLICK, EMPTY_PLACEHOLDERS);
                 }
             }
             default -> {
@@ -100,12 +100,12 @@ public final class ItemTriggerListener implements Listener {
     public void onDrop(PlayerDropItemEvent event) {
         ItemStack dropped = event.getItemDrop().getItemStack();
         EmakiItemDefinition definition = definition(dropped);
-        if (definition == null || !passes(event.getPlayer(), definition, TriggerRegistry.DROP_ITEM, dropped)) {
+        if (definition == null || !passes(event.getPlayer(), definition, TriggerIds.DROP_ITEM, dropped)) {
             return;
         }
-        run(event.getPlayer(), definition, TriggerRegistry.DROP_ITEM, EMPTY_PLACEHOLDERS, dropped);
+        run(event.getPlayer(), definition, TriggerIds.DROP_ITEM, EMPTY_PLACEHOLDERS, dropped);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, TriggerRegistry.SHIFT_DROP_ITEM, EMPTY_PLACEHOLDERS, dropped);
+            run(event.getPlayer(), definition, TriggerIds.SHIFT_DROP_ITEM, EMPTY_PLACEHOLDERS, dropped);
         }
     }
 
@@ -113,12 +113,12 @@ public final class ItemTriggerListener implements Listener {
     public void onSwap(PlayerSwapHandItemsEvent event) {
         ItemStack mainHandItem = event.getMainHandItem();
         EmakiItemDefinition definition = definition(mainHandItem);
-        if (definition == null || !passes(event.getPlayer(), definition, TriggerRegistry.SWAP_ITEMS, mainHandItem)) {
+        if (definition == null || !passes(event.getPlayer(), definition, TriggerIds.SWAP_ITEMS, mainHandItem)) {
             return;
         }
-        run(event.getPlayer(), definition, TriggerRegistry.SWAP_ITEMS, EMPTY_PLACEHOLDERS, mainHandItem);
+        run(event.getPlayer(), definition, TriggerIds.SWAP_ITEMS, EMPTY_PLACEHOLDERS, mainHandItem);
         if (event.getPlayer().isSneaking()) {
-            run(event.getPlayer(), definition, TriggerRegistry.SHIFT_SWAP_ITEMS, EMPTY_PLACEHOLDERS, mainHandItem);
+            run(event.getPlayer(), definition, TriggerIds.SHIFT_SWAP_ITEMS, EMPTY_PLACEHOLDERS, mainHandItem);
         }
     }
 
@@ -128,8 +128,8 @@ public final class ItemTriggerListener implements Listener {
             return;
         }
         EmakiItemDefinition definition = held(event.getPlayer());
-        if (definition != null && passes(event.getPlayer(), definition, TriggerRegistry.SNEAK)) {
-            run(event.getPlayer(), definition, TriggerRegistry.SNEAK, EMPTY_PLACEHOLDERS);
+        if (definition != null && passes(event.getPlayer(), definition, TriggerIds.SNEAK)) {
+            run(event.getPlayer(), definition, TriggerIds.SNEAK, EMPTY_PLACEHOLDERS);
         }
     }
 
@@ -139,7 +139,7 @@ public final class ItemTriggerListener implements Listener {
         if (attacker != null) {
             EmakiItemDefinition definition = held(attacker);
             if (definition != null) {
-                if (!passes(attacker, definition, TriggerRegistry.ATTACK)) {
+                if (!passes(attacker, definition, TriggerIds.ATTACK)) {
                     event.setCancelled(true);
                 } else {
                     Map<String, Object> placeholders = Map.of(
@@ -147,9 +147,9 @@ public final class ItemTriggerListener implements Listener {
                             "damage", event.getDamage()
                     );
                     ItemStack item = heldItem(attacker);
-                    run(attacker, definition, TriggerRegistry.LEFT_CLICK, placeholders, item);
+                    run(attacker, definition, TriggerIds.LEFT_CLICK, placeholders, item);
                     run(attacker, definition, "left_click_entity", placeholders, item);
-                    run(attacker, definition, TriggerRegistry.ATTACK, placeholders, item);
+                    run(attacker, definition, TriggerIds.ATTACK, placeholders, item);
                 }
             }
         }
@@ -159,10 +159,10 @@ public final class ItemTriggerListener implements Listener {
                     "damage", event.getDamage()
             );
             EmakiItemDefinition definition = held(victim);
-            if (definition != null && passes(victim, definition, TriggerRegistry.DAMAGED_BY_ENTITY)) {
-                run(victim, definition, TriggerRegistry.DAMAGED_BY_ENTITY, victimPlaceholders);
+            if (definition != null && passes(victim, definition, TriggerIds.DAMAGED_BY_ENTITY)) {
+                run(victim, definition, TriggerIds.DAMAGED_BY_ENTITY, victimPlaceholders);
             }
-            runForDefensiveSlots(victim, TriggerRegistry.DAMAGED_BY_ENTITY, victimPlaceholders);
+            runForDefensiveSlots(victim, TriggerIds.DAMAGED_BY_ENTITY, victimPlaceholders);
         }
     }
 
@@ -202,10 +202,10 @@ public final class ItemTriggerListener implements Listener {
         }
         Map<String, Object> placeholders = Map.of("damage", event.getDamage());
         EmakiItemDefinition definition = held(player);
-        if (definition != null && passes(player, definition, TriggerRegistry.DAMAGED)) {
-            run(player, definition, TriggerRegistry.DAMAGED, placeholders);
+        if (definition != null && passes(player, definition, TriggerIds.DAMAGED)) {
+            run(player, definition, TriggerIds.DAMAGED, placeholders);
         }
-        runForDefensiveSlots(player, TriggerRegistry.DAMAGED, placeholders);
+        runForDefensiveSlots(player, TriggerIds.DAMAGED, placeholders);
     }
 
     @EventHandler
@@ -215,8 +215,8 @@ public final class ItemTriggerListener implements Listener {
             return;
         }
         String trigger = event.getEntity() instanceof Player
-                ? TriggerRegistry.KILL_PLAYER
-                : TriggerRegistry.KILL_ENTITY;
+                ? TriggerIds.KILL_PLAYER
+                : TriggerIds.KILL_ENTITY;
         Map<String, Object> placeholders = Map.of("target", event.getEntity().getName(), "damage", 0D);
         ProficiencyGuard.Session guard = plugin.proficiencyGuard()
                 .session(killer, trigger, targetIdentity(event.getEntity()));
@@ -242,8 +242,8 @@ public final class ItemTriggerListener implements Listener {
     public void onPlayerDeath(PlayerDeathEvent event) {
         Player player = event.getEntity();
         EmakiItemDefinition definition = held(player);
-        if (definition != null && passes(player, definition, TriggerRegistry.DEATH)) {
-            run(player, definition, TriggerRegistry.DEATH, EMPTY_PLACEHOLDERS);
+        if (definition != null && passes(player, definition, TriggerIds.DEATH)) {
+            run(player, definition, TriggerIds.DEATH, EMPTY_PLACEHOLDERS);
         }
     }
 
@@ -259,8 +259,8 @@ public final class ItemTriggerListener implements Listener {
         if (event.getEntity() instanceof Player player) {
             ItemStack bow = event.getBow() == null ? heldItem(player) : event.getBow();
             EmakiItemDefinition definition = definition(bow);
-            if (definition != null && passes(player, definition, TriggerRegistry.SHOOT_BOW, bow)) {
-                run(player, definition, TriggerRegistry.SHOOT_BOW,
+            if (definition != null && passes(player, definition, TriggerIds.SHOOT_BOW, bow)) {
+                run(player, definition, TriggerIds.SHOOT_BOW,
                         Map.of("projectile_type", event.getProjectile().getType().name()), bow);
             }
         }
@@ -307,8 +307,8 @@ public final class ItemTriggerListener implements Listener {
     @EventHandler(ignoreCancelled = true)
     public void onBreak(BlockBreakEvent event) {
         EmakiItemDefinition definition = held(event.getPlayer());
-        if (definition != null && passes(event.getPlayer(), definition, TriggerRegistry.BREAK_BLOCK)) {
-            run(event.getPlayer(), definition, TriggerRegistry.BREAK_BLOCK, Map.of("block", event.getBlock().getType().name()));
+        if (definition != null && passes(event.getPlayer(), definition, TriggerIds.BREAK_BLOCK)) {
+            run(event.getPlayer(), definition, TriggerIds.BREAK_BLOCK, Map.of("block", event.getBlock().getType().name()));
         }
     }
 
@@ -316,24 +316,24 @@ public final class ItemTriggerListener implements Listener {
     public void onPlace(BlockPlaceEvent event) {
         ItemStack placed = event.getItemInHand();
         EmakiItemDefinition definition = definition(placed);
-        if (definition != null && passes(event.getPlayer(), definition, TriggerRegistry.PLACE_BLOCK, placed)) {
-            run(event.getPlayer(), definition, TriggerRegistry.PLACE_BLOCK, Map.of("block", event.getBlock().getType().name()), placed);
+        if (definition != null && passes(event.getPlayer(), definition, TriggerIds.PLACE_BLOCK, placed)) {
+            run(event.getPlayer(), definition, TriggerIds.PLACE_BLOCK, Map.of("block", event.getBlock().getType().name()), placed);
         }
     }
 
     @EventHandler(ignoreCancelled = true)
     public void onTeleport(PlayerTeleportEvent event) {
         EmakiItemDefinition definition = held(event.getPlayer());
-        if (definition != null && passes(event.getPlayer(), definition, TriggerRegistry.TELEPORT)) {
-            run(event.getPlayer(), definition, TriggerRegistry.TELEPORT, Map.of());
+        if (definition != null && passes(event.getPlayer(), definition, TriggerIds.TELEPORT)) {
+            run(event.getPlayer(), definition, TriggerIds.TELEPORT, Map.of());
         }
     }
 
     @EventHandler
     public void onJoin(PlayerJoinEvent event) {
         EmakiItemDefinition definition = held(event.getPlayer());
-        if (definition != null && passes(event.getPlayer(), definition, TriggerRegistry.LOGIN)) {
-            run(event.getPlayer(), definition, TriggerRegistry.LOGIN, Map.of());
+        if (definition != null && passes(event.getPlayer(), definition, TriggerIds.LOGIN)) {
+            run(event.getPlayer(), definition, TriggerIds.LOGIN, Map.of());
         }
     }
 
