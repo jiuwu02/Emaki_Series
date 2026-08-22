@@ -45,6 +45,7 @@ import io.lumine.mythic.core.mobs.ActiveMob;
 import io.lumine.mythic.core.skills.SkillCondition;
 import io.lumine.mythic.core.skills.SkillExecutor;
 import io.lumine.mythic.core.skills.SkillMechanic;
+import io.lumine.mythic.core.skills.variables.Variable;
 import io.lumine.mythic.core.utils.annotations.MythicCondition;
 import io.lumine.mythic.core.utils.annotations.MythicMechanic;
 
@@ -224,7 +225,9 @@ public final class MythicBridge implements Listener {
             version = "1.0.0",
             premium = false
     )
-    public static final class DamageSkillMechanic extends SkillMechanic {
+    public static final class DamageSkillMechanic extends SkillMechanic implements ITargetedEntitySkill {
+
+        private static final String RESOLVED_DAMAGE_TYPE_VARIABLE = "emakiattribute_resolved_damage_type";
 
         private final AttributeService attributeService;
 
@@ -238,19 +241,17 @@ public final class MythicBridge implements Listener {
         }
 
         @Override
-        public boolean executeSkills(SkillMetadata metadata) {
+        public SkillResult castAtEntity(SkillMetadata metadata, AbstractEntity target) {
+            LivingEntity livingTarget = resolveLiving(target);
+            if (livingTarget == null) {
+                return SkillResult.INVALID_TARGET;
+            }
             LivingEntity attacker = resolveLiving(metadata.getCaster() == null ? null : metadata.getCaster().getEntity());
             if (attacker == null && metadata.getTrigger() != null) {
                 attacker = resolveLiving(metadata.getTrigger());
             }
             double baseDamage = config.getDouble("damage", metadata.getPower());
-            String damageTypeId = config.getString("damage_type", "");
-            if (damageTypeId.isBlank() && attacker != null) {
-                damageTypeId = attributeService.consumeDamageTypeOverride(attacker);
-            }
-            if (damageTypeId == null || damageTypeId.isBlank()) {
-                damageTypeId = attributeService.defaultDamageTypeId();
-            }
+            String damageTypeId = resolveDamageTypeId(metadata, attacker);
             boolean allowCritical = resolveBoolean(true, "allow_critical", "critical");
             boolean allowTargetDodge = resolveBoolean(false, "allow_target_dodge", "target_dodge", "allow_dodge", "dodge");
             boolean calculateTargetDefense = resolveBoolean(true, "calculate_target_defense", "target_defense", "calculate_defense", "defense");
@@ -272,23 +273,28 @@ public final class MythicBridge implements Listener {
             context.put("allow_target_dodge", allowTargetDodge);
             context.put("calculate_target_defense", calculateTargetDefense);
             context.put("trigger_mythic_on_damaged", triggerMythicOnDamaged);
-            boolean applied = false;
-            Collection<AbstractEntity> targets = metadata.getEntityTargets();
-            if (targets != null && !targets.isEmpty()) {
-                for (AbstractEntity abstractTarget : targets) {
-                    LivingEntity target = resolveLiving(abstractTarget);
-                    if (target == null) {
-                        continue;
-                    }
-                    applied |= attributeService.applyDamage(attacker, target, damageTypeId, baseDamage, context.build());
+            boolean applied = attributeService.applyDamage(attacker, livingTarget, damageTypeId, baseDamage, context.build());
+            return applied ? SkillResult.SUCCESS : SkillResult.CONDITION_FAILED;
+        }
+
+        private String resolveDamageTypeId(SkillMetadata metadata, LivingEntity attacker) {
+            String configured = config.getString("damage_type", "");
+            if (configured != null && !configured.isBlank()) {
+                return configured;
+            }
+            Variable cached = metadata.getVariables() == null ? null
+                    : metadata.getVariables().get(RESOLVED_DAMAGE_TYPE_VARIABLE);
+            String resolved = cached == null || cached.get() == null ? null : cached.get().toString();
+            if (resolved == null || resolved.isBlank()) {
+                resolved = attacker == null ? null : attributeService.consumeDamageTypeOverride(attacker);
+                if (resolved == null || resolved.isBlank()) {
+                    resolved = attributeService.defaultDamageTypeId();
                 }
-                return applied;
+                if (metadata.getVariables() != null) {
+                    metadata.getVariables().putString(RESOLVED_DAMAGE_TYPE_VARIABLE, resolved);
+                }
             }
-            LivingEntity trigger = resolveLiving(metadata.getTrigger());
-            if (trigger != null && trigger != attacker) {
-                applied = attributeService.applyDamage(attacker, trigger, damageTypeId, baseDamage, context.build());
-            }
-            return applied;
+            return resolved == null || resolved.isBlank() ? attributeService.defaultDamageTypeId() : resolved;
         }
 
         private LivingEntity resolveLiving(AbstractEntity abstractEntity) {
