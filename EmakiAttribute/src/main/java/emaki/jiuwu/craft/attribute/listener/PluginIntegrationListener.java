@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.listener;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.event.server.PluginEnableEvent;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
@@ -12,6 +13,13 @@ public final class PluginIntegrationListener implements Listener {
 
     public PluginIntegrationListener(EmakiAttributePlugin plugin) {
         this.plugin = plugin;
+    }
+
+    @EventHandler
+    public void onPluginDisable(PluginDisableEvent event) {
+        if ("MythicMobs".equalsIgnoreCase(event.getPlugin().getName())) {
+            plugin.releaseMythicBridge();
+        }
     }
 
     @EventHandler

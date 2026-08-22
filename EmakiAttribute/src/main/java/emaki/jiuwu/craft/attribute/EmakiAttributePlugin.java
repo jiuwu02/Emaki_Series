@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.ServicePriority;
@@ -144,8 +145,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         }
         regenTask = null;
 
-        mythicBridge = null;
-        mythicBridgeRegistered = false;
+        releaseMythicBridge();
         betterHudBridge = null;
         betterHudBridgeRegistered = false;
     }
@@ -162,6 +162,18 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         }
         getServer().getPluginManager().registerEvents(mythicBridge, this);
         mythicBridgeRegistered = true;
+    }
+
+    public void releaseMythicBridge() {
+        if (!mythicBridgeRegistered && mythicBridge == null) {
+            return;
+        }
+        if (mythicBridge != null) {
+            HandlerList.unregisterAll(mythicBridge);
+            mythicBridge.close();
+        }
+        mythicBridge = null;
+        mythicBridgeRegistered = false;
     }
 
     public void ensureMmoItemsBridge() {

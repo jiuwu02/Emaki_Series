@@ -20,4 +20,16 @@ public enum TemporaryStackMode {
             return fallback;
         }
     }
+
+    public static boolean isDeclared(String raw) {
+        if (Texts.isBlank(raw)) {
+            return false;
+        }
+        try {
+            valueOf(raw.trim().toUpperCase(Locale.ROOT));
+            return true;
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
 }

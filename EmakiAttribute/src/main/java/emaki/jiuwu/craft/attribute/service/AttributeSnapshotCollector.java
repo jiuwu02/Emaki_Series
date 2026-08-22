@@ -135,9 +135,9 @@ final class AttributeSnapshotCollector {
             collectEquipmentSignatures(slotItems, playerOrNull, signatureParts);
         }
         collectContributionProviderSignatures(entity, signatureParts);
-        String temporarySignature = service.temporaryAttributeService().signature(entity);
-        if (Texts.isNotBlank(temporarySignature)) {
-            signatureParts.add("temporary:" + temporarySignature);
+        TemporaryAttributeCapture temporaryCapture = service.temporaryAttributeService().capture(entity);
+        if (Texts.isNotBlank(temporaryCapture.signature())) {
+            signatureParts.add("temporary:" + temporaryCapture.signature());
         }
         if (playerOrNull != null && service.parentAttributeService() != null) {
             String parentSignature = service.parentAttributeService().signature(playerOrNull);
@@ -164,8 +164,8 @@ final class AttributeSnapshotCollector {
             mergeValues(values, service.parentAttributeService().contributionValues(playerOrNull));
         }
         mergeContributionProviders(entity, values);
-        mergeValues(values, service.temporaryAttributeService().additiveValues(entity));
-        overlayValues(values, service.temporaryAttributeService().setValues(entity));
+        mergeValues(values, temporaryCapture.additiveValues());
+        overlayValues(values, temporaryCapture.setValues());
         scalingCurveProcessor.apply(values, service.scalingCurves());
         applyDerivedValues(values);
         AttributeSnapshot snapshot = new AttributeSnapshot(

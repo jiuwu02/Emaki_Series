@@ -66,12 +66,12 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.7.10</emaki.corelib.version>
-        <emaki.attribute.version>4.7.3</emaki.attribute.version>
+        <emaki.corelib.version>4.7.11</emaki.corelib.version>
+        <emaki.attribute.version>4.7.4</emaki.attribute.version>
         <emaki.item.version>2.7.12</emaki.item.version>
         <emaki.skills.version>2.7.6</emaki.skills.version>
-        <emaki.corelib.api.version>4.7.10</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.7.3</emaki.attribute.api.version>
+        <emaki.corelib.api.version>4.7.11</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.7.4</emaki.attribute.api.version>
         <emaki.item.api.version>2.7.12</emaki.item.api.version>
         <emaki.skills.api.version>2.7.6</emaki.skills.api.version>
         <emaki.forge.api.version>4.7.4</emaki.forge.api.version>

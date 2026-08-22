@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.attribute.listener.CombatDamageListener;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugHandler;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugListener;
 import emaki.jiuwu.craft.attribute.listener.InventoryInteractionListener;
+import emaki.jiuwu.craft.attribute.listener.EntityLifecycleListener;
 import emaki.jiuwu.craft.attribute.listener.PlayerLifecycleListener;
 import emaki.jiuwu.craft.attribute.listener.PluginIntegrationListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
@@ -120,6 +121,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
+                new EntityLifecycleListener(attributeService),
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
                 new CombatDamageListener(plugin, attributeService, combatDebugHandler, scheduling),

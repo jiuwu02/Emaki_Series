@@ -280,7 +280,10 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     public void cleanupEntityState(UUID entityId) {
         stateRepository.cleanupEntity(entityId);
         attackBatchInvulnerabilityGate.reset(entityId);
+        temporaryAttributeService.discardEntity(entityId);
     }
+
+
 
     long projectileTtlMs() {
         return PROJECTILE_TTL_MS;

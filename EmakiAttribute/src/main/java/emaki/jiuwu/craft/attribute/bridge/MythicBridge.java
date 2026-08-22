@@ -23,6 +23,9 @@ import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.TemporaryStackMode;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
+import emaki.jiuwu.craft.attribute.service.TemporaryAttributeOutcome;
+import emaki.jiuwu.craft.attribute.service.TemporaryAttributeService.TemporaryAttributeMode;
+import emaki.jiuwu.craft.attribute.service.TemporaryEffectSource;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -58,6 +61,11 @@ public final class MythicBridge implements Listener {
         this.attributeService.registerContributionProvider(mythicMobContributionProvider);
     }
 
+    public void close() {
+        attributeService.unregisterContributionProvider(mythicMobContributionProvider.id(),
+                mythicMobContributionProvider);
+    }
+
     @EventHandler
     public void onMechanicLoad(MythicMechanicLoadEvent event) {
         String name = normalize(event.getMechanicName());
@@ -69,13 +77,13 @@ public final class MythicBridge implements Listener {
         if (isDamageMechanic(name)) {
             event.register(new DamageSkillMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
         } else if (isTemporaryAddMechanic(name)) {
-            event.register(new TemporaryAttributeAddMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+            event.register(new TemporaryAttributeAddMechanic(executor, sourceFile, name, event.getConfig(), attributeService, plugin));
         } else if (isTemporaryRemoveMechanic(name)) {
-            event.register(new TemporaryAttributeRemoveMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+            event.register(new TemporaryAttributeRemoveMechanic(executor, sourceFile, name, event.getConfig(), attributeService, plugin));
         } else if (isTemporaryAddTagMechanic(name)) {
-            event.register(new TemporaryAttributeAddTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+            event.register(new TemporaryAttributeAddTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService, plugin));
         } else if (isTemporaryClearTagMechanic(name)) {
-            event.register(new TemporaryAttributeClearTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService));
+            event.register(new TemporaryAttributeClearTagMechanic(executor, sourceFile, name, event.getConfig(), attributeService, plugin));
         }
     }
 
@@ -161,28 +169,50 @@ public final class MythicBridge implements Listener {
             separator = entry.indexOf('：');
         }
         if (separator < 0) {
+            plugin.getLogger().warning("Mythic mob attribute skipped: source=" + sourceId
+                    + ", entry=" + entry + ", reason=missing_separator");
             return null;
         }
         String attributeName = entry.substring(0, separator).trim();
         String valueText = entry.substring(separator + 1).trim();
         if (Texts.isBlank(attributeName) || Texts.isBlank(valueText)) {
+            plugin.getLogger().warning("Mythic mob attribute skipped: source=" + sourceId
+                    + ", entry=" + entry + ", reason=blank_attribute_or_value");
             return null;
         }
         var definition = attributeService.attributeRegistry() == null ? null : attributeService.attributeRegistry().resolve(attributeName);
-        String attributeId = definition == null ? Texts.normalizeId(attributeName) : definition.id();
-        double value = parseMobAttributeValue(valueText);
-        return new AttributeContribution(attributeId, value, sourceId);
+        if (definition == null) {
+            plugin.getLogger().warning("Mythic mob attribute skipped: source=" + sourceId
+                    + ", attribute=" + attributeName + ", reason=unregistered_attribute");
+            return null;
+        }
+        Double value = parseMobAttributeValue(valueText);
+        if (value == null) {
+            plugin.getLogger().warning("Mythic mob attribute skipped: source=" + sourceId
+                    + ", attribute=" + definition.id() + ", expression=" + valueText
+                    + ", reason=unparsable_value");
+            return null;
+        }
+        if (!Double.isFinite(value)) {
+            plugin.getLogger().warning("Mythic mob attribute skipped: source=" + sourceId
+                    + ", attribute=" + definition.id() + ", expression=" + valueText
+                    + ", reason=non_finite_value");
+            return null;
+        }
+        return new AttributeContribution(definition.id(), value, sourceId);
     }
 
-    private double parseMobAttributeValue(String valueText) {
+    private Double parseMobAttributeValue(String valueText) {
         Double parsed = Numbers.tryParseDouble(valueText, null);
         if (parsed != null) {
             return parsed;
         }
         try {
             return ExpressionEngine.evaluate(valueText);
-        } catch (Exception _) {
-            return 0D;
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Mythic mob attribute expression failed: expression=" + valueText
+                    + ", cause=" + exception);
+            return null;
         }
     }
 
@@ -283,14 +313,17 @@ public final class MythicBridge implements Listener {
     private abstract static class AbstractTemporaryAttributeMechanic extends SkillMechanic implements ITargetedEntitySkill {
 
         protected final AttributeService attributeService;
+        private final EmakiAttributePlugin plugin;
 
         protected AbstractTemporaryAttributeMechanic(SkillExecutor executor,
                 File file,
                 String mechanicName,
                 MythicLineConfig config,
-                AttributeService attributeService) {
+                AttributeService attributeService,
+                EmakiAttributePlugin plugin) {
             super(executor, file, mechanicName, config);
             this.attributeService = attributeService;
+            this.plugin = plugin;
         }
 
         protected LivingEntity resolveLiving(AbstractEntity abstractEntity) {
@@ -311,9 +344,44 @@ public final class MythicBridge implements Listener {
             return fallback;
         }
 
-        protected TemporaryStackMode resolveStackMode() {
-            String raw = configString("", "stack_mode", "stackmode", "mode");
-            return raw.isBlank() ? null : TemporaryStackMode.fromString(raw, null);
+        protected String rawStackMode() {
+            return configString("", "stack_mode", "stackmode", "mode");
+        }
+
+        protected boolean rejectsDeclaredArguments(String mechanic, double value) {
+            String rawStackMode = rawStackMode();
+            if (!rawStackMode.isBlank() && !TemporaryStackMode.isDeclared(rawStackMode)) {
+                plugin.getLogger().warning("Mythic mechanic rejected at parse: mechanic=" + mechanic
+                        + ", reason=unknown_stack_mode, stack_mode=" + rawStackMode);
+                return true;
+            }
+            if (!Double.isFinite(value)) {
+                plugin.getLogger().warning("Mythic mechanic rejected at parse: mechanic=" + mechanic
+                        + ", reason=non_finite_value, value=" + value);
+                return true;
+            }
+            return false;
+        }
+
+        protected SkillResult report(TemporaryAttributeOutcome outcome, String mechanic) {
+            if (outcome.successful()) {
+                return SkillResult.SUCCESS;
+            }
+            SkillResult result = switch (outcome.status()) {
+                case NOT_FOUND, NO_MATCH -> SkillResult.CONDITION_FAILED;
+                case INVALID_INPUT, UNKNOWN_ATTRIBUTE -> SkillResult.INVALID_CONFIG;
+                case WRONG_THREAD, CLOSED -> SkillResult.ERROR;
+                default -> SkillResult.ERROR;
+            };
+            if (outcome.status().rejected()) {
+                plugin.getLogger().warning(
+                        "Mythic mechanic refused: mechanic=" + mechanic
+                                + ", status=" + outcome.status().name()
+                                + ", group=" + outcome.groupId()
+                                + ", attribute=" + outcome.attributeId()
+                                + ", detail=" + outcome.detail());
+            }
+            return result;
         }
     }
 
@@ -331,8 +399,9 @@ public final class MythicBridge implements Listener {
                 File file,
                 String mechanicName,
                 MythicLineConfig config,
-                AttributeService attributeService) {
-            super(executor, file, mechanicName, config, attributeService);
+                AttributeService attributeService,
+                EmakiAttributePlugin plugin) {
+            super(executor, file, mechanicName, config, attributeService, plugin);
         }
 
         @Override
@@ -351,13 +420,15 @@ public final class MythicBridge implements Listener {
             if (durationTicks <= 0L) {
                 return SkillResult.INVALID_CONFIG;
             }
-            boolean set = resolveBoolean(false, "set", "override_value");
-            if (set) {
-                attributeService.temporaryAttributeService().set(livingTarget, effectId, attribute, value, durationTicks, resolveStackMode());
-            } else {
-                attributeService.temporaryAttributeService().add(livingTarget, effectId, attribute, value, durationTicks, resolveStackMode());
+            if (rejectsDeclaredArguments("emaki_attribute_add", value)) {
+                return SkillResult.INVALID_CONFIG;
             }
-            return SkillResult.SUCCESS;
+            boolean set = resolveBoolean(false, "set", "override_value");
+            TemporaryAttributeMode mode = set ? TemporaryAttributeMode.SET : TemporaryAttributeMode.ADD;
+            TemporaryAttributeOutcome outcome = attributeService.temporaryAttributeService().applyGroupEffect(
+                    livingTarget, effectId, attribute, value, durationTicks, mode, rawStackMode(),
+                    TemporaryEffectSource.MYTHIC);
+            return report(outcome, "emaki_attribute_add");
         }
 
         private boolean resolveBoolean(boolean fallback, String... keys) {
@@ -385,8 +456,9 @@ public final class MythicBridge implements Listener {
                 File file,
                 String mechanicName,
                 MythicLineConfig config,
-                AttributeService attributeService) {
-            super(executor, file, mechanicName, config, attributeService);
+                AttributeService attributeService,
+                EmakiAttributePlugin plugin) {
+            super(executor, file, mechanicName, config, attributeService, plugin);
         }
 
         @Override
@@ -399,8 +471,8 @@ public final class MythicBridge implements Listener {
             if (effectId.isBlank()) {
                 return SkillResult.INVALID_CONFIG;
             }
-            attributeService.temporaryAttributeService().remove(livingTarget, effectId);
-            return SkillResult.SUCCESS;
+            return report(attributeService.temporaryAttributeService().removeGroup(livingTarget, effectId),
+                    "emaki_attribute_remove");
         }
     }
 
@@ -418,8 +490,9 @@ public final class MythicBridge implements Listener {
                 File file,
                 String mechanicName,
                 MythicLineConfig config,
-                AttributeService attributeService) {
-            super(executor, file, mechanicName, config, attributeService);
+                AttributeService attributeService,
+                EmakiAttributePlugin plugin) {
+            super(executor, file, mechanicName, config, attributeService, plugin);
         }
 
         @Override
@@ -437,9 +510,14 @@ public final class MythicBridge implements Listener {
             if (durationTicks <= 0L) {
                 return SkillResult.INVALID_CONFIG;
             }
+            if (rejectsDeclaredArguments("emaki_attribute_add_tag", value)) {
+                return SkillResult.INVALID_CONFIG;
+            }
             String effectPrefix = configString("", "effect_prefix", "effectprefix", "prefix");
-            attributeService.temporaryAttributeService().addByTag(livingTarget, effectPrefix, tag, value, durationTicks, resolveStackMode());
-            return SkillResult.SUCCESS;
+            TemporaryAttributeOutcome outcome = attributeService.temporaryAttributeService().addGroupByTag(
+                    livingTarget, effectPrefix, tag, value, durationTicks, rawStackMode(),
+                    TemporaryEffectSource.MYTHIC);
+            return report(outcome, "emaki_attribute_add_tag");
         }
     }
 
@@ -457,8 +535,9 @@ public final class MythicBridge implements Listener {
                 File file,
                 String mechanicName,
                 MythicLineConfig config,
-                AttributeService attributeService) {
-            super(executor, file, mechanicName, config, attributeService);
+                AttributeService attributeService,
+                EmakiAttributePlugin plugin) {
+            super(executor, file, mechanicName, config, attributeService, plugin);
         }
 
         @Override
@@ -471,8 +550,8 @@ public final class MythicBridge implements Listener {
             if (tag.isBlank()) {
                 return SkillResult.INVALID_CONFIG;
             }
-            attributeService.temporaryAttributeService().removeByTag(livingTarget, tag);
-            return SkillResult.SUCCESS;
+            return report(attributeService.temporaryAttributeService().removeGroupByTag(livingTarget, tag),
+                    "emaki_attribute_clear_tag");
         }
     }
 

@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.10"
+version: "4.7.11"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -385,6 +385,13 @@ action:
       effect_id_required: "<red>[管道] 该段必须指定 effect_id</red>"
       tag_required: "<red>[管道] 该段必须指定 tag</red>"
       unknown_resource: "<red>[管道] 未知资源 %resource%</red>"
+      not_living_entity: "<red>[管道] 该段的目标必须是生物实体</red>"
+      temporary_not_found: "<yellow>[管道] 目标身上没有效果组 %effect_id%</yellow>"
+      temporary_no_match: "<yellow>[管道] 没有属性匹配该标签，未做任何改动</yellow>"
+      temporary_invalid_input: "<red>[管道] 临时属性参数非法：%detail%</red>"
+      temporary_unknown_attribute: "<red>[管道] 未注册的属性 %attribute%</red>"
+      temporary_wrong_thread: "<red>[管道] 临时属性写入线程不正确，已拒绝</red>"
+      temporary_closed: "<red>[管道] 临时属性服务已关闭，已拒绝</red>"
     level:
       service_unavailable: "<red>[管道] EmakiLevel 等级服务当前不可用</red>"
       operation_failed: "<red>[管道] EmakiLevel 操作失败：%reason%</red>"
