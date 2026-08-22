@@ -168,6 +168,7 @@ final class AttributeSnapshotCollector {
         overlayValues(values, temporaryCapture.setValues());
         scalingCurveProcessor.apply(values, service.scalingCurves());
         applyDerivedValues(values);
+        applyDeclaredValueRanges(values, service.registryService().attributeDefinitions());
         AttributeSnapshot snapshot = new AttributeSnapshot(
                 AttributeFusionMath.RAW_COMBAT_SNAPSHOT_SCHEMA_VERSION,
                 sourceSignature,
@@ -565,6 +566,30 @@ final class AttributeSnapshotCollector {
             }
             double derivedValue = provider.compute(values);
             values.put(attributeId, derivedValue);
+        }
+    }
+
+    static void applyDeclaredValueRanges(Map<String, Double> values,
+            Collection<AttributeDefinition> definitions) {
+        if (values == null || values.isEmpty() || definitions == null || definitions.isEmpty()) {
+            return;
+        }
+        for (AttributeDefinition definition : definitions) {
+            if (definition == null) {
+                continue;
+            }
+            String attributeId = Texts.normalizeId(definition.id());
+            if (attributeId.isBlank() || AttributeSnapshot.isRangeSpreadKey(attributeId)) {
+                continue;
+            }
+            Double aggregated = values.get(attributeId);
+            if (aggregated == null || !Double.isFinite(aggregated)) {
+                continue;
+            }
+            double limited = definition.clamp(aggregated);
+            if (limited != aggregated) {
+                values.put(attributeId, limited);
+            }
         }
     }
 
