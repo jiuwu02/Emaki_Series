@@ -2,13 +2,6 @@ package emaki.jiuwu.craft.corelib.progression;
 
 import java.util.Map;
 
-/**
- * A progression that looks up values from a table/map.
- * <p>
- * If a level is not found in the table, returns the fallback value.
- *
- * @param <T> the value type
- */
 public final class TableProgression<T> implements Progression<T> {
 
     private final Map<Integer, T> table;

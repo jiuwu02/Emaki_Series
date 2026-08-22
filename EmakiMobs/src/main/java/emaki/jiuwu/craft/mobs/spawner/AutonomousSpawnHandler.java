@@ -24,10 +24,6 @@ import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * autonomous 类型刷新规则的调度执行器。
- * 不监听任何 CreatureSpawnEvent，完全由内部调度循环驱动。
- */
 public final class AutonomousSpawnHandler implements SpawnHandler {
 
     private final Plugin plugin;
@@ -44,7 +40,6 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
         this.plugin = plugin;
         this.mobIdentifier = mobIdentifier;
         this.mobFactory = mobFactory;
-        // 永久日计时器：reload 时不取消，仅在插件关闭时由 Bukkit 自动取消
         plugin.getServer().getGlobalRegionScheduler()
                 .runAtFixedRate(plugin, t -> checkDayIntervalRules(), 1L, 20L);
     }

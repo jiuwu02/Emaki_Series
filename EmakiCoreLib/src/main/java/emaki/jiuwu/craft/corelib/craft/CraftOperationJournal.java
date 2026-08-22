@@ -26,53 +26,21 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-/**
- * Generic crash-safe operation journal for tracking in-flight craft operations.
- *
- * <p>Supports two modes:
- * <ul>
- *   <li><b>Memory-only</b> ({@link #ofMemory}): in-memory deduplication and in-flight counting
- *       with no YAML overhead. Suitable for Strengthen-style journaling.</li>
- *   <li><b>Persisted</b> ({@link #ofPersisted}): YAML-backed journal with active/completed/quarantine
- *       directories for crash recovery. Suitable for Gem-style transactional journaling.</li>
- * </ul>
- *
- * <p>In-flight lifecycle:
- * <ol>
- *   <li>{@link #begin} – adds entry to memory, increments the in-flight counter, optionally persists.</li>
- *   <li>{@link #update} – updates the entry payload and phase; counter unchanged.</li>
- *   <li>{@link #release} – decrements the counter and notifies {@link #drain}; entry stays in memory.</li>
- *   <li>{@link #archive} – removes the entry, moves its file (persisted mode), decrements counter.</li>
- * </ol>
- *
- * @param <R> the payload type stored per operation
- */
 public final class CraftOperationJournal<R> {
 
-    // ── inner types ──────────────────────────────────────────────────────────
-
-    /** Converts the operation payload to and from a YAML map for persisted mode. */
     public interface Codec<R> {
-        /**
-         * Encode the payload. Must not include the fixed fields
-         * {@code operation_id}, {@code kind}, {@code player_id}, or {@code phase}.
-         */
         Map<String, Object> encode(R payload);
 
-        /** Decode the payload from the full YAML section (fixed fields are also present). */
         R decode(YamlSection section);
     }
 
-    /** An in-memory record of an active or recently completed operation. */
     public record Entry<R>(String operationId, String kind, UUID playerId, String phase, R payload) {}
 
-    // ── in-memory state ──────────────────────────────────────────────────────
     private final Object lock = new Object();
     private final LinkedHashMap<String, Entry<R>> entries = new LinkedHashMap<>();
     private int inFlight;
     private final int maxEntries;
 
-    // ── persistence (null = memory-only) ────────────────────────────────────
     private final Codec<R> codec;
     private final JavaPlugin ownerPlugin;
     private final Path activeDirectory;
@@ -99,30 +67,23 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    /** Creates a memory-only journal (no YAML persistence). */
     public static <R> CraftOperationJournal<R> ofMemory(int maxEntries) {
         return new CraftOperationJournal<>(maxEntries, null, null, null);
     }
 
-    /** Creates a YAML-persisted journal for crash recovery. */
     public static <R> CraftOperationJournal<R> ofPersisted(int maxEntries, Codec<R> codec,
             JavaPlugin plugin, Path journalRoot) {
         return new CraftOperationJournal<>(maxEntries, codec, plugin, journalRoot);
     }
 
-    // ── lifecycle ────────────────────────────────────────────────────────────
-
-    /** Begin a new operation with an auto-generated ID. Increments the in-flight counter. */
     public String begin(String kind, UUID playerId, R initialPayload) {
         return begin(null, kind, playerId, initialPayload);
     }
 
-    /** Begin an operation with an explicit ID (auto-generated if null/blank). */
     public String begin(String operationId, String kind, UUID playerId, R initialPayload) {
         return begin(operationId, kind, playerId, "IN_FLIGHT", initialPayload);
     }
 
-    /** Begin an operation with an explicit initial phase (for adapters that need a non-default starting phase). */
     public String begin(String operationId, String kind, UUID playerId, String initialPhase, R initialPayload) {
         String resolvedId = (operationId == null || operationId.isBlank())
                 ? UUID.randomUUID().toString() : operationId;
@@ -136,10 +97,6 @@ public final class CraftOperationJournal<R> {
         return resolvedId;
     }
 
-    /**
-     * Restore a previously persisted entry back into memory after crash recovery.
-     * Increments the in-flight counter. Does NOT persist — the file already exists on disk.
-     */
     public void restore(String operationId, String kind, UUID playerId, String phase, R payload) {
         if (operationId == null || operationId.isBlank()) {
             return;
@@ -152,13 +109,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    /**
-     * Atomically adds an entry only if no entry with the given ID exists yet.
-     * Increments the in-flight counter on success.
-     *
-     * @return the existing entry if one was already present (counter unchanged),
-     *         or {@code null} if the new entry was added
-     */
     public Entry<R> beginIfAbsent(String operationId, String kind, UUID playerId, R payload) {
         if (operationId == null || operationId.isBlank()) {
             return null;
@@ -176,7 +126,6 @@ public final class CraftOperationJournal<R> {
         return null;
     }
 
-    /** Update the phase and payload of an existing entry. Does not change the counter. */
     public void update(String operationId, String phase, R payload) {
         if (operationId == null) {
             return;
@@ -193,10 +142,6 @@ public final class CraftOperationJournal<R> {
         persistAsync(updated);
     }
 
-    /**
-     * Decrement the in-flight counter and notify {@link #drain} waiters.
-     * The entry stays in memory as a result cache (Strengthen-style pattern).
-     */
     public void release(String operationId) {
         synchronized (lock) {
             inFlight = Math.max(0, inFlight - 1);
@@ -205,10 +150,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    /**
-     * Archive a completed operation: remove from memory, decrement the counter,
-     * and move the YAML file from active/ to completed/ (persisted mode).
-     */
     public CompletableFuture<Void> archive(String operationId) {
         if (operationId == null) {
             return CompletableFuture.completedFuture(null);
@@ -226,34 +167,24 @@ public final class CraftOperationJournal<R> {
         return archiveFile(entry);
     }
 
-    // ── query / utility ──────────────────────────────────────────────────────
-
-    /** Returns the current entry, or {@code null} if not found. */
     public Entry<R> get(String operationId) {
         if (operationId == null) return null;
         synchronized (lock) { return entries.get(operationId); }
     }
 
-    /** Returns {@code true} if an entry with this ID exists. */
     public boolean contains(String operationId) {
         if (operationId == null) return false;
         synchronized (lock) { return entries.containsKey(operationId); }
     }
 
-    /** Number of operations between begin and release/archive. */
     public int inFlightCount() {
         synchronized (lock) { return inFlight; }
     }
 
-    /** Immutable snapshot of all entries (insertion order). */
     public Map<String, Entry<R>> snapshot() {
         synchronized (lock) { return Map.copyOf(entries); }
     }
 
-    /**
-     * Remove entries satisfying {@code canRemove} until the map shrinks to {@link #maxEntries}.
-     * The caller is responsible for excluding in-flight entries from the predicate.
-     */
     public void prune(Predicate<Entry<R>> canRemove) {
         synchronized (lock) {
             if (entries.size() <= maxEntries) return;
@@ -266,11 +197,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    /**
-     * Block until the in-flight counter reaches zero or the timeout expires.
-     *
-     * @return {@code true} if all in-flight operations finished within the timeout
-     */
     public boolean drain(long timeout, TimeUnit unit) {
         long nanos = Math.max(0L, unit == null ? 0L : unit.toNanos(timeout));
         long deadline = System.nanoTime() + nanos;
@@ -289,16 +215,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    /**
-     * Returns a future that completes when all in-flight operations finish.
-     * If there are no in-flight operations at the time of the call, returns
-     * an already-completed future.
-     *
-     * <p>Note: this does NOT prevent new operations from starting. The caller
-     * is responsible for setting an "accepting" flag before calling this method.
-     *
-     * @return a future completing when {@link #inFlightCount()} reaches zero
-     */
     public CompletableFuture<Void> quiesce() {
         synchronized (lock) {
             if (inFlight == 0) {
@@ -310,14 +226,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    // ── recovery (persisted mode only) ───────────────────────────────────────
-
-    /**
-     * Load all persisted active entries from the {@code active/} directory.
-     * In memory-only mode returns an empty list immediately.
-     * Entries are NOT automatically put into the in-memory map; the caller must
-     * re-insert them via {@link #begin} or {@link #update} as appropriate.
-     */
     public CompletableFuture<List<Entry<R>>> loadActive() {
         if (activeDirectory == null || codec == null) {
             return CompletableFuture.completedFuture(List.of());
@@ -398,8 +306,6 @@ public final class CraftOperationJournal<R> {
         }
     }
 
-    // ── persistence internals ────────────────────────────────────────────────
-
     private void persistAsync(Entry<R> entry) {
         if (codec == null || activeDirectory == null) {
             return;
@@ -462,9 +368,6 @@ public final class CraftOperationJournal<R> {
         return data;
     }
 
-    // ── infrastructure ───────────────────────────────────────────────────────
-
-    /** Completes all pending {@link #quiesce()} futures. Must be called while holding {@code lock}. */
     private void completeQuiesceWaitersIfDrained() {
         if (inFlight == 0 && !quiesceWaiters.isEmpty()) {
             List<CompletableFuture<Void>> waiters = new ArrayList<>(quiesceWaiters);

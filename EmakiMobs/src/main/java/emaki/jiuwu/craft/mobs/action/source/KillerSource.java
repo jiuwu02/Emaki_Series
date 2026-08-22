@@ -11,21 +11,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-/**
- * 选择器：killer
- * 
- * <p>从触发器上下文中选择击杀施法者的实体。
- * 主要用于 {@code on_death} 触发器。
- * 
- * <p>如果击杀者不存在（如环境死亡），返回空结果。
- * 
- * <p><b>配置示例：</b>
- * <pre>{@code
- * on_death:
- *   - "killer | give_exp amount=100"
- *   - "killer | send_message text='<green>你击败了 Boss！'"
- * }</pre>
- */
 public final class KillerSource extends BaseSource {
 
     public KillerSource() {

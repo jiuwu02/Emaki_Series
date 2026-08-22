@@ -16,12 +16,6 @@ import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.log.StorageOperationType;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 
-/**
- * Storage unlock service - delegates to the unified unlock framework.
- * <p>
- * Exposes the CoreLib {@link UnlockService.Quote} and {@link UnlockService.UnlockResult}
- * types directly.
- */
 public final class StorageUnlockService {
 
     private final UnlockService unlockService;

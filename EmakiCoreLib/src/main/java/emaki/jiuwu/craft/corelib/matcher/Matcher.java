@@ -23,66 +23,6 @@ import emaki.jiuwu.craft.corelib.item.ComponentPath;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
-/**
- * 统一的物品匹配器接口，用于配方材料校验、条件判断等场景。
- * <p>
- * 支持以下匹配器类型：
- * <ul>
- *   <li>{@code item_source}: 按物品类型识别（原版/自定义物品源）</li>
- *   <li>{@code pdc_match}: 按 PDC 键值匹配，支持类型和比较符</li>
- *   <li>{@code lore_match}: 按 Lore 文本匹配（包含/完全/正则）</li>
- *   <li>{@code component}: 按 Minecraft 物品组件及其内部取值匹配</li>
- *   <li>{@code variable_expr}: 表达式或 PAPI 条件</li>
- *   <li>{@code compare_target}: 与目标装备比较</li>
- *   <li>{@code all_of}/{@code any_of}/{@code none_of}/{@code at_least}/{@code exactly}: 组合逻辑运算</li>
- * </ul>
- * <p>
- * 配置格式示例：
- * <pre>{@code
- * matcher:
- *   type: item_source
- *   sources:
- *     - "minecraft-diamond"
- *     - "mmoitems-SWORD-FLAME_BLADE"
- *
- * matcher:
- *   type: pdc_match
- *   key: "emakiforge:enchant_level"
- *   operator: ">="
- *   value: 5
- *   data_type: integer
- *
- * matcher:
- *   type: lore_match
- *   pattern: "传说级"
- *   mode: contains
- *
- * matcher:
- *   type: component
- *   component: enchantments
- *   path: sharpness
- *   operator: ">="
- *   value: 5
- *
- * matcher:
- *   type: variable_expr
- *   expression: "player_level >= 10 && pdc_emakiforge_quality > 3"
- *
- * matcher:
- *   type: all
- *   matchers:
- *     - { type: item_source, sources: ["minecraft:diamond_sword"] }
- *     - { type: pdc_match, key: "emakiforge:enchant_level", operator: ">=", value: 5 }
- *
- * matcher:
- *   type: at_least
- *   required_count: 2
- *   matchers:
- *     - { type: component, component: enchantments, path: sharpness, operator: ">=", value: 5 }
- *     - { type: component, component: custom_name, operator: contains, value: "炎" }
- *     - { type: component, component: rarity, operator: "==", value: epic }
- * }</pre>
- */
 public sealed interface Matcher permits
         Matcher.ItemSourceMatcher,
         Matcher.PdcMatcher,
@@ -95,20 +35,8 @@ public sealed interface Matcher permits
         Matcher.NoneMatcher,
         Matcher.CountMatcher {
 
-    /**
-     * 测试物品是否匹配。
-     *
-     * @param context 匹配上下文
-     * @return true 表示匹配成功
-     */
     boolean test(@NotNull MatchContext context);
 
-    /**
-     * 从配置节加载 Matcher。
-     *
-     * @param config 配置对象
-     * @return Matcher 实例
-     */
     static @NotNull Matcher fromConfig(@Nullable Object config) {
         if (config == null) {
             return new AllMatcher(List.of());

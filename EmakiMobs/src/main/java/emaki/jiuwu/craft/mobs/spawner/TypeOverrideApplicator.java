@@ -13,22 +13,6 @@ import org.bukkit.event.entity.CreatureSpawnEvent;
 import java.util.Map;
 import java.util.function.Supplier;
 
-/**
- * 监听 {@link CreatureSpawnEvent}，对 id 与原版 EntityType 同名（typeOverride=true）的
- * MobSpec 应用其组件和属性覆盖，使该原版类型的所有自然刷新生物自动获得自定义配置。
- *
- * <p>事件优先级为 {@link EventPriority#MONITOR}，确保在其他插件完成判断后才介入；
- * 已取消的事件不处理（ignoreCancelled = true）。
- *
- * <p>YAML 示例（对所有自然僵尸应用双倍血量）：
- * <pre>
- * id: zombie
- * type: zombie
- * display_name: "&lt;red&gt;加强僵尸"
- * components:
- *   max_health: 40
- * </pre>
- */
 public final class TypeOverrideApplicator implements Listener {
 
     private final Supplier<Map<String, MobSpec>> registry;

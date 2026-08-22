@@ -12,20 +12,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-/**
- * 选择器：attacker
- * 
- * <p>从触发器上下文中选择攻击施法者的实体。
- * 主要用于 {@code on_damage_take} 触发器。
- * 
- * <p>如果攻击者不存在（如环境伤害），返回空结果。
- * 
- * <p><b>配置示例：</b>
- * <pre>{@code
- * on_damage_take:
- *   - "attacker | give_potion_effect type=SLOWNESS duration=40 amplifier=0"
- * }</pre>
- */
 public final class AttackerSource extends BaseSource {
 
     public AttackerSource() {

@@ -13,11 +13,6 @@ import emaki.jiuwu.craft.station.config.PurchaseSettings;
 import emaki.jiuwu.craft.station.config.QueueCostConfig;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 
-/**
- * UnlockTarget implementation for Station queue slots.
- * <p>
- * Handles validation, cost resolution, and persistence for purchasing additional queue slots.
- */
 public final class StationQueueUnlockTarget implements UnlockTarget {
 
     public static final String PURCHASE_PERMISSION = "emakistation.purchase";
@@ -109,7 +104,6 @@ public final class StationQueueUnlockTarget implements UnlockTarget {
 
     @Override
     public boolean notifyUnlock(Player player, int slots, double currencyTotal) {
-        // Station queue unlock does not fire pre-unlock events
         return true;
     }
 

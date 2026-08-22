@@ -68,8 +68,6 @@ final class ForgePdcAttributeWriter {
             }
         }
         observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds));
-        // 独立锻造变量先落盘：即使本配方没有任何属性贡献（下方 attributes.isEmpty() 分支会提前
-        // 返回），品质与配方 ID 也必须可读，否则 Strengthen 无法稳定读取容量来源。
         writeForgeVariables(recipe, multiplier, qualityTier, itemStack);
         if (gateway == null || !gateway.available()) {
             return;
@@ -87,12 +85,6 @@ final class ForgePdcAttributeWriter {
         gateway.write(itemStack, SOURCE_ID, attributes, meta);
     }
 
-    /**
-     * 将品质与配方变量写入 Forge 自己的 PDC 分区。
-     *
-     * <p>与属性桥 payload 的 meta 并存而非替代：meta 的 {@code recipe_id} / {@code quality} 保持原样，
-     * 老物品的读取方不受影响。
-     */
     private void writeForgeVariables(Recipe recipe,
             double multiplier,
             QualitySettings.QualityTier qualityTier,
@@ -106,8 +98,6 @@ final class ForgePdcAttributeWriter {
                     PersistentDataType.STRING, recipe.id());
         }
         if (qualityTier != null && Texts.isNotBlank(qualityTier.name())) {
-            // QualityTier 只有 name/weight/multiplier，没有独立的 id 与 display 字段，
-            // 因此标识与显示名同源取档位名。
             pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_ID,
                     PersistentDataType.STRING, qualityTier.name());
             pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_DISPLAY,

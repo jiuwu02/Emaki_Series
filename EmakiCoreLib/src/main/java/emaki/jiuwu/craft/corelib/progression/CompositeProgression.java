@@ -3,14 +3,6 @@ package emaki.jiuwu.craft.corelib.progression;
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * A progression that delegates to multiple child progressions in order.
- * <p>
- * Returns the first non-null value from the chain, or the final fallback.
- * Useful for implementing "try table first, then formula" patterns.
- *
- * @param <T> the value type
- */
 public final class CompositeProgression<T> implements Progression<T> {
 
     private final List<Progression<T>> delegates;

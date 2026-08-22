@@ -23,14 +23,6 @@ import emaki.jiuwu.craft.attribute.api.extension.AttributeSlotProvider;
 import emaki.jiuwu.craft.attribute.api.extension.SlotProviderRegistration;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 
-/**
- * Registry of equipment slots that take part in attribute aggregation.
- *
- * <p>The six vanilla slots are registered as built-ins at construction and are owned by
- * EmakiAttribute itself, so they are never dropped by owner cleanup. Third-party slots arrive through
- * {@code AttributeExtensions.registerSlotProvider} and follow the same owner-scoped lifecycle as
- * item contribution gates.
- */
 public final class AttributeSlotRegistry implements Listener, AutoCloseable {
 
     private final Map<String, RegisteredSlot> slots = new LinkedHashMap<>();
@@ -55,30 +47,6 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
         return new RegistrationHandle(this, id, generation);
     }
 
-    /**
-     * Reads the item in each registered slot for the given entity.
-     *
-     * <p>Iteration order is built-in vanilla slots first in their declared order, then third-party
-     * slots sorted by id, so aggregation and cache signatures stay stable across restarts. A slot whose
-     * provider throws is skipped rather than aborting the whole collection.
-     *
-     * @param entity the entity whose slots are read; {@code null} yields an empty result
-     * @return an ordered map of slot name to equipped item; slots that are empty or not applicable are
-     *         present with a {@code null} value so signature parts stay positionally stable
-     */
-    /**
-     * Reads the item in each registered slot for the given entity.
-     *
-     * <p>Iteration order is built-in vanilla slots first in their declared order, then third-party
-     * slots sorted by id, so aggregation and cache signatures stay stable across restarts. A slot whose
-     * provider throws is skipped rather than aborting the whole collection.
-     *
-     * <p>Slots that read back empty are omitted entirely, so an entity with no equipment at all yields
-     * an empty map and equipment collection is skipped rather than contributing empty signature parts.
-     *
-     * @param entity the entity whose slots are read; {@code null} yields an empty result
-     * @return an ordered map of slot name to the non-empty item occupying it
-     */
     public Map<String, ItemStack> readSlots(LivingEntity entity) {
         if (entity == null) {
             return Map.of();
@@ -100,26 +68,11 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
         return result;
     }
 
-    /**
-     * {@return the provider registered under the given slot id, or {@code null} when none is registered
-     * or its owning plugin is disabled}
-     *
-     * @param slotId the slot id to look up; normalized before matching
-     */
     public AttributeSlotProvider find(String slotId) {
         String id = normalize(slotId);
         return id.isBlank() ? null : activeSlots().get(id);
     }
 
-    /**
-     * Removes the third-party slot registered under the given id.
-     *
-     * <p>Built-in vanilla slots cannot be removed this way; a request naming one is ignored so a caller
-     * cannot strip an entity's armour contributions.
-     *
-     * @param slotId the slot id to remove; normalized before matching
-     * @return {@code true} when a third-party slot was actually removed
-     */
     public synchronized boolean unregister(String slotId) {
         String id = normalize(slotId);
         RegisteredSlot registered = id.isBlank() ? null : slots.get(id);
@@ -138,7 +91,6 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
                 && entry.getValue().owner() == owner);
     }
 
-    /** Removes every third-party slot, keeping the built-in vanilla slots registered. */
     public synchronized void clear() {
         slots.entrySet().removeIf(entry -> !entry.getValue().builtIn());
     }
@@ -205,7 +157,6 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
         return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 
-    /** Reads one slot from an entity's equipment; separated so the six built-ins stay one line each. */
     @FunctionalInterface
     private interface EquipmentReader {
 

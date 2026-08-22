@@ -36,12 +36,10 @@ public final class MobFactory {
         this.attributeBridge = attributeBridge;
     }
 
-    /** 延迟注入，解决 MobFactory ← MobSkillExecutor 创建顺序依赖。 */
     public void setSkillExecutor(@Nullable MobSkillExecutor skillExecutor) {
         this.skillExecutor = skillExecutor;
     }
 
-    /** 延迟注入，解决 MobFactory ← BossBarManager 创建顺序依赖。 */
     public void setBossBarManager(@Nullable BossBarManager bossBarManager) {
         this.bossBarManager = bossBarManager;
     }

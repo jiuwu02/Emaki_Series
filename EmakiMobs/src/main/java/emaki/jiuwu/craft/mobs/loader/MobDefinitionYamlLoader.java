@@ -133,21 +133,6 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         return result;
     }
 
-    /**
-     * 解析 YAML 中的技能触发器映射。
-     *
-     * <pre>
-     * skills:
-     *   on_death:
-     *     - "send_message(...)"
-     *   on_damage_give:
-     *     - "apply_potion(...)"
-     * </pre>
-     *
-     * @param config     要解析的 YAML 配置
-     * @param sectionKey 顶层节点键名（通常为 {@code "skills"}）
-     * @return 触发器名 → Action 管道行列表 的映射；无此节点时返回空 Map
-     */
     private Map<String, List<String>> extractListSection(YamlSection config, String sectionKey) {
         Map<String, List<String>> result = new HashMap<>();
         YamlSection section = config.getSection(sectionKey);

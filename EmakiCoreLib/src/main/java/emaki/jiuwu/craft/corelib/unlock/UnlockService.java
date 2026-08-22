@@ -14,18 +14,8 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
-/**
- * Generic service for the unlock flow: quote → event → charge → commit.
- * <p>
- * Modules provide an {@link UnlockTarget} implementation that handles domain-specific
- * validation, cost resolution, event firing, and persistence. This service handles the
- * shared payment and rollback logic.
- */
 public final class UnlockService {
 
-    /**
-     * Aggregated quote for unlocking one or more slots.
-     */
     public record Quote(
             int slots,
             String currencyProviderId,
@@ -54,9 +44,6 @@ public final class UnlockService {
         }
     }
 
-    /**
-     * Result of an unlock attempt.
-     */
     public record UnlockResult(int unlocked, Quote quote, String reasonKey) {
 
         public boolean success() {
@@ -76,14 +63,6 @@ public final class UnlockService {
         this.itemSourceService = itemSourceService;
     }
 
-    /**
-     * Computes the cost quote for unlocking the given number of slots via the target.
-     *
-     * @param target the unlock target providing validation and cost data
-     * @param player the player requesting the unlock
-     * @param slots  the number of slots to unlock
-     * @return a quote (valid or rejected)
-     */
     public Quote quote(UnlockTarget target, Player player, int slots) {
         if (slots <= 0) {
             return Quote.rejected(slots, "invalid_amount");
@@ -129,14 +108,6 @@ public final class UnlockService {
         return new Quote(slots, currencyProviderId, currencyId, currencyTotal, itemTotals, null);
     }
 
-    /**
-     * Executes the full unlock flow: validate → quote → event → charge → commit.
-     *
-     * @param target the unlock target
-     * @param player the player performing the unlock
-     * @param slots  the number of slots to unlock
-     * @return the result of the unlock attempt
-     */
     public UnlockResult execute(UnlockTarget target, Player player, int slots) {
         Quote quote = quote(target, player, slots);
         if (!quote.valid()) {

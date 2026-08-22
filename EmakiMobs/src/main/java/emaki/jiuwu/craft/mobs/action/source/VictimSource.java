@@ -11,19 +11,6 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
-/**
- * 选择器：victim
- * 
- * <p>从触发器上下文中选择被施法者击杀的实体。
- * 主要用于 {@code on_kill} 触发器。
- * 
- * <p><b>配置示例：</b>
- * <pre>{@code
- * on_kill:
- *   - "victim | spawn_particle particle=SOUL count=20"
- *   - "self | heal amount=5"  # 吸血效果
- * }</pre>
- */
 public final class VictimSource extends BaseSource {
 
     public VictimSource() {

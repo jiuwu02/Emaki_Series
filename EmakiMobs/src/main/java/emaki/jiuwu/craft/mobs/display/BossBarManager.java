@@ -18,7 +18,6 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-/** 管理受管生物的 Boss 血条：创建、更新健康百分比、按距离显示/隐藏、死亡时清除。 */
 public final class BossBarManager implements Listener {
 
     private final Map<UUID, BossBar> entityBars = new ConcurrentHashMap<>();
@@ -34,10 +33,6 @@ public final class BossBarManager implements Listener {
         scheduleDistanceCheck();
     }
 
-    /**
-     * 若指定生物的定义配置了 {@code boss_bar:} 节点，则创建并注册 Boss 血条。
-     * 应在 MobFactory.spawn() 或 TypeOverrideApplicator 完成属性应用后调用。
-     */
     @SuppressWarnings("deprecation")
     public void registerIfConfigured(LivingEntity entity, String mobId) {
         MobSpec spec = registry.get().get(mobId);

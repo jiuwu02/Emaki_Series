@@ -7,14 +7,6 @@ import java.util.function.Function;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * A progression that computes values using an expression formula.
- * <p>
- * The formula is evaluated with ExpressionEngine, and can reference variables
- * provided by the variable supplier function.
- *
- * @param <T> the value type
- */
 public final class FormulaProgression<T> implements Progression<T> {
 
     private final String formula;
@@ -22,27 +14,12 @@ public final class FormulaProgression<T> implements Progression<T> {
     private final Function<Double, T> converter;
     private final T fallback;
 
-    /**
-     * Creates a formula progression for Double values (most common case).
-     *
-     * @param formula           the expression formula (can contain placeholders like %level%)
-     * @param variableSupplier  function that provides variables for a given level
-     * @param fallback          fallback value if evaluation fails
-     * @return a FormulaProgression that returns Double values
-     */
     public static FormulaProgression<Double> forDouble(String formula,
             Function<Integer, Map<String, Object>> variableSupplier,
             Double fallback) {
         return new FormulaProgression<>(formula, variableSupplier, d -> d, fallback);
     }
 
-    /**
-     * Creates a simple formula progression with only "level" variable.
-     *
-     * @param formula  the expression formula
-     * @param fallback fallback value if evaluation fails
-     * @return a FormulaProgression that returns Double values
-     */
     public static FormulaProgression<Double> simple(String formula, Double fallback) {
         return forDouble(formula, level -> Map.of("level", level), fallback);
     }

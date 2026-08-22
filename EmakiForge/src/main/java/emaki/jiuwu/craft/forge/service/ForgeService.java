@@ -68,7 +68,6 @@ public final class ForgeService {
     private final ThreadOwnership threadOwnership;
     private final ForgeResultPostProcessor resultPostProcessor;
     private final AtomicBoolean accepting = new AtomicBoolean(false);
-    /** Shared journal used purely as an in-flight counter + quiesce/drain gate. */
     private final CraftOperationJournal<Void> operationJournal = CraftOperationJournal.ofMemory(Integer.MAX_VALUE);
 
     public ForgeService(EmakiForgePlugin plugin,

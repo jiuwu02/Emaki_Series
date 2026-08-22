@@ -18,21 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 import java.util.function.Supplier;
 
-/**
- * DSL Stage：在目标位置召唤 EmakiMobs 定义的生物。
- * 
- * <p>参数：
- * <ul>
- *   <li>{@code mob_id}（必需）- EmakiMobs 生物定义 ID</li>
- *   <li>{@code count}（可选，默认 1）- 召唤数量</li>
- * </ul>
- * 
- * <p>示例：
- * <pre>
- * self | summon_mob mob_id=fire_guardian count=2
- * killer | summon_mob mob_id=boss_minion
- * </pre>
- */
 public final class SummonMobStage extends BaseStage {
 
     private final Supplier<Map<String, MobSpec>> mobRegistrySupplier;
@@ -50,14 +35,12 @@ public final class SummonMobStage extends BaseStage {
     @Override
     public @NotNull CoreActionOutcome execute(@NotNull CoreStageContext context,
                                                @NotNull CoreResolvedArguments arguments) {
-        // 获取 mob_id 参数
         String mobId = arguments.getString("mob_id");
         if (mobId == null || mobId.isBlank()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.summon_mob.missing_mob_id", Map.of());
         }
 
-        // 检查生物定义是否存在
         Map<String, MobSpec> registry = mobRegistrySupplier.get();
         MobSpec mobSpec = registry.get(mobId);
         if (mobSpec == null) {
@@ -66,16 +49,13 @@ public final class SummonMobStage extends BaseStage {
                     Map.of("mob_id", mobId));
         }
 
-        // 获取目标位置
         Location location = context.currentTarget().location();
         if (location == null || location.getWorld() == null) {
             return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
 
-        // 获取召唤数量
         int count = Math.max(1, arguments.getInt("count", 1));
 
-        // 召唤生物
         LivingEntity lastSpawned = null;
         for (int i = 0; i < count; i++) {
             var result = mobFactory.spawn(location, mobId);

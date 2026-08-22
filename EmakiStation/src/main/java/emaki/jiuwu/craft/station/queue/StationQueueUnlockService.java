@@ -13,12 +13,6 @@ import emaki.jiuwu.craft.station.config.PurchaseSettings;
 import emaki.jiuwu.craft.station.config.QueueCostConfig;
 import emaki.jiuwu.craft.station.definition.StationDefinition;
 
-/**
- * Station queue unlock service - delegates to the unified unlock framework.
- * <p>
- * Exposes the CoreLib {@link UnlockService.Quote} and {@link UnlockService.UnlockResult}
- * types directly.
- */
 public final class StationQueueUnlockService {
 
     public static final String PURCHASE_PERMISSION = "emakistation.purchase";

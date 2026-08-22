@@ -16,13 +16,6 @@ import emaki.jiuwu.craft.storage.config.UnlockCostConfig;
 import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 
-/**
- * UnlockTarget implementation for Storage capacity.
- * <p>
- * Handles validation, cost resolution, event firing, and persistence for purchasing
- * additional storage slots. Operation logging is performed by StorageUnlockService
- * after the unlock completes.
- */
 public final class StorageUnlockTarget implements UnlockTarget {
 
     private final PlayerStorage storage;

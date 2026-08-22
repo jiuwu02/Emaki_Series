@@ -20,16 +20,8 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
-/**
- * 威胁值表管理器：追踪每只受管生物的玩家威胁值，
- * 按时间自动衰减，并在生物选取目标时优先锁定最高威胁玩家。
- *
- * <p>调度均在主线程（{@link Bukkit#getScheduler()} runTaskTimer）执行，
- * 内部用 {@link ConcurrentHashMap} 支撑少量来自事件监听器的并发写入。
- */
 public final class ThreatTableManager implements Listener {
 
-    /** entityUUID → (playerUUID → threatValue) */
     private final Map<UUID, Map<UUID, Double>> tables = new ConcurrentHashMap<>();
 
     private final MobIdentifier mobIdentifier;
@@ -42,8 +34,6 @@ public final class ThreatTableManager implements Listener {
         this.registry = registry;
         scheduleDecay(plugin);
     }
-
-    // ── 公共 API ─────────────────────────────────────────────────────────────
 
     public void addThreat(UUID entityUid, UUID playerUid, double amount) {
         tables.computeIfAbsent(entityUid, k -> new ConcurrentHashMap<>())
@@ -65,9 +55,6 @@ public final class ThreatTableManager implements Listener {
         return topUid != null ? Bukkit.getPlayer(topUid) : null;
     }
 
-    // ── 事件监听 ──────────────────────────────────────────────────────────────
-
-    /** 优先将最高威胁玩家设为攻击目标。 */
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onEntityTarget(EntityTargetLivingEntityEvent event) {
         if (!(event.getEntity() instanceof LivingEntity mob)) return;
@@ -79,7 +66,6 @@ public final class ThreatTableManager implements Listener {
         if (top != null) event.setTarget(top);
     }
 
-    /** 玩家对受管生物造成伤害时累加伤害威胁值。 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
         if (!(event.getDamager() instanceof Player player)) return;
@@ -92,7 +78,6 @@ public final class ThreatTableManager implements Listener {
         addThreat(mob.getUniqueId(), player.getUniqueId(), event.getDamage() * weight);
     }
 
-    /** 玩家回血时对附近受管生物累加治疗威胁值。 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityRegainHealth(EntityRegainHealthEvent event) {
         if (!(event.getEntity() instanceof Player player)) return;
@@ -107,13 +92,10 @@ public final class ThreatTableManager implements Listener {
         });
     }
 
-    /** 生物死亡时清除其威胁表。 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         tables.remove(event.getEntity().getUniqueId());
     }
-
-    // ── 衰减调度 ──────────────────────────────────────────────────────────────
 
     private void scheduleDecay(Plugin plugin) {
         Bukkit.getScheduler().runTaskTimer(plugin, () -> {
