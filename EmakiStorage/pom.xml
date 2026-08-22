@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-storage</artifactId>
-    <version>1.0.3</version>
+    <version>1.0.4</version>
     <name>EmakiStorage</name>
     <packaging>jar</packaging>
 

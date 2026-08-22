@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with /codex reload.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"

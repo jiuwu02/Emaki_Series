@@ -1,4 +1,4 @@
-version: "1.0.3"
+version: "1.0.4"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
