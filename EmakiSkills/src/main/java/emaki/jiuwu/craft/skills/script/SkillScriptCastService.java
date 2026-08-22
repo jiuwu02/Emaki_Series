@@ -215,7 +215,12 @@ public final class SkillScriptCastService {
             return PipelineContext.root(plugin, CoreActionSubject.of(caster), origin,
                             phase.configKey(), false, runtime.placeholders())
                     .withVariables(variables)
-                    .withTargets(targets);
+                    .withTargets(cappedTargets());
+        }
+
+        private List<CoreActionSubject> cappedTargets() {
+            int maxTargets = plugin.appConfig().scriptEngine().maxTargetsPerAction();
+            return targets.size() <= maxTargets ? targets : List.copyOf(targets.subList(0, maxTargets));
         }
     }
 

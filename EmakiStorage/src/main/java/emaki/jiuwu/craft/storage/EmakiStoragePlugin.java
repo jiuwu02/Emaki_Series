@@ -5,7 +5,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -16,17 +15,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
-
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -213,6 +208,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         contentReady = false;
         publishLoading();
         int result = lifecycleCoordinator.reload(this);
+        applyConfiguredDebug();
         contentReady = true;
         publishReady();
         return result;
@@ -272,7 +268,14 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
+        applyConfiguredDebug();
         registerServices(components);
+    }
+
+    private void applyConfiguredDebug() {
+        if (appConfig().debug()) {
+            debugLogger().enableAll();
+        }
     }
 
     private void registerActions() {
@@ -509,41 +512,5 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 return null;
             }
         });
-    }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null,
-                    rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
     }
 }

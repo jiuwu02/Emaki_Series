@@ -561,8 +561,8 @@ public final class JuicerRuntimeService implements Listener {
             return cached;
         }
         JuicerState loaded = codec.readState(stateStore.load(coordinates));
-        runtimeStates.putIfAbsent(coordinates, loaded);
-        return loaded;
+        JuicerState existing = runtimeStates.putIfAbsent(coordinates, loaded);
+        return existing == null ? loaded : existing;
     }
 
     Optional<StationCoordinates> viewingStation(UUID viewerId) {

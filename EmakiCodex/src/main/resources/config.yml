@@ -22,8 +22,6 @@ op_bypass: false
 advancement:
   # 动态成就注册总开关；关闭后跳过加载与注册。
   enabled: true
-  # 动态成就注册平台。当前支持 unsafe。
-  platform: unsafe
   # 成就完成时是否默认向全服广播；单个成就可覆盖此默认值。
   announce-default: false
   # 插件停用时是否移除本插件注册的动态成就。
@@ -36,6 +34,3 @@ advancement:
   # 是否启用按游戏事件自动授予成就。
   # 关闭后仍可通过命令或动作手动授予；具体事件规则由 advancements/ 文件定义。
   triggers-enabled: true
-
-# 兼容保留项；当前 Codex 配置解析器未读取此值。
-debug: false

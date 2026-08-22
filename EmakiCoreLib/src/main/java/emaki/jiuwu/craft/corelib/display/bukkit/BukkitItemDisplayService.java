@@ -13,7 +13,7 @@ import org.bukkit.util.Transformation;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
-import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
@@ -24,13 +24,13 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
     private final Plugin plugin;
     private final ExecutionDispatcher executionDispatcher;
     private final Map<String, ItemDisplay> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Set<String> animatingGroups = ConcurrentHashMap.newKeySet();
-    private final Map<String, TaskToken> expiryTasks = new ConcurrentHashMap<>();
+    private final DisplayLifetimeTracker lifetime;
 
     public BukkitItemDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
     }
 
     @Override
@@ -57,7 +57,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             }
             display.teleport(location);
             apply(display, spec);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         }, () -> {
             removeMapOnly(spec.groupKey(), key);
             spawnAtLocation(spec);
@@ -88,7 +88,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 animatingGroups.remove(groupKey);
                 removeGroupKey(groupKey);
@@ -102,7 +102,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 animatingGroups.remove(groupKey);
                 removeGroupKey(groupKey);
@@ -120,10 +120,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
 
     @Override
     public void shutdown() {
-        for (TaskToken handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
+        lifetime.cancelAllExpiry();
         for (Map.Entry<String, ItemDisplay> entry : Map.copyOf(displays).entrySet()) {
             ItemDisplay display = entry.getValue();
             if (display != null) {
@@ -136,7 +133,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             }
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
         animatingGroups.clear();
     }
 
@@ -160,7 +157,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
         if (animatingGroups.contains(groupKey)) {
             return;
         }
-        Set<String> keys = displaysByGroup.get(groupKey);
+        Set<String> keys = lifetime.membersOf(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -218,7 +215,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             double height,
             String rotationAxis,
             double degrees) {
-        Set<String> currentKeys = displaysByGroup.get(groupKey);
+        Set<String> currentKeys = lifetime.membersOf(groupKey);
         if (currentKeys == null || currentKeys.isEmpty()) {
             return;
         }
@@ -294,45 +291,14 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
             }
             ItemDisplay display = location.getWorld().spawn(location, ItemDisplay.class);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            lifetime.trackGroupMember(spec.groupKey(), key);
             apply(display, spec);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         });
     }
 
-    private void scheduleExpiry(ItemDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskToken handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskToken handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -342,7 +308,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         ItemDisplay display = displays.get(key);
         if (display == null) {
             removeMapOnly(groupKey, key);
@@ -361,14 +327,7 @@ public final class BukkitItemDisplayService implements ItemDisplayService {
 
     private void removeMapOnly(String groupKey, String key) {
         displays.remove(key);
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     private boolean isValidSpec(ItemDisplaySpec spec) {

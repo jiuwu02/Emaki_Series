@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -105,6 +106,7 @@ public final class GraalJsEngine implements ScriptEngine {
     private static final class WatchdogExecutor {
 
         private final ScheduledExecutorService scheduler;
+        private final ExecutorService evaluationExecutor;
 
         WatchdogExecutor() {
             this.scheduler = Executors.newScheduledThreadPool(1, runnable -> {
@@ -112,11 +114,18 @@ public final class GraalJsEngine implements ScriptEngine {
                 thread.setDaemon(true);
                 return thread;
             });
+            this.evaluationExecutor = Executors.newFixedThreadPool(
+                    Math.max(1, Runtime.getRuntime().availableProcessors() - 1),
+                    runnable -> {
+                        Thread thread = new Thread(runnable, "GraalJS-Eval");
+                        thread.setDaemon(true);
+                        return thread;
+                    });
         }
 
         ScriptResult evalWithTimeout(Context context, Source source, long timeoutMs) {
             CompletableFuture<Value> future = CompletableFuture.supplyAsync(
-                    () -> context.eval(source)
+                    () -> context.eval(source), evaluationExecutor
             );
 
             ScheduledFuture<?> killer = scheduler.schedule(
@@ -160,6 +169,7 @@ public final class GraalJsEngine implements ScriptEngine {
 
         void shutdown() {
             scheduler.shutdownNow();
+            evaluationExecutor.shutdownNow();
         }
 
         private Object convertToJava(Value value) {

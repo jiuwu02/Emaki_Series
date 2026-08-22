@@ -1,7 +1,7 @@
 package emaki.jiuwu.craft.attribute.service;
 
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 
 import org.bukkit.entity.Entity;
@@ -19,7 +19,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
     }
 
     private final AttributeService service;
-    private final Map<EntityDamageEvent, Pending> pending = new HashMap<>();
+    private final Map<EntityDamageEvent, Pending> pending = new ConcurrentHashMap<>();
 
     PerfectTakeoverCoordinator(AttributeService service) {
         this.service = service;

@@ -20,7 +20,7 @@ public record TextDisplaySpec(DisplayKey key,
         DisplayGeometry.TextProfile profile,
         int lifetimeTicks,
         Set<UUID> viewers,
-        DisplayMotion motion) {
+        DisplayMotion motion) implements DisplayLifetimeSpec {
 
     public TextDisplaySpec {
         Objects.requireNonNull(key, "key");

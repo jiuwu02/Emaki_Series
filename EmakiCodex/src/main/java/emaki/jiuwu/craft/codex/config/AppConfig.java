@@ -9,7 +9,6 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean releaseDefaultData;
 
     private final boolean advancementEnabled;
-    private final String advancementPlatform;
     private final boolean announceDefault;
     private final boolean removeOnDisable;
     private final boolean packetCoordinates;
@@ -21,7 +20,6 @@ public final class AppConfig extends BaseAppConfig {
             String configVersion,
             boolean releaseDefaultData,
             boolean advancementEnabled,
-            String advancementPlatform,
             boolean announceDefault,
             boolean removeOnDisable,
             boolean packetCoordinates,
@@ -30,8 +28,6 @@ public final class AppConfig extends BaseAppConfig {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.advancementEnabled = advancementEnabled;
-        this.advancementPlatform = advancementPlatform == null || advancementPlatform.isBlank()
-                ? "unsafe" : advancementPlatform;
         this.announceDefault = announceDefault;
         this.removeOnDisable = removeOnDisable;
         this.packetCoordinates = packetCoordinates;
@@ -45,7 +41,6 @@ public final class AppConfig extends BaseAppConfig {
                 CURRENT_VERSION,
                 true,
                 true,
-                "unsafe",
                 false,
                 true,
                 true,
@@ -60,10 +55,6 @@ public final class AppConfig extends BaseAppConfig {
 
     public boolean advancementEnabled() {
         return advancementEnabled;
-    }
-
-    public String advancementPlatform() {
-        return advancementPlatform;
     }
 
     public boolean announceDefault() {

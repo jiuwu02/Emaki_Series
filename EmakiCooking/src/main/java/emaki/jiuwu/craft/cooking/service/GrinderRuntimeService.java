@@ -48,7 +48,6 @@ public final class GrinderRuntimeService {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingTextDisplayService textDisplayService;
     private final EmakiScheduling taskScheduler;
@@ -63,7 +62,6 @@ public final class GrinderRuntimeService {
             CookingBlockMatcher blockMatcher,
             StationStateStore stateStore,
             CookingRecipeService recipeService,
-            CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingTextDisplayService textDisplayService,
             EmakiScheduling taskScheduler) {
@@ -73,7 +71,6 @@ public final class GrinderRuntimeService {
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
         this.taskScheduler = taskScheduler;

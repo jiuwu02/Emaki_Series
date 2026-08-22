@@ -150,7 +150,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 blockMatcher,
                 stationStateStore,
                 recipeService,
-                rewardService,
                 coreLibPlugin.itemSourceService(),
                 displayService,
                 textDisplayService
@@ -174,7 +173,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 blockMatcher,
                 stationStateStore,
                 recipeService,
-                rewardService,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,
                 taskScheduler
@@ -221,7 +219,6 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 blockMatcher,
                 stationStateStore,
                 recipeService,
-                rewardService,
                 completionCoordinator,
                 coreLibPlugin.itemSourceService(),
                 textDisplayService,

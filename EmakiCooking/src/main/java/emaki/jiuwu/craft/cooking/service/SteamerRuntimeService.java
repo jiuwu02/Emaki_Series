@@ -56,7 +56,6 @@ public final class SteamerRuntimeService implements Listener {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final SteamerStateCodec codec;
     private final SteamerTickProcessor tickProcessor;
@@ -87,7 +86,6 @@ public final class SteamerRuntimeService implements Listener {
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
         this.taskScheduler = taskScheduler;

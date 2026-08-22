@@ -58,7 +58,6 @@ public final class ChoppingBoardRuntimeService {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
@@ -70,7 +69,6 @@ public final class ChoppingBoardRuntimeService {
             CookingBlockMatcher blockMatcher,
             StationStateStore stateStore,
             CookingRecipeService recipeService,
-            CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingDisplayService displayService,
             CookingTextDisplayService textDisplayService) {
@@ -80,7 +78,6 @@ public final class ChoppingBoardRuntimeService {
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.displayService = Objects.requireNonNull(displayService, "displayService");
         this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");

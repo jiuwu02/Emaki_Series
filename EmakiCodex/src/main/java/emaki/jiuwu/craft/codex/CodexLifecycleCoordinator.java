@@ -149,7 +149,6 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
                 bool(configuration, "release_default_data", true),
                 advancement == null || bool(advancement, "enabled", true),
-                advancement == null ? "unsafe" : advancement.getString("platform", "unsafe"),
                 advancement != null && bool(advancement, "announce-default", false),
                 advancement == null || bool(advancement, "remove-on-disable", true),
                 advancement == null || bool(advancement, "packet-coordinates", true),

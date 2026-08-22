@@ -12,7 +12,7 @@ public record ItemDisplaySpec(DisplayKey key,
         DisplayGeometry.ItemProfile profile,
         DisplayGeometry.Vector3 layoutOffset,
         Transformation transformation,
-        int lifetimeTicks) {
+        int lifetimeTicks) implements DisplayLifetimeSpec {
 
     public ItemDisplaySpec {
         Objects.requireNonNull(key, "key");

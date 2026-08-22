@@ -5,7 +5,6 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 public final class CacheManager<K, V> {
 
@@ -13,8 +12,7 @@ public final class CacheManager<K, V> {
 
     public CacheManager(int maxSize, long expireAfterAccessMillis) {
         Caffeine<Object, Object> builder = Caffeine.newBuilder()
-                .maximumSize(Math.max(1, maxSize))
-                .recordStats();
+                .maximumSize(Math.max(1, maxSize));
         if (expireAfterAccessMillis > 0) {
             builder.expireAfterAccess(expireAfterAccessMillis, TimeUnit.MILLISECONDS);
         }
@@ -23,13 +21,6 @@ public final class CacheManager<K, V> {
 
     public V get(K key) {
         return cache.getIfPresent(key);
-    }
-
-    public V getOrLoad(K key, Supplier<V> loader) {
-        if (loader == null) {
-            return cache.getIfPresent(key);
-        }
-        return cache.get(key, k -> loader.get());
     }
 
     public void put(K key, V value) {
@@ -62,18 +53,5 @@ public final class CacheManager<K, V> {
     public Map<K, V> snapshot() {
         cache.cleanUp();
         return Map.copyOf(cache.asMap());
-    }
-
-    public CacheStats stats() {
-        cache.cleanUp();
-        com.github.benmanes.caffeine.cache.stats.CacheStats caffeineStats = cache.stats();
-        return new CacheStats(
-                (int) cache.estimatedSize(),
-                caffeineStats.hitCount(),
-                caffeineStats.missCount(),
-                caffeineStats.evictionCount(),
-                0L,
-                caffeineStats.loadCount()
-        );
     }
 }

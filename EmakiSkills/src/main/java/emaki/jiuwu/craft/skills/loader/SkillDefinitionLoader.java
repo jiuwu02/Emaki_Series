@@ -8,8 +8,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -25,14 +23,19 @@ import emaki.jiuwu.craft.skills.model.SkillParameterDefinition;
 import emaki.jiuwu.craft.skills.model.SkillParameterType;
 import emaki.jiuwu.craft.skills.model.SkillResourceCost;
 import emaki.jiuwu.craft.skills.model.SkillUpgradeConfig;
+import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
+import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.script.SkillScriptDefinition;
 import emaki.jiuwu.craft.skills.script.SkillScriptMode;
 import emaki.jiuwu.craft.skills.script.SkillScriptPhase;
 
 public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefinition> {
 
-    public SkillDefinitionLoader(JavaPlugin plugin) {
+    private final EmakiSkillsPlugin skillsPlugin;
+
+    public SkillDefinitionLoader(EmakiSkillsPlugin plugin) {
         super(plugin);
+        this.skillsPlugin = plugin;
     }
 
     @Override
@@ -197,11 +200,16 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
     }
 
     private SkillScriptDefinition parseScript(YamlSection section) {
+        AppConfig.ScriptEngineSettings scriptEngine = skillsPlugin.appConfig().scriptEngine();
+        if (!scriptEngine.enabled()) {
+            return SkillScriptDefinition.disabled();
+        }
         if (section == null || section.getKeys(false).isEmpty()) {
             return SkillScriptDefinition.disabled();
         }
-        SkillScriptMode mode = SkillScriptMode.fromString(section.getString("mode", "native"), SkillScriptMode.NATIVE);
-        boolean stopOnFailure = section.getBoolean("stop_on_failure", true);
+        SkillScriptMode mode = SkillScriptMode.fromString(
+                section.getString("mode", scriptEngine.defaultMode()), SkillScriptMode.NATIVE);
+        boolean stopOnFailure = section.getBoolean("stop_on_failure", scriptEngine.stopOnFailure());
         Map<SkillScriptPhase, List<String>> linesByPhase = new LinkedHashMap<>();
         YamlSection actions = section.getSection("actions");
         if (actions != null) {

@@ -56,7 +56,6 @@ public final class FermentationBarrelRuntimeService implements Listener {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final CookingCompletionCoordinator completionCoordinator;
     private final EmakiScheduling taskScheduler;
     private final ItemSourceService itemSourceService;
@@ -71,7 +70,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     public FermentationBarrelRuntimeService(EmakiCookingPlugin plugin, MessageService messageService, CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher, StationStateStore stateStore, CookingRecipeService recipeService,
-            CookingRewardService rewardService, CookingCompletionCoordinator completionCoordinator,
+            CookingCompletionCoordinator completionCoordinator,
             ItemSourceService itemSourceService, CookingTextDisplayService textDisplayService,
             EmakiScheduling taskScheduler) {
         this.plugin = plugin;
@@ -80,7 +79,6 @@ public final class FermentationBarrelRuntimeService implements Listener {
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.completionCoordinator = completionCoordinator;
         this.taskScheduler = taskScheduler;
         if (completionCoordinator != null) {
@@ -632,8 +630,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return cached;
         }
         FermentationBarrelState loaded = codec.readState(stateStore.load(coordinates));
-        runtimeStates.putIfAbsent(coordinates, loaded);
-        return loaded;
+        FermentationBarrelState existing = runtimeStates.putIfAbsent(coordinates, loaded);
+        return existing == null ? loaded : existing;
     }
 
     Optional<StationCoordinates> viewingStation(UUID viewerId) {

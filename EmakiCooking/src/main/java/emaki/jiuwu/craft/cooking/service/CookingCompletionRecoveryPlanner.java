@@ -32,10 +32,6 @@ public final class CookingCompletionRecoveryPlanner {
         };
     }
 
-    public NextStep plan(CookingCompletionOperation operation) {
-        return nextStep(operation);
-    }
-
     public CookingCompletionOperation normalizeForRecovery(CookingCompletionOperation operation) {
         if (operation == null || operation.isTerminal()) {
             return operation;

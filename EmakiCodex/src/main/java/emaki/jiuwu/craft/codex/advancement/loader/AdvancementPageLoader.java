@@ -6,8 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
+import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementFrame;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
@@ -20,8 +19,11 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class AdvancementPageLoader extends YamlDirectoryLoader<AdvancementPage> {
 
-    public AdvancementPageLoader(JavaPlugin plugin) {
+    private final EmakiCodexPlugin codexPlugin;
+
+    public AdvancementPageLoader(EmakiCodexPlugin plugin) {
         super(plugin);
+        this.codexPlugin = plugin;
     }
 
     @Override
@@ -71,7 +73,8 @@ public final class AdvancementPageLoader extends YamlDirectoryLoader<Advancement
         String parent = node.getString("parent", "");
         boolean hidden = Boolean.TRUE.equals(node.getBoolean("hidden", false));
         boolean toast = Boolean.TRUE.equals(node.getBoolean("toast", true));
-        boolean announce = Boolean.TRUE.equals(node.getBoolean("announce", false));
+        boolean announce = Boolean.TRUE.equals(
+                node.getBoolean("announce", codexPlugin.appConfig().announceDefault()));
         return new AdvancementDefinition(localId, icon, title, description, frame,
                 x, y, parent, hidden, toast, announce,
                 parseCompleteActions(node), parseTriggers(node));

@@ -16,11 +16,13 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
+import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -79,6 +81,7 @@ public final class CraftOperationJournal<R> {
     private volatile AsyncYamlFiles asyncYamlFiles;
     private volatile FileScope fileScope;
     private volatile boolean asyncFilesUnavailableLogged;
+    private volatile boolean asyncSchedulerUnavailableLogged;
     private final List<CompletableFuture<Void>> quiesceWaiters = new ArrayList<>();
 
     private CraftOperationJournal(int maxEntries, Codec<R> codec, JavaPlugin plugin, Path root) {
@@ -319,7 +322,7 @@ public final class CraftOperationJournal<R> {
         if (activeDirectory == null || codec == null) {
             return CompletableFuture.completedFuture(List.of());
         }
-        return CompletableFuture.supplyAsync(() -> {
+        Supplier<List<Entry<R>>> load = () -> {
             List<Path> files = listActiveFiles();
             List<Entry<R>> result = new ArrayList<>(files.size());
             for (Path file : files) {
@@ -329,7 +332,11 @@ public final class CraftOperationJournal<R> {
                 }
             }
             return List.copyOf(result);
-        });
+        };
+        AsyncTaskScheduler scheduler = resolveAsyncTaskScheduler();
+        return scheduler == null
+                ? CompletableFuture.supplyAsync(load)
+                : scheduler.supplyAsync("craft-journal-load-active", 0L, load);
     }
 
     private List<Path> listActiveFiles() {
@@ -497,6 +504,19 @@ public final class CraftOperationJournal<R> {
     private FileScope resolveFileScope() {
         resolveAsyncFiles();
         return fileScope;
+    }
+
+    private AsyncTaskScheduler resolveAsyncTaskScheduler() {
+        try {
+            return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        } catch (RuntimeException | LinkageError failure) {
+            if (!asyncSchedulerUnavailableLogged) {
+                asyncSchedulerUnavailableLogged = true;
+                warn("Cannot reach async task scheduler, falling back to the common pool: "
+                        + rootCauseMessage(failure));
+            }
+            return null;
+        }
     }
 
     private void warn(String message) {

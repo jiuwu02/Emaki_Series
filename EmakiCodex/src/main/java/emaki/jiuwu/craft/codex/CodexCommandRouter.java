@@ -77,7 +77,7 @@ final class CodexCommandRouter implements TabExecutor {
     }
 
     private boolean handleAdvancement(CommandSender sender, String[] args, boolean grant) {
-        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+        if (!hasAdmin(sender)) {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
@@ -187,7 +187,12 @@ final class CodexCommandRouter implements TabExecutor {
     }
 
     private boolean hasAdminOr(CommandSender sender, String permission) {
-        return sender.hasPermission(PERMISSION_ADMIN) || sender.hasPermission(permission);
+        return hasAdmin(sender) || sender.hasPermission(permission);
+    }
+
+    private boolean hasAdmin(CommandSender sender) {
+        return sender.hasPermission(PERMISSION_ADMIN)
+                || (plugin.appConfig().opBypass() && sender.isOp());
     }
 
     private void sendHelp(CommandSender sender) {
