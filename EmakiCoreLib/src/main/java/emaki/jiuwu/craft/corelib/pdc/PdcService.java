@@ -97,13 +97,6 @@ public final class PdcService {
         holder.getPersistentDataContainer().remove(partition.key(field));
     }
 
-    /**
-     * 删除实体/玩家上该字段的新键与历史带点键。
-     *
-     * <p>实体容器是活容器，改动直接生效，无需回写。
-     *
-     * @param legacyPartitionPath 历史分区路径（含点）
-     */
     public void removeMigrating(@Nullable PersistentDataHolder holder,
             @Nullable PdcPartition partition,
             @Nullable String legacyPartitionPath,
@@ -197,14 +190,6 @@ public final class PdcService {
         mutateItemStack(itemStack, "remove", key, "", container -> container.remove(key));
     }
 
-    /**
-     * 同时删除新键与历史带点键。
-     *
-     * <p>清理路径必须用这个方法：只删新键会让尚未迁移的老键变成孤儿，
-     * 永久留在物品 NBT 里且无法再被读到。
-     *
-     * @param legacyPartitionPath 历史分区路径（含点）
-     */
     public void removeMigrating(@Nullable ItemStack itemStack,
             @Nullable PdcPartition partition,
             @Nullable String legacyPartitionPath,
@@ -254,24 +239,6 @@ public final class PdcService {
         return codec.decode(payload);
     }
 
-    /**
-     * 读取物品 PDC，新键缺失时回落到历史带点键并就地迁移。
-     *
-     * <p>{@link PdcPartition#SEPARATOR} 从 {@code '.'} 改为 {@code '_'} 后，已落盘的物品
-     * 仍是老键。这个方法让读取路径自愈：命中老键就搬到新键、删掉老键，然后返回值。
-     *
-     * <p>历史分区路径必须由调用方显式提供——新键的 {@code '_'} 无法反推哪些原本是连接符，
-     * 详见 {@link PdcKeyMigration#legacyKey}。
-     *
-     * <p>O(1)，可放在战斗热路径。迁移发生时会写回 {@code ItemMeta}。
-     *
-     * @param itemStack           目标物品
-     * @param partition           新分区
-     * @param legacyPartitionPath 历史分区路径（含点），如 {@code "item.attributes"}
-     * @param field               字段名
-     * @param type                值类型
-     * @return 读到的值，新老键都没有时返回 {@code null}
-     */
     @Nullable
     public <P, C> C getMigrating(@Nullable ItemStack itemStack,
             @Nullable PdcPartition partition,
@@ -298,7 +265,7 @@ public final class PdcService {
         if (value == null) {
             return null;
         }
-        // 走 mutateItemStack 以复用它的 setItemMeta 回写与调试日志。
+
         mutateItemStack(itemStack, "migrate_key", newKey, value, target -> {
             target.set(newKey, type, value);
             target.remove(legacyKey);
@@ -306,7 +273,6 @@ public final class PdcService {
         return value;
     }
 
-    /** {@link #getMigrating} 的 blob 版本。 */
     @Nullable
     public <T> T readBlobMigrating(@Nullable ItemStack itemStack,
             @Nullable PdcPartition partition,
@@ -320,11 +286,6 @@ public final class PdcService {
         return codec.decode(payload);
     }
 
-    /**
-     * 读取实体/玩家 PDC，新键缺失时回落到历史带点键并就地迁移。
-     *
-     * <p>实体的 {@code PersistentDataContainer} 是活容器，改动直接生效，无需回写。
-     */
     @Nullable
     public <P, C> C getMigrating(@Nullable PersistentDataHolder holder,
             @Nullable PdcPartition partition,
@@ -342,12 +303,6 @@ public final class PdcService {
         );
     }
 
-    /**
-     * 清掉物品上所有历史带点键（不搬值），并回写 {@code ItemMeta}。
-     *
-     * <p>写入路径收尾时调用：新键刚写好，老键必须删除，否则会成为读不到的孤儿残留。
-     * 不要用 {@code migrateAll} 代替——它会把过期老键值覆盖到刚写好的新键上。
-     */
     public void purgeLegacyKeys(@Nullable ItemStack itemStack) {
         if (itemStack == null) {
             return;

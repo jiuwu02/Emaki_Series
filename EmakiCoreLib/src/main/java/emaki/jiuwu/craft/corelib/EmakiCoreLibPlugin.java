@@ -308,8 +308,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     (owner, body, context, stopOnFailure) ->
                             pipelineBatchRunner.run(owner, actionEngine, body, context, stopOnFailure));
             getServer().getPluginManager().registerEvents(pipelineTaskService, this);
-            // PDC 键扁平化的主动转换。与 pipelineTaskService 同在这个 if 内注册，
-            // 保证 reload 时不重复注册（reload 会再次走到这段代码）。
+
             getServer().getPluginManager().registerEvents(
                     new PdcMigrationJoinListener(this::debugLogger), this);
         }

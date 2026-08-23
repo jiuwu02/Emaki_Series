@@ -51,19 +51,12 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             PdcAttributePayload::fromMap
     );
 
-    /** 物品属性分区路径。扁平（无点）以便第三方插件从 YAML 手写这些键。 */
     private static final String ITEM_PARTITION_PATH = "item_attributes";
-    /** 来源子分区段名。 */
+
     private static final String SOURCE_SEGMENT = "source";
-    /** 索引字段名。 */
+
     private static final String SOURCE_INDEX_FIELD = "source_index";
 
-    /**
-     * 历史分区路径（带点），仅供懒转换回落读取。
-     *
-     * <p>老键形如 {@code emaki_attribute:item.attributes.source_index} 与
-     * {@code emaki_attribute:item.attributes.source.<id>.payload}。
-     */
     private static final String LEGACY_ITEM_PARTITION_PATH = "item.attributes";
     private static final String LEGACY_SOURCE_PARTITION_PATH =
             LEGACY_ITEM_PARTITION_PATH + "." + SOURCE_SEGMENT;

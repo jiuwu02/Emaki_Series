@@ -3,7 +3,7 @@
 # version 由资源同步流程维护，用于合并新增默认键。
 
 
-version: "4.7.8"
+version: "4.7.9"
 
 # 通用消息
 general:

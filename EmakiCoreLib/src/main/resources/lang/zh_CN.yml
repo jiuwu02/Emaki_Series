@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.15"
+version: "4.7.16"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -626,3 +626,12 @@ command:
   help_action: "<green>%root% action [list|run <动作行>]</green><gray> - 查看已注册段，或直接执行一条动作行</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - 控制所有 Emaki 模块的全局 Debug（重载后以配置为准）</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消长期管道任务</gray>"
+  help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - 把历史带点 PDC 键转换为扁平键</gray>"
+  pdc_convert_usage: "<yellow>用法: /corelib pdc-convert <%scopes%> [--dry-run]</yellow>"
+  pdc_convert_started: "<gray>开始转换历史 PDC 键，范围 <aqua>%scope%</aqua>，完成后汇报</gray>"
+  pdc_convert_started_dry_run: "<gray>开始试运行（不改写数据），范围 <aqua>%scope%</aqua>，完成后汇报</gray>"
+  pdc_convert_header: "<aqua>历史 PDC 键转换结果：</aqua>"
+  pdc_convert_header_dry_run: "<aqua>历史 PDC 键试运行结果（未改写数据）：</aqua>"
+  pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> 扫描=<white>%scanned%</white> 转换键=<yellow>%migrated%</yellow> 跳过=<gray>%skipped%</gray> 失败=<red>%failed%</red></gray>"
+  pdc_convert_total: "<green>共转换 <yellow>%migrated%</yellow> 个键。离线玩家与未加载区块依赖读取时的懒转换，无需手工处理。</green>"
+  pdc_convert_failed: "<red>历史 PDC 键转换失败: %error%</red>"

@@ -33,18 +33,10 @@ final class AssemblyDataManager {
     private static final String OPERATIONS = "operations";
     private static final String PRESENTATION_SNAPSHOT = "presentation_snapshot";
 
-    /** 历史分区路径；分区名未变，变的是它与字段之间的连接符。 */
     private static final String LEGACY_PARTITION = "item";
     private static final String ITEM_PREFIX = LEGACY_PARTITION + PdcPartition.SEPARATOR;
     private static final String LEGACY_ITEM_PREFIX = LEGACY_PARTITION + ".";
-    /**
-     * 层快照字段后缀。
-     *
-     * <p>层快照挂在<b>根分区</b>上（分区路径为空），所以 {@code PdcPartition} 的连接符
-     * 替换对它无效——{@code qualifiedPath} 在空路径时原样返回字段名。这里必须显式写成
-     * {@code '_'}，否则 {@code emaki:emakiattribute.snapshot} 仍是带点键，
-     * 依然无法在 YAML 里书写。
-     */
+
     private static final String SNAPSHOT_SUFFIX = "_snapshot";
     private static final String LEGACY_SNAPSHOT_SUFFIX = ".snapshot";
 
@@ -82,12 +74,6 @@ final class AssemblyDataManager {
         this.rootPartition = pdcService.partition("");
     }
 
-    /**
-     * {@return 该物品是否为 Emaki 装配物品}
-     *
-     * <p>这是整套装配体系的总闸。用迁移感知读取而非 {@code has}：只认新键会让所有
-     * 存量物品瞬间"不再是 Emaki 物品"，装配、层、Lore 全部失效。
-     */
     boolean isEmakiItem(ItemStack itemStack) {
         return pdcService.getMigrating(itemStack, itemPartition, LEGACY_PARTITION,
                         SCHEMA_VERSION, PersistentDataType.INTEGER) != null
@@ -166,7 +152,7 @@ final class AssemblyDataManager {
         if (snapshot != null) {
             return snapshot;
         }
-        // 回落历史带点键。层快照是装配的层数据来源，读不到会让该层被当作"未装配"而丢失。
+
         return pdcService.readBlob(
                 itemStack, rootPartition, normalized + LEGACY_SNAPSHOT_SUFFIX, codecRegistry.codecFor(namespaceId));
     }
@@ -242,8 +228,7 @@ final class AssemblyDataManager {
         writeBaseLore(itemStack, baseLore);
         pdcService.set(itemStack, itemPartition, ACTIVE_LAYERS, PersistentDataType.STRING, String.join(",", activeLayers));
         pdcService.set(itemStack, itemPartition, ASSEMBLY_SIGNATURE, PersistentDataType.STRING, assemblySignature);
-        // 装配基线已整体重写到新键，历史带点键必须一并清除：留着它们会在下次
-        // 迁移感知读取的回落分支里被当成有效数据（新键被删时），产生过期基线。
+
         purgeLegacyItemFields(itemStack);
         clearInactiveLayerSnapshots(itemStack, previousActiveLayers, activeLayers);
         if (snapshots == null) {
@@ -256,7 +241,7 @@ final class AssemblyDataManager {
             String normalized = Texts.normalizeId(snapshot.namespaceId());
             pdcService.writeBlob(itemStack, rootPartition, normalized + SNAPSHOT_SUFFIX,
                     codecRegistry.codecFor(snapshot.namespaceId()), snapshot);
-            // 新键已写入，删掉老键，避免读取回落分支拿到过期快照。
+
             pdcService.remove(itemStack, rootPartition, normalized + LEGACY_SNAPSHOT_SUFFIX);
         }
     }
@@ -280,8 +265,7 @@ final class AssemblyDataManager {
             return false;
         }
         String path = key.getKey();
-        // 新旧两种连接符都要认。只认一种的后果是装配自有键被误判为第三方键，
-        // 进而被 containsKeys 要求"重建后仍存在"，让正常装配的提交校验失败。
+
         if (path.startsWith(ITEM_PREFIX)) {
             return ITEM_FIELDS.contains(path.substring(ITEM_PREFIX.length()));
         }
@@ -303,7 +287,6 @@ final class AssemblyDataManager {
         return false;
     }
 
-    /** 删除 {@link #ITEM_FIELDS} 全部字段的历史带点键。 */
     private void purgeLegacyItemFields(ItemStack itemStack) {
         for (String field : ITEM_FIELDS) {
             pdcService.removeMigrating(itemStack, itemPartition, LEGACY_PARTITION, field);

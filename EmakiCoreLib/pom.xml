@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.7.15</version>
+    <version>4.7.16</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -26,6 +26,11 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
         </dependency>
         <!-- GraalVM JavaScript Engine - provided scope (loaded at runtime by RuntimeLibraryLoader) -->
         <dependency>

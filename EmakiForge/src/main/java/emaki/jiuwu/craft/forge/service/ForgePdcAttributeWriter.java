@@ -107,10 +107,7 @@ final class ForgePdcAttributeWriter {
             pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_MULTIPLIER,
                     PersistentDataType.STRING, Numbers.formatNumber(multiplier, "0.##"));
         }
-        // 新键已写入，删掉历史带点键：留着会让 Strengthen 的别名映射同时命中
-        // 新老两条路径，同一个对外变量被赋值两次，结果取决于遍历顺序。
-        //
-        // 只能删老键，不能用 removeMigrating——那会把上面刚写好的新键一起删掉。
+
         pdcService.purgeLegacyKeys(itemStack);
     }
 

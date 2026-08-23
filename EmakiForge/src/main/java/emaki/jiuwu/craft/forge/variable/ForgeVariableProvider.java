@@ -93,16 +93,6 @@ public final class ForgeVariableProvider {
         return readMigrating(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
     }
 
-    /**
-     * 读取 Forge 字段，命中历史带点键时就地迁移。
-     *
-     * <p>历史分区路径与新分区路径同为 {@code "forge"}——点号原先由
-     * {@code qualifiedPath} 注入（{@code forge.quality_id}），现在改成
-     * {@code forge_quality_id}。
-     *
-     * <p>本类历史上用手工拼接的 {@code makeKey()} 读、用 {@code partition} 写，
-     * 两套代码各自生成键名。现已统一到 {@code partition.key()}，避免读写不一致。
-     */
     private static @Nullable String readMigrating(@NotNull ItemStack item,
             @NotNull PdcPartition partition,
             @NotNull String field) {

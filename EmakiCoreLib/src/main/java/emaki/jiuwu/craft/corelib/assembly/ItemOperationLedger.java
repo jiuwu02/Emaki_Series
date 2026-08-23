@@ -33,13 +33,7 @@ public final class ItemOperationLedger {
     private static final String ASSEMBLY_BASE_SOURCE_FIELD = "base_source";
     private static final String ASSEMBLY_BASE_CUSTOM_NAME_FIELD = "base_custom_name";
     static final String EXTERNAL_CUSTOM_NAME_FIELD = "external_custom_name";
-    /**
-     * 历史分区路径。
-     *
-     * <p>分区名本身没变（仍是 {@code item}），变的是分区与字段之间的连接符：
-     * {@code emaki:item.operations} → {@code emaki:item_operations}。
-     * 这是可回滚操作账本，读不到就等于丢失回滚能力，因此所有读取点都要挂回落。
-     */
+
     private static final String LEGACY_PARTITION = "item";
 
     private final Supplier<DebugLogger> debugLoggerSupplier;
@@ -420,8 +414,7 @@ public final class ItemOperationLedger {
                                              boolean newManagedOverlay) {
         String currentName = currentCustomName(original);
         boolean currentIsExternal = !currentName.equals(Texts.toStringSafe(oldManagedName));
-        // 迁移感知：老物品的"玩家自定义名"存在老键上，读不到会被误判为无外部名，
-        // 从而在下次装配时用托管名覆盖玩家改的名字。
+
         String storedExternalName = pdc.getMigrating(
                 original,
                 partition,
@@ -461,7 +454,7 @@ public final class ItemOperationLedger {
                     update.externalCustomName()
             );
         }
-        // 无论存不存，老键都要删：留着它会在下次迁移感知读取时"复活"成过期外部名。
+
         pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, EXTERNAL_CUSTOM_NAME_FIELD);
     }
 
@@ -611,7 +604,7 @@ public final class ItemOperationLedger {
         if (snapshot != null && snapshot.assemblyNameOverlayKnown()) {
             return snapshot.assemblyNameOverlay();
         }
-        // 这三个字段同属装配基线，未迁移物品只有老键；用迁移感知读取顺带就地转换。
+
         if (baseView == null
                 || pdc.getMigrating(itemStack, partition, LEGACY_PARTITION,
                         ASSEMBLY_SCHEMA_VERSION_FIELD, PersistentDataType.INTEGER) == null
@@ -660,8 +653,7 @@ public final class ItemOperationLedger {
         if (itemMeta == null) {
             return false;
         }
-        // 未迁移物品的账本还在老键上；只认新键会把它判为"无账本"，
-        // 后续写入将覆盖而非续写，等于静默丢弃回滚历史。
+
         return itemMeta.getPersistentDataContainer().getKeys().contains(operationsKey)
                 || containsLegacy(itemMeta, FIELD);
     }
@@ -678,7 +670,6 @@ public final class ItemOperationLedger {
                 || containsLegacy(itemMeta, PRESENTATION_SNAPSHOT_FIELD);
     }
 
-    /** {@return 该字段的历史带点键是否存在于容器中} */
     private boolean containsLegacy(ItemMeta itemMeta, String field) {
         NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), LEGACY_PARTITION, field);
         return legacyKey != null && itemMeta.getPersistentDataContainer().getKeys().contains(legacyKey);
@@ -750,7 +741,7 @@ public final class ItemOperationLedger {
         List<Map<String, Object>> encoded = ItemOperationCodec.encode(normalized);
         String payload = YamlFiles.dump(Map.of("ops", encoded));
         pdc.set(itemStack, partition, FIELD, PersistentDataType.STRING, payload);
-        // 账本已整体重写到新键，老键必须删，否则回滚时可能读到过期账本。
+
         pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, FIELD);
     }
 

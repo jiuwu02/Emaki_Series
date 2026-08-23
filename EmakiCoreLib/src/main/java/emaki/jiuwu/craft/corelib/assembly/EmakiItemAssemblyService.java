@@ -46,7 +46,7 @@ public final class EmakiItemAssemblyService {
     private static final long PREVIEW_CACHE_TTL_MILLIS = 30_000L;
 
     private static final PdcPartition ITEM_SET_PARTITION = new PdcPartition("emaki", "emakiitem");
-    /** 历史分区路径；分区名未变，变的是它与字段之间的连接符。 */
+
     private static final String LEGACY_ITEM_SET_PARTITION = "emakiitem";
 
     private final ItemSourceService itemSourceService;
@@ -778,8 +778,7 @@ public final class EmakiItemAssemblyService {
             return "";
         }
         PersistentDataContainer container = itemMeta.getPersistentDataContainer();
-        // 迁移感知：套装字段从 emakiitem.xxx 改成 emakiitem_xxx，
-        // 只读新键会让存量套装物品的套装归属丢失。
+
         return Texts.toStringSafe(PdcKeyMigration.readWithMigration(
                 container,
                 ITEM_SET_PARTITION.key(field),

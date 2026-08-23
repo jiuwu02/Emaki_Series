@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class AttributeStateRepository {
 
-    /** 玩家资源状态的全部字段，用于批量清理历史键。 */
     private static final List<String> RESOURCE_FIELDS = List.of(
             "schema_version",
             "default_max",
@@ -32,7 +31,7 @@ final class AttributeStateRepository {
             "current_value",
             "source_signature"
     );
-    /** 历史资源分区前缀；资源分区从 {@code combat.resource.<id>} 改为 {@code combat_resource_<id>}。 */
+
     private static final String LEGACY_RESOURCE_PREFIX = "combat.resource.";
 
     private final PdcService pdcService;
@@ -182,8 +181,7 @@ final class AttributeStateRepository {
             return null;
         }
         PdcPartition resourcePartition = resourcePartition(resourceId);
-        // 玩家资源是权威数据（法力/血量的当前值），不是可重建缓存。
-        // 读不到就等于玩家资源被清零，因此必须挂懒转换而不是只读新键。
+
         String legacyPath = legacyResourcePartitionPath(resourceId);
         Double defaultMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "default_max", PersistentDataType.DOUBLE);
         Double bonusMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "bonus_max", PersistentDataType.DOUBLE);
@@ -217,17 +215,10 @@ final class AttributeStateRepository {
         pdcService.set(player, resourcePartition, "current_max", PersistentDataType.DOUBLE, state.currentMax());
         pdcService.set(player, resourcePartition, "current_value", PersistentDataType.DOUBLE, state.currentValue());
         pdcService.set(player, resourcePartition, "source_signature", PersistentDataType.STRING, state.sourceSignature());
-        // 新值已落到新键，删掉历史带点键。留着它们不会被读到（新键优先），
-        // 但会让 pdc-convert 把过期值搬回来覆盖当前资源。
+
         removeLegacyResourceState(player, state.resourceId());
     }
 
-    /**
-     * 只删除某个资源的历史带点键，保留新键。
-     *
-     * <p>不能用 {@code removeMigrating}：它会把新键一起删掉，而本方法正是在
-     * {@link #writeResourceState} 写完新键之后调用的，那样会抹掉刚存的资源值。
-     */
     private void removeLegacyResourceState(Player player, String resourceId) {
         String legacyPath = legacyResourcePartitionPath(resourceId);
         for (String field : RESOURCE_FIELDS) {
@@ -238,13 +229,6 @@ final class AttributeStateRepository {
         }
     }
 
-    /**
-     * {@return 该资源的历史分区路径，形如 {@code combat.resource.mana}}
-     *
-     * <p>用 {@link PdcPartition} 自身的归一化推导，而不是手写字符串拼接：
-     * 老代码写入时走的正是同一套归一化（小写、非法字符替换为下划线），
-     * 手写拼接会在资源 ID 含空格等字符时与真实老键不一致。
-     */
     private String legacyResourcePartitionPath(String resourceId) {
         return new PdcPartition(pdcService.namespace(), LEGACY_RESOURCE_PREFIX + resourceId).path();
     }

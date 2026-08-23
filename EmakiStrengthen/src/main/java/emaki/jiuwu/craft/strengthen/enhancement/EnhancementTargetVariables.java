@@ -28,17 +28,11 @@ public final class EnhancementTargetVariables {
 
     private static final String FORGE_NAMESPACE = "emakiforge";
 
-    /*
-     * Forge 的 PDC 键路径。分区 forge + 字段 quality_id 现在拼成 forge_quality_id
-     * （历史为 forge.quality_id）。这些是"键路径"，不是对外变量名——
-     * 对外变量名见 FORGE_ALIASES 的值，保持不变。
-     */
     public static final String FORGE_PATH_QUALITY_ID = "forge_quality_id";
     public static final String FORGE_PATH_QUALITY_DISPLAY = "forge_quality_display";
     public static final String FORGE_PATH_QUALITY_MULTIPLIER = "forge_quality_multiplier";
     public static final String FORGE_PATH_RECIPE_ID = "forge_forge_recipe_id";
 
-    /** 历史带点键路径，供未迁移物品的兼容读取与配置预检使用。 */
     public static final String LEGACY_FORGE_PATH_QUALITY_ID = "forge.quality_id";
     public static final String LEGACY_FORGE_PATH_QUALITY_DISPLAY = "forge.quality_display";
     public static final String LEGACY_FORGE_PATH_QUALITY_MULTIPLIER = "forge.quality_multiplier";
@@ -49,15 +43,6 @@ public final class EnhancementTargetVariables {
 
     public static final double DEFAULT_QUALITY_MULTIPLIER = 1D;
 
-    /**
-     * PDC 键路径 → 对外变量名列表。
-     *
-     * <p>键同时收录扁平路径与历史带点路径：Forge 的键已改成 {@code forge_quality_id}，
-     * 只登记带点路径会让 {@code forge_quality_*} 变量整体消失；而未迁移的物品上
-     * 仍是带点键，只登记扁平路径则老物品失效。
-     *
-     * <p>值（对外变量名）一律保持不变——服主的表达式在用它们，改名即破坏兼容。
-     */
     private static final Map<String, List<String>> FORGE_ALIASES = Map.of(
             FORGE_PATH_QUALITY_ID, List.of("forge_quality_id", "forge.quality_id", "quality_id"),
             LEGACY_FORGE_PATH_QUALITY_ID, List.of("forge_quality_id", "forge.quality_id", "quality_id"),
@@ -301,14 +286,7 @@ public final class EnhancementTargetVariables {
                 continue;
             }
             String normalized = prefix.trim().toLowerCase(Locale.ROOT);
-            // 分区与字段的连接符已从 '.' 改为 '_'，两种都要认：
-            // 只认 '.' 会让新键（strengthen_affix_layer）分类落空，退回启发式匹配，
-            // target_layer_* / target_audit_* 变量静默消失；
-            // 只认 '_' 则未迁移物品的老键（strengthen.affix.layer）同样落空。
-            //
-            // 这里不做 '_' → '.' 的反向推导：段内本来就可能有下划线
-            // （quality_id 会被误拆成 quality.id）。需要兼容老键的 provider
-            // 应在 snapshotPartitions() 里把历史前缀一并声明出来。
+
             if (path.equals(normalized)
                     || path.startsWith(normalized + "_")
                     || path.startsWith(normalized + ".")) {
@@ -407,8 +385,7 @@ public final class EnhancementTargetVariables {
             if (names == null) {
                 return;
             }
-            // 两种键形态都要走乘数校验分支，否则未迁移物品拿不到
-            // forge_quality_multiplier_valid 标记。
+
             if (FORGE_PATH_QUALITY_MULTIPLIER.equals(path)
                     || LEGACY_FORGE_PATH_QUALITY_MULTIPLIER.equals(path)) {
                 NumberResult result = finiteDouble(value, DEFAULT_QUALITY_MULTIPLIER);

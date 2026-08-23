@@ -17,12 +17,6 @@ public final class EnhancementVariableContract {
     private static final List<String> RECIPE_ID_ALIASES =
             List.of("forge_recipe_id", "forge.forge_recipe_id");
 
-    /**
-     * 预期的「PDC 键路径 → 对外变量名」契约。
-     *
-     * <p>每个字段有两条键路径：扁平的新键与历史带点的老键，两者映射到同一组
-     * 对外变量名。未迁移的物品仍带老键，因此契约必须同时覆盖。
-     */
     private static final Map<String, List<String>> EXPECTED_ALIASES = Map.of(
             EnhancementTargetVariables.FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,
             EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,

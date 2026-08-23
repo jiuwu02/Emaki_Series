@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-strengthen-api</artifactId>
-    <version>4.7.16</version>
+    <version>4.7.17</version>
     <name>EmakiStrengthenApi</name>
     <packaging>jar</packaging>
 

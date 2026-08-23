@@ -17,9 +17,8 @@ import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
 public final class MasteryLayerCodec {
 
-    /** 扁平分区路径（无点），以便第三方插件从 Bukkit YAML 手写这些键。 */
     private static final String PARTITION_PATH = "strengthen_mastery";
-    /** 历史带点路径，仅供懒转换回落读取。 */
+
     private static final String LEGACY_PARTITION_PATH = "strengthen.mastery";
     private static final String FIELD = "layer";
     private static final int SCHEMA_VERSION = 1;
@@ -47,7 +46,7 @@ public final class MasteryLayerCodec {
         }
         boolean written = pdcService.writeBlob(itemStack, partition, FIELD, codec, layer);
         if (written) {
-            // 新键已写好，清掉历史带点键，避免读不到的孤儿残留。
+
             pdcService.purgeLegacyKeys(itemStack);
         }
         return written;
@@ -97,7 +96,6 @@ public final class MasteryLayerCodec {
         return PARTITION_PATH;
     }
 
-    /** {@return 历史带点分区路径}，供快照分类兼容未迁移物品的老键。 */
     public static @NotNull String legacyPartitionPath() {
         return LEGACY_PARTITION_PATH;
     }

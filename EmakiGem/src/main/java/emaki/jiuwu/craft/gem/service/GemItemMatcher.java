@@ -25,11 +25,10 @@ import emaki.jiuwu.craft.gem.model.SocketOpenerConfig;
 public final class GemItemMatcher {
 
     private static final PdcService PDC = new PdcService("emaki");
-    // 扁平分区路径（无点），以便第三方插件从 Bukkit YAML 手写这些键。
+
     private static final PdcPartition GEM_ITEM_PARTITION = PDC.partition("gem_item");
     private static final PdcPartition OPENER_PARTITION = PDC.partition("gem_opener");
 
-    // 历史带点路径，仅供懒转换回落读取。
     private static final String LEGACY_GEM_ITEM_PATH = "gem.item";
     private static final String LEGACY_GEM_OPENER_PATH = "gem.opener";
 
