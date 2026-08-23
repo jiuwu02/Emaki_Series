@@ -230,54 +230,7 @@ public final class MmoItemsBridge implements Listener {
     }
 
     private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
-        if (target == null || damage <= 0D) {
-            return CompletableFuture.completedFuture(false);
-        }
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        try {
-            EmakiScheduling sched = scheduling != null ? scheduling : plugin.scheduling();
-            if (sched == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "MMOItems fallback damage dispatcher is unavailable."));
-                return future;
-            }
-            var scheduled = sched.runForEntity(
-                    plugin,
-                    target,
-                    () -> {
-                        if (!target.isValid() || target.isDead()) {
-                            future.complete(false);
-                            return;
-                        }
-                        try {
-                            target.setNoDamageTicks(0);
-                            double remaining = Math.max(0D, damage);
-                            double absorption = Math.max(0D, target.getAbsorptionAmount());
-                            if (absorption > 0D) {
-                                double absorbed = Math.min(absorption, remaining);
-                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
-                                remaining -= absorbed;
-                            }
-                            target.setLastDamage(damage);
-                            if (remaining > 0D) {
-                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
-                            }
-                            future.complete(true);
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    },
-                    () -> future.completeExceptionally(new IllegalStateException(
-                            "MMOItems fallback damage entity retired before execution."))
-            );
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "MMOItems fallback damage scheduling was rejected."));
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
+        return CombatSupport.applyFallbackDamage(plugin, scheduling, target, damage, "MMOItems fallback");
     }
 
     private void warnBridgeUnavailable(String error) {
