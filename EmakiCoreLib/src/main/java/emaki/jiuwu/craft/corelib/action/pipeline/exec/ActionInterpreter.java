@@ -21,7 +21,9 @@ import emaki.jiuwu.craft.corelib.action.pipeline.ResolvedArguments;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.ActionAst;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
+import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineParser;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.StaticValidator;
+import emaki.jiuwu.craft.corelib.random.WeightedPool;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
@@ -258,6 +260,7 @@ public final class ActionInterpreter {
         }
         return switch (node) {
             case ActionAst.Branch branch -> branch(run, branch, state, sequenceDepth);
+            case ActionAst.Weighted weighted -> weighted(run, weighted, state, sequenceDepth);
             case ActionAst.SequenceCall call -> sequence(run, call, state, sequenceDepth);
 
             case ActionAst.Stage stage -> runStageRun(run, List.of(stage), state);
@@ -536,6 +539,32 @@ public final class ActionInterpreter {
         }
         List<ActionAst> chosen = evaluated ? node.thenBranch() : node.elseBranch();
         if (chosen.isEmpty()) {
+            return CompletableFuture.completedFuture(state);
+        }
+        return runNested(run, chosen, state, sequenceDepth);
+    }
+
+    private CompletableFuture<State> weighted(Run run,
+            ActionAst.Weighted node,
+            State state,
+            int sequenceDepth) {
+        WeightedPool<List<ActionAst>> pool = new WeightedPool<>();
+        for (ActionAst.Weighted.Option option : node.options()) {
+            String rendered = state.context().render(option.weight());
+            ExpressionEngine.NumericEvaluationResult evaluated =
+                    ExpressionEngine.evaluateNumericDetailed(rendered);
+            if (!evaluated.success() || !Double.isFinite(evaluated.value()) || evaluated.value() < 0D) {
+                run.record(PipelineParser.WEIGHT, PipelineOutcome.Status.FAILURE,
+                        "action.run.invalid_weight", state.flow().size());
+                return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.INVALID_CONFIG,
+                        "action.run.invalid_weight", Map.of("value", rendered)));
+            }
+            pool.add(option.body(), evaluated.value());
+        }
+        List<ActionAst> chosen = pool.roll().orElse(null);
+        if (chosen == null) {
+            run.record(PipelineParser.WEIGHT, PipelineOutcome.Status.SKIPPED,
+                    "action.run.weight_not_rolled", state.flow().size());
             return CompletableFuture.completedFuture(state);
         }
         return runNested(run, chosen, state, sequenceDepth);

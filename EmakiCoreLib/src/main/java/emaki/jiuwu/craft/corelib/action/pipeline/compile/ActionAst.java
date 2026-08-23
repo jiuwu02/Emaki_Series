@@ -42,6 +42,21 @@ public sealed interface ActionAst {
         }
     }
 
+    record Weighted(@NotNull List<Option> options, int column) implements ActionAst {
+
+        public Weighted {
+            options = options == null ? List.of() : List.copyOf(options);
+        }
+
+        public record Option(@NotNull String weight, @NotNull List<ActionAst> body) {
+
+            public Option {
+                weight = weight == null ? "" : weight;
+                body = body == null ? List.of() : List.copyOf(body);
+            }
+        }
+    }
+
     record SequenceCall(@NotNull String sequence,
             @NotNull Map<String, String> parameters,
             int column) implements ActionAst {

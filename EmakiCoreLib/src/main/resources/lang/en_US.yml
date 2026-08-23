@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "4.7.12"
+version: "4.7.13"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -135,6 +135,10 @@ action:
     branch_missing_condition: "<red>[Pipeline] if has no condition; write it as if <condition> [ ... ]</red>"
     branch_missing_body: "<red>[Pipeline] %keyword% has no branch body wrapped in [ ]</red>"
     empty_branch_body: "<red>[Pipeline] The branch body at column %open_column% is empty; [ ] must contain stages</red>"
+    weight_missing_option: "<red>[Pipeline] weight needs at least one \"<weight> [ ... ]\" branch;
+      write it as weight 70 [ ... ] 30 [ ... ]</red>"
+    weight_named_argument: "<red>[Pipeline] weight values must be unnamed; received the
+      name=value form %token%</red>"
     run_missing_sequence: "<red>[Pipeline] run has no sequence name; write it as run <sequence> name=value</red>"
     run_positional_parameter: "<red>[Pipeline] run parameters must be written as name=value; got the bare argument %token%</red>"
     duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
@@ -174,6 +178,12 @@ action:
     repeat_limit_exceeded: "<red>[Pipeline] Repeat count %value% exceeds the limit %maximum%</red>"
     branch_depth_exceeded: "<red>[Pipeline] Branch nesting depth %depth% exceeds the limit
       %maximum%</red>"
+    invalid_weight: "<red>[Pipeline] Weight %value% is not a valid number; a weight must be a
+      non-negative number, expression, or placeholder</red>"
+    negative_weight: "<red>[Pipeline] Weight %value% is negative; a weight must be greater than or
+      equal to 0 (use 0 to disable that branch)</red>"
+    weight_total_not_positive: "<red>[Pipeline] The weight total is %total%; at least one branch must
+      have a weight above 0, otherwise this stage can never select a branch</red>"
     unknown_sequence: "<red>[Pipeline] Unknown sequence %token%</red>"
     missing_sequence_parameter: "<red>[Pipeline] Sequence %sequence% is missing parameter
       %parameter%</red>"
@@ -188,6 +198,10 @@ action:
     all_targets_invalid: "<gray>[Pipeline] Every target became invalid before execution</gray>"
     partial_targets: "<yellow>[Pipeline] Some targets failed</yellow>"
     invalid_condition: "<red>[Pipeline] Condition %condition% could not be evaluated</red>"
+    invalid_weight: "<red>[Pipeline] Weight %value% failed to evaluate at runtime or is negative;
+      check the placeholders inside it</red>"
+    weight_not_rolled: "<gray>[Pipeline] Every weight branch has a weight of 0, so no branch was
+      selected this time</gray>"
     unknown_sequence: "<red>[Pipeline] Sequence %sequence% was not found at run time</red>"
     sequence_depth_exceeded: "<red>[Pipeline] Sequence %sequence% exceeds the maximum nesting depth
       %maximum%</red>"

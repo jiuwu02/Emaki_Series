@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.12"
+version: "4.7.13"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -131,6 +131,8 @@ action:
     branch_missing_condition: "<red>[管道] if 缺少条件表达式，应写成 if <条件> [ ... ]</red>"
     branch_missing_body: "<red>[管道] %keyword% 缺少用 [ ] 包裹的分支体</red>"
     empty_branch_body: "<red>[管道] 第 %open_column% 列的分支体是空的，[ ] 之间必须有段</red>"
+    weight_missing_option: "<red>[管道] weight 至少需要一个「权重 [ ... ]」分支，应写成 weight 70 [ ... ] 30 [ ... ]</red>"
+    weight_named_argument: "<red>[管道] weight 的权重必须是无名值，收到了 名称=值 形式的 %token%</red>"
     run_missing_sequence: "<red>[管道] run 缺少序列名，应写成 run <序列名> 参数=值</red>"
     run_positional_parameter: "<red>[管道] run 的参数必须写成 名称=值，收到了无名参数 %token%</red>"
     duplicate_argument: "<red>[管道] 参数 %argument% 重复出现，同一段内每个参数只能写一次</red>"
@@ -158,6 +160,9 @@ action:
     repeat_must_be_literal: "<red>[管道] 重复次数必须是字面量，不能是占位符 %value%</red>"
     repeat_limit_exceeded: "<red>[管道] 重复次数 %value% 超过上限 %maximum%</red>"
     branch_depth_exceeded: "<red>[管道] 分支嵌套深度 %depth% 超过上限 %maximum%</red>"
+    invalid_weight: "<red>[管道] 权重 %value% 不是合法数值，权重必须是非负数字、算式或占位符</red>"
+    negative_weight: "<red>[管道] 权重 %value% 是负数，权重必须大于或等于 0（写 0 表示禁用该分支）</red>"
+    weight_total_not_positive: "<red>[管道] weight 的权重总和为 %total%，至少要有一个分支的权重大于 0，否则该段永远不会选中任何分支</red>"
     unknown_sequence: "<red>[管道] 未知序列 %token%</red>"
     missing_sequence_parameter: "<red>[管道] 序列 %sequence% 缺少参数 %parameter%</red>"
     sequence_cycle: "<red>[管道] 序列调用存在环：%path%</red>"
@@ -170,6 +175,8 @@ action:
     all_targets_invalid: "<gray>[管道] 所有目标在执行前已失效</gray>"
     partial_targets: "<yellow>[管道] 部分目标执行失败</yellow>"
     invalid_condition: "<red>[管道] 条件 %condition% 无法求值</red>"
+    invalid_weight: "<red>[管道] 权重 %value% 在运行期求值失败或为负数，请检查其中的占位符</red>"
+    weight_not_rolled: "<gray>[管道] weight 的所有分支权重均为 0，本次未选中任何分支</gray>"
     unknown_sequence: "<red>[管道] 运行期找不到序列 %sequence%</red>"
     sequence_depth_exceeded: "<red>[管道] 序列 %sequence% 超过最大嵌套深度 %maximum%</red>"
     timeout: "<red>[管道] 段执行超时</red>"

@@ -19,6 +19,8 @@ public final class PipelineParser {
 
     public static final String RUN = "run";
 
+    public static final String WEIGHT = "weight";
+
     private final PipelineLexer lexer = new PipelineLexer();
 
     public @NotNull Result parse(@Nullable String line) {
@@ -103,6 +105,9 @@ public final class PipelineParser {
         if (RUN.equals(name) && !head.quoted()) {
             return parseSequenceCall(cursor);
         }
+        if (WEIGHT.equals(name) && !head.quoted()) {
+            return parseWeighted(cursor);
+        }
         return parseStage(cursor);
     }
 
@@ -136,6 +141,29 @@ public final class PipelineParser {
             elseBranch = parsed;
         }
         return new ActionAst.Branch(condition.toString(), thenBranch, elseBranch, ifToken.column());
+    }
+
+    private ActionAst parseWeighted(Cursor cursor) {
+        PipelineToken weightToken = cursor.next();
+        List<ActionAst.Weighted.Option> options = new ArrayList<>();
+        while (cursor.hasNext() && cursor.peek().kind() == PipelineToken.Kind.WORD) {
+            PipelineToken valueToken = cursor.peek();
+            if (valueToken.isKeyValue()) {
+                cursor.fail(CompileDiagnostic.at("action.parse.weight_named_argument", valueToken));
+                return null;
+            }
+            cursor.next();
+            List<ActionAst> body = parseBracketBody(cursor, valueToken);
+            if (body == null) {
+                return null;
+            }
+            options.add(new ActionAst.Weighted.Option(valueToken.text(), body));
+        }
+        if (options.isEmpty()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.weight_missing_option", weightToken));
+            return null;
+        }
+        return new ActionAst.Weighted(options, weightToken.column());
     }
 
     private List<ActionAst> parseBracketBody(Cursor cursor, PipelineToken keyword) {

@@ -105,6 +105,17 @@ public final class StaticValidator {
                 resolved.add(new ActionAst.Branch(branch.condition(), thenBranch, elseBranch, branch.column()));
                 continue;
             }
+            if (node instanceof ActionAst.Weighted weighted) {
+                PipelineToken weightToken = token(PipelineParser.WEIGHT, weighted.column());
+                if (branchDepth >= limits.maxBranchDepth()) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
+                            weightToken,
+                            Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
+                    continue;
+                }
+                resolved.add(validateWeighted(weighted, weightToken, state, branchDepth));
+                continue;
+            }
             if (node instanceof ActionAst.SequenceCall call) {
                 for (Map.Entry<String, String> parameter : call.parameters().entrySet()) {
                     validateVariableReferences(parameter.getValue(), token(parameter.getKey(), call.column()),
@@ -176,6 +187,44 @@ public final class StaticValidator {
             }
         }
         return List.copyOf(resolved);
+    }
+
+    private ActionAst.Weighted validateWeighted(ActionAst.Weighted weighted,
+            PipelineToken weightToken,
+            ValidationState state,
+            int branchDepth) {
+        List<ActionAst.Weighted.Option> options = new ArrayList<>(weighted.options().size());
+        boolean allLiteral = true;
+        double literalTotal = 0D;
+        for (ActionAst.Weighted.Option option : weighted.options()) {
+            String weight = option.weight();
+            if (containsPlaceholder(weight)) {
+                validateVariableReferences(weight, weightToken, state, state.diagnostics);
+                allLiteral = false;
+            } else {
+                Double parsed = ValueParsers.parseDoubleNullable(weight);
+                if (parsed == null) {
+                    if (ExpressionEngine.evaluateNumericDetailed(weight).success()) {
+                        allLiteral = false;
+                    } else {
+                        state.diagnostics.add(CompileDiagnostic.at("action.validate.invalid_weight",
+                                weightToken, Map.of("value", weight)));
+                    }
+                } else if (parsed < 0D) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.negative_weight",
+                            weightToken, Map.of("value", weight)));
+                } else {
+                    literalTotal += parsed;
+                }
+            }
+            options.add(new ActionAst.Weighted.Option(weight,
+                    validateNodes(option.body(), state.fork(), true, branchDepth + 1)));
+        }
+        if (allLiteral && literalTotal <= 0D) {
+            state.diagnostics.add(CompileDiagnostic.at("action.validate.weight_total_not_positive",
+                    weightToken, Map.of("total", literalTotal)));
+        }
+        return new ActionAst.Weighted(options, weighted.column());
     }
 
     private CompileDiagnostic unknownStageDiagnostic(ActionAst.Stage stage, PipelineToken token) {
@@ -468,7 +517,9 @@ public final class StaticValidator {
             return false;
         }
         ActionAst first = nodes.get(0);
-        if (first instanceof ActionAst.Branch || first instanceof ActionAst.SequenceCall) {
+        if (first instanceof ActionAst.Branch
+                || first instanceof ActionAst.SequenceCall
+                || first instanceof ActionAst.Weighted) {
             return true;
         }
         ActionAst.Stage stage = (ActionAst.Stage) first;
