@@ -221,11 +221,42 @@ public final class StrengthenRecipeParser {
     }
 
     public static Map<String, StarStageMaterialRule> parseStageMaterialRules(YamlSection section) {
-        YamlSection stars = section == null ? null : section.getSection("stars");
-        if (stars == null) {
+        if (section == null) {
             return Map.of();
         }
         Map<String, StarStageMaterialRule> rules = new LinkedHashMap<>();
+        collectStageMaterialRules(section.getSection("stars"), "", rules);
+        collectBranchMaterialRules(section.getSection("branch_tree"), "", rules);
+        return Map.copyOf(rules);
+    }
+
+    private static void collectBranchMaterialRules(YamlSection node,
+            String branchPath,
+            Map<String, StarStageMaterialRule> rules) {
+        if (node == null) {
+            return;
+        }
+        collectStageMaterialRules(node.getSection("stars"), branchPath, rules);
+        YamlSection childrenSection = node.getSection("children");
+        if (childrenSection == null) {
+            return;
+        }
+        for (String childKey : childrenSection.getKeys(false)) {
+            YamlSection childSection = childrenSection.getSection(childKey);
+            if (childSection == null) {
+                continue;
+            }
+            collectBranchMaterialRules(childSection,
+                    StrengthenBranchNode.appendBranch(branchPath, childKey), rules);
+        }
+    }
+
+    private static void collectStageMaterialRules(YamlSection stars,
+            String branchPath,
+            Map<String, StarStageMaterialRule> rules) {
+        if (stars == null) {
+            return;
+        }
         for (String key : stars.getKeys(false)) {
             Integer targetStar = Numbers.tryParseInt(key, null);
             YamlSection stageSection = stars.getSection(key);
@@ -241,10 +272,9 @@ public final class StrengthenRecipeParser {
                 if (!rule.constrains()) {
                     continue;
                 }
-                rules.put(StarStageMaterialRule.key(targetStar, parseMaterialItem(rawEntry)), rule);
+                rules.put(StarStageMaterialRule.key(branchPath, targetStar, parseMaterialItem(rawEntry)), rule);
             }
         }
-        return Map.copyOf(rules);
     }
 
     static List<StarStageMaterial> parseStageMaterials(List<Map<?, ?>> rawEntries) {

@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
+import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter;
 import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter.FileReport;
 import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter.RunReport;
@@ -65,6 +66,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "refresh" -> handleRefresh(sender, args);
             case "setstar" -> handleSetStar(sender, args);
+            case "branch" -> handleBranch(sender, args);
             case "clearstate" -> handleClearState(sender);
             case "clearcrack" -> handleClearCrack(sender);
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
@@ -83,7 +85,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "convert-legacy", "debug")) {
+            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -134,6 +136,17 @@ final class StrengthenCommandRouter implements TabExecutor {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
                         }
+                    }
+                }
+                case "branch" -> {
+                    if (sender instanceof Player player) {
+                        plugin.attemptService()
+                                .selectBranch(player.getInventory().getItemInMainHand(), "")
+                                .options()
+                                .keySet()
+                                .stream()
+                                .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                                .forEach(result::add);
                     }
                 }
                 case "affix" -> plugin.enhancementRecipeLoader().all().values().stream()
@@ -508,6 +521,44 @@ final class StrengthenCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleBranch(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        ItemStack held = player.getInventory().getItemInMainHand();
+        StrengthenAttemptService.BranchSelection selection =
+                plugin.attemptService().selectBranch(held, args.length >= 2 ? args[1] : "");
+        switch (selection.outcome()) {
+            case FAILED -> plugin.messageService().send(sender, selection.errorKey());
+            case PENDING_CHOICE -> sendBranchOptions(sender, selection, "command.branch.options");
+            case INVALID_CHOICE -> sendBranchOptions(sender, selection, "command.branch.invalid");
+            case APPLIED -> {
+                player.getInventory().setItemInMainHand(selection.rebuilt());
+                plugin.messageService().send(sender, "command.branch.success", Map.of(
+                        "branch", selection.displayName(),
+                        "path", selection.branchPath()
+                ));
+            }
+        }
+        return true;
+    }
+
+    private void sendBranchOptions(CommandSender sender,
+            StrengthenAttemptService.BranchSelection selection,
+            String headerKey) {
+        plugin.messageService().send(sender, headerKey);
+        selection.options().forEach((id, displayName) -> plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.branch.option", Map.of(
+                        "id", id,
+                        "name", displayName
+                ))));
+    }
+
     private boolean handleClearState(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             plugin.messageService().send(sender, "general.player_only");
@@ -610,6 +661,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("refresh [player]", plugin.messageService().message("command.help.desc.refresh"));
         lines.put("setstar <star> [recipe]", plugin.messageService().message("command.help.desc.setstar"));
+        lines.put("branch [id]", plugin.messageService().message("command.help.desc.branch"));
         lines.put("clearstate", plugin.messageService().message("command.help.desc.clearstate"));
         lines.put("clearcrack", plugin.messageService().message("command.help.desc.clearcrack"));
         lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));

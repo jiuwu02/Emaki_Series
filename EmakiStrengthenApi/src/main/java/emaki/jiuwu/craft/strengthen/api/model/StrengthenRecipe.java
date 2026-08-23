@@ -429,6 +429,27 @@ public final class StrengthenRecipe {
     }
 
     /**
+     * Branch-aware variant of {@link #stage(int)}.
+     *
+     * <p>Branching recipes may declare their star stages inside {@code branch_tree}
+     * instead of the top-level {@code stars} block, in which case {@link #stage(int)}
+     * resolves nothing. This variant falls back to the stage owned by the node
+     * reached along {@code branchPath}, so a star defined only on a branch is still
+     * found.
+     *
+     * @param targetStar the target star level
+     * @param branchPath the slash-separated branch path
+     * @return the stage for the target star, or {@code null} if undefined
+     */
+    public StarStage stage(int targetStar, String branchPath) {
+        StarStage direct = stars.get(targetStar);
+        if (direct != null || branchTree == null) {
+            return direct;
+        }
+        return branchTree.collectStages(branchPath, targetStar).get(targetStar);
+    }
+
+    /**
      * {@return the success actions configured for a target star}
      *
      * @param targetStar the target star level

@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
@@ -148,13 +149,17 @@ public final class StrengthenAttemptService {
         }
 
         int targetStar = state.currentStar() + 1;
-        StrengthenRecipe.StarStage stage = recipe.stage(targetStar);
+        if (recipe.hasBranchTree()
+                && recipe.branchTree().needsForkSelection(state.branchPath(), state.currentStar())) {
+            return ineligiblePreview("strengthen.branch.selection_required", state, recipe);
+        }
+        StrengthenRecipe.StarStage stage = recipe.stage(targetStar, state.branchPath());
         if (stage == null) {
             return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
         MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(
-                context, stage, player, recipe.id());
+                context, stage, player, recipe.id(), state.branchPath());
         if (Texts.isNotBlank(materials.errorKey())) {
             return new AttemptPreview(false, materials.errorKey(), state, recipe, state.currentStar(), targetStar, 0D, List.of(),
                     state.currentStar(), state.temperLevel(), false, 0, Map.of(), Set.of(), materials.requiredMaterials(), materials.optionalMaterials());
@@ -454,6 +459,65 @@ public final class StrengthenAttemptService {
                 current.branchPath()
         );
         return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
+    }
+
+    public BranchSelection selectBranch(ItemStack itemStack, String childId) {
+        StrengthenState current = readState(itemStack);
+        if (!current.eligible()) {
+            return BranchSelection.failure(Texts.isBlank(current.eligibleReason())
+                    ? "strengthen.error.no_recipe"
+                    : current.eligibleReason());
+        }
+        StrengthenRecipe recipe = plugin.recipeLoader().get(current.recipeId());
+        if (recipe == null) {
+            return BranchSelection.failure("strengthen.error.no_recipe");
+        }
+        if (!recipe.hasBranchTree()) {
+            return BranchSelection.failure("strengthen.branch.not_branching");
+        }
+        StrengthenBranchNode tree = recipe.branchTree();
+        if (!tree.needsForkSelection(current.branchPath(), current.currentStar())) {
+            return BranchSelection.failure("strengthen.branch.not_pending");
+        }
+        Map<String, StrengthenBranchNode> options = tree.childrenAt(current.branchPath());
+        if (options.isEmpty()) {
+            return BranchSelection.failure("strengthen.branch.not_pending");
+        }
+        if (Texts.isBlank(childId)) {
+            return BranchSelection.pending(options);
+        }
+        String resolvedId = null;
+        for (String candidate : options.keySet()) {
+            if (candidate.equalsIgnoreCase(childId)) {
+                resolvedId = candidate;
+            }
+        }
+        if (resolvedId == null) {
+            return BranchSelection.invalid(options);
+        }
+        String updatedPath = StrengthenBranchNode.appendBranch(current.branchPath(), resolvedId);
+        StrengthenState updated = new StrengthenState(
+                true,
+                "",
+                true,
+                current.baseSource(),
+                current.baseSourceSignature(),
+                current.recipeId(),
+                current.currentStar(),
+                current.temperLevel(),
+                current.milestoneFlags(),
+                current.successCount(),
+                current.failureCount(),
+                current.lastAttemptAt(),
+                updatedPath
+        );
+        ItemStack rebuilt = rebuildWithState(itemStack, updated,
+                readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()),
+                        current.baseSourceSignature()).materialsSignature());
+        if (rebuilt == null) {
+            return BranchSelection.failure("strengthen.branch.apply_failed");
+        }
+        return BranchSelection.applied(rebuilt, resolvedId, options.get(resolvedId), updatedPath);
     }
 
     public ItemStack clearStrengthenLayer(ItemStack itemStack) {
@@ -807,6 +871,55 @@ public final class StrengthenAttemptService {
 
     private record ResolvedState(StrengthenState state, StoredState stored) {
 
+    }
+
+    public record BranchSelection(Outcome outcome,
+            String errorKey,
+            ItemStack rebuilt,
+            String branchId,
+            String displayName,
+            String branchPath,
+            Map<String, String> options) {
+
+        public enum Outcome {
+            APPLIED,
+            PENDING_CHOICE,
+            INVALID_CHOICE,
+            FAILED
+        }
+
+        private static BranchSelection failure(String errorKey) {
+            return new BranchSelection(Outcome.FAILED, errorKey, null, "", "", "", Map.of());
+        }
+
+        private static BranchSelection pending(Map<String, StrengthenBranchNode> options) {
+            return new BranchSelection(Outcome.PENDING_CHOICE, "", null, "", "", "", describe(options));
+        }
+
+        private static BranchSelection invalid(Map<String, StrengthenBranchNode> options) {
+            return new BranchSelection(Outcome.INVALID_CHOICE, "", null, "", "", "", describe(options));
+        }
+
+        private static BranchSelection applied(ItemStack rebuilt,
+                String branchId,
+                StrengthenBranchNode node,
+                String branchPath) {
+            String displayName = node == null || Texts.isBlank(node.displayName()) ? branchId : node.displayName();
+            return new BranchSelection(Outcome.APPLIED, "", rebuilt, branchId, displayName, branchPath, Map.of());
+        }
+
+        private static Map<String, String> describe(Map<String, StrengthenBranchNode> options) {
+            Map<String, String> described = new LinkedHashMap<>();
+            if (options == null) {
+                return Map.copyOf(described);
+            }
+            for (Map.Entry<String, StrengthenBranchNode> entry : options.entrySet()) {
+                StrengthenBranchNode node = entry.getValue();
+                described.put(entry.getKey(),
+                        node == null || Texts.isBlank(node.displayName()) ? entry.getKey() : node.displayName());
+            }
+            return Map.copyOf(described);
+        }
     }
 
     record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {

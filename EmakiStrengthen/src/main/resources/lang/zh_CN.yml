@@ -28,6 +28,7 @@ command:
       inspect: "查看手持物品强化状态"
       refresh: "刷新玩家背包中的强化层"
       setstar: "直接设置主手物品星级"
+      branch: "查看或选择主手物品的强化分支"
       clearstate: "移除主手物品上的强化层"
       clearcrack: "清除主手物品强化值"
       givecatalyst: "发放强化材料"
@@ -35,6 +36,11 @@ command:
       pity: "查询、设置、清除与诊断保底计数"
       convert_legacy: "把 recipes/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 追踪"
+  branch:
+    options: "<gold>该物品已到达分叉点，请选择一条强化路线：</gold>"
+    invalid: "<red>没有这条分支。可选路线如下：</red>"
+    option: "<yellow>%id%</yellow> <gray>- %name%</gray>"
+    success: "<green>已选择 <yellow>%name%</yellow> 路线（路径 <gray>%path%</gray>）。</green>"
   convert_legacy:
     header: "<gold>========== 旧 match 块转换（%mode%，共 %files% 个文件） ==========</gold>"
     mode:
@@ -165,6 +171,11 @@ strengthen:
     operation_conflict: "<red>本次强化的物品或材料与原操作不一致，已拒绝执行。</red>"
     condition_not_met: "<red>当前不满足该配方的强化条件。</red>"
     internal: "<red>强化过程中发生内部错误，未完成本次强化。</red>"
+  branch:
+    selection_required: "<yellow>该物品已到达分叉点，请先用 <white>/emakistrengthen branch</white> 选择一条强化路线。</yellow>"
+    not_branching: "<red>当前配方没有分支路线。</red>"
+    not_pending: "<red>当前星级不需要选择分支。</red>"
+    apply_failed: "<red>写入分支选择失败，未改动该物品。</red>"
   enhancement:
     no_player: "<red>需要玩家在线才能执行强化。</red>"
     no_provider: "<red>未提供强化目标 Provider。</red>"

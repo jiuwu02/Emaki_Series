@@ -38,13 +38,21 @@ final class MaterialPlanResolver {
     }
 
     MaterialPlan resolveMaterialPlan(AttemptContext context, StrengthenRecipe.StarStage stage) {
-        return resolveMaterialPlan(context, stage, null, "");
+        return resolveMaterialPlan(context, stage, null, "", "");
     }
 
     MaterialPlan resolveMaterialPlan(AttemptContext context,
             StrengthenRecipe.StarStage stage,
             @Nullable Player player,
             String recipeId) {
+        return resolveMaterialPlan(context, stage, player, recipeId, "");
+    }
+
+    MaterialPlan resolveMaterialPlan(AttemptContext context,
+            StrengthenRecipe.StarStage stage,
+            @Nullable Player player,
+            String recipeId,
+            String branchPath) {
         if (stage == null) {
             return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
         }
@@ -68,7 +76,7 @@ final class MaterialPlanResolver {
             String token = Texts.lower(resolveItemToken(input));
             StrengthenRecipe.StarStageMaterial matched = materialsByItem.get(token);
             if (matched != null && !satisfiesTargetAwareRule(recipeId, stage.targetStar(), token, input,
-                    targetItem, targetSource, player)) {
+                    targetItem, targetSource, player, branchPath)) {
                 matched = null;
             }
             if (matched == null) {
@@ -216,11 +224,12 @@ final class MaterialPlanResolver {
             ItemStack candidate,
             @Nullable ItemStack targetItem,
             @Nullable ItemSourceRef targetSource,
-            @Nullable Player player) {
+            @Nullable Player player,
+            String branchPath) {
         if (plugin == null || Texts.isBlank(recipeId) || plugin.recipeLoader() == null) {
             return true;
         }
-        StarStageMaterialRule rule = plugin.recipeLoader().materialRule(recipeId, targetStar, itemToken);
+        StarStageMaterialRule rule = plugin.recipeLoader().materialRule(recipeId, targetStar, itemToken, branchPath);
         if (!rule.constrains()) {
             return true;
         }

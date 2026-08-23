@@ -30,6 +30,7 @@ command:
       inspect: "Inspect held item strengthen state"
       refresh: "Refresh strengthen layers in player inventory"
       setstar: "Set main-hand item star level"
+      branch: "View or choose the strengthen branch of the main-hand item"
       clearstate: "Remove strengthen layer from main-hand item"
       clearcrack: "Clear main-hand item temper"
       givecatalyst: "Give strengthen material"
@@ -37,6 +38,11 @@ command:
       pity: "Query, set, clear and diagnose pity counters"
       convert_legacy: "Convert legacy match blocks in recipes/ to matcher and top-level fields"
       debug: "Manage debug tracking"
+  branch:
+    options: "<gold>This item reached a fork. Choose a strengthen route:</gold>"
+    invalid: "<red>No such branch. Available routes:</red>"
+    option: "<yellow>%id%</yellow> <gray>- %name%</gray>"
+    success: "<green>Selected the <yellow>%name%</yellow> route (path <gray>%path%</gray>).</green>"
   convert_legacy:
     header: "<gold>========== Legacy match conversion (%mode%, %files% files) ==========</gold>"
     mode:
@@ -172,6 +178,11 @@ strengthen:
     operation_conflict: "<red>The item or materials differ from the original operation; the attempt was rejected.</red>"
     condition_not_met: "<red>The conditions of this recipe are not currently met.</red>"
     internal: "<red>An internal error occurred; the strengthen attempt was not completed.</red>"
+  branch:
+    selection_required: "<yellow>This item reached a fork. Run <white>/emakistrengthen branch</white> to choose a route first.</yellow>"
+    not_branching: "<red>This recipe has no branch routes.</red>"
+    not_pending: "<red>No branch choice is needed at the current star.</red>"
+    apply_failed: "<red>Failed to write the branch selection; the item was not modified.</red>"
   enhancement:
     no_player: "<red>An online player is required to run an enhancement.</red>"
     no_provider: "<red>No enhancement target provider was supplied.</red>"

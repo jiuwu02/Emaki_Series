@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -18,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
@@ -106,13 +108,30 @@ public final class StrengthenRecipeLoader {
     }
 
     public @NotNull StarStageMaterialRule materialRule(String recipeId, int targetStar, String itemToken) {
+        return materialRule(recipeId, targetStar, itemToken, "");
+    }
+
+    public @NotNull StarStageMaterialRule materialRule(String recipeId,
+            int targetStar,
+            String itemToken,
+            String branchPath) {
         synchronized (stateLock) {
             Map<String, StarStageMaterialRule> rules = materialRules.get(Texts.lower(recipeId));
             if (rules == null) {
                 return StarStageMaterialRule.inert();
             }
-            StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(targetStar, itemToken));
-            return rule == null ? StarStageMaterialRule.inert() : rule;
+            String path = Texts.toStringSafe(branchPath);
+            while (true) {
+                StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(path, targetStar, itemToken));
+                if (rule != null) {
+                    return rule;
+                }
+                if (path.isEmpty()) {
+                    return StarStageMaterialRule.inert();
+                }
+                int separator = path.lastIndexOf('/');
+                path = separator < 0 ? "" : path.substring(0, separator);
+            }
         }
     }
 
@@ -178,7 +197,25 @@ public final class StrengthenRecipeLoader {
         if (recipe == null) {
             return;
         }
-        for (StrengthenRecipe.StarStage stage : recipe.stars().values()) {
+        indexStageMaterials(recipe.stars().values());
+        indexBranchMaterials(recipe.branchTree());
+    }
+
+    private void indexBranchMaterials(StrengthenBranchNode node) {
+        if (node == null) {
+            return;
+        }
+        indexStageMaterials(node.stages().values());
+        for (StrengthenBranchNode child : node.children().values()) {
+            indexBranchMaterials(child);
+        }
+    }
+
+    private void indexStageMaterials(Collection<StrengthenRecipe.StarStage> stages) {
+        if (stages == null) {
+            return;
+        }
+        for (StrengthenRecipe.StarStage stage : stages) {
             if (stage == null) {
                 continue;
             }
