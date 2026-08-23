@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -33,6 +34,11 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
+            new ConfigKeyMigration.Rename("advancement.announce-default", "advancement.announce_default"),
+            new ConfigKeyMigration.Rename("advancement.remove-on-disable", "advancement.remove_on_disable"),
+            new ConfigKeyMigration.Rename("advancement.packet-coordinates", "advancement.packet_coordinates"),
+            new ConfigKeyMigration.Rename("advancement.triggers-enabled", "advancement.triggers_enabled"));
 
     @Override
     public CodexRuntimeComponents initialize(EmakiCodexPlugin plugin) {
@@ -53,6 +59,14 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (!"config.yml".equals(relativePath)) {
+                            return;
+                        }
+                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
                     }
                 });
 
@@ -169,8 +183,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             boolean legacyValue = bool(section, legacyPath, fallback);
             JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("配置键 advancement." + legacyPath
                     + " 已更名为 advancement." + path
-                    + "，本次仍按旧键值 " + legacyValue
-                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+                    + "，当前按旧键值 " + legacyValue
+                    + " 生效，启动时会自动迁移到新键。");
             return legacyValue;
         }
         return fallback;

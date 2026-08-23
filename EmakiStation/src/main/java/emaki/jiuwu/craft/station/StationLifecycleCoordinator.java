@@ -8,8 +8,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -60,6 +62,9 @@ final class StationLifecycleCoordinator
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("stations", "stations_dismantle", "gui", "recipes", "recipes_dismantle", "data");
+    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
+            new ConfigKeyMigration.Rename("persistence.autosave_interval", "persistence.autosave_interval_seconds"),
+            new ConfigKeyMigration.Rename("gui.refresh_interval", "gui.refresh_interval_ticks"));
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
@@ -82,6 +87,14 @@ final class StationLifecycleCoordinator
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (!"config.yml".equals(relativePath)) {
+                            return;
+                        }
+                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
                     }
                 });
 

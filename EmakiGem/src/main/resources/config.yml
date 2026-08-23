@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.11"
+version: "2.7.12"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

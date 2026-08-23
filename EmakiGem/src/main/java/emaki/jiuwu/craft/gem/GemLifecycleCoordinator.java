@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
@@ -61,6 +62,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "gem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
+            new ConfigKeyMigration.Rename("permission.op_bypass", "op_bypass"));
 
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
@@ -93,6 +96,15 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (!"config.yml".equals(relativePath)) {
+                            return;
+                        }
+                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                        ConfigKeyMigration.pruneEmptySection(runtime, "permission");
                     }
                 }
         );
@@ -372,8 +384,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", fallback);
             JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("配置键 permission.op_bypass"
-                    + " 已移到顶层 op_bypass，本次仍按旧键值 " + legacyValue
-                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+                    + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
+                    + " 生效，启动时会自动迁移到新键。");
             return legacyValue;
         }
         return fallback;

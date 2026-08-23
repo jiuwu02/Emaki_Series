@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
@@ -52,6 +53,9 @@ final class StorageLifecycleCoordinator
     private static final List<String> STATIC_FILES = List.of("gui/storage_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("unlock_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "logs", "corrupt");
+    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
+            new ConfigKeyMigration.Rename("persistence.autosave_interval", "persistence.autosave_interval_seconds"),
+            new ConfigKeyMigration.Rename("persistence.drain_timeout", "persistence.drain_timeout_seconds"));
 
     @Override
     public StorageRuntimeComponents initialize(EmakiStoragePlugin plugin) {
@@ -74,6 +78,14 @@ final class StorageLifecycleCoordinator
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (!"config.yml".equals(relativePath)) {
+                            return;
+                        }
+                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
                     }
                 });
 
@@ -504,8 +516,8 @@ final class StorageLifecycleCoordinator
             long legacyValue = longValue(section, legacyPath, fallback);
             JavaPlugin.getPlugin(EmakiStoragePlugin.class).getLogger().warning("[storage] 配置键 " + legacyPath
                     + " 已更名为 " + path
-                    + "，本次仍按旧键值 " + legacyValue
-                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+                    + "，当前按旧键值 " + legacyValue
+                    + " 生效，启动时会自动迁移到新键。");
             return legacyValue;
         }
         return fallback;
