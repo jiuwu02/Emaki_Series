@@ -327,8 +327,10 @@ final class StorageLifecycleCoordinator
             return defaults;
         }
         return new AppConfig.PersistenceConfig(
-                Math.max(0L, longValue(section, "autosave_interval", defaults.autosaveIntervalSeconds())),
-                Math.max(1L, longValue(section, "drain_timeout", defaults.drainTimeoutSeconds())));
+                Math.max(0L, legacyAwareLong(section, "autosave_interval_seconds", "autosave_interval",
+                        defaults.autosaveIntervalSeconds())),
+                Math.max(1L, legacyAwareLong(section, "drain_timeout_seconds", "drain_timeout",
+                        defaults.drainTimeoutSeconds())));
     }
 
     private AppConfig.LoggingConfig parseLogging(YamlSection section) {
@@ -490,6 +492,21 @@ final class StorageLifecycleCoordinator
             } catch (NumberFormatException ignored) {
                 return fallback;
             }
+        }
+        return fallback;
+    }
+
+    private long legacyAwareLong(YamlSection section, String path, String legacyPath, long fallback) {
+        if (section.contains(path)) {
+            return longValue(section, path, fallback);
+        }
+        if (section.contains(legacyPath)) {
+            long legacyValue = longValue(section, legacyPath, fallback);
+            JavaPlugin.getPlugin(EmakiStoragePlugin.class).getLogger().warning("[storage] 配置键 " + legacyPath
+                    + " 已更名为 " + path
+                    + "，本次仍按旧键值 " + legacyValue
+                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+            return legacyValue;
         }
         return fallback;
     }

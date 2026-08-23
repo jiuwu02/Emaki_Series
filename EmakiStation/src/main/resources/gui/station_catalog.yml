@@ -1,4 +1,6 @@
+# ============================================================
 # EmakiStation 界面布局：配方目录页（第一页）
+# ============================================================
 #
 # 三页结构：
 #   station_catalog  - 本文件。列出工作站的全部配方，左键直接提交，右键进入材料预览
@@ -19,6 +21,7 @@
 #   close             - 关闭界面
 #
 # 本页不再有 input 槽。玩家不放材料进界面，材料在提交时直接从背包与仓库合并扣除。
+# ============================================================
 id: "station_catalog"
 gui_type: CHEST
 title: "<dark_gray>%station_name%</dark_gray>"
@@ -28,7 +31,7 @@ slots:
   frame:
     slots: "0-8,45-53"
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -42,7 +45,7 @@ slots:
     slots: "9-17,18-26,27-35"
     type: "recipe_list"
     item:
-      source: "PAPER"
+      source: "paper"
       components:
         custom_name: "<aqua>%recipe_name%</aqua>"
     sounds:
@@ -56,7 +59,7 @@ slots:
       - 49
     type: "queue_open"
     item:
-      source: "CLOCK"
+      source: "clock"
       components:
         custom_name: "<gold>合成队列</gold>"
         lore:
@@ -72,7 +75,7 @@ slots:
       - 47
     type: "batch_multiplier"
     item:
-      source: "COMPARATOR"
+      source: "comparator"
       components:
         custom_name: "<gold>倍率 <yellow>x%batch%</yellow></gold>"
         lore:
@@ -89,7 +92,7 @@ slots:
       - 48
     type: "output_toggle"
     item:
-      source: "HOPPER"
+      source: "hopper"
       components:
         custom_name: "<gold>产物去向</gold>"
         lore:
@@ -100,7 +103,7 @@ slots:
       - 45
     type: "prev_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>上一页</yellow>"
 
@@ -109,7 +112,7 @@ slots:
       - 46
     type: "page_info"
     item:
-      source: "BOOK"
+      source: "book"
       components:
         custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
         lore:
@@ -120,7 +123,7 @@ slots:
       - 53
     type: "next_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>下一页</yellow>"
 
@@ -129,7 +132,7 @@ slots:
       - 50
     type: "close"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>关闭</red>"
 
@@ -159,7 +162,7 @@ virtual_items:
   # 未解锁配方。仍然占位显示，让玩家知道后面还有内容。
   recipe_locked:
     item:
-      source: "GRAY_DYE"
+      source: "gray_dye"
       components:
         custom_name: "<dark_gray>%recipe_name%</dark_gray>"
         lore:

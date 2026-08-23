@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.10"
+version: "2.7.11"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -120,9 +120,8 @@ number_format:
   # 默认数值格式
   default: "0.##"
 
-permission:
-  # OP 是否绕过镶嵌、开孔与取出操作的消耗及条件检查。
-  op_bypass: false
+# OP 是否绕过镶嵌、开孔与取出操作的消耗及条件检查。
+op_bypass: false
 
 reroll:
   # 洗炼候选会话的存活时间，单位：秒；超时后候选作废并退还费用。

@@ -7,7 +7,7 @@
 # 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
 # 不使用 minecraft:iron_axe 这种冒号写法。
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.2.4"
+version: "4.2.5"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

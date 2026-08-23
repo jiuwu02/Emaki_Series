@@ -25,7 +25,7 @@ slots:
       - 7
       - 8
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -43,7 +43,7 @@ slots:
       - 43
       - 44
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -89,7 +89,7 @@ slots:
       - 16
     type: "capacity_display"
     item:
-      source: "BLAST_FURNACE"
+      source: "blast_furnace"
       components:
         custom_name: "<gray>锻造容量</gray>"
         lore:
@@ -109,7 +109,7 @@ slots:
       - 29
     type: "required_materials"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<gold>放入必需材料</gold>"
         lore:
@@ -125,7 +125,7 @@ slots:
       - 32
     type: "optional_materials"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<green>放入可选材料</green>"
         lore:
@@ -136,7 +136,7 @@ slots:
       - 34
     type: "confirm"
     item:
-      source: "ANVIL"
+      source: "anvil"
       components:
         custom_name: "<green>确认锻造</green>"
         lore:
@@ -151,7 +151,7 @@ slots:
 virtual_items:
   confirm_blocked:
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>无法锻造</red>"
         lore:

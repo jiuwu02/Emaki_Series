@@ -1,6 +1,9 @@
 package emaki.jiuwu.craft.station.config;
 
+import org.bukkit.plugin.java.JavaPlugin;
+
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.ProgressMode;
 
 public final class AppConfigParser {
@@ -80,7 +83,8 @@ public final class AppConfigParser {
             return defaults;
         }
         return new PersistenceSettings(
-                section.getInt("autosave_interval", defaults.autosaveIntervalSeconds()),
+                legacyAwareInt(section, "autosave_interval_seconds", "autosave_interval",
+                        defaults.autosaveIntervalSeconds()),
                 section.getBoolean("save_on_submit", defaults.saveOnSubmit()));
     }
 
@@ -90,6 +94,22 @@ public final class AppConfigParser {
         }
         return new GuiSettings(
                 section.getInt("click_throttle_ms", defaults.clickThrottleMs()),
-                section.getInt("refresh_interval", (int) defaults.refreshTicks()));
+                legacyAwareInt(section, "refresh_interval_ticks", "refresh_interval",
+                        (int) defaults.refreshTicks()));
+    }
+
+    private static int legacyAwareInt(YamlSection section, String path, String legacyPath, int fallback) {
+        if (section.contains(path)) {
+            return section.getInt(path, fallback);
+        }
+        if (section.contains(legacyPath)) {
+            int legacyValue = section.getInt(legacyPath, fallback);
+            JavaPlugin.getPlugin(EmakiStationPlugin.class).getLogger().warning("配置键 " + legacyPath
+                    + " 已更名为 " + path
+                    + "，本次仍按旧键值 " + legacyValue
+                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+            return legacyValue;
+        }
+        return fallback;
     }
 }

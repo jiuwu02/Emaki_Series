@@ -2,12 +2,10 @@
 #
 # 控制强化广播、默认成功率与词条强化参数。
 # 修改后按插件提供的重载命令应用。
-#
 # 文件位置：plugins/EmakiStrengthen/config.yml
-#
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.7.15"
+version: "4.7.16"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

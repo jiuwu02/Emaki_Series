@@ -13,7 +13,7 @@
 # 否则该条目会被拒绝并记 warning。slots 键仅为通过通用模板解析而保留。
 # ============================================================
 
-id: storage_gui
+id: "storage_gui"
 gui_type: CHEST
 title: "<gradient:#4DA6FF:#FFD166>绘卷仓库</gradient>"
 

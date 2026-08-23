@@ -1,3 +1,7 @@
+# EmakiMobs 生成规则示例 - 主世界精英
+#
+# 自然生成与替换规则；rules 下每条独立生效。
+
 rules:
   - mob_id: example_zombie
     type: natural

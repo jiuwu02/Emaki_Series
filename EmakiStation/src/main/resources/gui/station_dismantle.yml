@@ -1,4 +1,6 @@
+# ============================================================
 # EmakiStation 界面布局：分解页
+# ============================================================
 #
 # 通过 /emakistation dismantle <station> 进入本页。
 #
@@ -12,6 +14,7 @@
 #   back                   - 返回目录页
 #   close                  - 关闭界面
 #
+# ============================================================
 id: "station_dismantle"
 gui_type: CHEST
 title: "<dark_gray>%station_name% <gray>分解</gray></dark_gray>"
@@ -21,7 +24,7 @@ slots:
   frame:
     slots: "0-8,45-53"
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -32,7 +35,7 @@ slots:
       - 20
     type: "dismantle_input"
     item:
-      source: "GRAY_STAINED_GLASS_PANE"
+      source: "gray_stained_glass_pane"
       components:
         custom_name: "<gray>选中的配方输入</gray>"
 
@@ -41,7 +44,7 @@ slots:
       - 22
     type: "dismantle_rolls_display"
     item:
-      source: "DICE"
+      source: "dice"
       components:
         custom_name: "<aqua>投掷次数</aqua>"
         lore:
@@ -53,7 +56,7 @@ slots:
       - 24
     type: "dismantle_confirm"
     item:
-      source: "GREEN_STAINED_GLASS_PANE"
+      source: "green_stained_glass_pane"
       components:
         custom_name: "<green>确认分解</green>"
         lore:
@@ -68,7 +71,7 @@ slots:
     slots: "9-17,27-35"
     type: "dismantle_output_list"
     item:
-      source: "PAPER"
+      source: "paper"
       components:
         custom_name: "<yellow>%item%</yellow>"
 
@@ -77,7 +80,7 @@ slots:
       - 36
     type: "prev_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>上一页</yellow>"
 
@@ -86,7 +89,7 @@ slots:
       - 40
     type: "page_info"
     item:
-      source: "BOOK"
+      source: "book"
       components:
         custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
         lore:
@@ -97,7 +100,7 @@ slots:
       - 44
     type: "next_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>下一页</yellow>"
 
@@ -106,7 +109,7 @@ slots:
       - 45
     type: "back"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>返回配方列表</yellow>"
 
@@ -115,7 +118,7 @@ slots:
       - 53
     type: "close"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>关闭</red>"
 
@@ -124,7 +127,7 @@ virtual_items:
   # 没有匹配配方时，dismantle_input 格显示的图标
   no_recipe:
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>无可用分解配方</red>"
         lore:
@@ -161,7 +164,7 @@ virtual_items:
   # 确认槽位——已投掷后切换为领取按钮
   dismantle_claim:
     item:
-      source: "CHEST"
+      source: "chest"
       components:
         custom_name: "<gold>领取产物</gold>"
         lore:

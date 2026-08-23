@@ -1,4 +1,6 @@
+# ============================================================
 # EmakiStation 界面布局：材料预览页（第二页）
+# ============================================================
 #
 # 在目录页右键某个配方进入本页。本页只读，不接受放入物品。
 #
@@ -19,6 +21,7 @@
 # 因此 lore 里务必保留 %required_exact%，否则大额需求玩家将无从得知。
 # 65~99 超过多数物品的自然堆叠上限，插件会临时抬高被渲染图标的 max_stack_size 组件，
 # 这个改动只作用于界面里的展示图标，永远不会交给玩家。
+# ============================================================
 id: "station_preview"
 gui_type: CHEST
 title: "<dark_gray>%recipe_name%</dark_gray>"
@@ -28,7 +31,7 @@ slots:
   frame:
     slots: "0-8,45-53"
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -38,7 +41,7 @@ slots:
     slots: "9-17,18-26,27-35"
     type: "material_list"
     item:
-      source: "PAPER"
+      source: "paper"
       components:
         custom_name: "<gray>材料</gray>"
 
@@ -46,7 +49,7 @@ slots:
     slots: [4]
     type: "recipe_display"
     item:
-      source: "CRAFTING_TABLE"
+      source: "crafting_table"
       components:
         custom_name: "<aqua>%recipe_name%</aqua>"
         lore:
@@ -58,7 +61,7 @@ slots:
     slots: [47]
     type: "cost_display"
     item:
-      source: "GOLD_INGOT"
+      source: "gold_ingot"
       components:
         custom_name: "<gold>货币成本</gold>"
         lore:
@@ -69,7 +72,7 @@ slots:
     slots: [48]
     type: "batch_multiplier"
     item:
-      source: "COMPARATOR"
+      source: "comparator"
       components:
         custom_name: "<gold>倍率 <yellow>x%batch%</yellow></gold>"
         lore:
@@ -79,7 +82,7 @@ slots:
     slots: [49]
     type: "max_craftable"
     item:
-      source: "KNOWLEDGE_BOOK"
+      source: "knowledge_book"
       components:
         custom_name: "<gold>最多可做</gold>"
         lore:
@@ -90,7 +93,7 @@ slots:
     slots: [50]
     type: "confirm"
     item:
-      source: "ANVIL"
+      source: "anvil"
       components:
         custom_name: "<green>开始合成</green>"
         lore:
@@ -105,7 +108,7 @@ slots:
     slots: [45]
     type: "back"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>返回配方列表</yellow>"
 
@@ -113,7 +116,7 @@ slots:
     slots: [36]
     type: "prev_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>上一页</yellow>"
 
@@ -121,7 +124,7 @@ slots:
     slots: [40]
     type: "page_info"
     item:
-      source: "BOOK"
+      source: "book"
       components:
         custom_name: "<gray>第 <yellow>%page%</yellow> / <yellow>%pages%</yellow> 页</gray>"
         lore:
@@ -131,7 +134,7 @@ slots:
     slots: [44]
     type: "next_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<yellow>下一页</yellow>"
 
@@ -139,7 +142,7 @@ slots:
     slots: [53]
     type: "close"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>关闭</red>"
 
@@ -166,7 +169,7 @@ virtual_items:
 
   confirm_blocked:
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>无法合成</red>"
         lore:

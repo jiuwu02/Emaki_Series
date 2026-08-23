@@ -1000,12 +1000,26 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),
                 numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
                 numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
-                permission != null && permission.getBoolean("op_bypass", false),
+                resolveOpBypass(configuration, permission),
                 ConditionBlock.fromConfig(condition, true, false).invalidAsFailure(),
                 history == null || history.getBoolean("enabled", true),
                 history == null || history.getBoolean("auto_save", true),
                 history == null ? 6000 : Numbers.tryParseInt(history.get("save_interval"), 6000)
         );
+    }
+
+    private boolean resolveOpBypass(YamlSection configuration, YamlSection permission) {
+        if (configuration.contains("op_bypass")) {
+            return configuration.getBoolean("op_bypass", false);
+        }
+        if (permission != null && permission.contains("op_bypass")) {
+            boolean legacyValue = permission.getBoolean("op_bypass", false);
+            JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("配置键 permission.op_bypass"
+                    + " 已移到顶层 op_bypass，本次仍按旧键值 " + legacyValue
+                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+            return legacyValue;
+        }
+        return false;
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

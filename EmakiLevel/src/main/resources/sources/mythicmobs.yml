@@ -1,3 +1,7 @@
+# EmakiLevel 经验来源 - MythicMobs
+#
+# 击杀 MythicMobs 生物的经验来源定义；需安装 MythicMobs 才生效。
+
 id: "mythicmobs_sources"
 enabled: true
 sources:

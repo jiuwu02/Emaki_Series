@@ -57,7 +57,7 @@ variables:
     value: "20 + (%level% - 1) * 5"
     decimals: 1
     min: 0
-  
+
   crit_threshold:
     type: "expression"
     value: "0.3"
@@ -80,7 +80,7 @@ script:
     cast:
       # 播放释放音效
       - "self | play_sound sound=block.enchantment_table.use volume=1 pitch=1.2"
-      
+
       # 射线检测并保存目标
       - "looking_at range=20 width=2 | keep"
 
@@ -114,7 +114,7 @@ script:
       
       # 使用 damage_multiplier 应用伤害；当前 js_compute 不会生成该变量。
       - "inherited | damage amount=%var.base_damage%*%damage_multiplier%"
-      
+
       # 按 damage_multiplier 选择粒子；当前管道不会自动提供该占位符。
       - "if %damage_multiplier%>=2.0 [ inherited | spawn_particle particle=crit_magic count=32 extra=0.15 ]"
       - "if %damage_multiplier%<2.0 [ inherited | spawn_particle particle=enchant count=16 extra=0.08 ]"
@@ -164,7 +164,7 @@ script:
 upgrade:
   enabled: true
   max_level: 5
-  
+
   economy:
     enabled: true
     currencies:
@@ -173,15 +173,15 @@ upgrade:
         base_cost: 2000
         cost_formula: "%base_cost% * %target_level%"
         display_name: "<gold>金币</gold>"
-  
+
   success_rates:
     2: 100.0
     3: 95.0
     4: 90.0
     5: 85.0
-  
+
   failure_penalty: "none"
-  
+
   levels:
     2:
       materials:

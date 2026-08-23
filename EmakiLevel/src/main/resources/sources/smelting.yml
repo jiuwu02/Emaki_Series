@@ -1,3 +1,7 @@
+# EmakiLevel 经验来源 - 冶炼
+#
+# 熔炉类产出相关的经验来源定义。
+
 id: "smelting_sources"
 enabled: true
 sources:

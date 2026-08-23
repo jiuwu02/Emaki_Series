@@ -149,16 +149,31 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 configuration.getString("version", AppConfig.CURRENT_VERSION),
                 bool(configuration, "release_default_data", true),
                 advancement == null || bool(advancement, "enabled", true),
-                advancement != null && bool(advancement, "announce-default", false),
-                advancement == null || bool(advancement, "remove-on-disable", true),
-                advancement == null || bool(advancement, "packet-coordinates", true),
-                advancement == null || bool(advancement, "triggers-enabled", true),
+                advancement != null && legacyAwareBool(advancement, "announce_default", "announce-default", false),
+                advancement == null || legacyAwareBool(advancement, "remove_on_disable", "remove-on-disable", true),
+                advancement == null || legacyAwareBool(advancement, "packet_coordinates", "packet-coordinates", true),
+                advancement == null || legacyAwareBool(advancement, "triggers_enabled", "triggers-enabled", true),
                 bool(configuration, "op_bypass", false));
     }
 
     private boolean bool(YamlSection section, String path, boolean fallback) {
         Boolean value = section.getBoolean(path, fallback);
         return value == null ? fallback : value;
+    }
+
+    private boolean legacyAwareBool(YamlSection section, String path, String legacyPath, boolean fallback) {
+        if (section.contains(path)) {
+            return bool(section, path, fallback);
+        }
+        if (section.contains(legacyPath)) {
+            boolean legacyValue = bool(section, legacyPath, fallback);
+            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("配置键 advancement." + legacyPath
+                    + " 已更名为 advancement." + path
+                    + "，本次仍按旧键值 " + legacyValue
+                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+            return legacyValue;
+        }
+        return fallback;
     }
 
 }

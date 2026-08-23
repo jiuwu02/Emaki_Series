@@ -1,3 +1,7 @@
+# EmakiLevel 经验来源 - 合成
+#
+# 工作台与合成类操作的经验来源定义。
+
 id: "crafting_sources"
 enabled: true
 sources:

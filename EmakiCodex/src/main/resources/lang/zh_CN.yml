@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过 `/codex reload` 应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"

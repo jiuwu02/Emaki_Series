@@ -1,4 +1,6 @@
+# ============================================================
 # EmakiAccessory 饰品栏界面布局
+# ============================================================
 #
 # 重要：饰品格必须显式写 type: "accessory_slot"，不写 type 的格子只是纯装饰。
 #
@@ -13,6 +15,7 @@
 #
 # 每个 accessory_slot 只能占一格。写成多格时只有第一格生效，其余会记录警告。
 # parts.yml 里声明了但这里没摆放的槽位同样会记录警告，且玩家无法使用该槽位。
+# ============================================================
 id: "accessory_gui"
 gui_type: CHEST
 title: "<dark_gray>饰品栏</dark_gray>"
@@ -22,7 +25,7 @@ slots:
   frame:
     slots: "0-8,45-53"
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:
@@ -32,7 +35,7 @@ slots:
     slots: [13]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>项链</gray>"
         lore:
@@ -42,7 +45,7 @@ slots:
     slots: [21]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>戒指</gray>"
         lore:
@@ -52,7 +55,7 @@ slots:
     slots: [23]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>戒指</gray>"
         lore:
@@ -62,7 +65,7 @@ slots:
     slots: [22]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>腰带</gray>"
         lore:
@@ -72,7 +75,7 @@ slots:
     slots: [30]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>护符</gray>"
         lore:
@@ -82,7 +85,7 @@ slots:
     slots: [32]
     type: "accessory_slot"
     item:
-      source: "LIGHT_GRAY_STAINED_GLASS_PANE"
+      source: "light_gray_stained_glass_pane"
       components:
         custom_name: "<gray>护符</gray>"
         lore:
@@ -92,7 +95,7 @@ slots:
     slots: "37-43"
     type: "orphan_slot"
     item:
-      source: "GRAY_STAINED_GLASS_PANE"
+      source: "gray_stained_glass_pane"
       components:
         custom_name: "<gray>"
         tooltip_display:

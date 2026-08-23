@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiForge/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.7.5"
+version: "4.7.6"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -96,9 +96,8 @@ number_format:
   integer: "0"
   percentage: "0.##%"
 
-permission:
-  # OP 是否绕过锻造条件检查。
-  op_bypass: false
+# OP 是否绕过锻造条件检查。
+op_bypass: false
 
 condition:
   # 条件表达式解析失败时是否按条件不通过处理。

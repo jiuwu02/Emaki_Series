@@ -5,7 +5,7 @@
 #
 # 文件放置位置: plugins/EmakiSkills/gui/
 # ============================================================
-id: skills_gui
+id: "skills_gui"
 gui_type: CHEST
 title: "<gradient:#4DA6FF:#FF6B6B>主动技能</gradient>"
 rows: 6

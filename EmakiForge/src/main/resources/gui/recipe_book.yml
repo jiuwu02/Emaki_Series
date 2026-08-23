@@ -86,7 +86,7 @@ slots:
       - 45
     type: "prev_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<gray>上一页</gray>"
         lore:
@@ -102,7 +102,7 @@ slots:
       - 49
     type: "close"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>关闭</red>"
         lore:
@@ -118,7 +118,7 @@ slots:
       - 53
     type: "next_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<gray>下一页</gray>"
         lore:

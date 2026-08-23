@@ -358,11 +358,25 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 parseSocketOpeners(configuration.getSection("socket_openers")),
                 parseInlaySuccess(inlaySuccess, defaults.inlaySuccess()),
                 numberFormat == null ? defaults.numberFormat() : numberFormat.getString("default", defaults.numberFormat()),
-                permission != null && permission.getBoolean("op_bypass", defaults.opBypass()),
+                resolveOpBypass(configuration, permission, defaults.opBypass()),
                 parseGuiSettings(gui, defaults.gui()),
                 parseConditionConfig(condition, defaults.condition()),
                 parseRerollSettings(reroll, defaults.reroll())
         );
+    }
+
+    private boolean resolveOpBypass(YamlSection configuration, YamlSection permission, boolean fallback) {
+        if (configuration.contains("op_bypass")) {
+            return configuration.getBoolean("op_bypass", fallback);
+        }
+        if (permission != null && permission.contains("op_bypass")) {
+            boolean legacyValue = permission.getBoolean("op_bypass", fallback);
+            JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("配置键 permission.op_bypass"
+                    + " 已移到顶层 op_bypass，本次仍按旧键值 " + legacyValue
+                    + " 生效；请更新 config.yml，旧键将在后续版本移除。");
+            return legacyValue;
+        }
+        return fallback;
     }
 
     private AppConfig.RerollSettings parseRerollSettings(YamlSection section, AppConfig.RerollSettings defaults) {

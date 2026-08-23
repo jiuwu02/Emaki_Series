@@ -1,3 +1,7 @@
+# EmakiLevel 经验来源 - 垂钓
+#
+# 钓鱼产出相关的经验来源定义。
+
 id: "fishing_sources"
 enabled: true
 sources:

@@ -93,9 +93,9 @@ matcher:
     - { type: item_source, sources: ["emakiitem-example_item"] }
     - { type: component, component: custom_name, operator: exists }
 
-# ------------------------------------------------------------
+# ============================================================
 # 三个顶层匹配字段（与 matcher 取 AND，都成立才命中）
-# ------------------------------------------------------------
+# ============================================================
 # 它们不属于组件匹配范畴，所以不写进 matcher：
 #   slot_groups     粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），
 #                   不是 main_hand/helmet 这类具体装备槽位

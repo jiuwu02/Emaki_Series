@@ -52,7 +52,7 @@ slots:
       - 18
       - 26
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<dark_gray>"
         tooltip_display:
@@ -63,7 +63,7 @@ slots:
       - 10
     type: "target_item"
     item:
-      source: "LIGHT_BLUE_STAINED_GLASS_PANE"
+      source: "light_blue_stained_glass_pane"
       components:
         custom_name: "<aqua>放入装备</aqua>"
         lore:
@@ -74,7 +74,7 @@ slots:
       - 16
     type: "opener_item"
     item:
-      source: "AMETHYST_SHARD"
+      source: "amethyst_shard"
       components:
         custom_name: "<light_purple>放入开孔器</light_purple>"
         lore:
@@ -101,7 +101,7 @@ slots:
       - 23
     type: "socket_slot"
     item:
-      source: "WHITE_STAINED_GLASS_PANE"
+      source: "white_stained_glass_pane"
       components:
         custom_name: "<white>锁定插槽</white>"
         lore:

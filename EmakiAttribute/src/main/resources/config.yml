@@ -2,16 +2,13 @@
 #
 # 控制属性来源、伤害接管、资源同步、格挡与伤害飘字。
 # 修改后按插件提供的重载命令应用。
-#
 # 文件位置：plugins/EmakiAttribute/config.yml
-#
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-#
-version: "4.7.8"
+version: "4.7.9"
 
 # 语言文件名，对应 lang/<language>.yml。
-language: zh_CN
+language: "zh_CN"
 
 # 是否在启动时释放内置的属性、伤害类型与格式等默认示例数据。
 # 关闭后只加载已有数据，不主动生成缺失的默认示例。

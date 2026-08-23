@@ -53,7 +53,7 @@ slots:
       - 27
       - 35
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<dark_gray>"
         tooltip_display:
@@ -71,7 +71,7 @@ slots:
       - 32
       - 33
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<dark_gray>"
         tooltip_display:
@@ -82,7 +82,7 @@ slots:
       - 10
     type: "target_item"
     item:
-      source: "LIGHT_BLUE_STAINED_GLASS_PANE"
+      source: "light_blue_stained_glass_pane"
       components:
         custom_name: "<aqua>放入装备</aqua>"
         lore:
@@ -107,7 +107,7 @@ slots:
       - 25
     type: "socket_summary"
     item:
-      source: "COMPASS"
+      source: "compass"
       components:
         custom_name: "<gold>宝石槽统计</gold>"
         lore:
@@ -125,7 +125,7 @@ slots:
       - 23
     type: "socket_slot"
     item:
-      source: "WHITE_STAINED_GLASS_PANE"
+      source: "white_stained_glass_pane"
       components:
         custom_name: "<white>宝石插槽</white>"
         lore:
@@ -159,7 +159,7 @@ slots:
       - 39
     type: "mode_inlay"
     item:
-      source: "GREEN_STAINED_GLASS_PANE"
+      source: "green_stained_glass_pane"
       components:
         custom_name: "<green>镶嵌模式</green>"
         lore:
@@ -170,7 +170,7 @@ slots:
       - 42
     type: "mode_upgrade"
     item:
-      source: "PURPLE_STAINED_GLASS_PANE"
+      source: "purple_stained_glass_pane"
       components:
         custom_name: "<light_purple>升级模式</light_purple>"
         lore:
@@ -181,7 +181,7 @@ slots:
       - 40
     type: "mode_extract"
     item:
-      source: "YELLOW_STAINED_GLASS_PANE"
+      source: "yellow_stained_glass_pane"
       components:
         custom_name: "<yellow>取出模式</yellow>"
         lore:
@@ -192,7 +192,7 @@ slots:
       - 43
     type: "mode_reroll_full"
     item:
-      source: "MAGENTA_STAINED_GLASS_PANE"
+      source: "magenta_stained_glass_pane"
       components:
         custom_name: "<light_purple>洗炼模式</light_purple>"
         lore:
@@ -204,7 +204,7 @@ slots:
       - 44
     type: "mode_reroll_value"
     item:
-      source: "CYAN_STAINED_GLASS_PANE"
+      source: "cyan_stained_glass_pane"
       components:
         custom_name: "<aqua>调数模式</aqua>"
         lore:

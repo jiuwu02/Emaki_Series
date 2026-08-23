@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiCodex/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "1.0.2"
+version: "1.0.3"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -16,21 +16,21 @@ release_default_data: true
 # OP 是否绕过本插件的权限检查。
 op_bypass: false
 
-# ------------------------------------------------------------
+# ============================================================
 # 原版成就
-# ------------------------------------------------------------
+# ============================================================
 advancement:
   # 动态成就注册总开关；关闭后跳过加载与注册。
   enabled: true
   # 成就完成时是否默认向全服广播；单个成就可覆盖此默认值。
-  announce-default: false
+  announce_default: false
   # 插件停用时是否移除本插件注册的动态成就。
   # 重载重建时会按插件自身的重建流程处理旧注册内容。
-  remove-on-disable: true
+  remove_on_disable: true
   # 是否使用 PacketEvents 注入成就节点坐标。
   # 未安装 PacketEvents 时本项与节点坐标会被忽略，由客户端自动排布。
   # x/y 同时为 0 表示该节点未指定坐标；需要稳定布局时请统一配置同一页面的节点坐标。
-  packet-coordinates: true
+  packet_coordinates: true
   # 是否启用按游戏事件自动授予成就。
   # 关闭后仍可通过命令或动作手动授予；具体事件规则由 advancements/ 文件定义。
-  triggers-enabled: true
+  triggers_enabled: true
