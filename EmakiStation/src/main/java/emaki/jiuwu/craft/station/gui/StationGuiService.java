@@ -118,7 +118,7 @@ public final class StationGuiService {
         this.catalogRenderer = new StationCatalogRenderer(itemSourceService,
                 () -> guiService.configuredItemService(), guiSupport);
         this.previewRenderer = new StationPreviewRenderer(itemSourceService,
-                () -> guiService.configuredItemService(), guiSupport);
+                () -> guiService.configuredItemService(), guiSupport, materialChannel);
         this.queueRenderer = new StationQueueRenderer(
                 () -> guiService.configuredItemService(), guiSupport);
         this.dismantleService = dismantleService;

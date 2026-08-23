@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
@@ -27,13 +28,16 @@ public final class StationPreviewRenderer {
     private final ItemSourceService itemSourceService;
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
+    private final MergedMaterialChannel materialChannel;
 
     public StationPreviewRenderer(ItemSourceService itemSourceService,
             Supplier<ConfiguredItemService> itemServiceSupplier,
-            ConfiguredGuiSupport guiSupport) {
+            ConfiguredGuiSupport guiSupport,
+            MergedMaterialChannel materialChannel) {
         this.itemSourceService = itemSourceService;
         this.itemServiceSupplier = itemServiceSupplier;
         this.guiSupport = guiSupport;
+        this.materialChannel = materialChannel;
     }
 
     public ItemStack render(StationViewState state,
@@ -89,7 +93,7 @@ public final class StationPreviewRenderer {
         MaterialRequirement requirement = requirements.get(offset);
         ItemSourceRef primary = requirement.primarySource();
         long required = requirement.totalFor(state.batch());
-        long owned = state.availability().totalOf(requirement);
+        long owned = materialChannel.ownedOf(state.viewer(), requirement, state.availability());
         ItemStack icon = itemSourceService == null || primary == null
                 ? null
                 : itemSourceService.createItem(primary, 1);

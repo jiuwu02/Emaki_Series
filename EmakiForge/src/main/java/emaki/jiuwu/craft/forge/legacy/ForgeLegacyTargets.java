@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.legacy.LegacyTargetSpec;
 public final class ForgeLegacyTargets {
 
     private static final List<LegacyTargetSpec> SPECS = List.of(
-            LegacyTargetSpec.replace("recipes", "materials[]", "item_sources"));
+            LegacyTargetSpec.mergeAnd("recipes", "materials[]", "item_sources", "matcher"));
 
     private ForgeLegacyTargets() {
     }

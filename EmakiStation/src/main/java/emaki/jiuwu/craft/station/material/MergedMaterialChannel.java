@@ -195,6 +195,25 @@ public final class MergedMaterialChannel {
         return RecipeMatcher.maxBatch(recipe, availability.combined());
     }
 
+    public long ownedOf(Player player, MaterialRequirement requirement, Availability availability) {
+        if (requirement == null) {
+            return 0L;
+        }
+        if (!requirement.sources().isEmpty()) {
+            return availability == null ? 0L : availability.totalOf(requirement);
+        }
+        if (player == null || !requirement.hasMatcher()) {
+            return 0L;
+        }
+        long owned = 0L;
+        for (BackpackChannel.SlotStack slotStack : backpackChannel.snapshotStacks(player)) {
+            if (requirement.matches(backpackChannel.contextOf(player, slotStack.stack()))) {
+                owned = plus(owned, slotStack.stack().getAmount());
+            }
+        }
+        return owned;
+    }
+
     public long maxBatch(Player player, RecipeDefinition recipe, Availability availability) {
         if (recipe == null) {
             return 0L;

@@ -19,6 +19,8 @@ public final class CookingLegacyTargets {
                     "container_item_sources", "container_matcher"),
             LegacyTargetSpec.mergeAnd(CONFIG, "stations.steamer.fuels[]",
                     "item_sources", "matcher"),
+            LegacyTargetSpec.mergeAnd(CONFIG, "stations.oven.fuels[]",
+                    "item_sources", "matcher"),
             LegacyTargetSpec.mergeAnd(CONFIG, "stations.steamer.moisture_rules[]",
                     "input_item_sources", "input_matcher"),
             LegacyTargetSpec.mergeAnd(CONFIG, "nutrition.food_sources[]",
@@ -28,6 +30,8 @@ public final class CookingLegacyTargets {
             LegacyTargetSpec.mergeAnd("recipes", "input",
                     "item_sources", "matcher"),
             LegacyTargetSpec.mergeAnd("recipes/wok", "ingredients[]",
+                    "item_sources", "matcher"),
+            LegacyTargetSpec.mergeAnd("recipes/fermentation_barrel", "inputs[]",
                     "item_sources", "matcher"));
 
     private CookingLegacyTargets() {

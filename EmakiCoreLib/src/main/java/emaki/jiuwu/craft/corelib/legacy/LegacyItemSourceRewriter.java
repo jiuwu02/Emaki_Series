@@ -178,6 +178,11 @@ public final class LegacyItemSourceRewriter {
                 unconvertible.add(spec.legacyKey() + " 未解析出物品源");
                 continue;
             }
+            if (spec.mergeMode() == LegacyTargetSpec.MergeMode.REPLACE && match.matcher() != null) {
+                unconvertible.add(spec.legacyKey() + " 与同级 " + spec.matcherKey()
+                        + " 并存，无法自动转换，请手动合并后删除旧键");
+                continue;
+            }
             YamlBlockLocator.Hit matcherHit = spec.mergeMode() == LegacyTargetSpec.MergeMode.MERGE_AND
                     ? match.matcher()
                     : null;

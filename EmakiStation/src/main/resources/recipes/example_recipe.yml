@@ -65,10 +65,11 @@ materials:
   # matcher 写法示例（默认注释掉，取消注释即生效，但整条配方会变成仅背包供料）。
   #
   # matcher 可以单独写，也可以和 item_sources 并存：
-  #   两者都写时，item_sources 被忽略，判定完全由 matcher 决定，
-  #   item_sources 只剩下"给界面提供图标与名称"的作用。
+  #   两者都写时，判定完全由 matcher 决定，item_sources 不参与判定，
+  #   但仍负责给界面提供图标与名称、并决定界面"拥有量"的统计口径。
   #   只写 matcher 时界面没有图标可取，会显示屏障占位 +
-  #   texts.recipe.material_matcher 的文案。
+  #   texts.recipe.material_matcher 的文案；此时"拥有量"按背包内实际
+  #   满足 matcher 的物品统计。
   #
   # 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
   #          at_least + required_count、exactly + required_count
