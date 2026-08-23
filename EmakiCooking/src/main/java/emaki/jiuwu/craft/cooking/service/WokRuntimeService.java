@@ -1013,12 +1013,8 @@ public final class WokRuntimeService {
         if (source == null) {
             return false;
         }
-        for (ItemSourceRef tool : settingsService.wokSpatulaSources()) {
-            if (ItemSourceUtil.matches(tool, source)) {
-                return CookingMatchers.test(settingsService.wokSpatulaMatcher(), itemStack, source, null);
-            }
-        }
-        return false;
+        return CookingMatchers.accepts(settingsService.wokSpatulaSources(),
+                settingsService.wokSpatulaMatcher(), itemStack, source, null);
     }
 
     private boolean isPlainBowl(ItemStack itemStack) {

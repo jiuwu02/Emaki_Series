@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.2.4"
+version: "4.2.6"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -26,7 +26,25 @@ command:
       reload: "重载配置、语言与配方目录"
       inspect: "检查主手物品的 CoreLib 来源标识"
       nutrition: "查询或调整玩家营养值"
+      "convert-legacy [confirm]": "把旧 item_sources 识别位合并为 matcher"
       debug: "管理 Debug 模式"
+  convert_legacy:
+    header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
+    mode:
+      dry_run: "预演"
+      apply: "写入"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
+    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakicooking convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    status:
+      converted: "可转换"
+      no_legacy_block: "无旧键"
+      conflict: "键冲突，已保留原样"
+      unconvertible: "无等价写法，已保留原样"
+      failed: "转换失败，已保留原样"
   inspect:
     header: "<gold>========== 手持物品检查 ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"

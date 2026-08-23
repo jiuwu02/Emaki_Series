@@ -13,8 +13,13 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.FileReport;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.RunReport;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.Status;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.LevelPermissions;
+import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
@@ -54,6 +59,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             case "setlevel" -> handleLevel(sender, tail(args), "set");
             case "reset" -> handleReset(sender, tail(args));
             case "reload" -> handleReload(sender);
+            case "convert-legacy" -> handleConvertLegacy(sender, tail(args));
             case "debug" -> handleDebug(sender, tail(args));
             default -> {
                 plugin.messages().send(sender, "command.usage");
@@ -231,6 +237,65 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleConvertLegacy(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(LevelPermissions.ADMIN)) {
+            plugin.messages().send(sender, "command.no_permission");
+            return true;
+        }
+        boolean apply = args.length >= 1
+                && ("confirm".equalsIgnoreCase(args[0]) || "--apply".equalsIgnoreCase(args[0]));
+        RunReport report = new LegacyItemSourceRewriter(
+                plugin.getDataFolder().toPath(),
+                LevelLegacyTargets.specs(),
+                plugin.getLogger()).run(apply);
+        var messages = plugin.messages();
+        messages.sendRaw(sender, messages.message("command.convert_legacy.header", Map.of(
+                "mode", messages.message(apply
+                        ? "command.convert_legacy.mode.apply"
+                        : "command.convert_legacy.mode.dry_run"),
+                "files", report.files().size()
+        )));
+        for (FileReport file : report.files()) {
+            sendConvertLegacyFile(sender, file, apply);
+        }
+        messages.sendRaw(sender, messages.message("command.convert_legacy.summary", Map.of(
+                "converted", report.count(Status.CONVERTED),
+                "skipped", report.count(Status.NO_LEGACY_BLOCK),
+                "conflict", report.count(Status.CONFLICT),
+                "unconvertible", report.count(Status.UNCONVERTIBLE),
+                "failed", report.count(Status.FAILED)
+        )));
+        if (!apply) {
+            messages.send(sender, report.hasConvertible()
+                    ? "command.convert_legacy.dry_run_hint"
+                    : "command.convert_legacy.nothing_to_do");
+        }
+        return true;
+    }
+
+    private void sendConvertLegacyFile(CommandSender sender, FileReport file, boolean apply) {
+        if (file.status() == Status.NO_LEGACY_BLOCK) {
+            return;
+        }
+        var messages = plugin.messages();
+        messages.sendRaw(sender, messages.message("command.convert_legacy.file", Map.of(
+                "file", file.fileName(),
+                "status", messages.message("command.convert_legacy.status."
+                        + file.status().name().toLowerCase(Locale.ROOT)),
+                "detail", file.detail()
+        )));
+        if (apply && !file.backupName().isBlank()) {
+            messages.sendRaw(sender, messages.message("command.convert_legacy.backup",
+                    Map.of("backup", file.backupName())));
+        }
+        if (!apply) {
+            for (String line : file.diff()) {
+                messages.sendRaw(sender, messages.message("command.convert_legacy.diff_line",
+                        Map.of("line", line)));
+            }
+        }
+    }
+
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(LevelPermissions.DEBUG) && !sender.hasPermission(LevelPermissions.ADMIN)) {
             plugin.messages().send(sender, "command.no_permission");
@@ -314,7 +379,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug")) {
+            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;

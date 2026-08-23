@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 final class SteamerSettings {
 
@@ -55,14 +56,15 @@ final class SteamerSettings {
         for (Map<?, ?> entry : configuration.get().getMapList("stations.steamer.fuels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             ItemSourceRef source = ItemSourceUtil.parse(normalized.get("item_sources"));
-            if (source == null) {
+            Matcher matcher = CookingMatchers.parse(normalized, "matcher");
+            if (source == null && matcher == null) {
                 continue;
             }
             Integer duration = CookingSettingsService.configurationValueToInt(normalized.get("duration_seconds"), 0);
             result.add(new CookingSettingsService.SteamerFuelRule(
                     source,
                     duration == null ? 0 : Math.max(0, duration),
-                    CookingMatchers.parse(normalized, "matcher")));
+                    matcher));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }
@@ -72,7 +74,8 @@ final class SteamerSettings {
         for (Map<?, ?> entry : configuration.get().getMapList("stations.steamer.moisture_rules")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             ItemSourceRef input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
-            if (input == null) {
+            Matcher inputMatcher = CookingMatchers.parse(normalized, "input_matcher");
+            if (input == null && inputMatcher == null) {
                 continue;
             }
             ItemSourceRef output = ItemSourceUtil.parse(normalized.get("item_sources"));
@@ -81,7 +84,7 @@ final class SteamerSettings {
                     input,
                     output,
                     moisture == null ? 0 : Math.max(0, moisture),
-                    CookingMatchers.parse(normalized, "input_matcher")));
+                    inputMatcher));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }

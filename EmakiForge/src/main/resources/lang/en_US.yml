@@ -3,7 +3,7 @@
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
 
-version: "4.7.5"
+version: "4.7.7"
 
 # General messages
 general:
@@ -30,10 +30,28 @@ command:
       reload: "Reload configuration"
       "list <type>": "List configs of specified type"
       debug: "Manage debug mode"
+      "convert-legacy [confirm]": "Convert legacy item_sources in recipes/ to matcher"
       editor: "Open forge resource editor"
       "edit recipe <id>": "Edit specified recipe"
       "create recipe [id]": "Create new recipe draft"
       "delete recipe <id>": "Delete specified recipe"
+  convert_legacy:
+    header: "<gold>========== Legacy item_sources conversion (%mode%, %files% files) ==========</gold>"
+    mode:
+      dry_run: "dry run"
+      apply: "apply"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  Backed up as <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>Converted %converted%, no legacy key %skipped%, conflict %conflict%, unconvertible %unconvertible%, failed %failed%.</gray>"
+    dry_run_hint: "<yellow>Dry run only, nothing was written. Run <white>/emakiforge convert-legacy confirm</white> to apply and back up the originals.</yellow>"
+    nothing_to_do: "<gray>Nothing to convert.</gray>"
+    status:
+      converted: "convertible"
+      no_legacy_block: "no legacy key"
+      conflict: "key conflict, left unchanged"
+      unconvertible: "no equivalent form, left unchanged"
+      failed: "conversion failed, left unchanged"
   list:
     header: "<gold>========== %type% List ==========</gold>"
     recipes_header: "<gold>========== Recipe List (%count% total) ==========</gold>"

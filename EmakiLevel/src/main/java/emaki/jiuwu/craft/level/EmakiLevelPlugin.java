@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -40,6 +41,7 @@ import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
+import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
@@ -157,6 +159,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         messages.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
+        reportLegacyItemSources();
         registerCommand();
         registerListeners();
         registerApi();
@@ -368,6 +371,15 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 "emakilevel command",
                 List.of("elv", "elevel"),
                 new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
+        );
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                LevelLegacyTargets.specs(),
+                getLogger(),
+                "emakilevel"
         );
     }
 

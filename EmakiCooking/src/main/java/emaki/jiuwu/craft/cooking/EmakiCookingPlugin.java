@@ -30,12 +30,14 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
+import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.listener.MmoItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NeigeItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NutritionConsumeListener;
@@ -162,6 +164,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         bootstrapService.bootstrap();
         registerConfigPrecheckContributor();
         reloadPluginState();
+        reportLegacyItemSources();
         recoverCookingCompletions();
         registerCommandHandler();
         registerEventHandlers();
@@ -349,6 +352,15 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                CookingLegacyTargets.specs(),
+                getLogger(),
+                "emakicooking"
+        );
     }
 
     private void registerCommandHandler() {

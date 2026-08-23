@@ -17,6 +17,11 @@ import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.FileReport;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.RunReport;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.Status;
+import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -47,6 +52,7 @@ final class CookingCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "station" -> handleStation(sender, args);
             case "nutrition" -> handleNutrition(sender, args);
+            case "convert-legacy" -> handleConvertLegacy(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -59,7 +65,7 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "debug")) {
+            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -133,6 +139,65 @@ final class CookingCommandRouter implements TabExecutor {
             plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
+    }
+
+    private boolean handleConvertLegacy(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        boolean apply = args.length >= 2
+                && ("confirm".equalsIgnoreCase(args[1]) || "--apply".equalsIgnoreCase(args[1]));
+        RunReport report = new LegacyItemSourceRewriter(
+                plugin.getDataFolder().toPath(),
+                CookingLegacyTargets.specs(),
+                plugin.getLogger()).run(apply);
+        var messages = plugin.messageService();
+        messages.sendRaw(sender, messages.message("command.convert_legacy.header", Map.of(
+                "mode", messages.message(apply
+                        ? "command.convert_legacy.mode.apply"
+                        : "command.convert_legacy.mode.dry_run"),
+                "files", report.files().size()
+        )));
+        for (FileReport file : report.files()) {
+            sendConvertLegacyFile(sender, file, apply);
+        }
+        messages.sendRaw(sender, messages.message("command.convert_legacy.summary", Map.of(
+                "converted", report.count(Status.CONVERTED),
+                "skipped", report.count(Status.NO_LEGACY_BLOCK),
+                "conflict", report.count(Status.CONFLICT),
+                "unconvertible", report.count(Status.UNCONVERTIBLE),
+                "failed", report.count(Status.FAILED)
+        )));
+        if (!apply) {
+            messages.send(sender, report.hasConvertible()
+                    ? "command.convert_legacy.dry_run_hint"
+                    : "command.convert_legacy.nothing_to_do");
+        }
+        return true;
+    }
+
+    private void sendConvertLegacyFile(CommandSender sender, FileReport file, boolean apply) {
+        if (file.status() == Status.NO_LEGACY_BLOCK) {
+            return;
+        }
+        var messages = plugin.messageService();
+        messages.sendRaw(sender, messages.message("command.convert_legacy.file", Map.of(
+                "file", file.fileName(),
+                "status", messages.message("command.convert_legacy.status."
+                        + file.status().name().toLowerCase(Locale.ROOT)),
+                "detail", file.detail()
+        )));
+        if (apply && !file.backupName().isBlank()) {
+            messages.sendRaw(sender, messages.message("command.convert_legacy.backup",
+                    Map.of("backup", file.backupName())));
+        }
+        if (!apply) {
+            for (String line : file.diff()) {
+                messages.sendRaw(sender, messages.message("command.convert_legacy.diff_line",
+                        Map.of("line", line)));
+            }
+        }
     }
 
     private void runForSender(CommandSender sender, Runnable task) {

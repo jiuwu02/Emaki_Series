@@ -474,7 +474,11 @@ public final class CookingRecipeService {
             }
             ItemSourceRef configured = parsedSourceCache.computeIfAbsent(recipe,
                     r -> ItemSourceUtil.parse(r.configuration().get("input.item_sources")));
-            if (configured == null || !ItemSourceUtil.matches(configured, expected)) {
+            Matcher inputMatcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
+            if (configured == null && inputMatcher == null) {
+                continue;
+            }
+            if (configured != null && !ItemSourceUtil.matches(configured, expected)) {
                 continue;
             }
             if (!canUseRecipe(recipe, player)) {
@@ -489,10 +493,13 @@ public final class CookingRecipeService {
     }
 
     private boolean matchesInputMatcher(RecipeDocument recipe, ItemStack itemStack, ItemSourceRef source, Player player) {
-        if (itemStack == null || itemStack.getType().isAir()) {
+        Matcher matcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
+        if (matcher == null) {
             return true;
         }
-        Matcher matcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return ItemSourceUtil.parse(recipe.configuration().get("input.item_sources")) != null;
+        }
         return CookingMatchers.test(matcher, itemStack, source, player);
     }
 
@@ -507,9 +514,13 @@ public final class CookingRecipeService {
                 return false;
             }
             Map<String, Object> expected = expectedIngredients.get(index);
-            String expectedSource = firstSourceShorthand(expected.get("item_sources"));
+            ItemSourceRef expectedSource = ItemSourceUtil.parse(firstSourceShorthand(expected.get("item_sources")));
             int expectedAmount = Math.max(1, Numbers.tryParseInt(expected.get("amount"), 1));
-            if (!ItemSourceUtil.matches(ItemSourceUtil.parse(expectedSource), ItemSourceUtil.parse(actual.source()))) {
+            if (expectedSource == null && CookingMatchers.parse(expected, "matcher") == null) {
+                return false;
+            }
+            if (expectedSource != null
+                    && !ItemSourceUtil.matches(expectedSource, ItemSourceUtil.parse(actual.source()))) {
                 return false;
             }
             if (!matchesIngredientMatcher(expected, actual, player)) {
@@ -526,11 +537,14 @@ public final class CookingRecipeService {
     }
 
     private boolean matchesIngredientMatcher(Map<String, Object> expected, WokIngredientInput actual, Player player) {
-        ItemStack itemStack = actual.itemStack();
-        if (itemStack == null || itemStack.getType().isAir()) {
+        Matcher matcher = CookingMatchers.parse(expected, "matcher");
+        if (matcher == null) {
             return true;
         }
-        Matcher matcher = CookingMatchers.parse(expected, "matcher");
+        ItemStack itemStack = actual.itemStack();
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return ItemSourceUtil.parse(firstSourceShorthand(expected.get("item_sources"))) != null;
+        }
         return CookingMatchers.test(matcher, itemStack, ItemSourceUtil.parse(actual.source()), player);
     }
 

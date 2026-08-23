@@ -3,7 +3,7 @@
 # version 由资源同步流程维护，用于合并新增默认键。
 
 
-version: "4.7.5"
+version: "4.7.7"
 
 # 通用消息
 general:
@@ -30,10 +30,28 @@ command:
       reload: "重载配置文件"
       "list <type>": "列出指定类型配置"
       debug: "管理 Debug 模式"
+      "convert-legacy [confirm]": "把 recipes/ 的旧 item_sources 转换为 matcher"
       editor: "打开锻造资源编辑器"
       "edit recipe <id>": "编辑指定配方"
       "create recipe [id]": "创建新配方草稿"
       "delete recipe <id>": "删除指定配方"
+  convert_legacy:
+    header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
+    mode:
+      dry_run: "预演"
+      apply: "写入"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
+    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakiforge convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    status:
+      converted: "可转换"
+      no_legacy_block: "无旧键"
+      conflict: "键冲突，已保留原样"
+      unconvertible: "无等价写法，已保留原样"
+      failed: "转换失败，已保留原样"
   list:
     header: "<gold>========== %type% 列表 ==========</gold>"
     recipes_header: "<gold>========== 配方列表 (共 %count% 条) ==========</gold>"

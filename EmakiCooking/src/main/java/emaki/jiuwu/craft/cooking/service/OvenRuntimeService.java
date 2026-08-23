@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -403,8 +403,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
             return null;
         }
         for (CookingSettingsService.OvenFuelRule rule : settingsService.ovenFuels()) {
-            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)
-                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
+            if (rule != null && CookingMatchers.accepts(rule.source(), rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }

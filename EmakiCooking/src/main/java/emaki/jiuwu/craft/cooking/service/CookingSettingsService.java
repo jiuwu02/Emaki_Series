@@ -1041,7 +1041,8 @@ public final class CookingSettingsService {
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             List<ItemSourceRef> sources = parseSources(normalized.get("item_sources"));
-            if (sources.isEmpty()) {
+            Matcher matcher = CookingMatchers.parse(normalized, "matcher");
+            if (sources.isEmpty() && matcher == null) {
                 continue;
             }
             Map<String, Double> nutrition = parseNutritionAmounts(normalized.get("nutrition"));
@@ -1049,7 +1050,7 @@ public final class CookingSettingsService {
             if (nutrition.isEmpty() && actions.isEmpty()) {
                 continue;
             }
-            result.add(new NutritionFoodSource(sources, nutrition, actions, CookingMatchers.parse(normalized, "matcher")));
+            result.add(new NutritionFoodSource(sources, nutrition, actions, matcher));
         }
         return List.copyOf(result);
     }

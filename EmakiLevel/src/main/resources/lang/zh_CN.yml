@@ -1,4 +1,9 @@
-version: "1.5.5"
+# EmakiLevel 简体中文语言资源。
+# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# version 由资源同步流程维护，用于合并新增默认键。
+
+version: "1.5.7"
+
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
@@ -48,6 +53,23 @@ command:
   invalid_number: "%prefix%<red>数字无效: <white>%value%</white></red>"
   reload_success: "%prefix%<green>配置已重载。</green>"
   usage: "%prefix%<gray>用法: /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type]</gray>"
+  convert_legacy:
+    header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
+    mode:
+      dry_run: "预演"
+      apply: "写入"
+    file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
+    backup: "<gray>  已备份为 <white>%backup%</white></gray>"
+    diff_line: "<gray>  %line%</gray>"
+    summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
+    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakilevel convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    status:
+      converted: "可转换"
+      no_legacy_block: "无旧键"
+      conflict: "键冲突，已保留原样"
+      unconvertible: "无等价写法，已保留原样"
+      failed: "转换失败，已保留原样"
 level:
   info_line: "%prefix%%type_display_name% <gray>Lv.%level% %exp%/%required_exp% (%progress_percent%%)</gray>"
   exp_gain: "%prefix%<green>%type_display_name% 经验 +%amount%</green>"

@@ -191,10 +191,7 @@ public final class NutritionService {
         boolean ruleMatched = false;
         boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
-            if (!matchesAny(rule.itemSources(), source)) {
-                continue;
-            }
-            if (!CookingMatchers.test(rule.matcher(), itemStack, source, player)) {
+            if (!CookingMatchers.accepts(rule.itemSources(), rule.matcher(), itemStack, source, player)) {
                 continue;
             }
             ruleMatched = true;
@@ -228,15 +225,6 @@ public final class NutritionService {
             return new FoodApplyResult(FoodApplyStatus.APPLIED);
         }
         return new FoodApplyResult(ruleMatched ? FoodApplyStatus.DATA_UNAVAILABLE : FoodApplyStatus.NO_RULE);
-    }
-
-    private boolean matchesAny(List<ItemSourceRef> sources, ItemSourceRef target) {
-        for (ItemSourceRef candidate : sources) {
-            if (ItemSourceUtil.matches(candidate, target)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     public boolean recheckThresholds(Player player) {

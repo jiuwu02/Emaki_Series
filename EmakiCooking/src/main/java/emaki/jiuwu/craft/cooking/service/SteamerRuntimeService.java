@@ -20,7 +20,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -532,8 +532,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
             return null;
         }
         for (CookingSettingsService.SteamerFuelRule rule : settingsService.steamerFuels()) {
-            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)
-                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
+            if (rule != null && CookingMatchers.accepts(rule.source(), rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }
@@ -546,8 +545,8 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
             return null;
         }
         for (CookingSettingsService.SteamerMoistureRule rule : settingsService.steamerMoistureSources()) {
-            if (rule != null && ItemSourceUtil.matches(rule.inputSource(), identified)
-                    && CookingMatchers.test(rule.matcher(), itemStack, identified, null)) {
+            if (rule != null
+                    && CookingMatchers.accepts(rule.inputSource(), rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }
