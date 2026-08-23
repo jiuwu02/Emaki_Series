@@ -26,7 +26,8 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 public final class GemItemFactory {
 
     private static final PdcService PDC = new PdcService("emaki");
-    private static final PdcPartition GEM_ITEM_PARTITION = PDC.partition("gem.item");
+    /** 扁平分区路径（无点），以便第三方插件从 Bukkit YAML 手写这些键。 */
+    private static final PdcPartition GEM_ITEM_PARTITION = PDC.partition("gem_item");
 
     private final EmakiGemPlugin plugin;
     private final ItemSourceService itemSourceService;
@@ -77,6 +78,8 @@ public final class GemItemFactory {
         PDC.set(itemStack, GEM_ITEM_PARTITION, "stage", PersistentDataType.INTEGER, instance.stage());
         PDC.set(itemStack, GEM_ITEM_PARTITION, "data_version", PersistentDataType.INTEGER, instance.dataVersion());
         PDC.writeBlob(itemStack, GEM_ITEM_PARTITION, "instance_data", GemItemInstance.CODEC, instance);
+        // 新键已写全，清掉历史带点键（含 LEGACY_GEM_ITEM_PATH 下的），避免孤儿残留。
+        PDC.purgeLegacyKeys(itemStack);
     }
 
     public ItemStack recreateGemItem(GemItemInstance instance, int amount) {

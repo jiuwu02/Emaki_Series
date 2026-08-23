@@ -172,16 +172,14 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         Set<String> declared = new LinkedHashSet<>();
         for (Map.Entry<String, List<String>> entry : contract.entrySet()) {
             String path = entry.getKey();
-            if (!path.startsWith("forge.")) {
+            // 键路径现在有两种形态：扁平的 forge_xxx 与历史的 forge.xxx。
+            if (!path.startsWith("forge_") && !path.startsWith("forge.")) {
                 addIssue("enhancement_variables", ERROR,
-                        "forge variable path '" + path + "' must live under the forge. prefix", issues);
+                        "forge variable path '" + path + "' must live under the forge prefix", issues);
             }
-            for (String alias : entry.getValue()) {
-                if (!declared.add(alias)) {
-                    addIssue("enhancement_variables", ERROR,
-                            "forge variable alias '" + alias + "' is declared by more than one path", issues);
-                }
-            }
+            // 别名不再要求全局唯一：同一组对外变量名由"新键路径"和"老键路径"
+            // 两条路径共同声明，这是迁移期的预期状态，不是配置错误。
+            declared.addAll(entry.getValue());
         }
         for (String required : List.of("forge_quality_id", "forge_quality_display",
                 "forge_quality_multiplier", "forge_recipe_id")) {

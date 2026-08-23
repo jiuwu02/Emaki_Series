@@ -628,6 +628,7 @@ debug:
     skill_payload: "Skill PDC payload mutation | operation=%operation% | item=%item% | amount=%amount% | before=%before% | after=%after% | committed=%committed% | reason=%reason%"
     mutation: "PDC mutation | operation=%operation% | item=%item% | amount=%amount% | key=%key% | value=%value% | before=%before% | after=%after% | added=%added% | removed=%removed% | changed=%changed% | committed=%committed% | reason=%reason%"
     cooking_history: "Cooking history PDC mutation | item=%item% | amount=%amount% | key=%key% | before=%before% | after=%after% | recipe=%recipe% | committed=%committed%"
+    join_migrated: "Migrated legacy PDC keys on join | player=%player% | keys=%keys%"
 
 # Command messages
 command:

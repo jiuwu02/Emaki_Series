@@ -88,6 +88,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.corelib.pdc.PdcMigrationJoinListener;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
@@ -307,6 +308,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     (owner, body, context, stopOnFailure) ->
                             pipelineBatchRunner.run(owner, actionEngine, body, context, stopOnFailure));
             getServer().getPluginManager().registerEvents(pipelineTaskService, this);
+            // PDC 键扁平化的主动转换。与 pipelineTaskService 同在这个 if 内注册，
+            // 保证 reload 时不重复注册（reload 会再次走到这段代码）。
+            getServer().getPluginManager().registerEvents(
+                    new PdcMigrationJoinListener(this::debugLogger), this);
         }
         StageRegistry candidateStageRegistry = new StageRegistry();
         BuiltinStages.Report stageReport = BuiltinStages.registerAll(

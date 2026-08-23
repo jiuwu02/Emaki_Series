@@ -8,15 +8,30 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementTargetVariables;
 
 public final class EnhancementVariableContract {
 
+    private static final List<String> QUALITY_ID_ALIASES =
+            List.of("forge_quality_id", "forge.quality_id", "quality_id");
+    private static final List<String> QUALITY_DISPLAY_ALIASES =
+            List.of("forge_quality_display", "forge.quality_display", "quality_display");
+    private static final List<String> QUALITY_MULTIPLIER_ALIASES =
+            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier");
+    private static final List<String> RECIPE_ID_ALIASES =
+            List.of("forge_recipe_id", "forge.forge_recipe_id");
+
+    /**
+     * 预期的「PDC 键路径 → 对外变量名」契约。
+     *
+     * <p>每个字段有两条键路径：扁平的新键与历史带点的老键，两者映射到同一组
+     * 对外变量名。未迁移的物品仍带老键，因此契约必须同时覆盖。
+     */
     private static final Map<String, List<String>> EXPECTED_ALIASES = Map.of(
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_ID,
-            List.of("forge_quality_id", "forge.quality_id", "quality_id"),
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_DISPLAY,
-            List.of("forge_quality_display", "forge.quality_display", "quality_display"),
-            EnhancementTargetVariables.FORGE_PATH_QUALITY_MULTIPLIER,
-            List.of("forge_quality_multiplier", "forge.quality_multiplier", "quality_multiplier"),
-            EnhancementTargetVariables.FORGE_PATH_RECIPE_ID,
-            List.of("forge_recipe_id", "forge.forge_recipe_id"));
+            EnhancementTargetVariables.FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,
+            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_ID, QUALITY_ID_ALIASES,
+            EnhancementTargetVariables.FORGE_PATH_QUALITY_DISPLAY, QUALITY_DISPLAY_ALIASES,
+            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_DISPLAY, QUALITY_DISPLAY_ALIASES,
+            EnhancementTargetVariables.FORGE_PATH_QUALITY_MULTIPLIER, QUALITY_MULTIPLIER_ALIASES,
+            EnhancementTargetVariables.LEGACY_FORGE_PATH_QUALITY_MULTIPLIER, QUALITY_MULTIPLIER_ALIASES,
+            EnhancementTargetVariables.FORGE_PATH_RECIPE_ID, RECIPE_ID_ALIASES,
+            EnhancementTargetVariables.LEGACY_FORGE_PATH_RECIPE_ID, RECIPE_ID_ALIASES);
 
     private EnhancementVariableContract() {
     }

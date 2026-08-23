@@ -96,9 +96,13 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
 
     @Override
     public @NotNull Map<TargetSnapshotCategory, Set<String>> snapshotPartitions() {
+        // 同时声明扁平前缀与历史带点前缀：未迁移的物品键仍是 strengthen.affix.*，
+        // 只声明扁平前缀会让这些键分类落空，target_layer_* 变量消失。
         return Map.of(
-                TargetSnapshotCategory.LAYER, Set.of(AffixLayerCodec.partitionPath()),
-                TargetSnapshotCategory.AUDIT, Set.of(MasteryLayerCodec.partitionPath()));
+                TargetSnapshotCategory.LAYER,
+                Set.of(AffixLayerCodec.partitionPath(), AffixLayerCodec.legacyPartitionPath()),
+                TargetSnapshotCategory.AUDIT,
+                Set.of(MasteryLayerCodec.partitionPath(), MasteryLayerCodec.legacyPartitionPath()));
     }
 
     @Override

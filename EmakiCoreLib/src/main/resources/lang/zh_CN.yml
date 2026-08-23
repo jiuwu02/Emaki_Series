@@ -596,6 +596,7 @@ debug:
     skill_payload: "技能 PDC 载荷变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 变更前=%before% | 变更后=%after% | 已提交=%committed% | 原因=%reason%"
     mutation: "PDC 变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 键=%key% | 值=%value% | 变更前=%before% | 变更后=%after% | 新增=%added% | 移除=%removed% | 修改=%changed% | 已提交=%committed% | 原因=%reason%"
     cooking_history: "烹饪历史 PDC 变更 | 物品=%item% | 数量=%amount% | 键=%key% | 变更前=%before% | 变更后=%after% | 配方=%recipe% | 已提交=%committed%"
+    join_migrated: "玩家加入时转换历史 PDC 键 | 玩家=%player% | 键数=%keys%"
 
 # 命令消息
 command:

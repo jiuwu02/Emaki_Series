@@ -17,7 +17,10 @@ import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 
 public final class MasteryLayerCodec {
 
-    private static final String PARTITION_PATH = "strengthen.mastery";
+    /** 扁平分区路径（无点），以便第三方插件从 Bukkit YAML 手写这些键。 */
+    private static final String PARTITION_PATH = "strengthen_mastery";
+    /** 历史带点路径，仅供懒转换回落读取。 */
+    private static final String LEGACY_PARTITION_PATH = "strengthen.mastery";
     private static final String FIELD = "layer";
     private static final int SCHEMA_VERSION = 1;
 
@@ -35,19 +38,24 @@ public final class MasteryLayerCodec {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
-        return pdcService.readBlob(itemStack, partition, FIELD, codec);
+        return pdcService.readBlobMigrating(itemStack, partition, LEGACY_PARTITION_PATH, FIELD, codec);
     }
 
     public boolean write(@Nullable ItemStack itemStack, @Nullable MasteryLayer layer) {
         if (itemStack == null || itemStack.getType().isAir() || layer == null) {
             return false;
         }
-        return pdcService.writeBlob(itemStack, partition, FIELD, codec, layer);
+        boolean written = pdcService.writeBlob(itemStack, partition, FIELD, codec, layer);
+        if (written) {
+            // 新键已写好，清掉历史带点键，避免读不到的孤儿残留。
+            pdcService.purgeLegacyKeys(itemStack);
+        }
+        return written;
     }
 
     public void clear(@Nullable ItemStack itemStack) {
         if (itemStack != null && !itemStack.getType().isAir()) {
-            pdcService.remove(itemStack, partition, FIELD);
+            pdcService.removeMigrating(itemStack, partition, LEGACY_PARTITION_PATH, FIELD);
         }
     }
 
@@ -87,5 +95,10 @@ public final class MasteryLayerCodec {
 
     public static @NotNull String partitionPath() {
         return PARTITION_PATH;
+    }
+
+    /** {@return 历史带点分区路径}，供快照分类兼容未迁移物品的老键。 */
+    public static @NotNull String legacyPartitionPath() {
+        return LEGACY_PARTITION_PATH;
     }
 }

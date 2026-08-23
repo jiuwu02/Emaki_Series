@@ -51,6 +51,23 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             PdcAttributePayload::fromMap
     );
 
+    /** 物品属性分区路径。扁平（无点）以便第三方插件从 YAML 手写这些键。 */
+    private static final String ITEM_PARTITION_PATH = "item_attributes";
+    /** 来源子分区段名。 */
+    private static final String SOURCE_SEGMENT = "source";
+    /** 索引字段名。 */
+    private static final String SOURCE_INDEX_FIELD = "source_index";
+
+    /**
+     * 历史分区路径（带点），仅供懒转换回落读取。
+     *
+     * <p>老键形如 {@code emaki_attribute:item.attributes.source_index} 与
+     * {@code emaki_attribute:item.attributes.source.<id>.payload}。
+     */
+    private static final String LEGACY_ITEM_PARTITION_PATH = "item.attributes";
+    private static final String LEGACY_SOURCE_PARTITION_PATH =
+            LEGACY_ITEM_PARTITION_PATH + "." + SOURCE_SEGMENT;
+
     private final EmakiAttributePlugin plugin;
     private final PdcReadRuleLoader ruleLoader;
     private final ItemContributionGateRegistry gateRegistry;
@@ -66,8 +83,8 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         this.ruleLoader = ruleLoader;
         this.gateRegistry = gateRegistry;
         this.pdcService = new PdcService("emaki_attribute", "pdc", plugin == null ? null : plugin.debugLogger());
-        this.itemPartition = pdcService.partition("item.attributes");
-        this.sourcePartition = itemPartition.child("source");
+        this.itemPartition = pdcService.partition(ITEM_PARTITION_PATH);
+        this.sourcePartition = itemPartition.child(SOURCE_SEGMENT);
     }
 
     @Override
@@ -145,7 +162,14 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (itemStack == null || Texts.isBlank(sourceId)) {
             return null;
         }
-        return pdcService.readBlob(itemStack, sourcePartition.child(Texts.normalizeId(sourceId)), "payload", PAYLOAD_CODEC);
+        String normalized = Texts.normalizeId(sourceId);
+        return pdcService.readBlobMigrating(
+                itemStack,
+                sourcePartition.child(normalized),
+                LEGACY_SOURCE_PARTITION_PATH + "." + normalized,
+                "payload",
+                PAYLOAD_CODEC
+        );
     }
 
     @Override
@@ -207,7 +231,8 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return EmakiResult.notFound("attribute.pdc.payload_not_found");
         }
         try {
-            pdcService.remove(itemStack, sourcePartition.child(normalized), "payload");
+            pdcService.removeMigrating(itemStack, sourcePartition.child(normalized),
+                    LEGACY_SOURCE_PARTITION_PATH + "." + normalized, "payload");
             writeIndex(itemStack, removeSource(readIndex(itemStack), normalized));
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
@@ -222,9 +247,10 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         }
         try {
             for (String sourceId : readIndex(itemStack)) {
-                pdcService.remove(itemStack, sourcePartition.child(sourceId), "payload");
+                pdcService.removeMigrating(itemStack, sourcePartition.child(sourceId),
+                        LEGACY_SOURCE_PARTITION_PATH + "." + sourceId, "payload");
             }
-            pdcService.remove(itemStack, itemPartition, "source_index");
+            pdcService.removeMigrating(itemStack, itemPartition, LEGACY_ITEM_PARTITION_PATH, SOURCE_INDEX_FIELD);
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
             return EmakiResult.internalError("attribute.pdc.clear_all_failed");
@@ -699,7 +725,13 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (itemStack == null) {
             return List.of();
         }
-        String raw = pdcService.get(itemStack, itemPartition, "source_index", PersistentDataType.STRING);
+        String raw = pdcService.getMigrating(
+                itemStack,
+                itemPartition,
+                LEGACY_ITEM_PARTITION_PATH,
+                SOURCE_INDEX_FIELD,
+                PersistentDataType.STRING
+        );
         if (Texts.isBlank(raw)) {
             return List.of();
         }
@@ -718,10 +750,11 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return;
         }
         if (sourceIds == null || sourceIds.isEmpty()) {
-            pdcService.remove(itemStack, itemPartition, "source_index");
+            pdcService.remove(itemStack, itemPartition, SOURCE_INDEX_FIELD);
             return;
         }
-        pdcService.set(itemStack, itemPartition, "source_index", PersistentDataType.STRING, String.join(",", sourceIds));
+        pdcService.set(itemStack, itemPartition, SOURCE_INDEX_FIELD, PersistentDataType.STRING,
+                String.join(",", sourceIds));
     }
     private String normalizeConditionType(String type) {
         return Texts.normalizeId(type);

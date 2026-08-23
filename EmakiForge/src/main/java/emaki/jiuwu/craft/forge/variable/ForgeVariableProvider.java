@@ -29,22 +29,22 @@ public final class ForgeVariableProvider {
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
         NamespacedKey nsKey = new NamespacedKey(ForgePdcKeys.NAMESPACE, ForgePdcKeys.FORGE_PARTITION);
 
-        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_ID));
-        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_DISPLAY));
-        builder.withPdcString(makeKey(ForgePdcKeys.QUALITY_MULTIPLIER));
-        builder.withPdcString(makeKey(ForgePdcKeys.FORGE_RECIPE_ID));
+        builder.withPdcString(partition.key(ForgePdcKeys.QUALITY_ID));
+        builder.withPdcString(partition.key(ForgePdcKeys.QUALITY_DISPLAY));
+        builder.withPdcString(partition.key(ForgePdcKeys.QUALITY_MULTIPLIER));
+        builder.withPdcString(partition.key(ForgePdcKeys.FORGE_RECIPE_ID));
 
-        String qualityId = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_ID, PersistentDataType.STRING);
+        String qualityId = readMigrating(item, partition, ForgePdcKeys.QUALITY_ID);
         if (Texts.isNotBlank(qualityId)) {
             builder.with("forge_quality_id", qualityId);
         }
 
-        String qualityDisplay = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_DISPLAY, PersistentDataType.STRING);
+        String qualityDisplay = readMigrating(item, partition, ForgePdcKeys.QUALITY_DISPLAY);
         if (Texts.isNotBlank(qualityDisplay)) {
             builder.with("forge_quality_display", qualityDisplay);
         }
 
-        String multiplierStr = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER, PersistentDataType.STRING);
+        String multiplierStr = readMigrating(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
         if (Texts.isNotBlank(multiplierStr)) {
             try {
                 double multiplier = Double.parseDouble(multiplierStr);
@@ -53,7 +53,7 @@ public final class ForgeVariableProvider {
             }
         }
 
-        String recipeId = PDC_SERVICE.get(item, partition, ForgePdcKeys.FORGE_RECIPE_ID, PersistentDataType.STRING);
+        String recipeId = readMigrating(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
         if (Texts.isNotBlank(recipeId)) {
             builder.with("forge_recipe_id", recipeId);
         }
@@ -66,7 +66,7 @@ public final class ForgeVariableProvider {
             return 1.0;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        String multiplierStr = PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER, PersistentDataType.STRING);
+        String multiplierStr = readMigrating(item, partition, ForgePdcKeys.QUALITY_MULTIPLIER);
         if (Texts.isBlank(multiplierStr)) {
             return 1.0;
         }
@@ -82,7 +82,7 @@ public final class ForgeVariableProvider {
             return null;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        return PDC_SERVICE.get(item, partition, ForgePdcKeys.QUALITY_ID, PersistentDataType.STRING);
+        return readMigrating(item, partition, ForgePdcKeys.QUALITY_ID);
     }
 
     public static @Nullable String getRecipeId(@Nullable ItemStack item) {
@@ -90,11 +90,24 @@ public final class ForgeVariableProvider {
             return null;
         }
         PdcPartition partition = PDC_SERVICE.partition(ForgePdcKeys.FORGE_PARTITION);
-        return PDC_SERVICE.get(item, partition, ForgePdcKeys.FORGE_RECIPE_ID, PersistentDataType.STRING);
+        return readMigrating(item, partition, ForgePdcKeys.FORGE_RECIPE_ID);
     }
 
-    private static NamespacedKey makeKey(String key) {
-        return new NamespacedKey(ForgePdcKeys.NAMESPACE, ForgePdcKeys.FORGE_PARTITION + "." + key);
+    /**
+     * 读取 Forge 字段，命中历史带点键时就地迁移。
+     *
+     * <p>历史分区路径与新分区路径同为 {@code "forge"}——点号原先由
+     * {@code qualifiedPath} 注入（{@code forge.quality_id}），现在改成
+     * {@code forge_quality_id}。
+     *
+     * <p>本类历史上用手工拼接的 {@code makeKey()} 读、用 {@code partition} 写，
+     * 两套代码各自生成键名。现已统一到 {@code partition.key()}，避免读写不一致。
+     */
+    private static @Nullable String readMigrating(@NotNull ItemStack item,
+            @NotNull PdcPartition partition,
+            @NotNull String field) {
+        return PDC_SERVICE.getMigrating(
+                item, partition, ForgePdcKeys.FORGE_PARTITION, field, PersistentDataType.STRING);
     }
 
     private ForgeVariableProvider() {

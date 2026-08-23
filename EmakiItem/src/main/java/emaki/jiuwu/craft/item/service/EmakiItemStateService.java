@@ -32,8 +32,14 @@ import emaki.jiuwu.craft.item.model.ItemStateConfig;
 
 public final class EmakiItemStateService implements ItemState {
 
-    private static final String THRESHOLD_MASK_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_mask.";
-    private static final String THRESHOLD_LAYOUT_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_layout.";
+    // 阈值掩码/布局是独立 PDC 键，不走 ItemStateKey，需要单独扁平化。
+    private static final String THRESHOLD_MASK_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_mask_";
+    private static final String THRESHOLD_LAYOUT_PREFIX = ItemStateSchema.METADATA_PREFIX + "threshold_layout_";
+    // 历史带点前缀，仅供删除老键用。
+    private static final String LEGACY_THRESHOLD_MASK_PREFIX =
+            ItemStateSchema.LEGACY_METADATA_PREFIX + "threshold_mask.";
+    private static final String LEGACY_THRESHOLD_LAYOUT_PREFIX =
+            ItemStateSchema.LEGACY_METADATA_PREFIX + "threshold_layout.";
 
     private final Supplier<ItemStateConfig> configSupplier;
     private final Supplier<DebugLogger> debugLoggerSupplier;
@@ -316,11 +322,19 @@ public final class EmakiItemStateService implements ItemState {
     private static long readThresholdMask(PersistentDataContainer pdc,
             ItemStateKey<?> key,
             ItemStateConfig.Field field) {
+        // 新键优先，回落历史带点键：老物品的掩码还在旧键上，只读新键会让
+        // 已触发过的阈值被判为未触发，导致奖励重复发放。
         Long mask = pdc.get(thresholdMaskKey(key), PersistentDataType.LONG);
+        if (mask == null) {
+            mask = pdc.get(legacyThresholdMaskKey(key), PersistentDataType.LONG);
+        }
         if (mask == null || mask == 0L) {
             return 0L;
         }
         Integer storedLayout = pdc.get(thresholdLayoutKey(key), PersistentDataType.INTEGER);
+        if (storedLayout == null) {
+            storedLayout = pdc.get(legacyThresholdLayoutKey(key), PersistentDataType.INTEGER);
+        }
         return storedLayout != null && storedLayout == thresholdLayoutSignature(field) ? mask : 0L;
     }
 
@@ -331,10 +345,23 @@ public final class EmakiItemStateService implements ItemState {
         if (mask == 0L) {
             pdc.remove(thresholdMaskKey(key));
             pdc.remove(thresholdLayoutKey(key));
+            removeLegacyThresholdKeys(pdc, key);
             return;
         }
         pdc.set(thresholdMaskKey(key), PersistentDataType.LONG, mask);
         pdc.set(thresholdLayoutKey(key), PersistentDataType.INTEGER, thresholdLayoutSignature(field));
+        removeLegacyThresholdKeys(pdc, key);
+    }
+
+    /**
+     * 删除历史带点的阈值掩码/布局键。
+     *
+     * <p>写入与清除路径都要调：新键已写好而老键仍在，会让 {@code readThresholdMask}
+     * 的回落分支永远读不到（新键优先），老键成为无法回收的残留。
+     */
+    private static void removeLegacyThresholdKeys(PersistentDataContainer pdc, ItemStateKey<?> key) {
+        pdc.remove(legacyThresholdMaskKey(key));
+        pdc.remove(legacyThresholdLayoutKey(key));
     }
 
     private static int thresholdLayoutSignature(ItemStateConfig.Field field) {
@@ -350,12 +377,29 @@ public final class EmakiItemStateService implements ItemState {
 
     private static NamespacedKey thresholdMaskKey(ItemStateKey<?> key) {
         return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
-                + "." + THRESHOLD_MASK_PREFIX + key.key());
+                + "_" + THRESHOLD_MASK_PREFIX + key.key());
     }
 
     private static NamespacedKey thresholdLayoutKey(ItemStateKey<?> key) {
         return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
-                + "." + THRESHOLD_LAYOUT_PREFIX + key.key());
+                + "_" + THRESHOLD_LAYOUT_PREFIX + key.key());
+    }
+
+    private static NamespacedKey legacyThresholdMaskKey(ItemStateKey<?> key) {
+        return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
+                + "." + LEGACY_THRESHOLD_MASK_PREFIX + legacyKeyName(key));
+    }
+
+    private static NamespacedKey legacyThresholdLayoutKey(ItemStateKey<?> key) {
+        return ObjectsHolder.key(ItemStateSchema.NAMESPACE + ":" + ItemStateSchema.PARTITION
+                + "." + LEGACY_THRESHOLD_LAYOUT_PREFIX + legacyKeyName(key));
+    }
+
+    /** {@return 该键在历史键名中的字段名部分} */
+    private static String legacyKeyName(ItemStateKey<?> key) {
+        String legacyPath = ItemStateSchema.legacyPath(key);
+        int separator = legacyPath.indexOf('.');
+        return separator < 0 ? key.key() : legacyPath.substring(separator + 1);
     }
 
     @Override
@@ -448,8 +492,11 @@ public final class EmakiItemStateService implements ItemState {
             return ItemStateMutation.rejected(key, "missing_state", null);
         }
         pdc.remove(namespacedKey(key));
+        // 同时删历史带点键，否则清除后老键仍在、下次读取又"复活"成旧值。
+        pdc.remove(legacyNamespacedKey(key));
         pdc.remove(thresholdMaskKey(key));
         pdc.remove(thresholdLayoutKey(key));
+        removeLegacyThresholdKeys(pdc, key);
         writeMetadata(pdc, nextMetadata(readMetadata(pdc)));
         boolean committed = item.setItemMeta(meta);
         ItemStateMutation<T> result = ItemStateMutation.committed(key, old, null, null, false);
@@ -544,7 +591,10 @@ public final class EmakiItemStateService implements ItemState {
 
     private static NamespacedKey fieldKey(String name) {
         String normalized = name == null ? "" : name.trim();
-        if (normalized.isBlank() || normalized.startsWith(ItemStateSchema.METADATA_PREFIX)) {
+        // 两种元字段前缀都要挡：配置迁移不得改写内置元字段。
+        if (normalized.isBlank()
+                || normalized.startsWith(ItemStateSchema.METADATA_PREFIX)
+                || normalized.startsWith(ItemStateSchema.LEGACY_METADATA_PREFIX)) {
             return null;
         }
         try {
@@ -561,12 +611,23 @@ public final class EmakiItemStateService implements ItemState {
             return new ItemStateSnapshot(item, values, metadataOverride == null ? ItemStateMetadata.empty() : metadataOverride);
         }
         for (NamespacedKey namespacedKey : pdc.getKeys()) {
-            if (!ItemStateSchema.NAMESPACE.equals(namespacedKey.getNamespace())
-                    || !namespacedKey.getKey().startsWith(ItemStateSchema.PARTITION + ".")) {
+            if (!ItemStateSchema.NAMESPACE.equals(namespacedKey.getNamespace())) {
                 continue;
             }
-            String keyName = namespacedKey.getKey().substring(ItemStateSchema.PARTITION.length() + 1);
-            if (keyName.startsWith(ItemStateSchema.METADATA_PREFIX)) {
+            // 分区连接符已从 '.' 改成 '_'，但未迁移的物品仍是带点键。
+            // 只认一种会让另一种整体枚举不到——新物品快照为空，或老物品状态丢失。
+            String rawKey = namespacedKey.getKey();
+            String keyName;
+            if (rawKey.startsWith(ItemStateSchema.PARTITION + "_")) {
+                keyName = rawKey.substring(ItemStateSchema.PARTITION.length() + 1);
+            } else if (rawKey.startsWith(ItemStateSchema.PARTITION + ".")) {
+                keyName = rawKey.substring(ItemStateSchema.PARTITION.length() + 1);
+            } else {
+                continue;
+            }
+            // 元字段前缀同样有新老两种（meta_ / meta.）。
+            if (keyName.startsWith(ItemStateSchema.METADATA_PREFIX)
+                    || keyName.startsWith(ItemStateSchema.LEGACY_METADATA_PREFIX)) {
                 continue;
             }
             Object value = readAny(pdc, namespacedKey);
@@ -627,6 +688,29 @@ public final class EmakiItemStateService implements ItemState {
         return ObjectsHolder.key(key.namespacedPath());
     }
 
+    private static NamespacedKey legacyNamespacedKey(ItemStateKey<?> key) {
+        return ObjectsHolder.key(ItemStateSchema.legacyNamespacedPath(key));
+    }
+
+    /**
+     * {@return 实际承载该键值的 PDC 键}——优先新键，其次历史带点键。
+     *
+     * <p>PDC 键的分区连接符从 {@code '.'} 改成 {@code '_'} 后，已落盘的物品仍是老键。
+     * 读取路径必须两边都看，否则老物品的状态会被判为空。
+     *
+     * <p>只做定位不做搬运：这里拿到的 container 可能是 {@code ItemMeta} 副本，
+     * 就地改写不会落盘。真正的迁移由写入路径的 {@link #purgeLegacy} 与
+     * {@code /emakicorelib pdc-convert} 完成。
+     */
+    private static NamespacedKey effectiveKey(PersistentDataContainer pdc, ItemStateKey<?> key) {
+        NamespacedKey current = namespacedKey(key);
+        if (pdc == null || pdc.getKeys().contains(current)) {
+            return current;
+        }
+        NamespacedKey legacy = legacyNamespacedKey(key);
+        return pdc.getKeys().contains(legacy) ? legacy : current;
+    }
+
     private static <T> T readTyped(PersistentDataContainer pdc, ItemStateKey<T> key) {
         Object value = read(pdc, key);
         return value == null || !key.javaType().isInstance(value) ? null : key.javaType().cast(value);
@@ -636,15 +720,16 @@ public final class EmakiItemStateService implements ItemState {
         if (pdc == null || key == null || hasWrongType(pdc, key)) {
             return null;
         }
+        NamespacedKey target = effectiveKey(pdc, key);
         return switch (key.type()) {
-            case INTEGER -> pdc.get(namespacedKey(key), PersistentDataType.INTEGER);
-            case LONG -> pdc.get(namespacedKey(key), PersistentDataType.LONG);
-            case DOUBLE -> pdc.get(namespacedKey(key), PersistentDataType.DOUBLE);
+            case INTEGER -> pdc.get(target, PersistentDataType.INTEGER);
+            case LONG -> pdc.get(target, PersistentDataType.LONG);
+            case DOUBLE -> pdc.get(target, PersistentDataType.DOUBLE);
             case BOOLEAN -> {
-                Byte value = pdc.get(namespacedKey(key), PersistentDataType.BYTE);
+                Byte value = pdc.get(target, PersistentDataType.BYTE);
                 yield value == null || (value != 0 && value != 1) ? null : value == 1;
             }
-            case STRING -> pdc.get(namespacedKey(key), PersistentDataType.STRING);
+            case STRING -> pdc.get(target, PersistentDataType.STRING);
         };
     }
 
@@ -652,7 +737,9 @@ public final class EmakiItemStateService implements ItemState {
         if (pdc == null || key == null) {
             return true;
         }
-        NamespacedKey namespacedKey = namespacedKey(key);
+        // 用 effectiveKey：老物品的键还是带点形式，只看新键会把它当作"不存在"，
+        // 于是 read() 拿不到值，状态被误判为空。
+        NamespacedKey namespacedKey = effectiveKey(pdc, key);
         if (!pdc.getKeys().contains(namespacedKey)) {
             return false;
         }
@@ -677,6 +764,9 @@ public final class EmakiItemStateService implements ItemState {
             case BOOLEAN -> pdc.set(namespacedKey, PersistentDataType.BYTE, (byte) ((Boolean) value ? 1 : 0));
             case STRING -> pdc.set(namespacedKey, PersistentDataType.STRING, (String) value);
         }
+        // 新键已写入，删掉历史带点键。否则新老键并存，effectiveKey 优先取新键，
+        // 老键成为读不到的残留；更糟的是 pdc-convert 扫到它时会误判为待迁移数据。
+        pdc.remove(legacyNamespacedKey(key));
     }
 
     private static Object readAny(PersistentDataContainer pdc, NamespacedKey key) {
