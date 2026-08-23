@@ -461,7 +461,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
             return;
         }
 
-        stageRegistrar = new AttributeStageRegistrar(this, attributeService);
+        if (stageRegistrar == null) {
+            stageRegistrar = new AttributeStageRegistrar(this, attributeService);
+        }
         stageRegistrar.register();
     }
 

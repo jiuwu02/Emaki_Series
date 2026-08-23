@@ -2,13 +2,13 @@
 # EmakiSkills JavaScript 脚本技能示例
 # ============================================================
 # 此文件展示如何使用 GraalVM JavaScript 脚本扩展技能逻辑。
-# JS 脚本可以实现 DSL 无法表达的复杂计算、条件判断和动态参数。
 #
-# 适用场景：
-#   - 复杂的伤害计算公式（基于多个属性的非线性函数）
-#   - 条件分支逻辑（多层嵌套判断）
-#   - 动态坐标计算（随机偏移、圆形/球形分布）
-#   - 字符串拼接和格式化（动态消息生成）
+# 当前实现的能力边界（重要）：
+#   - JS 可以读取上下文变量、读取玩家/位置状态，并在 js_entity 中操作玩家。
+#   - JS 返回值只进入动作结果的 script_result 数据，
+#     不会写回技能变量、不会生成占位符、不会筛选或替换管道目标。
+#   - 因此「用 JS 算出数值再交给后续动作」当前不成立；
+#     需要参与后续计算的数值请写在 variables 段的 expression 中。
 # ============================================================
 
 id: "example_js_skill"
@@ -66,11 +66,16 @@ variables:
     max: 1
 
 # ============================================================
-# 技能脚本 - 旧版 JavaScript 写法迁移参考
+# 技能脚本 - JavaScript 用法示例
 # ============================================================
-# 下方动作行保留旧版参数形态，不能作为当前版本可直接运行的示例。
-# 当前三个 JS Stage 只接受 code 与 timeout 参数；脚本返回值仅进入动作结果的 script_result 数据，
-# 不会自动写入技能变量，也不会替换流水线中的实体或位置目标。
+# 三个 JS Stage 的参数契约统一为：
+#   code    必填，JavaScript 代码字符串
+#   timeout 可选，单位毫秒，缺省 5000；传入 <=0 也回退到 5000
+#
+# 重要边界：脚本返回值只进入该动作结果的 script_result 数据，
+# 不会写入技能变量、不会生成占位符、不会筛选或替换流水线目标。
+# 因此 JS 不能用来「算出倍率再给下一段动作用」，
+# 需要参与后续计算的数值请用 variables 段的 expression 表达式。
 script:
   enabled: true
   mode: "native"
@@ -86,73 +91,46 @@ script:
 
     hit:
       # ============================================================
-      # js_compute 计算动态伤害倍率
+      # js_compute：纯计算脚本
       # ============================================================
-      # 下方公式意图按目标生命百分比返回倍率，但当前 Stage 不会把返回值写入 damage_multiplier。
-      # js_compute 绑定 context；当前目标本身是玩家时还会绑定 player。
-      # 当前参数名为 code 与 timeout，timeout 单位毫秒，缺省值为 5000。
-      # 返回值只作为本段动作结果的 script_result 数据提供，不会自动创建占位符变量。
-      - |
-        js_compute script="""
-          const targetHealth = context.getVariable('target.health');
-          const targetMaxHealth = context.getVariable('target.maxHealth');
-          const healthPercent = targetHealth / targetMaxHealth;
-          const critThreshold = context.getVariable('var.crit_threshold');
-          
-          let multiplier = 1.0;
-          if (healthPercent < critThreshold) {
-            // 低血量暴击
-            multiplier = 2.0;
-          } else if (healthPercent < 0.8) {
-            // 中血量线性递增
-            multiplier = 1.0 + (0.8 - healthPercent) * 1.0;
-          }
-          
-          // 返回值会存入 damage_multiplier 变量
-          return multiplier;
-        """ timeout_ms=500 result_var=damage_multiplier
-      
-      # 使用 damage_multiplier 应用伤害；当前 js_compute 不会生成该变量。
-      - "inherited | damage amount=%var.base_damage%*%damage_multiplier%"
+      # js_compute 不要求已有目标，始终绑定 context；
+      # 当前目标是玩家时还会额外绑定 player。
+      # context 提供 getVariable(name) 与 hasVariable(name)，
+      # 可读取本技能 variables 段声明的变量（命名空间为 var.）。
+      - 'js_compute code="return context.getVariable(''var.base_damage'');" timeout=500'
 
-      # 按 damage_multiplier 选择粒子；当前管道不会自动提供该占位符。
-      - "if %damage_multiplier%>=2.0 [ inherited | spawn_particle particle=crit_magic count=32 extra=0.15 ]"
-      - "if %damage_multiplier%<2.0 [ inherited | spawn_particle particle=enchant count=16 extra=0.08 ]"
+      # 实际伤害由 variables 段的表达式决定，不依赖 JS 返回值。
+      - "inherited | damage amount=%var.base_damage%"
+
+      # 粒子按 base_damage 分支。base_damage 随等级增长（20 + (等级-1)*5），
+      # 因此该条件在 3 级及以上成立，是真实生效的分支。
+      - "if %var.base_damage%>=30 [ inherited | spawn_particle particle=crit_magic count=32 extra=0.15 ]"
+      - "if %var.base_damage%<30 [ inherited | spawn_particle particle=enchant count=16 extra=0.08 ]"
 
       # ============================================================
-      # js_entity 动态筛选实体
+      # js_entity：操作实体的脚本
       # ============================================================
-      # 当前 js_entity 仅对玩家实体目标执行，绑定 player 与 context。
-      # 脚本返回值不会保留或过滤目标；下方 target 绑定与布尔筛选写法属于旧版示例。
-      - |
-        nearby type=hostile range=5 |
-        js_entity script="""
-          const health = target.getHealth();
-          const maxHealth = target.getMaxHealth();
-          return (health / maxHealth) < 0.3;
-        """ timeout_ms=300 |
-        damage amount=%var.base_damage%*0.5
-      
-      # ============================================================
-      # js_location 计算动态坐标
-      # ============================================================
-      # 当前 js_location 读取既有位置目标，绑定 location 与 context；目标关联玩家时还会绑定只读 player。
-      # 脚本返回值不会生成新坐标或替换位置目标；当前也没有 count、index、baseX/baseY/baseZ 参数或绑定。
-      # 下方圆形分布写法仅用于识别旧配置的迁移意图。
-      - |
-        inherited |
-        js_location count=12 script="""
-          const angle = (index / 12) * Math.PI * 2;
-          const radius = 1.5 + Math.random() * 0.5;
-          const offsetX = Math.cos(angle) * radius;
-          const offsetZ = Math.sin(angle) * radius;
-          const offsetY = 0.5 + Math.random() * 0.3;
-          return [offsetX, offsetY, offsetZ];
-        """ timeout_ms=500 |
-        spawn_particle particle=end_rod count=1
+      # js_entity 要求管道已有实体目标，并且只对玩家目标执行；
+      # 非玩家实体会跳过该段。它绑定 player 与 context。
+      # 注意：它不是实体过滤器，返回布尔值不会保留或剔除目标。
+      # nearby 的参数是 radius / limit / type / include_players，
+      # 其中 type 必须是合法的 EntityType（如 zombie），没有 hostile 这类分组名。
+      - 'nearby radius=5 limit=3 type=zombie | js_entity code="return player.getHealth();" timeout=300'
 
-      # 消息读取 damage_multiplier；当前管道不会自动提供该占位符。
-      - 'send_message text="<aqua>智能法术命中，伤害倍率: %damage_multiplier%x</aqua>"'
+      # 对周围目标造成伤害；伤害值取自技能变量。
+      - "nearby radius=5 limit=3 type=zombie | damage amount=%var.base_damage%"
+
+      # ============================================================
+      # js_location：读取位置的脚本
+      # ============================================================
+      # js_location 要求管道已有位置目标，绑定 location 与 context；
+      # 目标同时关联玩家时还会绑定只读 player。
+      # 它不会依据返回值生成新坐标或展开坐标列表，
+      # 也没有 count / index / baseX / baseY / baseZ 参数与绑定。
+      - 'inherited | js_location code="return location.getBlockY();" timeout=500'
+      - "inherited | spawn_particle particle=end_rod count=12 extra=0.05"
+
+      - 'send_message text="<aqua>智能法术命中</aqua>"'
 
     miss:
       - "self | spawn_particle particle=smoke count=12 extra=0.02"
