@@ -12,14 +12,15 @@ public record LegacyTargetSpec(String directory,
         String path,
         String legacyKey,
         String matcherKey,
-        MergeMode mergeMode) {
+        RuntimeSemantics semantics,
+        boolean retainLegacyKey) {
 
     public static final String WILDCARD = "*";
     public static final String LIST_MARKER = "[]";
 
-    public enum MergeMode {
-        REPLACE,
-        MERGE_AND
+    public enum RuntimeSemantics {
+        AND,
+        OVERRIDE
     }
 
     public LegacyTargetSpec {
@@ -27,7 +28,7 @@ public record LegacyTargetSpec(String directory,
         path = Texts.toStringSafe(path);
         legacyKey = Texts.toStringSafe(legacyKey);
         matcherKey = Texts.isBlank(matcherKey) ? "matcher" : Texts.toStringSafe(matcherKey);
-        mergeMode = mergeMode == null ? MergeMode.REPLACE : mergeMode;
+        semantics = semantics == null ? RuntimeSemantics.OVERRIDE : semantics;
         if (legacyKey.isBlank()) {
             throw new IllegalArgumentException("legacyKey must not be blank");
         }
@@ -36,14 +37,27 @@ public record LegacyTargetSpec(String directory,
     public static @NotNull LegacyTargetSpec replace(@Nullable String directory,
             @NotNull String path,
             @NotNull String legacyKey) {
-        return new LegacyTargetSpec(directory, path, legacyKey, "matcher", MergeMode.REPLACE);
+        return replace(directory, path, legacyKey, "matcher");
     }
 
-    public static @NotNull LegacyTargetSpec mergeAnd(@Nullable String directory,
+    public static @NotNull LegacyTargetSpec replace(@Nullable String directory,
             @NotNull String path,
             @NotNull String legacyKey,
             @NotNull String matcherKey) {
-        return new LegacyTargetSpec(directory, path, legacyKey, matcherKey, MergeMode.MERGE_AND);
+        return new LegacyTargetSpec(directory, path, legacyKey, matcherKey,
+                RuntimeSemantics.OVERRIDE, false);
+    }
+
+    public static @NotNull LegacyTargetSpec replaceAnd(@Nullable String directory,
+            @NotNull String path,
+            @NotNull String legacyKey,
+            @NotNull String matcherKey) {
+        return new LegacyTargetSpec(directory, path, legacyKey, matcherKey,
+                RuntimeSemantics.AND, false);
+    }
+
+    public @NotNull LegacyTargetSpec retainingLegacyKey() {
+        return new LegacyTargetSpec(directory, path, legacyKey, matcherKey, semantics, true);
     }
 
     public @NotNull List<String> segments() {

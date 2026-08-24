@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "4.7.18"
+version: "4.7.19"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -52,6 +52,8 @@ command:
     backup: "<gray>  Backed up as <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
     summary: "<gray>Converted %converted%, no legacy block %skipped%, key conflict %conflict%, unconvertible %unconvertible%, failed %failed%.</gray>"
+    breakdown: "<gray>Of those: <white>%plain%</white> turned straight into a matcher with the legacy key removed, <white>%merged%</white> folded together with an existing matcher into one all_of so the decision stays equivalent, <white>%duplicated%</white> given a matcher while keeping the legacy key it still needs for building, deducting or counting items.</gray>"
+    file_merged: "<gray>  <white>%merged%</white> merged into all_of, <white>%duplicated%</white> kept the legacy key, <white>%plain%</white> converted directly</gray>"
     dry_run_hint: "<yellow>The above is a dry run; no file was written. Run <white>/emakistrengthen convert-legacy confirm</white> to write and back up the originals.</yellow>"
     nothing_to_do: "<gray>No configuration needs conversion.</gray>"
     status:

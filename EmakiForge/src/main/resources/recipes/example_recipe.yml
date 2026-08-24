@@ -29,11 +29,10 @@ forge_capacity: 35
 # 锻造前必须拥有的物品（不消耗，仅检测持有）。
 # 用于实现"需要先获得配方图纸"的玩法。
 #
-# 两种写法：
-#   ① item_sources: 只按物品来源判定（原有写法，保持不变）
-#   ② matcher:      按通用匹配器判定，可读取组件取值并用五态组合器组合
-# 二者同时存在时由 matcher 接管判定，但 item_sources 仍决定该条目的计数键，
-# 建议保留。只写 matcher 时计数键改由 matcher 内容派生（哈希形态），
+# 判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该条目永不命中。
+# item_sources 已经不参与判定，它在这里只剩一个职责——充当该条目的计数键。
+# 因此推荐两者并写：matcher 负责"算不算这本图纸"，item_sources 负责"按哪个键计数"。
+# 只写 matcher 时计数键改由 matcher 内容派生（哈希形态），
 # 修改 matcher 内容会让派生键随之改变。
 #
 # ⚠ 写法差异（易错点）：
@@ -42,12 +41,12 @@ forge_capacity: 35
 # ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
 #   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
 #
-# ⚠ 不要为同一种图纸写两个条目（一个 item_sources、一个 matcher）：两个条目
-#   的计数键不同，会被当成两种图纸，要求玩家同时持有。要么替换、要么像下面
-#   这样把两种可接受形态写进同一个 matcher 的 any_of 里。
+# ⚠ 不要为同一种图纸写两个条目：两个条目的计数键不同，会被当成两种图纸，
+#   要求玩家同时持有。要把多种可接受形态写进同一个 matcher 的 any_of 里，
+#   就像下面这样。
 blueprint_requirements:
-  # item_sources 在这里仍然保留：matcher 存在时它不参与判定，但仍是该条目的计数键。
-  # matcher 用 any_of 接受两种图纸形态，其中第二种再用 all_of 追加组件条件：
+  # item_sources 在这里仍然保留：它不参与判定，只作为该条目的计数键。
+  # 判定全部交给 matcher，用 any_of 接受两种图纸形态，其中第二种再用 all_of 追加组件条件：
   #   ① 普通附魔书
   #   ② 带 custom_model_data 标记的知识书（"官方发放的配方图纸"）
   - item_sources:
@@ -80,12 +79,11 @@ blueprint_requirements:
 #   - type: "lore_action"     → 修改物品 Lore
 #   - type: "capacity_bonus"  → 扩展锻造容量（特殊类型）
 #
-# 材料判定有两种写法：
-#   ① item_sources: 只按物品来源判定（原有写法，本文件下面全部材料都用它）
-#   ② matcher:      按通用匹配器判定，可读取组件取值并用五态组合器组合
-# 同一条目里 matcher 存在时由 matcher 接管判定，但 item_sources 仍决定该材料的
-# 计数键与锻造审计标识，建议保留。
-# 只写 matcher 不写 item_sources 也合法，此时该材料的计数键由 matcher 内容派生
+# 材料判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该材料永不命中。
+# item_sources 已经不参与判定，它在这里只剩一个职责——充当该材料的计数键，
+# 同时作为写入成品 PDC 的锻造审计标识。所以下面每条材料都两者并写：
+# matcher 负责"这枚算不算这味材料"，item_sources 负责"按哪个键计数与留痕"。
+# 只写 matcher 不写 item_sources 也合法，此时计数键由 matcher 内容派生
 # （GUI 里显示为该派生键）。⚠ 该派生键随 matcher 内容变化，改动 matcher 会让
 # 已锻造物品的审计记录失配，刷新时该材料会被判定为缺失。
 #
@@ -99,6 +97,7 @@ materials:
   # ---- 基础材料：铁锭（提供物理属性）----
   - item_sources:
       - "minecraft-iron_ingot"
+    matcher: { type: item_source, sources: ["minecraft-iron_ingot"] }
     amount: 3
     capacity_cost: 5
     effects:
@@ -121,6 +120,7 @@ materials:
   # ---- 基础材料：烈焰粉（提供火焰属性 + 技能 + 名称修改）----
   - item_sources:
       - "minecraft-blaze_powder"
+    matcher: { type: item_source, sources: ["minecraft-blaze_powder"] }
     amount: 1
     capacity_cost: 10
     effects:
@@ -153,6 +153,7 @@ materials:
   # ---- 可选材料：火焰弹（额外火焰属性）----
   - item_sources:
       - "minecraft-fire_charge"
+    matcher: { type: item_source, sources: ["minecraft-fire_charge"] }
     amount: 1
     optional: true
     capacity_cost: 12
@@ -175,6 +176,7 @@ materials:
   # ---- 可选材料：羽毛（移动速度）----
   - item_sources:
       - "minecraft-feather"
+    matcher: { type: item_source, sources: ["minecraft-feather"] }
     amount: 1
     optional: true
     capacity_cost: 8
@@ -191,6 +193,7 @@ materials:
   # ---- 可选材料：回响碎片（魔法穿透）----
   - item_sources:
       - "minecraft-echo_shard"
+    matcher: { type: item_source, sources: ["minecraft-echo_shard"] }
     amount: 1
     optional: true
     capacity_cost: 15
@@ -207,6 +210,7 @@ materials:
   # ---- 可选材料：下界之星（扩展容量，不占用容量）----
   - item_sources:
       - "minecraft-nether_star"
+    matcher: { type: item_source, sources: ["minecraft-nether_star"] }
     amount: 1
     optional: true
     capacity_cost: 0

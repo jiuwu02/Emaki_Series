@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.station.config;
 
 import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.ERROR;
 import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.INFO;
+import static emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity.WARN;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -17,6 +18,8 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.gui.StationLayoutValidator;
+import emaki.jiuwu.craft.station.recipe.MaterialRequirement;
+import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
 
 public final class StationConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
 
@@ -49,6 +52,7 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         checkLayouts(issues);
         checkStationLayoutLinks(issues);
         checkDismantleStationLayoutLinks(issues);
+        checkStorageUnreachableMaterials(issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }
@@ -106,5 +110,34 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
         if (plugin.layoutLoader().get(layoutId) == null) {
             addIssue(dir + "/" + stationId + ".yml", ERROR, "missing_layout: " + layoutId, issues);
         }
+    }
+
+    private void checkStorageUnreachableMaterials(List<ConfigPrecheckIssue> issues) {
+        if (plugin.recipeLoader() == null || plugin.stationLoader() == null) {
+            return;
+        }
+        if (plugin.appConfig() == null || !plugin.appConfig().storageSettings().enabled()) {
+            return;
+        }
+        for (RecipeDefinition recipe : plugin.recipeLoader().all().values()) {
+            if (recipe == null || !storageBackedStation(recipe)) {
+                continue;
+            }
+            for (int index = 0; index < recipe.requirements().size(); index++) {
+                MaterialRequirement requirement = recipe.requirements().get(index);
+                if (requirement != null && requirement.sources().isEmpty()) {
+                    addMessageIssue("recipes/" + recipe.id() + ".yml", WARN,
+                            "storage_unreachable_material",
+                            Map.of("recipe", recipe.id(), "index", index), issues);
+                }
+            }
+        }
+    }
+
+    private boolean storageBackedStation(RecipeDefinition recipe) {
+        return plugin.stationLoader().all().values().stream()
+                .anyMatch(station -> station != null
+                        && station.storageChannel()
+                        && recipe.belongsTo(station.id()));
     }
 }

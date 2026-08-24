@@ -213,12 +213,7 @@ public final class GemItemMatcher {
     }
 
     private boolean acceptsOpenerItem(SocketOpenerConfig config, ItemStack itemStack, ItemSourceRef identified) {
-        if (config.matcher() != null) {
-            return satisfiesMatcher(config.matcher(), itemStack, identified);
-        }
-        return identified != null
-                && config.itemSource() != null
-                && ItemSourceUtil.matches(config.itemSource(), identified);
+        return config.matcher() != null && satisfiesMatcher(config.matcher(), itemStack, identified);
     }
 
     private GemDefinition matchGemDefinitionBySource(ItemStack itemStack) {
@@ -231,11 +226,6 @@ public final class GemItemMatcher {
     }
 
     private boolean acceptsGemItem(GemDefinition definition, ItemStack itemStack, ItemSourceRef identified) {
-        if (definition.matcher() != null) {
-            return satisfiesMatcher(definition.matcher(), itemStack, identified);
-        }
-        return identified != null
-                && definition.itemSource() != null
-                && ItemSourceUtil.matches(definition.itemSource(), identified);
+        return definition.matcher() != null && satisfiesMatcher(definition.matcher(), itemStack, identified);
     }
 }

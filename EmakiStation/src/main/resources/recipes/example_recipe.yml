@@ -55,6 +55,12 @@ cost:
 #      【只从背包扣料，不走仓库通道】：matcher 判定的是具体物品栈的组件，
 #      而仓库只按物品模板记数、拿不到逐栈组件，无法参与判定。
 #      需要仓库供料的配方请不要写 matcher。
+#
+# ⚠ Station 材料是本项目里保留 item_sources 的例外站点：别的插件已经把判定位
+#   收敛到 matcher，而这里的 item_sources 不只是判定用的条件，它还要被【枚举】——
+#   仓库通道必须逐个物品源去查库存与扣料，而 matcher 是一个谓词、无法枚举出
+#   "有哪些物品源"。背包扣料也依赖它定位具体物品。
+#   所以下面的材料保持 item_sources 写法，不要照搬其他插件改成纯 matcher。
 materials:
   - item_sources:
       - "minecraft-iron_ingot"

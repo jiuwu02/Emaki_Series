@@ -274,10 +274,6 @@ public final class CookingSettingsService {
         return choppingBoardSettings.interactionDelayMs();
     }
 
-    public List<ItemSourceRef> choppingToolSources() {
-        return choppingBoardSettings.toolSources();
-    }
-
     public Matcher choppingToolMatcher() {
         return choppingBoardSettings.toolMatcher();
     }
@@ -316,10 +312,6 @@ public final class CookingSettingsService {
 
     public long wokTimeoutMs() {
         return wokSettings.timeoutMs();
-    }
-
-    public List<ItemSourceRef> wokSpatulaSources() {
-        return wokSettings.spatulaSources();
     }
 
     public Matcher wokSpatulaMatcher() {
@@ -468,10 +460,6 @@ public final class CookingSettingsService {
 
     public boolean juicerRequireContainer() {
         return juicerSettings.requireContainer();
-    }
-
-    public List<ItemSourceRef> juicerContainerSources() {
-        return juicerSettings.containerSources();
     }
 
     public Matcher juicerContainerMatcher() {

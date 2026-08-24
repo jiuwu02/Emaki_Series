@@ -13,18 +13,21 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      - result_item_sources:
-          - "minecraft-crafting_table"
-          - "minecraft-furnace"
+      - matcher:
+          type: item_source
+          sources:
+            - "minecraft-crafting_table"
+            - "minecraft-furnace"
         exp_formula: "5 * %result_amount%"
-      - result_item_sources:
-          - "minecraft-diamond_pickaxe"
-          - "minecraft-diamond_sword"
+      - matcher:
+          type: item_source
+          sources:
+            - "minecraft-diamond_pickaxe"
+            - "minecraft-diamond_sword"
         exp_formula: "40 * %result_amount%"
-      # 可选的 matcher 判定：按物品组件筛选产物，而不是只按物品源。
-      # matcher 与 result_item_sources 二者取其一——同一条规则里写了 matcher，
-      # 就只走 matcher，result_item_sources 会被忽略（包括"留空即通配"的语义）。
-      # 不写 matcher 的规则行为与旧版逐字一致。
+      # 判定完全由 matcher 决定，它是每条规则的必填项，缺失该规则永不命中。
+      # 按物品源筛产物就写 type: item_source（上面两条即是）；要按物品组件筛，
+      # 就像下面这样写 type: component，两种写法都是同一个 matcher 字段。
       #
       # 形状差异（容易写错，注意区分）：
       #   物品源简写用连字符：      "minecraft-diamond"

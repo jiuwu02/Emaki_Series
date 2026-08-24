@@ -21,23 +21,25 @@ display_name: "切制胡萝卜"
 # 放在砧板上的原料物品。
 # amount: 每次完成切割需要并消耗的数量；砧板会一次性接收主手整叠并累计数量。
 input:
-  item_sources:
-    - "minecraft-carrot"
+  matcher:
+    type: item_source
+    sources:
+      - "minecraft-carrot"
   amount: 1
 
   # ----------------------------------------------------------
-  # 可选：matcher 组件条件（在 item_sources 之外追加细化判定）
+  # matcher：输入判定的唯一入口
   # ----------------------------------------------------------
-  # item_sources 决定"是哪种物品"，matcher 决定"这一枚具体够不够格"。
-  # 两者并存：先按 item_sources 命中配方，再用 matcher 复核玩家放入的那一枚。
-  # 不写 matcher（或留空）时行为与旧版完全一致，不影响任何现有配方。
+  # 判定完全由 matcher 决定，它是必填项，缺失这条配方永不命中。
+  # 按物品源判定就写 type: item_source（上面即是）；要收窄到"这一枚够不够格"，
+  # 就用 all_of 把物品源与组件条件绑在一起，见下例。
   #
   # 注意书写差异：
   #   物品源简写用【连字符】       —— "minecraft-carrot"
   #   组件 ID / path 用【冒号】     —— component: custom_name / path: "minecraft:sharpness"
   #
   # 下例含义：必须是胡萝卜，且物品名里带"极上"二字，才算这条配方的输入。
-  # 取消注释即可启用。
+  # 要启用就用它【替换】上方那条 matcher，不要两条并留。
   #
   # matcher:
   #   type: all_of

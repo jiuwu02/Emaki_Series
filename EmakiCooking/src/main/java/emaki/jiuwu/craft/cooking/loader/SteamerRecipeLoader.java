@@ -12,7 +12,7 @@ public final class SteamerRecipeLoader extends BaseRecipeLoader {
         super(plugin, StationType.STEAMER, List.of(
                 "id",
                 "display_name",
-                "input.item_sources",
+                "input.item_sources|input.matcher",
                 "required_steam"
         ));
     }

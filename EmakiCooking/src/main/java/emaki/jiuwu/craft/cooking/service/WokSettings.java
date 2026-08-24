@@ -40,10 +40,6 @@ final class WokSettings {
         return Math.max(0L, configuration.get().getInt("stations.wok.timeout_ms", 30000));
     }
 
-    List<ItemSourceRef> spatulaSources() {
-        return CookingSettingsService.parseSources(configuration.get().get("stations.wok.spatula_item_sources"));
-    }
-
     Matcher spatulaMatcher() {
         return CookingMatchers.parse(configuration.get(), "stations.wok.spatula_matcher");
     }

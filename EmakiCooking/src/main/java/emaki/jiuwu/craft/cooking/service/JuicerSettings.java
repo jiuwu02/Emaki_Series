@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.List;
 import java.util.function.Supplier;
 
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
@@ -23,10 +22,6 @@ final class JuicerSettings {
 
     boolean requireContainer() {
         return configuration.get().getBoolean("stations.juicer.require_container", true);
-    }
-
-    List<ItemSourceRef> containerSources() {
-        return CookingSettingsService.parseSources(configuration.get().get("stations.juicer.container_item_sources"));
     }
 
     Matcher containerMatcher() {

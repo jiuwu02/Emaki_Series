@@ -42,6 +42,8 @@ public final class LegacyItemSourceRewriter {
             Status status,
             String detail,
             int occurrences,
+            int merged,
+            int duplicated,
             List<String> diff,
             String backupName) {
 
@@ -49,8 +51,14 @@ public final class LegacyItemSourceRewriter {
             fileName = Texts.toStringSafe(fileName);
             detail = Texts.toStringSafe(detail);
             occurrences = Math.max(0, occurrences);
+            merged = Math.max(0, merged);
+            duplicated = Math.max(0, duplicated);
             diff = diff == null ? List.of() : List.copyOf(diff);
             backupName = Texts.toStringSafe(backupName);
+        }
+
+        public int plain() {
+            return Math.max(0, occurrences - merged - duplicated);
         }
     }
 
@@ -69,6 +77,24 @@ public final class LegacyItemSourceRewriter {
                     .filter(report -> report.status() == Status.CONVERTED)
                     .mapToInt(FileReport::occurrences)
                     .sum();
+        }
+
+        public int merged() {
+            return files.stream()
+                    .filter(report -> report.status() == Status.CONVERTED)
+                    .mapToInt(FileReport::merged)
+                    .sum();
+        }
+
+        public int duplicated() {
+            return files.stream()
+                    .filter(report -> report.status() == Status.CONVERTED)
+                    .mapToInt(FileReport::duplicated)
+                    .sum();
+        }
+
+        public int plain() {
+            return Math.max(0, occurrences() - merged() - duplicated());
         }
 
         public boolean hasConvertible() {
@@ -127,7 +153,8 @@ public final class LegacyItemSourceRewriter {
             lines = new ArrayList<>(Files.readAllLines(file, StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException failure) {
             logger.warning("读取配置失败 " + fileName + ": " + failure.getMessage());
-            return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()), 0, List.of(), "");
+            return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
+                    0, 0, 0, List.of(), "");
         }
         List<Replacement> replacements = new ArrayList<>();
         List<String> unconvertible = new ArrayList<>();
@@ -136,30 +163,33 @@ public final class LegacyItemSourceRewriter {
         }
         if (replacements.isEmpty()) {
             return unconvertible.isEmpty()
-                    ? new FileReport(fileName, Status.NO_LEGACY_BLOCK, "", 0, List.of(), "")
+                    ? new FileReport(fileName, Status.NO_LEGACY_BLOCK, "", 0, 0, 0, List.of(), "")
                     : new FileReport(fileName, Status.UNCONVERTIBLE, String.join(", ", unconvertible),
-                            0, List.of(), "");
+                            0, 0, 0, List.of(), "");
         }
         replacements.sort(Comparator.comparingInt((Replacement value) -> value.hit().startLine()).reversed());
         if (overlapping(replacements)) {
-            return new FileReport(fileName, Status.CONFLICT, "命中区间重叠", 0, List.of(), "");
+            return new FileReport(fileName, Status.CONFLICT, "命中区间重叠", 0, 0, 0, List.of(), "");
         }
+        int merged = (int) replacements.stream().filter(value -> value.matcherHit() != null).count();
+        int duplicated = (int) replacements.stream().filter(Replacement::retained).count();
         List<String> rewritten = new ArrayList<>(lines);
         List<String> diff = new ArrayList<>();
         for (Replacement replacement : replacements) {
             applyReplacement(rewritten, replacement, diff);
         }
         if (!apply) {
-            return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), diff, "");
+            return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), merged, duplicated, diff, "");
         }
         try {
             String backupName = backup(file);
             writeLines(file, rewritten, detectLineSeparator(file), trailingNewline(file));
-            return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), diff, backupName);
+            return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), merged, duplicated,
+                    diff, backupName);
         } catch (IOException failure) {
             logger.warning("写入配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
-                    replacements.size(), diff, "");
+                    replacements.size(), merged, duplicated, diff, "");
         }
     }
 
@@ -178,12 +208,10 @@ public final class LegacyItemSourceRewriter {
                 unconvertible.add(spec.legacyKey() + " 未解析出物品源");
                 continue;
             }
-            if (spec.mergeMode() == LegacyTargetSpec.MergeMode.REPLACE && match.matcher() != null) {
-                unconvertible.add(spec.legacyKey() + " 与同级 " + spec.matcherKey()
-                        + " 并存，无法自动转换，请手动合并后删除旧键");
+            if (match.matcher() != null && spec.semantics() == LegacyTargetSpec.RuntimeSemantics.OVERRIDE) {
                 continue;
             }
-            YamlBlockLocator.Hit matcherHit = spec.mergeMode() == LegacyTargetSpec.MergeMode.MERGE_AND
+            YamlBlockLocator.Hit matcherHit = spec.semantics() == LegacyTargetSpec.RuntimeSemantics.AND
                     ? match.matcher()
                     : null;
             List<String> existing = matcherHit == null
@@ -194,8 +222,27 @@ public final class LegacyItemSourceRewriter {
                 unconvertible.add(spec.legacyKey() + " 渲染结果为空");
                 continue;
             }
-            replacements.add(new Replacement(hit, matcherHit, rendered));
+            if (spec.retainLegacyKey()) {
+                rendered = new ArrayList<>(withRetainedLegacy(lines, hit, rendered));
+            }
+            replacements.add(new Replacement(hit, matcherHit, List.copyOf(rendered), spec.retainLegacyKey()));
         }
+    }
+
+    private static List<String> withRetainedLegacy(List<String> lines,
+            YamlBlockLocator.Hit hit,
+            List<String> rendered) {
+        List<String> result = new ArrayList<>(lines.subList(hit.startLine(), hit.endLine()));
+        List<String> matcher = new ArrayList<>(rendered);
+        if (hit.dashLeading() && !matcher.isEmpty()) {
+            String first = matcher.getFirst();
+            int dash = first.indexOf("- ");
+            if (dash >= 0) {
+                matcher.set(0, " ".repeat(dash + 2) + first.substring(dash + 2));
+            }
+        }
+        result.addAll(matcher);
+        return List.copyOf(result);
     }
 
     private static boolean inlineList(String value) {
@@ -298,6 +345,7 @@ public final class LegacyItemSourceRewriter {
 
     private record Replacement(YamlBlockLocator.Hit hit,
             YamlBlockLocator.Hit matcherHit,
-            List<String> rendered) {
+            List<String> rendered,
+            boolean retained) {
     }
 }

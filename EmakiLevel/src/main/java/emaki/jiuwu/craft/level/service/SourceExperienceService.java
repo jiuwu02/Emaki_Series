@@ -123,20 +123,11 @@ public final class SourceExperienceService {
         ItemSourceService itemSourceService = plugin.coreLib().itemSourceService();
         ItemSourceRef actual = itemSourceService.identifyItem(itemStack);
         for (SourceRuleConfig.Rule rule : source.rules()) {
-            if (rule.matcher() != null) {
-                if (testMatcher(rule.matcher(), itemStack, actual, player)) {
-                    return rule;
-                }
-                continue;
-            }
-            if (rule.resultItemSources().isEmpty()) {
+            if (rule.matcher() == null) {
                 return rule;
             }
-            for (String expectedText : rule.resultItemSources()) {
-                ItemSourceRef expected = ItemSourceUtil.parse(expectedText);
-                if (ItemSourceUtil.matches(expected, actual)) {
-                    return rule;
-                }
+            if (testMatcher(rule.matcher(), itemStack, actual, player)) {
+                return rule;
             }
         }
         return null;

@@ -256,9 +256,10 @@ upgrade:
         - item_sources:
             - "minecraft-nether_star"
           amount: 1
-        # 可选的 matcher 材料项，与上面的 item_sources 写法并存。
-        # 同一条材料项里 matcher 优先：写了 matcher 就只走 matcher，item_sources 被忽略。
-        # 不写 matcher 的材料项行为与旧版逐字一致。
+        # 材料判定由 matcher 单独决定：一条材料项写了 matcher，就只看 matcher，
+        # 同条目的 item_sources 不再参与判定。
+        # ⚠ 因此要限定物品种类时，必须把物品源写进 matcher 里（用 all_of 绑定），
+        #   只写组件条件会让所有满足该组件的背包物品都被计入这味材料。
         #
         # 聚合差异（重要）：item_sources 材料项会按物品源合并同类项累加数量；
         # matcher 材料项无法判等价，因此每一项都独立成项、彼此不合并，

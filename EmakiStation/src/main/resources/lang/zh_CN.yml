@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.7"
+version: "1.0.8"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -37,6 +37,7 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "指定路径不是目录。"
       directory_not_readable: "目录不可读。"
+      storage_unreachable_material: "配方 %recipe% 的第 %index% 个材料只写了 matcher、没有 item_sources，只能从背包供料，不计入仓库检索。"
 
 general:
   prefix: "<gray>[ <gradient:#A3E635:#22D3EE>EmakiStation</gradient> ]</gray>"

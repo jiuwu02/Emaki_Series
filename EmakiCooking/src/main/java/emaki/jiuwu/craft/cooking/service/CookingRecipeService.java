@@ -21,7 +21,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import org.bukkit.entity.Player;
-import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.NamespacedKey;
 import org.bukkit.inventory.ItemStack;
@@ -213,13 +212,6 @@ public final class CookingRecipeService {
             return recipe;
         }
         return null;
-    }
-
-    public List<ItemSourceRef> juicerContainerSources(RecipeDocument recipe) {
-        if (recipe == null) {
-            return List.of();
-        }
-        return parseItemSources(recipe.configuration().get("container.item_sources"));
     }
 
     public Matcher juicerContainerMatcher(RecipeDocument recipe) {
@@ -552,17 +544,6 @@ public final class CookingRecipeService {
         ItemSourceRef source = ItemSourceUtil.parse(raw);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
-    }
-
-    private List<ItemSourceRef> parseItemSources(Object raw) {
-        List<ItemSourceRef> sources = new ArrayList<>();
-        for (Object token : ConfigNodes.asObjectList(raw)) {
-            ItemSourceRef source = ItemSourceUtil.parse(token);
-            if (source != null) {
-                sources.add(source);
-            }
-        }
-        return sources.isEmpty() ? List.of() : List.copyOf(sources);
     }
 
     public void clearCaches() {

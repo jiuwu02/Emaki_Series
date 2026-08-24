@@ -191,7 +191,7 @@ public final class NutritionService {
         boolean ruleMatched = false;
         boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
-            if (!CookingMatchers.accepts(rule.itemSources(), rule.matcher(), itemStack, source, player)) {
+            if (!CookingMatchers.accepts(rule.matcher(), itemStack, source, player)) {
                 continue;
             }
             ruleMatched = true;

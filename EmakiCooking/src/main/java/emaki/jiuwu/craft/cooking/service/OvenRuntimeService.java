@@ -403,7 +403,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
             return null;
         }
         for (CookingSettingsService.OvenFuelRule rule : settingsService.ovenFuels()) {
-            if (rule != null && CookingMatchers.accepts(rule.source(), rule.matcher(), itemStack, identified, null)) {
+            if (rule != null && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }

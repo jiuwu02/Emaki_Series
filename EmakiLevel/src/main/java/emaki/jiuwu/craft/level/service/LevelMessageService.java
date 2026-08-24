@@ -9,12 +9,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-public final class LevelMessageService implements LogMessages {
+public final class LevelMessageService implements LogMessages, LegacyMessageSink {
 
     private final JavaPlugin plugin;
     private String language = "zh_CN";

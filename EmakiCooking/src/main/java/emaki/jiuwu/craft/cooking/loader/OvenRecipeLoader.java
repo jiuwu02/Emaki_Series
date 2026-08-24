@@ -12,7 +12,7 @@ public final class OvenRecipeLoader extends BaseRecipeLoader {
         super(plugin, StationType.OVEN, List.of(
                 "id",
                 "display_name",
-                "input.item_sources",
+                "input.item_sources|input.matcher",
                 "bake_time_seconds"
         ));
     }

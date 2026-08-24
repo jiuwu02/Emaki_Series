@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.cooking.service;
 
-import java.util.List;
 import java.util.Map;
 
 import org.bukkit.entity.Player;
@@ -8,7 +7,6 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
@@ -54,31 +52,10 @@ final class CookingMatchers {
         return matcher.test(MatchContext.of(itemStack, itemSource, player));
     }
 
-    static boolean accepts(List<ItemSourceRef> sources,
-            Matcher matcher,
+    static boolean accepts(Matcher matcher,
             ItemStack itemStack,
             ItemSourceRef itemSource,
             Player player) {
-        if (sources != null && !sources.isEmpty()) {
-            for (ItemSourceRef source : sources) {
-                if (ItemSourceUtil.matches(source, itemSource)) {
-                    return test(matcher, itemStack, itemSource, player);
-                }
-            }
-            return false;
-        }
-        return matcher != null && test(matcher, itemStack, itemSource, player);
-    }
-
-    static boolean accepts(ItemSourceRef expected,
-            Matcher matcher,
-            ItemStack itemStack,
-            ItemSourceRef itemSource,
-            Player player) {
-        if (expected != null) {
-            return ItemSourceUtil.matches(expected, itemSource)
-                    && test(matcher, itemStack, itemSource, player);
-        }
         return matcher != null && test(matcher, itemStack, itemSource, player);
     }
 }

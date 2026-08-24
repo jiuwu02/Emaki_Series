@@ -83,7 +83,12 @@ materials:
 
   # 第 2 条：只写 matcher，不写 item_sources。
   #
-  # 这种"matcher-only"需求没有可枚举的物品身份，界面拿不到图标，
+  # ⚠ 这样的材料【只能从背包供料】，仓库检索会直接跳过它：仓库要逐个物品源去查
+  #   库存，而这里没有可枚举的物品源，只有一个谓词。插件在加载时也会就此告警一次
+  #   （lang 里的 storage_unreachable_material），看到该提示即为此原因，不是配置错。
+  #   若这味材料需要走仓库供料，就得补上 item_sources。
+  #
+  # 同样因为没有可枚举的物品身份，界面拿不到图标，
   # 会显示成屏障占位 + gui/station_preview.yml 里 texts.recipe.material_matcher 的文案
   # （默认"自定义条件"）。可以改那个键来自定义显示。
   #

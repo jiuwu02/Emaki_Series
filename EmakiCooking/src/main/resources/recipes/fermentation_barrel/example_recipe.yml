@@ -18,12 +18,19 @@ display_name: "苹果酒"
 # 输入食材
 # ============================================================
 # 放入发酵桶的原料物品列表（支持多种原料）。
+#
+# 判定完全由 matcher 决定：matcher 是必填项，缺失该条原料永不命中。
+# item_sources 已经不参与判定，这里保留它只有一个用途——作为该条原料的聚合键，
+# 与桶内持久化的槽位状态对齐。所以两者并写：matcher 判"这一枚算不算这味原料"，
+# item_sources 决定"投进去的量归并到哪个槽"。
 inputs:
   - item_sources:
       - "minecraft-apple"
+    matcher: { type: item_source, sources: ["minecraft-apple"] }
     amount: 3
   - item_sources:
       - "minecraft-sugar"
+    matcher: { type: item_source, sources: ["minecraft-sugar"] }
     amount: 1
 
 # ============================================================

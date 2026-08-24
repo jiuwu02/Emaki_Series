@@ -14,11 +14,8 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.FileReport;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.RunReport;
-import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter.Status;
-import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
+import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
+
 
 final class ForgeCommandRouter implements TabExecutor {
 
@@ -55,7 +52,7 @@ final class ForgeCommandRouter implements TabExecutor {
             case "book" -> handleBook(sender);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
-            case "convert-legacy" -> handleConvertLegacy(sender, args);
+            case "convert-legacy" -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -134,65 +131,6 @@ final class ForgeCommandRouter implements TabExecutor {
             plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
-    }
-
-    private boolean handleConvertLegacy(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
-            return true;
-        }
-        boolean apply = args.length >= 2
-                && ("confirm".equalsIgnoreCase(args[1]) || "--apply".equalsIgnoreCase(args[1]));
-        RunReport report = new LegacyItemSourceRewriter(
-                plugin.getDataFolder().toPath(),
-                ForgeLegacyTargets.specs(),
-                plugin.getLogger()).run(apply);
-        var messages = plugin.messageService();
-        messages.sendRaw(sender, messages.message("command.convert_legacy.header", Map.of(
-                "mode", messages.message(apply
-                        ? "command.convert_legacy.mode.apply"
-                        : "command.convert_legacy.mode.dry_run"),
-                "files", report.files().size()
-        )));
-        for (FileReport file : report.files()) {
-            sendConvertLegacyFile(sender, file, apply);
-        }
-        messages.sendRaw(sender, messages.message("command.convert_legacy.summary", Map.of(
-                "converted", report.count(Status.CONVERTED),
-                "skipped", report.count(Status.NO_LEGACY_BLOCK),
-                "conflict", report.count(Status.CONFLICT),
-                "unconvertible", report.count(Status.UNCONVERTIBLE),
-                "failed", report.count(Status.FAILED)
-        )));
-        if (!apply) {
-            messages.send(sender, report.hasConvertible()
-                    ? "command.convert_legacy.dry_run_hint"
-                    : "command.convert_legacy.nothing_to_do");
-        }
-        return true;
-    }
-
-    private void sendConvertLegacyFile(CommandSender sender, FileReport file, boolean apply) {
-        if (file.status() == Status.NO_LEGACY_BLOCK) {
-            return;
-        }
-        var messages = plugin.messageService();
-        messages.sendRaw(sender, messages.message("command.convert_legacy.file", Map.of(
-                "file", file.fileName(),
-                "status", messages.message("command.convert_legacy.status."
-                        + file.status().name().toLowerCase(Locale.ROOT)),
-                "detail", file.detail()
-        )));
-        if (apply && !file.backupName().isBlank()) {
-            messages.sendRaw(sender, messages.message("command.convert_legacy.backup",
-                    Map.of("backup", file.backupName())));
-        }
-        if (!apply) {
-            for (String line : file.diff()) {
-                messages.sendRaw(sender, messages.message("command.convert_legacy.diff_line",
-                        Map.of("line", line)));
-            }
-        }
     }
 
     private void runForSender(CommandSender sender, Runnable task) {

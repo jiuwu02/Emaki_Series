@@ -119,10 +119,7 @@ public final class ForgeMaterial {
         if (context == null) {
             return false;
         }
-        if (matcher != null) {
-            return matcher.test(context);
-        }
-        return matches(context.itemSource());
+        return matcher != null && matcher.test(context);
     }
 
     public String key() {

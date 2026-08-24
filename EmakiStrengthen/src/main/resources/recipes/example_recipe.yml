@@ -169,10 +169,11 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 2
-      # 材料同样支持可选 matcher，与该条目的 item_sources 取 AND：
-      # 物品先要通过 item_sources 判定，再通过 matcher 才算合格材料。
+      # 强化材料的判定分两步，与其他模块不同：先按 item_sources 的物品源令牌
+      # 选中这味材料，再用同条目的 matcher 复核玩家实际放入的那一枚。
+      # 因此这里 item_sources 与 matcher 是"都要成立"，item_sources 不可省略。
       # 星级区间条件仍由 min_target_star / max_target_star 控制，不写进 matcher。
-      # 下面这条要求金粒的自定义名称里含“炎”字，未改名的普通金粒不满足。
+      # 下面这条限定为金粒，且要求自定义名称里含"炎"字。
       # 标记 optional 以免影响示例配方开服即可跑通的默认体验。
       - item_sources:
           - "minecraft-gold_nugget"

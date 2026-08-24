@@ -30,10 +30,7 @@ import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
-import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter;
-import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter.FileReport;
-import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter.RunReport;
-import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter.Status;
+import emaki.jiuwu.craft.strengthen.legacy.StrengthenLegacyEntry;
 
 final class StrengthenCommandRouter implements TabExecutor {
 
@@ -72,7 +69,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
             case "operation" -> handleOperation(sender, args);
             case "pity" -> handlePity(sender, args);
-            case "convert-legacy" -> handleConvertLegacy(sender, args);
+            case "convert-legacy" -> StrengthenLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -199,59 +196,6 @@ final class StrengthenCommandRouter implements TabExecutor {
         String recipeId = args.length >= 2 ? args[1] : "";
         plugin.affixGuiService().open(player, recipeId);
         return true;
-    }
-
-    private boolean handleConvertLegacy(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
-            return true;
-        }
-        boolean apply = args.length >= 2
-                && ("confirm".equalsIgnoreCase(args[1]) || "--apply".equalsIgnoreCase(args[1]));
-        LegacyStrengthenConfigRewriter rewriter = new LegacyStrengthenConfigRewriter(
-                plugin.dataPath("recipes"), plugin.getLogger());
-        RunReport report = rewriter.run(apply);
-        var ms = plugin.messageService();
-        ms.sendRaw(sender, ms.message("command.convert_legacy.header", Map.of(
-                "mode", ms.message(apply ? "command.convert_legacy.mode.apply" : "command.convert_legacy.mode.dry_run"),
-                "files", report.files().size()
-        )));
-        for (FileReport file : report.files()) {
-            sendConvertLegacyFile(sender, file, apply);
-        }
-        ms.sendRaw(sender, ms.message("command.convert_legacy.summary", Map.of(
-                "converted", report.count(Status.CONVERTED),
-                "skipped", report.count(Status.NO_LEGACY_BLOCK),
-                "conflict", report.count(Status.CONFLICT),
-                "unconvertible", report.count(Status.UNCONVERTIBLE),
-                "failed", report.count(Status.FAILED)
-        )));
-        if (!apply) {
-            ms.send(sender, report.hasConvertible()
-                    ? "command.convert_legacy.dry_run_hint"
-                    : "command.convert_legacy.nothing_to_do");
-        }
-        return true;
-    }
-
-    private void sendConvertLegacyFile(CommandSender sender, FileReport file, boolean apply) {
-        var ms = plugin.messageService();
-        if (file.status() == Status.NO_LEGACY_BLOCK) {
-            return;
-        }
-        ms.sendRaw(sender, ms.message("command.convert_legacy.file", Map.of(
-                "file", file.fileName(),
-                "status", ms.message("command.convert_legacy.status." + Texts.lower(file.status().name())),
-                "detail", file.detail()
-        )));
-        if (apply && Texts.isNotBlank(file.backupName())) {
-            ms.sendRaw(sender, ms.message("command.convert_legacy.backup", Map.of("backup", file.backupName())));
-        }
-        if (!apply) {
-            for (String line : file.diff()) {
-                ms.sendRaw(sender, ms.message("command.convert_legacy.diff_line", Map.of("line", line)));
-            }
-        }
     }
 
     private boolean handleOpen(CommandSender sender) {

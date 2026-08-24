@@ -3,7 +3,7 @@
 # version 由资源同步流程维护，用于合并新增默认键。
 
 
-version: "4.7.10"
+version: "4.7.11"
 
 # 通用消息
 general:
@@ -44,6 +44,8 @@ command:
     backup: "<gray>  已备份为 <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
     summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
+    breakdown: "<gray>其中：直接转为 matcher 并移除旧键 <white>%plain%</white> 处、与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处、补写 matcher 但保留旧键（仍用于取物、扣除或计数）<white>%duplicated%</white> 处。</gray>"
+    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处、保留旧键 <white>%duplicated%</white> 处、直接转换 <white>%plain%</white> 处</gray>"
     dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakiforge convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
     nothing_to_do: "<gray>没有需要转换的配置。</gray>"
     status:

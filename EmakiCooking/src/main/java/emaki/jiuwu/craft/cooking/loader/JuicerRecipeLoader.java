@@ -12,7 +12,7 @@ public final class JuicerRecipeLoader extends BaseRecipeLoader {
         super(plugin, StationType.JUICER, List.of(
                 "id",
                 "display_name",
-                "input.item_sources",
+                "input.item_sources|input.matcher",
                 "presses_required"
         ));
     }

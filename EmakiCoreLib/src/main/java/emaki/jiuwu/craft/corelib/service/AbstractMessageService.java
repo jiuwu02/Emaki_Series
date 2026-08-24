@@ -13,12 +13,13 @@ import java.util.List;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.DiagnosticRenderer;
+import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 
-public class AbstractMessageService implements LogMessages {
+public class AbstractMessageService implements LogMessages, LegacyMessageSink {
 
     private final JavaPlugin plugin;
     private final String defaultPrefix;

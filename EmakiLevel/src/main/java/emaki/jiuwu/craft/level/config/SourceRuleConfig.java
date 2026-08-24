@@ -83,7 +83,6 @@ public record SourceRuleConfig(String id,
     public record Rule(Set<String> entityTypes,
             Set<String> blocks,
             Set<String> states,
-            Set<String> resultItemSources,
             Set<String> potionTypes,
             Set<String> mobIds,
             String expFormula,
@@ -93,7 +92,6 @@ public record SourceRuleConfig(String id,
             entityTypes = normalizeSet(entityTypes);
             blocks = normalizeSet(blocks);
             states = normalizeSet(states);
-            resultItemSources = resultItemSources == null ? Set.of() : Set.copyOf(resultItemSources);
             potionTypes = normalizeSet(potionTypes);
             mobIds = normalizeSet(mobIds);
             expFormula = Texts.isBlank(expFormula) ? "0" : expFormula;
@@ -104,7 +102,6 @@ public record SourceRuleConfig(String id,
                     normalizedStringSet(map.get("entity_types")),
                     normalizedStringSet(map.get("blocks")),
                     normalizedStringSet(map.get("states")),
-                    new LinkedHashSet<>(stringList(map.get("result_item_sources"))),
                     normalizedStringSet(map.get("potion_types")),
                     normalizedStringSet(map.get("mob_ids")),
                     string(map.get("exp_formula"), "0"),

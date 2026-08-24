@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.13"
+version: "2.7.14"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -15,10 +15,11 @@ release_default_data: true
 
 # 开孔器定义。每个条目声明"哪些物品算这个开孔器"。
 #
-# 判定方式二选一，matcher 非空时优先，否则退回 item_sources：
-#   item_sources: 旧写法，按物品源匹配。原版物品用连字符，如 "minecraft-blaze_rod"。
-#   matcher:      新写法，支持组件条件与组合逻辑。type: component 的 component /
-#                 path 里的资源 ID 用冒号，如 "minecraft:sharpness"（命名空间可省略写 sharpness）。
+# 判定完全由 matcher 决定，它是每个开孔器的必填项，缺失该开孔器永不命中。
+#   matcher: 唯一的判定入口。按物品源判定就写 type: item_source，sources 里的原版物品
+#            用连字符，如 "minecraft-blaze_rod"；要加组件条件就用 type: component，
+#            其 component / path 里的资源 ID 用冒号，如 "minecraft:sharpness"
+#            （命名空间可省略写 sharpness）。
 #
 # matcher 的组合类型：all_of（全部成立）、any_of（任一成立）、none_of（全部不成立）、
 # at_least + required_count（至少 N 条成立）、exactly + required_count（恰好 N 条成立）。
@@ -26,13 +27,12 @@ release_default_data: true
 #
 # 两种形状不要混写：物品源是连字符 minecraft-blaze_rod，组件 ID 是冒号 minecraft:custom_name。
 #
-# opens_gem_types / consume_on_success / actions 的语义与判定方式无关，两种写法都一样生效。
+# opens_gem_types / consume_on_success / actions 的语义与 matcher 怎么写无关，一样生效。
 socket_openers:
   # 攻击向插槽开孔器
   attack_drill:
     enabled: true
-    item_sources:
-      - "minecraft-blaze_rod"
+    matcher: { type: item_source, sources: ["minecraft-blaze_rod"] }
     opens_gem_types:
       - "attack"
     consume_on_success: true
@@ -47,8 +47,7 @@ socket_openers:
   # 防御向插槽开孔器
   defense_drill:
     enabled: true
-    item_sources:
-      - "minecraft-prismarine_shard"
+    matcher: { type: item_source, sources: ["minecraft-prismarine_shard"] }
     opens_gem_types:
       - "defense"
     consume_on_success: true
@@ -63,8 +62,7 @@ socket_openers:
   # 通用开孔器
   universal_drill:
     enabled: true
-    item_sources:
-      - "minecraft-echo_shard"
+    matcher: { type: item_source, sources: ["minecraft-echo_shard"] }
     opens_gem_types:
       - "any"
     consume_on_success: true
@@ -78,7 +76,7 @@ socket_openers:
 
   # 传说开孔器：matcher 组合写法示例，默认关闭。
   # 含义是"只有名字里含传说的烈焰棒才算这个开孔器"，普通烈焰棒不算。
-  # matcher 非空时完全接管判定，此条目下不需要再写 item_sources。
+  # 与上面三个开孔器一样，判定只看 matcher，只是这里多叠了一条组件条件。
   # 启用会让这类物品在开孔界面被识别为开孔器，确认过判定范围后再改成 true。
   legendary_drill:
     enabled: false

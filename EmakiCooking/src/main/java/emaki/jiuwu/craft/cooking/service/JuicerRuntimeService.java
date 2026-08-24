@@ -375,12 +375,10 @@ public final class JuicerRuntimeService implements Listener {
         if (identified == null) {
             return null;
         }
-        if (CookingMatchers.accepts(recipeService.juicerContainerSources(recipe),
-                recipeService.juicerContainerMatcher(recipe), hand, identified, player)) {
+        if (CookingMatchers.accepts(recipeService.juicerContainerMatcher(recipe), hand, identified, player)) {
             return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
         }
-        if (CookingMatchers.accepts(settingsService.juicerContainerSources(),
-                settingsService.juicerContainerMatcher(), hand, identified, player)) {
+        if (CookingMatchers.accepts(settingsService.juicerContainerMatcher(), hand, identified, player)) {
             return CookingCompletionRequest.PlayerInventoryInput.mainHand(player, 1, "juicer serving container");
         }
         return null;

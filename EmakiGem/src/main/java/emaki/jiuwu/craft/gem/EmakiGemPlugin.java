@@ -22,7 +22,9 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.gem.legacy.GemLegacyTargets;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
@@ -130,6 +132,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
+        reportLegacyItemSources();
         registerCommandHandler();
         registerActions();
         registerEventHandlers();
@@ -204,6 +207,15 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiGem readiness publication skipped: " + exception);
         }
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                GemLegacyTargets.specs(),
+                getLogger(),
+                "emakigem"
+        );
     }
 
     private void registerConfigPrecheckContributor() {

@@ -12,7 +12,7 @@ public final class ChoppingBoardRecipeLoader extends BaseRecipeLoader {
         super(plugin, StationType.CHOPPING_BOARD, List.of(
                 "id",
                 "display_name",
-                "input.item_sources",
+                "input.item_sources|input.matcher",
                 "cuts_required"
         ));
     }
