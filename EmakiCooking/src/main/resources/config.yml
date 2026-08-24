@@ -7,7 +7,7 @@
 # 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
 # 不使用 minecraft:iron_axe 这种冒号写法。
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.2.7"
+version: "4.2.8"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -285,15 +285,24 @@ stations:
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
     # 每条燃料可选加 matcher，在 item_sources 之外追加组件条件
     # 不配置 matcher 时行为与旧版完全一致
+    #
+    # 与烤炉同理：燃料取【首个命中】，带 matcher 的窄条目必须写在
+    # 同物品源的宽条目【之前】。下面第一条是该写法的实例。
     fuels:
+      # 名字含"油浸"的木棍视为助燃物，燃烧时间显著延长。
+      # 原版木棍不带 custom_name，故全新服务器上这一条不命中，
+      # 普通木棍仍落到下面的宽条目取 5 秒，默认体验不变。
+      - item_sources:
+          - minecraft-stick
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "油浸"
+        duration_seconds: 40
       - item_sources:
           - minecraft-stick
         duration_seconds: 5
-        # matcher:
-        #   type: component
-        #   component: custom_name
-        #   operator: contains
-        #   value: "油浸"
       - item_sources:
           - minecraft-coal
         duration_seconds: 80
@@ -353,7 +362,23 @@ stations:
     # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
     # 每条燃料可选加 matcher，在 item_sources 之外追加组件条件
     # 不配置 matcher 时行为与旧版完全一致
+    #
+    # 燃料按本列表顺序取【首个命中】，命中即停。因此带 matcher 的窄条目
+    # 必须写在同物品源的宽条目【之前】，否则会被前面的宽条目先命中而永不生效。
+    # 下面第一条即为该写法的实例：同为煤炭，改过名的走窄条目、普通煤炭落到宽条目。
     fuels:
+      # 名字含"精炼"的煤炭视为优质燃料，燃烧更久、火力更高。
+      # 原版煤炭不带 custom_name，因此在全新服务器上这一条不会命中，
+      # 普通煤炭仍按下面的宽条目取 80 秒 / 火力 35，默认体验不变。
+      - item_sources:
+          - minecraft-coal
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "精炼"
+        duration_seconds: 160
+        heat: 50
       - item_sources:
           - minecraft-stick
         duration_seconds: 5
