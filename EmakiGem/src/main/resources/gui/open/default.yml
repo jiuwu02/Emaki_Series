@@ -65,9 +65,9 @@ slots:
     item:
       source: "light_blue_stained_glass_pane"
       components:
-        custom_name: "<aqua>放入装备</aqua>"
+        custom_name: "%target_title%"
         lore:
-          - "<gray>将需要开孔的装备放入此处</gray>"
+          - "%target_lines%"
 
   opener_item:
     slots:
@@ -76,9 +76,9 @@ slots:
     item:
       source: "amethyst_shard"
       components:
-        custom_name: "<light_purple>放入开孔器</light_purple>"
+        custom_name: "%opener_title%"
         lore:
-          - "<gray>放入对应的开孔道具</gray>"
+          - "%opener_lines%"
 
   socket_info:
     slots:
@@ -87,9 +87,9 @@ slots:
     item:
       source: "book"
       components:
-        custom_name: "<gold>开孔信息</gold>"
+        custom_name: "%info_title%"
         lore:
-          - "<gray>查看当前装备的插槽状态</gray>"
+          - "%info_lines%"
 
   socket_slots:
     slots:
@@ -103,9 +103,9 @@ slots:
     item:
       source: "white_stained_glass_pane"
       components:
-        custom_name: "<white>锁定插槽</white>"
+        custom_name: "%slot_title%"
         lore:
-          - "<gray>装备放入后显示插槽详情</gray>"
+          - "%slot_lines%"
 
   preview_display:
     slots:
@@ -114,9 +114,9 @@ slots:
     item:
       source: "writable_book"
       components:
-        custom_name: "<gold>开孔预览</gold>"
+        custom_name: "%preview_title%"
         lore:
-          - "<gray>开孔操作预览将在此显示</gray>"
+          - "%preview_lines%"
 
   confirm:
     slots:
@@ -125,6 +125,6 @@ slots:
     item:
       source: "lime_stained_glass_pane"
       components:
-        custom_name: "<green>确认开孔</green>"
+        custom_name: "%confirm_title%"
         lore:
-          - "<gray>点击执行开孔操作</gray>"
+          - "%confirm_lines%"

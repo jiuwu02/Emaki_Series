@@ -399,6 +399,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         } else {
             castMode = new AppConfig.CastModeSettings(
                     castModeSection.getString("entry_key", defaults.castMode().entryKey()),
+                    boolValue(castModeSection.getBoolean("enabled"), defaults.castMode().enabled()),
                     boolValue(castModeSection.getBoolean("restore_last_state_on_join"), defaults.castMode().restoreLastStateOnJoin())
             );
         }

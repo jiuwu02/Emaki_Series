@@ -5,7 +5,7 @@
 # 文件位置：plugins/EmakiSkills/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.10"
+version: "2.7.11"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -34,6 +34,11 @@ skill_tags:
 cast_mode:
   # 兼容保留项；当前运行时会把施法模式入口固定为 F。
   entry_key: "f"
+  # 是否启用 F 键（主副手交换）切换施法模式。
+  # 仅控制 F 键这一个入口，不是施法模式总开关：
+  # 关闭后 F 键恢复原版交换主副手，施法模式仍可用 /eskills castmode 或技能 GUI 切换，
+  # 且未进入施法模式时主动技能依然无法释放。
+  enabled: true
   # 玩家重新加入后是否恢复上次的施法模式状态。
   restore_last_state_on_join: true
 

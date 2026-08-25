@@ -300,7 +300,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         passiveTriggerSource.reloadCronTasks(this, skillDefinitionLoader.all().values());
 
         getServer().getPluginManager().registerEvents(
-                new CastModeKeyListener(castModeService, actionBarService, messageService),
+                new CastModeKeyListener(castModeService, actionBarService, messageService, this::appConfig),
                 this);
 
         getServer().getPluginManager().registerEvents(
