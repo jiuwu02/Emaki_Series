@@ -1,7 +1,7 @@
 # EmakiAccessory 简体中文语言资源。
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
-version: "1.0.2"
+version: "1.0.3"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiAccessory...</gray>"
@@ -49,14 +49,22 @@ gui:
   click_unsupported: "<red>饰品栏不支持这种点击方式</red>"
   transfer_unsupported: "<red>饰品栏不支持这种搬运方式，请逐格放取</red>"
   slot_mismatch: "<red>这件饰品只能戴在 <white>%required%</white>，放不进 <white>%slot%</white></red>"
-  unique_conflict: "<red>你已经在 <white>%conflict%</white> 戴了同一件饰品</red>"
+  unique_conflict: "<red>你已经在同一页的 <white>%conflict%</white> 戴了同一件饰品</red>"
+  page_enable_lore: "<dark_gray>点击将本页设为生效页</dark_gray>"
+  page_enabled_lore: "<green>本页正在生效</green>"
+  page_switch_lore: "<dark_gray>点击切换到 <white>%page%</white></dark_gray>"
+  page_already_enabled: "<yellow>本页已经是生效页了</yellow>"
+  page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
+  page_no_permission: "<red>你没有权限使用饰品页 <white>%page%</white></red>"
 
 command:
   help: |
     <gold>EmakiAccessory 指令</gold>
-    <yellow>/eacc open</yellow> <gray>- 打开自己的饰品栏</gray>
-    <yellow>/eacc list</yellow> <gray>- 列出自己的饰品槽</gray>
-    <yellow>/eacc reload</yellow> <gray>- 重载配置、部位与套装</gray>
+    <yellow>/eacc open [页]</yellow> <gray>- 打开饰品栏，不带页时打开生效页</gray>
+    <yellow>/eacc list</yellow> <gray>- 列出生效页的饰品槽</gray>
+    <yellow>/eacc pages</yellow> <gray>- 列出所有饰品页</gray>
+    <yellow>/eacc retrieve <页></yellow> <gray>- 取回该页全部饰品，主要用于没有权限的页</gray>
+    <yellow>/eacc reload</yellow> <gray>- 重载配置、部位、套装与饰品页</gray>
     <yellow>/eacc debug</yellow> <gray>- 调试开关</gray>
     <yellow>/eacc admin</yellow> <gray>- 管理指令</gray>
   admin_usage: |
@@ -66,9 +74,20 @@ command:
     <yellow>/eacc admin clear <玩家></yellow> <gray>- 清空饰品（不可撤销，会记入日志）</gray>
     <yellow>/eacc admin save</yellow> <gray>- 立刻保存所有饰品数据</gray>
   open_failed: "<red>无法打开饰品栏，请检查界面布局配置</red>"
-  list_header: "<gold>饰品槽</gold> <gray>已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+  list_header: "<gold>饰品槽</gold> <gray>页 <white>%page%</white>，已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
   list_entry_filled: "<gray>- <white>%slot%</white> <green>已装备</green></gray>"
   list_entry_empty: "<gray>- <white>%slot%</white> <dark_gray>空</dark_gray></gray>"
+  pages_header: "<gold>饰品页</gold> <gray>共 <yellow>%count%</yellow> 页</gray>"
+  pages_entry: "<gray>- <white>%page%</white> %name% <gray>(<yellow>%count%</yellow> 件)</gray></gray>"
+  pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>生效中</green> <gray>(<yellow>%count%</yellow> 件)</gray></gray>"
+  pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>无权限</red> <gray>(<yellow>%count%</yellow> 件，可用 retrieve 取回)</gray></gray>"
+  page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
+  page_no_permission: "<red>你没有权限打开饰品页 <white>%page%</white>，可用 <white>/eacc retrieve %page%</white> 取回其中饰品</red>"
+  retrieve_usage: "<yellow>用法：/eacc retrieve <页></yellow> <gray>取回该页全部饰品，主要用于没有权限的页</gray>"
+  retrieve_done: "<green>已取回饰品页 <white>%page%</white></green> <gray>共 <yellow>%count%</yellow> 件，背包放不下的已掉在脚下</gray>"
+  retrieve_empty: "<yellow>饰品页 <white>%page%</white> 里没有饰品</yellow>"
+  retrieve_unknown_page: "<red>找不到饰品页 <white>%page%</white></red>"
+  retrieve_busy: "<red>正有其他人在编辑你的饰品，请稍后再试</red>"
   reload_done: "<green>重载完成</green> <gray>槽位 <yellow>%slots%</yellow>，套装 <yellow>%sets%</yellow>，问题 <yellow>%issues%</yellow></gray>"
   unknown_player: "<red>找不到玩家 <white>%player%</white></red>"
   admin_target_offline: "<red>该玩家不在线，无法执行这个操作</red>"
@@ -88,7 +107,11 @@ accessory:
   gui_template_missing: "缺少界面布局 %template%，饰品栏无法打开"
   gui_slot_multi_cell: "槽位 %slot% 占了 %count% 格，只有第一格生效"
   gui_cell_conflict: "槽位 %slot% 想占用第 %cell% 格，但该格已被占用，已跳过"
-  gui_slot_unplaced: "槽位 %slot% 没有在界面布局里摆放，玩家无法使用"
+  gui_slot_unplaced: "饰品页 %page% 的槽位 %slot% 没有在界面布局里摆放，玩家无法使用"
+  pages_missing: "pages 目录里没有任何有效的饰品页，饰品栏无法打开"
+  page_without_parts: "%file% 里的饰品页 %page% 没有列出任何部位，已跳过"
+  page_unknown_part: "饰品页 %page% 引用了未定义的部位 %part%，该部位不会出现在本页"
+  invalid_slot_pattern: "槽位 Lore 正则 %pattern% 编译失败，已跳过：%error%"
   set_without_pieces: "%file% 里的套装 %set% 没有任何成员，已跳过"
   set_piece_invalid: "%file% 里套装 %set% 的成员 %piece% 缺少 item，已跳过"
   set_threshold_not_numeric: "%file% 里套装 %set% 的阈值 %threshold% 不是整数，已跳过"

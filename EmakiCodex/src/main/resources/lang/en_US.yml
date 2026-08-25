@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with /codex reload.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -21,9 +21,12 @@ command:
     footer: "<gold>=====================================</gold>"
     line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
+      codex: "Open the codex GUI"
       reload: "Reload config, re-register advancements, resync all"
       grant: "Grant an advancement to a player"
       revoke: "Revoke an advancement from a player"
+      admin_unlock: "Force-unlock a codex entry for a player"
+      admin_reset: "Reset a player's codex state; omit the entry to clear everything"
       debug: "Manage debug mode"
   grant:
     done: "<green>Granted advancement %advancement% to %player%.</green>"
@@ -32,6 +35,11 @@ command:
   advancement:
     failed: "<red>Advancement %advancement% operation failed: %reason%</red>"
     reason_unknown: "<red>unknown reason</red>"
+  codex:
+    unlocked: "<green>Unlocked codex entry %entry% for %player%.</green>"
+    reset: "<green>Reset %count% codex entries for %player%.</green>"
+    failed: "<red>Codex entry %entry% operation failed: %reason%</red>"
+    bad_reference: "<red>Entry reference %entry% is malformed; expected <categoryId>/<entryId>.</red>"
 
 # Concrete reasons a grant/revoke was refused. Resolved straight from the service's reasonKey, so a new
 # cause only needs an entry here.
@@ -51,6 +59,46 @@ codex:
     not_completed: "The player has not completed this advancement yet."
     cancelled: "The revoke was cancelled by another plugin."
     rejected: "The server refused to revoke the completion criterion."
+  entry:
+    not_found: "The codex entry is not configured. Check whether the category files under codex/ contain it."
+    locked: "That codex entry is not unlocked yet."
+    already_unlocked: "That codex entry is already unlocked."
+    already_activated: "That codex entry is already activated."
+    already_claimed: "The reward for that codex entry has already been claimed."
+    no_reward: "That codex entry has no one-off reward to claim."
+    nothing_to_reset: "There is no codex state to reset."
+    state_stale: "Codex data is not ready or was updated by another session; try again shortly."
+  loader:
+    entry_skipped: "Skipped unreadable codex entry %entry% in %file%."
+    category_empty: "Codex category %category% in %file% has no entries."
+
+gui:
+  open_failed: "<red>Could not open the codex GUI; check that gui/codex_gui.yml exists.</red>"
+  no_categories: "<red>No codex categories are available.</red>"
+  entry_unknown: "<dark_gray>Unknown entry</dark_gray>"
+  entry_unlocked: "<green>Unlocked codex entry %codex_title%.</green>"
+  entry_action_done: "<green>Done.</green>"
+  category_active: "<green>Current category</green>"
+  category_inactive: "<dark_gray>Click to view</dark_gray>"
+  state_locked: "<dark_gray>Locked</dark_gray>"
+  state_unlocked: "<yellow>Ready to activate</yellow>"
+  state_activated: "<aqua>Activated</aqua>"
+  state_claimed: "<green>Claimed</green>"
+  hint_locked: "<dark_gray>Meet the unlock condition to activate</dark_gray>"
+  hint_activate: "<yellow>Left click</yellow> <gray>to activate the attribute bonus</gray>"
+  hint_claim: "<yellow>Right click</yellow> <gray>to claim the one-off reward</gray>"
+  hint_done: "<dark_gray>This entry is fully completed</dark_gray>"
+  reward_attribute: "<gray>- <white>%attribute%</white> <green>+%value%</green></gray>"
+  reward_claimable: "<gray>- <yellow>One-off reward available</yellow></gray>"
+  reward_hidden: "<dark_gray>- Visible once unlocked</dark_gray>"
+  reward_none: "<dark_gray>- None</dark_gray>"
+
+# Default sentences for the codex_broadcast_achievement stage, picked by the frame parameter.
+broadcast:
+  frame:
+    task: "<white>%player% has made the advancement <green>[%title%]</green></white>"
+    goal: "<white>%player% has reached the goal <green>[%title%]</green></white>"
+    challenge: "<white>%player% has completed the challenge <light_purple>[%title%]</light_purple></white>"
 
 emaki:
   api:
@@ -70,6 +118,7 @@ console:
   default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
   directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   advancements_registered: "Registered %count% advancements."
+  codex_categories_loaded: "Loaded %count% codex categories."
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."

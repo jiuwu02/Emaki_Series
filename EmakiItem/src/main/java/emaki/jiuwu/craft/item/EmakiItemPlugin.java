@@ -55,6 +55,7 @@ import emaki.jiuwu.craft.item.listener.ItemUpdateListener;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
+import emaki.jiuwu.craft.item.loader.ItemPackLoader;
 import emaki.jiuwu.craft.item.papi.ItemPlaceholderExpansion;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
@@ -71,6 +72,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
+import emaki.jiuwu.craft.item.service.ItemBrowserGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
@@ -123,6 +125,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemLoader itemLoader;
     private EmakiItemSetLoader setLoader;
     private EmakiItemAliasLoader aliasLoader;
+    private ItemPackLoader packLoader;
     private EmakiItemIdResolver idResolver;
     private EmakiItemMigrationService migrationService;
     private EmakiItemLayerPreviewRegistry layerPreviewRegistry;
@@ -142,6 +145,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemAttributeBridge pdcAttributeGateway;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
+    private ItemBrowserGuiService browserGuiService;
     private final EmakiItemApi.Bridge itemApiBridge =
             new DefaultEmakiItemApi(this);
 
@@ -391,6 +395,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         itemLoader = components.itemLoader();
         setLoader = components.setLoader();
         aliasLoader = components.aliasLoader();
+        packLoader = components.packLoader();
         idResolver = components.idResolver();
         migrationService = components.migrationService();
         layerPreviewRegistry = components.layerPreviewRegistry();
@@ -410,6 +415,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         pdcAttributeGateway = components.pdcAttributeGateway();
         repairService = components.repairService();
         repairGuiService = components.repairGuiService();
+        browserGuiService = components.browserGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
@@ -505,6 +511,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return aliasLoader;
     }
 
+    public ItemPackLoader packLoader() {
+        return packLoader;
+    }
+
     public EmakiItemIdResolver idResolver() {
         return idResolver;
     }
@@ -583,6 +593,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public ItemRepairGuiService repairGuiService() {
         return repairGuiService;
+    }
+
+    public ItemBrowserGuiService browserGuiService() {
+        return browserGuiService;
     }
 
     public EmakiCoreLibPlugin coreLib() {

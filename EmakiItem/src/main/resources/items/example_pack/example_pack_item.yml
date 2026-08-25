@@ -1,0 +1,24 @@
+# ============================================================
+# EmakiItem 分包物品示例
+# ============================================================
+# 本文件演示「按子目录分包」：它与同目录的 pack.yml 一起构成
+# 一个物品包，在 /ei browse 的一级界面显示为一个图标。
+# 完整字段说明见 items/example_item.yml。
+#
+# 文件放置位置: plugins/EmakiItem/items/<包目录>/
+# ============================================================
+
+id: "example_pack_item"
+
+item:
+  source: "minecraft-iron_sword"
+  amount: 1
+  components:
+    custom_name: "<aqua>示例包之刃</aqua>"
+    lore:
+      - "<gray>来自 example_pack 的演示物品</gray>"
+      - ""
+      - "<dark_gray>用于验证物品浏览 GUI 的分包导航</dark_gray>"
+    max_stack_size: 1
+
+equip_slot: "hand"

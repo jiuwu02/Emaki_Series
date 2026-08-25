@@ -27,6 +27,7 @@ public final class AdvancementListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAdvancementDone(PlayerAdvancementDoneEvent event) {
         NamespacedKey key = event.getAdvancement().getKey();
+        plugin.codexEntryService().unlockByAdvancement(event.getPlayer(), key.toString());
         AdvancementDefinition definition = registrar.definitionByKey(key);
         if (definition == null) {
             return;

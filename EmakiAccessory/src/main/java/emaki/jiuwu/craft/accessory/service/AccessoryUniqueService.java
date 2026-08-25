@@ -38,7 +38,10 @@ public final class AccessoryUniqueService {
         return "material:" + item.getType().name().toLowerCase(Locale.ROOT);
     }
 
-    public String findConflict(PlayerAccessories accessories, ItemStack candidate, String targetSlotId) {
+    public String findConflict(PlayerAccessories accessories,
+            String pageId,
+            ItemStack candidate,
+            String targetSlotId) {
         if (!enabled || accessories == null) {
             return "";
         }
@@ -47,7 +50,7 @@ public final class AccessoryUniqueService {
             return "";
         }
         String target = Texts.normalizeId(targetSlotId);
-        for (Map.Entry<String, ItemStack> entry : accessories.items().entrySet()) {
+        for (Map.Entry<String, ItemStack> entry : accessories.items(pageId).entrySet()) {
             if (entry.getKey().equals(target)) {
                 continue;
             }

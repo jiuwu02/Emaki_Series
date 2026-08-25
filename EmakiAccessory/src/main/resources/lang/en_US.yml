@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource.
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
-version: "1.0.2"
+version: "1.0.3"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
@@ -49,14 +49,22 @@ gui:
   click_unsupported: "<red>The accessory window does not support that click</red>"
   transfer_unsupported: "<red>The accessory window does not support that transfer; move items one slot at a time</red>"
   slot_mismatch: "<red>This accessory only fits <white>%required%</white>, not <white>%slot%</white></red>"
-  unique_conflict: "<red>You already have the same accessory in <white>%conflict%</white></red>"
+  unique_conflict: "<red>You already have the same accessory in <white>%conflict%</white> on this page</red>"
+  page_enable_lore: "<dark_gray>Click to make this page the active one</dark_gray>"
+  page_enabled_lore: "<green>This page is active</green>"
+  page_switch_lore: "<dark_gray>Click to switch to <white>%page%</white></dark_gray>"
+  page_already_enabled: "<yellow>This page is already the active one</yellow>"
+  page_unknown: "<red>No such accessory page: <white>%page%</white></red>"
+  page_no_permission: "<red>You do not have permission to use accessory page <white>%page%</white></red>"
 
 command:
   help: |
     <gold>EmakiAccessory commands</gold>
-    <yellow>/eacc open</yellow> <gray>- Open your accessory window</gray>
-    <yellow>/eacc list</yellow> <gray>- List your accessory slots</gray>
-    <yellow>/eacc reload</yellow> <gray>- Reload config, parts and sets</gray>
+    <yellow>/eacc open [page]</yellow> <gray>- Open the accessory window; the active page when omitted</gray>
+    <yellow>/eacc list</yellow> <gray>- List the accessory slots of the active page</gray>
+    <yellow>/eacc pages</yellow> <gray>- List every accessory page</gray>
+    <yellow>/eacc retrieve <page></yellow> <gray>- Take back every accessory on a page, mainly for pages you cannot open</gray>
+    <yellow>/eacc reload</yellow> <gray>- Reload config, parts, sets and accessory pages</gray>
     <yellow>/eacc debug</yellow> <gray>- Debug toggles</gray>
     <yellow>/eacc admin</yellow> <gray>- Admin commands</gray>
   admin_usage: |
@@ -66,9 +74,20 @@ command:
     <yellow>/eacc admin clear <player></yellow> <gray>- Clear accessories (irreversible, logged)</gray>
     <yellow>/eacc admin save</yellow> <gray>- Save all accessory data now</gray>
   open_failed: "<red>Could not open the accessory window; check the GUI layout</red>"
-  list_header: "<gold>Accessory slots</gold> <gray>used <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+  list_header: "<gold>Accessory slots</gold> <gray>page <white>%page%</white>, used <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
   list_entry_filled: "<gray>- <white>%slot%</white> <green>equipped</green></gray>"
   list_entry_empty: "<gray>- <white>%slot%</white> <dark_gray>empty</dark_gray></gray>"
+  pages_header: "<gold>Accessory pages</gold> <gray><yellow>%count%</yellow> total</gray>"
+  pages_entry: "<gray>- <white>%page%</white> %name% <gray>(<yellow>%count%</yellow> item(s))</gray></gray>"
+  pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>active</green> <gray>(<yellow>%count%</yellow> item(s))</gray></gray>"
+  pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>no permission</red> <gray>(<yellow>%count%</yellow> item(s), use retrieve)</gray></gray>"
+  page_unknown: "<red>No such accessory page: <white>%page%</white></red>"
+  page_no_permission: "<red>You cannot open accessory page <white>%page%</white>; use <white>/eacc retrieve %page%</white> to take its accessories back</red>"
+  retrieve_usage: "<yellow>Usage: /eacc retrieve <page></yellow> <gray>takes back every accessory on that page, mainly for pages you cannot open</gray>"
+  retrieve_done: "<green>Retrieved accessory page <white>%page%</white></green> <gray><yellow>%count%</yellow> item(s); anything that did not fit was dropped at your feet</gray>"
+  retrieve_empty: "<yellow>Accessory page <white>%page%</white> holds no accessories</yellow>"
+  retrieve_unknown_page: "<red>No such accessory page: <white>%page%</white></red>"
+  retrieve_busy: "<red>Someone else is editing your accessories right now; try again shortly</red>"
   reload_done: "<green>Reload complete</green> <gray>slots <yellow>%slots%</yellow>, sets <yellow>%sets%</yellow>, issues <yellow>%issues%</yellow></gray>"
   unknown_player: "<red>No such player: <white>%player%</white></red>"
   admin_target_offline: "<red>That player is offline; this operation needs them online</red>"
@@ -88,7 +107,11 @@ accessory:
   gui_template_missing: "GUI layout %template% is missing; the accessory window cannot open"
   gui_slot_multi_cell: "Slot %slot% claims %count% cells; only the first one is used"
   gui_cell_conflict: "Slot %slot% wants cell %cell%, which is already taken; skipped"
-  gui_slot_unplaced: "Slot %slot% is not placed in the GUI layout and players cannot use it"
+  gui_slot_unplaced: "Slot %slot% of accessory page %page% is not placed in the GUI layout and players cannot use it"
+  pages_missing: "The pages directory holds no valid accessory page; the accessory window cannot open"
+  page_without_parts: "Accessory page %page% in %file% lists no parts, skipped"
+  page_unknown_part: "Accessory page %page% references undefined part %part%; that part will not appear on this page"
+  invalid_slot_pattern: "Slot lore pattern %pattern% failed to compile, skipped: %error%"
   set_without_pieces: "Set %set% in %file% has no pieces, skipped"
   set_piece_invalid: "Piece %piece% of set %set% in %file% has no item, skipped"
   set_threshold_not_numeric: "Threshold %threshold% of set %set% in %file% is not an integer, skipped"

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.codex;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -27,8 +28,11 @@ final class CodexCommandRouter implements TabExecutor {
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
 
+    private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
+
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "reload", "grant", "revoke", "debug");
+            List.of("help", "codex", "open", "reload", "grant", "revoke", "admin", "debug");
+    private static final List<String> ADMIN_ACTIONS = List.of("unlock", "reset");
 
     private final EmakiCodexPlugin plugin;
 
@@ -47,15 +51,125 @@ final class CodexCommandRouter implements TabExecutor {
                 sendHelp(sender);
                 yield true;
             }
+            case "codex", "open" -> openCodexGui(sender);
             case "reload" -> handleReload(sender);
             case "grant" -> handleAdvancement(sender, args, true);
             case "revoke" -> handleAdvancement(sender, args, false);
+            case "admin" -> routeAdmin(sender, args);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
                 yield true;
             }
         };
+    }
+
+    private boolean openCodexGui(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!hasAdminOr(sender, PERMISSION_USE)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        plugin.executionDispatcher().runEntity(plugin, player, () -> {
+            if (!plugin.codexGuiService().open(player)) {
+                plugin.messageService().send(player, "gui.open_failed");
+            }
+        }, () -> plugin.messageService().send(player, "gui.open_failed"));
+        return true;
+    }
+
+    private boolean routeAdmin(CommandSender sender, String[] args) {
+        if (!hasAdmin(sender)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        return switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "unlock" -> unlockEntry(sender, args);
+            case "reset" -> resetEntries(sender, args);
+            default -> {
+                plugin.messageService().send(sender, "general.unknown_command");
+                yield true;
+            }
+        };
+    }
+
+    private boolean unlockEntry(CommandSender sender, String[] args) {
+        if (args.length < 4) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found", Map.of("player", args[2]));
+            return true;
+        }
+        String[] composite = splitEntryReference(args[3]);
+        if (composite == null) {
+            plugin.messageService().send(sender, "command.codex.bad_reference", Map.of("entry", args[3]));
+            return true;
+        }
+        EmakiResult<Unit> result = plugin.codexEntryService().unlock(target, composite[0], composite[1]);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.codex.failed", Map.of(
+                    "entry", args[3],
+                    "reason", describeFailure(result)));
+            return true;
+        }
+        plugin.messageService().send(sender, "command.codex.unlocked", Map.of(
+                "player", target.getName(),
+                "entry", args[3]));
+        return true;
+    }
+
+    private boolean resetEntries(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[2]);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found", Map.of("player", args[2]));
+            return true;
+        }
+        String reference = args.length >= 4 ? args[3] : "";
+        String category = "";
+        String entry = "";
+        if (!reference.isEmpty()) {
+            String[] composite = splitEntryReference(reference);
+            if (composite == null) {
+                plugin.messageService().send(sender, "command.codex.bad_reference", Map.of("entry", reference));
+                return true;
+            }
+            category = composite[0];
+            entry = composite[1];
+        }
+        EmakiResult<Integer> result = plugin.codexEntryService().reset(target, category, entry);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.codex.failed", Map.of(
+                    "entry", reference.isEmpty() ? "*" : reference,
+                    "reason", describeReason(result.reasonKey())));
+            return true;
+        }
+        plugin.messageService().send(sender, "command.codex.reset", Map.of(
+                "player", target.getName(),
+                "count", result.optionalValue().orElse(0)));
+        return true;
+    }
+
+    private String[] splitEntryReference(String reference) {
+        String normalized = Texts.trim(reference);
+        int separator = normalized.indexOf('/');
+        if (separator <= 0 || separator >= normalized.length() - 1) {
+            return null;
+        }
+        return new String[] { normalized.substring(0, separator), normalized.substring(separator + 1) };
     }
 
     private boolean handleReload(CommandSender sender) {
@@ -121,7 +235,11 @@ final class CodexCommandRouter implements TabExecutor {
     }
 
     private String describeFailure(EmakiResult<Unit> result) {
-        String reasonKey = result == null ? "" : Texts.toStringSafe(result.reasonKey());
+        return describeReason(result == null ? "" : result.reasonKey());
+    }
+
+    private String describeReason(String rawReasonKey) {
+        String reasonKey = Texts.toStringSafe(rawReasonKey);
         if (Texts.isBlank(reasonKey)) {
             return plugin.messageService().message("command.advancement.reason_unknown");
         }
@@ -198,9 +316,14 @@ final class CodexCommandRouter implements TabExecutor {
     private void sendHelp(CommandSender sender) {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("codex", plugin.messageService().message("command.help.commands.codex"));
         lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
         lines.put("grant <player> <advId>", plugin.messageService().message("command.help.commands.grant"));
         lines.put("revoke <player> <advId>", plugin.messageService().message("command.help.commands.revoke"));
+        lines.put("admin unlock <player> <category/entry>",
+                plugin.messageService().message("command.help.commands.admin_unlock"));
+        lines.put("admin reset <player> [category/entry]",
+                plugin.messageService().message("command.help.commands.admin_reset"));
         lines.put("debug", plugin.messageService().message("command.help.commands.debug"));
         lines.forEach((name, desc) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", desc))));
@@ -216,6 +339,7 @@ final class CodexCommandRouter implements TabExecutor {
         if (args.length == 2) {
             return switch (sub) {
                 case "grant", "revoke" -> CommandTabHelper.completeOnlinePlayers(args[1]);
+                case "admin" -> CommandTabHelper.completeSubcommands(ADMIN_ACTIONS, args[1]);
                 case "debug" -> plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
                 default -> List.of();
             };
@@ -226,6 +350,21 @@ final class CodexCommandRouter implements TabExecutor {
         if (args.length == 3 && ("grant".equals(sub) || "revoke".equals(sub))) {
             return CommandTabHelper.filterByPrefix(plugin.advancementRegistrar().registered().keySet(), args[2]);
         }
+        if ("admin".equals(sub) && ADMIN_ACTIONS.contains(args[1].toLowerCase(Locale.ROOT))) {
+            if (args.length == 3) {
+                return CommandTabHelper.completeOnlinePlayers(args[2]);
+            }
+            if (args.length == 4) {
+                return CommandTabHelper.filterByPrefix(entryReferences(), args[3]);
+            }
+        }
         return List.of();
+    }
+
+    private List<String> entryReferences() {
+        List<String> references = new ArrayList<>();
+        plugin.codexCategoryLoader().all().forEach((categoryId, category) ->
+                category.entries().keySet().forEach(entryId -> references.add(categoryId + "/" + entryId)));
+        return List.copyOf(references);
     }
 }

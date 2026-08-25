@@ -18,6 +18,11 @@ import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
 import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexGameplaySubscriber;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
+import emaki.jiuwu.craft.codex.codex.gui.CodexGuiService;
+import emaki.jiuwu.craft.codex.codex.loader.CodexCategoryLoader;
+import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
+import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
+import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.config.CodexConfigPrecheckContributor;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
@@ -30,6 +35,8 @@ import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -74,6 +81,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private CodexTriggerService triggerService;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
+    private GuiService guiService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private CodexCategoryLoader codexCategoryLoader;
+    private PlayerCodexStore codexStore;
+    private CodexProviderRegistrar codexProviderRegistrar;
+    private CodexEntryService codexEntryService;
+    private CodexGuiService codexGuiService;
 
     private AdvancementListener advancementListener;
     private CodexGameplaySubscriber gameplaySubscriber;
@@ -181,6 +195,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         triggerService = components.triggerService();
         executionDispatcher = components.executionDispatcher();
         threadOwnership = components.threadOwnership();
+        guiService = components.guiService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        codexCategoryLoader = components.codexCategoryLoader();
+        codexStore = components.codexStore();
+        codexProviderRegistrar = components.codexProviderRegistrar();
+        codexEntryService = components.codexEntryService();
+        codexGuiService = components.codexGuiService();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
@@ -285,5 +306,33 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public ThreadOwnership threadOwnership() {
         return threadOwnership;
+    }
+
+    public GuiService guiService() {
+        return guiService;
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public CodexCategoryLoader codexCategoryLoader() {
+        return codexCategoryLoader;
+    }
+
+    public PlayerCodexStore codexStore() {
+        return codexStore;
+    }
+
+    public CodexProviderRegistrar codexProviderRegistrar() {
+        return codexProviderRegistrar;
+    }
+
+    public CodexEntryService codexEntryService() {
+        return codexEntryService;
+    }
+
+    public CodexGuiService codexGuiService() {
+        return codexGuiService;
     }
 }

@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,6 +45,7 @@ public final class PlayerAccessoryStore {
     private final AccessoryDataFile dataFile;
     private final PlayerAccessoryCache cache = new PlayerAccessoryCache();
     private final Map<UUID, PendingLoad> pendingLoads = new ConcurrentHashMap<>();
+    private final Set<UUID> writeProtected = ConcurrentHashMap.newKeySet();
     private FlushResult flushResult;
 
     public PlayerAccessoryStore(Logger logger, AsyncYamlFiles asyncYamlFiles, AccessoryDataFile dataFile) {
@@ -119,6 +121,11 @@ public final class PlayerAccessoryStore {
 
     private PlayerAccessories readFile(UUID playerId, String playerName, File file) {
         YamlSection root = file.isFile() ? YamlFiles.load(file) : null;
+        if (dataFile.recognized(root)) {
+            writeProtected.remove(playerId);
+        } else {
+            writeProtected.add(playerId);
+        }
         return dataFile.read(playerId, playerName, root);
     }
 
@@ -171,6 +178,11 @@ public final class PlayerAccessoryStore {
 
     private CompletableFuture<Boolean> writeTicket(
             PlayerAccessoryCache.SaveTicket<UUID, PlayerAccessories> ticket) {
+        if (writeProtected.contains(ticket.key())) {
+            warn("Skipped saving accessories for " + ticket.key()
+                    + " because its data file structure was not recognized");
+            return CompletableFuture.completedFuture(false);
+        }
         PlayerAccessories snapshot = ticket.snapshot();
         Map<String, Object> values = dataFile.write(snapshot);
         File file = dataFile.fileFor(ticket.key());

@@ -27,6 +27,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_USE = "emakiitem.use";
     private static final String PERMISSION_GIVE = "emakiitem.give";
+    private static final String PERMISSION_BROWSE = "emakiitem.browse";
     static final String PERMISSION_INSPECT = "emakiitem.inspect";
     private static final String PERMISSION_RELOAD = "emakiitem.reload";
     private static final String PERMISSION_UPDATE = "emakiitem.update";
@@ -60,6 +61,7 @@ final class ItemCommandRouter implements TabExecutor {
                 yield true;
             }
             case "list" -> handleList(sender, args);
+            case "browse" -> handleBrowse(sender, args);
             case "give" -> handleGive(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "components", "component" -> componentsCommand.handleComponents(sender, args);
@@ -81,7 +83,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
+            for (String sub : List.of("help", "list", "browse", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -203,6 +205,22 @@ final class ItemCommandRouter implements TabExecutor {
                     "id", id,
                     "name", plugin.itemApi().catalog().displayName(id).orElse(id)
             )));
+        }
+        return true;
+    }
+
+    private boolean handleBrowse(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_BROWSE)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        int page = Math.max(1, Numbers.tryParseInt(args.length >= 2 ? args[1] : null, 1));
+        if (!plugin.browserGuiService().openPackBrowser(player, page - 1)) {
+            plugin.messageService().send(sender, "browser.gui_open_failed");
         }
         return true;
     }
@@ -462,6 +480,7 @@ final class ItemCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("list [page]", plugin.messageService().message("command.help.desc.list"));
+        lines.put("browse [page]", plugin.messageService().message("command.help.desc.browse"));
         lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("components [yaml] [player] [component_id]", plugin.messageService().message("command.help.desc.components"));

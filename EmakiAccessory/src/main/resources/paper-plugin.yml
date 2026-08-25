@@ -36,3 +36,5 @@ permissions:
     default: op
   emakiaccessory.admin.edit:
     default: op
+  emakiaccessory.page.secondary:
+    default: op

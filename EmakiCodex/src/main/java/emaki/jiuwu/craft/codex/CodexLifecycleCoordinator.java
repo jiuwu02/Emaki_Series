@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.codex;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -15,15 +16,24 @@ import emaki.jiuwu.craft.codex.advancement.loader.AdvancementPageLoader;
 import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
 import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
+import emaki.jiuwu.craft.codex.codex.gui.CodexGuiService;
+import emaki.jiuwu.craft.codex.codex.loader.CodexCategoryLoader;
+import emaki.jiuwu.craft.codex.codex.persistence.CodexDataFile;
+import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
+import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
+import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -31,9 +41,11 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of();
-    private static final List<String> DEFAULT_DATA_FILES = List.of("advancements/example_page.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private static final List<String> STATIC_FILES = List.of("gui/codex_gui.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of(
+            "advancements/example_page.yml", "codex/example_category.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("data", "codex");
+    private static final long SHUTDOWN_FLUSH_SECONDS = 10L;
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
             new ConfigKeyMigration.Rename("advancement.announce-default", "advancement.announce_default"),
             new ConfigKeyMigration.Rename("advancement.remove-on-disable", "advancement.remove_on_disable"),
@@ -83,14 +95,33 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 new AdvancementPacketGateway(plugin, registrar, coreLibPlugin.itemSourceService(),
                         config.packetCoordinates(), executionDispatcher, threadOwnership);
         AdvancementTriggerRegistry advancementTriggerRegistry = new AdvancementTriggerRegistry(plugin);
+
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(),
+                coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
+
+        CodexCategoryLoader codexCategoryLoader = new CodexCategoryLoader(plugin);
+        AsyncYamlFiles codexFiles = coreLibPlugin.asyncYamlFiles(plugin);
+        CodexDataFile codexDataFile = new CodexDataFile(plugin.getLogger(), plugin.dataPath("data"));
+        PlayerCodexStore codexStore = new PlayerCodexStore(plugin.getLogger(), codexFiles, codexDataFile);
+        CodexProviderRegistrar codexProviderRegistrar = new CodexProviderRegistrar(
+                plugin, codexCategoryLoader, codexStore, executionDispatcher, threadOwnership);
+        CodexEntryService codexEntryService = new CodexEntryService(
+                plugin, codexCategoryLoader, codexStore, codexProviderRegistrar);
+        CodexGuiService codexGuiService = new CodexGuiService(plugin, guiService, guiTemplateLoader,
+                codexCategoryLoader, codexEntryService, messageService);
+
         CodexTriggerService triggerService = new CodexTriggerService(
-                plugin, advancementPageLoader, advancementService, advancementTriggerRegistry);
+                plugin, advancementPageLoader, advancementService, advancementTriggerRegistry,
+                codexEntryService);
 
         return new CodexRuntimeComponents(
                 appConfigLoader, languageLoader, messageService, bootstrapService,
                 advancementPageLoader, platform, jsonBuilder, registrar, advancementService,
                 advancementPacketGateway, advancementTriggerRegistry, triggerService,
-                executionDispatcher, threadOwnership);
+                executionDispatcher, threadOwnership,
+                guiService, guiTemplateLoader, codexCategoryLoader, codexStore,
+                codexProviderRegistrar, codexEntryService, codexGuiService);
     }
 
     public void reload(EmakiCodexPlugin plugin) {
@@ -103,6 +134,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.languageLoader().load();
                     AppConfig candidate = plugin.appConfigLoader().load();
                     plugin.advancementPageLoader().load();
+                    plugin.codexCategoryLoader().load();
+                    plugin.guiTemplateLoader().load();
                     return candidate;
                 },
                 plugin.appConfigLoader()::overrideCurrent);
@@ -113,6 +146,11 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
 
         AppConfig config = plugin.appConfig();
+
+        plugin.messageService().info("console.codex_categories_loaded",
+                Map.of("count", plugin.codexCategoryLoader().all().size()));
+        plugin.codexProviderRegistrar().register();
+        plugin.codexProviderRegistrar().resyncAll();
 
         if (config.advancementEnabled()) {
             int registered = plugin.advancementRegistrar().registerAll();
@@ -139,6 +177,18 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     public void shutdown(EmakiCodexPlugin plugin) {
         if (plugin.stageRegistrar() != null) {
             plugin.stageRegistrar().unregister();
+        }
+        if (plugin.codexProviderRegistrar() != null) {
+            plugin.codexProviderRegistrar().unregister();
+        }
+        if (plugin.codexStore() != null) {
+            PlayerCodexStore.FlushResult flush =
+                    plugin.codexStore().flushAndSeal(SHUTDOWN_FLUSH_SECONDS, TimeUnit.SECONDS);
+            if (!flush.clean()) {
+                plugin.getLogger().warning("Codex progress flush finished dirty: saved="
+                        + flush.savedEntries() + " failed=" + flush.failedEntries()
+                        + " remaining=" + flush.remainingDirtyEntries());
+            }
         }
         if (plugin.advancementRegistrar() != null) {
             boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();

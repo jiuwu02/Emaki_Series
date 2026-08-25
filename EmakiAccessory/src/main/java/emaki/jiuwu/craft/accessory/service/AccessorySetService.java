@@ -32,14 +32,17 @@ public final class AccessorySetService {
         return definitions;
     }
 
-    public Map<String, Integer> countPieces(PlayerAccessories accessories, AccessoryPartRegistry registry) {
+    public Map<String, Integer> countPieces(PlayerAccessories accessories,
+            String pageId,
+            AccessoryPageRegistry pageRegistry) {
         Map<String, AccessorySetDefinition> active = definitions;
-        if (accessories == null || registry == null || active.isEmpty() || !EmakiItemApi.status().usable()) {
+        if (accessories == null || pageRegistry == null || active.isEmpty()
+                || !EmakiItemApi.status().usable()) {
             return Map.of();
         }
         Map<String, Integer> counts = new LinkedHashMap<>();
-        for (String slotInstanceId : registry.slotInstanceIds()) {
-            ItemStack item = accessories.itemAt(slotInstanceId);
+        for (String slotInstanceId : pageRegistry.slotsOf(pageId)) {
+            ItemStack item = accessories.itemAt(pageId, slotInstanceId);
             if (item == null || item.getType().isAir()) {
                 continue;
             }

@@ -19,23 +19,28 @@ import emaki.jiuwu.craft.accessory.api.EmakiAccessoryApi;
 import emaki.jiuwu.craft.accessory.apiimpl.ServiceBackedAccessoryBridge;
 import emaki.jiuwu.craft.accessory.command.AccessoryCommandRouter;
 import emaki.jiuwu.craft.accessory.config.AccessoryConfigPrecheckContributor;
+import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiHandler;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
 import emaki.jiuwu.craft.accessory.listener.AccessoryPlayerListener;
+import emaki.jiuwu.craft.accessory.loader.AccessoryPageLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPartLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessorySetLoader;
 import emaki.jiuwu.craft.accessory.model.AccessoryContributionSnapshot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.accessory.service.AccessoryAdminService;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
+import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryPartRegistry;
+import emaki.jiuwu.craft.accessory.service.AccessoryRetrievalService;
 import emaki.jiuwu.craft.accessory.service.AccessorySetService;
 import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
 import emaki.jiuwu.craft.accessory.service.AccessoryWriteSessionRegistry;
 import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -43,6 +48,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -72,6 +78,8 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     private final AccessoryLifecycleCoordinator lifecycleCoordinator = new AccessoryLifecycleCoordinator();
     private final AtomicReference<AccessoryPartRegistry> partRegistry =
             new AtomicReference<>(AccessoryPartRegistry.empty());
+    private final AtomicReference<AccessoryPageRegistry> pageRegistry =
+            new AtomicReference<>(AccessoryPageRegistry.empty());
     private final AtomicBoolean shutdownStarted = new AtomicBoolean();
     private final AtomicBoolean apiInstalled = new AtomicBoolean();
 
@@ -149,6 +157,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
                     + " remainingDirty=" + result.remainingDirtyEntries());
         }
         partRegistry.set(AccessoryPartRegistry.empty());
+        pageRegistry.set(AccessoryPageRegistry.empty());
         runtimeInitialized = false;
         components.messageService().info("console.plugin_stopped");
     }
@@ -224,6 +233,10 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         return components == null ? null : components.setLoader();
     }
 
+    public AccessoryPageLoader pageLoader() {
+        return components == null ? null : components.pageLoader();
+    }
+
     public AccessoryUniqueService uniqueService() {
         return components == null ? null : components.uniqueService();
     }
@@ -264,7 +277,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         return shutdownStarted.get();
     }
 
-    public boolean openOwn(Player player) {
+    public boolean openOwn(Player player, String pageId) {
         if (player == null || components == null) {
             return false;
         }
@@ -273,18 +286,45 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
             components.messageService().send(player, "general.data_loading");
             return false;
         }
-        return open(player, accessories);
+        return open(player, accessories, pageId);
     }
 
-    public boolean open(Player viewer, PlayerAccessories accessories) {
+    public boolean open(Player viewer, PlayerAccessories accessories, String pageId) {
         if (viewer == null || accessories == null || components == null) {
             return false;
         }
+        AccessoryPageRegistry pages = pageRegistry();
+        String requested = Texts.isBlank(pageId)
+                ? pages.resolveEnabledPage(accessories.enabledPage())
+                : Texts.normalizeId(pageId);
+        if (!pages.hasPage(requested)) {
+            components.messageService().send(viewer, "command.page_unknown",
+                    Map.of("page", Texts.toStringSafe(pageId)));
+            return false;
+        }
+        if (!canUsePage(viewer, requested)) {
+            components.messageService().send(viewer, "command.page_no_permission",
+                    Map.of("page", requested));
+            return false;
+        }
         AccessoryGuiHandler handler = new AccessoryGuiHandler(
-                this, components.accessoryGuiService(), components.uniqueService(), accessories);
+                this, components.accessoryGuiService(), components.uniqueService(),
+                accessories, requested);
 
         components.writeSessions().acquire(accessories.playerId(), viewer.getUniqueId());
         return components.accessoryGuiService().open(viewer, handler) != null;
+    }
+
+    public int retrievePage(Player owner, PlayerAccessories accessories, String pageId) {
+        if (owner == null || accessories == null || components == null) {
+            return 0;
+        }
+        int retrieved = AccessoryRetrievalService.retrievePage(owner, accessories, pageId);
+        if (retrieved > 0) {
+            refreshContributions(accessories);
+            components.accessoryStore().saveAsync(accessories.playerId());
+        }
+        return retrieved;
     }
 
     public void refreshContributions(PlayerAccessories accessories) {
@@ -301,6 +341,60 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     @Override
     public Plugin plugin() {
         return this;
+    }
+
+    @Override
+    public AccessorySlotSourceConfig slotSources() {
+        AppConfig current = appConfig();
+        return current == null ? AccessorySlotSourceConfig.defaults() : current.slotSources();
+    }
+
+    @Override
+    public AccessoryPageRegistry pageRegistry() {
+        return pageRegistry.get();
+    }
+
+    void pageRegistry(AccessoryPageRegistry registry) {
+        pageRegistry.set(registry == null ? AccessoryPageRegistry.empty() : registry);
+    }
+
+    @Override
+    public boolean canUsePage(Player viewer, String pageId) {
+        if (viewer == null) {
+            return false;
+        }
+        String permission = pageRegistry().permissionOf(pageId);
+        return Texts.isBlank(permission) || viewer.hasPermission(permission);
+    }
+
+    @Override
+    public void onEnabledPageChanged(Player viewer, PlayerAccessories accessories) {
+        if (components == null || accessories == null) {
+            return;
+        }
+        refreshContributions(accessories);
+        components.accessoryStore().saveAsync(accessories.playerId());
+    }
+
+    @Override
+    public void onPageSwitchRequested(Player viewer, PlayerAccessories accessories, String pageId) {
+        if (viewer == null || accessories == null || components == null) {
+            return;
+        }
+        markPageSwitching(viewer);
+        viewer.closeInventory();
+        components.executionDispatcher().runEntityLater(this, viewer, () -> {
+            if (!open(viewer, accessories, pageId)) {
+                onWindowClosed(viewer, accessories);
+            }
+        }, () -> onWindowClosed(viewer, accessories), 1L);
+    }
+
+    private void markPageSwitching(Player viewer) {
+        GuiSession session = components.guiService().getSession(viewer.getUniqueId());
+        if (session != null && session.handler() instanceof AccessoryGuiHandler handler) {
+            handler.beginPageSwitch();
+        }
     }
 
     @Override

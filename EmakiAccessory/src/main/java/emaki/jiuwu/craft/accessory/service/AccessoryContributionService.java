@@ -2,18 +2,20 @@ package emaki.jiuwu.craft.accessory.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.model.AccessoryContributionSnapshot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
-import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
-import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
@@ -29,6 +31,8 @@ public final class AccessoryContributionService {
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final Map<UUID, AccessoryContributionSnapshot> snapshots = new ConcurrentHashMap<>();
     private volatile AccessoryPartRegistry registry = AccessoryPartRegistry.empty();
+    private volatile AccessoryPageRegistry pageRegistry = AccessoryPageRegistry.empty();
+    private volatile AccessorySlotSourceConfig slotSources = AccessorySlotSourceConfig.defaults();
 
     public AccessoryContributionService(AccessorySetService setService,
             Supplier<DebugLogger> debugLoggerSupplier) {
@@ -36,8 +40,12 @@ public final class AccessoryContributionService {
         this.debugLoggerSupplier = debugLoggerSupplier;
     }
 
-    public void reconfigure(AccessoryPartRegistry registry) {
+    public void reconfigure(AccessoryPartRegistry registry,
+            AccessoryPageRegistry pageRegistry,
+            AccessorySlotSourceConfig slotSources) {
         this.registry = registry == null ? AccessoryPartRegistry.empty() : registry;
+        this.pageRegistry = pageRegistry == null ? AccessoryPageRegistry.empty() : pageRegistry;
+        this.slotSources = slotSources == null ? AccessorySlotSourceConfig.defaults() : slotSources;
     }
 
     public AccessoryContributionSnapshot snapshot(UUID playerId) {
@@ -64,9 +72,10 @@ public final class AccessoryContributionService {
         }
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> skills = new LinkedHashMap<>();
+        String activePage = effectivePage(accessories);
 
-        for (String slotInstanceId : registry.slotInstanceIds()) {
-            ItemStack item = accessories.itemAt(slotInstanceId);
+        for (String slotInstanceId : pageRegistry.slotsOf(activePage)) {
+            ItemStack item = accessories.itemAt(activePage, slotInstanceId);
             if (item == null || item.getType().isAir()) {
                 continue;
             }
@@ -76,7 +85,7 @@ public final class AccessoryContributionService {
 
         Map<String, Integer> setPieces = setService == null
                 ? Map.of()
-                : setService.countPieces(accessories, registry);
+                : setService.countPieces(accessories, activePage, pageRegistry);
         if (setService != null) {
             setService.applyBonuses(setPieces, attributes, skills);
         }
@@ -93,6 +102,22 @@ public final class AccessoryContributionService {
                     "sets", String.valueOf(setPieces.size())));
         }
         return snapshot;
+    }
+
+    public String effectivePage(PlayerAccessories accessories) {
+        if (accessories == null) {
+            return "";
+        }
+        String requested = pageRegistry.resolveEnabledPage(accessories.enabledPage());
+        if (Texts.isBlank(requested)) {
+            return "";
+        }
+        String permission = pageRegistry.permissionOf(requested);
+        if (Texts.isBlank(permission)) {
+            return requested;
+        }
+        Player holder = Bukkit.getPlayer(accessories.playerId());
+        return holder != null && holder.hasPermission(permission) ? requested : "";
     }
 
     private void collectAttributes(UUID playerId,
@@ -118,20 +143,8 @@ public final class AccessoryContributionService {
     }
 
     private boolean passesSlotGate(ItemStack item, String slotInstanceId) {
-        Map<String, PdcAttributePayload> payloads = EmakiAttributeApi.extensions().pdc().readAll(item);
-        for (PdcAttributePayload payload : payloads.values()) {
-            if (payload == null) {
-                continue;
-            }
-            String declared = payload.meta().get(EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY);
-            if (Texts.isBlank(declared)) {
-                continue;
-            }
-            if (!AccessoryPartRegistry.matchesAccessorySlot(slotInstanceId, declared)) {
-                return false;
-            }
-        }
-        return true;
+        Set<String> declared = AccessorySlotDeclarations.read(item, slotSources);
+        return AccessorySlotDeclarations.matchesAny(slotInstanceId, declared);
     }
 
     private void collectSkills(String slotInstanceId, ItemStack item, Map<String, String> skills) {
@@ -142,7 +155,8 @@ public final class AccessoryContributionService {
         if (payload == null || payload.empty()) {
             return;
         }
-        if (!AccessoryPartRegistry.matchesAccessorySlot(slotInstanceId, payload.activeSlot())) {
+        if (!AccessorySlotDeclarations.matchesAny(slotInstanceId,
+                AccessorySlotDeclarations.read(item, slotSources))) {
             return;
         }
         for (String skillId : payload.skillIds()) {

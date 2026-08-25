@@ -30,6 +30,9 @@ public final class CodexConfigPrecheckContributor extends AbstractModuleConfigPr
         checkDirectory(new File(plugin.getDataFolder(), "advancements"), "advancements", issues);
         addLoaderIssues("advancements",
                 plugin.advancementPageLoader() == null ? null : plugin.advancementPageLoader().issues(), issues);
+        checkDirectory(new File(plugin.getDataFolder(), "codex"), "codex", issues);
+        addLoaderIssues("codex",
+                plugin.codexCategoryLoader() == null ? null : plugin.codexCategoryLoader().issues(), issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

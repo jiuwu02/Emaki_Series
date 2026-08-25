@@ -1,0 +1,28 @@
+# ============================================================
+# EmakiItem 物品包元数据示例
+# ============================================================
+# 每个 items/ 子目录都可以放一份 pack.yml，用来定义该目录在
+# 物品浏览 GUI 一级界面里的图标外观。不写此文件时走兜底：
+# 图标 minecraft-chest、显示名取目录名、lore 显示物品数量。
+#
+# 文件放置位置: plugins/EmakiItem/items/<包目录>/pack.yml
+# 包 ID 由所在目录的相对路径决定，与文件内容无关。
+# 可见的包目录深度由 config.yml 的 data_directories.max_depth 决定。
+# 本文件不会被物品加载器当作物品定义读取。
+# ============================================================
+
+# 一级 GUI 中显示的包名；留空则回退为目录名
+display_name: "<gold>示例物品包</gold>"
+
+# CoreLib ItemSource shorthand，与物品定义的 item.source 同语法
+icon: "minecraft-chest"
+
+# 包图标的 lore；%count% 为该包物品数量，%pack% 为包 ID
+lore:
+  - "<gray>共 <white>%count%</white> 件物品</gray>"
+  - "<dark_gray>包 ID: %pack%</dark_gray>"
+  - ""
+  - "<yellow>点击查看</yellow>"
+
+# 一级 GUI 中的排序权重，升序；缺省 100
+order: 10

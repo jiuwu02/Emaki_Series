@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过 `/codex reload` 应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -22,8 +22,11 @@ command:
     line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       reload: "重载配置、重注册成就并给全员重发成就"
+      codex: "打开图鉴界面"
       grant: "授予玩家成就"
       revoke: "撤销玩家成就"
+      admin_unlock: "强制为玩家解锁图鉴条目"
+      admin_reset: "重置玩家的图鉴状态，省略条目则清空全部"
       debug: "管理 Debug 模式"
   grant:
     done: "<green>已授予 %player% 成就 %advancement%。</green>"
@@ -32,6 +35,11 @@ command:
   advancement:
     failed: "<red>成就 %advancement% 操作失败：%reason%</red>"
     reason_unknown: "<red>未知原因</red>"
+  codex:
+    unlocked: "<green>已为 %player% 解锁图鉴条目 %entry%。</green>"
+    reset: "<green>已重置 %player% 的 %count% 个图鉴条目。</green>"
+    failed: "<red>图鉴条目 %entry% 操作失败：%reason%</red>"
+    bad_reference: "<red>条目引用 %entry% 格式错误，应为 <分类id>/<条目id>。</red>"
 
 # 授予/撤销失败的具体原因。由服务层的 reasonKey 直接解析，新增原因只需在此加一条。
 codex:
@@ -50,6 +58,46 @@ codex:
     not_completed: "玩家尚未完成该成就。"
     cancelled: "撤销被其他插件取消。"
     rejected: "服务端拒绝撤销完成条件。"
+  entry:
+    not_found: "图鉴条目未配置。请检查 codex/ 下的分类文件是否包含该条目。"
+    locked: "该图鉴条目尚未解锁。"
+    already_unlocked: "该图鉴条目已经解锁。"
+    already_activated: "该图鉴条目已经激活。"
+    already_claimed: "该图鉴条目的奖励已领取。"
+    no_reward: "该图鉴条目没有可领取的一次性奖励。"
+    nothing_to_reset: "没有可重置的图鉴状态。"
+    state_stale: "图鉴数据尚未就绪或已被其他会话更新，请稍后重试。"
+  loader:
+    entry_skipped: "已跳过 %file% 中无法解析的图鉴条目 %entry%。"
+    category_empty: "%file% 的图鉴分类 %category% 没有任何条目。"
+
+gui:
+  open_failed: "<red>无法打开图鉴界面，请检查 gui/codex_gui.yml 是否存在。</red>"
+  no_categories: "<red>当前没有可用的图鉴分类。</red>"
+  entry_unknown: "<dark_gray>未知条目</dark_gray>"
+  entry_unlocked: "<green>已解锁图鉴条目 %codex_title%。</green>"
+  entry_action_done: "<green>操作成功。</green>"
+  category_active: "<green>当前分类</green>"
+  category_inactive: "<dark_gray>点击查看</dark_gray>"
+  state_locked: "<dark_gray>未解锁</dark_gray>"
+  state_unlocked: "<yellow>可激活</yellow>"
+  state_activated: "<aqua>已激活</aqua>"
+  state_claimed: "<green>已领取</green>"
+  hint_locked: "<dark_gray>达成解锁条件后可激活</dark_gray>"
+  hint_activate: "<yellow>左键</yellow> <gray>激活以开启属性加成</gray>"
+  hint_claim: "<yellow>右键</yellow> <gray>领取一次性奖励</gray>"
+  hint_done: "<dark_gray>该条目已全部完成</dark_gray>"
+  reward_attribute: "<gray>- <white>%attribute%</white> <green>+%value%</green></gray>"
+  reward_claimable: "<gray>- <yellow>可领取的一次性奖励</yellow></gray>"
+  reward_hidden: "<dark_gray>- 解锁后可见</dark_gray>"
+  reward_none: "<dark_gray>- 无</dark_gray>"
+
+# codex_broadcast_achievement 动作段的默认句式，按 frame 参数选用。
+broadcast:
+  frame:
+    task: "<white>%player% 达成了成就 <green>[%title%]</green></white>"
+    goal: "<white>%player% 达成了目标 <green>[%title%]</green></white>"
+    challenge: "<white>%player% 完成了挑战 <light_purple>[%title%]</light_purple></white>"
 
 emaki:
   api:
@@ -69,6 +117,7 @@ console:
   default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   advancements_registered: "已注册成就 %count% 个。"
+  codex_categories_loaded: "已加载图鉴分类 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"

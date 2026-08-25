@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
+import emaki.jiuwu.craft.item.loader.ItemPackLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
@@ -31,6 +32,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
+import emaki.jiuwu.craft.item.service.ItemBrowserGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairGuiService;
 import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
@@ -46,6 +48,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         EmakiItemLoader itemLoader,
         EmakiItemSetLoader setLoader,
         EmakiItemAliasLoader aliasLoader,
+        ItemPackLoader packLoader,
         EmakiItemIdResolver idResolver,
         EmakiItemMigrationService migrationService,
         EmakiItemLayerPreviewRegistry layerPreviewRegistry,
@@ -66,7 +69,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         ItemAttributeBridge pdcAttributeGateway,
         PdcService pdcService,
         ItemRepairService repairService,
-        ItemRepairGuiService repairGuiService) implements RuntimeComponents {
+        ItemRepairGuiService repairGuiService,
+        ItemBrowserGuiService browserGuiService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -81,6 +85,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(EmakiItemLoader.class, itemLoader),
                 RuntimeComponents.component(EmakiItemSetLoader.class, setLoader),
                 RuntimeComponents.component(EmakiItemAliasLoader.class, aliasLoader),
+                RuntimeComponents.component(ItemPackLoader.class, packLoader),
                 RuntimeComponents.component(EmakiItemIdResolver.class, idResolver),
                 RuntimeComponents.component(EmakiItemMigrationService.class, migrationService),
                 RuntimeComponents.component(EmakiItemLayerPreviewRegistry.class, layerPreviewRegistry),
@@ -101,7 +106,8 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(ItemAttributeBridge.class, pdcAttributeGateway),
                 RuntimeComponents.component(PdcService.class, pdcService),
                 RuntimeComponents.component(ItemRepairService.class, repairService),
-                RuntimeComponents.component(ItemRepairGuiService.class, repairGuiService)
+                RuntimeComponents.component(ItemRepairGuiService.class, repairGuiService),
+                RuntimeComponents.component(ItemBrowserGuiService.class, browserGuiService)
         );
     }
 }

@@ -30,6 +30,8 @@ permissions:
     default: true
   emakiitem.give:
     default: op
+  emakiitem.browse:
+    default: op
   emakiitem.inspect:
     default: op
   emakiitem.update:

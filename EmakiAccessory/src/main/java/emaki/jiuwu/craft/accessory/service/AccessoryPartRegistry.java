@@ -98,6 +98,15 @@ public final class AccessoryPartRegistry {
         return slots.get(Texts.normalizeId(slotInstanceId));
     }
 
+    public List<String> slotInstanceIdsOf(String partId) {
+        String normalized = Texts.normalizeId(partId);
+        AccessoryPart part = parts.get(normalized);
+        if (part == null) {
+            return List.of();
+        }
+        return part.slotInstanceIds();
+    }
+
     public boolean isConfigured(String slotInstanceId) {
         return slots.containsKey(Texts.normalizeId(slotInstanceId));
     }

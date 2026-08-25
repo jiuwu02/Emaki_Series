@@ -1,0 +1,131 @@
+# ============================================================
+# EmakiItem GUI 配置 - 物品包列表（一级界面）
+# ============================================================
+# /ei browse 打开的第一级界面，列出 items/ 下的每个物品包。
+# 点击包图标进入第二级界面 item_browser_gui.yml 浏览包内物品。
+# 包图标外观由各包目录下的 pack.yml 定义，缺省走兜底。
+#
+# 文件放置位置: plugins/EmakiItem/gui/
+# ============================================================
+id: "pack_browser_gui"
+
+gui_type: CHEST
+title: "<dark_gray>物品包浏览</dark_gray>"
+
+rows: 6
+
+slots:
+  # 包图标区域，按 pack.yml 的 order 升序填充，超出则分页
+  pack_entry:
+    type: "pack_entry"
+    slots:
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 19
+      - 20
+      - 21
+      - 22
+      - 23
+      - 24
+      - 25
+      - 28
+      - 29
+      - 30
+      - 31
+      - 32
+      - 33
+      - 34
+    item:
+      components:
+        custom_name: "%pack_name%"
+        lore:
+          - "%pack_lore%"
+
+  page_prev:
+    type: "page_prev"
+    slots:
+      - 45
+    item:
+      source: "minecraft-arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到上一页</dark_gray>"
+
+  page_info:
+    type: "page_info"
+    slots:
+      - 49
+    item:
+      source: "minecraft-book"
+      components:
+        custom_name: "<gray>第 <white>%current_page%</white>/<white>%total_pages%</white> 页</gray>"
+        lore:
+          - "<dark_gray>物品包总数: %pack_count%</dark_gray>"
+          - "<dark_gray>物品总数: %item_count%</dark_gray>"
+
+  page_next:
+    type: "page_next"
+    slots:
+      - 53
+    item:
+      source: "minecraft-arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到下一页</dark_gray>"
+
+  close:
+    type: "close"
+    slots:
+      - 0
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<dark_gray>关闭浏览界面</dark_gray>"
+
+  border:
+    type: "filler"
+    slots:
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+      - 9
+      - 17
+      - 18
+      - 26
+      - 27
+      - 35
+      - 36
+      - 37
+      - 38
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
+      - 46
+      - 47
+      - 48
+      - 50
+      - 51
+      - 52
+    item:
+      source: "minecraft-gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true

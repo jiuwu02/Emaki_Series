@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "2.7.15"
+version: "2.7.16"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -65,6 +65,7 @@ command:
     desc:
       help: "Show help"
       list: "List item ids"
+      browse: "Open the item browser GUI"
       give: "Give an item to a player"
       inspect: "Inspect held EmakiItem"
       components: "Print held item components (JSON by default, optional yaml)"
@@ -140,6 +141,17 @@ repair:
     disabled: "<gray>This item has no economy repair config.</gray>"
     restore: "<gray>Restores <white>%restore%</white> durability.</gray>"
     cost: "<gray>Costs <white>%name%</white> <white>%required%</white> (balance <white>%available%</white>).</gray>"
+
+# Item browser GUI messages
+browser:
+  gui_open_failed: "<red>Browser GUI is unavailable, check gui/pack_browser_gui.yml and gui/item_browser_gui.yml.</red>"
+  default_pack_name: "<gray>Unpacked</gray>"
+  pack_lore_fallback: "<gray><white>%count%</white> items</gray>"
+  pack_click_hint: "<yellow>Click to browse</yellow>"
+  page_info_title: "<gray>Page <white>%current_page%</white>/<white>%total_pages%</white></gray>"
+  take_success: "<green>Took <white>%name%</white> <dark_gray>(%id%)</dark_gray> x<white>%amount%</white>.</green>"
+  take_failed: "<red>Could not take item: <white>%id%</white></red>"
+  inventory_full: "<yellow>Inventory is full, <white>%count%</white> items dropped at your feet.</yellow>"
 
 # Debug mode messages
 debug:

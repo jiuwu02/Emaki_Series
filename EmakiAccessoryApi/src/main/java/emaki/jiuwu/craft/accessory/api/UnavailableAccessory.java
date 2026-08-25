@@ -42,7 +42,23 @@ final class UnavailableAccessory {
         }
 
         @Override
+        public @NotNull List<String> pageIds() {
+            return List.of();
+        }
+
+        @Override
+        public @NotNull String enabledPage(@Nullable UUID playerId) {
+            return "";
+        }
+
+        @Override
         public @NotNull Map<String, EquippedAccessoryView> equipped(@Nullable UUID playerId) {
+            return Map.of();
+        }
+
+        @Override
+        public @NotNull Map<String, EquippedAccessoryView> equippedOnPage(@Nullable UUID playerId,
+                @Nullable String pageId) {
             return Map.of();
         }
 

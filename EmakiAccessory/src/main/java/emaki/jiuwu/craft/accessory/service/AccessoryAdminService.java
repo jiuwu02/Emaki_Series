@@ -25,9 +25,13 @@ public final class AccessoryAdminService {
             return -1;
         }
         Integer removed = store.mutate(targetId, 0L, accessories -> {
-            Map<String, ItemStack> cleared = accessories.clearAll();
+            Map<String, Map<String, ItemStack>> cleared = accessories.clearAll();
             audit(operator, targetId, accessories, cleared);
-            return cleared.size();
+            int total = 0;
+            for (Map<String, ItemStack> page : cleared.values()) {
+                total += page.size();
+            }
+            return total;
         });
         return removed == null ? -1 : removed;
     }
@@ -35,7 +39,7 @@ public final class AccessoryAdminService {
     private void audit(CommandSender operator,
             UUID targetId,
             PlayerAccessories accessories,
-            Map<String, ItemStack> cleared) {
+            Map<String, Map<String, ItemStack>> cleared) {
         if (logger == null) {
             return;
         }
@@ -45,10 +49,12 @@ public final class AccessoryAdminService {
                     + " (" + accessories.playerName() + "): no items to remove");
             return;
         }
-        cleared.forEach((slotInstanceId, item) -> logger.info("Accessory clear by " + operatorName
-                + " on " + targetId + " (" + accessories.playerName() + "): slot=" + slotInstanceId
-                + " type=" + item.getType().name()
-                + " amount=" + item.getAmount()
-                + " name=" + ItemTextBridge.effectiveNamePlain(item)));
+        cleared.forEach((pageId, items) -> items.forEach((slotInstanceId, item) ->
+                logger.info("Accessory clear by " + operatorName
+                        + " on " + targetId + " (" + accessories.playerName() + "): page=" + pageId
+                        + " slot=" + slotInstanceId
+                        + " type=" + item.getType().name()
+                        + " amount=" + item.getAmount()
+                        + " name=" + ItemTextBridge.effectiveNamePlain(item))));
     }
 }

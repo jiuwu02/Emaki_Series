@@ -13,8 +13,10 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.accessory.EmakiAccessoryPlugin;
+import emaki.jiuwu.craft.accessory.model.AccessoryPage;
 import emaki.jiuwu.craft.accessory.model.AccessorySlot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
+import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AccessoryCommandRouter {
@@ -28,7 +30,7 @@ public final class AccessoryCommandRouter {
     public static final String PERMISSION_EDIT_OTHERS = PERMISSION_ROOT + ".admin.edit";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "list", "reload", "debug", "admin");
+            List.of("help", "open", "list", "pages", "retrieve", "reload", "debug", "admin");
     private static final List<String> ADMIN_SUBCOMMANDS = List.of("view", "edit", "clear", "save");
 
     private final EmakiAccessoryPlugin plugin;
@@ -43,8 +45,10 @@ public final class AccessoryCommandRouter {
             return true;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "open" -> handleOpen(sender);
+            case "open" -> handleOpen(sender, args);
             case "list" -> handleList(sender);
+            case "pages" -> handlePages(sender);
+            case "retrieve" -> handleRetrieve(sender, args);
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             case "admin" -> handleAdmin(sender, args);
@@ -67,6 +71,15 @@ public final class AccessoryCommandRouter {
             return result;
         }
         String head = args[0].toLowerCase(Locale.ROOT);
+        if (("open".equals(head) || "retrieve".equals(head)) && args.length == 2) {
+            String prefix = Texts.lower(args[1]);
+            for (String pageId : plugin.pageRegistry().pageIds()) {
+                if (pageId.startsWith(prefix)) {
+                    result.add(pageId);
+                }
+            }
+            return result;
+        }
         if ("debug".equals(head)) {
             return plugin.debugCommand() == null
                     ? List.of()
@@ -94,7 +107,7 @@ public final class AccessoryCommandRouter {
         return result;
     }
 
-    private boolean handleOpen(CommandSender sender) {
+    private boolean handleOpen(CommandSender sender, String[] args) {
         if (!(sender instanceof Player player)) {
             message(sender, "general.players_only");
             return true;
@@ -103,9 +116,88 @@ public final class AccessoryCommandRouter {
             message(sender, "general.no_permission");
             return true;
         }
-        plugin.executionDispatcher().runEntity(plugin, player, () -> plugin.openOwn(player), () -> {
+        String requested = args.length < 2 ? "" : args[1];
+        plugin.executionDispatcher().runEntity(plugin, player,
+                () -> plugin.openOwn(player, requested), () -> {
 
-        });
+                });
+        return true;
+    }
+
+    private boolean handlePages(CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            message(sender, "general.players_only");
+            return true;
+        }
+        if (!player.hasPermission(PERMISSION_USE)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        PlayerAccessories accessories = plugin.accessoryStore().cached(player.getUniqueId());
+        if (accessories == null) {
+            message(sender, "general.data_loading");
+            return true;
+        }
+        AccessoryPageRegistry pages = plugin.pageRegistry();
+        message(sender, "command.pages_header", Map.of("count", String.valueOf(pages.pageIds().size())));
+        String enabled = Texts.normalizeId(accessories.enabledPage());
+        for (String pageId : pages.pageIds()) {
+            AccessoryPage page = pages.page(pageId);
+            String key = pageId.equals(enabled)
+                    ? "command.pages_entry_enabled"
+                    : plugin.canUsePage(player, pageId)
+                            ? "command.pages_entry"
+                            : "command.pages_entry_locked";
+            message(sender, key, Map.of(
+                    "page", pageId,
+                    "name", page == null ? pageId : page.label(),
+                    "count", String.valueOf(accessories.occupiedCount(pageId))));
+        }
+        return true;
+    }
+
+    private boolean handleRetrieve(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            message(sender, "general.players_only");
+            return true;
+        }
+        if (!player.hasPermission(PERMISSION_USE)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            message(sender, "command.retrieve_usage");
+            return true;
+        }
+        String pageId = Texts.normalizeId(args[1]);
+        if (!plugin.pageRegistry().hasPage(pageId)) {
+            message(sender, "command.retrieve_unknown_page", Map.of("page", args[1]));
+            return true;
+        }
+        PlayerAccessories accessories = plugin.accessoryStore().cached(player.getUniqueId());
+        if (accessories == null) {
+            message(sender, "general.data_loading");
+            return true;
+        }
+        UUID playerId = player.getUniqueId();
+        if (!plugin.writeSessions().acquire(playerId, playerId)) {
+            message(sender, "command.retrieve_busy");
+            return true;
+        }
+        plugin.executionDispatcher().runEntity(plugin, player, () -> {
+            try {
+                int retrieved = plugin.retrievePage(player, accessories, pageId);
+                if (retrieved == 0) {
+                    message(player, "command.retrieve_empty", Map.of("page", pageId));
+                    return;
+                }
+                message(player, "command.retrieve_done", Map.of(
+                        "page", pageId,
+                        "count", String.valueOf(retrieved)));
+            } finally {
+                plugin.writeSessions().release(playerId, playerId);
+            }
+        }, () -> plugin.writeSessions().release(playerId, playerId));
         return true;
     }
 
@@ -123,12 +215,15 @@ public final class AccessoryCommandRouter {
             message(sender, "general.data_loading");
             return true;
         }
+        String pageId = plugin.pageRegistry().resolveEnabledPage(accessories.enabledPage());
+        List<String> slots = plugin.pageRegistry().slotsOf(pageId);
         message(sender, "command.list_header", Map.of(
-                "used", String.valueOf(accessories.occupiedCount()),
-                "max", String.valueOf(plugin.partRegistry().slotCount())));
-        for (String slotInstanceId : plugin.partRegistry().slotInstanceIds()) {
+                "page", pageId,
+                "used", String.valueOf(accessories.occupiedCount(pageId)),
+                "max", String.valueOf(slots.size())));
+        for (String slotInstanceId : slots) {
             AccessorySlot slot = plugin.partRegistry().slot(slotInstanceId);
-            boolean occupied = accessories.itemAt(slotInstanceId) != null;
+            boolean occupied = accessories.itemAt(pageId, slotInstanceId) != null;
             message(sender, occupied ? "command.list_entry_filled" : "command.list_entry_empty", Map.of(
                     "slot", slotInstanceId,
                     "part", slot == null ? slotInstanceId : slot.partId()));
@@ -242,7 +337,7 @@ public final class AccessoryCommandRouter {
 
                 plugin.writeSessions().release(accessories.playerId(), viewer.getUniqueId());
             }
-            if (!plugin.open(viewer, accessories)) {
+            if (!plugin.open(viewer, accessories, "")) {
                 message(viewer, "command.open_failed");
             }
         }, () -> {

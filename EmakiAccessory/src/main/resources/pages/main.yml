@@ -1,0 +1,26 @@
+# EmakiAccessory 饰品页定义
+#
+# 每个文件定义一页饰品栏。页 id 取自 page_id，与文件名无关。
+# 各页存储相互隔离：同一个槽位实例 id 在不同页各存一件饰品，互不覆盖。
+# 只有"启用页"的饰品产生属性、技能与套装件数；其余页的饰品保留但不生效。
+#
+# parts 列出本页启用的部位，取值必须是 parts.yml 里已定义的部位 id。
+# 部位会按 count 展开成槽位实例，且必须在 gui_template 指向的布局里摆放。
+#
+# permission 为空表示所有人可用；非空时逐字使用该权限串。
+# 玩家失去启用页权限时数据不会被清除，也不会自动换页：
+# 该页打不开、其饰品停止生效，玩家用 /eacc retrieve <页> 自行取回。
+page_id: "main"
+display_name: "<gold>主饰品栏</gold>"
+
+# 页在切换器中的排序，升序；最小者为默认启用页。
+order: 1
+
+# 本页使用的界面布局 id，允许多页共用一个布局。
+gui_template: "accessory_gui"
+permission: ""
+parts:
+  - "necklace"
+  - "ring"
+  - "belt"
+  - "charm"

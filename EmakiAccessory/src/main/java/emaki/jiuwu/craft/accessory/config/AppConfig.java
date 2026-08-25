@@ -6,10 +6,12 @@ public record AppConfig(String version,
         boolean dropOnDeath,
         boolean unique,
         int autosaveSeconds,
-        int drainTimeoutSeconds) {
+        int drainTimeoutSeconds,
+        AccessorySlotSourceConfig slotSources) {
 
     public static AppConfig defaults() {
-        return new AppConfig("1.0.0", "zh_CN", true, false, true, 300, 10);
+        return new AppConfig("1.0.0", "zh_CN", true, false, true, 300, 10,
+                AccessorySlotSourceConfig.defaults());
     }
 
     public AppConfig {
@@ -17,5 +19,6 @@ public record AppConfig(String version,
         language = language == null || language.isBlank() ? "zh_CN" : language;
         autosaveSeconds = Math.max(0, autosaveSeconds);
         drainTimeoutSeconds = Math.max(1, drainTimeoutSeconds);
+        slotSources = slotSources == null ? AccessorySlotSourceConfig.defaults() : slotSources;
     }
 }

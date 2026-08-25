@@ -23,7 +23,7 @@ public final class EmakiItemLoader {
     private final JavaPlugin plugin;
     private final EmakiItemDefinitionParser parser;
     private final Supplier<AppConfig> configSupplier;
-    private volatile Snapshot snapshot = new Snapshot(0L, Map.of());
+    private volatile Snapshot snapshot = new Snapshot(0L, Map.of(), Map.of());
 
     public EmakiItemLoader(JavaPlugin plugin) {
         this(plugin, null);
@@ -48,6 +48,7 @@ public final class EmakiItemLoader {
             plugin.getLogger().warning("Could not create items directory: " + directory.getPath());
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
+        Map<String, String> packs = new LinkedHashMap<>();
         File[] files = files(directory);
         for (File file : files) {
             try {
@@ -60,6 +61,7 @@ public final class EmakiItemLoader {
                     continue;
                 }
                 loaded.put(definition.id(), definition);
+                packs.put(definition.id(), packIdOf(file, directory));
             } catch (RuntimeException exception) {
                 plugin.getLogger().warning("Could not load EmakiItem definition " + file.getPath()
                         + ": " + Texts.toStringSafe(exception.getMessage()));
@@ -68,7 +70,7 @@ public final class EmakiItemLoader {
         if (!allowed(allowed)) {
             return snapshot.definitions().size();
         }
-        install(loaded);
+        install(loaded, packs);
         return loaded.size();
     }
 
@@ -84,6 +86,14 @@ public final class EmakiItemLoader {
         return snapshot.generation();
     }
 
+    public String packId(String id) {
+        return snapshot.packId(id);
+    }
+
+    public Map<String, String> packIds() {
+        return snapshot.packIds();
+    }
+
     public Snapshot snapshot() {
         return snapshot;
     }
@@ -92,9 +102,26 @@ public final class EmakiItemLoader {
         return allowed == null || allowed.getAsBoolean();
     }
 
-    private synchronized void install(Map<String, EmakiItemDefinition> loaded) {
+    private synchronized void install(Map<String, EmakiItemDefinition> loaded, Map<String, String> packs) {
         Snapshot current = snapshot;
-        snapshot = new Snapshot(current.generation() + 1L, loaded);
+        snapshot = new Snapshot(current.generation() + 1L, loaded, packs);
+    }
+
+    private String packIdOf(File file, File root) {
+        File parent = file == null ? null : file.getParentFile();
+        if (parent == null || root == null) {
+            return "";
+        }
+        String parentPath = parent.getPath();
+        String rootPath = root.getPath();
+        if (!parentPath.startsWith(rootPath)) {
+            return "";
+        }
+        String relative = parentPath.substring(rootPath.length()).replace('\\', '/');
+        while (relative.startsWith("/")) {
+            relative = relative.substring(1);
+        }
+        return relative;
     }
 
     private File[] files(File directory) {
@@ -109,8 +136,7 @@ public final class EmakiItemLoader {
 
     private void collect(File directory, File root, int depth, int maxDepth, List<File> sink) {
         File[] entries = directory.listFiles(file -> file.isDirectory()
-                || file.getName().endsWith(".yml")
-                || file.getName().endsWith(".yaml"));
+                || (isItemYaml(file) && !ItemPackLoader.PACK_FILE_NAME.equalsIgnoreCase(file.getName())));
         if (entries == null) {
             return;
         }
@@ -135,20 +161,32 @@ public final class EmakiItemLoader {
         return path.startsWith(prefix) ? root.getName() + path.substring(prefix.length()) : path;
     }
 
+    private boolean isItemYaml(File file) {
+        String name = file == null ? "" : file.getName();
+        return name.endsWith(".yml") || name.endsWith(".yaml");
+    }
+
     private int maxDepth() {
         AppConfig config = configSupplier == null ? null : configSupplier.get();
         return config == null ? ItemDirectoryConfig.DEFAULT_MAX_DEPTH : config.directories().maxDepth();
     }
 
-    public record Snapshot(long generation, Map<String, EmakiItemDefinition> definitions) {
+    public record Snapshot(long generation,
+            Map<String, EmakiItemDefinition> definitions,
+            Map<String, String> packIds) {
 
         public Snapshot {
             generation = Math.max(0L, generation);
             definitions = definitions == null || definitions.isEmpty() ? Map.of() : Map.copyOf(definitions);
+            packIds = packIds == null || packIds.isEmpty() ? Map.of() : Map.copyOf(packIds);
         }
 
         public EmakiItemDefinition get(String id) {
             return definitions.get(Texts.normalizeId(id));
+        }
+
+        public String packId(String id) {
+            return packIds.getOrDefault(Texts.normalizeId(id), "");
         }
     }
 }

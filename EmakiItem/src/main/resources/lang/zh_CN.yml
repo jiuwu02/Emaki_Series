@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.15"
+version: "2.7.16"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -65,6 +65,7 @@ command:
     desc:
       help: "显示帮助"
       list: "分页列出物品 ID"
+      browse: "打开物品浏览界面"
       give: "给予玩家物品"
       inspect: "检查主手 EmakiItem"
       components: "输出主手物品组件（默认 JSON，可选 yaml）"
@@ -140,6 +141,17 @@ repair:
     disabled: "<gray>该物品未配置经济修复。</gray>"
     restore: "<gray>恢复 <white>%restore%</white> 点耐久。</gray>"
     cost: "<gray>消耗 <white>%name%</white> <white>%required%</white>（余额 <white>%available%</white>）。</gray>"
+
+# 物品浏览 GUI 消息
+browser:
+  gui_open_failed: "<red>浏览界面不可用，请检查 gui/pack_browser_gui.yml 与 gui/item_browser_gui.yml。</red>"
+  default_pack_name: "<gray>未分包</gray>"
+  pack_lore_fallback: "<gray>共 <white>%count%</white> 件物品</gray>"
+  pack_click_hint: "<yellow>点击查看</yellow>"
+  page_info_title: "<gray>第 <white>%current_page%</white>/<white>%total_pages%</white> 页</gray>"
+  take_success: "<green>已取出 <white>%name%</white> <dark_gray>(%id%)</dark_gray> x<white>%amount%</white>。</green>"
+  take_failed: "<red>无法取出物品: <white>%id%</white></red>"
+  inventory_full: "<yellow>背包空间不足，<white>%count%</white> 件物品已掉落在脚下。</yellow>"
 
 # Debug 模式消息
 debug:

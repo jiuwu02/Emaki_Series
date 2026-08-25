@@ -27,6 +27,7 @@ public final class CodexStageRegistrar {
             stages.add(new CodexAdvancementStage(plugin, operation));
         }
         stages.add(new ShowAchievementToastStage(plugin, itemSourceService));
+        stages.add(new BroadcastAchievementStage(plugin));
         for (CoreActionStage stage : stages) {
             CoreStageRegistration registration = EmakiCoreLibApi.registerActionStage(plugin, stage);
             if (registration.successful()) {

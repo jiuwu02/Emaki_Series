@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.accessory.api.model.EquippedAccessoryView;
 import emaki.jiuwu.craft.accessory.model.AccessoryPart;
 import emaki.jiuwu.craft.accessory.model.AccessorySlot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
+import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryPartRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
@@ -51,28 +52,55 @@ final class DefaultAccessoryCatalog implements AccessoryCatalog {
     }
 
     @Override
-    public @NotNull Map<String, EquippedAccessoryView> equipped(@Nullable UUID playerId) {
-        if (playerId == null || plugin.accessoryStore() == null) {
-            return Map.of();
+    public @NotNull List<String> pageIds() {
+        return plugin.pageRegistry().pageIds();
+    }
+
+    @Override
+    public @NotNull String enabledPage(@Nullable UUID playerId) {
+        PlayerAccessories accessories = session(playerId);
+        if (accessories == null || plugin.contributionService() == null) {
+            return "";
         }
-        PlayerAccessories accessories = plugin.accessoryStore().cached(playerId);
-        if (accessories == null) {
+        return plugin.contributionService().effectivePage(accessories);
+    }
+
+    @Override
+    public @NotNull Map<String, EquippedAccessoryView> equipped(@Nullable UUID playerId) {
+        return equippedOnPage(playerId, enabledPage(playerId));
+    }
+
+    @Override
+    public @NotNull Map<String, EquippedAccessoryView> equippedOnPage(@Nullable UUID playerId,
+            @Nullable String pageId) {
+        PlayerAccessories accessories = session(playerId);
+        String page = Texts.normalizeId(pageId);
+        if (accessories == null || Texts.isBlank(page)) {
             return Map.of();
         }
         AccessoryPartRegistry registry = plugin.partRegistry();
+        AccessoryPageRegistry pages = plugin.pageRegistry();
         Map<String, EquippedAccessoryView> equipped = new LinkedHashMap<>();
-        accessories.items().forEach((slotInstanceId, item) -> {
+        accessories.items(page).forEach((slotInstanceId, item) -> {
             if (item == null || item.getType().isAir()) {
                 return;
             }
             AccessorySlot slot = registry.slot(slotInstanceId);
             equipped.put(slotInstanceId, new EquippedAccessoryView(
+                    page,
                     slotInstanceId,
                     slot == null ? "" : slot.partId(),
                     item.clone(),
-                    registry.isOrphan(slotInstanceId)));
+                    !pages.declaresSlot(page, slotInstanceId)));
         });
         return Map.copyOf(equipped);
+    }
+
+    private PlayerAccessories session(UUID playerId) {
+        if (playerId == null || plugin.accessoryStore() == null) {
+            return null;
+        }
+        return plugin.accessoryStore().cached(playerId);
     }
 
     @Override

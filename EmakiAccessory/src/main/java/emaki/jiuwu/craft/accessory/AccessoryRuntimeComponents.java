@@ -4,6 +4,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.accessory.config.AppConfig;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
+import emaki.jiuwu.craft.accessory.loader.AccessoryPageLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPartLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessorySetLoader;
 import emaki.jiuwu.craft.accessory.provider.AccessoryProviderRegistrar;
@@ -33,6 +34,7 @@ record AccessoryRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         GuiTemplateLoader guiTemplateLoader,
         AccessoryPartLoader partLoader,
         AccessorySetLoader setLoader,
+        AccessoryPageLoader pageLoader,
         AccessoryUniqueService uniqueService,
         PlayerAccessoryStore accessoryStore,
         AccessorySetService setService,
@@ -53,6 +55,7 @@ record AccessoryRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
                 RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader),
                 RuntimeComponents.component(AccessoryPartLoader.class, partLoader),
                 RuntimeComponents.component(AccessorySetLoader.class, setLoader),
+                RuntimeComponents.component(AccessoryPageLoader.class, pageLoader),
                 RuntimeComponents.component(PlayerAccessoryStore.class, accessoryStore),
                 RuntimeComponents.component(AccessorySetService.class, setService),
                 RuntimeComponents.component(AccessoryContributionService.class, contributionService),

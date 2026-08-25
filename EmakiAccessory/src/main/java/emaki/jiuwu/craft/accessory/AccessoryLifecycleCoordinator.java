@@ -6,15 +6,19 @@ import java.util.Map;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfigParser;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
+import emaki.jiuwu.craft.accessory.loader.AccessoryPageLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPartLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessorySetLoader;
+import emaki.jiuwu.craft.accessory.model.AccessoryPage;
 import emaki.jiuwu.craft.accessory.persistence.AccessoryDataFile;
 import emaki.jiuwu.craft.accessory.provider.AccessoryProviderRegistrar;
 import emaki.jiuwu.craft.accessory.service.AccessoryAdminService;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
+import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryPartRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessorySetService;
 import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
@@ -41,8 +45,9 @@ final class AccessoryLifecycleCoordinator
     private static final List<String> VERSIONED_FILES =
             List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/accessory_gui.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("parts.yml", "sets/example_set.yml");
-    private static final List<String> EXTRA_DIRECTORIES = List.of("gui", "sets", "data");
+    private static final List<String> DEFAULT_DATA_FILES =
+            List.of("parts.yml", "sets/example_set.yml", "pages/main.yml", "pages/secondary.yml");
+    private static final List<String> EXTRA_DIRECTORIES = List.of("gui", "sets", "pages", "data");
 
     @Override
     public AccessoryRuntimeComponents initialize(EmakiAccessoryPlugin plugin) {
@@ -82,10 +87,12 @@ final class AccessoryLifecycleCoordinator
 
         AccessoryPartLoader partLoader = new AccessoryPartLoader(plugin, messageService);
         AccessorySetLoader setLoader = new AccessorySetLoader(plugin);
+        AccessoryPageLoader pageLoader = new AccessoryPageLoader(plugin);
 
         AsyncYamlFiles accessoryFiles = coreLibPlugin.asyncYamlFiles(plugin);
         AccessoryDataFile dataFile = new AccessoryDataFile(
-                plugin.getLogger(), plugin.dataPath("data"));
+                plugin.getLogger(), plugin.dataPath("data"),
+                () -> plugin.pageRegistry().firstPageId());
         PlayerAccessoryStore accessoryStore = new PlayerAccessoryStore(
                 plugin.getLogger(), accessoryFiles, dataFile);
 
@@ -110,6 +117,7 @@ final class AccessoryLifecycleCoordinator
                 guiTemplateLoader,
                 partLoader,
                 setLoader,
+                pageLoader,
                 uniqueService,
                 accessoryStore,
                 setService,
@@ -127,19 +135,48 @@ final class AccessoryLifecycleCoordinator
         plugin.partLoader().load();
         plugin.guiTemplateLoader().load();
         plugin.setLoader().load();
+        plugin.pageLoader().load();
 
         Map<String, String> rejected = new LinkedHashMap<>();
         AccessoryPartRegistry registry = AccessoryPartRegistry.of(plugin.partLoader().parts(), rejected);
         rejected.forEach((partId, collidingId) -> plugin.messageService().warning(
                 "accessory.part_instance_conflict",
                 Map.of("part", partId, "slot", collidingId)));
+        AccessoryPageRegistry pages = AccessoryPageRegistry.of(plugin.pageLoader().all(), registry);
+        if (pages.isEmpty()) {
+            plugin.messageService().warning("accessory.pages_missing", Map.of());
+        }
+        warnUnknownPageParts(plugin, registry, pages);
+
+        AccessorySlotSourceConfig slotSources = plugin.appConfig().slotSources();
+        slotSources.patternErrors().forEach((pattern, error) -> plugin.messageService().warning(
+                "accessory.invalid_slot_pattern",
+                Map.of("pattern", pattern, "error", error)));
 
         plugin.uniqueService().reconfigure(plugin.appConfig().unique());
         plugin.setService().reconfigure(plugin.setLoader().all());
-        plugin.contributionService().reconfigure(registry);
+        plugin.contributionService().reconfigure(registry, pages, slotSources);
         plugin.contributionService().invalidateAll();
-        plugin.accessoryGuiService().reconfigure(plugin.guiTemplateLoader(), registry);
+        plugin.accessoryGuiService().reconfigure(plugin.guiTemplateLoader(), registry, pages);
         plugin.partRegistry(registry);
+        plugin.pageRegistry(pages);
         return registry.slotCount();
+    }
+
+    private void warnUnknownPageParts(EmakiAccessoryPlugin plugin,
+            AccessoryPartRegistry registry,
+            AccessoryPageRegistry pages) {
+        for (String pageId : pages.pageIds()) {
+            AccessoryPage page = pages.page(pageId);
+            if (page == null) {
+                continue;
+            }
+            for (String partId : page.parts()) {
+                if (registry.slotInstanceIdsOf(partId).isEmpty()) {
+                    plugin.messageService().warning("accessory.page_unknown_part",
+                            Map.of("page", pageId, "part", partId));
+                }
+            }
+        }
     }
 }

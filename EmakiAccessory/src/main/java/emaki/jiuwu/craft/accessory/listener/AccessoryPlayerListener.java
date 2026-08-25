@@ -56,8 +56,9 @@ public final class AccessoryPlayerListener implements Listener {
             return;
         }
         Player player = event.getEntity();
-        Map<String, ItemStack> dropped = plugin.accessoryStore()
-                .mutate(player.getUniqueId(), 0L, PlayerAccessories::clearAll);
+        Map<String, ItemStack> dropped = plugin.accessoryStore().mutate(player.getUniqueId(), 0L,
+                accessories -> accessories.clearPage(
+                        plugin.contributionService().effectivePage(accessories)));
         if (dropped == null || dropped.isEmpty()) {
             return;
         }

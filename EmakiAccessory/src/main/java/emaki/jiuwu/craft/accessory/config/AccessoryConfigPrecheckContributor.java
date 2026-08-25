@@ -29,6 +29,7 @@ public final class AccessoryConfigPrecheckContributor extends AbstractModuleConf
         checkFile(new File(plugin.getDataFolder(), "parts.yml"), "parts.yml", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         checkDirectory(new File(plugin.getDataFolder(), "sets"), "sets", issues);
+        checkDirectory(new File(plugin.getDataFolder(), "pages"), "pages", issues);
         addLoaderIssues("parts.yml",
                 plugin.partLoader() == null ? null : plugin.partLoader().issues(), issues);
         addLoaderIssues("gui",
@@ -37,6 +38,8 @@ public final class AccessoryConfigPrecheckContributor extends AbstractModuleConf
                 plugin.accessoryGuiService() == null ? null : plugin.accessoryGuiService().issues(), issues);
         addLoaderIssues("sets",
                 plugin.setLoader() == null ? null : plugin.setLoader().issues(), issues);
+        addLoaderIssues("pages",
+                plugin.pageLoader() == null ? null : plugin.pageLoader().issues(), issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }
