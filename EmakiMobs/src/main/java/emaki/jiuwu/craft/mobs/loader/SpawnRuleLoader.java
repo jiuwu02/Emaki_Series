@@ -8,6 +8,8 @@ import emaki.jiuwu.craft.mobs.spawner.DistanceRange;
 import emaki.jiuwu.craft.mobs.spawner.NaturalSpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnTrigger;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.NamespacedKey;
 import org.bukkit.Registry;
 import org.bukkit.block.Biome;
@@ -19,6 +21,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
@@ -142,15 +145,18 @@ public final class SpawnRuleLoader {
         return result;
     }
 
-    @SuppressWarnings("deprecation")
     private Set<Biome> parseBiomes(List<String> names) {
         Set<Biome> result = new HashSet<>();
         for (String name : names) {
             String key = name.contains(":") ? name.substring(name.lastIndexOf(':') + 1) : name;
-            try {
-                result.add(Biome.valueOf(key.toUpperCase()));
-            } catch (IllegalArgumentException e) {
+            NamespacedKey nsk = NamespacedKey.fromString(key.toLowerCase(Locale.ROOT));
+            Biome biome = nsk != null
+                    ? RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME).get(nsk)
+                    : null;
+            if (biome == null) {
                 plugin.getLogger().warning("Unknown biome '" + name + "', skipping.");
+            } else {
+                result.add(biome);
             }
         }
         return result;
