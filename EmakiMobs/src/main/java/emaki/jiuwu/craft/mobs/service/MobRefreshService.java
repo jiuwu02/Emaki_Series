@@ -12,16 +12,13 @@ public final class MobRefreshService {
 
     private final MobIdentifier mobIdentifier;
     private final ComponentMapper componentMapper;
-    private final AttributeBridge attributeBridge;
     private final Supplier<Map<String, MobSpec>> registry;
 
     public MobRefreshService(MobIdentifier mobIdentifier,
                               ComponentMapper componentMapper,
-                              AttributeBridge attributeBridge,
                               Supplier<Map<String, MobSpec>> registry) {
         this.mobIdentifier = mobIdentifier;
         this.componentMapper = componentMapper;
-        this.attributeBridge = attributeBridge;
         this.registry = registry;
     }
 
@@ -36,7 +33,6 @@ public final class MobRefreshService {
                 MobSpec spec = current.get(mobId);
                 if (spec == null) continue;
                 componentMapper.apply(living, spec.components());
-                attributeBridge.apply(living, spec.attributes());
                 count++;
             }
         }

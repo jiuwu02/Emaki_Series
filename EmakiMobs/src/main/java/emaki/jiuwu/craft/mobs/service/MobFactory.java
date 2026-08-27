@@ -18,7 +18,6 @@ public final class MobFactory {
     private final Supplier<Map<String, MobSpec>> registry;
     private final ComponentMapper componentMapper;
     private final MobIdentifier mobIdentifier;
-    private final AttributeBridge attributeBridge;
 
     @Nullable
     private MobSkillExecutor skillExecutor;
@@ -28,12 +27,10 @@ public final class MobFactory {
 
     public MobFactory(Supplier<Map<String, MobSpec>> registry,
                       ComponentMapper componentMapper,
-                      MobIdentifier mobIdentifier,
-                      AttributeBridge attributeBridge) {
+                      MobIdentifier mobIdentifier) {
         this.registry = registry;
         this.componentMapper = componentMapper;
         this.mobIdentifier = mobIdentifier;
-        this.attributeBridge = attributeBridge;
     }
 
     public void setSkillExecutor(@Nullable MobSkillExecutor skillExecutor) {
@@ -60,7 +57,6 @@ public final class MobFactory {
         }
         mobIdentifier.mark(entity, mobId);
         componentMapper.apply(entity, spec.components());
-        attributeBridge.apply(entity, spec.attributes());
         if (bossBarManager != null) bossBarManager.registerIfConfigured(entity, mobId);
         if (skillExecutor != null) skillExecutor.executeForTrigger(entity, mobId, "on_spawn");
         return Optional.of(entity);

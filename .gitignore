@@ -33,3 +33,4 @@ emaki_manager.py
 *.png
 *.py
 *.json
+*.svg

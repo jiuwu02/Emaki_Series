@@ -13,7 +13,6 @@ import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
-import emaki.jiuwu.craft.mobs.service.AttributeBridge;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
@@ -53,7 +52,6 @@ record MobsRuntimeComponents(
         SpawnRuleDispatcher spawnRuleDispatcher,
         NaturalSpawnHandler naturalSpawnHandler,
         AutonomousSpawnHandler autonomousSpawnHandler,
-        AttributeBridge attributeBridge,
         MobSkillExecutor mobSkillExecutor,
         HealthPhaseTracker healthPhaseTracker,
         MobTriggerListener mobTriggerListener,

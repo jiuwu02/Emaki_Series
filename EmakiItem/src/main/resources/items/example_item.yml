@@ -231,8 +231,13 @@ repair:
     - matcher:
         type: all_of
         matchers:
-          - { type: item_source, sources: ["minecraft-diamond"] }
-          - { type: component, component: custom_name, operator: contains, value: "精炼" }
+          - type: item_source,
+            sources:
+              - "minecraft-diamond"
+          - type: component,
+            component: custom_name,
+            operator: contains,
+            value: "精炼"
       amount: 1
       restore: 400
   economy:

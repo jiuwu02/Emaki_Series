@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
-import emaki.jiuwu.craft.mobs.service.AttributeBridge;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
@@ -88,8 +87,7 @@ final class MobsLifecycleCoordinator
         var mobRegistry = new AtomicReference<>(initialMobs);
         Map<String, LootTableDefinition> initialLoot = Map.of();
         var lootRegistry = new AtomicReference<>(initialLoot);
-        var attributeBridge = new AttributeBridge(plugin);
-        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier, attributeBridge);
+        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier);
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var naturalSpawnHandler = new NaturalSpawnHandler(mobIdentifier, mobFactory);
         var autonomousSpawnHandler = new AutonomousSpawnHandler(plugin, mobIdentifier, mobFactory);
@@ -100,9 +98,9 @@ final class MobsLifecycleCoordinator
         var healthPhaseTracker = new HealthPhaseTracker();
         var mobTriggerListener = new MobTriggerListener(mobIdentifier, mobSkillExecutor, healthPhaseTracker);
         var typeOverrideApplicator = new TypeOverrideApplicator(
-                mobRegistry::get, componentMapper, attributeBridge, mobIdentifier);
+                mobRegistry::get, componentMapper, mobIdentifier);
         var mobRefreshService = new MobRefreshService(
-                mobIdentifier, componentMapper, attributeBridge, mobRegistry::get);
+                mobIdentifier, componentMapper, mobRegistry::get);
         var threatTableManager = new ThreatTableManager(plugin, mobIdentifier, mobRegistry::get);
         var bossBarManager = new BossBarManager(plugin, mobIdentifier, mobRegistry::get);
         var mobExtensions = new DefaultMobExtensions();
@@ -115,7 +113,7 @@ final class MobsLifecycleCoordinator
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
                 naturalSpawnHandler, autonomousSpawnHandler,
-                attributeBridge, mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
+                mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
                 mobExtensions);
     }
