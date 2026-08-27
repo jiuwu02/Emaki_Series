@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.6"
+version: "1.0.7"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -31,6 +31,27 @@ console:
   custom_actions_registered: "<gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件。</gray>"
   custom_action_registration_failed: "<yellow>注册 CoreLib %kind% <white>%id%</white> 失败：<red>%reason%</red></yellow>"
   custom_action_rebuild_hook_failed: "<yellow>无法安装 CoreLib 动作重建回调；CoreLib 重载后自定义动作可能不可用。</yellow>"
+  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  config_precheck:
+    severity:
+      fatal: "致命"
+      error: "错误"
+      warn: "警告"
+      info: "信息"
+    hint: " <dark_gray>（%hint%）</dark_gray>"
+    messages:
+      passed: "EmakiMobs 配置预检通过。"
+      required_file_missing: "缺少必需文件。"
+      path_not_file: "指定路径不是文件。"
+      file_not_readable: "文件不可读。"
+      required_directory_missing: "缺少必需目录。"
+      path_not_directory: "指定路径不是目录。"
+      directory_not_readable: "目录不可读。"
+      mobs_max_health_stacking: "生物 %mob_id% 同时配置了 components.max_health 与 ea_attributes.max_health_vanilla，两者叠加，最终上限为二者之和。"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"
@@ -41,6 +62,8 @@ loader:
   duplicate_id: "重复的 %type% ID %id%，来源 %file%"
   load_failed: "读取 %type% 文件失败: %file% (%error%)"
   invalid_config: "%type% 配置无效: %file%"
+  unknown_entity_type: "未知的实体类型 %type%: %file%"
+  deprecated_key: "%file% 仍在使用旧键 %old_key%，请改为 %new_key%（旧键将在下一个大版本移除）"
   type:
     mob: "生物"
     loot_table: "战利品表"

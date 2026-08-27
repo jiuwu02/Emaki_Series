@@ -85,8 +85,8 @@
         <emaki.station.version>1.0.8</emaki.station.version>
         <emaki.accessory.api.version>1.0.3</emaki.accessory.api.version>
         <emaki.accessory.version>1.0.3</emaki.accessory.version>
-        <emaki.mobs.api.version>1.0.6</emaki.mobs.api.version>
-        <emaki.mobs.version>1.0.6</emaki.mobs.version>
+        <emaki.mobs.api.version>1.0.7</emaki.mobs.api.version>
+        <emaki.mobs.version>1.0.7</emaki.mobs.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>

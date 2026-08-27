@@ -33,6 +33,7 @@ public final class TypeOverrideApplicator implements Listener {
         MobSpec spec = registry.get().get(typeName);
         if (spec == null || !spec.typeOverride()) return;
         mobIdentifier.mark(entity, typeName);
-        componentMapper.apply(entity, spec.components());
+        componentMapper.applyForSpawn(entity, spec.components());
+        componentMapper.fillHealth(entity, spec.components());
     }
 }

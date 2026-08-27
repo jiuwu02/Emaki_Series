@@ -3,7 +3,7 @@
 #
 # 当 id 与原版 EntityType 名称完全相同时（此处均为 zombie），
 # TypeOverrideApplicator 会监听 CreatureSpawnEvent，对所有
-# 自然刷新的该类型生物自动应用本配置的 components 和 attributes。
+# 自然刷新的该类型生物自动应用本配置的 components 和 ea_attributes。
 #
 # ⚠ 注意：type_override 会影响服务器上 所有 自然刷新的僵尸，
 #    包括其他插件或 vanilla 刷新的僵尸。请在确认后再启用。

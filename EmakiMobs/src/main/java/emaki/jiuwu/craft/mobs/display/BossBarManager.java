@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.mobs.display;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import org.bukkit.Bukkit;
@@ -22,15 +24,28 @@ public final class BossBarManager implements Listener {
 
     private final Map<UUID, BossBar> entityBars = new ConcurrentHashMap<>();
     private final Plugin plugin;
+    private final ExecutionDispatcher executionDispatcher;
     private final MobIdentifier mobIdentifier;
     private final Supplier<Map<String, MobSpec>> registry;
+    private final TaskToken distanceTask;
 
-    public BossBarManager(Plugin plugin, MobIdentifier mobIdentifier,
+    public BossBarManager(Plugin plugin, ExecutionDispatcher executionDispatcher,
+                           MobIdentifier mobIdentifier,
                            Supplier<Map<String, MobSpec>> registry) {
         this.plugin = plugin;
+        this.executionDispatcher = executionDispatcher;
         this.mobIdentifier = mobIdentifier;
         this.registry = registry;
-        scheduleDistanceCheck();
+        this.distanceTask = scheduleDistanceCheck();
+    }
+
+    public void close() {
+        distanceTask.cancel();
+        entityBars.values().forEach(bar -> {
+            bar.removeAll();
+            bar.setVisible(false);
+        });
+        entityBars.clear();
     }
 
     @SuppressWarnings("deprecation")
@@ -50,7 +65,7 @@ public final class BossBarManager implements Listener {
         if (!(event.getEntity() instanceof LivingEntity entity)) return;
         BossBar bar = entityBars.get(entity.getUniqueId());
         if (bar == null) return;
-        Bukkit.getScheduler().runTask(plugin, () -> updateBarProgress(entity, bar));
+        executionDispatcher.runEntity(plugin, entity, () -> updateBarProgress(entity, bar));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -58,7 +73,7 @@ public final class BossBarManager implements Listener {
         if (!(event.getEntity() instanceof LivingEntity entity)) return;
         BossBar bar = entityBars.get(entity.getUniqueId());
         if (bar == null) return;
-        Bukkit.getScheduler().runTask(plugin, () -> updateBarProgress(entity, bar));
+        executionDispatcher.runEntity(plugin, entity, () -> updateBarProgress(entity, bar));
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -73,29 +88,36 @@ public final class BossBarManager implements Listener {
         if (maxHp > 0) bar.setProgress(Math.min(1.0, Math.max(0.0, entity.getHealth() / maxHp)));
     }
 
-    private void scheduleDistanceCheck() {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+    private TaskToken scheduleDistanceCheck() {
+        return executionDispatcher.runGlobalTimer(plugin, () -> {
             entityBars.forEach((uid, bar) -> {
                 var raw = Bukkit.getEntity(uid);
                 if (!(raw instanceof LivingEntity entity) || !entity.isValid()) {
                     bar.removeAll(); entityBars.remove(uid); return;
                 }
-                String mobId = mobIdentifier.readId(entity);
-                if (mobId == null) return;
-                MobSpec spec = registry.get().get(mobId);
-                if (spec == null || spec.bossBarConfig() == null) return;
-                double range = spec.bossBarConfig().range();
-                Bukkit.getOnlinePlayers().forEach(player -> {
-                    if (!player.getWorld().equals(entity.getWorld())) {
-                        bar.removePlayer(player); return;
-                    }
-                    if (player.getLocation().distance(entity.getLocation()) <= range) {
-                        bar.addPlayer(player);
-                    } else {
-                        bar.removePlayer(player);
-                    }
-                });
+                executionDispatcher.runEntity(plugin, entity, () -> refreshViewers(entity, bar));
             });
         }, 20L, 20L);
+    }
+
+    private void refreshViewers(LivingEntity entity, BossBar bar) {
+        if (!entity.isValid()) {
+            return;
+        }
+        String mobId = mobIdentifier.readId(entity);
+        if (mobId == null) return;
+        MobSpec spec = registry.get().get(mobId);
+        if (spec == null || spec.bossBarConfig() == null) return;
+        double range = spec.bossBarConfig().range();
+        Bukkit.getOnlinePlayers().forEach(player -> {
+            if (!player.getWorld().equals(entity.getWorld())) {
+                bar.removePlayer(player); return;
+            }
+            if (player.getLocation().distance(entity.getLocation()) <= range) {
+                bar.addPlayer(player);
+            } else {
+                bar.removePlayer(player);
+            }
+        });
     }
 }

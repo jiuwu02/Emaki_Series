@@ -17,8 +17,40 @@ import java.util.Map;
 
 public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> {
 
+    private static final String KEY_EA_ATTRIBUTES = "ea_attributes";
+    private static final String KEY_ACTIONS = "actions";
+    private static final String LEGACY_KEY_ATTRIBUTES = "attributes";
+    private static final String LEGACY_KEY_SKILLS = "skills";
+
     public MobDefinitionYamlLoader(JavaPlugin plugin) {
         super(plugin);
+    }
+
+    public List<String> deprecations() {
+        List<String> result = new ArrayList<>();
+        for (LoadedYamlEntry<MobSpec> entry : entries().values()) {
+            YamlSection config = entry.configuration();
+            if (config == null) {
+                continue;
+            }
+            appendDeprecation(result, config, entry.file(), KEY_EA_ATTRIBUTES, LEGACY_KEY_ATTRIBUTES);
+            appendDeprecation(result, config, entry.file(), KEY_ACTIONS, LEGACY_KEY_SKILLS);
+        }
+        return List.copyOf(result);
+    }
+
+    private void appendDeprecation(List<String> sink,
+                                   YamlSection config,
+                                   File file,
+                                   String currentKey,
+                                   String legacyKey) {
+        if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
+            return;
+        }
+        sink.add(localized("loader.deprecated_key", Map.of(
+                "file", file == null ? "?" : file.getName(),
+                "old_key", legacyKey,
+                "new_key", currentKey)));
     }
 
     @Override
@@ -28,14 +60,14 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
 
     @Override
     protected String typeName() {
-        return "Mob";
+        return localized("loader.type.mob");
     }
 
     @Override
     protected MobSpec parse(File file, YamlSection config) {
         String id = config.getString("id");
         if (id == null || id.isBlank()) {
-            plugin.getLogger().warning("Mob file '" + file.getName() + "' missing 'id' field, skipping.");
+            issue("loader.invalid_blank_id", Map.of("type", typeName(), "file", file.getName()));
             return null;
         }
         String typeName = config.getString("type", id);
@@ -43,20 +75,32 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         try {
             entityType = EntityType.valueOf(typeName.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException e) {
-            plugin.getLogger().warning(
-                    "Unknown entity type '" + typeName + "' in '" + file.getName() + "', skipping.");
+            issue("loader.unknown_entity_type",
+                    Map.of("type", typeName, "file", file.getName()));
             return null;
         }
         String displayName = config.getString("display_name");
         int experience = config.getInt("experience", 0);
         Map<String, Object> components = extractSection(config, "components");
-        Map<String, Double> attributes = extractDoubleSection(config, "attributes");
-        Map<String, List<String>> skills = extractListSection(config, "skills");
+        Map<String, Double> eaAttributes = extractDoubleSection(
+                config, resolveKey(config, file, KEY_EA_ATTRIBUTES, LEGACY_KEY_ATTRIBUTES));
+        Map<String, List<String>> actions = extractListSection(
+                config, resolveKey(config, file, KEY_ACTIONS, LEGACY_KEY_SKILLS));
         boolean typeOverride = isEntityTypeName(id);
         ThreatConfig threatConfig = parseThreatConfig(config);
         BossBarConfig bossBarConfig = parseBossBarConfig(config);
-        return new MobSpec(id, entityType, displayName, components, attributes, skills, experience,
+        return new MobSpec(id, entityType, displayName, components, eaAttributes, actions, experience,
                 typeOverride, threatConfig, bossBarConfig);
+    }
+
+    private String resolveKey(YamlSection config, File file, String currentKey, String legacyKey) {
+        if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
+            return currentKey;
+        }
+        plugin.getLogger().warning("Mob file '" + file.getName() + "' uses deprecated key '"
+                + legacyKey + "'; rename it to '" + currentKey
+                + "'. The legacy key will be removed in the next major version.");
+        return legacyKey;
     }
 
     @Override

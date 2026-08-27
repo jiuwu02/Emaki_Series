@@ -23,13 +23,13 @@ components:
 experience: 500
 
 # ── EmakiAttribute（可选）──────────────────────────────────
-attributes:
+ea_attributes:
   STR: 40
   VIT: 30
   AGI: 8
 
-# ── 技能触发器（可选）──────────────────────────────────────
-skills:
+# ── 动作触发器（可选，由 CoreLib 动作管道执行）──────────────
+actions:
   on_spawn:
     - "self | particle type=SOUL count=100 offset_x=1 offset_y=2 offset_z=1"
     - "nearby radius=60 type=player | send_message text='<dark_red>☠ <bold>骨骼领主</bold>降临！准备迎战！'"

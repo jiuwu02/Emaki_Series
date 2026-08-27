@@ -32,13 +32,15 @@ experience: 80
 # ── EmakiAttribute 集成（可选）──────────────────────────────
 # 需要安装 EmakiAttribute 插件方可生效。
 # 键名与 EmakiAttribute 中定义的属性 ID 完全一致。
-attributes:
+# 注意：health / mana 一类 RESOURCE 型属性对非玩家实体无效，
+# 想抬高怪物血量上限请用下方 components.max_health 或 EA 的 max_health_vanilla。
+ea_attributes:
   STR: 15
   VIT: 10
   AGI: 5
 
-# ── EmakiSkills 技能触发器（可选）──────────────────────────
-# 需要安装 EmakiSkills 插件方可生效。
+# ── 动作触发器（可选）──────────────────────────────────────
+# 由 EmakiCoreLib 的动作管道执行，不需要安装 EmakiSkills。
 # 每个触发器对应一组 CoreLib 动作管道字符串（Action Pipeline）。
 #
 # 可用触发器：
@@ -54,7 +56,7 @@ attributes:
 #   on_transform   — 变形时（如僵尸猪灵转化）
 #
 # 动作字符串格式：[选择器 |] 动作名 [参数=值 ...]
-skills:
+actions:
   on_spawn:
     - "nearby radius=20 type=player | send_message text='<red>⚠ <bold>精英僵尸</bold>降临！'"
   on_death:

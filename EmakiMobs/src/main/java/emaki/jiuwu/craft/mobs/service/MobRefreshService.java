@@ -32,7 +32,7 @@ public final class MobRefreshService {
                 if (mobId == null) continue;
                 MobSpec spec = current.get(mobId);
                 if (spec == null) continue;
-                componentMapper.apply(living, spec.components());
+                componentMapper.applyForRefresh(living, spec.components());
                 count++;
             }
         }

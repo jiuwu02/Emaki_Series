@@ -48,7 +48,7 @@ public final class MobSkillExecutor {
             return;
         }
         MobSpec spec = mobRegistry.get().get(mobId);
-        if (spec == null || spec.skills().isEmpty()) {
+        if (spec == null || spec.actions().isEmpty()) {
             return;
         }
         Map<String, List<CompiledPipeline>> triggerMap =
@@ -78,7 +78,7 @@ public final class MobSkillExecutor {
                                                                    String mobId,
                                                                    MobSpec spec) {
         Map<String, List<CompiledPipeline>> result = new HashMap<>();
-        for (Map.Entry<String, List<String>> entry : spec.skills().entrySet()) {
+        for (Map.Entry<String, List<String>> entry : spec.actions().entrySet()) {
             String trigger = entry.getKey();
             List<String> lines = entry.getValue();
             if (lines.isEmpty()) {

@@ -28,13 +28,23 @@ import java.util.Set;
 public final class SpawnRuleLoader {
 
     private final Plugin plugin;
+    private final List<String> issues = new ArrayList<>();
 
     public SpawnRuleLoader(Plugin plugin) {
         this.plugin = plugin;
     }
 
+    public List<String> issues() {
+        synchronized (issues) {
+            return List.copyOf(issues);
+        }
+    }
+
     public List<SpawnRule> loadAll() {
         List<SpawnRule> result = new ArrayList<>();
+        synchronized (issues) {
+            issues.clear();
+        }
         File spawnDir = new File(plugin.getDataFolder(), "spawn_rules");
         if (!spawnDir.isDirectory()) {
             return result;
@@ -47,6 +57,13 @@ public final class SpawnRuleLoader {
             parseFile(file, result);
         }
         return result;
+    }
+
+    private void issue(String message) {
+        synchronized (issues) {
+            issues.add(message);
+        }
+        plugin.getLogger().warning(message);
     }
 
     private void parseFile(File file, List<SpawnRule> result) {
@@ -63,24 +80,22 @@ public final class SpawnRuleLoader {
         Object mobIdObj = map.get("mob_id");
         Object typeObj = map.get("type");
         if (!(mobIdObj instanceof String mobId) || !(typeObj instanceof String type)) {
-            plugin.getLogger().warning(
-                    "Spawn rule in '" + fileName + "' missing mob_id or type, skipping.");
+            issue("Spawn rule in '" + fileName + "' missing mob_id or type, skipping.");
             return null;
         }
         return switch (type) {
-            case "natural"    -> parseNatural(mobId, map);
+            case "natural"    -> parseNatural(mobId, map, fileName);
             case "autonomous" -> parseAutonomous(mobId, map, fileName);
             default -> {
-                plugin.getLogger().warning(
-                        "Unknown spawn type '" + type + "' in '" + fileName + "', skipping.");
+                issue("Unknown spawn type '" + type + "' in '" + fileName + "', skipping.");
                 yield null;
             }
         };
     }
 
-    private NaturalSpawnRule parseNatural(String mobId, Map<?, ?> map) {
+    private NaturalSpawnRule parseNatural(String mobId, Map<?, ?> map, String fileName) {
         Set<String> worlds = new HashSet<>(getStringList(map, "worlds"));
-        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
+        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"), fileName);
         List<?> yRange = getList(map, "y_range");
         int yMin = yRange.size() >= 1 ? toInt(yRange.get(0), -64) : -64;
         int yMax = yRange.size() >= 2 ? toInt(yRange.get(1), 320) : 320;
@@ -96,14 +111,12 @@ public final class SpawnRuleLoader {
     private AutonomousSpawnRule parseAutonomous(String mobId, Map<?, ?> map, String fileName) {
         Object triggerObj = map.get("trigger");
         if (!(triggerObj instanceof String triggerStr)) {
-            plugin.getLogger().warning(
-                    "Autonomous rule for '" + mobId + "' in '" + fileName + "' missing trigger, skipping.");
+            issue("Autonomous rule for '" + mobId + "' in '" + fileName + "' missing trigger, skipping.");
             return null;
         }
         SpawnTrigger trigger = SpawnTrigger.fromString(triggerStr);
         if (trigger == null) {
-            plugin.getLogger().warning(
-                    "Unknown trigger '" + triggerStr + "' for '" + mobId + "' in '" + fileName + "', skipping.");
+            issue("Unknown trigger '" + triggerStr + "' for '" + mobId + "' in '" + fileName + "', skipping.");
             return null;
         }
         long intervalTicks = toLong(map.get("interval_ticks"), 600L);
@@ -111,7 +124,7 @@ public final class SpawnRuleLoader {
         boolean onDayStart = Boolean.TRUE.equals(map.get("on_day_start"));
         String cronExpr = map.get("cron") instanceof String s ? s : "";
         Set<String> worlds = new HashSet<>(getStringList(map, "worlds"));
-        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"));
+        Set<Biome> biomes = parseBiomes(getStringList(map, "biomes"), fileName);
         List<Structure> structures = parseStructures(getStringList(map, "structures"), fileName);
         List<?> yRange = getList(map, "y_range");
         int yMin = yRange.size() >= 1 ? toInt(yRange.get(0), -64) : -64;
@@ -136,8 +149,7 @@ public final class SpawnRuleLoader {
             NamespacedKey nsk = NamespacedKey.fromString(key);
             Structure s = nsk != null ? Registry.STRUCTURE.get(nsk) : null;
             if (s == null) {
-                plugin.getLogger().warning(
-                        "Unknown structure '" + key + "' in '" + fileName + "', skipping.");
+                issue("Unknown structure '" + key + "' in '" + fileName + "', skipping.");
             } else {
                 result.add(s);
             }
@@ -145,7 +157,7 @@ public final class SpawnRuleLoader {
         return result;
     }
 
-    private Set<Biome> parseBiomes(List<String> names) {
+    private Set<Biome> parseBiomes(List<String> names, String fileName) {
         Set<Biome> result = new HashSet<>();
         for (String name : names) {
             String key = name.contains(":") ? name.substring(name.lastIndexOf(':') + 1) : name;
@@ -154,7 +166,8 @@ public final class SpawnRuleLoader {
                     ? RegistryAccess.registryAccess().getRegistry(RegistryKey.BIOME).get(nsk)
                     : null;
             if (biome == null) {
-                plugin.getLogger().warning("Unknown biome '" + name + "', skipping.");
+                issue("Unknown biome '" + name + "' in '" + fileName
+                        + "', skipping (the rule will not be restricted by it).");
             } else {
                 result.add(biome);
             }

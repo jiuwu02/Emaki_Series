@@ -7,6 +7,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public final class LootTableYamlLoader extends YamlDirectoryLoader<LootTableDefinition> {
 
@@ -21,14 +22,14 @@ public final class LootTableYamlLoader extends YamlDirectoryLoader<LootTableDefi
 
     @Override
     protected String typeName() {
-        return "LootTable";
+        return localized("loader.type.loot_table");
     }
 
     @Override
     protected LootTableDefinition parse(File file, YamlSection config) {
         String mobId = config.getString("mob_id");
         if (mobId == null || mobId.isBlank()) {
-            plugin.getLogger().warning("Loot table file '" + file.getName() + "' missing 'mob_id', skipping.");
+            issue("loader.invalid_blank_id", Map.of("type", typeName(), "file", file.getName()));
             return null;
         }
         List<LootPoolDefinition> pools = new ArrayList<>();

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.mobs;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -15,7 +16,11 @@ import emaki.jiuwu.craft.mobs.apiimpl.ServiceBackedMobsBridge;
 import emaki.jiuwu.craft.mobs.command.MobsCommandAdapter;
 import emaki.jiuwu.craft.mobs.command.MobsCommandRouter;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
+import emaki.jiuwu.craft.mobs.config.MobsConfigPrecheckContributor;
+import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
+import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -61,6 +66,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
         debugLogger().setFallbackLoader(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).languageLoader());
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
+        ConfigPrecheckLifecycleSupport.register(new MobsConfigPrecheckContributor(this));
         components.messageService().info("console.plugin_starting");
         components.bootstrapService().bootstrap();
         reloadContent();
@@ -78,6 +84,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
             return;
         }
         contentReady = false;
+        ConfigPrecheckLifecycleSupport.unregister(MobsConfigPrecheckContributor.MODULE);
         if (bridge != null) {
             uninstallPublicApi();
         }
@@ -86,6 +93,9 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         lifecycleCoordinator.unregisterCustomActions();
         HandlerList.unregisterAll(this);
+        components.mobAttributeRegistrar().unregister();
+        components.threatTableManager().close();
+        components.bossBarManager().close();
         runtimeInitialized = false;
         components.messageService().info("console.plugin_stopped");
     }
@@ -129,6 +139,18 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public AtomicReference<Map<String, MobSpec>> mobRegistry() {
         return components == null ? null : components.mobRegistry();
+    }
+
+    public MobDefinitionYamlLoader mobDefinitionLoader() {
+        return components == null ? null : components.mobDefinitionLoader();
+    }
+
+    public LootTableYamlLoader lootTableLoader() {
+        return components == null ? null : components.lootTableLoader();
+    }
+
+    public SpawnRuleLoader spawnRuleLoader() {
+        return components == null ? null : components.spawnRuleLoader();
     }
 
     public int reloadContent() {

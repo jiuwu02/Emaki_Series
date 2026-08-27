@@ -15,8 +15,10 @@ import emaki.jiuwu.craft.mobs.action.source.KillerSource;
 import emaki.jiuwu.craft.mobs.action.source.TargetSource;
 import emaki.jiuwu.craft.mobs.action.source.VictimSource;
 import emaki.jiuwu.craft.mobs.action.stage.SummonMobStage;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
+import emaki.jiuwu.craft.mobs.config.MobsConfigPrecheckContributor;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
@@ -28,6 +30,7 @@ import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
+import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
@@ -87,7 +90,8 @@ final class MobsLifecycleCoordinator
         var mobRegistry = new AtomicReference<>(initialMobs);
         Map<String, LootTableDefinition> initialLoot = Map.of();
         var lootRegistry = new AtomicReference<>(initialLoot);
-        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier);
+        var mobFactory = new MobFactory(mobRegistry::get, componentMapper, mobIdentifier,
+                plugin, executionDispatcher);
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var naturalSpawnHandler = new NaturalSpawnHandler(mobIdentifier, mobFactory);
         var autonomousSpawnHandler = new AutonomousSpawnHandler(plugin, mobIdentifier, mobFactory);
@@ -101,9 +105,12 @@ final class MobsLifecycleCoordinator
                 mobRegistry::get, componentMapper, mobIdentifier);
         var mobRefreshService = new MobRefreshService(
                 mobIdentifier, componentMapper, mobRegistry::get);
-        var threatTableManager = new ThreatTableManager(plugin, mobIdentifier, mobRegistry::get);
-        var bossBarManager = new BossBarManager(plugin, mobIdentifier, mobRegistry::get);
+        var threatTableManager = new ThreatTableManager(
+                plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
+        var bossBarManager = new BossBarManager(
+                plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
         var mobExtensions = new DefaultMobExtensions();
+        var mobAttributeRegistrar = new MobAttributeRegistrar(plugin, mobIdentifier, mobRegistry::get);
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);
 
@@ -115,24 +122,53 @@ final class MobsLifecycleCoordinator
                 naturalSpawnHandler, autonomousSpawnHandler,
                 mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
-                mobExtensions);
+                mobAttributeRegistrar, mobExtensions);
     }
 
     int reload(EmakiMobsPlugin plugin) {
         var components = plugin.components();
-        var loadedMobs = components.mobDefinitionLoader().all();
-        components.mobRegistry().set(loadedMobs);
+        ContentSnapshot previous = new ContentSnapshot(
+                components.mobRegistry().get(),
+                components.lootRegistry().get(),
+                components.spawnRegistry().get());
+        ConfigCommitGate.Result gate = ConfigCommitGate.commit(
+                components.messageService(),
+                MobsConfigPrecheckContributor.MODULE,
+                () -> previous,
+                () -> {
+                    components.mobDefinitionLoader().load();
+                    components.lootTableLoader().load();
+                    components.mobRegistry().set(components.mobDefinitionLoader().all());
+                    components.lootRegistry().set(components.lootTableLoader().all());
+                    components.spawnRegistry().set(components.spawnRuleLoader().loadAll());
+                    return previous;
+                },
+                restored -> restoreContent(components, restored));
+        if (gate.rejected()) {
+            return components.mobRegistry().get().size();
+        }
         components.mobSkillExecutor().invalidate();
         components.healthPhaseTracker().clearAll();
-        var loadedLoot = components.lootTableLoader().all();
-        components.lootRegistry().set(loadedLoot);
-        var loadedRules = components.spawnRuleLoader().loadAll();
-        components.spawnRegistry().set(loadedRules);
+        var loadedRules = components.spawnRegistry().get();
         components.spawnRuleDispatcher().reload(loadedRules);
         components.mobRefreshService().refreshAll();
+        components.mobAttributeRegistrar().register();
         components.mobExtensions().notifyReload();
-        return loadedMobs.size();
+        return components.mobRegistry().get().size();
     }
+
+    private void restoreContent(MobsRuntimeComponents components, ContentSnapshot restored) {
+        if (restored == null) {
+            return;
+        }
+        components.mobRegistry().set(restored.mobs());
+        components.lootRegistry().set(restored.loot());
+        components.spawnRegistry().set(restored.rules());
+    }
+
+    private record ContentSnapshot(Map<String, MobSpec> mobs,
+            Map<String, LootTableDefinition> loot,
+            List<SpawnRule> rules) { }
 
     void registerCustomActions(EmakiMobsPlugin plugin) {
         closeCustomActionRegistrations();

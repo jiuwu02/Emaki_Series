@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.mobs.threat;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import org.bukkit.Bukkit;
@@ -26,13 +28,20 @@ public final class ThreatTableManager implements Listener {
 
     private final MobIdentifier mobIdentifier;
     private final Supplier<Map<String, MobSpec>> registry;
+    private final TaskToken decayTask;
 
     public ThreatTableManager(Plugin plugin,
+                               ExecutionDispatcher executionDispatcher,
                                MobIdentifier mobIdentifier,
                                Supplier<Map<String, MobSpec>> registry) {
         this.mobIdentifier = mobIdentifier;
         this.registry = registry;
-        scheduleDecay(plugin);
+        this.decayTask = scheduleDecay(plugin, executionDispatcher);
+    }
+
+    public void close() {
+        decayTask.cancel();
+        tables.clear();
     }
 
     public void addThreat(UUID entityUid, UUID playerUid, double amount) {
@@ -97,8 +106,8 @@ public final class ThreatTableManager implements Listener {
         tables.remove(event.getEntity().getUniqueId());
     }
 
-    private void scheduleDecay(Plugin plugin) {
-        Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+    private TaskToken scheduleDecay(Plugin plugin, ExecutionDispatcher executionDispatcher) {
+        return executionDispatcher.runGlobalTimer(plugin, () -> {
             tables.forEach((entityUid, table) -> {
                 var rawEntity = Bukkit.getEntity(entityUid);
                 LivingEntity entity = rawEntity instanceof LivingEntity le ? le : null;
@@ -112,17 +121,24 @@ public final class ThreatTableManager implements Listener {
                 boolean removeOOR = spec != null && spec.threatConfig() != null
                         && spec.threatConfig().decay().outOfRange();
                 table.replaceAll((uid, val) -> val * (1.0 - decayRate));
-                table.entrySet().removeIf(e -> {
-                    if (e.getValue() < 0.001) return true;
-                    if (removeOOR) {
-                        Player p = Bukkit.getPlayer(e.getKey());
-                        if (p == null || !p.getWorld().equals(entity.getWorld())) return true;
-                        if (p.getLocation().distance(entity.getLocation()) > maxRange) return true;
-                    }
-                    return false;
-                });
+                table.entrySet().removeIf(e -> e.getValue() < 0.001);
+                if (removeOOR) {
+                    executionDispatcher.runEntity(plugin, entity,
+                            () -> evictOutOfRange(entity, table, maxRange));
+                }
             });
             tables.entrySet().removeIf(e -> e.getValue().isEmpty());
         }, 20L, 20L);
+    }
+
+    private void evictOutOfRange(LivingEntity entity, Map<UUID, Double> table, double maxRange) {
+        if (!entity.isValid()) {
+            return;
+        }
+        table.entrySet().removeIf(e -> {
+            Player p = Bukkit.getPlayer(e.getKey());
+            if (p == null || !p.getWorld().equals(entity.getWorld())) return true;
+            return p.getLocation().distance(entity.getLocation()) > maxRange;
+        });
     }
 }

@@ -5,6 +5,7 @@ import emaki.jiuwu.craft.mobs.api.MobActionKeys;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -114,7 +115,11 @@ public final class MobTriggerListener implements Listener {
     }
 
     private void checkHealthThresholds(LivingEntity entity, String mobId) {
-        double healthPercent = (entity.getHealth() / entity.getMaxHealth()) * 100;
+        var maxHealth = entity.getAttribute(Attribute.MAX_HEALTH);
+        if (maxHealth == null || maxHealth.getValue() <= 0) {
+            return;
+        }
+        double healthPercent = (entity.getHealth() / maxHealth.getValue()) * 100;
 
         int[] thresholds = {90, 75, 50, 25, 10};
 
