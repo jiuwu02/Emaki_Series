@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.7"
+version: "1.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -71,10 +71,27 @@ loader:
 
 command:
   spawn_success: "<green>已在目标位置生成 <white>%mob_id%</white>。</green>"
-  spawn_unknown: "<red>未知生物 ID：<white>%mob_id%</white></red>"
   spawn_no_target: "<red>无法确定生成位置，请指定在线玩家。</red>"
+  spawn_usage: "<gray>用法：/emakimobs spawn <mob_id> [玩家]</gray>"
   reload_success: "<green>重载完成，共 <white>%count%</white> 个生物定义。</green>"
-  usage: "<gray>用法：/emakimobs spawn <id> [玩家] | reload</gray>"
+  list_header: "<gray>生物定义 <white>%page%</white>/<white>%pages%</white> 页，共 <white>%count%</white> 个：</gray>"
+  list_entry: "<dark_gray>-</dark_gray> <white>%mob_id%</white> <gray>(%entity_type%)</gray>"
+  list_empty: "<yellow>当前没有已加载的生物定义。</yellow>"
+  list_page_out_of_range: "<red>页码 %page% 超出范围，当前共 %pages% 页。</red>"
+  invalid_page: "<red>无效页码：<white>%page%</white>。页码必须从 1 开始。</red>"
+  info_usage: "<gray>用法：/emakimobs info <mob_id></gray>"
+  info_result: "<gray><white>%mob_id%</white>：类型=%entity_type%，组件=%components%，EA 属性=%attributes%，技能触发器=%triggers%，掉落表=%loot_table%</gray>"
+  value_yes: "是"
+  value_no: "否"
+  count_success: "<green>受管生物 <white>%mob_id%</white> 当前数量：<white>%count%</white>。</green>"
+  kill_usage: "<gray>用法：/emakimobs kill <mob_id> [半径]</gray>"
+  kill_success: "<green>已移除 <white>%count%</white> 个 <white>%mob_id%</white> 受管生物。</green>"
+  kill_radius_player_only: "<red>指定半径时必须由玩家执行，半径中心为执行者位置。</red>"
+  invalid_radius: "<red>无效半径：<white>%radius%</white>。半径必须是非负有限数字。</red>"
+  unknown_mob: "<red>未知生物 ID：<white>%mob_id%</white></red>"
+  debug_unavailable: "<red>DEBUG 控制器当前不可用。</red>"
+  operation_failed: "<red>命令操作 %operation% 执行失败，请查看服务器日志。</red>"
+  usage: "<gray>用法：/emakimobs <spawn|reload|list|info|kill|count|debug> ...</gray>"
   no_permission: "<red>你没有权限执行此命令。</red>"
 
 # Debug 模式消息

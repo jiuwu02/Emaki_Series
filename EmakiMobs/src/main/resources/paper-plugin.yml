@@ -32,6 +32,12 @@ permissions:
     default: op
   emakimobs.reload:
     default: op
+  emakimobs.list:
+    default: op
+  emakimobs.info:
+    default: op
+  emakimobs.count:
+    default: op
   emakimobs.debug:
     default: op
   emakimobs.admin:

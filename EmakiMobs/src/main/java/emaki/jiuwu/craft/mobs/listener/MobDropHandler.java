@@ -2,12 +2,14 @@ package emaki.jiuwu.craft.mobs.listener;
 
 import emaki.jiuwu.craft.corelib.random.WeightedPool;
 import emaki.jiuwu.craft.item.api.EmakiItemApi;
+import emaki.jiuwu.craft.mobs.api.event.EmakiMobDeathEvent;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootEntryDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootFunctionDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootPoolDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.LivingEntity;
@@ -57,18 +59,18 @@ public final class MobDropHandler implements Listener {
         if (spec.experience() > 0) {
             event.setDroppedExp(spec.experience());
         }
-        if (!spec.components().containsKey("loot_table")) {
-            return;
+        if (spec.components().containsKey("loot_table")) {
+            LootTableDefinition lootDef = lootRegistry.get().get(mobId);
+            if (lootDef != null) {
+                event.getDrops().clear();
+                int lootingLevel = getLootingLevel(event.getEntity().getKiller());
+                for (LootPoolDefinition pool : lootDef.pools()) {
+                    applyPool(event, pool, lootingLevel);
+                }
+            }
         }
-        LootTableDefinition lootDef = lootRegistry.get().get(mobId);
-        if (lootDef == null) {
-            return;
-        }
-        event.getDrops().clear();
-        int lootingLevel = getLootingLevel(event.getEntity().getKiller());
-        for (LootPoolDefinition pool : lootDef.pools()) {
-            applyPool(event, pool, lootingLevel);
-        }
+        Bukkit.getPluginManager().callEvent(
+                new EmakiMobDeathEvent(entity, mobId, event.getEntity().getKiller()));
     }
 
     private void applyPool(EntityDeathEvent event, LootPoolDefinition pool, int lootingLevel) {

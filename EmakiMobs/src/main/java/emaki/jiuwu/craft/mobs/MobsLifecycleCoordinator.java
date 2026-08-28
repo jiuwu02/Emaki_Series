@@ -109,7 +109,7 @@ final class MobsLifecycleCoordinator
                 plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
         var bossBarManager = new BossBarManager(
                 plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
-        var mobExtensions = new DefaultMobExtensions();
+        var mobExtensions = new DefaultMobExtensions(plugin);
         var mobAttributeRegistrar = new MobAttributeRegistrar(plugin, mobIdentifier, mobRegistry::get);
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);

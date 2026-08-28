@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.mobs.api;
 
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Extension registration API for EmakiMobs.
@@ -14,15 +16,29 @@ import org.jetbrains.annotations.NotNull;
 public interface MobExtensions {
 
     /**
-     * Registers a custom spawner identified by the given {@code id}.
+     * Registers an owner-scoped custom spawner identified by the given {@code id}.
      *
-     * <p>{@link CustomSpawner#onReload()} is called immediately upon registration,
-     * and again after every EmakiMobs config reload.
+     * <p>{@link CustomSpawner#onReload()} is called immediately upon registration, and again after
+     * every EmakiMobs config reload. The returned handle is the precise registration and should be
+     * closed when the caller no longer needs it.
      *
-     * @param id      a unique identifier for this spawner (used for deduplication)
-     * @param spawner the spawner implementation to register
+     * @param owner   plugin that owns the registration; may be {@code null}, but then automatic owner
+     *                disable cleanup is unavailable
+     * @param id      unique identifier for this spawner; ids are normalized for deduplication
+     * @param spawner spawner implementation to register
+     * @return a closeable registration handle, or a no-op handle for invalid input
      */
-    void registerCustomSpawner(@NotNull String id, @NotNull CustomSpawner spawner);
+    @NotNull
+    MobSpawnerRegistration registerCustomSpawner(@Nullable Plugin owner,
+                                                 @Nullable String id,
+                                                 @Nullable CustomSpawner spawner);
+
+    /**
+     * Removes every custom spawner registered by the given owner.
+     *
+     * @param owner plugin whose registrations should be removed
+     */
+    void unregisterCustomSpawners(@Nullable Plugin owner);
 
     /**
      * Callback contract for custom mob spawners registered via

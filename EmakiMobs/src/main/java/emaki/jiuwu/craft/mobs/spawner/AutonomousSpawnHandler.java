@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.mobs.spawner;
 
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronParseException;
 import emaki.jiuwu.craft.corelib.schedule.cron.CronScheduler;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
@@ -164,7 +166,8 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
             if (rule.maxNearby() > 0
                     && countNearby(candidate, rule.mobId(), 64) >= rule.maxNearby()) continue;
             if (rule.condition().configured()
-                    && !emaki.jiuwu.craft.corelib.condition.ConditionEvaluator.evaluate(rule.condition(), null)) continue;
+                    && !ConditionEvaluator.evaluate(rule.condition(),
+                    text -> PlaceholderRenderer.renderPapi(player, text, null, "mob_spawn_condition"))) continue;
             int count = rule.count().min() >= rule.count().max()
                     ? rule.count().min()
                     : ThreadLocalRandom.current().nextInt(rule.count().min(), rule.count().max() + 1);

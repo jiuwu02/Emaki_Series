@@ -22,18 +22,29 @@ public final class MobRefreshService {
         this.registry = registry;
     }
 
+    public boolean refresh(LivingEntity entity) {
+        if (entity == null || !entity.isValid() || entity.isDead()) {
+            return false;
+        }
+        String mobId = mobIdentifier.readId(entity);
+        if (mobId == null) {
+            return false;
+        }
+        MobSpec spec = registry.get().get(mobId);
+        if (spec == null) {
+            return false;
+        }
+        componentMapper.applyForRefresh(entity, spec.components());
+        return true;
+    }
+
     public int refreshAll() {
         int count = 0;
-        Map<String, MobSpec> current = registry.get();
         for (var world : Bukkit.getWorlds()) {
             for (Entity entity : world.getEntities()) {
-                if (!(entity instanceof LivingEntity living)) continue;
-                String mobId = mobIdentifier.readId(living);
-                if (mobId == null) continue;
-                MobSpec spec = current.get(mobId);
-                if (spec == null) continue;
-                componentMapper.applyForRefresh(living, spec.components());
-                count++;
+                if (entity instanceof LivingEntity living && refresh(living)) {
+                    count++;
+                }
             }
         }
         return count;

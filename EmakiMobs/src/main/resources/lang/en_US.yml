@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "1.0.7"
+version: "1.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -71,10 +71,27 @@ loader:
 
 command:
   spawn_success: "<green>Spawned <white>%mob_id%</white> at target location.</green>"
-  spawn_unknown: "<red>Unknown mob ID: <white>%mob_id%</white></red>"
   spawn_no_target: "<red>Could not determine a spawn location. Please specify an online player.</red>"
+  spawn_usage: "<gray>Usage: /emakimobs spawn <mob_id> [player]</gray>"
   reload_success: "<green>Reloaded with <white>%count%</white> mob definition(s).</green>"
-  usage: "<gray>Usage: /emakimobs spawn <id> [player] | reload</gray>"
+  list_header: "<gray>Mob definitions page <white>%page%</white>/<white>%pages%</white>, <white>%count%</white> total:</gray>"
+  list_entry: "<dark_gray>-</dark_gray> <white>%mob_id%</white> <gray>(%entity_type%)</gray>"
+  list_empty: "<yellow>No mob definitions are currently loaded.</yellow>"
+  list_page_out_of_range: "<red>Page %page% is out of range; there are %pages% page(s).</red>"
+  invalid_page: "<red>Invalid page: <white>%page%</white>. Pages start at 1.</red>"
+  info_usage: "<gray>Usage: /emakimobs info <mob_id></gray>"
+  info_result: "<gray><white>%mob_id%</white>: type=%entity_type%, components=%components%, EA attributes=%attributes%, skill triggers=%triggers%, loot table=%loot_table%</gray>"
+  value_yes: "yes"
+  value_no: "no"
+  count_success: "<green>Managed mob <white>%mob_id%</white> count: <white>%count%</white>.</green>"
+  kill_usage: "<gray>Usage: /emakimobs kill <mob_id> [radius]</gray>"
+  kill_success: "<green>Removed <white>%count%</white> managed <white>%mob_id%</white> mob(s).</green>"
+  kill_radius_player_only: "<red>A radius requires a player sender and is centered on that player.</red>"
+  invalid_radius: "<red>Invalid radius: <white>%radius%</white>. Use a finite non-negative number.</red>"
+  unknown_mob: "<red>Unknown mob ID: <white>%mob_id%</white></red>"
+  debug_unavailable: "<red>The debug controller is currently unavailable.</red>"
+  operation_failed: "<red>Command operation %operation% failed. Check the server log.</red>"
+  usage: "<gray>Usage: /emakimobs <spawn|reload|list|info|kill|count|debug> ...</gray>"
   no_permission: "<red>You do not have permission to run this command.</red>"
 
 # Debug messages

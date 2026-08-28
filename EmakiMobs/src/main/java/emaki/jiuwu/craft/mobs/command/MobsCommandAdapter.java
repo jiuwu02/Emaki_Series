@@ -5,6 +5,8 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.Collection;
+
 public final class MobsCommandAdapter implements BasicCommand {
 
     private final MobsCommandRouter router;
@@ -18,6 +20,12 @@ public final class MobsCommandAdapter implements BasicCommand {
     @Override
     public void execute(@NotNull CommandSourceStack source, @NotNull String[] args) {
         router.route(source.getSender(), args);
+    }
+
+    @Override
+    public @NotNull Collection<String> suggest(@NotNull CommandSourceStack source, @NotNull String[] args) {
+        String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
+        return router.suggest(source.getSender(), completionArgs);
     }
 
     @Override

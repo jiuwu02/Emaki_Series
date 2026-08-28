@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.mobs;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -22,17 +23,22 @@ import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
+import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
+    private static final String MODULE = "mobs";
     private static final String ROOT_COMMAND = "emakimobs";
+    private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
  ______ __ __ ______ __ __ __ __ __ ______ ______ ______
@@ -52,6 +58,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private boolean runtimeInitialized;
     private volatile boolean contentReady;
     private ServiceBackedMobsBridge bridge;
+    private DebugCommand debugCommand;
     private BStatsRegistration metrics;
 
     public EmakiMobsPlugin() {
@@ -65,6 +72,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
         debugLogger().setFallbackLoader(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         ConfigPrecheckLifecycleSupport.register(new MobsConfigPrecheckContributor(this));
         components.messageService().info("console.plugin_starting");
@@ -96,6 +104,9 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components.mobAttributeRegistrar().unregister();
         components.threatTableManager().close();
         components.bossBarManager().close();
+        components.mobExtensions().close();
+        components.mobIdentifier().clearTracked();
+        debugCommand = null;
         runtimeInitialized = false;
         components.messageService().info("console.plugin_stopped");
     }
@@ -129,8 +140,20 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return components == null ? null : components.executionDispatcher();
     }
 
+    public DebugCommand debugCommand() {
+        return debugCommand;
+    }
+
     public MobFactory mobFactory() {
         return components == null ? null : components.mobFactory();
+    }
+
+    public MobIdentifier mobIdentifier() {
+        return components == null ? null : components.mobIdentifier();
+    }
+
+    public MobRefreshService mobRefreshService() {
+        return components == null ? null : components.mobRefreshService();
     }
 
     public MobExtensions mobExtensions() {
@@ -168,12 +191,14 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     private void registerListeners() {
+        getServer().getPluginManager().registerEvents(components.mobIdentifier(), this);
         getServer().getPluginManager().registerEvents(components.mobDropHandler(), this);
         getServer().getPluginManager().registerEvents(components.naturalSpawnHandler(), this);
         getServer().getPluginManager().registerEvents(components.mobTriggerListener(), this);
         getServer().getPluginManager().registerEvents(components.typeOverrideApplicator(), this);
         getServer().getPluginManager().registerEvents(components.threatTableManager(), this);
         getServer().getPluginManager().registerEvents(components.bossBarManager(), this);
+        getServer().getPluginManager().registerEvents(components.mobExtensions(), this);
     }
 
     private void installPublicApi() {

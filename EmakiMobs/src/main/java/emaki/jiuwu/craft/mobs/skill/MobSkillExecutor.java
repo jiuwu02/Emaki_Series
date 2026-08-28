@@ -6,6 +6,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.mobs.api.event.EmakiMobSkillTriggerEvent;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
@@ -55,6 +56,11 @@ public final class MobSkillExecutor {
                 cache.computeIfAbsent(mobId, id -> compileMobSkills(engine, id, spec));
         List<CompiledPipeline> pipelines = triggerMap.get(trigger);
         if (pipelines == null || pipelines.isEmpty()) {
+            return;
+        }
+        var triggerEvent = new EmakiMobSkillTriggerEvent(mob, mobId, trigger);
+        plugin.getServer().getPluginManager().callEvent(triggerEvent);
+        if (triggerEvent.isCancelled()) {
             return;
         }
         CoreActionSubject caster = CoreActionSubject.of(mob);

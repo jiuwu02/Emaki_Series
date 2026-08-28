@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.mobs.api;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Optional;
 
@@ -27,6 +28,18 @@ public interface MobOperations {
      */
     @NotNull
     Optional<LivingEntity> spawn(@NotNull Location location, @NotNull String mobId);
+
+    /**
+     * Refreshes one managed entity using the non-destructive refresh rules.
+     *
+     * <p>This synchronous method reads and writes live entity state and must be called on the entity
+     * owner thread. It does not schedule work on behalf of the caller. It returns {@code false} for a
+     * null, invalid, dead, unmanaged, unknown, or unavailable entity.
+     *
+     * @param entity entity to refresh, or {@code null}
+     * @return whether the currently loaded definition was applied
+     */
+    boolean refresh(@Nullable LivingEntity entity);
 
     /**
      * Removes a managed entity from the world.

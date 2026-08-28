@@ -6,8 +6,10 @@ import emaki.jiuwu.craft.mobs.api.EmakiMobsApi;
 import emaki.jiuwu.craft.mobs.api.MobCatalog;
 import emaki.jiuwu.craft.mobs.api.MobExtensions;
 import emaki.jiuwu.craft.mobs.api.MobOperations;
+import emaki.jiuwu.craft.mobs.api.MobSpawnerRegistration;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Optional;
@@ -51,6 +53,15 @@ public final class ServiceBackedMobsBridge implements EmakiMobsApi.Bridge {
             }
 
             @Override
+            public boolean refresh(LivingEntity entity) {
+                if (!plugin.isEnabled() || plugin.isShutdownStarted() || !plugin.contentReady()) {
+                    return false;
+                }
+                var refreshService = plugin.mobRefreshService();
+                return refreshService != null && refreshService.refresh(entity);
+            }
+
+            @Override
             public void remove(LivingEntity entity) {
                 if (!plugin.isEnabled() || plugin.isShutdownStarted()) return;
                 entity.remove();
@@ -60,7 +71,22 @@ public final class ServiceBackedMobsBridge implements EmakiMobsApi.Bridge {
 
     @Override
     public @NotNull MobExtensions extensions() {
-        MobExtensions e = plugin.mobExtensions();
-        return e != null ? e : (id, s) -> {};
+        MobExtensions extensions = plugin.mobExtensions();
+        if (extensions != null) {
+            return extensions;
+        }
+        return new MobExtensions() {
+            @Override
+            public @NotNull MobSpawnerRegistration registerCustomSpawner(
+                    Plugin owner,
+                    String id,
+                    CustomSpawner spawner) {
+                return MobSpawnerRegistration.noop();
+            }
+
+            @Override
+            public void unregisterCustomSpawners(Plugin owner) {
+            }
+        };
     }
 }

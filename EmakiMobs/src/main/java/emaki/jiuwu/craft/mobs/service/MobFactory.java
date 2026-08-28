@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.mobs.service;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.mobs.api.event.EmakiMobSpawnEvent;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
@@ -66,6 +67,12 @@ public final class MobFactory {
         mobIdentifier.mark(entity, mobId);
         componentMapper.applyForSpawn(entity, spec.components());
         componentMapper.fillHealth(entity, spec.components());
+        var spawnEvent = new EmakiMobSpawnEvent(entity, mobId);
+        plugin.getServer().getPluginManager().callEvent(spawnEvent);
+        if (spawnEvent.isCancelled()) {
+            entity.remove();
+            return Optional.empty();
+        }
         scheduleHealthTopUp(entity, spec);
         if (bossBarManager != null) bossBarManager.registerIfConfigured(entity, mobId);
         if (skillExecutor != null) skillExecutor.executeForTrigger(entity, mobId, "on_spawn");
