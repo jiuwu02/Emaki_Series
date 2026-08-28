@@ -32,6 +32,10 @@ import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
+import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
+import emaki.jiuwu.craft.mobs.selector.TargetSelectorConfig;
+import emaki.jiuwu.craft.mobs.selector.TargetSelectorLoader;
+import emaki.jiuwu.craft.mobs.selector.TargetSelectorService;
 import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.spawner.AutonomousSpawnHandler;
@@ -54,7 +58,7 @@ final class MobsLifecycleCoordinator
     private static final String DEFAULT_PREFIX =
             "<gray>[<gradient:#86EFAC:#34D399>EmakiMobs</gradient>]</gray> ";
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
-    private static final List<String> STATIC_FILES = List.of();
+    private static final List<String> STATIC_FILES = List.of("target_selectors.yml");
     private static final List<String> DEFAULT_DATA_FILES =
             List.of("mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
                     "spawn_rules/overworld_elites.yml");
@@ -86,6 +90,12 @@ final class MobsLifecycleCoordinator
         var componentMapper = new ComponentMapper(mobIdentifier);
         var definitionLoader = new MobDefinitionYamlLoader(plugin);
         var lootTableLoader = new LootTableYamlLoader(plugin);
+        var targetSelectorLoader = new TargetSelectorLoader(
+                plugin, messageService, coreLibPlugin.itemSourceService());
+        var targetSelectorRegistry = new AtomicReference<>(TargetSelectorConfig.empty());
+        var scoreSnapshotService = new ScoreSnapshotService(
+                plugin, executionDispatcher, targetSelectorRegistry::get,
+                coreLibPlugin.itemSourceService(), plugin::debugLogger);
         Map<String, MobSpec> initialMobs = Map.of();
         var mobRegistry = new AtomicReference<>(initialMobs);
         Map<String, LootTableDefinition> initialLoot = Map.of();
@@ -106,7 +116,12 @@ final class MobsLifecycleCoordinator
         var mobRefreshService = new MobRefreshService(
                 mobIdentifier, componentMapper, mobRegistry::get);
         var threatTableManager = new ThreatTableManager(
-                plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
+                plugin, executionDispatcher, mobIdentifier, mobRegistry::get, scoreSnapshotService);
+        var targetSelectorService = new TargetSelectorService(
+                mobIdentifier, mobRegistry::get, targetSelectorRegistry::get,
+                scoreSnapshotService, threatTableManager::threat,
+                threatTableManager::firstDamager, threatTableManager::lastDamager);
+        threatTableManager.setTargetSelectorService(targetSelectorService);
         var bossBarManager = new BossBarManager(
                 plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
         var mobExtensions = new DefaultMobExtensions(plugin);
@@ -115,7 +130,9 @@ final class MobsLifecycleCoordinator
         mobFactory.setBossBarManager(bossBarManager);
 
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
-                definitionLoader, componentMapper, mobIdentifier, mobFactory,
+                definitionLoader, targetSelectorLoader, targetSelectorRegistry,
+                scoreSnapshotService, targetSelectorService,
+                componentMapper, mobIdentifier, mobFactory,
                 appConfigLoader, bootstrapService, mobRegistry,
                 lootTableLoader, lootRegistry, mobDropHandler,
                 spawnRuleLoader, spawnRegistry, spawnRuleDispatcher,
@@ -130,7 +147,8 @@ final class MobsLifecycleCoordinator
         ContentSnapshot previous = new ContentSnapshot(
                 components.mobRegistry().get(),
                 components.lootRegistry().get(),
-                components.spawnRegistry().get());
+                components.spawnRegistry().get(),
+                components.targetSelectorRegistry().get());
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 components.messageService(),
                 MobsConfigPrecheckContributor.MODULE,
@@ -138,15 +156,19 @@ final class MobsLifecycleCoordinator
                 () -> {
                     components.mobDefinitionLoader().load();
                     components.lootTableLoader().load();
+                    components.targetSelectorLoader().load();
                     components.mobRegistry().set(components.mobDefinitionLoader().all());
                     components.lootRegistry().set(components.lootTableLoader().all());
                     components.spawnRegistry().set(components.spawnRuleLoader().loadAll());
+                    components.targetSelectorRegistry().set(components.targetSelectorLoader().config());
                     return previous;
                 },
                 restored -> restoreContent(components, restored));
         if (gate.rejected()) {
             return components.mobRegistry().get().size();
         }
+        components.scoreSnapshotService().reload();
+        components.threatTableManager().reload();
         components.mobSkillExecutor().invalidate();
         components.healthPhaseTracker().clearAll();
         var loadedRules = components.spawnRegistry().get();
@@ -164,11 +186,13 @@ final class MobsLifecycleCoordinator
         components.mobRegistry().set(restored.mobs());
         components.lootRegistry().set(restored.loot());
         components.spawnRegistry().set(restored.rules());
+        components.targetSelectorRegistry().set(restored.targetSelectors());
     }
 
     private record ContentSnapshot(Map<String, MobSpec> mobs,
             Map<String, LootTableDefinition> loot,
-            List<SpawnRule> rules) { }
+            List<SpawnRule> rules,
+            TargetSelectorConfig targetSelectors) { }
 
     void registerCustomActions(EmakiMobsPlugin plugin) {
         closeCustomActionRegistrations();

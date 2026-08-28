@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
+import emaki.jiuwu.craft.mobs.selector.TargetSelectorLoader;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -102,6 +103,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         lifecycleCoordinator.unregisterCustomActions();
         HandlerList.unregisterAll(this);
         components.mobAttributeRegistrar().unregister();
+        components.scoreSnapshotService().close();
         components.threatTableManager().close();
         components.bossBarManager().close();
         components.mobExtensions().close();
@@ -168,6 +170,10 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         return components == null ? null : components.mobDefinitionLoader();
     }
 
+    public TargetSelectorLoader targetSelectorLoader() {
+        return components == null ? null : components.targetSelectorLoader();
+    }
+
     public LootTableYamlLoader lootTableLoader() {
         return components == null ? null : components.lootTableLoader();
     }
@@ -196,6 +202,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(components.naturalSpawnHandler(), this);
         getServer().getPluginManager().registerEvents(components.mobTriggerListener(), this);
         getServer().getPluginManager().registerEvents(components.typeOverrideApplicator(), this);
+        getServer().getPluginManager().registerEvents(components.scoreSnapshotService(), this);
         getServer().getPluginManager().registerEvents(components.threatTableManager(), this);
         getServer().getPluginManager().registerEvents(components.bossBarManager(), this);
         getServer().getPluginManager().registerEvents(components.mobExtensions(), this);

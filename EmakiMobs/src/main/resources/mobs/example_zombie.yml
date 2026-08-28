@@ -16,3 +16,11 @@ components:
   loot_table: "emakimobs:entities/example_zombie"
 
 experience: 50
+
+# 可选：引用 target_selectors.yml 中的选择器。未配置时保持原有最高仇恨行为。
+# target_selector: highest_threat
+# 可选：周期性重申目标。默认关闭；间隔会向上取整为 20 tick 的整数倍。
+# 开启后可能与其他修改怪物目标的插件相互覆盖，且目标切换会更强制。
+# lock_target:
+#   enabled: false
+#   interval_ticks: 20

@@ -1,0 +1,89 @@
+# 分数快照的基础调度间隔（tick）。在线玩家超过单轮上限时，单个玩家的实际刷新周期会按批次数增加。
+# 设为 0 表示关闭快照：equipment、expression 与 health 恒为 0，配置了 filter 的选择器没有合格候选。
+snapshot_interval_ticks: 20
+
+# 每轮最多派发多少名在线玩家到其 owner 线程重算；超出的玩家顺延到后续轮次。
+# 完整刷新一轮的打分求值次数 = 在线玩家数 ×（被引用的装备表数 + 去重后的表达式数）。
+# 每个配置了 filter 的选择器还会为每名玩家额外求值一次条件块。
+snapshot_players_per_tick: 20
+
+equipment_tables:
+  vanilla_tiers:
+    slots: [head, chest, legs, feet, main_hand]
+    default_weight: 0
+    weights:
+      "minecraft:leather_helmet": 1
+      "minecraft:leather_chestplate": 1
+      "minecraft:leather_leggings": 1
+      "minecraft:leather_boots": 1
+      "minecraft:golden_helmet": 2
+      "minecraft:golden_chestplate": 2
+      "minecraft:golden_leggings": 2
+      "minecraft:golden_boots": 2
+      "minecraft:copper_helmet": 2
+      "minecraft:copper_chestplate": 2
+      "minecraft:copper_leggings": 2
+      "minecraft:copper_boots": 2
+      "minecraft:chainmail_helmet": 2
+      "minecraft:chainmail_chestplate": 2
+      "minecraft:chainmail_leggings": 2
+      "minecraft:chainmail_boots": 2
+      "minecraft:iron_helmet": 3
+      "minecraft:iron_chestplate": 3
+      "minecraft:iron_leggings": 3
+      "minecraft:iron_boots": 3
+      "minecraft:diamond_helmet": 4
+      "minecraft:diamond_chestplate": 4
+      "minecraft:diamond_leggings": 4
+      "minecraft:diamond_boots": 4
+      "minecraft:netherite_helmet": 5
+      "minecraft:netherite_chestplate": 5
+      "minecraft:netherite_leggings": 5
+      "minecraft:netherite_boots": 5
+      "minecraft:wooden_sword": 1
+      "minecraft:stone_sword": 2
+      "minecraft:golden_sword": 2
+      "minecraft:copper_sword": 2
+      "minecraft:iron_sword": 3
+      "minecraft:diamond_sword": 4
+      "minecraft:netherite_sword": 5
+
+selectors:
+  highest_threat:
+    mode: highest
+    score:
+      - type: threat
+
+  nearest:
+    mode: lowest
+    score:
+      - type: distance
+
+  lowest_health:
+    mode: lowest
+    score:
+      - type: health
+
+  first_blood:
+    mode: first_damager
+
+  gear_hunter:
+    range: 24
+    mode: highest
+    filter:
+      - "%player_health% > 4"
+    score:
+      - type: equipment
+        table: vanilla_tiers
+        factor: 1.0
+      - type: threat
+        factor: 0.5
+
+  the_wealthy:
+    range: 32
+    mode: highest
+    score:
+      - type: expression
+        value: "%vault_eco_balance% / 1000"
+      - type: expression
+        value: "%emakiattribute_attribute_power% / 100"

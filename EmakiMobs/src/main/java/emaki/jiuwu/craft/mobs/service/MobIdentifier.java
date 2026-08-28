@@ -47,6 +47,10 @@ public final class MobIdentifier implements Listener {
         return List.copyOf(trackedEntities.values());
     }
 
+    public LivingEntity trackedEntity(UUID entityId) {
+        return trackedEntities.get(entityId);
+    }
+
     public void forget(Entity entity) {
         if (entity != null) {
             trackedEntities.remove(entity.getUniqueId());

@@ -2,7 +2,7 @@
 # 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.8"
+version: "1.0.9"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -64,6 +64,14 @@ loader:
   invalid_config: "%type% 配置无效: %file%"
   unknown_entity_type: "未知的实体类型 %type%: %file%"
   deprecated_key: "%file% 仍在使用旧键 %old_key%，请改为 %new_key%（旧键将在下一个大版本移除）"
+  target_selectors_load_failed: "读取目标选择器文件 %file% 失败：%error%"
+  target_selectors_section_missing: "目标选择器文件 %file% 缺少 selectors 节"
+  target_selector_invalid_slot: "装备权重表 %table% 包含无效槽位 %slot%，已跳过"
+  target_selector_invalid_item: "装备权重表 %table% 包含不可用物品 %item%，已跳过"
+  target_selector_invalid_mode: "目标选择器 %selector% 包含无效模式 %mode%，已跳过"
+  target_selector_invalid_score: "目标选择器 %selector% 包含无效打分类型 %type%，已跳过"
+  target_selector_unknown_table: "目标选择器 %selector% 引用了不存在的装备权重表 %table%，已跳过"
+  target_selector_invalid_expression: "目标选择器 %selector% 包含无效表达式 %expression%，已跳过"
   type:
     mob: "生物"
     loot_table: "战利品表"
@@ -95,3 +103,5 @@ command:
   no_permission: "<red>你没有权限执行此命令。</red>"
 
 # Debug 模式消息
+debug:
+  target_selector_expression_failed: "目标选择器表达式 %expression_id% 求值失败：%error%"

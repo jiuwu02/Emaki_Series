@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.mobs.loader;
 
 import emaki.jiuwu.craft.mobs.api.model.MobDefinition;
+import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
 import org.bukkit.entity.EntityType;
 import org.jetbrains.annotations.Nullable;
 
@@ -17,7 +18,9 @@ public record MobSpec(
         int experience,
         boolean typeOverride,
         @Nullable ThreatConfig threatConfig,
-        @Nullable BossBarConfig bossBarConfig
+        @Nullable BossBarConfig bossBarConfig,
+        @Nullable String targetSelector,
+        TargetLockConfig targetLockConfig
 ) {
     public MobDefinition toApiModel() {
         return new MobDefinition(id, entityType, displayName, experience);

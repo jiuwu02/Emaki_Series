@@ -2,7 +2,7 @@
 # Messages support MiniMessage; apply changes with the plugin's reload command.
 # version is maintained by the resource synchronization process and used to merge new default keys.
 
-version: "1.0.8"
+version: "1.0.9"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -64,6 +64,14 @@ loader:
   invalid_config: "Invalid %type% configuration: %file%"
   unknown_entity_type: "Unknown entity type %type%: %file%"
   deprecated_key: "%file% still uses the legacy key %old_key%; rename it to %new_key% (the legacy key will be removed in the next major version)"
+  target_selectors_load_failed: "Failed to read target selector file %file%: %error%"
+  target_selectors_section_missing: "Target selector file %file% is missing the selectors section"
+  target_selector_invalid_slot: "Equipment weight table %table% contains invalid slot %slot%; skipped"
+  target_selector_invalid_item: "Equipment weight table %table% contains unavailable item %item%; skipped"
+  target_selector_invalid_mode: "Target selector %selector% contains invalid mode %mode%; skipped"
+  target_selector_invalid_score: "Target selector %selector% contains invalid score type %type%; skipped"
+  target_selector_unknown_table: "Target selector %selector% references missing equipment weight table %table%; skipped"
+  target_selector_invalid_expression: "Target selector %selector% contains invalid expression %expression%; skipped"
   type:
     mob: "mob"
     loot_table: "loot table"
@@ -95,3 +103,5 @@ command:
   no_permission: "<red>You do not have permission to run this command.</red>"
 
 # Debug messages
+debug:
+  target_selector_expression_failed: "Target selector expression %expression_id% failed: %error%"

@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.mobs.loader;
 
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.EntityType;
@@ -89,8 +90,10 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         boolean typeOverride = isEntityTypeName(id);
         ThreatConfig threatConfig = parseThreatConfig(config);
         BossBarConfig bossBarConfig = parseBossBarConfig(config);
+        String targetSelector = normalizeOptionalId(config.getString("target_selector"));
+        TargetLockConfig targetLockConfig = parseTargetLockConfig(config);
         return new MobSpec(id, entityType, displayName, components, eaAttributes, actions, experience,
-                typeOverride, threatConfig, bossBarConfig);
+                typeOverride, threatConfig, bossBarConfig, targetSelector, targetLockConfig);
     }
 
     private String resolveKey(YamlSection config, File file, String currentKey, String legacyKey) {
@@ -133,6 +136,23 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
                 new ThreatConfig.ThreatWeightsConfig(damageW, healingW),
                 new ThreatConfig.ThreatDecayConfig(decayRate, outOfRange),
                 maxRange);
+    }
+
+    private String normalizeOptionalId(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        return raw.trim().toLowerCase(Locale.ROOT);
+    }
+
+    private TargetLockConfig parseTargetLockConfig(YamlSection config) {
+        YamlSection section = config.getSection("lock_target");
+        if (section == null) {
+            return TargetLockConfig.disabled();
+        }
+        boolean enabled = section.getBoolean("enabled", false);
+        int intervalTicks = section.getInt("interval_ticks", 20);
+        return new TargetLockConfig(enabled, intervalTicks);
     }
 
     @Nullable
