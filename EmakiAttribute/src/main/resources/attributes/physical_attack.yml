@@ -1,13 +1,5 @@
-# EmakiAttribute 属性定义示例：物理伤害。
-# attributes/ 下每个 YAML 文件定义一个属性；id 必填，其他字段按加载器默认值补全。
-#
-# value_kind：FLAT / PERCENT / CHANCE / REGEN / RESOURCE / DERIVED。
-# target_type：DAMAGE / RESOURCE / GENERIC / VANILLA；target_id 指向对应领域标识。
-# default_value、min_value、max_value 与 allow_negative 约束属性数值；priority 控制读取匹配顺序。
-# lore_format_id 引用 lore_formats/ 定义；lore_pattern 或 lore_patterns 可额外声明读取正则。
-# attribute_power 是 attribute_balance.yml 未声明 score 时的战力权重回退值。
-# tags 供按标签管理临时属性；temporary_stack_mode 支持 REPLACE 或 STACK。
-# parent_attribute 与 child_bonuses 可声明只用于汇总的父属性及其子属性加成。
+# 物理伤害属性示例。value_kind 与 target_type 使用已声明枚举；数值边界由 min/max 和 allow_negative 控制。
+# priority 越高越先匹配；attribute_power 仅在 attribute_balance.yml 无 score 时回退使用。
 
 id: physical_attack
 
@@ -33,13 +25,11 @@ lore_format_id: default_flat
 
 attribute_power: 1.0
 
-# 属性标签：供 MythicMobs 的 emaki_attribute_add_tag / emaki_attribute_clear_tag 按标签批量操作临时属性。
+# MythicMobs 临时属性动作可按 tags 批量操作。
 tags: []
 
-# 临时属性叠加模式：当同一 effect_id 的临时属性重复施加时的默认行为。
-#   REPLACE（默认）：新数值与新持续时间直接覆盖旧的。
-#   STACK：数值相加，持续时间在剩余时间基础上叠加。
-# 技能显式传入 stack_mode 时以技能为准。
+# 同一 effect_id 重复施加时，REPLACE 覆盖数值/时长，STACK 累加数值/剩余时长。
+# 技能显式 stack_mode 优先。
 temporary_stack_mode: REPLACE
 
 description: "Adds flat physical damage."

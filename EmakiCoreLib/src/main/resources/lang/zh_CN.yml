@@ -1,8 +1,8 @@
 # EmakiCoreLib 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.18"
+version: "4.7.19"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -101,7 +101,6 @@ loader:
 action:
   debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white> <white>id=%id%</white> <gray>args=%args%</gray>"
   execute_failed: "<red>[Action] 执行 %action% 失败: %error%</red>"
-  # 管道加载期校验诊断
   register:
     blank_id: "<red>[管道] 段 id 为空，注册被拒绝</red>"
     duplicate_id: "<red>[管道] 段 id 重复，注册被拒绝</red>"
@@ -109,14 +108,12 @@ action:
     undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
     async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
     key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
-  # 诊断渲染的公共后缀。位置与候选值单独成键，便于翻译时调整顺序或省略。
   diagnostic:
     at_column: "<gray>（第 %column% 列）</gray>"
     at_file: "<gray>（%file% 的 %key_path%，第 %line% 行第 %column% 列）</gray>"
     candidates: "<gray> 可选值: <white>%candidates%</white></gray>"
     more_problems: "<gray> 该行另有 <yellow>%count%</yellow> 处问题，修好这处后会继续提示。</gray>"
     unknown_reason: "<red>[管道] 校验未通过（诊断键 %reason% 尚无对应文案，请反馈该键）</red>"
-  # 语法层诊断：词法与括号/管道结构，先于 validate 触发
   lex:
     unclosed_quote: "<red>[管道] 引号没有闭合，%column% 列起的引号缺少配对的结束引号</red>"
   parse:
@@ -193,7 +190,6 @@ action:
     player_limit_reached: "<red>[管道] 已达到该玩家的活动任务上限</red>"
     plugin_limit_reached: "<red>[管道] 已达到该插件的活动任务上限</red>"
     exception: "<red>[管道] 段执行抛出异常：%error%</red>"
-  # 内置源段诊断
   source:
     self:
       no_caster: "<gray>[管道] self 源段没有施法者</gray>"
@@ -224,7 +220,6 @@ action:
     player_by_name:
       name_required: "<red>[管道] player_by_name 必须指定 name</red>"
       not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
-  # 内置闸门段诊断
   gate:
     where:
       condition_required: "<red>[管道] where 必须给出条件</red>"
@@ -242,7 +237,6 @@ action:
       no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
     stop:
       stopped: "<gray>[管道] 已由 stop 段终止</gray>"
-  # 内置动作段诊断
   stage:
     common:
       not_entity: "<gray>[管道] 该段需要实体目标</gray>"
@@ -297,7 +291,7 @@ action:
       no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
       already_repaired: "<gray>[管道] 该物品耐久已满</gray>"
       zero_damage: "<gray>[管道] 耐久损耗量必须大于零</gray>"
-      # 以下由 EmakiItem 的段使用，与上面内置段共用同一命名空间
+       # EmakiItem 段与内置物品段共用此命名空间。
       inspector_unavailable: "<red>[管道] EmakiItem 组件检查器当前不可用</red>"
       empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
       no_result: "<red>[管道] EmakiItem 未返回任何物品</red>"
@@ -354,8 +348,6 @@ action:
       unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
       cast_failed: "<red>[管道] MythicMobs 技能 %skill% 施放失败</red>"
       cast_error: "<red>[管道] MythicMobs 技能 %skill% 施放异常：%error%</red>"
-    # 业务模块提供的动作段诊断。段实现在各模块 jar 内，诊断文案统一留在 CoreLib，
-    # 因为这些 key 由 CoreLib 定义的 CoreActionOutcome 契约产出，文案与契约同处一地便于对照。
     strengthen:
       service_unavailable: "<red>[管道] EmakiStrengthen 强化服务当前不可用</red>"
       empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
@@ -438,21 +430,19 @@ action:
       generation_changed: "<red>[管道] 刷新期间 EmakiForge 运行代数已变更，结果已过期</red>"
       partial_refresh: "<red>[管道] %failed% 名在线玩家的锻造物品刷新失败</red>"
 
-# 跨模块能力注册表诊断
 capability:
   publish:
     missing_owner: "<red>[能力] 未提供发布方插件，能力发布被拒绝</red>"
     empty: "<red>[能力] 能力集合为空，能力发布被拒绝</red>"
     duplicate: "<red>[能力] 该能力标识已被占用，能力发布被拒绝</red>"
 
-# 材料分配缺口报告（联合短缺表述，不做单点归因）
+# 材料分配缺口；使用联合短缺表述。
 allocation:
   shortage:
     combined: "<red>这组材料凑不出：<yellow>%slots%</yellow> 个槽位合计还缺 <yellow>%missing%</yellow> 个可用物品</red>"
     slot_detail: "<gray>- 槽位 <aqua>%slot%</aqua> 需 <yellow>%required%</yellow>，当前可分配 <yellow>%allocated%</yellow></gray>"
     hint: "<gray>提示：多个槽位可能争用同一批物品，补齐任意一处未必消除缺口，请按上面的合计数量准备。</gray>"
 
-# Debug 模式消息
 debug:
   common:
     placeholder:
@@ -598,7 +588,6 @@ debug:
     cooking_history: "烹饪历史 PDC 变更 | 物品=%item% | 数量=%amount% | 键=%key% | 变更前=%before% | 变更后=%after% | 配方=%recipe% | 已提交=%committed%"
     join_migrated: "玩家加入时转换历史 PDC 键 | 玩家=%player% | 键数=%keys%"
 
-# 命令消息
 command:
   no_permission_reload: "<red>你没有权限重载 EmakiCoreLib</red>"
   no_permission_admin: "<red>你没有权限执行 EmakiCoreLib 管理命令</red>"

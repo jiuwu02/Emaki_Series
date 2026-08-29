@@ -1,17 +1,10 @@
 # ============================================================
 # EmakiItem 物品定义示例
 # ============================================================
-# 此文件定义了一个完整的自定义物品，展示所有可用字段和推荐写法。
-# EmakiItem 负责创建、管理和更新自定义物品，
-# 支持属性绑定、技能附加、套装系统、条件装备和修复系统。
-#
-# 文件放置位置: plugins/EmakiItem/items/
-# 文件名仅用于组织和错误诊断；物品内部标识由必填 id 字段决定，加载时按 id 注册。
-# 如果安装 EmakiStrengthen，示例强化来自其 example_recipe.yml 中的 match.source_ids 显式引用，
-# 不是此物品自身默认携带强化；修改物品 ID 后请同步调整强化配方的 source_ids。
+# 物品 ID 取自 id，与文件名无关。
+# EmakiStrengthen 示例配方按物品源显式引用；修改 ID 时需同步更新该引用。
 # ============================================================
 
-# 物品唯一标识符（必填）
 id: "example_item"
 
 # ============================================================
@@ -98,19 +91,7 @@ item:
     $reset:
       - "dyed_color"
 
-    # 高级逃生口：无法用 JSON 等价 YAML 表达时，可让单个组件值只包含 $snbt。
-    # $snbt 字符串会原样交给原版物品组件解析器；普通配置不要优先使用此写法。
-    # block_entity_data:
-    #   $snbt: '{id:"minecraft:chest",Items:[]}'
-
-    # 已知未来组件示例（Minecraft 1.21.11+）；旧版服务端会报告不支持，请按版本启用。
-    # use_effects: {}
-    # minimum_attack_charge: 0.0
-    # damage_type: "minecraft:player_attack"
-    # piercing_weapon: {}
-    # kinetic_weapon: {}
-    # attack_range: {}
-    # swing_animation: {}
+    # 无法用 JSON 等价 YAML 表达时，单个组件值可仅含 $snbt，并原样交给原版解析器。
 
 # 物品生效槽位；控制属性/技能何时生效，不负责原版拖拽穿戴拦截。
 # 支持 all / hand / main_hand / off_hand / helmet / chestplate / leggings / boots。

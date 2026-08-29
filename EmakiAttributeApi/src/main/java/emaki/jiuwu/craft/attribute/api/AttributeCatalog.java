@@ -17,14 +17,11 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 /**
  * Read-only Attribute definitions, resource state and snapshot queries.
  *
- * <p>Reached through {@code EmakiAttributeApi.catalog()}. Map and set returns are empty rather than
- * {@code null} when EmakiAttribute is absent, and {@link EmakiResult} returns carry
- * {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#UNAVAILABLE}; availability must be classified on
- * the result rather than by catching {@code NullPointerException}.
+ * <p>Result-bearing methods use the shared {@link EmakiResult} failure contract. Collection queries return
+ * immutable empty values while the runtime is unavailable.
  *
- * <p><strong>Thread:</strong> every query that reads a live entity must run on that entity's owner thread and
- * returns {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#WRONG_THREAD} elsewhere. The definition
- * accessors return already-copied immutable views and do not read entity state.
+ * <p><strong>Thread:</strong> live-entity queries must run on that entity's owner thread. Definition queries
+ * use immutable snapshots and may run from any thread.
  *
  * <p>Attribute, resource and damage-type ids are normalized before matching (trimmed, lower-cased with
  * {@code Locale.ROOT}, spaces folded to {@code _}).
@@ -37,12 +34,10 @@ public interface AttributeCatalog {
      *
      * <p><strong>Thread:</strong> the player's owner thread.
      *
-     * @param player      the player to read; {@code null} yields {@code INVALID_INPUT} and offline yields
-     *                    {@code TARGET_OFFLINE}
-     * @param attributeId the attribute to resolve; blank yields {@code INVALID_INPUT} and an id that is not
-     *                    a registered attribute yields {@code NOT_FOUND}
-     * @return the resolved value, {@code NOT_FOUND} when the attribute is registered but the player's
-     *         snapshot carries no value for it, or {@code INTERNAL_ERROR} when collection threw
+     * @param player      the player to read
+     * @param attributeId the attribute to resolve
+     * @return the resolved value; a registered attribute absent from the player's snapshot is reported as a
+     *         miss through the shared result contract
      */
     @NotNull
     EmakiResult<Double> attributeValue(@Nullable Player player, @Nullable String attributeId);
@@ -53,10 +48,8 @@ public interface AttributeCatalog {
      * <p><strong>Thread:</strong> the player's owner thread.
      *
      * @param player     the player to read
-     * @param resourceId the resource to read; blank yields {@code INVALID_INPUT} and an unknown id yields
-     *                   {@code NOT_FOUND}
-     * @return the current value, {@code NOT_FOUND} when the resource is defined but the player has no state
-     *         for it yet, or {@code INTERNAL_ERROR} when the read threw
+     * @param resourceId the resource to read
+     * @return the current value; missing player state is reported as a result miss rather than synthesized
      */
     @NotNull
     EmakiResult<Double> resourceCurrent(@Nullable Player player, @Nullable String resourceId);
@@ -68,10 +61,8 @@ public interface AttributeCatalog {
      * <p><strong>Thread:</strong> the player's owner thread.
      *
      * @param player     the player to read
-     * @param resourceId the resource to read; blank yields {@code INVALID_INPUT} and an unknown id yields
-     *                   {@code NOT_FOUND}
-     * @return the current maximum, {@code NOT_FOUND} when the player has no state for the resource yet, or
-     *         {@code INTERNAL_ERROR} when the read threw
+     * @param resourceId the resource to read
+     * @return the current maximum; missing player state is reported as a result miss rather than synthesized
      */
     @NotNull
     EmakiResult<Double> resourceMax(@Nullable Player player, @Nullable String resourceId);
@@ -82,9 +73,9 @@ public interface AttributeCatalog {
      *
      * <p><strong>Thread:</strong> the owner thread of whatever holds the item.
      *
-     * @param itemStack the stack to inspect; {@code null} or an air stack yields {@code INVALID_INPUT}
-     * @return the item's contribution snapshot, which may legitimately be empty for an item that carries no
-     *         attributes, or {@code INTERNAL_ERROR} when collection failed or returned nothing
+     * @param itemStack the stack to inspect
+     * @return the item's contribution snapshot; a successful empty snapshot means the item carries no
+     *         attributes
      */
     @NotNull
     EmakiResult<AttributeSnapshot> itemSnapshot(@Nullable ItemStack itemStack);
@@ -95,10 +86,8 @@ public interface AttributeCatalog {
      *
      * <p><strong>Thread:</strong> the entity's owner thread.
      *
-     * @param entity the entity to inspect; {@code null} yields {@code INVALID_INPUT}, and an offline player
-     *               yields {@code TARGET_OFFLINE}
-     * @return the entity's combat snapshot, or {@code INTERNAL_ERROR} when collection failed or returned
-     *         nothing
+     * @param entity the entity to inspect
+     * @return the entity's combat snapshot through the shared result contract
      */
     @NotNull
     EmakiResult<AttributeSnapshot> combatSnapshot(@Nullable LivingEntity entity);

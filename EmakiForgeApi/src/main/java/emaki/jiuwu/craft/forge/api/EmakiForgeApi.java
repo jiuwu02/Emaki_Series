@@ -7,19 +7,19 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Static public API facade for the EmakiForge forging system.
  *
- * <h2>Layout</h2>
+
  * Capabilities are grouped behind three accessors rather than flattened onto this class:
  * {@link #catalog()} for read-only recipe, preview, and mastery queries, {@link #operations()} for
  * forging, GUI, and item-refresh actions, and {@link #extensions()} for third-party extension points.
  * {@link #status()} reports availability.
  *
- * <h2>Availability</h2>
+
  * Check {@code status().usable()} before relying on results. The accessors never return {@code null};
  * when EmakiForge is absent they return no-op implementations whose queries yield empty collections
  * and whose operations yield
  * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
  *
- * <h2>Do not shade</h2>
+
  * Depend on {@code emaki-forge-api} with {@code provided} (Maven) or {@code compileOnly} (Gradle).
  * EmakiForge's jar already carries an un-relocated copy of these classes; a second copy would make
  * your event listeners silently unreachable.

@@ -1,8 +1,8 @@
 # EmakiCoreLib English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "4.7.18"
+version: "4.7.19"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -102,7 +102,6 @@ action:
   debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white>
     <white>id=%id%</white> <gray>args=%args%</gray>"
   execute_failed: "<red>[Action] Failed to execute %action%: %error%</red>"
-  # Pipeline load-time validation diagnostics
   register:
     blank_id: "<red>[Pipeline] Stage id is blank; registration refused</red>"
     duplicate_id: "<red>[Pipeline] Duplicate stage id; registration refused</red>"
@@ -112,15 +111,12 @@ action:
       (%requirement%); registration refused</red>"
     key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
       %stage% declares %declared%</red>"
-  # Shared suffixes for rendered diagnostics. Location and candidates are separate keys so a
-  # translation can reorder or drop the trailing detail.
   diagnostic:
     at_column: "<gray>(column %column%)</gray>"
     at_file: "<gray>(%file% at %key_path%, line %line% column %column%)</gray>"
     candidates: "<gray> Valid values: <white>%candidates%</white></gray>"
     more_problems: "<gray> This line has <yellow>%count%</yellow> more problem(s); they will be reported once this one is fixed.</gray>"
     unknown_reason: "<red>[Pipeline] Validation failed (diagnostic key %reason% has no message yet; please report this key)</red>"
-  # Syntax-level diagnostics: lexing and bracket/pipe structure, raised before validate
   lex:
     unclosed_quote: "<red>[Pipeline] Unclosed quote; the quote opened at column %column% has no closing quote</red>"
   parse:
@@ -219,7 +215,7 @@ action:
     player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
     plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
     exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
-  # Builtin source stage diagnostics
+  # Builtin source-stage diagnostics.
   source:
     self:
       no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
@@ -251,7 +247,6 @@ action:
     player_by_name:
       name_required: "<red>[Pipeline] player_by_name requires name</red>"
       not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
-  # Builtin gate stage diagnostics
   gate:
     where:
       condition_required: "<red>[Pipeline] where requires a condition</red>"
@@ -269,7 +264,6 @@ action:
       no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
     stop:
       stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
-  # Builtin action stage diagnostics
   stage:
     common:
       not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
@@ -326,7 +320,7 @@ action:
       no_durability: "<gray>[Pipeline] That item has no durability</gray>"
       already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
       zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
-      # Used by EmakiItem's stages, which share this namespace with the builtin item stages above.
+       # EmakiItem stages share this namespace with builtin item stages.
       inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
       empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
       no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
@@ -385,9 +379,6 @@ action:
       unavailable: "<red>[Pipeline] MythicMobs is currently unavailable</red>"
       cast_failed: "<red>[Pipeline] MythicMobs skill %skill% failed to cast</red>"
       cast_error: "<red>[Pipeline] MythicMobs skill %skill% raised an error: %error%</red>"
-    # Diagnostics for stages provided by business modules. The stage implementations live in each
-    # module's jar, but the text stays here because these keys are emitted through CoreLib's
-    # CoreActionOutcome contract, so text and contract stay side by side.
     strengthen:
       service_unavailable: "<red>[Pipeline] The EmakiStrengthen service is currently unavailable</red>"
       empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
@@ -470,21 +461,19 @@ action:
       generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
       partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
 
-# Cross-module capability registry diagnostics
 capability:
   publish:
     missing_owner: "<red>[Capability] No publishing plugin was supplied; publication refused</red>"
     empty: "<red>[Capability] The capability set is empty; publication refused</red>"
     duplicate: "<red>[Capability] That capability identifier is already taken; publication refused</red>"
 
-# Material allocation shortage report (combined shortage wording, never single-slot attribution)
+# Material allocation shortage; wording is combined, not single-slot attribution.
 allocation:
   shortage:
     combined: "<red>This material set cannot be satisfied: <yellow>%slots%</yellow> slot(s) are short <yellow>%missing%</yellow> matching item(s) in total</red>"
     slot_detail: "<gray>- Slot <aqua>%slot%</aqua> needs <yellow>%required%</yellow>, currently allocatable <yellow>%allocated%</yellow></gray>"
     hint: "<gray>Note: several slots may compete for the same items, so topping up one slot may not clear the shortage. Prepare the combined amount above.</gray>"
 
-# Debug mode messages
 debug:
   common:
     placeholder:
@@ -630,7 +619,6 @@ debug:
     cooking_history: "Cooking history PDC mutation | item=%item% | amount=%amount% | key=%key% | before=%before% | after=%after% | recipe=%recipe% | committed=%committed%"
     join_migrated: "Migrated legacy PDC keys on join | player=%player% | keys=%keys%"
 
-# Command messages
 command:
   no_permission_reload: "<red>You do not have permission to reload EmakiCoreLib</red>"
   no_permission_admin: "<red>You do not have permission to run EmakiCoreLib admin commands</red>"

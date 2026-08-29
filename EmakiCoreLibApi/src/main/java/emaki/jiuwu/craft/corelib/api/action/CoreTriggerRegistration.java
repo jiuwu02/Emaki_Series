@@ -4,14 +4,7 @@ import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Revocable handle for one registered trigger.
- *
- * <p>Mirrors {@link CoreStageRegistration}'s semantics — keep it, close it in {@code onDisable},
- * {@link #close()} is idempotent, and no plugin can revoke another plugin's trigger by id. It is a
- * separate type rather than a reuse of {@code CoreStageRegistration} because that interface must
- * report a {@link CoreStageKind}, and a trigger is not one of the three stage roles.</p>
- */
+/** Owner-scoped trigger registration; close is idempotent and should run on disable. */
 @ApiStatus.Experimental
 public interface CoreTriggerRegistration extends AutoCloseable {
 

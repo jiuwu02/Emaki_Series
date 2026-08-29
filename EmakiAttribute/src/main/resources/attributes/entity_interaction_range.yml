@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 实体交互范围
-# 详细字段说明参考 physical_attack.yml
 
 id: entity_interaction_range
 display_name: "实体交互范围"

@@ -15,30 +15,9 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
  *
  * <p>Reached through {@code EmakiLevelApi.operations()}.
  *
- * <p><strong>Thread:</strong> every method here is owner-thread only. The target player must be
- * online and the calling thread must own that player, otherwise the call fails with
- * {@code TARGET_OFFLINE} or {@code WRONG_THREAD} before any state changes. These methods never
- * reschedule themselves onto the owner thread, so a wrong-thread call is a rejected call, not a
- * deferred one.
- *
- * <h2>Shared failure contract</h2>
- * All methods return a non-null {@code EmakiResult}. Recurring classifications are:
- * <ul>
- * <li>{@code UNAVAILABLE} when no EmakiLevel runtime bridge is installed.</li>
- * <li>{@code INVALID_INPUT} for a {@code null} uuid, a blank {@code typeId}, or an out-of-contract
- * numeric argument. Reason keys {@code level.player_uuid_required}, {@code level.type_id_required}
- * and {@code level.amount_invalid} are used before any runtime work starts.</li>
- * <li>{@code TARGET_OFFLINE} when the uuid resolves to no online player.</li>
- * <li>{@code WRONG_THREAD} when the caller does not own the resolved player.</li>
- * <li>{@code NOT_FOUND} when the level type is unknown or the player's cached level data is not
- * loaded.</li>
- * <li>{@code REJECTED} for business refusals such as a disabled type, a reached daily cap, an
- * unmet level requirement, or insufficient upgrade cost.</li>
- * <li>{@code CANCELLED} when a listener cancelled the corresponding Bukkit event.</li>
- * <li>{@code INTERNAL_ERROR} when the runtime throws, or when a mutation produces no result.</li>
- * </ul>
- * Branch on {@code FailureKind} only; {@code reasonKey} is for logging and diagnostics and must not
- * be treated as an exhaustive enumeration.
+ * <p><strong>Thread:</strong> every method requires the target player's owner thread and never reschedules.
+ * The target must be online before state is changed. All methods return the shared non-null
+ * {@link EmakiResult} contract; use {@code reasonKey} only for diagnostics, not as an exhaustive enum.
  *
  * <p>Level and experience writes only touch the level type named by {@code typeId}; they never fan
  * out to other types.
@@ -241,12 +220,8 @@ public interface LevelOperations {
      * and fires {@code PlayerLevelUpEvent} plus {@code PlayerMaxLevelReachedEvent} when the max level
      * is reached by this step.
      *
-     * <p>Failures are classified rather than thrown: a disabled upgrade path, a disabled manual
-     * upgrade, an already-max level, an invalid requirement, insufficient experience and an unpaid
-     * cost all surface as {@code REJECTED} with distinct reason keys such as
-     * {@code level.upgrade_disabled}, {@code level.max_level}, {@code level.not_enough_exp} and
-     * {@code level.not_enough_money}. A cancelling listener yields {@code CANCELLED}, and a failed
-     * cost compensation yields {@code INTERNAL_ERROR}.
+     * <p>Business refusals and listener cancellation use the shared failure contract with distinct reason
+     * keys; a failed cost compensation is an internal error.
      *
      * <p><strong>Thread:</strong> the target player's owner thread.
      *

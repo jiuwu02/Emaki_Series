@@ -1,5 +1,4 @@
 # EmakiStation 工作站示例
-#
 # 文件名与 id 一致。每个工作站有自己的界面布局、配方集、队列参数和权限。
 id: "blacksmith"
 display_name: "<gold>铁匠工坊</gold>"
@@ -34,7 +33,6 @@ queue:
 
 # 材料来源通道。两个都关会导致该工作站被拒绝加载
 # （能打开但永远用不了，不如启动时就报错）。
-#
 # 两个都开时，材料来自"背包 + 仓库"的合并池，优先扣背包。
 # 玩家看不到通道切换按钮，也不需要切 —— 界面里显示的"拥有"就是两边的合计。
 channels:
@@ -47,7 +45,6 @@ channels:
 # 产物去向。
 #   storage_first / backpack_first - 首选目标满了会退到另一个
 #   storage_only / backpack_only   - 只用一个目标
-#
 # 所有目标都放不下时，条目进入"待领取"状态，不会掉落也不会销毁。
 output:
   default: "storage_first"

@@ -7,17 +7,12 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiCooking when a recipe completes and is about to deliver its
- * outputs, at the single shared delivery exit shared by every station (chopping
- * board, grinder, juicer, fermentation barrel, oven, steamer and wok).
+ * Fired after recipe completion checks and before EmakiCooking prepares output delivery.
  *
- * <p>Listeners may inspect the player (may be {@code null} for automatic
- * station completions), the station location, the recipe id/name, the station
- * type and the output count, toggle whether the result is dropped via
- * {@link #setDropResult(boolean)}, or cancel the delivery entirely. A cancelled
- * event stops EmakiCooking from delivering the outputs and running the
- * completion actions. This synchronous event is fired only while EmakiCooking owns the global
- * transaction boundary used to prepare delivery.
+ * <p>Runs synchronously only while the runtime owns the server-global transaction boundary; preparation
+ * without that ownership does not emit this event. It covers all station types. Cancellation suppresses
+ * both outputs and completion actions, while {@link #setDropResult(boolean)} overrides only the delivery
+ * route. The player may be {@code null} for automatic completions; the location is a live Bukkit reference.
  */
 public final class CookingRecipeCompleteEvent extends Event implements Cancellable {
 

@@ -1,26 +1,8 @@
 # ============================================================
 # EmakiSkills 技能示例 - 投射物技能
 # ============================================================
-# 此文件展示了 projectile 动作段的用法。
-# 发射一颗自定义投射物，支持追踪、穿透和粒子效果。
-#
-# projectile 参数:
-#   speed: 每 tick 移动的格数（默认 1.5）
-#   gravity: 每 tick 的重力加速度（默认 0.05，设为 0 则直线飞行）
-#   lifetime: 最大存活 tick 数（默认 60）
-#   hit_radius: 碰撞检测半径（默认 0.5）
-#   pierce: 穿透次数（默认 0 = 不穿透）
-#   homing: 是否追踪当前目标（默认 false）
-#   homing_strength: 追踪转向强度（默认 0.1）
-#   particle: 尾迹粒子类型（默认 flame）
-#   damage: 命中伤害（默认 0 = 不造成伤害）
-#   direction: 初始方向 look/target（默认 look）
-#
-# projectile 有两条行为限制，配置时必须知道:
-#   1. 命中的实体不会回到目标流。投射物的命中点信息拿不到，后续行只能自己选目标。
-#   2. 发射后立即返回，不等飞行结束。需要延后的效果请用 after 时序段。
-#
-# 文件放置位置: plugins/EmakiSkills/skills/
+# projectile 支持追踪、穿透和粒子；gravity 0 为直线，pierce 0 为不穿透。
+# 命中实体与位置不会写回目标流；发射后立即返回，延后效果需使用 after。
 # ============================================================
 
 id: "homing_fireball"
@@ -49,20 +31,14 @@ cooldown_ticks: 60
 # ============================================================
 # 技能脚本
 # ============================================================
-# 语义变化点名: 旧配置的爆炸中心是「投射物实际命中的位置」，
-# 现在变成「施法瞬间视线锁定的目标位置」。
-# 原因是 projectile 无法把命中点写回上下文（见文件头第 1 条限制），
-# 所以这里改由 looking_at 在施法时先选定目标，keep 记录下来交给 hit 阶段。
+# projectile 不回传命中点，因此 looking_at 在施法时选定并 keep 爆炸中心。
 script:
   actions:
     cast:
-      # 发射追踪火球
       - "self | projectile speed=1.2 gravity=0 lifetime=80 hit_radius=0.8 pierce=0 homing=true homing_strength=0.15 particle=flame damage=15 direction=look"
-      # 记录施法瞬间的视线目标，作为下一阶段的爆炸中心
       - "looking_at range=20 | keep"
 
     hit:
-      # 范围段以 keep 记录的目标位置为中心
       - "nearby radius=3 limit=20 | damage amount=8"
       - "inherited | spawn_particle particle=explosion count=3"
       - "inherited | play_sound sound=minecraft:entity.generic.explode volume=0.8 pitch=1.2"

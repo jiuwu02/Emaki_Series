@@ -4,18 +4,13 @@
 # 此配方展示了 requires_previous_step 功能。
 # 输入物品必须是经过砧板切制的胡萝卜（携带加工历史标记），
 # 直接放入未经切制的胡萝卜无法匹配此配方。
-#
 # 连锁加工流程示例:
 #   1. 砧板切制胡萝卜 → 产出"切制胡萝卜"（PDC 中记录 cooking_history: "example_recipe"）
 #   2. 蒸锅蒸制切制胡萝卜 → 产出"蒸胡萝卜糕"（本配方）
-#
-# 文件放置位置: plugins/EmakiCooking/recipes/steamer/
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "steamed_carrot_cake"
 
-# 配方显示名称
 display_name: "蒸胡萝卜糕"
 
 # ============================================================
@@ -41,13 +36,11 @@ input:
 # required_steam: 完成蒸制所需的蒸汽量
 required_steam: 60
 
-# 使用此配方所需的权限节点
 permission: "emakicooking.recipe.steamed_carrot_cake"
 
 # ============================================================
 # 完成条件（true/false 动作分支）
 # ============================================================
-# 字段说明详见 chopping_board/example_recipe.yml。留空表示始终成立。
 condition:
   type: all_of
   entries: []

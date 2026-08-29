@@ -1,19 +1,12 @@
 # ============================================================
 # EmakiForge 锻造配方示例
 # ============================================================
-# 此文件定义了一个完整的锻造配方，展示所有可用字段和推荐写法。
-# 锻造系统允许玩家通过组合多种材料来创造新物品，
-# 每种材料可以提供不同的属性、技能和外观效果。
-# 锻造容量系统限制了单次锻造可以使用的材料总量。
-#
-# 文件放置位置: plugins/EmakiForge/recipes/
-# 文件名仅用于组织和错误诊断；配方内部标识由必填 id 字段决定，加载时按 id 注册。
+# 材料效果累计，但 capacity_cost 总和受 forge_capacity 限制。
+# 配方 ID 取自 id，与文件名无关。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称（支持 MiniMessage 格式）
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
 # ============================================================
@@ -28,19 +21,16 @@ forge_capacity: 35
 # ============================================================
 # 锻造前必须拥有的物品（不消耗，仅检测持有）。
 # 用于实现"需要先获得配方图纸"的玩法。
-#
 # 判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该条目永不命中。
 # item_sources 已经不参与判定，它在这里只剩一个职责——充当该条目的计数键。
 # 因此推荐两者并写：matcher 负责"算不算这本图纸"，item_sources 负责"按哪个键计数"。
 # 只写 matcher 时计数键改由 matcher 内容派生（哈希形态），
 # 修改 matcher 内容会让派生键随之改变。
-#
 # ⚠ 写法差异（易错点）：
 #   物品源简写用连字符：  "minecraft-enchanted_book"
 #   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
 # ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
 #   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
-#
 # ⚠ 不要为同一种图纸写两个条目：两个条目的计数键不同，会被当成两种图纸，
 #   要求玩家同时持有。要把多种可接受形态写进同一个 matcher 的 any_of 里，
 #   就像下面这样。
@@ -70,7 +60,6 @@ blueprint_requirements:
 #   capacity_cost: 占用的锻造容量
 #   optional: 是否为可选材料（默认 false）
 #   effects: 此材料提供的效果列表
-#
 # effects 支持的类型:
 #   - type: "variables"       → 表达式引擎变量（用于 Lore 占位符渲染）
 #   - type: "ea_attribute"    → EmakiAttribute PDC 属性
@@ -78,7 +67,6 @@ blueprint_requirements:
 #   - type: "name_action"     → 修改物品名称
 #   - type: "lore_action"     → 修改物品 Lore
 #   - type: "capacity_bonus"  → 扩展锻造容量（特殊类型）
-#
 # 材料判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该材料永不命中。
 # item_sources 已经不参与判定，它在这里只剩一个职责——充当该材料的计数键，
 # 同时作为写入成品 PDC 的锻造审计标识。所以下面每条材料都两者并写：
@@ -86,11 +74,9 @@ blueprint_requirements:
 # 只写 matcher 不写 item_sources 也合法，此时计数键由 matcher 内容派生
 # （GUI 里显示为该派生键）。⚠ 该派生键随 matcher 内容变化，改动 matcher 会让
 # 已锻造物品的审计记录失配，刷新时该材料会被判定为缺失。
-#
 # ⚠ 写法差异（易错点）：
 #   物品源简写用连字符：  "minecraft-iron_ingot"
 #   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
-#
 # ⚠ 判定顺序：同一物品按材料声明顺序取第一个匹配者，先声明的宽条件会
 #   遮蔽后声明的窄条件。窄条件请写在前面。
 materials:
@@ -245,7 +231,6 @@ materials:
   # 组合五态：all_of（全部成立）/ any_of（任一成立）/ none_of（全部不成立）
   #          / at_least（至少 N 条）/ exactly（恰好 N 条）。
   # 后两者需配合 required_count；子条件写在 matchers 列表里，可继续嵌套。
-  #
   # 这里同时演示三种不同的组件读取方式：
   #   rarity      → 枚举值，用 == 比较
   #   custom_name → 文本组件，用 contains 做子串匹配
@@ -353,37 +338,7 @@ actions:
   failure:
     - 'send_message text="<red>锻造前置操作失败: %var.forge_failure_reason%</red>"'
 
-# ============================================================
-# 锻造成功率（可选）
-# ============================================================
-# 默认 100 表示必定成功（不启用失败机制）。
-# 设为低于 100 的值时，锻造有概率失败。
-# success_rate: 70
-
-# ============================================================
-# 失败结果方案（可选，仅在 success_rate < 100 时生效）
-# ============================================================
-# 锻造失败时按权重随机选取一个结果方案执行。
-# 支持的 type:
-#   - return_materials: 返还材料（params.return_rate 控制返还概率，默认 1.0 = 全额返还）
-#   - consume_materials: 全部消耗，不返还任何材料
-#   - partial_consume: 部分返还（params.return_rate 控制返还比例）
-#   - fixed_quality: 强制以指定品质产出（params.quality 指定品质名）
-#   - byproduct: 产出副产品（params.item_sources 指定副产品）
-#   - economy_penalty: 额外扣除金币（params.amount 指定金额）
-#   - downgrade_quality: 正常产出但品质降低 N 档（params.levels 指定降档数）
-#
-# 未配置 failure_outcomes 时默认行为是 return_materials（全额返还）。
-#
-# 示例:
-# failure_outcomes:
-#   - type: "return_materials"
-#     weight: 50
-#     params:
-#       return_rate: 1.0
-#   - type: "partial_consume"
-#     weight: 30
-#     params:
-#       return_rate: 0.5
-#   - type: "consume_materials"
-#     weight: 20
+# success_rate 默认 100；低于 100 时按概率失败。
+# failure_outcomes 仅在失败时按权重选取；未配置时默认全额返还材料。
+# 合法类型：return_materials、consume_materials、partial_consume、fixed_quality、
+# byproduct、economy_penalty、downgrade_quality。

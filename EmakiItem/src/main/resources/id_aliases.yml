@@ -1,9 +1,2 @@
-# EmakiItem ID alias mappings for rename migration.
-# Example:
-# aliases:
-#   old_sword:
-#     target: flame_sword
-#     migrate_pdc: true
-#     rewrite_display: true
-#     expires_after: never
+# Maps former item IDs to current definitions during identity repair.
 aliases: {}

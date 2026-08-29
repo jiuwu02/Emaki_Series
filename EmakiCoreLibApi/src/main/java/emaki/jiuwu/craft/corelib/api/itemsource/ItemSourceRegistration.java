@@ -3,13 +3,7 @@ package emaki.jiuwu.craft.corelib.api.itemsource;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Revocable handle for one registered item source provider.
- *
- * <p>Keep it and close it in {@code onDisable}. A registration that outlives its owner keeps answering
- * for a plugin that is already gone, so config referring to that source resolves to items that can no
- * longer be built.
- */
+/** Owner-scoped item-source registration; close it on disable. */
 public interface ItemSourceRegistration extends AutoCloseable {
 
     /** {@return whether the registration succeeded} */

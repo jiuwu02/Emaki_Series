@@ -1,8 +1,8 @@
 # EmakiStrengthen 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.19"
+version: "4.7.20"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -264,7 +264,6 @@ gui:
       ineligible_title: "<red>无法强化该词条</red>"
       ineligible_hint: "<gray>请检查词条选择、容量、材料与费用</gray>"
 
-# Debug 模式消息
 debug:
   affix:
     bridge_unavailable: "词条属性桥不可用 | 阶段=%stage% | 来源=%source% | 错误键=%error_key%"

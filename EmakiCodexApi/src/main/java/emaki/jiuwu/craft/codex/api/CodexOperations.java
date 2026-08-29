@@ -17,15 +17,9 @@ public interface CodexOperations {
      * Grants a registered advancement. Fires cancellable {@code AdvancementGrantEvent} before mutation.
      * Completion is reported by {@code AdvancementCompletedEvent} from the actual Bukkit completion event.
      *
-     * <p><strong>Thread:</strong> the target player's entity-owner thread. Calling elsewhere returns
-     * {@code WRONG_THREAD} without granting anything; the call is never rescheduled for you.
-     *
-     * <p>Failure branches: {@code INVALID_INPUT} for a {@code null} player id or a blank advancement id,
-     * {@code TARGET_OFFLINE} when the id resolves to no online player, {@code UNAVAILABLE} when EmakiCodex
-     * is disabled or its registrar is not built, {@code REJECTED} when the advancement feature is switched
-     * off in config, when the player has already completed it, or when Bukkit refuses the criterion award,
-     * {@code NOT_FOUND} when the id is not registered or the resolved key has no advancement on this
-     * server, and {@code CANCELLED} when a listener cancels the grant event.
+     * <p><strong>Thread:</strong> the target player's owner thread; the call is never rescheduled. Shared
+     * validation and availability failures follow {@link EmakiResult}. An already-completed advancement is a
+     * rejected operation, and cancellation leaves progress unchanged.
      *
      * @param playerId      the target player's unique id, resolved against online players only
      * @param advancementId the registered advancement id
@@ -37,12 +31,9 @@ public interface CodexOperations {
      * Revokes a registered advancement, firing cancellable {@code AdvancementRevokeEvent} before removing
      * the criterion.
      *
-     * <p><strong>Thread:</strong> the target player's entity-owner thread, with the same
-     * {@code WRONG_THREAD} behaviour as {@link #grant}.
-     *
-     * <p>Shares {@link #grant}'s validation and failure branches, except that the pre-state check is
-     * inverted: revoking an advancement the player has not completed is {@code REJECTED} rather than a
-     * silent success.
+     * <p><strong>Thread:</strong> the target player's owner thread, with the same non-rescheduling and shared
+     * failure contract as {@link #grant}. Revoking an incomplete advancement is rejected rather than treated
+     * as an idempotent success; cancellation leaves progress unchanged.
      *
      * @param playerId      the target player's unique id, resolved against online players only
      * @param advancementId the registered advancement id

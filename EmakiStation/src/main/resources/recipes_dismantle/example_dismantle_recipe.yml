@@ -1,8 +1,6 @@
 # EmakiStation 分解配方示例
-#
 # 分解配方：玩家将符合 input_source 的物品放入分解槽，
 # 点击确认后按 rolls 次从 pool 中随机抽取产物。
-#
 # 一个文件只放一条配方，文件名不影响加载，配方 ID 由文件内的 id 字段决定。
 id: "example_dismantle"
 display_name: "<yellow>铁块分解示例</yellow>"
@@ -22,36 +20,17 @@ permission: ""
 input_source: "minecraft-iron_block"
 
 # 可选：输入物品的组件条件。
-#
 # 写了 matcher 时【input_source 不再参与判定】，是否可分解完全由 matcher 决定；
 # input_source 仍必填，仅用于界面显示与配置自检。
 # 不写 matcher 时行为逐字不变：仍按 input_source 相等判定。
-#
 # 组件 ID 与 path 资源 ID 用【冒号】形状（enchantments 等价于 minecraft:enchantments，
 # path 里的 sharpness 等价于 minecraft:sharpness）。
-#
 # 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
 #          at_least + required_count、exactly + required_count
-# component 的 operator 全集：
-#   exists / absent、==、!=、>、>=、<、<=、
-#   contains / starts_with / ends_with、regex、has_key / has_value、size
-#
-# 下面这条示例的含义是"只接受锋利 3 及以上的物品"：
-#
-# matcher:
-#   type: component
-#   component: enchantments
-#   path: sharpness
-#   operator: ">="
-#   value: 3
+# component operator 支持 exists / absent、比较、字符串、regex、键值存在性和 size；
+# 例如 enchantments/sharpness >= 3 仅接受锋利 III 及以上物品。
 
-# 每次分解的投掷次数。
-# 写法一：固定次数
-#   rolls: 3
-# 写法二：范围（含两端）
-#   rolls:
-#     min: 2
-#     max: 4
+# rolls 接受正整数或包含两端的 min/max 范围。
 rolls:
   min: 2
   max: 3

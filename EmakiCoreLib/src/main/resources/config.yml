@@ -1,22 +1,15 @@
 # EmakiCoreLib 主配置
-#
-# 为其他 Emaki 模块提供 GUI、展示实体、事件、动作管道、对话框与语言表能力。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiCoreLib/config.yml
+# 为其他 Emaki 模块提供 GUI、展示实体、事件、动作、对话框与语言表能力。
 
-# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.7.18"
+version: "4.7.19"
 
-# 语言文件名，对应 lang/<language>.yml。
-# 例如："zh_CN"、"en_US"。
+# 对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 兼容保留项；当前默认资源释放流程不由此开关控制。
+# 当前默认资源释放流程不使用此兼容项。
 release_default_data: true
 
-# 统一 Debug 开关。
-# global_all 为 true 时，使用 CoreLib DebugLogger 的模块默认输出 Debug 日志。
-# 运行时可用 /corelib debug all on|off 临时切换；重载后重新读取本项。
+# global_all 启用 CoreLib DebugLogger 的模块默认输出。
 debug:
   global_all: false
 
@@ -100,8 +93,5 @@ action:
     max_active_loops_per_plugin: 1000
     cancel_player_loops_on_quit: true
     cancel_plugin_loops_on_disable: true
-  # 命名动作序列，可在管道中通过 run <名称> 调用并传入 key=value 参数。
+  # 命名动作序列通过 run <名称> 调用，可传入 key=value 参数。
   templates:
-    # reward_success_common:
-    #   - 'self | send_message text="<green>成功获得 %var.result_item_name%</green>"'
-    #   - 'self | after 10t | play_sound sound=minecraft:entity.experience_orb.pickup volume=0.8 pitch=1.2'

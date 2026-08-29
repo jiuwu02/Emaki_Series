@@ -4,8 +4,6 @@
 # 玩家进行「单条词条强化」的界面，由 /emakistrengthen affix 打开。
 # 与整件星级强化的 strengthen_gui.yml 完全独立：本界面只影响选中的
 # 那一条词条，不读取也不写入整件装备的星级。
-#
-# 文件放置位置: plugins/EmakiStrengthen/gui/
 # ============================================================
 id: "affix_strengthen_gui"
 

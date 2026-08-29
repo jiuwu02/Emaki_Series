@@ -6,20 +6,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiAttribute before a custom resource (mana, rage, etc.) is
- * consumed through the public consume entry point.
+ * Fired after a public resource-consume request is validated and before the resource is spent.
  *
- * <p>Listeners may inspect the player, the resource id and the current
- * value/max, override the consumed amount via {@link #setAmount(double)}, or
- * cancel the consumption entirely. A cancelled event stops EmakiAttribute from
- * spending the resource and the public operation returns an
- * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult.Failure} with
- * {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#CANCELLED}. The amount is
- * re-validated against the current balance after the event.
- *
- * <p><strong>Thread:</strong> fired synchronously on the player's owner thread. On Paper this is the main
- * server thread; on Folia this is the player's entity scheduler thread. Public calls from other threads
- * return {@code WRONG_THREAD} before this event is created.
+ * <p>Runs synchronously on the player's owner thread. Cancellation leaves the resource unchanged. Listeners
+ * may override the amount; EmakiAttribute revalidates the replacement against the current balance before
+ * committing it.
  */
 public final class PlayerResourceConsumeEvent extends Event implements Cancellable {
 

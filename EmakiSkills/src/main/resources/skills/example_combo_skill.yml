@@ -1,15 +1,8 @@
 # ============================================================
 # EmakiSkills 被动技能示例 - 连击终结技
 # ============================================================
-# 此文件展示了 combo_attack 被动触发器的用法。
-# 当玩家连续攻击达到指定次数后，自动触发终结技。
-#
-# combo_attack 触发器特性:
-#   - 每次攻击递增连击计数
-#   - 超过 combo_timeout_ticks（默认 60 tick = 3 秒）未攻击则重置
-#   - 触发时携带 %combo_count% 变量，可在条件中引用
-#
-# 文件放置位置: plugins/EmakiSkills/skills/
+# combo_attack 每次攻击累加计数；超过 combo_timeout_ticks 未攻击即重置。
+# 触发时提供 %combo_count% 变量。
 # ============================================================
 
 id: "combo_finisher"
@@ -22,7 +15,6 @@ description:
 
 icon_material: "iron_sword"
 
-# 被动技能配置
 trigger_type: "passive"
 enabled: true
 show_in_slots: false
@@ -31,7 +23,6 @@ tags:
 tab_tags:
   - "equipment"
 
-# 绑定 combo_attack 被动触发器
 passive_triggers:
   - "combo_attack"
 
@@ -47,20 +38,12 @@ cooldown_ticks: 100
 # ============================================================
 # 技能脚本
 # ============================================================
-# 被动技能的目标由触发器提供：combo_attack 传入的是「刚被打的那个实体」，
-# 与玩家视线无关。范围段的中心点也被设为该实体的位置。
-#
-# 因此这里的 nearby 就是「以被攻击者为中心找周围 4 格内的敌人」，
-# 而 inherited 读到的就是被攻击的那个实体本身。
-#
-# nearby 默认不含玩家，等价于旧写法的 filter=hostile。
-# nearby 只做球形范围，旧的 shape=cylinder 无对应写法。
+# combo_attack 以刚被攻击的实体为目标与范围中心；inherited 读取该目标。
+# nearby 使用球形范围且默认不含玩家。
 script:
   actions:
     cast:
-      # 旧写法 aoe_damage 拆成「nearby 选目标 + damage 造成伤害」
       - "nearby radius=4 limit=20 | damage amount=20"
       - "inherited | spawn_particle particle=explosion count=5"
       - "self | play_sound sound=minecraft:entity.generic.explode volume=1 pitch=0.8"
-      # 旧的 %aoe_hit_count% 在管道里没有对应变量，消息去掉计数
       - "send_message text='<red>连击终结！</red>'"

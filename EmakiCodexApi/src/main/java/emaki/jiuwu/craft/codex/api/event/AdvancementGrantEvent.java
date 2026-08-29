@@ -6,19 +6,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiCodex before an advancement is granted to a player.
+ * Fired after validation and before EmakiCodex awards an advancement criterion.
  *
- * <p>Cancelling stops the grant: the player's advancement progress is left untouched and the calling
- * operation reports a rejection.
- *
- * <h2>Threading</h2>
- * Fired synchronously on the thread that owns the target player. EmakiCodex verifies ownership before
- * attempting the write, so an off-thread grant is refused before this event would fire.
- *
- * <h2>Coverage</h2>
- * Fired by every EmakiCodex mutation path after validation and before criterion award: public API calls,
- * commands, configured actions, configured gameplay triggers, and external trigger providers. Direct
- * criterion awards performed outside EmakiCodex do not fire this pre-event.
+ * <p>Runs synchronously on the player's owner thread for public API, command, configured-action and trigger
+ * paths. Direct awards outside EmakiCodex do not fire it. Cancellation leaves progress untouched and the
+ * initiating operation reports cancellation.
  *
  * @see AdvancementCompletedEvent
  */

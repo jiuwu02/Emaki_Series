@@ -1,11 +1,7 @@
-# EmakiSkills 主配置
-#
-# 控制技能槽、技能来源、施法模式、触发器与原生脚本执行限制。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiSkills/config.yml
+# EmakiSkills 主配置：技能槽、来源、施法模式、触发器与脚本限制。
 
-# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.11"
+# version 由资源同步维护，不是功能开关。
+version: "2.7.12"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -23,53 +19,46 @@ skill_sources:
   read_pdc_skills: true
   require_lore_pdc_match: false
 
-# 技能标签装备数量限制。
-# 技能定义里的 tags 命中这里的标签时，玩家最多只能同时把该标签的技能装备到对应数量。
-# 例如：tags 包含 ultimate 的技能最多装备 1 个；tags 包含 mobility 的技能最多装备 2 个。
+# 技能 tags 命中后按对应数量限制同时装备数。
 skill_tags:
   equip_limits:
     ultimate: 1
     mobility: 2
 
 cast_mode:
-  # 兼容保留项；当前运行时会把施法模式入口固定为 F。
+  # 入口固定为 F；enabled 仅控制 F 键切换，不是施法模式总开关。
   entry_key: "f"
-  # 是否启用 F 键（主副手交换）切换施法模式。
-  # 仅控制 F 键这一个入口，不是施法模式总开关：
-  # 关闭后 F 键恢复原版交换主副手，施法模式仍可用 /eskills castmode 或技能 GUI 切换，
-  # 且未进入施法模式时主动技能依然无法释放。
+  # false 时 F 恢复原版换手，命令和 GUI 仍可切换。
   enabled: true
   # 玩家重新加入后是否恢复上次的施法模式状态。
   restore_last_state_on_join: true
 
 cast_timing:
-  # 任意技能成功释放后的全局延迟，单位：tick；0 表示关闭。
+  # 成功施法后的全局延迟，单位 tick；0 关闭。
   forced_global_cast_delay_ticks: 0
 
 actionbar:
   # 是否启用技能状态 ActionBar。
   enabled: true
-  # 刷新间隔，单位：tick；小于 1 的值会按 1 处理。
+  # 刷新间隔，单位 tick；小于 1 按 1 处理。
   refresh_interval_ticks: 10
   # 施法模式下的显示模板。
   template_cast_mode: "<gold>施法模式</gold> %slot_1% %slot_2% %slot_3%
     <gray>延迟:</gray> %forced_delay%"
-  # 非施法模式下的显示模板；空值会回退到源码默认文本，而不是关闭显示。
+  # 非施法模式模板；空值回退源码默认文本，不关闭显示。
   template_idle: ""
 
 # 原生技能脚本执行器。
 script_engine:
-  # 总开关。
   enabled: true
-  # 未单独指定时使用的脚本模式。
+  # 未指定时使用的模式。
   default_mode: "native"
-  # 某条动作失败后是否停止当前阶段。
+  # 动作失败后是否停止当前阶段。
   stop_on_failure: true
-  # 单个阶段允许的最大脚本行数；小于 1 的值会按 1 处理。
+  # 单阶段最大行数；小于 1 按 1 处理。
   max_lines_per_phase: 64
-  # 单条动作允许处理的最大目标数；小于 1 的值会按 1 处理。
+  # 单动作最大目标数；小于 1 按 1 处理。
   max_targets_per_action: 16
-  # 是否输出脚本执行调试信息。
   debug: false
 
 # 主动触发器定义；incompatible_with 为空表示不声明互斥触发器。
@@ -150,8 +139,7 @@ triggers:
 
 # 主动触发器设置。
 trigger_settings:
-  # 是否兼容旧行为：即使 Bukkit 事件已被其他插件取消，仍继续分发技能触发。
-  # 建议保持 false，避免保护插件取消事件后仍消耗资源或执行技能。
+  # 启用后仍分发已被 Bukkit 取消的事件；关闭可避免保护插件拦截后继续耗能或施法。
   legacy_dispatch_cancelled_events: false
 
 # 被动触发器设置。

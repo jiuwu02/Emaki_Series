@@ -1,5 +1,4 @@
 # EmakiMobs 生成规则示例 - 主世界精英
-#
 # 自然生成与替换规则；rules 下每条独立生效。
 # natural 规则的 condition 没有玩家上下文；autonomous 规则会以当前玩家渲染 PlaceholderAPI 占位符。
 

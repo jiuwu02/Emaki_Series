@@ -13,12 +13,12 @@ import org.jetbrains.annotations.ApiStatus;
  * <p>Cancelling this event stops the attempt: EmakiForge returns without scheduling execution and
  * without consuming materials.
  *
- * <h2>Threading</h2>
+
  * Fired synchronously on the thread that owns the forging player. On Paper that is the main thread;
  * on Folia it is the player's region thread. EmakiForge verifies ownership before firing, so if the
  * owner thread is unavailable the attempt is abandoned and <em>this event is not fired at all</em>.
  *
- * <h2>Coverage</h2>
+
  * Both the GUI confirmation path and
  * {@link emaki.jiuwu.craft.forge.api.ForgeOperations#forgeAsync} fire this event. Listeners may veto
  * the attempt or adjust its success-rate roll through {@link #setSuccessRate(double)}. Quality tier

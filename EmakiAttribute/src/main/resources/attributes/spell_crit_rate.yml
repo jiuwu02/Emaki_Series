@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 法术暴击率
-# 详细字段说明参考 physical_attack.yml
 
 id: spell_crit_rate
 display_name: "法术暴击率"

@@ -1,8 +1,8 @@
 # EmakiGem English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "2.7.15"
+version: "2.7.16"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -371,7 +371,6 @@ gui_text:
     opener_not_placed: "Not placed"
     opener_placed_pending: "Placed, waiting for slot selection"
     slot_not_selected: "Not selected"
-# Debug mode messages
 debug:
   inlay:
     start: "Inlay start | Player=%player% | Gem=%gem% | Slot=%slot%"

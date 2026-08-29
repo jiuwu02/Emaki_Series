@@ -1,10 +1,9 @@
 # ============================================================
-# 主世界刷新规则：当前 natural 示例与旧类型迁移参考
-# 当前加载器只接受 natural 和 autonomous；其余旧 type 会被记录为未知并跳过。
+# 主世界刷新规则；当前加载器仅接受 natural 与 autonomous。
+# 其他 type 会记录为未知并跳过。
 # ============================================================
 rules:
-  # ── natural：拦截原版 CreatureSpawnEvent ─────────────────
-  # 当原版尝试在满足条件的位置刷新生物时，以一定概率替换为自定义生物。
+  # natural 拦截满足条件的 CreatureSpawnEvent，并按概率替换为自定义生物。
   - mob_id: elite_zombie
     type: natural
     biomes:
@@ -22,9 +21,6 @@ rules:
       min: 1
       max: 1
 
-  # ── 旧 type: structure（当前加载器会跳过此条） ───────────
-  # 迁移方向：改用 type: autonomous + trigger: interval，并将 interval_ticks 提升到规则根节点。
-  # structures 仍使用 NamespacedKey 格式；active_spawn 与 require_player_nearby 不是当前字段。
   - mob_id: bone_lord
     type: structure
     structures:
@@ -37,9 +33,6 @@ rules:
       min: 1
       max: 1
 
-  # ── 旧 type: biome（当前加载器会跳过此条） ───────────────
-  # 迁移方向：改用 type: autonomous + trigger: interval；biomes、interval_ticks 与 distance 可沿用。
-  # 旧 conditions.light_max/require_surface 需分别迁移为根级 light_level_max/require_surface。
   - mob_id: jungle_stalker
     type: biome
     biomes:
@@ -57,49 +50,3 @@ rules:
     count:
       min: 1
       max: 2
-
-  # ── 旧 type: player_relative（不可直接解除注释） ─────────
-  # 当前等价写法是 type: autonomous + trigger: player_follow。
-  # distance、max_global、interval_ticks 与 count 可沿用；require_sky_access 不是当前字段。
-  # - mob_id: elite_zombie
-  #   type: player_relative
-  #   distance:
-  #     min: 24
-  #     max: 64
-  #   require_sky_access: false   # 是否要求刷新点可见天空
-  #   max_global: 10              # 全服最多同时存在此数量；0 = 不限
-  #   interval_ticks: 12000       # 每 10 分钟（12000t）尝试一次
-  #   count:
-  #     min: 1
-  #     max: 1
-
-  # ── 旧 type: day_interval（不可直接解除注释） ────────────
-  # 当前等价写法是 type: autonomous + trigger: day_interval。
-  # interval_days、on_day_start、max_global 与 count 可沿用；distance_from_player 需改为 distance。
-  # - mob_id: bone_lord
-  #   type: day_interval
-  #   interval_days: 3            # 每 3 个游戏日触发一次
-  #   on_day_start: true          # true = 天亮时触发；false = 任意时间
-  #   distance_from_player:
-  #     min: 20
-  #     max: 50
-  #   max_global: 2               # 全服最多同时存在 2 只
-  #   count:
-  #     min: 1
-  #     max: 1
-
-  # ── 旧 type: custom（不可直接解除注释） ──────────────────
-  # 当前等价写法是 type: autonomous + trigger: interval。
-  # interval_ticks、distance、biomes、max_nearby 与 count 可沿用。
-  # - mob_id: elite_zombie
-  #   type: custom
-  #   interval_ticks: 1200        # 每 60 秒（1200t）尝试一次
-  #   distance:
-  #     min: 16
-  #     max: 64
-  #   biomes:                     # 留空列表则不限生物群系
-  #     - plains
-  #   max_nearby: 4
-  #   count:
-  #     min: 1
-  #     max: 2

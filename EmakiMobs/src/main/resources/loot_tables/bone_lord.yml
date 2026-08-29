@@ -99,12 +99,3 @@ pools:
             count:
               min: 1
               max: 1
-
-  # EmakiItem 集成示例（取消注释并配置对应 EmakiItem 物品 ID）
-  # boss_drop:
-  #   rolls: 1
-  #   entries:
-  #     bone_lord_shard:
-  #       item: "emakiitem:bone_lord_shard"
-  #       weight: 1
-  #       chance: 0.30

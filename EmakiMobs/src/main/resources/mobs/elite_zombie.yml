@@ -23,7 +23,6 @@ components:
   custom_name_visible: true
   persistent: true
   # loot_table 值格式：<namespace>:entities/<mob_id>
-  # 对应 plugins/EmakiMobs/loot_tables/elite_zombie.yml
   loot_table: "emakimobs:entities/elite_zombie"
 
 # 击杀该生物获得的原版经验值
@@ -42,7 +41,6 @@ ea_attributes:
 # ── 动作触发器（可选）──────────────────────────────────────
 # 由 EmakiCoreLib 的动作管道执行，不需要安装 EmakiSkills。
 # 每个触发器对应一组 CoreLib 动作管道字符串（Action Pipeline）。
-#
 # 可用触发器：
 #   on_spawn       — 生物刷出时（在 MobFactory 中立即执行）
 #   on_death       — 生物死亡时；context: killer（击杀者，可为 null）
@@ -54,7 +52,6 @@ ea_attributes:
 #   on_explode     — 爆炸时（Creeper 等）
 #   on_teleport    — 传送时
 #   on_transform   — 变形时（如僵尸猪灵转化）
-#
 # 动作字符串格式：[选择器 |] 动作名 [参数=值 ...]
 actions:
   on_spawn:

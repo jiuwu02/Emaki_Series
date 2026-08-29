@@ -1,10 +1,5 @@
-# EmakiAttribute 属性定义 - 格挡率
-# 详细字段说明参考 physical_attack.yml
-#
-# 仅在 config.yml 的 shield.mode = attribute 时参与结算。
-# 举盾时按此概率触发格挡，触发后的减伤幅度由 block_reduction 决定。
-# 实际生效的基线值写在 config.yml 的 default_profile.attributes，此处的 default_value
-# 与其他属性保持一致为 0；该值为 0 时格挡永不触发，举盾将完全不减伤。
+# 格挡率仅在 shield.mode=attribute 时生效；block_reduction 决定触发后的减伤。
+# 基线来自 default_profile.attributes；有效值为 0 时格挡永不触发。
 
 id: block_rate
 

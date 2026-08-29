@@ -1,11 +1,8 @@
 # EmakiItem 主配置
-#
 # 控制物品/套装数据扫描、套装刷新与 MythicMobs 集成。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiItem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.16"
+version: "2.7.17"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -45,9 +42,7 @@ set_bonus:
     # 执行 EmakiItem 相关命令时允许触发套装刷新。
     command: true
 
-# 物品自定义状态（item_state）设置。
-# 作用于 emaki:item_state PDC 分区，由 item_state_* 动作段与 API 读写。
-# 本段全部为增量配置：不写任何内容时行为与旧版本一致。
+# 物品自定义状态写入 emaki:item_state PDC，由 item_state_* 动作段与 API 读写。
 item_state:
   # 是否按 fields 声明的 min/max 钳制写入值。
   # 关闭后仅保留溢出保护，不做配置化钳制。
@@ -57,55 +52,13 @@ item_state:
   # 关闭后字段缺失仍直接拒绝（reason=missing_state）。
   fill_defaults: true
 
-  # 字段声明。键名即状态键名，未声明的字段不受钳制/默认值/阈值影响。
-  # type: integer | long | double | boolean | string
-  # 只有数值类型才支持 min/max 与 thresholds。
-  #
-  # 出厂为空表示：clamp、default 与 migrations 三条路径均无作用点，
-  # 既存物品的 state 值不会被静默改写。按下方注释取消注释即可启用。
-  #
-  # 每个字段最多 64 个阈值（受 LONG 位图限制）。声明超过 64 个时，
-  # 按 value 升序保留最小的 64 个，其余丢弃；保留集合与 YAML 书写顺序无关。
-  # 阈值集合发生增删改后，该字段已记录的「一次性阈值」latch 会整体重新武装，
-  # 因此 once=true 的阈值在改配置后可能再奖励一次，而不会错配到别的阈值上。
+  # 未声明字段不受钳制、默认值或阈值影响；仅数值类型支持 min/max 与 thresholds。
+  # 每字段最多保留按 value 升序最小的 64 个阈值，与书写顺序无关。
+  # 阈值集合变化会重新武装该字段的 once latch。
   fields: {}
-  #  proficiency:
-  #    type: double
-  #    default: 0.0
-  #    min: 0.0
-  #    max: 100000.0
-  #    # 阈值：键名即阈值 ID，跨越时派发 ItemStateThresholdEvent。
-  #    thresholds:
-  #      tier_1:
-  #        value: 100.0
-  #        # once=true 时同一阈值只奖励一次，直到数值回落到阈值之下重新武装。
-  #        # 默认 false（每次跨越都奖励），一次性策略需显式开启。
-  #        once: false
-  #        # 是否在向下跨越（回落）时也执行奖励。
-  #        reward_on_fall: false
-  #        # 奖励动作行，与物品 actions 同语法。
-  #        actions: []
-  #        # 奖励消息的语言键，留空不发送。
-  #        message_key: ""
-  #        # 奖励音效，留空不播放。
-  #        sound: ""
-  #        sound_volume: 1.0
-  #        sound_pitch: 1.0
-  #        # 是否在奖励后刷新 Lore/属性派生。
-  #        refresh_derived: true
 
-  # 按 schema 版本的迁移步骤。留空表示不迁移，repair 行为与旧版本一致。
-  # 每一步声明 from/to，并可重命名、改类型或丢弃字段。
+  # 空映射不迁移；步骤可按 schema from/to 重命名、改类型或丢弃字段。
   migrations: {}
-  #  v1_to_v2:
-  #    from: 1
-  #    to: 2
-  #    rename:
-  #      old_key: new_key
-  #    retype:
-  #      some_key: double
-  #    drop:
-  #      - obsolete_key
 
   # 状态保全策略。
   preservation:

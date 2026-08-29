@@ -1,5 +1,4 @@
 # 宝石阶段升级示例配方（mode: gem）
-#
 # recipe id 必须与 GemDefinition.id 相同；Gem Provider 会把宝石定义 ID 作为 recipe id。
 # Strengthen 负责材料、货币、成功率、保底和动作，Gem Provider 只负责宝石等级/阶段与矩阵写回。
 

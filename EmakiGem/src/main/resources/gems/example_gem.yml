@@ -1,17 +1,11 @@
 # ============================================================
 # EmakiGem 宝石定义示例
 # ============================================================
-# 此文件定义了一颗完整的宝石，展示所有可用字段和推荐写法。
-# 宝石可以镶嵌到装备的插槽中，为装备提供额外属性、技能和外观变化。
-#
-# 文件放置位置: plugins/EmakiGem/gems/
-# 文件名仅用于组织和错误诊断；宝石内部标识由必填 id 字段决定，加载时按 id 注册。
+# 宝石 ID 取自 id，与文件名无关。
 # ============================================================
 
-# 宝石唯一标识符（必填）
 id: "example_gem"
 
-# 宝石显示名称（支持 MiniMessage 格式）
 display_name: "<red>红宝石</red>"
 
 # 宝石类型（用于插槽兼容性匹配）
@@ -36,30 +30,12 @@ item_sources:
 # 识别判定完全由 matcher 决定。matcher 缺失时这颗宝石永不被识别，
 # 所以下面写了一条与构造底材同源的 matcher 作为等价基线。
 # 构造底材那一侧不受影响：发放宝石时始终用上方 item_sources 构造。
-#
 matcher:
   type: item_source
   sources:
     - "minecraft-redstone"
 
-# 注意两种 ID 形状不同，不要混写：
-#   物品源用连字符 —— "minecraft-redstone"
-#   组件用冒号     —— component / path 里写 "minecraft:custom_name"，命名空间可省略
-#
-# 下面是收窄识别条件的写法示例，含义：只有名字含"红宝石"的红石才算这颗宝石，
-# 普通红石不算。默认注释掉，避免示例宝石开箱即用时被组件条件挡住。
-# 要启用就用它【替换】上方那条 matcher（同一份配置里 matcher 只能有一个），
-# 不要连同上方一起保留。
-#matcher:
-#  type: all_of
-#  matchers:
-#    - type: item_source
-#      sources:
-#        - "minecraft-redstone"
-#    - type: component
-#      component: custom_name
-#      operator: contains
-#      value: "红宝石"
+# 物品源使用连字符；组件 ID/path 使用冒号，命名空间可省略。
 
 # 自定义模型数据（可选，用于资源包识别）
 custom_model_data: 1001

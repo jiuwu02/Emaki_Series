@@ -1,18 +1,11 @@
 # ============================================================
 # EmakiStrengthen 强化配方示例
 # ============================================================
-# 此文件定义了一个完整的强化配方，展示所有可用字段和推荐写法。
-# 强化系统允许玩家通过消耗材料和金币来提升装备的星级，
-# 每个星级可以提供不同的属性加成、技能效果和外观变化。
-#
-# 文件放置位置: plugins/EmakiStrengthen/recipes/
-# 文件名仅用于组织和错误诊断；配方内部标识由必填 id 字段决定，加载时按 id 注册。
+# 配方 ID 取自 id，与文件名无关。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称（支持 MiniMessage 格式）
 display_name: "<gold>物理武器强化</gold>"
 
 # GUI 模板引用（对应 gui/ 目录下的模板文件名，不含 .yml 后缀）
@@ -67,26 +60,7 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
-# matcher 是 CoreLib 统一匹配器配置，决定哪些物品可以使用此配方进行强化。
-# 推荐优先用 type: item_source 精确绑定 EmakiItem / ItemSource，避免示例配方泛匹配所有武器。
-#
-# type: component 按 Minecraft 物品组件取值判定，字段含义：
-#   component: 组件 ID（如 enchantments / rarity / custom_name / unbreakable）
-#   path: 组件内部取值路径（可选，如附魔 ID）
-#   operator: exists / absent / == / != / > / >= / < / <= /
-#             contains / starts_with / ends_with / regex /
-#             has_key / has_value / size
-#   value: 期望值（operator 为 exists / absent 时不需要）
-#
-# 单条件写法（只允许锋利 5 及以上的物品套用此配方）：
-# matcher:
-#   type: component
-#   component: enchantments
-#   path: sharpness
-#   operator: ">="
-#   value: 5
-#
-# 下面启用的是组合写法：物品源与组件条件同时成立才命中。
+# matcher 使用 CoreLib 统一匹配器；当前 all_of 要求物品源与组件条件同时成立。
 matcher:
   type: all_of
   matchers:
@@ -104,14 +78,6 @@ matcher:
 slot_groups:
   - "weapon"
 
-# 下面两项默认注释掉：它们与上方 matcher 取 AND，若同时启用会让本示例永不命中。
-#   stats_any 在 ★0 时物品还没有物理伤害属性，写上会导致首次强化就无法匹配；
-#   source_patterns 要求物品源简写形如 mmoitems-SWORD...，与上方绑定的
-#   emakiitem-example_item 互斥。按你的实际物品源改写后再启用。
-#stats_any:
-#  - "physical_attack"
-#source_patterns:
-#  - "^mmoitems-SWORD"
 
 # ============================================================
 # 全局名称与 Lore 修改
@@ -143,7 +109,6 @@ lore_actions:
 #     - type: "name_action"   → 对物品名称的修改
 #   materials: 强化所需材料
 #   actions: 强化成功/失败时执行的动作
-#
 # Lore 操作策略说明:
 #   ★1 首次使用 "append" 添加属性行；
 #   ★2+ 使用 "replace_line" 通过 anchor 匹配已有行并替换为新数值；
@@ -169,12 +134,8 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 2
-      # 强化材料的判定分两步，与其他模块不同：先按 item_sources 的物品源令牌
-      # 选中这味材料，再用同条目的 matcher 复核玩家实际放入的那一枚。
-      # 因此这里 item_sources 与 matcher 是"都要成立"，item_sources 不可省略。
-      # 星级区间条件仍由 min_target_star / max_target_star 控制，不写进 matcher。
-      # 下面这条限定为金粒，且要求自定义名称里含"炎"字。
-      # 标记 optional 以免影响示例配方开服即可跑通的默认体验。
+      # item_sources 先选择材料令牌，matcher 再复核实际物品；两者都必须成立。
+      # 星级区间由 min_target_star/max_target_star 独立控制；optional 不阻断强化。
       - item_sources:
           - "minecraft-gold_nugget"
         amount: 1

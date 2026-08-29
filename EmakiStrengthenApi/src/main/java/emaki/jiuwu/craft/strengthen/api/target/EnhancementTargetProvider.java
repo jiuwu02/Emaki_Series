@@ -228,14 +228,12 @@ public interface EnhancementTargetProvider {
      * declared prefix or starts with that prefix followed by {@code .}. A key may legitimately land in
      * several categories, and keys matching no prefix stay in the flat {@code item_pdc_*} view.
      *
-     * <p>The default returns an empty map, which makes the runtime fall back to its historical
-     * substring heuristic. That fallback keeps providers compiled against the original contract
-     * working, but it cannot distinguish {@code side_effect_audit} from {@code effect}, so a provider
-     * that cares about accurate {@code target_effect_*} / {@code target_layer_*} /
-     * {@code target_audit_*} / {@code target_meta_*} variables should override this and name its own
-     * partitions.
+     * <p>The default returns an empty map, so the runtime uses its compatibility substring heuristic. That
+     * fallback cannot distinguish {@code side_effect_audit} from {@code effect}; providers that need exact
+     * {@code target_effect_*}, {@code target_layer_*}, {@code target_audit_*} or {@code target_meta_*}
+     * variables should override this and declare their partitions.
      *
-     * @return category to owned path prefixes; an empty map requests the legacy heuristic
+     * @return category to owned path prefixes; an empty map requests the compatibility heuristic
      */
     default @NotNull Map<TargetSnapshotCategory, Set<String>> snapshotPartitions() {
         return Map.of();

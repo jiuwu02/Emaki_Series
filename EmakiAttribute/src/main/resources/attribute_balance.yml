@@ -1,13 +1,11 @@
 # EmakiAttribute 属性语义与战力权重。
-# 文件位置：plugins/EmakiAttribute/attribute_balance.yml。
-#
 # attributes 提供 group、role、summary 等语义元数据；它们用于注册表查询与说明，
 # 不替代 damage_types/ 中实际参与伤害计算的阶段配置。
 # scores 定义每点属性值的战力权重，AttributePowerProvider 用它计算 attribute_power；
 # 未声明权重时回退到对应属性文件的 attribute_power。
 
 attributes:
-  # ---- 资源类属性 ----
+  # 资源类属性。
   health:
     group: resource.health
     role: max_health
@@ -25,7 +23,7 @@ attributes:
     role: regen
     summary: "每秒恢复法力值"
 
-  # ---- 物理攻防属性 ----
+  # 物理攻防属性。
   physical_attack:
     group: offense.physical
     role: primary_damage
@@ -59,7 +57,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的物理暴击倍率"
 
-  # ---- 投射物攻防属性 ----
+  # 投射物攻防属性。
   projectile_attack:
     group: offense.projectile
     role: primary_damage
@@ -93,7 +91,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的投射物暴击倍率"
 
-  # ---- 法术攻防属性 ----
+  # 法术攻防属性。
   spell_attack:
     group: offense.spell
     role: primary_damage
@@ -127,7 +125,7 @@ attributes:
     role: crit_resistance
     summary: "降低受到的法术暴击倍率"
 
-  # ---- 机动性属性 ----
+  # 机动性属性。
   speed:
     group: mobility.speed
     role: percent_speed
@@ -141,7 +139,7 @@ attributes:
     role: item_cooldown
     summary: "降低手持物品使用冷却"
 
-  # ---- 功能性属性 ----
+  # 功能性属性。
   entity_scale:
     group: utility.visual
     role: scale
@@ -151,13 +149,13 @@ attributes:
     role: reach
     summary: "增加实体交互范围"
 
-  # ---- 真实伤害 ----
+  # 真实伤害。
   real_damage:
     group: offense.true
     role: true_damage
     summary: "直接造成穿透类真实伤害"
 
-  # ---- 续航属性 ----
+  # 续航属性。
   lifesteal:
     group: sustain.lifesteal
     role: percent_heal
@@ -171,13 +169,13 @@ attributes:
     role: sustain_resistance
     summary: "降低敌方吸血效果"
 
-  # ---- 闪避属性 ----
+  # 闪避属性。
   dodge_chance:
     group: defense.evasion
     role: dodge
     summary: "提升闪避概率"
 
-  # ---- 元属性 ----
+  # 元属性。
   attribute_power:
     group: meta.balance
     role: derived_power

@@ -1,17 +1,12 @@
-# EmakiLevel 主配置
-#
-# 控制等级类型、经验倍率、每日上限、来源集成与反滥用记录。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiLevel/config.yml
+# EmakiLevel 主配置：等级、经验倍率、每日上限、来源与反滥用记录。
 
-# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "1.5.8"
+# version 由资源同步维护，不是功能开关。
+version: "1.5.9"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否在启动时释放 types/、sources/、gui/ 等内置默认数据。
-# 关闭后只加载已有数据，不主动生成缺失的默认示例。
+# 是否释放内置默认数据；false 时不生成缺失示例。
 release_default_data: true
 
 # 主等级类型 ID；调用方未指定类型时使用此值。
@@ -22,7 +17,7 @@ level:
   default_start_level: 1
   # 等级类型未单独配置时使用的最高等级。
   default_max_level: 100
-  # 单次结算最多自动提升的等级数；运行时至少按 1 处理。
+  # 单次结算最多自动升级次数；小于 1 按 1 处理。
   max_auto_upgrade_steps: 10
   # 达到最高等级后是否继续累计总经验。
   keep_total_exp_at_max_level: true
@@ -43,8 +38,7 @@ multipliers:
     mythic_drop: 1.0
     event_bonus: 1.0
 
-# 每日经验上限。
-# -1 表示不限制；当前计数仅保存在本次服务器运行内存中，重启后清零。
+# 每日经验上限；-1 不限。计数仅存于当前运行，重启清零。
 daily_caps:
   enabled: true
   default_limit: -1
@@ -80,7 +74,7 @@ anti_abuse:
   placed_block_tracking: true
   # 是否允许从被记录的方块获得经验。
   placed_block_exp: false
-  # 放置方块记录保留时间，单位：tick；小于等于 0 时不执行该类清理。
+  # 放置方块记录保留时间，单位 tick；<=0 不清理。
   placed_block_record_ttl_ticks: 864000
   last_damager_tracking:
     # 是否记录最后攻击者，用于击杀归因。

@@ -1,8 +1,8 @@
 # EmakiStorage 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过 `/estorage reload` 应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.6"
+version: "1.0.7"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"

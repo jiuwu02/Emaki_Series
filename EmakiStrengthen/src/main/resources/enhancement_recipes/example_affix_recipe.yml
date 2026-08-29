@@ -1,5 +1,4 @@
 # 词条强化示例配方（mode: affix）
-#
 # 由 /emakistrengthen affix [recipe] 打开的词条界面使用。与整件星级强化完全分离：
 # target.provider 为 affix 时，level 指「选中词条的强化等级」，temper 指「词条层剩余容量」，
 # 执行过程不读取也不写入整件装备的星级。
@@ -16,7 +15,6 @@ target:
 
 # 材料槽列表：matcher 为 CoreLib Matcher 配置，quantity 为 CoreLib Quantity 配置
 # consume 取值：always / success / failure / never（默认 always）
-#
 # required（默认 true）：true 时缺料使整次匹配失败；false 时缺料只不贡献可用量，不阻断强化。
 #   等价的反向写法是 optional: true，两者同时出现时 optional 生效。
 # target_compare：把该槽材料与「当前目标」比较，合法值 same_affix / same_affix_set /
@@ -63,7 +61,6 @@ pity:
 # 多轨保底（可选）：一次尝试可同时推进多条计数器，每条独立 scope / group / threshold。
 # 与上方单轨 pity 同时存在时两者都会参与；两条 track 的 scope+group 相同会被预检判为错误，
 # 因为它们会共用同一个计数器并对同一次尝试重复计数。
-#
 # isolate：把该 track 的计数按维度分桶，合法值 recipe / mode / target / affix / level。
 #   后缀加在 group 上而非 owner key 上，因此不影响按身份检索。留空（默认）时 group 逐字不变，
 #   旧磁盘记录仍按原键命中。写入未知或重复维度会使该配方加载失败并在控制台报 load_failed。

@@ -20,11 +20,7 @@ dependencies:
 permissions:
   emakistation.use:
     default: true
-  # 购买额外队列位。还需要 config.yml 的 queue.purchase.enabled 与
-  # 工作站的 queue.allow_purchase 同时为 true。
-  #
-  # 不放在 emakistation.queue.* 下面是有意的：那个前缀已经被队列长度分级
-  # （emakistation.queue.16 这类）占用，混在一起会让两种含义难以分辨。
+  # 购买队列位还要求全局与工作站购买开关同时启用；queue.* 保留给长度分级。
   emakistation.purchase:
     default: true
   # 使用分解界面（/emakistation dismantle <工作站>）。

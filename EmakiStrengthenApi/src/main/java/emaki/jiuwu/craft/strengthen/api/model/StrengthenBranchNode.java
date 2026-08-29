@@ -12,7 +12,7 @@ import java.util.Map;
  * are slash-separated child ids (e.g. {@code "fire/blaze"}). The navigation
  * helpers resolve a path to a node, collect the stages reachable along a path up
  * to a star, compute the maximum reachable star and determine whether a fork
- * selection is pending.
+ * selection is pending. Stage and child maps are defensively copied and immutable.
  *
  * @param branchId     this node's branch id ({@code "root"} when {@code null})
  * @param displayName  the display name; never {@code null}

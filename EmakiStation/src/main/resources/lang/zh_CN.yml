@@ -1,8 +1,8 @@
 # EmakiStation 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.8"
+version: "1.0.9"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -76,7 +76,6 @@ command:
   debug_unavailable: "<red>调试功能当前不可用</red>"
 
 station:
-  # 加载期问题
   station_missing_id: "<yellow>工作站文件缺少 id：%file%</yellow>"
   station_no_channel: "<yellow>工作站 %station% 的两个材料通道都被关闭，已跳过（%file%）</yellow>"
   recipe_missing_id: "<yellow>配方文件缺少 id：%file%</yellow>"
@@ -86,14 +85,12 @@ station:
   recipe_bad_source: "<yellow>配方 %recipe% 的物品源 %source% 无法解析（%file%）</yellow>"
   recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
 
-  # 分解配方加载期问题
   dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id：%file%</yellow>"
   dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 input_source，已跳过（%file%）</yellow>"
   dismantle_recipe_bad_input: "<yellow>分解配方 %recipe% 的 input_source %source% 无法解析（%file%）</yellow>"
   dismantle_recipe_bad_source: "<yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析（%file%）</yellow>"
   dismantle_recipe_empty_pool: "<yellow>分解配方 %recipe% 的 pool 为空或全部无效，已跳过（%file%）</yellow>"
 
-  # 运行期拒绝原因
   unknown_station: "工作站不存在"
   unknown_recipe: "配方不存在"
   missing_layout: "工作站界面布局不存在"

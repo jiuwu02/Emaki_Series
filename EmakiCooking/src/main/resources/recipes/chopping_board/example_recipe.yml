@@ -1,18 +1,12 @@
 # ============================================================
 # EmakiCooking 砧板配方示例
 # ============================================================
-# 此文件定义了一个砧板（Chopping Board）配方，展示所有可用字段。
 # 砧板是交互型加工设备，玩家需要多次点击来切割食材。
 # 使用砧板需要手持工具（如刀），工具会受到耐久损耗。
-#
-# 文件放置位置: plugins/EmakiCooking/recipes/chopping_board/
-# 文件名仅用于组织和错误诊断；配方内部标识由必填 id 字段决定，加载时按 id 注册。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称
 display_name: "切制胡萝卜"
 
 # ============================================================
@@ -28,40 +22,6 @@ input:
   amount: 1
 
   # ----------------------------------------------------------
-  # matcher：输入判定的唯一入口
-  # ----------------------------------------------------------
-  # 判定完全由 matcher 决定，它是必填项，缺失这条配方永不命中。
-  # 按物品源判定就写 type: item_source（上面即是）；要收窄到"这一枚够不够格"，
-  # 就用 all_of 把物品源与组件条件绑在一起，见下例。
-  #
-  # 注意书写差异：
-  #   物品源简写用【连字符】       —— "minecraft-carrot"
-  #   组件 ID / path 用【冒号】     —— component: custom_name / path: "minecraft:sharpness"
-  #
-  # 下例含义：必须是胡萝卜，且物品名里带"极上"二字，才算这条配方的输入。
-  # 要启用就用它【替换】上方那条 matcher，不要两条并留。
-  #
-  # matcher:
-  #   type: all_of
-  #   matchers:
-  #     - { type: item_source, sources: ["minecraft-carrot"] }
-  #     - { type: component, component: custom_name, operator: contains, value: "极上" }
-  #
-  # 更多可用写法：
-  #   operator 可选 exists / absent / == / != / > / >= / < / <=
-  #                contains / starts_with / ends_with / regex
-  #                has_key / has_value / size
-  #   组合类型 all_of(and) / any_of(or) / none_of(not)
-  #           at_least + required_count / exactly + required_count
-  #
-  # 例：附魔锋利 >= 3，且不是被标记为"次品"的物品
-  # matcher:
-  #   type: all_of
-  #   matchers:
-  #     - { type: component, component: enchantments, path: "minecraft:sharpness", operator: ">=", value: 3 }
-  #     - type: none_of
-  #       matchers:
-  #         - { type: component, component: custom_name, operator: contains, value: "次品" }
 
 # ============================================================
 # 切割参数
@@ -71,7 +31,6 @@ input:
 cuts_required: 3
 tool_damage: 1
 
-# 使用此配方所需的权限节点
 permission: "emakicooking.recipe.cut_carrot"
 
 # ============================================================

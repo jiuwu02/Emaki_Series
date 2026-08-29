@@ -1,11 +1,8 @@
 # EmakiGem 主配置
-#
 # 控制开孔器、镶嵌成功率、失败处理与宝石界面。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiGem/config.yml
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.15"
+version: "2.7.16"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -14,19 +11,15 @@ language: "zh_CN"
 release_default_data: true
 
 # 开孔器定义。每个条目声明"哪些物品算这个开孔器"。
-#
 # 判定完全由 matcher 决定，它是每个开孔器的必填项，缺失该开孔器永不命中。
 #   matcher: 唯一的判定入口。按物品源判定就写 type: item_source，sources 里的原版物品
 #            用连字符，如 "minecraft-blaze_rod"；要加组件条件就用 type: component，
 #            其 component / path 里的资源 ID 用冒号，如 "minecraft:sharpness"
 #            （命名空间可省略写 sharpness）。
-#
 # matcher 的组合类型：all_of（全部成立）、any_of（任一成立）、none_of（全部不成立）、
 # at_least + required_count（至少 N 条成立）、exactly + required_count（恰好 N 条成立）。
 # 组合类型用 matchers: 列出子条件，子条件本身也可以再嵌套组合。
-#
 # 两种形状不要混写：物品源是连字符 minecraft-blaze_rod，组件 ID 是冒号 minecraft:custom_name。
-#
 # opens_gem_types / consume_on_success / actions 的语义与 matcher 怎么写无关，一样生效。
 socket_openers:
   # 攻击向插槽开孔器

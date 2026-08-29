@@ -11,7 +11,8 @@ import java.util.Set;
  * <p>Returned by {@code EmakiStrengthenApi#preview}. Reports whether the attempt
  * is eligible (and if not, an {@code errorKey}), the current and target star,
  * success rate, currency/material costs, the projected failure penalties, the
- * stat deltas a success would apply and which milestone stars it would unlock.
+ * stat deltas a success would apply and which milestone stars it would unlock. Every collection component
+ * is defensively copied and immutable.
  *
  * @param eligible           whether the attempt may proceed
  * @param errorKey           message key explaining ineligibility, may be

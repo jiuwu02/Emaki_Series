@@ -7,16 +7,11 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Fired after EmakiMobs has resolved at least one compiled action pipeline for a managed mob trigger,
- * but before any pipeline for that trigger is executed.
+ * Fired after a managed mob trigger resolves at least one pipeline and before any resolved pipeline runs.
  *
- * <p>Cancelling prevents every pipeline resolved for this trigger invocation. The event is not fired
- * when CoreLib's action engine is unavailable, the mob definition is absent, or the trigger has no
- * executable pipelines.
- *
- * <p>The event is fired synchronously on the thread that invoked the mob trigger. Bukkit-originated
- * triggers normally run on the managed entity's owner thread: the main server thread on Paper or the
- * entity's region thread on Folia.
+ * <p>Runs synchronously on the invoking thread; Bukkit-originated triggers normally use the mob owner's
+ * thread. Cancellation suppresses every pipeline for this invocation. No event is emitted when CoreLib is
+ * unavailable, the mob definition is absent, or no executable pipeline resolves.
  */
 public final class EmakiMobSkillTriggerEvent extends Event implements Cancellable {
 

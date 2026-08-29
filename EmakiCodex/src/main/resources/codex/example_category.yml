@@ -1,17 +1,12 @@
 # EmakiCodex 图鉴分类示例。
-#
 # codex/ 下每个 YAML 文件定义一个图鉴分类，对应图鉴 GUI 的一个分类标签。
 # 这里的分类与 advancements/ 下的 page_id（原版成就标签页）是两个独立概念，不要混用。
 # 条目的复合 id 为 <category_id>/<条目 id>，命令与数据文件都用这个形式。
-# 修改后通过 `/codex reload` 应用。
-# 文件位置：plugins/EmakiCodex/codex/example_category.yml
-#
 # 解锁与奖励是两条独立通路：
 #   unlock   条件命中后条目变为已解锁，此时才能激活。
 #   rewards.attributes  激活后长期生效，数值按当前配置实时推导（改配置立刻生效）。
 #   rewards.actions     领取时执行一次，走 CoreLib 动作行。
 # 激活与领取是两个独立操作：激活只开属性，领取只发一次性奖励。
-#
 # unlock.triggers 的 event 取值与 advancements/ 的事件触发器一致：
 #   entity_kill / mythic_mob_kill / block_break / crop_harvest / craft_item
 #   furnace_extract / player_fish / brew_complete / entity_tame

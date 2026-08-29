@@ -11,7 +11,7 @@ import java.util.Set;
  * <p>Captures eligibility, the underlying base item source and signature, the
  * matched recipe id, current star and crack/temper levels, reached milestone
  * flags, success/failure counters, the selected branch path and the fracture
- * level.
+ * level. Milestone flags are defensively copied and immutable.
  *
  * @param eligible            whether the item can be strengthened
  * @param eligibleReason      reason/message key when ineligible

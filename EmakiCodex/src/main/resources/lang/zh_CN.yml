@@ -1,8 +1,8 @@
 # EmakiCodex 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过 `/codex reload` 应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.5"
+version: "1.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -41,7 +41,6 @@ command:
     failed: "<red>图鉴条目 %entry% 操作失败：%reason%</red>"
     bad_reference: "<red>条目引用 %entry% 格式错误，应为 <分类id>/<条目id>。</red>"
 
-# 授予/撤销失败的具体原因。由服务层的 reasonKey 直接解析，新增原因只需在此加一条。
 codex:
   player:
     required: "未指定玩家。"
@@ -92,7 +91,6 @@ gui:
   reward_hidden: "<dark_gray>- 解锁后可见</dark_gray>"
   reward_none: "<dark_gray>- 无</dark_gray>"
 
-# codex_broadcast_achievement 动作段的默认句式，按 frame 参数选用。
 broadcast:
   frame:
     task: "<white>%player% 达成了成就 <green>[%title%]</green></white>"

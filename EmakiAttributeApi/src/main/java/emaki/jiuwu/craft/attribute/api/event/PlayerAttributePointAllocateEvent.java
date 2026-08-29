@@ -6,19 +6,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiAttribute before parent-attribute points are allocated, after
- * the request has passed validation but before any point is spent.
+ * Fired after an attribute-point allocation is validated and before points are spent.
  *
- * <p>Listeners may inspect the player, the parent attribute id and the current
- * available/already-allocated totals, override the allocated amount via
- * {@link #setAmount(int)}, or cancel the allocation entirely. A cancelled event
- * stops EmakiAttribute from spending points (the allocate call reports a failed
- * result). The amount is re-validated against the available balance after the
- * event; an amount greater than the balance aborts the allocation.
- *
- * <p><strong>Thread:</strong> fired synchronously on the player's owner thread. On Paper this is the main
- * server thread; on Folia this is the player's entity scheduler thread. Internal calls that do not own the
- * player are not permitted to publish this synchronous Bukkit event.
+ * <p>Runs synchronously on the player's owner thread. Cancellation leaves the balance and allocation
+ * unchanged. Listeners may override the amount; EmakiAttribute revalidates the replacement against the
+ * available balance before committing it.
  */
 public final class PlayerAttributePointAllocateEvent extends Event implements Cancellable {
 

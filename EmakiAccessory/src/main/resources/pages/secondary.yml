@@ -1,7 +1,5 @@
-# 第二饰品页示例，键说明见 pages/main.yml。
-#
-# 本页默认要求权限，用于演示"按权限开放额外饰品页"：
-# 没有该权限的玩家打不开本页，本页饰品也不生效，但数据不会被清除。
+# 第二饰品页示例；键语义见 pages/main.yml。
+# 缺少 permission 时本页不可见且不生效，但已存饰品不被清除。
 page_id: "secondary"
 display_name: "<aqua>副饰品栏</aqua>"
 order: 2

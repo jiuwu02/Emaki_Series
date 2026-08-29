@@ -1,17 +1,11 @@
 # ============================================================
 # EmakiCooking 炒锅配方示例
 # ============================================================
-# 此文件定义了一个炒锅（Wok）配方，展示所有可用字段和推荐写法。
 # 炒锅是交互式烹饪设备，玩家需要按照正确的顺序和次数翻炒食材。
-#
-# 文件放置位置: plugins/EmakiCooking/recipes/wok/
-# 文件名仅用于组织和错误诊断；配方内部标识由必填 id 字段决定，加载时按 id 注册。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称
 display_name: "简易炖菜"
 
 # ============================================================
@@ -31,43 +25,6 @@ ingredients:
     stir_rule: "2-3"
 
 # ============================================================
-# 食材 matcher 的写法说明
-# ============================================================
-# 每一味食材的判定完全由它自己的 matcher 决定，必填，缺失该味食材永不命中。
-# 按物品源判定就写 type: item_source（上面两味即是）；要收窄到"这一枚够不够格"，
-# 就用 all_of 把物品源与组件条件绑在一起，见下例。
-#
-# 注意书写差异：
-#   物品源简写用【连字符】       —— "minecraft-beef"
-#   组件 ID / path 用【冒号】     —— component: custom_name / path: "minecraft:sharpness"
-#
-# 下例把上面第二味食材换成"只认极上牛肉"的写法，取消注释后替换 ingredients 即可：
-#
-# ingredients:
-#   - matcher: { type: item_source, sources: ["minecraft-carrot"] }
-#     amount: 1
-#     stir_rule: "1-3"
-#   - # 只有名字含"极上"的牛肉才算这一味食材
-#     matcher:
-#       type: all_of
-#       matchers:
-#         - { type: item_source, sources: ["minecraft-beef"] }
-#         - { type: component, component: custom_name, operator: contains, value: "极上" }
-#     amount: 1
-#     stir_rule: "2-3"
-#
-# 组合五态均可使用：
-#   all_of(and) / any_of(or) / none_of(not)
-#   at_least + required_count / exactly + required_count
-#
-# 例：以下三条至少满足两条才算合格食材
-# matcher:
-#   type: at_least
-#   required_count: 2
-#   matchers:
-#     - { type: component, component: custom_name, operator: contains, value: "极上" }
-#     - { type: component, component: rarity, operator: "==", value: epic }
-#     - { type: component, component: enchantments, operator: exists }
 
 # ============================================================
 # 烹饪参数
@@ -83,13 +40,11 @@ stir_total:
 
 fault_tolerance: 0
 
-# 使用此配方所需的权限节点
 permission: "emakicooking.recipe.simple_stew"
 
 # ============================================================
 # 完成条件（true/false 动作分支）
 # ============================================================
-# 字段说明详见 chopping_board/example_recipe.yml。
 # 炒锅会在出锅（成功/欠火/过火/失败）时统一评估此条件。
 condition:
   type: all_of

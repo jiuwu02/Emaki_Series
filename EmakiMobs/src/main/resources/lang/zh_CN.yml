@@ -1,8 +1,8 @@
 # EmakiMobs 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.9"
+version: "1.0.10"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -102,6 +102,5 @@ command:
   usage: "<gray>用法：/emakimobs <spawn|reload|list|info|kill|count|debug> ...</gray>"
   no_permission: "<red>你没有权限执行此命令。</red>"
 
-# Debug 模式消息
 debug:
   target_selector_expression_failed: "目标选择器表达式 %expression_id% 求值失败：%error%"

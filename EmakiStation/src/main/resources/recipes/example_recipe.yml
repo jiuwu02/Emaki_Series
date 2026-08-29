@@ -1,12 +1,9 @@
 # EmakiStation 配方示例
-#
 # 匹配方式是无序集合匹配：只看材料种类和总数，不看摆放位置，没有 shaped 概念。
 id: "iron_ingot_block"
 display_name: "<white>铁块压制</white>"
 
-# 声明此配方属于哪些工作站。留空表示对所有工作站开放。
-# 工作站文件的 recipes 段（include_tags / include_ids / exclude_ids）已废弃，
-# 归属关系现在由此字段在配方侧声明。
+# 声明配方所属工作站；留空时对所有工作站开放。
 station_ids:
   - "blacksmith"
 
@@ -33,29 +30,22 @@ cost:
   amount: 0
 
 # 材料需求。
-#
 # item_sources 是"任意其一"集合，数量按集合内总数计算：
 # 需要 64 个时，30 个 coal + 34 个 charcoal 也算满足。
-#
 # 单个配方的材料种类数不受 GUI 槽位数限制。仓库通道按 long 直扣，
 # 背包通道受原版每格 64 上限约束。
-#
 # 物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_sword。
 # 下面 matcher 里 component 的组件 ID 与 path 资源 ID 用【冒号】。
-#
 # 两种分配模型，按本配方是否出现 matcher 决定，一个配方只走其中一种：
-#
 #   1) 全部材料只写 item_sources（下面第一条）——沿用原有聚合计数模型，
 #      背包 + 仓库两通道都参与，分配是贪心的、没有回溯。当同一个物品能
 #      满足多条需求时会分配给先声明的那一条，极少数情况下会让理论可行的
 #      配方匹配失败，拆分配方即可规避。
-#
 #   2) 任意一条材料写了 matcher（下面第二条）——整条配方改走最大二分匹配
 #      分配（带容量最大流），不会再因为声明顺序不巧而失配。代价是
 #      【只从背包扣料，不走仓库通道】：matcher 判定的是具体物品栈的组件，
 #      而仓库只按物品模板记数、拿不到逐栈组件，无法参与判定。
 #      需要仓库供料的配方请不要写 matcher。
-#
 # ⚠ Station 材料是本项目里保留 item_sources 的例外站点：别的插件已经把判定位
 #   收敛到 matcher，而这里的 item_sources 不只是判定用的条件，它还要被【枚举】——
 #   仓库通道必须逐个物品源去查库存与扣料，而 matcher 是一个谓词、无法枚举出
@@ -68,30 +58,6 @@ materials:
     # consume: false 表示只校验持有、不扣除（用于"需要工具在手"这类需求）
     consume: true
 
-  # matcher 写法示例（默认注释掉，取消注释即生效，但整条配方会变成仅背包供料）。
-  #
-  # matcher 可以单独写，也可以和 item_sources 并存：
-  #   两者都写时，判定完全由 matcher 决定，item_sources 不参与判定，
-  #   但仍负责给界面提供图标与名称、并决定界面"拥有量"的统计口径。
-  #   只写 matcher 时界面没有图标可取，会显示屏障占位 +
-  #   texts.recipe.material_matcher 的文案；此时"拥有量"按背包内实际
-  #   满足 matcher 的物品统计。
-  #
-  # 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
-  #          at_least + required_count、exactly + required_count
-  # component 的 operator 全集：
-  #   exists / absent、==、!=、>、>=、<、<=、
-  #   contains / starts_with / ends_with、regex、has_key / has_value、size
-  #
-  # - matcher:
-  #     type: all_of
-  #     matchers:
-  #       # 物品源子条件仍用连字符简写
-  #       - { type: item_source, sources: ["minecraft-iron_ingot"] }
-  #       # 组件 ID 用冒号形状；custom_name 等价于 minecraft:custom_name
-  #       - { type: component, component: custom_name, operator: contains, value: "精铁" }
-  #   amount: 2
-  #   consume: true
 
 result:
   outputs:
@@ -110,10 +76,8 @@ condition:
 # 解锁条件。与上面的 condition 是两回事：
 #   condition          决定"能不能做"，不满足时配方照常显示，点了会被拒
 #   display_condition  决定"解锁没有"，不满足时配方显示为灰色占位、点击无反应
-#
 # 用灰色占位而不是隐藏，是为了让玩家知道后面还有内容。
 # 想彻底隐藏请用上面的 visible: false 或 permission。
-#
 # 这里的条件会在每次绘制目录页时求值，写得太重会拖慢界面。
 display_condition:
   invalid_as_failure: false

@@ -1,17 +1,11 @@
 # EmakiStrengthen 主配置
-#
-# 控制强化广播、默认成功率与词条强化参数。
-# 修改后按插件提供的重载命令应用。
-# 文件位置：plugins/EmakiStrengthen/config.yml
 
-# version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "4.7.19"
+version: "4.7.20"
 
-# 语言文件名，对应 lang/<language>.yml。
+# 对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否在启动时释放内置的强化配方等默认示例数据。
-# 关闭后只加载已有数据，不主动生成缺失的默认示例。
+# 关闭后不释放缺失的内置配方。
 release_default_data: true
 
 # 附近广播的半径，单位：方块；小于 1 的值会按 1 处理。
@@ -54,14 +48,10 @@ affix:
 
 # 通用强化框架的事务边界设置。
 enhancement:
-  # 是否拒绝把「外部容器槽位里的物品」直接作为强化目标。
-  # 打开后，玩家在箱子等非自身背包的界面里对容器内物品发起强化会被拒绝，
-  # 避免物品在预览与确认之间被其他玩家取走。默认 false 保持既有行为不变。
+  # 启用后拒绝外部容器中的目标，避免预览与确认间被其他玩家取走。
   reject_container_target: false
 
-  # 是否拒绝把「外部容器槽位里的物品」作为强化材料。
-  # 与 reject_container_target 同理：材料同样可能在预览与确认之间被取走，
-  # 造成按旧数量扣费但实际扣不到。默认 false 保持既有行为不变。
+  # 启用后拒绝外部容器中的材料，避免确认时按旧数量扣费却无法取材。
   reject_container_material: false
 
   # 成功率的最低下限，按 0.0-1.0 的比例填写。
@@ -90,8 +80,7 @@ enhancement:
     # 回退不会低于该等级。
     floor_level: 0
 
-  # 保底状态落盘失败后的重试。默认 interval_ticks 为 0，不启动重试，
-  # 保持「等待下一次生命周期 flush」的既有行为。
+  # 保底状态落盘失败后的重试；interval_ticks 为 0 时等待后续生命周期 flush。
   pity_retry:
     # 重试间隔，单位 tick；0 表示不启动重试任务。
     interval_ticks: 0

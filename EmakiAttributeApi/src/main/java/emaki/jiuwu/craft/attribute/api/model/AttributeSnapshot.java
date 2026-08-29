@@ -11,8 +11,8 @@ import java.util.Map;
  *
  * <p>Used to capture an attacker's or target's combat-relevant attributes so a
  * damage calculation can be performed consistently (including asynchronously)
- * without re-reading live entity state. Supports serialization to and from a
- * plain map for persistence.
+ * without re-reading live entity state. The values map is defensively copied and immutable. Supports
+ * serialization to and from a plain map for persistence.
  *
  * @param schemaVersion   the snapshot schema version
  * @param sourceSignature a signature describing the source data set; never

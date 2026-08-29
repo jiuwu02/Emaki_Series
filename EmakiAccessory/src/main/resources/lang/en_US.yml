@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
-version: "1.0.3"
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
+version: "1.0.4"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"

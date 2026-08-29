@@ -1,11 +1,9 @@
 # EmakiForge English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
+version: "4.7.12"
 
-version: "4.7.11"
-
-# General messages
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to perform this action.</red>"
@@ -17,7 +15,6 @@ general:
   reload_fail: "<red>Configuration reload failed.</red>"
   reload_summary: "<gray>Reloaded %recipes% recipes, %guis% GUIs.</gray>"
 
-# Command help
 command:
   help:
     header: "<gold>========== Emaki Forge Help ==========</gold>"
@@ -65,7 +62,6 @@ command:
       "<yellow>%id%</yellow> <gray>- %name% (Cost: %capacity%, Bonus:
       +%bonus%)</gray>"
 
-# Console logs
 console:
   plugin_starting: "<gray>Starting...</gray>"
   plugin_started: "<green>Started</green>"
@@ -236,7 +232,6 @@ loader:
     %recipe%: %file% -> <red>%value%</red>. Allowed values:
     <gray>%allowed%</gray>, loading rejected.</yellow>"
 
-# Forge related
 forge:
   fallback_item_name: "Item"
   error:
@@ -271,15 +266,12 @@ forge:
     quality: "<gold>Quality: %quality% (Multiplier: %multiplier%x)</gold>"
     first_craft: "<green>First time completing this recipe.</green>"
 
-# Blueprint related
 blueprint:
   count_not_enough: "<red>Insufficient blueprint quantity.</red>"
 
-# Material related
 material:
   count_not_enough: "<red>Insufficient material quantity.</red>"
 
-# GUI related
 gui:
   title:
     book: "<dark_gray>Recipe Book</dark_gray>"
@@ -291,9 +283,6 @@ gui:
     required: "<gold>Place Material (any slot)</gold>"
     optional: "<green>Place Material (any slot)</green>"
 
-  # Blueprint slot requirement list (%blueprint_requirements% in gui/forge_gui.yml)
-  # One blueprint can feed several recipes; while the recipe is undecided the entries are
-  # grouped per recipe, at most 3 groups. Amounts are "placed in GUI / required", not inventory.
   blueprint:
     no_recipe: "<gray>The recipe is matched from the blueprint item source"
     recipe_group_header: "<gold>[%recipe%]</gold>"
@@ -319,7 +308,6 @@ gui:
     next_page: "<gray>Next Page</gray>"
     close: "<red>Close</red>"
 
-# Debug mode messages
 debug:
   recipe:
     match_start: "Recipe matching start | player=%player% | input=%items%"

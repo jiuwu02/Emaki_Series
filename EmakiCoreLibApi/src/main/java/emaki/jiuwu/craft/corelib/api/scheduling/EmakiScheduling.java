@@ -12,21 +12,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Narrow scheduling view that lets third-party plugins run work on the correct owner thread on both
- * Paper and Folia without depending on EmakiCoreLib internals.
+ * Paper/Folia-safe scheduling view.
  *
- * <p>Emaki resolves the backend once at startup. On Folia every method routes to the matching
- * regionised scheduler; on Paper they route to the Bukkit scheduler. Callers write the same code for
- * both.
- *
- * <h2>Why this exists</h2>
- * Folia has no single main thread. Touching an entity or a block from the wrong region thread throws
- * or corrupts state. Most Emaki write operations therefore report
- * {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#WRONG_THREAD} instead of guessing. Use
- * the {@code owns*} predicates to check, and the {@code run*} methods to hop.
- *
- * <p>This interface is deliberately smaller than EmakiCoreLib's internal dispatcher. It will not
- * grow to mirror it.
+ * <p>{@code owns*} methods test the calling thread. Use the matching {@code run*} method to hop to
+ * global, entity, or location ownership; async tasks must not touch Bukkit state. Unavailable calls
+ * return cancelled tokens, while {@link #submitGlobal} returns a failed future.
  */
 @ApiStatus.NonExtendable
 public interface EmakiScheduling {
@@ -35,14 +25,8 @@ public interface EmakiScheduling {
     boolean ownsGlobal();
 
     /**
-     * Tests entity ownership before touching an entity, its inventory, or its held items directly.
-     *
-     * <p>Callable from any thread and answers about the calling thread only. On Paper this is true on
-     * the main thread; on Folia only on the region thread that currently owns the entity. A
-     * {@code false} answer means you must hop through {@link #runForEntity} rather than proceed.
-     *
-     * @param entity the entity to test; {@code null} yields {@code false}
-     * @return whether the calling thread owns the given entity's region
+     * Tests entity ownership from any thread. On Paper this is the main thread; on Folia it is the
+     * entity's region thread. {@code null} returns {@code false}.
      */
     boolean ownsEntity(@Nullable Entity entity);
 
@@ -158,17 +142,8 @@ public interface EmakiScheduling {
     TaskToken runAsyncLater(@NotNull Plugin owner, @NotNull Runnable task, long delay, @NotNull TimeUnit unit);
 
     /**
-     * Submits a task to the global region and returns its future result.
-     *
-     * <p>This schedules a {@link Supplier} on the global region thread and returns a
-     * {@link CompletableFuture} that completes with the supplier's result. Use this when you need to
-     * query or compute something on the global thread and receive the answer asynchronously.
-     *
-     * @param owner the plugin that owns the task lifecycle
-     * @param task  the supplier to execute on the global region
-     * @param <T>   the result type
-     * @return a future that completes with the task result, or a failed future when EmakiCoreLib is
-     *         unusable
+     * Runs a supplier on the global owner thread. The future completes on that execution thread, or
+     * exceptionally when CoreLib cannot schedule it.
      */
     @NotNull
     <T> CompletableFuture<T> submitGlobal(@NotNull Plugin owner, @NotNull Supplier<T> task);

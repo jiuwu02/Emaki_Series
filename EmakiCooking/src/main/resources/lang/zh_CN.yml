@@ -1,8 +1,8 @@
 # EmakiCooking 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.2.9"
+version: "4.2.10"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -239,7 +239,6 @@ fermentation_barrel:
   collected_early: "<yellow>已提前收取发酵产物。</yellow>"
   collected_over: "<gold>已收取过度发酵产物。</gold>"
 
-# 工位运行态文本展示实体（悬浮文字）。支持 MiniMessage，\n 换行。
 text_display:
   chopping_board:
     title: "<gold>砧板</gold>"
@@ -291,7 +290,6 @@ text_display:
     over: "<gold>过度发酵</gold>"
     recipe: "<gray>产物：<aqua>%recipe%</aqua></gray>"
 
-# Debug 模式消息
 debug:
   station:
     interact: "工位交互 | 玩家=%player% | 类型=%type% | 坐标=%location%"

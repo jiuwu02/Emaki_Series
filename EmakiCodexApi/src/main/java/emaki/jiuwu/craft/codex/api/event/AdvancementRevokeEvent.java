@@ -6,16 +6,10 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiCodex before an advancement is revoked from a player.
+ * Fired after validation and before EmakiCodex revokes an advancement criterion.
  *
- * <p>Cancelling stops the revocation: the player keeps the advancement and the calling operation reports a
- * rejection.
- *
- * <h2>Threading</h2>
- * Fired synchronously on the thread that owns the target player.
- *
- * <h2>Coverage</h2>
- * Fired by every EmakiCodex revoke path after validation and before criterion revocation.
+ * <p>Runs synchronously on the player's owner thread for every EmakiCodex revoke path. Cancellation preserves
+ * the player's progress and the initiating operation reports cancellation.
  */
 public final class AdvancementRevokeEvent extends Event implements Cancellable {
 

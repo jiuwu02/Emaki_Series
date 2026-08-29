@@ -1,11 +1,4 @@
-# ============================================================
-# EmakiAttribute 伤害类型定义 - 投射物伤害
-# ============================================================
-# 投射物（弓箭、弩箭等）造成的伤害计算流程。
-# 结构与 physical.yml 相同，参考该文件获取详细字段说明。
-#
-# 文件放置位置: plugins/EmakiAttribute/damage_types/
-# ============================================================
+# 投射物伤害流程；字段契约同 physical.yml。
 
 id: projectile
 
@@ -41,8 +34,7 @@ stages:
     percent_attributes: []
     expression: "max(0, %input% - %flat%)"
 
-  # 盾牌格挡。原版盾牌同样能挡投射物，故与 physical.yml 保持一致。
-  # 仅在 config.yml 的 shield.mode = attribute 时才可能生效；字段说明见 physical.yml。
+  # 投射物格挡仅在 shield.mode=attribute 时生效，字段同 physical.yml。
   - id: block
     kind: CUSTOM
     source: TARGET

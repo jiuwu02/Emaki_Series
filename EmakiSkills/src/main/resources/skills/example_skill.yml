@@ -1,12 +1,7 @@
 # ============================================================
 # EmakiSkills 技能定义示例
 # ============================================================
-# 此文件定义了一个完整的主动技能，展示所有可用字段和推荐写法。
-# EmakiSkills 支持主动技能（玩家手动触发）和被动技能（事件自动触发）。
-# 技能通过脚本系统执行具体效果，支持表达式参数和升级系统。
-#
-# 文件放置位置: plugins/EmakiSkills/skills/
-# 文件名仅用于组织和错误诊断；技能内部标识由必填 id 字段决定，加载时按 id 注册。
+# 完整主动技能示例，包含表达式、动作管道与升级配置。
 # ============================================================
 
 # 技能唯一标识符（必填）
@@ -26,14 +21,7 @@ icon_material: "fire_charge"
 # ============================================================
 # 触发配置
 # ============================================================
-# trigger_type: 触发类型
-#   - "active": 主动技能（玩家通过绑定的触发器手动释放）
-#   - "passive": 被动技能（由 passive_triggers 指定的事件自动触发）
-# passive_triggers: 被动技能的触发事件列表（仅 passive 类型使用）
-#   - "attack": 攻击实体时
-#   - "damaged": 受到伤害时
-#   - "kill_entity": 击杀非玩家实体时
-#   - "kill_player": 击杀玩家时
+# trigger_type 为 active 或 passive；passive 使用 passive_triggers 声明事件。
 trigger_type: "active"
 
 # ============================================================
@@ -47,13 +35,7 @@ global_cooldown_ticks: 20
 # ============================================================
 # GUI 显示配置
 # ============================================================
-# lore_aliases: 技能的别名列表（用于 Lore 匹配识别）
-# tags: 技能标签；可用于装备数量限制和分类筛选
-# required_skills: 装备此技能前必须已经装备的技能 ID
-# conflicting_skills: 不能与此技能同时装备的技能 ID
-# show_in_slots: 是否允许显示在玩家主动技能槽选择列表中；false 常用于装备强制触发器技能
-# ui_category: GUI 中的分类标签（attack/defense/utility/passive）
-# sort_order: 在 GUI 中的排序权重（数字越小越靠前）
+# Lore 别名、标签、装备依赖/冲突与 GUI 分类；sort_order 越小越靠前。
 lore_aliases:
   - "火球术"
   - "烈焰弹"
@@ -84,17 +66,7 @@ condition:
 # ============================================================
 # 资源消耗
 # ============================================================
-# 释放技能时消耗的资源。
-# type: 资源类型
-#   - "local-resource": EmakiSkills 本地资源（如本地 mana）
-#   - "ea-resource": EmakiAttribute 资源（如 EA 的 mana 当前值）
-#   - "attribute-check" / "ea-attribute-check": 检查 EA 属性值（不消耗，仅检测）
-#   - "auraskills-mana": AuraSkills 法力值
-#   - "mmocore-mana" / "mythiclib-mana": MMOCore/MythicLib 法力值
-# target_id: 资源 ID；外部 mana 类型暂时仅保留为可读标识，默认写 mana
-# amount: 消耗/检查的数量
-# operation: 操作类型（consume = 消耗）
-# failure_message: 资源不足时的提示消息
+# 资源类型支持本地/EA 消耗、EA 属性只读检查及外部 mana；failure_message 为失败提示。
 resource_costs:
   - type: "local-resource"
     target_id: "mana"
@@ -105,19 +77,7 @@ resource_costs:
 # ============================================================
 # 技能变量
 # ============================================================
-# 用于脚本中的占位符替换，脚本内以 %var.<名称>% 读取。
-# 支持两种写法：
-#   1. 简写：直接写字符串表达式或布尔表达式
-#   2. 完整：写成子节点，可指定类型与数值范围
-# 完整写法的字段：
-# type: 变量类型
-#   - "expression": 表达式类型（根据等级动态计算）
-#   - "constant": 常量类型（固定值）
-#   - "string": 字符串类型
-#   - "boolean": 布尔类型
-# decimals: 小数位数
-# min/max: 数值范围限制
-# 注意：技能的 variables 是脚本内部使用的，不同于其他插件的 effects 变量。
+# 技能变量以 %var.<名称>% 读取；可简写表达式，或配置 type、decimals、min/max。
 variables:
   damage:
     type: "expression"
@@ -138,27 +98,9 @@ variables:
 # ============================================================
 # 技能脚本
 # ============================================================
-# 定义技能的具体执行逻辑，每行是一条 EmakiCoreLib 动作管道。
-#
-# 管道语法: 源段 | 闸门段 | 动作段
-#   - 源段决定「作用于谁」: self / looking_at / nearby / inherited ...
-#   - 闸门段筛选或标记目标流: limit / where / chance / keep ...
-#   - 动作段真正产生效果: damage / ignite / spawn_particle ...
-#   省略源段时默认为 self。一条管道只能有一个源段。
-#
-# 跨阶段传目标只有一个手段: keep 闸门段。
-#   cast 阶段某行写了 keep，该行执行到 keep 时的目标流会传给 hit 阶段，
-#   hit 阶段用 inherited 读取。keep 写在第几行都一样，与行顺序无关。
-#   cast 阶段没有 keep 时，跨阶段目标停留在触发器提供的目标上。
-#
-# hit / miss 的判定只看上面这个跨阶段目标流：非空走 hit，空走 miss。
-#
-# mode: 脚本模式（"native" = 动作管道）
-# stop_on_failure: 某一行失败时是否停止后续行
-# actions: 动作阶段
-#   cast: 释放阶段（粒子、音效、选取目标等）
-#   hit: 命中阶段（伤害、点燃、特效等）
-#   miss: 未命中阶段（提示、粒子等）
+# 管道语法为“源 | 闸门 | 动作”；省略源时使用 self，每行最多一个源。
+# keep 是跨阶段传递目标的唯一方式；hit/miss 按传递目标流是否为空选择。
+# stop_on_failure 控制当前阶段失败后是否继续；actions 分 cast、hit、miss。
 script:
   enabled: true
   mode: "native"
@@ -168,13 +110,13 @@ script:
     cast:
       - "self | play_sound sound=entity.blaze.shoot volume=1 pitch=1.05"
       - "self | spawn_particle particle=flame count=24 extra=0.02"
-      # looking_at 取代旧的 ray；旧写法的 save=target 现在是显式的 keep
+      # looking_at 选目标，keep 传给后续阶段。
       - "looking_at range=18 width=%var.radius% | keep"
 
     hit:
       # inherited 读取 cast 阶段 keep 记录的目标
       - "inherited | damage amount=%var.damage%"
-      # if 条件分支代替旧的 @if 行首标记，方括号内是分支体
+      # if 的方括号内为条件成立时执行的管道。
       - "if %var.level%>=3 [ inherited | ignite duration=%var.ignite_ticks%t ]"
       - "if %var.empowered%==true [ inherited | spawn_particle particle=explosion count=1 ]"
       - 'send_message text="%var.impact_message%"'
@@ -190,11 +132,9 @@ script:
 upgrade:
   enabled: true
   max_level: 10
-  # 升级界面使用的 GUI 模板 id，对应 gui/ 目录下模板文件里的 id 字段。
-  # 缺省即 upgrade_gui（内置模板）；指定的 id 不存在时会回落到它并打印一条警告。
+  # GUI 模板 id；缺省或不存在时回退 upgrade_gui，并记录警告。
   gui_template: "upgrade_gui"
 
-  # 升级经济配置
   economy:
     enabled: true
     currencies:
@@ -204,7 +144,7 @@ upgrade:
         cost_formula: "%base_cost% * %target_level%"
         display_name: "<gold>金币</gold>"
 
-  # 各等级升级成功率
+  # 目标等级对应的成功率百分比。
   success_rates:
     2: 100.0
     3: 100.0
@@ -219,7 +159,6 @@ upgrade:
   # 升级失败惩罚: "none"（无）/ "downgrade"（降级）/ "reset"（重置）
   failure_penalty: "none"
 
-  # 各等级详细配置
   levels:
     2:
       materials:
@@ -230,7 +169,6 @@ upgrade:
         success: []
         failure: []
 
-    # 里程碑等级
     5:
       materials:
         - item_sources:
@@ -241,7 +179,6 @@ upgrade:
           - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
         failure: []
 
-    # 满级
     10:
       # 单独覆盖此等级的经济配置
       economy:
@@ -256,26 +193,10 @@ upgrade:
         - item_sources:
             - "minecraft-nether_star"
           amount: 1
-        # 材料判定由 matcher 单独决定：一条材料项写了 matcher，就只看 matcher，
-        # 同条目的 item_sources 不再参与判定。
-        # ⚠ 因此要限定物品种类时，必须把物品源写进 matcher 里（用 all_of 绑定），
-        #   只写组件条件会让所有满足该组件的背包物品都被计入这味材料。
-        #
-        # 聚合差异（重要）：item_sources 材料项会按物品源合并同类项累加数量；
-        # matcher 材料项无法判等价，因此每一项都独立成项、彼此不合并，
-        # 也不会与 item_sources 材料项合并。同一背包物品不会被两项重复计入。
-        #
-        # 形状差异（容易写错，注意区分）：
-        #   物品源简写用连字符：      "minecraft-diamond"
-        #   组件 ID 与 path 用冒号：  component: minecraft:enchantments / path: minecraft:sharpness
-        #   组件 ID 省略命名空间时默认补 minecraft:，所以 custom_name 等价于 minecraft:custom_name
-        #
-        # operator 可用：exists / absent、==、!=、>、>=、<、<=、
-        #                contains / starts_with / ends_with、regex、has_key / has_value、size
-        #
-        # 组合逻辑：all_of（全部满足）/ any_of（任一满足）/ none_of（全部不满足）/
-        #           at_least + required_count（至少 N 条）/ exactly + required_count（恰好 N 条）
-        # 下例要求"是钻石，且自定义名里含灵字"两条同时满足：
+        # matcher 存在时完全接管判定，同条 item_sources 不参与；限制物品源时须写入 matcher。
+        # item_sources 同类项合并累计；matcher 项彼此独立且不与 item_sources 合并，同一物品不重复计入。
+        # 组件命名空间缺省为 minecraft；组合支持 all_of/any_of/none_of/at_least/exactly。
+        # 下例要求物品源与组件条件同时满足。
         - matcher:
             type: all_of
             matchers:

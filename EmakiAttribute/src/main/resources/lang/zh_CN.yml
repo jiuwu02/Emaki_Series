@@ -1,8 +1,8 @@
 # EmakiAttribute 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.7.11"
+version: "4.7.12"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -326,7 +326,7 @@ command:
     values: "<gray>属性数值 <dark_gray>(悬停查看)</dark_gray></gray>"
     signature_empty: "<gray>没有签名</gray>"
     values_empty: "<gray>没有非零属性</gray>"
-    # 控制台侧：无法悬停，改为标题 + 缩进逐行列出
+    # 控制台侧无法悬停，使用标题与缩进列表
     signature_header: "<gray>签名:</gray>"
     signature_line: "  <yellow>%signature%</yellow>"
     signature_empty_line: "  <gray>没有签名</gray>"
@@ -406,7 +406,6 @@ command:
     summary: "<gray>#%trace_id%</gray> <white>%attacker%</white> -> <white>%target%</white> <dark_gray>type=</dark_gray><aqua>%damage_type%</aqua> <dark_gray>cause=</dark_gray><aqua>%cause%</aqua> <dark_gray>final=</dark_gray><yellow>%final_damage%</yellow> <dark_gray>mode=</dark_gray><green>%apply_mode%</green>"
     stage: "  <gray>阶段</gray> <aqua>%stage%</aqua> <yellow>%input%</yellow> -> <green>%output%</green>"
 
-# Debug 模式消息
 debug:
   combat:
     damage_start: "伤害计算开始 | 攻击者=%attacker% | 目标=%target% | 原始伤害=%damage%"

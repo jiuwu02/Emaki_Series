@@ -1,8 +1,8 @@
 # EmakiCodex English language resource.
-# Messages support MiniMessage; apply changes with /codex reload.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.5"
+version: "1.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -41,8 +41,6 @@ command:
     failed: "<red>Codex entry %entry% operation failed: %reason%</red>"
     bad_reference: "<red>Entry reference %entry% is malformed; expected <categoryId>/<entryId>.</red>"
 
-# Concrete reasons a grant/revoke was refused. Resolved straight from the service's reasonKey, so a new
-# cause only needs an entry here.
 codex:
   player:
     required: "No player given."
@@ -93,7 +91,6 @@ gui:
   reward_hidden: "<dark_gray>- Visible once unlocked</dark_gray>"
   reward_none: "<dark_gray>- None</dark_gray>"
 
-# Default sentences for the codex_broadcast_achievement stage, picked by the frame parameter.
 broadcast:
   frame:
     task: "<white>%player% has made the advancement <green>[%title%]</green></white>"

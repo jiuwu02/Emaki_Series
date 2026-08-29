@@ -1,21 +1,11 @@
 # EmakiAccessory 饰品套装示例
-#
-# 饰品套装与 EmakiItem 的装备套装是两套独立机制，互不影响：
-# 这里只统计"戴在饰品槽里"的件数，EmakiItem 只统计装备栏。
-# 同一件物品同时属于两边的套装是允许的，两边各自独立计数。
-#
-# 文件名不参与识别，套装 id 取下面的 id 字段。
+# 仅统计饰品槽，与 EmakiItem 装备栏套装独立累计；同一物品可同时参与两者。
+# 套装 ID 取自 id，与文件名无关。
 id: "example_set"
 display_name: "<gold>试炼者饰品</gold>"
 
-# 套装成员。键名只是本文件内的标识，真正生效的是 item 和 slot。
-#
-#   item - EmakiItem 的物品定义 id。缺少 EmakiItem 时整个套装不生效
-#          （没有定义 id 就无法判断"是这件饰品"）。
-#   slot - 这件饰品要戴在哪里才算数：
-#            部位 id（如 ring）    - 该部位任意一格都算
-#            实例 id（如 ring_1）  - 只有这一格算
-#            留空                  - 任意饰品槽都算
+# 成员键仅作本地标识；item 引用 EmakiItem 定义，依赖不可用时整个套装不生效。
+# slot 可填部位 ID、槽位实例 ID，留空则任意饰品槽均计数。
 pieces:
   necklace:
     item: "example_necklace"
@@ -32,9 +22,7 @@ pieces:
     slot: "charm"
     display: "<gray>试炼者护符</gray>"
 
-# 件数阈值。键名是"戴够几件"，必须是 1 到成员总数之间的整数。
-#
-# 阈值是累加的，不是互斥的：戴够 3 件时 2 件档和 3 件档同时生效。
+# 键名为 1 到成员总数的件数阈值；已达到的各档累计生效。
 thresholds:
   2:
     effects:

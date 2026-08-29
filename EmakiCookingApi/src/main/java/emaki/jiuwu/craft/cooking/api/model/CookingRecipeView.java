@@ -3,11 +3,7 @@ package emaki.jiuwu.craft.cooking.api.model;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Read-only view of a cooking recipe.
- *
- * <p>Only the stable identity of a recipe is exposed. EmakiCooking's internal recipe object carries a
- * live handle to its YAML section, which would tie third parties to a configuration shape that server
- * owners are free to restructure; that handle is deliberately not surfaced.
+ * Immutable identity view of a cooking recipe.
  *
  * @param id          canonical lowercase recipe id
  * @param displayName display name; falls back to the id when unset

@@ -1,8 +1,8 @@
 # EmakiItem 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.16"
+version: "2.7.17"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -142,7 +142,6 @@ repair:
     restore: "<gray>恢复 <white>%restore%</white> 点耐久。</gray>"
     cost: "<gray>消耗 <white>%name%</white> <white>%required%</white>（余额 <white>%available%</white>）。</gray>"
 
-# 物品浏览 GUI 消息
 browser:
   gui_open_failed: "<red>浏览界面不可用，请检查 gui/pack_browser_gui.yml 与 gui/item_browser_gui.yml。</red>"
   default_pack_name: "<gray>未分包</gray>"
@@ -153,7 +152,6 @@ browser:
   take_failed: "<red>无法取出物品: <white>%id%</white></red>"
   inventory_full: "<yellow>背包空间不足，<white>%count%</white> 件物品已掉落在脚下。</yellow>"
 
-# Debug 模式消息
 debug:
   create:
     start: "开始创建物品 | ID=%id% | 数量=%amount%"

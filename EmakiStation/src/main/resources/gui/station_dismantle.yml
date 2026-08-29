@@ -1,9 +1,7 @@
 # ============================================================
 # EmakiStation 界面布局：分解页
 # ============================================================
-#
 # 通过 /emakistation dismantle <station> 进入本页。
-#
 # 本页可用的 type：
 #   dismantle_input        - 展示配方所需物品（当前选中配方的输入图标）
 #   dismantle_item_display - 同 dismantle_input，别名
@@ -13,7 +11,6 @@
 #   prev_page / next_page / page_info - 分页控件（产物列表翻页）
 #   back                   - 返回目录页
 #   close                  - 关闭界面
-#
 # ============================================================
 id: "station_dismantle"
 gui_type: CHEST

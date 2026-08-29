@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 物理防御
-# 详细字段说明参考 physical_attack.yml
 
 id: physical_defense
 display_name: "物理防御"

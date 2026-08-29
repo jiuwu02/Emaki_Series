@@ -1,14 +1,5 @@
-# ============================================================
-# EmakiSkills GUI 配置 - 技能升级界面
-# ============================================================
-# 玩家查看升级成本、成功率与参数变化并确认升级的界面
-# 入口: 技能界面的已装配技能槽上「右键」
-#
-# 文件放置位置: plugins/EmakiSkills/gui/
-#
-# 单个技能可通过 skills/<file>.yml 的 upgrade.gui_template
-# 指定自定义模板 id，缺省使用本文件的 upgrade_gui。
-# ============================================================
+# 技能升级确认界面；右键已装配技能进入。
+# upgrade.gui_template 可覆盖模板 id，缺省使用 upgrade_gui。
 id: "upgrade_gui"
 gui_type: CHEST
 title: "<gradient:#4DA6FF:#FF6B6B>技能升级</gradient>"

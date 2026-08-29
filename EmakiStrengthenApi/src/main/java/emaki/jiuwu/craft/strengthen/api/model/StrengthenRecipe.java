@@ -26,7 +26,7 @@ import java.util.Set;
  * <p>The nested records ({@link CurrencyEntry},
  * {@link EconomyConfig}, {@link Limits}, {@link StatLineDefinition},
  * {@link EconomyOverride}, {@link StarStageMaterial}, {@link StarStage}) model
- * the individual configuration sections.
+ * the individual configuration sections. Nested collection components are defensively copied and immutable.
  */
 public final class StrengthenRecipe {
 

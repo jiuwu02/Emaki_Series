@@ -1,8 +1,8 @@
 # EmakiCooking English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "4.2.9"
+version: "4.2.10"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -249,7 +249,6 @@ fermentation_barrel:
   collected_early: "<yellow>Collected an early fermentation output.</yellow>"
   collected_over: "<gold>Collected an over-fermented output.</gold>"
 
-# Station runtime floating text display entities. Supports MiniMessage, \n for line breaks.
 text_display:
   chopping_board:
     title: "<gold>Chopping Board</gold>"
@@ -301,7 +300,6 @@ text_display:
     over: "<gold>Over-fermented</gold>"
     recipe: "<gray>Output: <aqua>%recipe%</aqua></gray>"
 
-# Debug mode messages
 debug:
   station:
     interact: "Station interact | Player=%player% | Type=%type% | Location=%location%"

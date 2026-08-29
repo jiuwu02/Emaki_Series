@@ -9,7 +9,8 @@ import java.util.Map;
  *
  * <p>Holds the attribute id/value pairs granted by the source, free-form string
  * metadata, optional per-attribute activation conditions, a schema version and
- * a last-updated timestamp. Keys are normalized on construction. Use
+ * a last-updated timestamp. Maps are normalized and defensively copied; non-positive schema versions and
+ * timestamps select current defaults. Use
  * {@link emaki.jiuwu.craft.attribute.api.PdcAttributeAccess} to persist and read these payloads.
  *
  * @param sourceId      the owning source id (normalized)

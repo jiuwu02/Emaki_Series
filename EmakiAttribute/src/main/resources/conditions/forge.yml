@@ -1,28 +1,13 @@
-# ============================================================
-# EmakiAttribute 条件源 - EmakiForge 锻造条件
-# ============================================================
-# 当装备由 EmakiForge 锻造产出时，检查物品 PDC 中的
-# required_level 元数据，判断玩家等级是否满足装备要求。
-#
-# 文件放置位置: plugins/EmakiAttribute/conditions/
-# ============================================================
+# EmakiForge 条件源：读取 PDC required_level 并检查玩家等级。
 
-# 是否启用此条件源
 enabled: true
 
-# 条件源标识符（对应 EmakiForge 写入的 PDC 数据）
 source_id: "forge"
 
-# 条件块
 condition:
-  # 条件组合方式
   type: "all_of"
-  # 表达式解析失败时是否视为不满足条件
+  # true 时表达式解析失败视为不匹配；pdc_meta 将读取值放入 %value%。
   invalid_as_failure: true
-  # 条件列表
-  # type: pdc_meta → 从物品 PDC 中读取指定 key 的值
-  # key: PDC 中的键名
-  # condition: 条件表达式（%value% 为读取到的值）
   entries:
     - type: pdc_meta
       key: required_level

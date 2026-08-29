@@ -17,13 +17,9 @@ public interface CodexExtensions {
      * the same owner and id replaces the owner's previous registration rather than adding a second one,
      * and closing the superseded handle does not remove the replacement.
      *
-     * <p>A no-op handle is returned instead of an exception when the owner is {@code null} or disabled,
-     * the spec is {@code null} or has a blank/unusable id, the key is already held by a registration this
-     * owner does not own, the server platform refuses the advancement, the advancement feature is switched
-     * off in config, EmakiCodex is not enabled, or the caller is not on the global thread. Because
-     * {@link AdvancementRegistration} exposes only {@code close()}, the handle itself cannot be inspected
-     * to tell a successful registration from a rejected one; verify through
-     * {@code EmakiCodexApi.catalog()} when that distinction matters.
+     * <p>Invalid, unavailable, conflicting or wrong-thread registrations return an inactive handle rather
+     * than throwing. The handle exposes no success flag; query {@code EmakiCodexApi.catalog()} when the
+     * distinction matters.
      *
      * @param owner plugin that owns the registration lifecycle and supplies the namespace
      * @param spec  the advancement definition to register
@@ -39,10 +35,9 @@ public interface CodexExtensions {
      * consulted in priority order when EmakiCodex dispatches a trigger, and a provider whose owner has
      * been disabled is dropped at dispatch time.
      *
-     * <p>A no-op handle is returned when the owner is {@code null} or disabled, the trigger is
-     * {@code null}, its id is blank, its id accessor throws, or EmakiCodex's trigger registry is not
-     * built. Registering the same owner and trigger id again replaces the previous entry. As with
-     * advancement registration, the returned handle cannot be inspected to confirm success.
+     * <p>Invalid or unavailable registrations return an inactive handle rather than throwing. Registering
+     * the same owner and trigger id replaces the previous entry; closing the superseded handle cannot remove
+     * the replacement. The returned handle exposes no success flag.
      *
      * @param owner   plugin that owns the registration lifecycle
      * @param trigger the trigger provider to register

@@ -1,8 +1,8 @@
 # EmakiMobs English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.9"
+version: "1.0.10"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -102,6 +102,5 @@ command:
   usage: "<gray>Usage: /emakimobs <spawn|reload|list|info|kill|count|debug> ...</gray>"
   no_permission: "<red>You do not have permission to run this command.</red>"
 
-# Debug messages
 debug:
   target_selector_expression_failed: "Target selector expression %expression_id% failed: %error%"

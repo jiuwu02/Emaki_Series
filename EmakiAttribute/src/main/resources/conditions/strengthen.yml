@@ -1,23 +1,11 @@
-# ============================================================
-# EmakiAttribute 条件源 - EmakiStrengthen 强化条件
-# ============================================================
-# 预留给 EmakiStrengthen 的条件源接口。
-# 当前无额外条件，仅由代码逻辑判断。
-#
-# 文件放置位置: plugins/EmakiAttribute/conditions/
-# ============================================================
+# EmakiStrengthen 条件源；空 entries 表示不增加配置条件，仅使用代码判定。
 
-# 是否启用此条件源
 enabled: true
 
-# 条件源标识符（对应 EmakiStrengthen 写入的 PDC 数据）
 source_id: "strengthen"
 
-# 条件块（空 entries 表示无额外条件）
 condition:
-  # 条件组合方式
   type: "all_of"
-  # 表达式解析失败时是否视为不满足条件
+  # true 时表达式解析失败视为不匹配；空 entries 不增加配置条件。
   invalid_as_failure: true
-  # 条件列表
   entries: []

@@ -1,14 +1,8 @@
 # ============================================================
 # EmakiSkills JavaScript 脚本技能示例
 # ============================================================
-# 此文件展示如何使用 GraalVM JavaScript 脚本扩展技能逻辑。
-#
-# 当前实现的能力边界（重要）：
-#   - JS 可以读取上下文变量、读取玩家/位置状态，并在 js_entity 中操作玩家。
-#   - JS 返回值只进入动作结果的 script_result 数据，
-#     不会写回技能变量、不会生成占位符、不会筛选或替换管道目标。
-#   - 因此「用 JS 算出数值再交给后续动作」当前不成立；
-#     需要参与后续计算的数值请写在 variables 段的 expression 中。
+# GraalVM JavaScript 可读取上下文与目标状态；返回值仅进入动作结果的 script_result，
+# 不写回变量、不生成占位符，也不筛选或替换管道目标。后续计算请使用 variables.expression。
 # ============================================================
 
 id: "example_js_skill"
@@ -49,8 +43,7 @@ resource_costs:
 # ============================================================
 # 技能变量
 # ============================================================
-# base_damage: 基础伤害值，会被脚本读取并作为计算基数
-# crit_threshold: 暴击判定阈值（目标生命值百分比）
+# base_damage 为脚本读取的基础伤害；crit_threshold 为目标生命值比例阈值。
 variables:
   base_damage:
     type: "expression"
@@ -68,14 +61,7 @@ variables:
 # ============================================================
 # 技能脚本 - JavaScript 用法示例
 # ============================================================
-# 三个 JS Stage 的参数契约统一为：
-#   code    必填，JavaScript 代码字符串
-#   timeout 可选，单位毫秒，缺省 5000；传入 <=0 也回退到 5000
-#
-# 重要边界：脚本返回值只进入该动作结果的 script_result 数据，
-# 不会写入技能变量、不会生成占位符、不会筛选或替换流水线目标。
-# 因此 JS 不能用来「算出倍率再给下一段动作用」，
-# 需要参与后续计算的数值请用 variables 段的 expression 表达式。
+# 三个 JS Stage 均需 code；timeout 单位毫秒，默认 5000，<=0 也回退 5000。
 script:
   enabled: true
   mode: "native"
@@ -83,50 +69,32 @@ script:
 
   actions:
     cast:
-      # 播放释放音效
       - "self | play_sound sound=block.enchantment_table.use volume=1 pitch=1.2"
 
-      # 射线检测并保存目标
       - "looking_at range=20 width=2 | keep"
 
     hit:
-      # ============================================================
       # js_compute：纯计算脚本
-      # ============================================================
-      # js_compute 不要求已有目标，始终绑定 context；
-      # 当前目标是玩家时还会额外绑定 player。
-      # context 提供 getVariable(name) 与 hasVariable(name)，
-      # 可读取本技能 variables 段声明的变量（命名空间为 var.）。
+      # js_compute 无需目标，绑定 context；当前目标为玩家时另绑 player。context 可读取 var.* 变量。
       - 'js_compute code="return context.getVariable(''var.base_damage'');" timeout=500'
 
       # 实际伤害由 variables 段的表达式决定，不依赖 JS 返回值。
       - "inherited | damage amount=%var.base_damage%"
 
-      # 粒子按 base_damage 分支。base_damage 随等级增长（20 + (等级-1)*5），
-      # 因此该条件在 3 级及以上成立，是真实生效的分支。
+      # base_damage 随等级增长；30 点分支从 3 级起命中。
       - "if %var.base_damage%>=30 [ inherited | spawn_particle particle=crit_magic count=32 extra=0.15 ]"
       - "if %var.base_damage%<30 [ inherited | spawn_particle particle=enchant count=16 extra=0.08 ]"
 
-      # ============================================================
       # js_entity：操作实体的脚本
-      # ============================================================
-      # js_entity 要求管道已有实体目标，并且只对玩家目标执行；
-      # 非玩家实体会跳过该段。它绑定 player 与 context。
-      # 注意：它不是实体过滤器，返回布尔值不会保留或剔除目标。
-      # nearby 的参数是 radius / limit / type / include_players，
-      # 其中 type 必须是合法的 EntityType（如 zombie），没有 hostile 这类分组名。
+      # js_entity 仅对已有的玩家目标执行，绑定 player/context；非玩家静默跳过，返回值不筛选目标。
+      # nearby.type 必须是合法 EntityType，不支持 hostile 等分组名。
       - 'nearby radius=5 limit=3 type=zombie | js_entity code="return player.getHealth();" timeout=300'
 
-      # 对周围目标造成伤害；伤害值取自技能变量。
       - "nearby radius=5 limit=3 type=zombie | damage amount=%var.base_damage%"
 
-      # ============================================================
       # js_location：读取位置的脚本
-      # ============================================================
-      # js_location 要求管道已有位置目标，绑定 location 与 context；
-      # 目标同时关联玩家时还会绑定只读 player。
-      # 它不会依据返回值生成新坐标或展开坐标列表，
-      # 也没有 count / index / baseX / baseY / baseZ 参数与绑定。
+      # js_location 需要位置目标，绑定 location/context；关联玩家时另绑只读 player。
+      # 返回值不生成坐标，也不提供 count/index/baseX/baseY/baseZ。
       - 'inherited | js_location code="return location.getBlockY();" timeout=500'
       - "inherited | spawn_particle particle=end_rod count=12 extra=0.05"
 

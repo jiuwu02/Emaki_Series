@@ -1,5 +1,4 @@
 # EmakiLevel 升级需求配置
-#
 # 全局与分组的升级经验公式；groups 下的键对应等级类型的 requirement.group。
 
 global:

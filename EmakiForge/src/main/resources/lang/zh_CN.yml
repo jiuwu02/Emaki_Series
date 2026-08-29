@@ -1,11 +1,9 @@
 # EmakiForge 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
+version: "4.7.12"
 
-version: "4.7.11"
-
-# 通用消息
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此操作。</red>"
@@ -17,7 +15,6 @@ general:
   reload_fail: "<red>配置重载失败。</red>"
   reload_summary: "<gray>已重载配方 %recipes% 个，GUI %guis% 个。</gray>"
 
-# 命令帮助
 command:
   help:
     header: "<gold>========== Emaki Forge 帮助 ==========</gold>"
@@ -65,7 +62,6 @@ command:
       "<yellow>%id%</yellow> <gray>- %name% (消耗: %capacity%, 加成:
       +%bonus%)</gray>"
 
-# 控制台日志
 console:
   plugin_starting: "<gray>正在启动...</gray>"
   plugin_started: "<green>启动完成</green>"
@@ -185,7 +181,6 @@ console:
     <red>%source%</red>，动作 <red>%action%</red> <gray>(%error%)</gray></yellow>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
 
-# Debug 模式消息
 debug:
   recipe:
     match_start: "开始配方匹配 | 玩家=%player% | 输入物品=%items%"
@@ -336,7 +331,6 @@ loader:
     "<yellow>配方 %recipe% 的 condition.type 非法: %file%
     -> <red>%value%</red>。允许值: <gray>%allowed%</gray>，已拒绝加载。</yellow>"
 
-# 锻造相关
 forge:
   fallback_item_name: "物品"
   error:
@@ -371,15 +365,12 @@ forge:
     quality: "<gold>品质: %quality% (倍率: %multiplier%x)</gold>"
     first_craft: "<green>首次完成该配方锻造。</green>"
 
-# 图纸相关
 blueprint:
   count_not_enough: "<red>图纸数量不足。</red>"
 
-# 材料相关
 material:
   count_not_enough: "<red>材料数量不足。</red>"
 
-# GUI相关
 gui:
   title:
     book: "<dark_gray>配方图鉴</dark_gray>"
@@ -391,9 +382,6 @@ gui:
     required: "<gold>放入材料(任意槽位)</gold>"
     optional: "<green>放入材料(任意槽位)</green>"
 
-  # 图纸槽的材料需求清单 (gui/forge_gui.yml 的 %blueprint_requirements%)
-  # 一张图纸可被多个配方使用，配方未确定时按配方分组列出，最多展开 3 组。
-  # 数量口径是「已放入 GUI 的量 / 需要的量」，不是背包里的量。
   blueprint:
     no_recipe: "<gray>配方会按图纸物品源自动匹配"
     recipe_group_header: "<gold>【%recipe%】</gold>"

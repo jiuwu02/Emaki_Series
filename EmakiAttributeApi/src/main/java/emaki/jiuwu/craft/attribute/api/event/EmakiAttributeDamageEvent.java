@@ -14,18 +14,13 @@ import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 
 /**
- * Fired by EmakiAttribute after it has resolved a damage calculation but before
- * the resulting damage is applied.
+ * Fired after damage resolution and before EmakiAttribute applies the hit.
  *
- * <p>Listeners may inspect the attacker, target, damage type, critical state
- * and the full {@link DamageContext}/{@link DamageResult}, adjust the outgoing
- * value via {@link #setFinalDamage(double)}, or cancel the hit entirely. A
- * cancelled event (or a final damage of {@code 0}) prevents EmakiAttribute from
- * applying any damage.
- *
- * <p><strong>Thread:</strong> fired synchronously while damage is finalized on the owner thread shared by
- * the live combatants. On Paper this is the main server thread; on Folia this is the applicable entity
- * owner thread. The public damage operations reject calls that do not own every supplied combatant.
+ * <p>Runs synchronously on the owner thread shared by every live combatant; public damage operations reject
+ * calls that do not own them. Cancelling the event or setting final damage to {@code <= 0} suppresses the
+ * application. {@link #setFinalDamage(double)} overrides only the value to apply, not the immutable
+ * {@link DamageContext} or {@link DamageResult}. {@link #getContext()} returns an immutable copy; entity
+ * references remain live Bukkit objects.
  */
 public final class EmakiAttributeDamageEvent extends Event implements Cancellable {
 
@@ -37,13 +32,8 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
     private double finalDamage;
 
     /**
-     * Creates an event from a resolved damage context and result.
-     *
-     * @param damageContext the context describing the hit; when {@code null}
-     *                      the context carried by {@code damageResult} (or an
-     *                      empty context) is used
-     * @param damageResult  the computed result; when {@code null} a zero result
-     *                      derived from the context is synthesized
+     * Uses the result's context when {@code damageContext} is null, otherwise an empty context; a null result
+     * is replaced with a zero result derived from the selected context.
      */
     public EmakiAttributeDamageEvent(DamageContext damageContext, DamageResult damageResult) {
         this.damageContext = damageContext != null
@@ -57,17 +47,7 @@ public final class EmakiAttributeDamageEvent extends Event implements Cancellabl
         this.finalDamage = this.damageResult.finalDamage();
     }
 
-    /**
-     * Convenience constructor that assembles a {@link DamageContext} from the
-     * individual combatants and damage metadata.
-     *
-     * @param attacker     the attacking entity, may be {@code null}
-     * @param target       the damaged entity, may be {@code null}
-     * @param projectile   the projectile involved, or {@code null} for melee
-     * @param damageTypeId the EmakiAttribute damage type id
-     * @param baseDamage   the base damage before resolution
-     * @param damageResult the computed result, may be {@code null}
-     */
+    /** Missing fields inherit from {@code damageResult}'s context when available. */
     public EmakiAttributeDamageEvent(LivingEntity attacker,
             LivingEntity target,
             Projectile projectile,

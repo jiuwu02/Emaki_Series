@@ -1,8 +1,8 @@
 # EmakiStation English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.8"
+version: "1.0.9"
 
 console:
   plugin_starting: "Starting EmakiStation..."
@@ -76,8 +76,6 @@ command:
   debug_unavailable: "<red>Debug output is unavailable right now</red>"
 
 station:
-  # Load-time problems
-  # Load-time issues
   station_missing_id: "<yellow>Station file is missing its id: %file%</yellow>"
   station_no_channel: "<yellow>Station %station% has both material channels disabled, skipped (%file%)</yellow>"
   recipe_missing_id: "<yellow>Recipe file is missing its id: %file%</yellow>"
@@ -92,7 +90,6 @@ station:
   dismantle_recipe_bad_source: "<yellow>Dismantle recipe %recipe% has an unresolvable pool item source %source% (%file%)</yellow>"
   dismantle_recipe_empty_pool: "<yellow>Dismantle recipe %recipe% has no usable pool entries, skipped (%file%)</yellow>"
 
-  # Runtime rejections
   unknown_station: "That station does not exist"
   unknown_recipe: "That recipe does not exist"
   missing_layout: "The station's GUI layout does not exist"

@@ -1,5 +1,4 @@
 # EmakiLevel 经验来源 - 方块行为
-#
 # 挖掘、放置等方块交互的经验来源与反滥用参数。
 
 id: "block_actions"

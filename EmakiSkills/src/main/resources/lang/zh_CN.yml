@@ -1,8 +1,8 @@
 # EmakiSkills 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.11"
+version: "2.7.12"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -109,7 +109,6 @@ skill:
   source_lost: "<red>技能 <white>%skill%</white> 的来源已失效，已自动卸下。</red>"
   not_found: "<red>找不到技能: %skill_id%</red>"
   not_unlocked: "<red>你尚未解锁该技能。</red>"
-  # 以下五条是脚本管道的内部原因键，由 cast.* 消息面向玩家呈现
   script_unavailable: "<red>技能脚本当前不可用。</red>"
   script_phase_condition_failed: "<gray>脚本阶段条件未通过。</gray>"
   mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
@@ -135,7 +134,6 @@ cast:
   condition_not_met: "<red>技能条件未满足。</red>"
   cancelled: "<yellow>技能释放已取消。</yellow>"
   skill_execute_failed: "<red>技能执行失败。</red>"
-  # 以下四条对应技能脚本的配置错误，控制台会同时输出带技能 ID 与行号的警告
   script_action_not_found: "<red>技能 <white>%skill%</white> 的脚本使用了不存在的动作，请检查配置。</red>"
   script_syntax_error: "<red>技能 <white>%skill%</white> 的脚本语法有误，请检查配置。</red>"
   script_invalid_argument: "<red>技能 <white>%skill%</white> 的脚本参数有误，请检查配置。</red>"
@@ -149,7 +147,6 @@ cast:
 gui:
   open_failed: "<red>无法打开技能界面。</red>"
   skill_equip_failed: "<red>技能装配失败：依赖、冲突、槽位显示或标签数量限制未满足。</red>"
-  # 界面操作反馈
   skill_equipped: "<green>已装配 <white>%skill%</white> 到槽位 %slot%。</green><yellow>还需绑定触发器才能释放：在该技能槽上 Shift+左键。</yellow>"
   skill_unequipped: "<yellow>已卸下技能。</yellow>"
   skill_already_equipped: "<red>该技能已装配在其他槽位。</red>"
@@ -188,9 +185,7 @@ gui:
   page_prev: "<gray>上一页</gray>"
   page_next: "<gray>下一页</gray>"
   page_info: "<gray>第 %current%/%total% 页</gray>"
-  # 升级界面 (gui/upgrade_gui.yml)
-  # 货币、材料、参数三份清单每项各占一行：模板里写一个占位符，
-  # CoreLib 会按条目数自动展开成对应行数。
+  # 货币、材料与参数清单会将一个占位符展开为每项一行。
   upgrade_cost_free: "<green>无</green>"
   upgrade_currency_title: "<gold>货币消耗</gold>"
   upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"
@@ -274,7 +269,6 @@ upgrade:
   failed: "<red>技能 <white>%skill%</white> 升级失败，成功率 %success_rate%%。</red>"
   cancelled: "<yellow>本次技能升级已被取消。</yellow>"
 
-# Debug 模式消息
 debug:
   common:
     header: "<gray>===== 调试信息: <aqua>%player%</aqua> =====</gray>"

@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 固定吸血
-# 详细字段说明参考 physical_attack.yml
 
 id: percentage_lifesteal
 display_name: "固定吸血"

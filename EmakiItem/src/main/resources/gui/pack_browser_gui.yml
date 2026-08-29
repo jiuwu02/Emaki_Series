@@ -4,8 +4,6 @@
 # /ei browse 打开的第一级界面，列出 items/ 下的每个物品包。
 # 点击包图标进入第二级界面 item_browser_gui.yml 浏览包内物品。
 # 包图标外观由各包目录下的 pack.yml 定义，缺省走兜底。
-#
-# 文件放置位置: plugins/EmakiItem/gui/
 # ============================================================
 id: "pack_browser_gui"
 

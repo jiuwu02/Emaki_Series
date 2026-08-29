@@ -23,14 +23,9 @@ import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
 /**
  * EmakiStorage queries and state-changing operations.
  *
- * <p>Reached through {@link EmakiStorageApi#operations()}. The future-returning methods may load data
- * on the storage file lane or dispatch mutations to the target player's owner thread. Their completion
- * callbacks are not guaranteed to run on a Bukkit owner thread; callers must schedule their own Bukkit
- * state access.
- *
- * <p>{@link #openGui(Player)} is deliberately synchronous: it touches the viewer and inventory GUI
- * immediately and therefore must be called on the supplied player's owner thread. It never schedules a
- * delayed open on the caller's behalf.
+ * <p>Future-returning methods may use storage I/O and dispatch player mutations; their completion thread is
+ * not guaranteed to own Bukkit state. {@link #openGui(Player)} is synchronous and requires the supplied
+ * player's owner thread; it never schedules a later open.
  */
 @ApiStatus.NonExtendable
 public interface StorageOperations {
@@ -146,25 +141,16 @@ public interface StorageOperations {
      * Pre-checks and commits a batch of signed increments in one pass on the target player's owner
      * thread, <strong>without routing anything through the player's inventory</strong>.
      *
-     * <p>That last part is the reason this method exists. {@link #withdrawAsync} always hands the
-     * withdrawn items to the player, so using it to consume crafting materials would flash the items
-     * into the inventory and take them straight back out, leaving a window in which the player can
-     * see &mdash; and, with the right timing, keep &mdash; them. A batch never touches the inventory.
      *
-     * <p>With {@link StorageBatchRequest#allOrNothing()} set, a single failed pre-check aborts the
-     * whole batch and every stored amount stays exactly as it was. Otherwise each op is applied on a
-     * best-effort basis and the result reports per-op amounts as {@code Partial}.
      *
-     * <p>Pre-checks cover stock for withdrawals, and free slots, the effective stack limit,
-     * {@code behavior.allow_unique_items} and the deposit filter for deposits. The same template may
-     * appear several times and is accumulated in list order rather than de-duplicated.
      *
-     * <p>Batch size is capped by {@code behavior.batch_max_ops}; a larger request returns
-     * {@code INVALID_INPUT} with {@code batch_too_large}. Like every other mutating method this one
-     * requires the target player to be online and returns {@code targetOffline()} otherwise.
      *
-     * <p>Exactly one {@link emaki.jiuwu.craft.storage.api.event.StorageBatchEvent} is fired for the
-     * whole batch; per-op deposit and withdraw events are deliberately not fired.
+     *
+     * <p>{@link StorageBatchRequest#allOrNothing()} makes any failed pre-check abort the entire batch;
+     * otherwise operations are best-effort and the payload reports per-operation amounts as partial when
+     * needed. Withdrawal stock, deposit capacity/limits/filters and repeated templates are evaluated in list
+     * order. Exactly one {@link emaki.jiuwu.craft.storage.api.event.StorageBatchEvent} covers the batch;
+     * per-operation deposit/withdraw events are not emitted.
      *
      * <p><strong>Thread:</strong> any thread. Do not assume the future completes on an owner thread.
      *
@@ -201,14 +187,9 @@ public interface StorageOperations {
      * Holds the withdrawal side of a batch without applying it, so the units can neither be spent
      * elsewhere nor be handed out until the reservation is committed or released.
      *
-     * <p>Reserved units stay visible in {@link #readSnapshotAsync} through
-     * {@link emaki.jiuwu.craft.storage.api.model.StorageEntrySnapshot#reservedAmount()} but are
-     * excluded from what {@link #applyBatchAsync} may take, so the same units cannot be promised
-     * twice.
-     *
-     * <p>Reservations survive a restart and are released on load once {@code ttl} has elapsed, which
-     * is what keeps a crash from stranding a player's materials forever. Deposit ops in the request
-     * are ignored: a reservation only holds stock back, it never pre-books capacity.
+     * <p>Reserved units remain visible through {@link emaki.jiuwu.craft.storage.api.model.StorageEntrySnapshot#reservedAmount()}
+     * but are unavailable to other withdrawals. Holds survive restart until {@code ttl} expires; deposit
+     * operations are ignored because a reservation holds stock only, not future capacity.
      *
      * <p><strong>Thread:</strong> any thread. Requires the target player to be online.
      *

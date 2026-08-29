@@ -1,7 +1,5 @@
-# EmakiAttribute 物理伤害类型示例。
-# damage_types/ 下每个 YAML 文件定义一种伤害流程；系统按 stages 顺序把前一阶段输出传给下一阶段。
-# id 为规范标识，aliases 提供引用别名；allowed_events 与 hard_lock 共同限制可映射的 Bukkit 伤害原因。
-# recovery 配置结算后的吸血/回复；attacker_message 与 target_message 为空时不发送对应消息。
+# 物理伤害流程；stages 按顺序传递输出。allowed_events 与 hard_lock 限制 Bukkit 原因。
+# recovery 在结算后处理回复；消息为空时不发送。
 
 id: physical
 
@@ -17,21 +15,9 @@ allowed_events:
 # 是否锁定（true = 只有 allowed_events 中的事件才能触发）
 hard_lock: true
 
-# 伤害计算阶段。
-# kind：FLAT_PERCENT 或 CUSTOM；source：ATTACKER 或 TARGET；mode：ADD 或 MULTIPLY。
-# role：NORMAL / CRITICAL / DEFENSE / BLOCK；省略时会按常见阶段 id 推断。
-# flat_attributes、percent_attributes、chance_attributes、multiplier_attributes 分别汇总不同用途的属性。
-# CUSTOM 阶段通过 expression 计算；min/max_result、min/max_chance、min/max_multiplier 可限制结果范围。
-# variables 为当前阶段声明自定义变量，可由 expression 引用。
-#   每个变量的值可以是数值、表达式或随机数值配置，并可引用内置变量与其他变量：
-#     variables:
-#       soft_cap: 120
-#       overflow: "max(0, %input% - %soft_cap%)"
-#       jitter:
-#         min: 0.95
-#         max: 1.05
-#     expression: "(%input% - %overflow% * 0.5) * %jitter%"
-#   同名变量会覆盖内置变量；表达式内多次引用同一随机变量只掷一次，但每个阶段、每次命中都会重新掷。
+# 阶段支持 FLAT_PERCENT/CUSTOM、ATTACKER/TARGET 与 ADD/MULTIPLY；role 可显式指定。
+# CUSTOM 使用 expression 和可选边界。variables 可引用内置/其他变量；同名覆盖内置变量。
+# 同一阶段内重复引用随机变量只取样一次，每次命中及每个阶段重新取样。
 stages:
   - id: attack
     kind: FLAT_PERCENT
@@ -53,11 +39,8 @@ stages:
     flat_attributes: [physical_defense]
     expression: "max(0, %input% - %flat%)"
 
-  # 盾牌格挡。仅在 config.yml 的 shield.mode = attribute 时才可能生效：
-  # vanilla 模式下 %target_blocking% 恒为 0，本阶段等价于不改变伤害。
-  # %target_blocking%：目标本次是否有效举盾（含正面判定），1 或 0。
-  # %crit%：block_rate 概率是否命中。%multiplier%：block_reduction 汇总值。
-  # block_rate 为 0 时 %crit% 恒为 0，格挡永不触发，请勿把基线配成 0。
+  # 仅 shield.mode=attribute 时格挡；vanilla 模式下 %target_blocking%=0。
+  # %crit% 为 block_rate 命中结果，%multiplier% 为 block_reduction；block_rate=0 永不格挡。
   - id: block
     kind: CUSTOM
     source: TARGET

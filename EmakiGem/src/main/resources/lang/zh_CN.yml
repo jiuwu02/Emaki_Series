@@ -1,8 +1,8 @@
 # EmakiGem 简体中文语言资源。
-# 消息支持 MiniMessage；修改后通过插件的 reload 命令应用。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.7.15"
+version: "2.7.16"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -343,7 +343,6 @@ gui_text:
     opener_not_placed: "未放入"
     opener_placed_pending: "已放入，待选择槽位"
     slot_not_selected: "未选择"
-# Debug 模式消息
 debug:
   inlay:
     start: "开始镶嵌 | 玩家=%player% | 宝石=%gem% | 槽位=%slot%"

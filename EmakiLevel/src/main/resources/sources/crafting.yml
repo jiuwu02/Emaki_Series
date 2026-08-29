@@ -1,5 +1,4 @@
 # EmakiLevel 经验来源 - 合成
-#
 # 工作台与合成类操作的经验来源定义。
 
 id: "crafting_sources"
@@ -25,17 +24,8 @@ sources:
             - "minecraft-diamond_pickaxe"
             - "minecraft-diamond_sword"
         exp_formula: "40 * %result_amount%"
-      # 判定完全由 matcher 决定，它是每条规则的必填项，缺失该规则永不命中。
-      # 按物品源筛产物就写 type: item_source（上面两条即是）；要按物品组件筛，
-      # 就像下面这样写 type: component，两种写法都是同一个 matcher 字段。
-      #
-      # 形状差异（容易写错，注意区分）：
-      #   物品源简写用连字符：      "minecraft-diamond"
-      #   组件 ID 与 path 用冒号：  component: minecraft:enchantments / path: minecraft:sharpness
-      #   组件 ID 省略命名空间时默认补 minecraft:，所以 enchantments 等价于 minecraft:enchantments
-      #
-      # operator 可用：exists / absent、==、!=、>、>=、<、<=、
-      #                contains / starts_with / ends_with、regex、has_key / has_value、size
+      # matcher 必填，缺失时规则不命中；item_source 匹配物品源，component 匹配组件路径。
+      # 组件命名空间缺省为 minecraft；operator 支持比较、字符串、regex、键值存在性和 size。
       - matcher:
           type: component
           component: enchantments

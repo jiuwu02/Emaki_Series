@@ -1,8 +1,8 @@
 # EmakiItem English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "2.7.16"
+version: "2.7.17"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -142,7 +142,6 @@ repair:
     restore: "<gray>Restores <white>%restore%</white> durability.</gray>"
     cost: "<gray>Costs <white>%name%</white> <white>%required%</white> (balance <white>%available%</white>).</gray>"
 
-# Item browser GUI messages
 browser:
   gui_open_failed: "<red>Browser GUI is unavailable, check gui/pack_browser_gui.yml and gui/item_browser_gui.yml.</red>"
   default_pack_name: "<gray>Unpacked</gray>"
@@ -153,7 +152,6 @@ browser:
   take_failed: "<red>Could not take item: <white>%id%</white></red>"
   inventory_full: "<yellow>Inventory is full, <white>%count%</white> items dropped at your feet.</yellow>"
 
-# Debug mode messages
 debug:
   create:
     start: "Item creation start | ID=%id% | Amount=%amount%"

@@ -1,8 +1,8 @@
 # EmakiSkills English language resource.
-# Messages support MiniMessage; apply changes with the plugin's reload command.
-# version is maintained by the resource synchronization process and used to merge new default keys.
+# Messages use MiniMessage; preserve placeholders documented beside message groups.
+# version is maintained by resource synchronization when default keys are merged.
 
-version: "2.7.11"
+version: "2.7.12"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -112,7 +112,6 @@ skill:
     valid, automatically unequipped.</red>"
   not_found: "<red>Skill not found: %skill_id%</red>"
   not_unlocked: "<red>You have not unlocked this skill yet.</red>"
-  # The five keys below are internal pipeline reason keys, surfaced to players through cast.*
   script_unavailable: "<red>The skill script is currently unavailable.</red>"
   script_phase_condition_failed: "<gray>The script phase condition did not pass.</gray>"
   mythic_not_configured: "<red>Skill has no Mythic mapping configured.</red>"
@@ -141,8 +140,6 @@ cast:
   condition_not_met: "<red>Skill conditions are not met.</red>"
   cancelled: "<yellow>Skill cast cancelled.</yellow>"
   skill_execute_failed: "<red>Skill execution failed.</red>"
-  # The four keys below cover skill script configuration mistakes; the console also
-  # logs a warning naming the skill id and the offending line.
   script_action_not_found: "<red>Skill <white>%skill%</white> uses an unknown script action. Check its configuration.</red>"
   script_syntax_error: "<red>Skill <white>%skill%</white> has a script syntax error. Check its configuration.</red>"
   script_invalid_argument: "<red>Skill <white>%skill%</white> has invalid script arguments. Check its configuration.</red>"
@@ -156,7 +153,6 @@ cast:
 gui:
   open_failed: "<red>Unable to open skill interface.</red>"
   skill_equip_failed: "<red>Failed to equip skill: dependency, conflict, slot visibility, or tag limit requirements were not met.</red>"
-  # Interface action feedback
   skill_equipped: "<green>Equipped <white>%skill%</white> to slot %slot%.</green><yellow> Bind a trigger before casting: Shift+Left-click that skill slot.</yellow>"
   skill_unequipped: "<yellow>Skill unequipped.</yellow>"
   skill_already_equipped: "<red>That skill is already equipped in another slot.</red>"
@@ -195,9 +191,7 @@ gui:
   page_prev: "<gray>Previous Page</gray>"
   page_next: "<gray>Next Page</gray>"
   page_info: "<gray>Page %current%/%total%</gray>"
-  # Upgrade menu (gui/upgrade_gui.yml)
-  # The currency and material lists render one entry per line: write a
-  # single placeholder in the template and CoreLib expands it to match the entry count.
+  # Currency/material lists expand one placeholder into one line per entry.
   upgrade_cost_free: "<green>None</green>"
   upgrade_currency_title: "<gold>Currency Cost</gold>"
   upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"
@@ -282,7 +276,6 @@ upgrade:
     %success_rate%%.</red>"
   cancelled: "<yellow>The skill upgrade was cancelled.</yellow>"
 
-# Debug mode messages
 debug:
   common:
     header: "<gray>===== Debug Info: <aqua>%player%</aqua> =====</gray>"

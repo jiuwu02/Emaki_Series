@@ -1,14 +1,9 @@
 # ============================================================
 # EmakiGem 插槽物品配置示例
 # ============================================================
-# 此文件定义了哪些物品可以拥有宝石插槽，以及插槽的类型和数量。
-# 当玩家持有匹配的物品时，EmakiGem 会为其显示宝石插槽界面。
-#
-# 文件放置位置: plugins/EmakiGem/items/
-# 文件名仅用于组织和错误诊断；配置内部标识由必填 id 字段决定，加载时按 id 注册。
+# id 是配置标识，与文件名无关；匹配物品获得下方插槽。
 # ============================================================
 
-# 配置唯一标识符（必填）
 id: "example_socket_item"
 
 # ============================================================
@@ -16,7 +11,6 @@ id: "example_socket_item"
 # ============================================================
 # matcher 是 CoreLib 统一匹配器配置，决定哪些物品会被此配置匹配、从而拥有宝石插槽。
 # 顶层 slot_groups 与 matcher 取 AND：两者都成立才算命中。
-#
 # 注意两种 ID 形状不同，不要混写：
 #   物品源用连字符 —— type: item_source 的 sources 里写 "minecraft-diamond_sword"。
 #   组件用冒号   —— component / path 里的资源 ID 写 "minecraft:sharpness"，
@@ -26,20 +20,6 @@ matcher:
   sources:
     - "minecraft-diamond_sword"
 
-# 组合写法示例：钻石剑且锋利等级 >= 5 才拥有插槽。
-# 默认不启用，避免示例装备开箱即用时被组件条件挡住；需要时替换上方 matcher 即可。
-#matcher:
-#  type: all_of
-#  matchers:
-#    - { type: item_source, sources: ["minecraft-diamond_sword"] }
-#    - { type: component, component: enchantments, path: sharpness, operator: ">=", value: 5 }
-
-# 按 Lore 文本匹配的写法（取代已移除的 match.lore_contains）：
-#matcher:
-#  type: component
-#  component: lore
-#  operator: contains
-#  value: "传说级"
 
 # ============================================================
 # 装备槽位组
@@ -105,7 +85,6 @@ gui:
 # 配置风格参考 EmakiForge 的 result 字段：
 # name_actions / lore_actions / actions 直接写在 obtain 下。
 # actions: 首次识别并写入宝石层时执行的动作
-#
 # 这里完全由文件控制：直接写你想要显示的宝石槽文本即可。
 # 如果要在镶嵌成功后把某个 □ 改成 ■，就让对应流程写一条单独的 lore_actions 去替换整行或替换字符。
 obtain:

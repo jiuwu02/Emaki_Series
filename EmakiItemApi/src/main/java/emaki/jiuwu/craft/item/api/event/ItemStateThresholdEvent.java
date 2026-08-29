@@ -10,36 +10,16 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.item.api.ItemStateKey;
 
 /**
- * Fired after a committed numeric item-state mutation crossed a configured threshold.
+ * Fired after a numeric item-state mutation and its once-threshold bookkeeping are committed.
  *
- * <p><strong>Precondition and completion.</strong> The owning mutation is already committed to the
- * backing {@link org.bukkit.persistence.PersistentDataContainer} of the affected stack, and the
- * re-arm bookkeeping for {@link #isOnce() once} thresholds has already been persisted, before this
- * event is dispatched. The event therefore reports a completed crossing, never a pending one.
+ * <p>Runs synchronously on the mutating context's owner thread and is informational; reverting requires a
+ * separate mutation, which may emit events again. One event is emitted per configured threshold crossed,
+ * ascending for upward crossings and descending for downward crossings. Rejected/unchanged writes,
+ * metadata or non-numeric keys, missing thresholds, same-side changes, still-latched once thresholds and
+ * rebuild preservation do not emit it.
  *
- * <p><strong>Cancellable.</strong> No. The state change cannot be undone through this event; a
- * listener that wants to revert the value must issue its own mutation, and must expect that
- * mutation to be observed again by this event and by {@link ItemStateChangeEvent}.
- *
- * <p><strong>Thread.</strong> Dispatched synchronously on the thread that performed the mutation,
- * which is the owner thread of the mutating context (global or entity owner thread under Folia).
- * Listeners must not assume the global region thread and must not touch a player, inventory or
- * world they do not own.
- *
- * <p><strong>Coverage.</strong> Only numeric state keys ({@code INTEGER}, {@code LONG},
- * {@code DOUBLE}) that have at least one threshold configured under the {@code item_state} config
- * section are evaluated. One event is dispatched per crossed threshold, in ascending threshold
- * order for upward crossings and descending order for downward crossings.
- *
- * <p><strong>Not fired.</strong> For rejected or unchanged mutations; for reserved
- * {@code meta.} metadata keys; for {@code BOOLEAN} and {@code STRING} keys; for numeric keys
- * without configured thresholds; when the old and the new value sit on the same side of every
- * configured threshold; for a {@link #isOnce() once} threshold that is still latched from an
- * earlier crossing and has not been re-armed by falling back below it; and for state that is
- * restored verbatim by rebuild preservation, which is a no-op replay rather than a mutation.
- *
- * <p>This event is not an audit log: it reports crossings observed by this runtime only, and
- * carries no history of crossings that happened before the stack was loaded.
+ * <p>The item accessor returns a defensive copy. The holder is a live player reference and may be
+ * {@code null} when the mutating call site did not know an owner.
  */
 public final class ItemStateThresholdEvent extends Event {
     private static final HandlerList HANDLERS = new HandlerList();
