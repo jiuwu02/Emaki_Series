@@ -79,8 +79,12 @@ public final class LegacyMatcherFragment {
             return renderMerged(sources, head, pad, matcherKey, existingMatcher);
         }
         if (sources.size() == 1) {
-            return List.of(head + matcherKey + ": { " + TYPE_ITEM_SOURCE
-                    + ", sources: [" + quote(sources.getFirst()) + "] }");
+            List<String> rendered = new ArrayList<>();
+            rendered.add(head + matcherKey + ":");
+            rendered.add(pad + "  " + TYPE_ITEM_SOURCE);
+            rendered.add(pad + "  sources:");
+            rendered.add(pad + "    - " + quote(sources.getFirst()));
+            return List.copyOf(rendered);
         }
         List<String> rendered = new ArrayList<>();
         rendered.add(head + matcherKey + ":");
@@ -101,7 +105,11 @@ public final class LegacyMatcherFragment {
         rendered.add(head + matcherKey + ":");
         rendered.add(pad + "  type: all_of");
         rendered.add(pad + "  matchers:");
-        rendered.add(pad + "    - { " + TYPE_ITEM_SOURCE + ", sources: [" + joinQuoted(sources) + "] }");
+        rendered.add(pad + "    - " + TYPE_ITEM_SOURCE);
+        rendered.add(pad + "      sources:");
+        for (String source : sources) {
+            rendered.add(pad + "        - " + quote(source));
+        }
         for (String line : reindentChild(existingMatcher, pad + "    - ")) {
             rendered.add(line);
         }
@@ -135,14 +143,6 @@ public final class LegacyMatcherFragment {
             return " ".repeat(hit.keyColumn());
         }
         return " ".repeat(hit.dashIndent()) + "- ";
-    }
-
-    private static String joinQuoted(List<String> sources) {
-        List<String> quoted = new ArrayList<>();
-        for (String source : sources) {
-            quoted.add(quote(source));
-        }
-        return String.join(", ", quoted);
     }
 
     private static String quote(String source) {

@@ -25,6 +25,7 @@ import java.util.stream.Stream;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import dev.dejvokep.boostedyaml.YamlDocument;
+import dev.dejvokep.boostedyaml.libs.org.snakeyaml.engine.v2.common.FlowStyle;
 import dev.dejvokep.boostedyaml.settings.dumper.DumperSettings;
 import dev.dejvokep.boostedyaml.settings.general.GeneralSettings;
 import dev.dejvokep.boostedyaml.settings.loader.LoaderSettings;
@@ -46,6 +47,7 @@ public final class YamlFiles {
             .build();
     private static final DumperSettings BOOSTED_DUMPER_SETTINGS = DumperSettings.builder()
             .setIndentation(2)
+            .setFlowStyle(FlowStyle.BLOCK)
             .build();
     private static final UpdaterSettings BOOSTED_UPDATER_SETTINGS = UpdaterSettings.builder()
             .setAutoSave(false)
