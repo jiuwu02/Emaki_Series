@@ -17,10 +17,16 @@ display_name: "简易炖菜"
 # stir_rule: 翻炒规则（格式: "最早翻炒次序-最晚翻炒次序"）
 #   例如 "1-3" 表示此食材应在第 1 到第 3 次翻炒时加入
 ingredients:
-  - matcher: { type: item_source, sources: ["minecraft-carrot"] }
+  - matcher:
+      type: item_source
+      sources:
+        - minecraft-carrot
     amount: 1
     stir_rule: "1-3"
-  - matcher: { type: item_source, sources: ["minecraft-cooked_chicken"] }
+  - matcher:
+      type: item_source
+      sources:
+        - minecraft-cooked_chicken
     amount: 1
     stir_rule: "2-3"
 
@@ -79,16 +85,16 @@ result:
       - item_sources:
           - "minecraft-mushroom_stew"
         amount: 1
-    actions: []
+    actions:
   overcooked:
     outputs:
       - item_sources:
           - "minecraft-dried_kelp"
         amount: 1
-    actions: []
+    actions:
   invalid:
     outputs:
       - item_sources:
           - "minecraft-stone"
         amount: 1
-    actions: []
+    actions:

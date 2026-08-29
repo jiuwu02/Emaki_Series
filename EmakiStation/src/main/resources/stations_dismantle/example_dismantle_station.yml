@@ -21,4 +21,4 @@ output:
 # 打开界面前的条件门。语法与其他 Emaki 模块一致。
 condition:
   invalid_as_failure: true
-  entries: []
+  entries:

@@ -5,7 +5,9 @@ id: physical
 
 display_name: "物理伤害"
 
-aliases: [physical_damage, phys]
+aliases:
+  - physical_damage
+  - phys
 
 # 允许触发此伤害类型的事件
 allowed_events:
@@ -23,20 +25,25 @@ stages:
     kind: FLAT_PERCENT
     source: ATTACKER
     mode: ADD
-    flat_attributes: [physical_attack]
-    percent_attributes: [physical_damage_bonus]
+    flat_attributes:
+      - physical_attack
+    percent_attributes:
+      - physical_damage_bonus
 
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [physical_crit_rate]
-    multiplier_attributes: [physical_crit_damage]
+    chance_attributes:
+      - physical_crit_rate
+    multiplier_attributes:
+      - physical_crit_damage
     expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
 
   - id: defense
     kind: CUSTOM
     source: TARGET
-    flat_attributes: [physical_defense]
+    flat_attributes:
+      - physical_defense
     expression: "max(0, %input% - %flat%)"
 
   # 仅 shield.mode=attribute 时格挡；vanilla 模式下 %target_blocking%=0。
@@ -44,8 +51,10 @@ stages:
   - id: block
     kind: CUSTOM
     source: TARGET
-    chance_attributes: [block_rate]
-    multiplier_attributes: [block_reduction]
+    chance_attributes:
+      - block_rate
+    multiplier_attributes:
+      - block_reduction
     expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
     min_result: 0
 
@@ -53,9 +62,12 @@ stages:
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [percentage_lifesteal]
-  percent_attributes: [lifesteal]
-  resistance_attributes: [lifesteal_resistance]
+  flat_attributes:
+    - percentage_lifesteal
+  percent_attributes:
+    - lifesteal
+  resistance_attributes:
+    - lifesteal_resistance
 
 # 伤害消息模板
 attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"

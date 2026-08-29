@@ -15,4 +15,4 @@ condition:
   # 表达式解析失败时是否视为不满足条件
   invalid_as_failure: true
   # 条件表达式列表
-  entries: []
+  entries:

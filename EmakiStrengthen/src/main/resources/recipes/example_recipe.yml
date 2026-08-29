@@ -64,8 +64,12 @@ success_rates:
 matcher:
   type: all_of
   matchers:
-    - { type: item_source, sources: ["emakiitem-example_item"] }
-    - { type: component, component: custom_name, operator: exists }
+    - type: item_source
+      sources:
+        - emakiitem-example_item
+    - type: component
+      component: custom_name
+      operator: exists
 
 # ============================================================
 # 三个顶层匹配字段（与 matcher 取 AND，都成立才命中）

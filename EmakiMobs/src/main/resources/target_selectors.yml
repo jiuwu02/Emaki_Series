@@ -9,7 +9,12 @@ snapshot_players_per_tick: 20
 
 equipment_tables:
   vanilla_tiers:
-    slots: [head, chest, legs, feet, main_hand]
+    slots:
+      - head
+      - chest
+      - legs
+      - feet
+      - main_hand
     default_weight: 0
     weights:
       "minecraft:leather_helmet": 1

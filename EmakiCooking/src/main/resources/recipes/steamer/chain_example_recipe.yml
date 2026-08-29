@@ -28,7 +28,10 @@ requires_previous_step: "example_recipe"
 # 注意它与上方 requires_previous_step 是两件事：matcher 判"是不是这种物品"，
 # requires_previous_step 判"它有没有前置加工痕迹"。
 input:
-  matcher: { type: item_source, sources: ["minecraft-golden_carrot"] }
+  matcher:
+    type: item_source
+    sources:
+      - minecraft-golden_carrot
 
 # ============================================================
 # 蒸制参数
@@ -43,11 +46,11 @@ permission: "emakicooking.recipe.steamed_carrot_cake"
 # ============================================================
 condition:
   type: all_of
-  entries: []
+  entries:
   on_pass:
-    actions: []
+    actions:
   on_fail:
-    actions: []
+    actions:
     block_output: false
 
 # ============================================================

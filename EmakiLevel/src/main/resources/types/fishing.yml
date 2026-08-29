@@ -17,15 +17,15 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies: []
-    materials: []
+      currencies:
+    materials:
   rewards:
-    items: []
+    items:
   actions:
-    success: []
-    failure: []
+    success:
+    failure:
 pdc:
   enabled: true
 attributes:
   enabled: false
-  values: {}
+  values:

@@ -14,7 +14,10 @@ display_name: "苹果汁"
 # ============================================================
 # 放入榨汁机的原料物品。判定完全由 matcher 决定，必填，缺失这条配方永不命中。
 input:
-  matcher: { type: item_source, sources: ["minecraft-apple"] }
+  matcher:
+    type: item_source
+    sources:
+      - minecraft-apple
 
 # ============================================================
 # 榨汁参数
@@ -40,7 +43,10 @@ fluid:
 #          写在这里会覆盖 config.yml 的 stations.juicer.container_matcher
 # serving_ml: 每个容器可装的液体量（毫升）
 container:
-  matcher: { type: item_source, sources: ["minecraft-glass_bottle"] }
+  matcher:
+    type: item_source
+    sources:
+      - minecraft-glass_bottle
   serving_ml: 250
 
 permission: "emakicooking.recipe.apple_juice"

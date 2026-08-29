@@ -19,11 +19,17 @@ display_name: "苹果酒"
 inputs:
   - item_sources:
       - "minecraft-apple"
-    matcher: { type: item_source, sources: ["minecraft-apple"] }
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-apple
     amount: 3
   - item_sources:
       - "minecraft-sugar"
-    matcher: { type: item_source, sources: ["minecraft-sugar"] }
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-sugar
     amount: 1
 
 # ============================================================

@@ -26,7 +26,7 @@ lore_format_id: default_flat
 attribute_power: 1.0
 
 # MythicMobs 临时属性动作可按 tags 批量操作。
-tags: []
+tags:
 
 # 同一 effect_id 重复施加时，REPLACE 覆盖数值/时长，STACK 累加数值/剩余时长。
 # 技能显式 stack_mode 优先。

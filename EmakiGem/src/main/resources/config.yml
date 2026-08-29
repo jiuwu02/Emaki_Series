@@ -25,7 +25,10 @@ socket_openers:
   # 攻击向插槽开孔器
   attack_drill:
     enabled: true
-    matcher: { type: item_source, sources: ["minecraft-blaze_rod"] }
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-blaze_rod
     opens_gem_types:
       - "attack"
     consume_on_success: true
@@ -40,7 +43,10 @@ socket_openers:
   # 防御向插槽开孔器
   defense_drill:
     enabled: true
-    matcher: { type: item_source, sources: ["minecraft-prismarine_shard"] }
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-prismarine_shard
     opens_gem_types:
       - "defense"
     consume_on_success: true
@@ -55,7 +61,10 @@ socket_openers:
   # 通用开孔器
   universal_drill:
     enabled: true
-    matcher: { type: item_source, sources: ["minecraft-echo_shard"] }
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-echo_shard
     opens_gem_types:
       - "any"
     consume_on_success: true

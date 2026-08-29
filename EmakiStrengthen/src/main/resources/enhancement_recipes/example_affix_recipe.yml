@@ -85,7 +85,7 @@ pity_tracks:
 condition:
   type: "all_of"
   invalid_as_failure: true
-  entries: []
+  entries:
 
 # 动作分组：键名自由，值为 CoreLib Action 行列表
 actions:

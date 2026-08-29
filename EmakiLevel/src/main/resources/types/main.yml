@@ -12,7 +12,7 @@ max_level: 100
 requirement:
   group: "main"
   formula: ""
-  values: {}
+  values:
 upgrade:
   enabled: true
   auto_upgrade: true
@@ -21,8 +21,8 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies: []
-    materials: []
+      currencies:
+    materials:
   rewards:
     items:
       - levels: "*"
@@ -32,7 +32,7 @@ upgrade:
   actions:
     success:
       - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%var.new_level%</yellow> 级！</green>"'
-    failure: []
+    failure:
 pdc:
   enabled: true
 attributes:

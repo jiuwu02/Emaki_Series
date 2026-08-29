@@ -43,7 +43,8 @@ slots:
         custom_name: "<gray>材料</gray>"
 
   recipe_display:
-    slots: [4]
+    slots:
+      - 4
     type: "recipe_display"
     item:
       source: "crafting_table"
@@ -55,7 +56,8 @@ slots:
           - "<gray>倍率: x<yellow>%batch%</yellow></gray>"
 
   cost_display:
-    slots: [47]
+    slots:
+      - 47
     type: "cost_display"
     item:
       source: "gold_ingot"
@@ -66,7 +68,8 @@ slots:
           - "<gray>余额: <yellow>%balance%</yellow></gray>"
 
   batch_multiplier:
-    slots: [48]
+    slots:
+      - 48
     type: "batch_multiplier"
     item:
       source: "comparator"
@@ -76,7 +79,8 @@ slots:
           - "<gray>左键 <white>递增</white> <dark_gray>|</dark_gray> 右键 <white>递减</white></gray>"
 
   max_craftable:
-    slots: [49]
+    slots:
+      - 49
     type: "max_craftable"
     item:
       source: "knowledge_book"
@@ -87,7 +91,8 @@ slots:
           - "<dark_gray>点击直接拉满</dark_gray>"
 
   confirm:
-    slots: [50]
+    slots:
+      - 50
     type: "confirm"
     item:
       source: "anvil"
@@ -102,7 +107,8 @@ slots:
         pitch: 1.4
 
   back:
-    slots: [45]
+    slots:
+      - 45
     type: "back"
     item:
       source: "arrow"
@@ -110,7 +116,8 @@ slots:
         custom_name: "<yellow>返回配方列表</yellow>"
 
   prev_page:
-    slots: [36]
+    slots:
+      - 36
     type: "prev_page"
     item:
       source: "arrow"
@@ -118,7 +125,8 @@ slots:
         custom_name: "<yellow>上一页</yellow>"
 
   page_info:
-    slots: [40]
+    slots:
+      - 40
     type: "page_info"
     item:
       source: "book"
@@ -128,7 +136,8 @@ slots:
           - "<dark_gray>共 %total% 项材料</dark_gray>"
 
   next_page:
-    slots: [44]
+    slots:
+      - 44
     type: "next_page"
     item:
       source: "arrow"
@@ -136,7 +145,8 @@ slots:
         custom_name: "<yellow>下一页</yellow>"
 
   close:
-    slots: [53]
+    slots:
+      - 53
     type: "close"
     item:
       source: "barrier"

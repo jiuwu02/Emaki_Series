@@ -40,7 +40,8 @@ slots:
         custom_name: "<aqua>#%index% %recipe%</aqua>"
 
   capacity_display:
-    slots: [4]
+    slots:
+      - 4
     type: "capacity_display"
     item:
       source: "chest"
@@ -54,7 +55,8 @@ slots:
           - "<dark_gray>待领取 %pending% 项不占用队列</dark_gray>"
 
   queue_purchase:
-    slots: [47]
+    slots:
+      - 47
     type: "queue_purchase"
     item:
       source: "emerald"
@@ -72,7 +74,8 @@ slots:
         pitch: 1.0
 
   claim_all:
-    slots: [48]
+    slots:
+      - 48
     type: "claim_all"
     item:
       source: "chest_minecart"
@@ -87,7 +90,8 @@ slots:
         pitch: 1.0
 
   back:
-    slots: [45]
+    slots:
+      - 45
     type: "back"
     item:
       source: "arrow"
@@ -95,7 +99,8 @@ slots:
         custom_name: "<yellow>返回配方列表</yellow>"
 
   prev_page:
-    slots: [36]
+    slots:
+      - 36
     type: "prev_page"
     item:
       source: "arrow"
@@ -103,7 +108,8 @@ slots:
         custom_name: "<yellow>上一页</yellow>"
 
   page_info:
-    slots: [40]
+    slots:
+      - 40
     type: "page_info"
     item:
       source: "book"
@@ -113,7 +119,8 @@ slots:
           - "<dark_gray>共 %total% 个条目</dark_gray>"
 
   next_page:
-    slots: [44]
+    slots:
+      - 44
     type: "next_page"
     item:
       source: "arrow"
@@ -121,7 +128,8 @@ slots:
         custom_name: "<yellow>下一页</yellow>"
 
   close:
-    slots: [53]
+    slots:
+      - 53
     type: "close"
     item:
       source: "barrier"

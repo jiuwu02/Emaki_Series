@@ -24,7 +24,8 @@ slots:
           hide_tooltip: true
 
   necklace_1:
-    slots: [13]
+    slots:
+      - 13
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -34,7 +35,8 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   ring_1:
-    slots: [21]
+    slots:
+      - 21
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -44,7 +46,8 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   ring_2:
-    slots: [23]
+    slots:
+      - 23
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -54,7 +57,8 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   belt_1:
-    slots: [22]
+    slots:
+      - 22
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -64,7 +68,8 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   charm_1:
-    slots: [30]
+    slots:
+      - 30
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -74,7 +79,8 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   charm_2:
-    slots: [32]
+    slots:
+      - 32
     type: "accessory_slot"
     item:
       source: "light_gray_stained_glass_pane"
@@ -84,19 +90,22 @@ slots:
           - "<dark_gray>放入饰品以生效</dark_gray>"
 
   page_enable:
-    slots: [8]
+    slots:
+      - 8
     type: "page_enable"
     item:
       source: "lime_dye"
 
   main:
-    slots: [0]
+    slots:
+      - 0
     type: "page_switch"
     item:
       source: "gold_ingot"
 
   secondary:
-    slots: [1]
+    slots:
+      - 1
     type: "page_switch"
     item:
       source: "iron_ingot"

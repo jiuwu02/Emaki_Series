@@ -53,7 +53,8 @@ slots:
 
   page_prev:
     type: "page_prev"
-    slots: [45]
+    slots:
+      - 45
     item:
       source: "arrow"
       components:
@@ -63,7 +64,8 @@ slots:
 
   page_info:
     type: "page_info"
-    slots: [49]
+    slots:
+      - 49
     item:
       source: "book"
       components:
@@ -74,7 +76,8 @@ slots:
 
   page_next:
     type: "page_next"
-    slots: [53]
+    slots:
+      - 53
     item:
       source: "arrow"
       components:
@@ -84,7 +87,8 @@ slots:
 
   close:
     type: "close"
-    slots: [46]
+    slots:
+      - 46
     item:
       source: "barrier"
       components:

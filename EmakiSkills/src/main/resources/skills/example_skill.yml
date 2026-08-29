@@ -43,7 +43,7 @@ tags:
   - "attack"
 tab_tags:
   - "starter"
-required_skills: []
+required_skills:
 conflicting_skills:
   - "ice_bolt"
 show_in_slots: true
@@ -166,8 +166,8 @@ upgrade:
             - "minecraft-blaze_powder"
           amount: 2
       actions:
-        success: []
-        failure: []
+        success:
+        failure:
 
     5:
       materials:
@@ -177,7 +177,7 @@ upgrade:
       actions:
         success:
           - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
-        failure: []
+        failure:
 
     10:
       # 单独覆盖此等级的经济配置
@@ -200,11 +200,16 @@ upgrade:
         - matcher:
             type: all_of
             matchers:
-              - { type: item_source, sources: ["minecraft-diamond"] }
-              - { type: component, component: custom_name, operator: contains, value: "灵" }
+              - type: item_source
+                sources:
+                  - minecraft-diamond
+              - type: component
+                component: custom_name
+                operator: contains
+                value: "灵"
           amount: 1
       success_rate: 40.0
       actions:
         success:
           - 'broadcast_message text="<gold>%caster.name%</gold> <yellow>将火球术提升至满级！</yellow>"'
-        failure: []
+        failure:

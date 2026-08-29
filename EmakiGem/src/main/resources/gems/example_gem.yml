@@ -95,8 +95,8 @@ socket_compatibility:
 # conflicting_gems: 不能与本宝石同时存在于同一件装备中的宝石 ID；冲突按双向规则校验。
 # ID 会自动转为小写、去重并固化为不可变列表。
 # 同一个 ID 不得同时出现在 required_gems 与 conflicting_gems 中，否则整份宝石配置会被拒绝加载。
-required_gems: []
-conflicting_gems: []
+required_gems:
+conflicting_gems:
 
 # ============================================================
 # 镶嵌费用

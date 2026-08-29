@@ -66,12 +66,12 @@ result:
       amount: 1
 
   # 结算后执行的动作行，语法与其他 Emaki 模块一致。
-  actions: []
+  actions:
 
 # 提交前的条件门。不满足时配方仍在目录里，但点击会被拒绝。
 condition:
   invalid_as_failure: true
-  entries: []
+  entries:
 
 # 解锁条件。与上面的 condition 是两回事：
 #   condition          决定"能不能做"，不满足时配方照常显示，点了会被拒
@@ -81,10 +81,10 @@ condition:
 # 这里的条件会在每次绘制目录页时求值，写得太重会拖慢界面。
 display_condition:
   invalid_as_failure: false
-  entries: []
+  entries:
 
 # 各阶段动作行。
 actions:
-  pre: []
-  success: []
-  failure: []
+  pre:
+  success:
+  failure:

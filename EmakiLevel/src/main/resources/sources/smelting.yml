@@ -18,5 +18,8 @@ sources:
             - "minecraft-copper_ingot"
             - "minecraft-gold_ingot"
         exp_formula: "3 * %result_amount%"
-      - matcher: { type: item_source, sources: ["minecraft-netherite_scrap"] }
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-netherite_scrap
         exp_formula: "20 * %result_amount%"

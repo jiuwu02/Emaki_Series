@@ -58,4 +58,4 @@ pool:
 
 condition:
   invalid_as_failure: true
-  entries: []
+  entries:

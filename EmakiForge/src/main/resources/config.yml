@@ -51,38 +51,38 @@ quality:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#733333>[有缺] </color>"
-        lore_actions: []
-        action: []
+        lore_actions:
+        action:
       平庸:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#999999>[平庸] </color>"
-        lore_actions: []
-        action: []
+        lore_actions:
+        action:
       精良:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#1F871F>[精良] </color>"
-        lore_actions: []
-        action: []
+        lore_actions:
+        action:
       优质:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#00FF00>[优质] </color>"
-        lore_actions: []
-        action: []
+        lore_actions:
+        action:
       无暇:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#4B64C8>[无暇] </color>"
-        lore_actions: []
+        lore_actions:
         action:
           - 'broadcast_message text="<color:#4B64C8>%player_name%锻造出了一个无暇品质的%var.forge_show_item%</color>"'
       完美:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#FFD700>[完美] </color>"
-        lore_actions: []
+        lore_actions:
         action:
           - 'broadcast_message text="<color:#FFD700>%player_name%锻造出了一个完美品质的%var.forge_show_item%</color>"'
 

@@ -72,8 +72,13 @@ materials:
     matcher:
       type: all_of
       matchers:
-        - { type: item_source, sources: ["minecraft-iron_ingot"] }
-        - { type: component, component: custom_name, operator: contains, value: "精铁" }
+        - type: item_source
+          sources:
+            - minecraft-iron_ingot
+        - type: component
+          component: custom_name
+          operator: contains
+          value: "精铁"
 
   # 第 2 条：只写 matcher，不写 item_sources。
   # ⚠ 这样的材料【只能从背包供料】，仓库检索会直接跳过它：仓库要逐个物品源去查
@@ -90,9 +95,19 @@ materials:
       type: at_least
       required_count: 2
       matchers:
-        - { type: component, component: enchantments, path: sharpness, operator: ">=", value: 5 }
-        - { type: component, component: custom_name, operator: contains, value: "炎" }
-        - { type: component, component: rarity, operator: "==", value: epic }
+        - type: component
+          component: enchantments
+          path: sharpness
+          operator: ">="
+          value: 5
+        - type: component
+          component: custom_name
+          operator: contains
+          value: "炎"
+        - type: component
+          component: rarity
+          operator: "=="
+          value: epic
 
   # 第 3 条：none_of —— 用来表达"不能带某个组件"。
   # consume: false 表示只校验持有、不扣除。
@@ -104,27 +119,31 @@ materials:
     matcher:
       type: all_of
       matchers:
-        - { type: item_source, sources: ["minecraft-iron_pickaxe"] }
+        - type: item_source
+          sources:
+            - minecraft-iron_pickaxe
         - type: none_of
           matchers:
-            - { type: component, component: unbreakable, operator: exists }
+            - type: component
+              component: unbreakable
+              operator: exists
 
 result:
   outputs:
     - item_sources:
         - "minecraft-iron_block"
       amount: 1
-  actions: []
+  actions:
 
 condition:
   invalid_as_failure: true
-  entries: []
+  entries:
 
 display_condition:
   invalid_as_failure: false
-  entries: []
+  entries:
 
 actions:
-  pre: []
-  success: []
-  failure: []
+  pre:
+  success:
+  failure:

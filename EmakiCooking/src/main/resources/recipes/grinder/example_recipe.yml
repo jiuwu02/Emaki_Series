@@ -13,7 +13,10 @@ display_name: "骨粉研磨"
 # ============================================================
 # 放入研磨机的原料物品。判定完全由 matcher 决定，必填，缺失这条配方永不命中。
 input:
-  matcher: { type: item_source, sources: ["minecraft-bone"] }
+  matcher:
+    type: item_source
+    sources:
+      - minecraft-bone
 
 # ============================================================
 # 研磨参数

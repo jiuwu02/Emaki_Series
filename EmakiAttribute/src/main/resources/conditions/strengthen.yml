@@ -8,4 +8,4 @@ condition:
   type: "all_of"
   # true 时表达式解析失败视为不匹配；空 entries 不增加配置条件。
   invalid_as_failure: true
-  entries: []
+  entries:

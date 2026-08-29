@@ -12,7 +12,7 @@ max_level: 80
 requirement:
   group: "combat"
   formula: ""
-  values: {}
+  values:
 upgrade:
   enabled: true
   auto_upgrade: true
@@ -21,14 +21,14 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies: []
-    materials: []
+      currencies:
+    materials:
   rewards:
-    items: []
+    items:
   actions:
     success:
       - 'send_message text="<red>战斗等级提升: </red> <yellow>%var.old_level%</yellow> <gray>→</gray> <yellow>%var.new_level%</yellow>"'
-    failure: []
+    failure:
 pdc:
   enabled: true
 attributes:
