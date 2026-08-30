@@ -213,7 +213,6 @@ damage_indicator:
 # 属性超过 threshold 后按 logarithmic、sqrt 或 piecewise_linear 折算；未知类型回退 logarithmic。
 # logarithmic/sqrt 的 factor <=0 按 1；piecewise_linear 的 factor=0 合法，表示超出部分作废。
 # 空映射不启用衰减。
-scaling_curves:
 
 # EA 结算的 DamageCause 白名单；damage_type 引用伤害类型，damage 省略时使用原版事件伤害。
 allowed_damage_causes:

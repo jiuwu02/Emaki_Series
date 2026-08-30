@@ -43,7 +43,6 @@ tags:
   - "attack"
 tab_tags:
   - "starter"
-required_skills:
 conflicting_skills:
   - "ice_bolt"
 show_in_slots: true
@@ -165,9 +164,6 @@ upgrade:
         - item_sources:
             - "minecraft-blaze_powder"
           amount: 2
-      actions:
-        success:
-        failure:
 
     5:
       materials:
@@ -177,7 +173,6 @@ upgrade:
       actions:
         success:
           - 'send_message text="<yellow>火球术达到 V，爆炸范围进一步扩大。</yellow>"'
-        failure:
 
     10:
       # 单独覆盖此等级的经济配置
@@ -212,4 +207,3 @@ upgrade:
       actions:
         success:
           - 'broadcast_message text="<gold>%caster.name%</gold> <yellow>将火球术提升至满级！</yellow>"'
-        failure:

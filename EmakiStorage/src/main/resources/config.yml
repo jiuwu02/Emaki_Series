@@ -118,7 +118,6 @@ behavior:
   deposit_filter:
     # 筛选模式：blacklist | whitelist | off。
     mode: blacklist
-    entries: # CoreLib ItemSource token 列表；留空表示没有条目。
     # entries 与 matcher 取 OR；两者均空时关闭筛选，再由 mode 决定放行或拒绝。
     # 物品源使用连字符；组件 ID/path 使用冒号，省略命名空间时补 minecraft:。
   # 是否允许存入带唯一标记的物品，例如 EmakiItem 实例 UUID。
@@ -215,7 +214,6 @@ logging:
   # 日志保留天数。
   retention_days: 30
   # 允许记录的来源：gui、command、api、action；留空表示全部。
-  sources:
   # 管理员 SET、GIVE、CLEAR 操作由审计路径强制记录。
 
 # 是否输出本插件的调试信息。

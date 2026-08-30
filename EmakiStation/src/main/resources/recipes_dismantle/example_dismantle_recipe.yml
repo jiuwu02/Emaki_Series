@@ -58,4 +58,3 @@ pool:
 # 提交前的条件门，与普通配方一致。不满足时分解按钮被拒绝。
 condition:
   invalid_as_failure: true
-  entries:

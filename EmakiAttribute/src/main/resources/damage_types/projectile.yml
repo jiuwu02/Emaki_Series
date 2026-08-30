@@ -39,7 +39,6 @@ stages:
     mode: SUBTRACT
     flat_attributes:
       - projectile_defense
-    percent_attributes:
     expression: "max(0, %input% - %flat%)"
 
   # 投射物格挡仅在 shield.mode=attribute 时生效，字段同 physical.yml。

@@ -332,7 +332,6 @@ optional_material_limit: 3
 # guarantee: 保底机制（连续锻造一定次数后保证获得指定品质）
 quality:
   enabled: true
-  custom_pool:
   guarantee:
     enabled: true
     attempts: 60
@@ -375,7 +374,6 @@ result:
 actions:
   pre:
     - 'send_action_bar text="<gray>烈焰之力正在熔铸...</gray>"'
-  success:
   failure:
     - 'send_message text="<red>锻造前置操作失败: %var.forge_failure_reason%</red>"'
 

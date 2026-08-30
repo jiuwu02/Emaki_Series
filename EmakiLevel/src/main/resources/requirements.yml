@@ -3,7 +3,6 @@
 
 global:
   formula: "floor(100 + 25 * %target_level% + 8 * pow(%target_level%, 2))"
-  values:
 
 groups:
   main:
@@ -57,16 +56,11 @@ groups:
       4: 300
   crafting:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-    values:
   brewing:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-    values:
   cooking:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-    values:
   forging:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-    values:
   smelting:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
-    values:

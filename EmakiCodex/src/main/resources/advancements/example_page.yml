@@ -30,8 +30,6 @@ advancements:
     toast: false
     announce: false
     hidden: false
-    actions:
-      complete:
 
   first_step:
     icon: "minecraft-crafting_table"

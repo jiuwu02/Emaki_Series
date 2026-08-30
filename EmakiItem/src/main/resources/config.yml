@@ -55,10 +55,8 @@ item_state:
   # 未声明字段不受钳制、默认值或阈值影响；仅数值类型支持 min/max 与 thresholds。
   # 每字段最多保留按 value 升序最小的 64 个阈值，与书写顺序无关。
   # 阈值集合变化会重新武装该字段的 once latch。
-  fields:
 
   # 空映射不迁移；步骤可按 schema from/to 重命名、改类型或丢弃字段。
-  migrations:
 
   # 状态保全策略。
   preservation:

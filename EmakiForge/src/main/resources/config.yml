@@ -52,25 +52,21 @@ quality:
           - action: "prepend_prefix"
             value: "<color:#733333>[有缺] </color>"
         lore_actions:
-        action:
       平庸:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#999999>[平庸] </color>"
         lore_actions:
-        action:
       精良:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#1F871F>[精良] </color>"
         lore_actions:
-        action:
       优质:
         name_actions:
           - action: "prepend_prefix"
             value: "<color:#00FF00>[优质] </color>"
         lore_actions:
-        action:
       无暇:
         name_actions:
           - action: "prepend_prefix"

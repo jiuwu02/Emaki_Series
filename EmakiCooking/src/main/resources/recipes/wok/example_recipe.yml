@@ -85,16 +85,13 @@ result:
       - item_sources:
           - "minecraft-mushroom_stew"
         amount: 1
-    actions:
   overcooked:
     outputs:
       - item_sources:
           - "minecraft-dried_kelp"
         amount: 1
-    actions:
   invalid:
     outputs:
       - item_sources:
           - "minecraft-stone"
         amount: 1
-    actions:

@@ -17,10 +17,6 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies:
-    materials:
-  rewards:
-    items:
   actions:
     success:
       - 'send_message text="<gray>挖掘等级提升到了 <yellow>%var.new_level%</yellow> 级。</gray>"'

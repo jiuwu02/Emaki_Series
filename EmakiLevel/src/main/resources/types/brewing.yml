@@ -17,15 +17,7 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies:
-    materials:
-  rewards:
-    items:
-  actions:
-    success:
-    failure:
 pdc:
   enabled: true
 attributes:
   enabled: false
-  values:

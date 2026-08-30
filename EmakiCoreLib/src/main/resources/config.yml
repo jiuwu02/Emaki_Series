@@ -94,4 +94,3 @@ action:
     cancel_player_loops_on_quit: true
     cancel_plugin_loops_on_disable: true
   # 命名动作序列通过 run <名称> 调用，可传入 key=value 参数。
-  templates:

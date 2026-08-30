@@ -31,7 +31,6 @@ entries:
     unlock:
       triggers:
         - event: "entity_kill"
-      advancements:
     rewards:
       attributes:
         physical_attack: 2.0
@@ -55,4 +54,3 @@ entries:
     rewards:
       attributes:
         max_health: 5.0
-      actions:

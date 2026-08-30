@@ -11,8 +11,6 @@ language: "zh_CN"
 release_default_data: true
 
 # 全局禁用工位交互的世界列表；命中后不接管方块交互。
-station:
-  disabled_worlds:
 
 input_rules:
   # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
@@ -111,7 +109,6 @@ stations:
     # 砧板方块来源
     block_item_sources:
       - minecraft-oak_log
-    disabled_worlds:
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
     interactions:
@@ -147,7 +144,6 @@ stations:
     # 炒锅方块来源
     block_item_sources:
       - minecraft-iron_block
-    disabled_worlds:
     interactions:
       add_ingredient: shift_left_click
       stir: shift_left_click
@@ -215,7 +211,6 @@ stations:
     # 研磨机方块来源
     block_item_sources:
       - minecraft-grindstone
-    disabled_worlds:
     interactions:
       start: shift_left_click
     drop_result: true
@@ -235,7 +230,6 @@ stations:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
     block_item_sources:
       - minecraft-barrel
-    disabled_worlds:
     interactions:
       open: shift_right_click
       fuel: right_click
@@ -321,7 +315,6 @@ stations:
     # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
     block_item_sources:
       - minecraft-smoker
-    disabled_worlds:
     interactions:
       open: shift_right_click
       fuel: shift_left_click
@@ -380,7 +373,6 @@ stations:
     # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
     block_item_sources:
       - minecraft-cauldron
-    disabled_worlds:
     interactions:
       open: shift_right_click
       process: shift_left_click
@@ -413,7 +405,6 @@ stations:
     # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
     block_item_sources:
       - minecraft-barrel
-    disabled_worlds:
     interactions:
       open: shift_right_click
       start: shift_left_click
@@ -509,7 +500,6 @@ nutrition:
     single:
       # 示例：任意营养类型 >= 80 时给玩家持续饱和 BUFF（用循环动作实现），跌回 <80 时取消循环
       - id: well_fed
-        types:
         value: 80
         compare: ">="
         actions:
@@ -525,7 +515,6 @@ nutrition:
     combo:
       - id: overeat
         # 参与统计的营养类型；为空表示统计全部营养类型
-        types:
         # 每个营养类型达到该值算"已满"
         value: 100
         compare: ">="

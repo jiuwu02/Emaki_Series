@@ -133,17 +133,9 @@ result:
     - item_sources:
         - "minecraft-iron_block"
       amount: 1
-  actions:
 
 condition:
   invalid_as_failure: true
-  entries:
 
 display_condition:
   invalid_as_failure: false
-  entries:
-
-actions:
-  pre:
-  success:
-  failure:

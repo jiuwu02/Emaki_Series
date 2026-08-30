@@ -46,11 +46,7 @@ permission: "emakicooking.recipe.steamed_carrot_cake"
 # ============================================================
 condition:
   type: all_of
-  entries:
-  on_pass:
-    actions:
   on_fail:
-    actions:
     block_output: false
 
 # ============================================================
