@@ -1,7 +1,7 @@
 # EmakiLevel 主配置：等级、经验倍率、每日上限、来源与反滥用记录。
 
 # version 由资源同步维护，不是功能开关。
-version: "1.5.9"
+version: "1.6.0"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

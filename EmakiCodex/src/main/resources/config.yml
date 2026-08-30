@@ -1,7 +1,7 @@
 # EmakiCodex 主配置
 # 控制动态成就注册、触发与界面坐标。
 
-version: "1.0.6"
+version: "1.1.0"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

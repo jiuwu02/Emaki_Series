@@ -2,7 +2,7 @@
 # 控制工位交互、展示实体、七类工位运行参数与营养系统。
 # 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
 # 不使用 minecraft:iron_axe 这种冒号写法。
-version: "4.2.10"
+version: "4.3.0"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

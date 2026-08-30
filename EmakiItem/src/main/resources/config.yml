@@ -2,7 +2,7 @@
 # 控制物品/套装数据扫描、套装刷新与 MythicMobs 集成。
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.7.17"
+version: "2.8.0"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

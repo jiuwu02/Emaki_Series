@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.9"
+version: "1.1.0"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
