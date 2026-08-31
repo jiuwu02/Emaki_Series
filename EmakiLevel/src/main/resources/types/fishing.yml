@@ -1,0 +1,23 @@
+# EmakiLevel 等级类型 - 垂钓等级
+# 该等级类型的启用状态、显示名、等级区间与升级需求。
+
+id: "fishing"
+enabled: true
+display_name: "<aqua>垂钓等级</aqua>"
+primary: false
+start_level: 1
+max_level: 60
+requirement:
+  group: "fishing"
+upgrade:
+  enabled: true
+  auto_upgrade: true
+  manual_upgrade: true
+  cost:
+    enabled: false
+    economy:
+      enabled: false
+pdc:
+  enabled: true
+attributes:
+  enabled: false

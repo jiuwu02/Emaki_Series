@@ -23,7 +23,6 @@ import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.service.NutritionService;
 import emaki.jiuwu.craft.cooking.service.NutritionTypeRegistry;
 
-/** Runtime-backed nutrition API. */
 public final class DefaultCookingNutrition implements CookingNutrition {
 
     private final EmakiCookingPlugin plugin;

@@ -28,7 +28,6 @@ public final class LevelExperienceRuleService {
         }
     }
 
-    /** Computes multiplier and remaining daily quota without recording a gain. */
     public synchronized LevelExperienceAdjustment preview(UUID uuid,
             String typeId,
             double amount,
@@ -53,10 +52,6 @@ public final class LevelExperienceRuleService {
                 : LevelExperienceAdjustment.applied(amount, multiplier, multiplied, dailyLimit, gained, actual);
     }
 
-    /**
-     * Applies the current daily quota to an event-approved amount and records only the amount that will
-     * actually be written. Call this after {@code PlayerExpGainEvent} has completed.
-     */
     public synchronized LevelExperienceAdjustment record(UUID uuid,
             String typeId,
             double approvedAmount,

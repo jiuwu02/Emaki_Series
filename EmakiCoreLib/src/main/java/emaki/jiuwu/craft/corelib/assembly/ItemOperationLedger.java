@@ -17,6 +17,7 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -32,6 +33,8 @@ public final class ItemOperationLedger {
     private static final String ASSEMBLY_BASE_SOURCE_FIELD = "base_source";
     private static final String ASSEMBLY_BASE_CUSTOM_NAME_FIELD = "base_custom_name";
     static final String EXTERNAL_CUSTOM_NAME_FIELD = "external_custom_name";
+
+    private static final String LEGACY_PARTITION = "item";
 
     private final Supplier<DebugLogger> debugLoggerSupplier;
     private final PdcService pdc;
@@ -184,28 +187,12 @@ public final class ItemOperationLedger {
         return reverter.revertAll(itemStack, sourceNamespace, read(itemStack)).revertedCount();
     }
 
-    /**
-     * Drops every ledger entry owned by {@code sourceNamespace} without replaying or reverting the
-     * recorded display projection, and clears the stored presentation snapshot.
-     *
-     * <p>Use this only when the caller has already rebuilt the item's managed presentation from an
-     * authoritative source, so the recorded lore baselines and the presentation snapshot no longer
-     * describe the current item. Lore and custom name are left exactly as the caller wrote them.
-     * For user-facing rollbacks that must restore a previous projection, use
-     * {@link #revert(ItemStack, ReadResult, String)} or {@link #revertAll(ItemStack, String, ReadResult)}.
-     */
     public UpdateResult discardNamespace(ItemStack itemStack,
                                         ReadResult readResult,
                                         String sourceNamespace) {
         return discardNamespaces(itemStack, readResult, List.of(Texts.toStringSafe(sourceNamespace)));
     }
 
-    /**
-     * Drops every ledger entry owned by any of {@code sourceNamespaces} without replaying or
-     * reverting the recorded display projection, and clears the stored presentation snapshot.
-     *
-     * @see #discardNamespace(ItemStack, ReadResult, String)
-     */
     public UpdateResult discardNamespaces(ItemStack itemStack,
                                          ReadResult readResult,
                                          Collection<String> sourceNamespaces) {
@@ -258,7 +245,8 @@ public final class ItemOperationLedger {
         if (itemStack == null || itemStack.getType().isAir() || !operationsFieldPresent(itemStack)) {
             return ReadResult.absent();
         }
-        String payload = pdc.get(itemStack, partition, FIELD, PersistentDataType.STRING);
+        String payload = pdc.getMigrating(
+                itemStack, partition, LEGACY_PARTITION, FIELD, PersistentDataType.STRING);
         if (Texts.isBlank(payload)) {
             return ReadResult.corrupt(List.of());
         }
@@ -306,7 +294,6 @@ public final class ItemOperationLedger {
     public boolean hasOperations(ItemStack itemStack) {
         return read(itemStack).status() == ReadStatus.VALID;
     }
-
 
     public void clear(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
@@ -427,22 +414,18 @@ public final class ItemOperationLedger {
                                              boolean newManagedOverlay) {
         String currentName = currentCustomName(original);
         boolean currentIsExternal = !currentName.equals(Texts.toStringSafe(oldManagedName));
-        boolean storedExternal = pdc.has(
+
+        String storedExternalName = pdc.getMigrating(
                 original,
                 partition,
+                LEGACY_PARTITION,
                 EXTERNAL_CUSTOM_NAME_FIELD,
                 PersistentDataType.STRING
         );
+        boolean storedExternal = storedExternalName != null;
         String externalName = currentIsExternal
                 ? currentName
-                : storedExternal
-                        ? Texts.toStringSafe(pdc.get(
-                                original,
-                                partition,
-                                EXTERNAL_CUSTOM_NAME_FIELD,
-                                PersistentDataType.STRING
-                        ))
-                        : "";
+                : storedExternal ? Texts.toStringSafe(storedExternalName) : "";
         boolean preserveExternal = currentIsExternal || storedExternal;
         if (newManagedOverlay) {
             return new CustomNameUpdate(newManagedName, preserveExternal, externalName);
@@ -470,15 +453,15 @@ public final class ItemOperationLedger {
                     PersistentDataType.STRING,
                     update.externalCustomName()
             );
-        } else {
-            pdc.remove(itemStack, partition, EXTERNAL_CUSTOM_NAME_FIELD);
         }
+
+        pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, EXTERNAL_CUSTOM_NAME_FIELD);
     }
 
     SnapshotUpdate preparePresentationSnapshotUpdate(ItemStack original,
                                                      ItemStack managedProjection,
                                                      boolean assemblyNameOverlay) {
-        if (!pdc.has(original, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING)) {
+        if (!presentationSnapshotFieldPresent(original)) {
             return SnapshotUpdate.NOT_REQUIRED;
         }
         ItemPresentationSnapshot snapshot = new ItemPresentationSnapshot(
@@ -495,6 +478,7 @@ public final class ItemOperationLedger {
             return;
         }
         pdc.set(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING, update.payload());
+        pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, PRESENTATION_SNAPSHOT_FIELD);
     }
 
     private UpdateResult applyInternal(ActionContext context,
@@ -620,14 +604,18 @@ public final class ItemOperationLedger {
         if (snapshot != null && snapshot.assemblyNameOverlayKnown()) {
             return snapshot.assemblyNameOverlay();
         }
+
         if (baseView == null
-                || !pdc.has(itemStack, partition, ASSEMBLY_SCHEMA_VERSION_FIELD, PersistentDataType.INTEGER)
-                || !pdc.has(itemStack, partition, ASSEMBLY_BASE_SOURCE_FIELD, PersistentDataType.STRING)) {
+                || pdc.getMigrating(itemStack, partition, LEGACY_PARTITION,
+                        ASSEMBLY_SCHEMA_VERSION_FIELD, PersistentDataType.INTEGER) == null
+                || pdc.getMigrating(itemStack, partition, LEGACY_PARTITION,
+                        ASSEMBLY_BASE_SOURCE_FIELD, PersistentDataType.STRING) == null) {
             return false;
         }
-        String baseCustomName = pdc.get(
+        String baseCustomName = pdc.getMigrating(
                 itemStack,
                 partition,
+                LEGACY_PARTITION,
                 ASSEMBLY_BASE_CUSTOM_NAME_FIELD,
                 PersistentDataType.STRING
         );
@@ -662,7 +650,12 @@ public final class ItemOperationLedger {
             return true;
         }
         ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null && itemMeta.getPersistentDataContainer().getKeys().contains(operationsKey);
+        if (itemMeta == null) {
+            return false;
+        }
+
+        return itemMeta.getPersistentDataContainer().getKeys().contains(operationsKey)
+                || containsLegacy(itemMeta, FIELD);
     }
 
     private boolean presentationSnapshotFieldPresent(ItemStack itemStack) {
@@ -670,12 +663,21 @@ public final class ItemOperationLedger {
             return true;
         }
         ItemMeta itemMeta = itemStack == null ? null : itemStack.getItemMeta();
-        return itemMeta != null
-                && itemMeta.getPersistentDataContainer().getKeys().contains(presentationSnapshotKey);
+        if (itemMeta == null) {
+            return false;
+        }
+        return itemMeta.getPersistentDataContainer().getKeys().contains(presentationSnapshotKey)
+                || containsLegacy(itemMeta, PRESENTATION_SNAPSHOT_FIELD);
+    }
+
+    private boolean containsLegacy(ItemMeta itemMeta, String field) {
+        NamespacedKey legacyKey = PdcKeyMigration.legacyKey(partition.namespace(), LEGACY_PARTITION, field);
+        return legacyKey != null && itemMeta.getPersistentDataContainer().getKeys().contains(legacyKey);
     }
 
     private ItemPresentationSnapshot readPresentationSnapshot(ItemStack itemStack) {
-        String payload = pdc.get(itemStack, partition, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING);
+        String payload = pdc.getMigrating(
+                itemStack, partition, LEGACY_PARTITION, PRESENTATION_SNAPSHOT_FIELD, PersistentDataType.STRING);
         if (Texts.isBlank(payload)) {
             return null;
         }
@@ -733,12 +735,14 @@ public final class ItemOperationLedger {
         }
         List<ItemOperationEntry> normalized = normalizeEntries(entries);
         if (normalized.isEmpty()) {
-            pdc.remove(itemStack, partition, FIELD);
+            pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, FIELD);
             return;
         }
         List<Map<String, Object>> encoded = ItemOperationCodec.encode(normalized);
         String payload = YamlFiles.dump(Map.of("ops", encoded));
         pdc.set(itemStack, partition, FIELD, PersistentDataType.STRING, payload);
+
+        pdc.removeMigrating(itemStack, partition, LEGACY_PARTITION, FIELD);
     }
 
     private Object parsePayload(String payload) {

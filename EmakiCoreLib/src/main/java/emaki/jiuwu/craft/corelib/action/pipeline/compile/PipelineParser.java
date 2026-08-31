@@ -11,40 +11,18 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * The one parser for pipeline text.
- *
- * <p>There is no second parsing path: a pipeline is always one line, so the earlier plan's split
- * between a structured-YAML compiler and an inline parser does not exist.</p>
- *
- * <p>Grammar:</p>
- * <pre>
- * line     := node ('|' node)*
- * node     := branch | stage
- * branch   := 'if' condition '[' line ']' ('else' '[' line ']')?
- * stage    := name arg*
- * arg      := key '=' value | bare_value
- * </pre>
- */
 public final class PipelineParser {
 
-    /** The branch keyword. */
     public static final String IF = "if";
 
-    /** The alternative-branch keyword. */
     public static final String ELSE = "else";
 
-    /** The sub-sequence call keyword. */
     public static final String RUN = "run";
+
+    public static final String WEIGHT = "weight";
 
     private final PipelineLexer lexer = new PipelineLexer();
 
-    /**
-     * Parses one pipeline line.
-     *
-     * @param line raw pipeline text
-     * @return the parse result
-     */
     public @NotNull Result parse(@Nullable String line) {
         String raw = line == null ? "" : line.trim();
         if (raw.isEmpty() || raw.startsWith("#")) {
@@ -127,6 +105,9 @@ public final class PipelineParser {
         if (RUN.equals(name) && !head.quoted()) {
             return parseSequenceCall(cursor);
         }
+        if (WEIGHT.equals(name) && !head.quoted()) {
+            return parseWeighted(cursor);
+        }
         return parseStage(cursor);
     }
 
@@ -160,6 +141,29 @@ public final class PipelineParser {
             elseBranch = parsed;
         }
         return new ActionAst.Branch(condition.toString(), thenBranch, elseBranch, ifToken.column());
+    }
+
+    private ActionAst parseWeighted(Cursor cursor) {
+        PipelineToken weightToken = cursor.next();
+        List<ActionAst.Weighted.Option> options = new ArrayList<>();
+        while (cursor.hasNext() && cursor.peek().kind() == PipelineToken.Kind.WORD) {
+            PipelineToken valueToken = cursor.peek();
+            if (valueToken.isKeyValue()) {
+                cursor.fail(CompileDiagnostic.at("action.parse.weight_named_argument", valueToken));
+                return null;
+            }
+            cursor.next();
+            List<ActionAst> body = parseBracketBody(cursor, valueToken);
+            if (body == null) {
+                return null;
+            }
+            options.add(new ActionAst.Weighted.Option(valueToken.text(), body));
+        }
+        if (options.isEmpty()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.weight_missing_option", weightToken));
+            return null;
+        }
+        return new ActionAst.Weighted(options, weightToken.column());
     }
 
     private List<ActionAst> parseBracketBody(Cursor cursor, PipelineToken keyword) {
@@ -299,13 +303,6 @@ public final class PipelineParser {
         }
     }
 
-    /**
-     * Parse outcome.
-     *
-     * @param nodes parsed nodes in written order
-     * @param diagnostic the problem, or {@code null} on success
-     * @param blank whether the input was blank or a comment
-     */
     public record Result(@NotNull List<ActionAst> nodes, @Nullable CompileDiagnostic diagnostic, boolean blank) {
 
         public Result {
@@ -324,7 +321,6 @@ public final class PipelineParser {
             return new Result(List.of(), null, true);
         }
 
-        /** {@return whether parsing produced usable nodes} */
         public boolean successful() {
             return diagnostic == null && !blank;
         }

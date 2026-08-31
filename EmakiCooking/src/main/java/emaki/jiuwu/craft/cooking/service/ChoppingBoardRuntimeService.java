@@ -58,7 +58,6 @@ public final class ChoppingBoardRuntimeService {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
@@ -70,7 +69,6 @@ public final class ChoppingBoardRuntimeService {
             CookingBlockMatcher blockMatcher,
             StationStateStore stateStore,
             CookingRecipeService recipeService,
-            CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingDisplayService displayService,
             CookingTextDisplayService textDisplayService) {
@@ -80,7 +78,6 @@ public final class ChoppingBoardRuntimeService {
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.displayService = Objects.requireNonNull(displayService, "displayService");
         this.textDisplayService = Objects.requireNonNull(textDisplayService, "textDisplayService");
@@ -439,7 +436,7 @@ public final class ChoppingBoardRuntimeService {
                         "station_type", StationType.CHOPPING_BOARD.folderName()
                 ),
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         if (accepted) {
@@ -480,7 +477,7 @@ public final class ChoppingBoardRuntimeService {
             return false;
         }
         if (settingsService.onlyRecipeItems(StationType.CHOPPING_BOARD)
-                && recipeService.findChoppingBoardRecipe(shorthand, player) == null) {
+                && recipeService.findChoppingBoardRecipe(shorthand, player, hand) == null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "general.input_rejected", Map.of());
             interaction.cancel();
             return true;
@@ -537,9 +534,6 @@ public final class ChoppingBoardRuntimeService {
         return true;
     }
 
-
-
-
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();
@@ -589,6 +583,10 @@ public final class ChoppingBoardRuntimeService {
         ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
         if (shorthand == null || shorthand.isBlank() || !matchesInputSource(shorthand, state.inputSource())) {
+            return false;
+        }
+        if (recipeService.findChoppingBoardRecipe(shorthand, player) != null
+                && recipeService.findChoppingBoardRecipe(shorthand, player, hand) == null) {
             return false;
         }
         if (settingsService.choppingSpaceRestriction() && block.getRelative(BlockFace.UP).getType() != Material.AIR) {
@@ -669,12 +667,7 @@ public final class ChoppingBoardRuntimeService {
         if (source == null) {
             return false;
         }
-        for (ItemSourceRef tool : settingsService.choppingToolSources()) {
-            if (ItemSourceUtil.matches(tool, source)) {
-                return true;
-            }
-        }
-        return false;
+        return CookingMatchers.accepts(settingsService.choppingToolMatcher(), itemStack, source, null);
     }
 
     private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {

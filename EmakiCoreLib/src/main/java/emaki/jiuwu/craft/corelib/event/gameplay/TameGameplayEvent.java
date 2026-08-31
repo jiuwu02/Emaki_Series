@@ -5,12 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
 public record TameGameplayEvent(Player player, EntityType entityType)
         implements GameplayEvent {
 

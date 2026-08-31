@@ -19,11 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/**
- * Replaces the contents of one of the target's inventory slots.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's inventory.</p>
- */
 public final class SetItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;

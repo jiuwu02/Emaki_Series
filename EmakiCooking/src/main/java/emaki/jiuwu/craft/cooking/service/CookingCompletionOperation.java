@@ -14,9 +14,6 @@ import java.util.Optional;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-
-
-
 public record CookingCompletionOperation(
         String operationId,
         String completionKey,

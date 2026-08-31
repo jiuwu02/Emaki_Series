@@ -60,7 +60,6 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
     }
 
-
     public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
         return refreshOnlinePlayers(plugin.runtimeGeneration());
     }

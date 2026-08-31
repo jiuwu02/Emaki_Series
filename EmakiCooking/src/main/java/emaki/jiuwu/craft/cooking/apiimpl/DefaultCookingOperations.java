@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.cooking.service.CookingRecipeService;
 import emaki.jiuwu.craft.cooking.service.CookingRewardService;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 
-/** Runtime-backed cooking operations. */
 public final class DefaultCookingOperations implements CookingOperations {
 
     private final EmakiCookingPlugin plugin;

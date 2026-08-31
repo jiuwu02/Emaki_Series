@@ -16,16 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * The entity named by the trigger, for triggers whose subject differs from the caster.
- *
- * <p>The trigger key carries a name or UUID rather than an entity reference, because a pipeline may be
- * compiled long before it runs and holding a live entity in a context key would keep it from being
- * collected.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: reads a string context key and looks it up in the online-player
- * table. Both are global structures, so no owner thread is implied.</p>
- */
 public final class TriggerSource extends BaseSource {
 
     public TriggerSource() {

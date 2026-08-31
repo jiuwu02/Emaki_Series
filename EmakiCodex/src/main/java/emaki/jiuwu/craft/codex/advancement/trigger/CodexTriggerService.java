@@ -16,26 +16,29 @@ import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementPage;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementTrigger;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerContext;
+import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** Resolves configured and external trigger providers into central advancement mutations. */
 public final class CodexTriggerService {
 
     private final EmakiCodexPlugin plugin;
     private final AdvancementPageLoader pageLoader;
     private final AdvancementService advancementService;
     private final AdvancementTriggerRegistry triggerRegistry;
+    private final CodexEntryService codexEntryService;
 
     public CodexTriggerService(EmakiCodexPlugin plugin,
             AdvancementPageLoader pageLoader,
             AdvancementService advancementService,
-            AdvancementTriggerRegistry triggerRegistry) {
+            AdvancementTriggerRegistry triggerRegistry,
+            CodexEntryService codexEntryService) {
         this.plugin = plugin;
         this.pageLoader = pageLoader;
         this.advancementService = advancementService;
         this.triggerRegistry = triggerRegistry;
+        this.codexEntryService = codexEntryService;
     }
 
     public void fire(Player player, String triggerKey, Map<String, ?> variables) {
@@ -66,6 +69,8 @@ public final class CodexTriggerService {
         for (String advancementId : grants) {
             advancementService.grant(player, advancementId);
         }
+        codexEntryService.unlockByTrigger(player, normalizedTrigger,
+                trigger -> conditionPasses(player, trigger, safeVariables));
     }
 
     private boolean conditionPasses(Player player, AdvancementTrigger trigger, Map<String, ?> variables) {

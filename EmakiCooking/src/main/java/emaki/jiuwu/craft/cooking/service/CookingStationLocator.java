@@ -12,19 +12,6 @@ import emaki.jiuwu.craft.cooking.model.StationSnapshot;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingStationTracker.RecentStation;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class CookingStationLocator {
 
     private static final double MAX_STATION_DISTANCE = 5.0D;
@@ -35,12 +22,6 @@ public final class CookingStationLocator {
     public CookingStationLocator(EmakiCookingPlugin plugin) {
         this.plugin = plugin;
     }
-
-
-
-
-
-
 
     public Optional<StationSnapshot> snapshotForViewer(Player player) {
         if (player == null) {

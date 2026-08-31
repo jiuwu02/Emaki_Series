@@ -16,14 +16,10 @@ import emaki.jiuwu.craft.station.api.model.SubmitOutcome;
 /**
  * State-changing station operations.
  *
- * <p>Reached through {@link EmakiStationApi#operations()}. Every mutating call requires the target
- * player to be online and returns {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#TARGET_OFFLINE}
- * otherwise: submissions and refunds touch the inventory or the warehouse, and neither can be reached
- * for an absent player.
- *
- * <p>The futures dispatch their own work to the target player's owner thread, but their completion
- * callbacks carry no thread guarantee. A caller that touches players, inventories, or GUIs inside
- * {@code thenAccept} must schedule that work back onto the owner thread itself.
+ * <p>Mutating calls require an online target player. Future-returning methods dispatch work to the player's
+ * owner thread, but future completion callbacks have no Bukkit-thread guarantee; schedule callback work back
+ * to the relevant owner before touching players, inventories or GUIs. {@link #openGui(Player, String)} is
+ * synchronous and owner-thread only.
  */
 @ApiStatus.NonExtendable
 public interface StationOperations {
@@ -37,14 +33,9 @@ public interface StationOperations {
      *
      * <p>Recipes with no duration settle immediately and never occupy the queue.
      *
-     * <h4>Behaviour change</h4>
-     * Materials now come from a single merged pool spanning the player's inventory and their warehouse, spent
-     * inventory-first. {@code channel} therefore no longer selects anything and is ignored.
-     *
-     * <p>Two consequences for existing callers: passing {@link MaterialChannel#BACKPACK} used to be refused with
-     * {@code station.api_backpack_unsupported} and now submits normally, so <strong>that reason key is no longer
-     * produced</strong>; and a submission may draw on the inventory even when {@link MaterialChannel#STORAGE} was
-     * requested. The parameter is retained for source compatibility.
+
+     * <p>Materials come from one merged inventory/warehouse pool and are spent inventory-first. The
+     * {@code channel} parameter is ignored and retained only for source compatibility.
      *
      * <p><strong>Thread:</strong> any thread. Requires the target player to be online.
      *

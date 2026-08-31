@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.api.gui.SlotParser;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemParser;
-import emaki.jiuwu.craft.corelib.item.LegacyConfiguredItemConverter;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -24,8 +23,6 @@ final class ConfiguredGuiSupport {
 
     private final EmakiForgePlugin plugin;
     private final ConfiguredItemParser configuredItemParser = new ConfiguredItemParser();
-    private final LegacyConfiguredItemConverter legacyConverter =
-            new LegacyConfiguredItemConverter(configuredItemParser);
 
     ConfiguredGuiSupport(EmakiForgePlugin plugin) {
         this.plugin = plugin;
@@ -151,7 +148,7 @@ final class ConfiguredGuiSupport {
                     : fallbackDefinition;
             return Texts.isBlank(item) ? fallback : fallback.withSource(item);
         }
-        return legacyConverter.convert(item, 1, raw, Map.of());
+        return new ConfiguredItemDefinition(item, 1, Map.of());
     }
 
     private String resolveItem(Object raw, String fallbackItem) {

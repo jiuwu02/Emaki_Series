@@ -1,15 +1,9 @@
 package emaki.jiuwu.craft.strengthen;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
-
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,6 +14,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -42,6 +37,14 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
+import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
+import emaki.jiuwu.craft.strengthen.enhancement.mastery.MasteryProgressService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeLoader;
+import emaki.jiuwu.craft.strengthen.enhancement.target.EnhancementTargetRegistry;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.strengthen.loader.StrengthenRecipeLoader;
 import emaki.jiuwu.craft.strengthen.papi.StrengthenPlaceholderExpansion;
@@ -58,10 +61,10 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
-    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc");
+    private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc", "pity");
 
     private static final String STARTUP_ASCII = """
- ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __    
+ ______  __    __  ______  __  __   __  ______  ______  ______  ______  __   __  ______  ______  __  __  ______  __   __
 /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\__  _\\/\\  == \\/\\  ___\\/\\ "-.\\ \\/\\  ___\\/\\__  _\\/\\ \\_\\ \\/\\  ___\\/\\ "-.\\ \\
 \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\___  \\/_/\\ \\/\\ \\  __<\\ \\  __\\\\ \\ \\-.  \\ \\ \\__ \\/_/\\ \\/\\ \\  __ \\ \\  __\\\\ \\ \\-.  \\
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_\\\\"\\_\\
@@ -72,9 +75,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private static final int BSTATS_PLUGIN_ID = 31769;
 
     private BStatsRegistration metrics;
-    // "Data is loaded", not "services exist": the services are non-null from initialize() onward, so a
-    // service null-check reported ready for the whole duration of a reload. Unrelated to the
-    // accept/freeze gate on StrengthenAttemptService, which answers a different question.
+
     private volatile boolean contentReady;
 
     private final StrengthenLifecycleCoordinator lifecycleCoordinator = new StrengthenLifecycleCoordinator();
@@ -96,6 +97,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private BootstrapService bootstrapService;
     private GuiService guiService;
     private StrengthenAttributeBridge pdcAttributeGateway;
+    private StrengthenAttributeBridge affixAttributeGateway;
     private StrengthenRecipeResolver recipeResolver;
     private ChanceCalculator chanceCalculator;
     private StrengthenEconomyService economyService;
@@ -105,6 +107,14 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenTransferService transferService;
     private StrengthenRefreshService refreshService;
     private StrengthenGuiService strengthenGuiService;
+    private EnhancementRecipeLoader enhancementRecipeLoader;
+    private EnhancementTargetRegistry enhancementTargetRegistry;
+    private InMemoryPityStateStore pityStateStore;
+    private EnhancementAttemptService enhancementAttemptService;
+    private PityPersistenceRetryScheduler pityRetryScheduler;
+    private MasteryProgressService masteryProgressService;
+    private AffixSelectionService affixSelectionService;
+    private AffixGuiService affixGuiService;
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
     private StrengthenStageRegistrar stageRegistrar;
@@ -126,6 +136,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
+        pityRetryScheduler.start();
         registerApi();
         registerActions();
         registerCommandHandler();
@@ -140,6 +151,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void onDisable() {
         contentReady = false;
         publishAbsent();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
         itemLayerPreviewLifecycle.close();
         lifecycleCoordinator.shutdown(this);
@@ -163,39 +177,37 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public void reloadPluginState(boolean closeOpenInventories) {
         contentReady = false;
         publishLoading();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         lifecycleCoordinator.reload(this, closeOpenInventories);
         contentReady = true;
         publishReady();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.start();
+        }
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
         contentReady = false;
         publishLoading();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenRun(() -> {
                     contentReady = true;
                     publishReady();
+                    if (pityRetryScheduler != null) {
+                        pityRetryScheduler.start();
+                    }
                 });
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed". Deliberately separate from {@code attemptService().accepting()}, which is the
-     * shutdown gate for new requests and says nothing about whether the recipe table is loaded.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held. In particular it is not
-     * guarded by {@code lifecycleMonitor}, which belongs to the accept/freeze gate, so no monitor is
-     * held while the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -208,11 +220,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
@@ -238,6 +245,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         guiService = components.guiService();
         coreItemSourceService = components.coreItemSourceService();
         pdcAttributeGateway = components.pdcAttributeGateway();
+        affixAttributeGateway = components.affixAttributeGateway();
         recipeResolver = components.recipeResolver();
         chanceCalculator = components.chanceCalculator();
         economyService = components.economyService();
@@ -247,8 +255,20 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         transferService = components.transferService();
         refreshService = components.refreshService();
         strengthenGuiService = components.strengthenGuiService();
+        enhancementRecipeLoader = components.enhancementRecipeLoader();
+        enhancementTargetRegistry = components.enhancementTargetRegistry();
+        if (pityRetryScheduler != null) {
+            pityRetryScheduler.stop();
+        }
+        pityStateStore = components.pityStateStore();
+        enhancementAttemptService = components.enhancementAttemptService();
+        masteryProgressService = components.masteryProgressService();
+        pityRetryScheduler = new PityPersistenceRetryScheduler(this);
+        affixSelectionService = components.affixSelectionService();
+        affixGuiService = components.affixGuiService();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 
@@ -301,6 +321,38 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return recipeLoader;
     }
 
+    public EnhancementRecipeLoader enhancementRecipeLoader() {
+        return enhancementRecipeLoader;
+    }
+
+    public EnhancementTargetRegistry enhancementTargetRegistry() {
+        return enhancementTargetRegistry;
+    }
+
+    public PityPersistenceRetryScheduler pityRetryScheduler() {
+        return pityRetryScheduler;
+    }
+
+    public MasteryProgressService masteryProgressService() {
+        return masteryProgressService;
+    }
+
+    public InMemoryPityStateStore pityStateStore() {
+        return pityStateStore;
+    }
+
+    public EnhancementAttemptService enhancementAttemptService() {
+        return enhancementAttemptService;
+    }
+
+    public AffixSelectionService affixSelectionService() {
+        return affixSelectionService;
+    }
+
+    public AffixGuiService affixGuiService() {
+        return affixGuiService;
+    }
+
     public GuiTemplateLoader guiTemplateLoader() {
         return guiTemplateLoader;
     }
@@ -318,12 +370,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
@@ -342,6 +388,10 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public StrengthenAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    StrengthenAttributeBridge affixAttributeGateway() {
+        return affixAttributeGateway;
     }
 
     public StrengthenRecipeResolver recipeResolver() {
@@ -384,7 +434,6 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         return coreItemFactory;
     }
 
-    /** Creates a stack from a parsed item source; used by economy payouts and command item resolution. */
     @FunctionalInterface
     public interface CoreItemFactory {
 
@@ -398,40 +447,4 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     public DebugCommand debugCommand() {
         return debugCommand;
     }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
-    }
-
 }

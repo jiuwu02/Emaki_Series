@@ -1,17 +1,11 @@
 package emaki.jiuwu.craft.level;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
-
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,8 +14,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -32,11 +27,11 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
-import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -46,6 +41,7 @@ import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
+import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
 import emaki.jiuwu.craft.level.loader.LevelTypeLoader;
 import emaki.jiuwu.craft.level.loader.RequirementLoader;
 import emaki.jiuwu.craft.level.loader.SourceRuleLoader;
@@ -108,11 +104,9 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private static final Set<String> DEBUG_MODULES = Set.of("common");
 
     private EmakiCoreLibPlugin coreLib;
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private AppConfig appConfig = AppConfig.defaults();
     private LevelMessageService messages;
-    private LanguageLoader debugLanguageLoader;
     private DebugLogger debugLogger;
     private DebugCommand debugCommand;
     private AbstractMessageService debugMessageService;
@@ -139,8 +133,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private LevelPlaceholderExpansion placeholderExpansion;
     private LevelStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
-    // "Data is loaded", not "services exist": the services are non-null from initializeServices()
-    // onward, so a service null-check reported ready for the whole duration of a reload.
+
     private volatile boolean contentReady;
     private EmakiLevelApi.Bridge levelApiBridge;
     private ExpSourceProviderRegistry expSourceRegistry;
@@ -160,13 +153,13 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 STARTUP_ASCII_END_COLOR
         );
         coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        executionDispatcher = coreLib.executionDispatcher();
-        threadOwnership = coreLib.threadOwnership();
+        scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();
         messages.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState();
+        reportLegacyItemSources();
         registerCommand();
         registerListeners();
         registerApi();
@@ -231,9 +224,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     }
 
     public void reloadPluginState() {
-        // Gate first: nothing below may run on a candidate the precheck rejects. Level parses straight
-        // into the active field, so the restorer puts the last known good config back instead of
-        // letting the module continue on a half-applied or defaulted one.
+
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 messages,
                 "level",
@@ -243,15 +234,11 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         if (gate.rejected()) {
             return;
         }
-        // Not-ready starts after the gate, not at method entry: a rejected candidate leaves the previous
-        // config in place and the module fully usable, so announcing a loading window there would make
-        // every consumer's gate flap for a reload that never happened.
+
         contentReady = false;
         publishLoading();
         closeAttributeBridge();
         messages.load(appConfig.language());
-        debugLanguageLoader.load();
-        debugLanguageLoader.setLanguage(appConfig.language());
         typeLoader.load(appConfig);
         requirementLoader.load();
         sourceRuleLoader.load();
@@ -279,23 +266,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         publishReady();
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the services
-     * were constructed". The services are non-null from {@code initializeServices} onward, so gating on
-     * them alone reported ready throughout a reload.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
-     * leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -308,11 +282,6 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -328,11 +297,10 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private void initializeServices() {
         messages = new LevelMessageService(this);
         messages.load(appConfig.language());
-        debugLanguageLoader = new LanguageLoader(this);
-        debugLogger = new DebugLogger(this, debugLanguageLoader);
+        debugLogger = new DebugLogger(this, coreLib.languageLoader());
         debugMessageService = new AbstractMessageService(this, messages.message("general.prefix"),
                 messages::message, messages::message);
-        debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES);
+        debugCommand = new DebugCommand(debugLogger, DEBUG_MODULES, getName());
         bootstrapService = new BootstrapService(
                 this,
                 messages,
@@ -363,6 +331,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         requirementLoader = new RequirementLoader(this);
         sourceRuleLoader = new SourceRuleLoader(this);
         guiTemplateLoader = new GuiTemplateLoader(this);
+        var executionDispatcher = coreLib.executionDispatcher();
         guiService = new GuiService(this, executionDispatcher, coreLib.asyncTaskScheduler(), coreLib.performanceMonitor(), coreLib.guiBackend());
         typeRegistry = new LevelTypeRegistry();
         requirementService = new RequirementService();
@@ -384,14 +353,13 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 coreLib.itemSourceService(),
                 coreLib.economyManager(),
                 actionLines(),
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 appConfig,
                 this::resyncAllAttributes,
                 this::resyncAttributes,
                 data -> topService.update(data)
         );
-        playerDataListener = new PlayerDataListener(this, executionDispatcher);
+        playerDataListener = new PlayerDataListener(this, scheduling);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
     }
@@ -403,6 +371,15 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 "emakilevel command",
                 List.of("elv", "elevel"),
                 new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
+        );
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                LevelLegacyTargets.specs(),
+                getLogger(),
+                "emakilevel"
         );
     }
 
@@ -459,8 +436,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                     this,
                     typeRegistry,
                     dataStore,
-                    executionDispatcher,
-                    threadOwnership,
+                    scheduling,
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
@@ -562,22 +538,12 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         return coreLib;
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     public LevelTopService topService() {
@@ -595,40 +561,4 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
     }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
-    }
-
 }

@@ -1,37 +1,30 @@
-# ============================================================
-# EmakiLevel 主配置文件
-# ============================================================
-# 此文件包含等级系统的全局设置。修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiLevel/config.yml
-# ============================================================
+# EmakiLevel 主配置：等级、经验倍率、每日上限、来源与反滥用记录。
 
-# 配置文件版本。仅用于标识当前默认配置结构，不建议手动修改。
-version: "1.5.0"
+# version 由资源同步维护，不是功能开关。
+version: "1.6.0"
 
-# 语言文件 ID，对应 lang/<language>.yml。
-# 例如："zh_CN"、"en_US"。
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否释放默认数据文件。
-# true：首次启动或缺失数据目录时释放 types/、sources/、gui/ 等默认示例数据。
-# false：只加载已有数据，不再主动释放默认示例。
-# 注意：config.yml 与语言文件不属于这里说的默认数据文件。
+# 是否释放内置默认数据；false 时不生成缺失示例。
 release_default_data: true
 
-# 主等级类型 ID。
-# 玩家未指定等级类型时，默认使用此类型。
+# 主等级类型 ID；调用方未指定类型时使用此值。
 primary_type: "main"
 
 level:
+  # 等级类型未单独配置时使用的起始等级。
   default_start_level: 1
+  # 等级类型未单独配置时使用的最高等级。
   default_max_level: 100
+  # 单次结算最多自动升级次数；小于 1 按 1 处理。
   max_auto_upgrade_steps: 10
+  # 达到最高等级后是否继续累计总经验。
   keep_total_exp_at_max_level: true
 
-# v1.2 经验倍率活动示例。
-# enabled=true 表示启用倍率计算入口；默认所有倍率均为 1.0，因此不会改变旧行为。
-# 实际入账经验 = 原始经验 * global * types.<type> * reasons.<reason>。
+# 经验倍率。
+# 实际入账经验 = 原始经验 × global × types.<type> × reasons.<reason>。
+# 所有倍率为 1.0 时不改变经验值。
 multipliers:
   enabled: true
   global: 1.0
@@ -45,9 +38,7 @@ multipliers:
     mythic_drop: 1.0
     event_bonus: 1.0
 
-# v1.2 每日经验上限示例。
-# enabled=true 表示启用每日上限入口；-1 表示不限制，因此默认不会拦截经验。
-# 统计仅保存在本次服务器运行内存中，服务器重启后当日计数会清零。
+# 每日经验上限；-1 不限。计数仅存于当前运行，重启清零。
 daily_caps:
   enabled: true
   default_limit: -1
@@ -57,14 +48,17 @@ daily_caps:
     cooking: -1
     forging: -1
 
+# 玩家等级数据的 PDC 存储。
 pdc:
   enabled: true
   namespace: "emakilevel"
 
+# EmakiAttribute 提供者注册。
 attribute:
   enabled: true
   provider_id: "emakilevel"
 
+# MythicMobs 集成。
 mythicmobs:
   enabled: true
   kill_sources: true
@@ -74,14 +68,21 @@ mythicmobs:
       - "emakilevel_exp"
       - "elv_exp"
 
+# 经验来源反滥用记录。
 anti_abuse:
+  # 是否记录玩家放置的方块。
   placed_block_tracking: true
+  # 是否允许从被记录的方块获得经验。
   placed_block_exp: false
+  # 放置方块记录保留时间，单位 tick；<=0 不清理。
   placed_block_record_ttl_ticks: 864000
   last_damager_tracking:
+    # 是否记录最后攻击者，用于击杀归因。
     enabled: true
+    # 最后攻击者记录保留时间，单位：tick。
     expire_ticks: 200
 
+# 等级界面。
 gui:
   enabled: true
   default_template: "level_gui"

@@ -35,15 +35,15 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSp
 
 import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.ItemDisplayService;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.packet.VirtualEntityIds;
 
-/** 用封包模拟的物品展示实体。 */
 public final class PacketItemDisplayService implements ItemDisplayService, Listener {
 
     private static final int ENTITY_METADATA_BASE = 8;
@@ -52,10 +52,9 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     private final DisplayRuntimeSettings settings;
     private final ExecutionDispatcher executionDispatcher;
     private final Map<String, VirtualDisplay> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
     private final Set<String> animatingGroups = ConcurrentHashMap.newKeySet();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
-    private final TaskHandle refreshTask;
+    private final DisplayLifetimeTracker lifetime;
+    private final TaskToken refreshTask;
 
     public PacketItemDisplayService(Plugin plugin,
             DisplayRuntimeSettings settings,
@@ -63,6 +62,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         this.plugin = plugin;
         this.settings = settings;
         this.executionDispatcher = executionDispatcher;
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         int interval = Math.max(1, settings.refreshIntervalTicks());
         this.refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
@@ -78,9 +78,9 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         if (display == null) {
             display = new VirtualDisplay(VirtualEntityIds.next(), UUID.randomUUID(), spec);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            lifetime.trackGroupMember(spec.groupKey(), key);
             refreshEntry(display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
             return;
         }
         display.spec = spec;
@@ -92,7 +92,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             }
         }
         refreshEntry(display);
-        scheduleExpiry(spec);
+        lifetime.scheduleExpiry(spec);
     }
 
     @Override
@@ -119,7 +119,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 animatingGroups.remove(groupKey);
                 removeGroupKey(groupKey);
@@ -133,7 +133,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 animatingGroups.remove(groupKey);
                 removeGroupKey(groupKey);
@@ -151,17 +151,14 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
-        cancelQuietly(refreshTask);
+        lifetime.cancelAllExpiry();
+        lifetime.cancelQuietly(refreshTask);
         HandlerList.unregisterAll(this);
         for (VirtualDisplay display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
         animatingGroups.clear();
     }
 
@@ -185,7 +182,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         if (animatingGroups.contains(groupKey)) {
             return;
         }
-        Set<String> keys = displaysByGroup.get(groupKey);
+        Set<String> keys = lifetime.membersOf(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -197,7 +194,6 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         double degreesPerSegment = rotationDegrees / segments;
         double heightPerSegment = heightOffset / segments;
 
-        // 抬升阶段
         for (int segment = 0; segment < segments; segment++) {
             int delay = segment * ticksPerSegment;
             int segmentIndex = segment + 1;
@@ -210,7 +206,6 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             }
         }
 
-        // 回落阶段
         int riseEndTick = segments * ticksPerSegment;
         for (int segment = 0; segment < segments; segment++) {
             int delay = riseEndTick + segment * ticksPerSegment;
@@ -230,7 +225,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
             double height,
             String rotationAxis,
             double degrees) {
-        Set<String> currentKeys = displaysByGroup.get(groupKey);
+        Set<String> currentKeys = lifetime.membersOf(groupKey);
         if (currentKeys == null || currentKeys.isEmpty()) {
             return;
         }
@@ -343,44 +338,13 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         return player.getLocation().distanceSquared(location) <= distance * distance;
     }
 
-    private void scheduleExpiry(ItemDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskHandle handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
         for (String key : Set.copyOf(keys)) {
-            cancelQuietly(expiryTasks.remove(key));
+            lifetime.cancelExpiry(key);
             VirtualDisplay display = displays.remove(key);
             if (display != null) {
                 destroyForAllVisible(display);
@@ -389,19 +353,12 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         VirtualDisplay display = displays.remove(key);
         if (display != null) {
             destroyForAllVisible(display);
         }
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     @EventHandler
@@ -436,7 +393,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         if (bukkitLocation == null) {
             return;
         }
-        com.github.retrooper.packetevents.protocol.world.Location packetLocation =
+        var packetLocation =
                 new com.github.retrooper.packetevents.protocol.world.Location(
                         bukkitLocation.getX(), bukkitLocation.getY(), bukkitLocation.getZ(), 0F, 0F);
         WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(

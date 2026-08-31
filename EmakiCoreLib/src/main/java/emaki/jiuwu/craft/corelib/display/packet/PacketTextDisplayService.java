@@ -8,6 +8,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -29,22 +30,17 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerDe
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEntityMetadata;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.DisplayRuntimeSettings;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.packet.VirtualEntityIds;
 
-/**
- * 用封包模拟的文本展示实体。
- *
- * <p>虚拟实体不进入区块存档，也不占用服务端实体，且支持
- * {@link TextDisplaySpec#viewers()} 定向可见。
- */
 public final class PacketTextDisplayService implements TextDisplayService, Listener {
 
     private static final int ENTITY_METADATA_BASE = 8;
@@ -54,9 +50,8 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     private final ExecutionDispatcher executionDispatcher;
     private final DisplayMotionRunner motionRunner;
     private final Map<String, VirtualText> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
-    private final TaskHandle refreshTask;
+    private final DisplayLifetimeTracker lifetime;
+    private final TaskToken refreshTask;
 
     public PacketTextDisplayService(Plugin plugin,
             DisplayRuntimeSettings settings,
@@ -65,6 +60,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         this.settings = settings;
         this.executionDispatcher = executionDispatcher;
         this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
         Bukkit.getPluginManager().registerEvents(this, plugin);
         int interval = Math.max(1, settings.refreshIntervalTicks());
         this.refreshTask = executionDispatcher.runGlobalTimer(plugin, this::refreshAll, interval, interval);
@@ -84,16 +80,15 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         if (display == null) {
             display = new VirtualText(VirtualEntityIds.next(), UUID.randomUUID(), spec);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
-            // 同理先落第 0 帧，再由 refreshEntry 发出携带该帧的 spawn 与 metadata。
+            lifetime.trackGroupMember(spec.groupKey(), key);
+
             startMotion(key, display);
             refreshEntry(display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
             return;
         }
         display.spec = spec;
-        // 必须先重启运动再构建整体 metadata：startMotion 会把当前帧回写为第 0 帧，
-        // 否则合并窗口内的「重新抛出」会先发出上一次飞行的旧位置，产生一次跳变。
+
         startMotion(key, display);
         WrapperPlayServerEntityMetadata packet =
                 new WrapperPlayServerEntityMetadata(display.entityId, metadata(display));
@@ -104,7 +99,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             }
         }
         refreshEntry(display);
-        scheduleExpiry(spec);
+        lifetime.scheduleExpiry(spec);
     }
 
     @Override
@@ -129,7 +124,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -142,7 +137,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -151,18 +146,15 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
+        lifetime.cancelAllExpiry();
         motionRunner.shutdown();
-        cancelQuietly(refreshTask);
+        lifetime.cancelQuietly(refreshTask);
         HandlerList.unregisterAll(this);
         for (VirtualText display : Set.copyOf(displays.values())) {
             destroyForAllVisible(display);
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
     }
 
     @Override
@@ -204,12 +196,6 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         }
     }
 
-    /**
-     * 判断玩家是否应看到该实体。
-     *
-     * <p>定向 spec 先做 viewer 白名单过滤，再照常做同世界与距离判定，
-     * 因此定向可见永远是空间可见性的子集。
-     */
     private boolean isVisible(Player player, TextDisplaySpec spec) {
         if (player == null || spec == null) {
             return false;
@@ -217,7 +203,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         if (spec.isTargeted() && !spec.viewers().contains(player.getUniqueId())) {
             return false;
         }
-        org.bukkit.Location location = spec.displayLocation();
+        Location location = spec.displayLocation();
         if (location == null || location.getWorld() == null || player.getWorld() == null) {
             return false;
         }
@@ -228,7 +214,6 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         return player.getLocation().distanceSquared(location) <= distance * distance;
     }
 
-    /** 启动或重启该条目的运动，并把每帧状态回写到 {@link VirtualText} 供后续 spawn 复用。 */
     private void startMotion(String key, VirtualText display) {
         TextDisplaySpec spec = display.spec;
         if (spec == null || !spec.hasMotion()) {
@@ -244,11 +229,6 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         });
     }
 
-    /**
-     * 只发运动相关的四项 metadata。
-     *
-     * <p>文本、背景、样式等静态项不重复发送，飞行期间每帧的包体因此保持很小。
-     */
     private void sendMotionFrame(VirtualText display,
             int interpolationTicks,
             DisplayGeometry.Vector3 translation,
@@ -282,45 +262,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         }
     }
 
-    /** 与真实体后端同理：重排到期任务前必须取消旧任务。 */
-    private void scheduleExpiry(TextDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskHandle handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
         for (String key : Set.copyOf(keys)) {
-            cancelQuietly(expiryTasks.remove(key));
+            lifetime.cancelExpiry(key);
             motionRunner.cancel(key);
             VirtualText display = displays.remove(key);
             if (display != null) {
@@ -330,20 +278,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         motionRunner.cancel(key);
         VirtualText display = displays.remove(key);
         if (display != null) {
             destroyForAllVisible(display);
         }
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     @EventHandler
@@ -374,11 +315,11 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     }
 
     private void spawnFor(Player player, VirtualText display) {
-        org.bukkit.Location bukkitLocation = display.spec.displayLocation();
+        Location bukkitLocation = display.spec.displayLocation();
         if (bukkitLocation == null) {
             return;
         }
-        com.github.retrooper.packetevents.protocol.world.Location packetLocation =
+        var packetLocation =
                 new com.github.retrooper.packetevents.protocol.world.Location(
                         bukkitLocation.getX(), bukkitLocation.getY(), bukkitLocation.getZ(), 0F, 0F);
         WrapperPlayServerSpawnEntity spawnPacket = new WrapperPlayServerSpawnEntity(
@@ -394,12 +335,6 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         sendPacket(player, new WrapperPlayServerEntityMetadata(display.entityId, metadata(display)));
     }
 
-    /**
-     * 构建 TextDisplay 的元数据。
-     *
-     * <p>索引布局：基址为插值起始 tick，+1 插值时长，+2 位置旋转插值时长，
-     * +3 起为位移/缩放，+7 billboard，+9 可见距离，+15 文本。
-     */
     private List<EntityData<?>> metadata(VirtualText display) {
         TextDisplaySpec spec = display.spec;
         int translationIndex = ENTITY_METADATA_BASE + 3;
@@ -501,13 +436,6 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
         display.visiblePlayers.clear();
     }
 
-    /**
-     * 一个虚拟文本实体。
-     *
-     * <p>{@code motionTranslation} / {@code motionScaleFactor} 记录当前运动帧，
-     * 供 {@link #metadata(TextDisplaySpec)} 复用：飞行途中才进入视野的玩家必须
-     * 直接看到当前帧，否则会看到飘字从原点重新出现。
-     */
     private static final class VirtualText {
 
         private final int entityId;

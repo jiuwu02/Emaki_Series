@@ -1,0 +1,22 @@
+# EmakiLevel 经验来源 - MythicMobs
+# 击杀 MythicMobs 生物的经验来源定义；需安装 MythicMobs 才生效。
+
+id: "mythicmobs_sources"
+enabled: true
+sources:
+  mythic_mob_kill:
+    enabled: true
+    type: "combat"
+    trigger: "mythic_mob_kill"
+    anti_abuse:
+      exp_cooldown_ticks: 5
+      ignore_near_spawner: true
+      spawner_scan_radius: 8
+    rules:
+      - mob_ids:
+          - "SkeletonKing"
+          - "UndeadKnight"
+        exp_formula: "50 + %mythic_level% * 5"
+      - mob_ids:
+          - "ForestBoss"
+        exp_formula: "300 + %mythic_level% * 20"

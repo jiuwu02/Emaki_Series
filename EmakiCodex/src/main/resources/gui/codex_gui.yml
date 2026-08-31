@@ -1,0 +1,106 @@
+# ============================================================
+# EmakiCodex 图鉴界面布局
+# ============================================================
+# 重要：功能格必须显式写 type，不写 type 的格子只是纯装饰。
+# 可用的 type：
+#   entry         - 图鉴条目格。全部条目格共同构成一页，越界的格子显示为空气。
+#                   左键激活条目（开启属性奖励），右键领取一次性奖励。
+#   category_tab  - 分类标签。按 codex/ 各文件的 order 升序填充，越界显示为空气。
+#   page_prev     - 上一页
+#   page_info     - 页码信息。页码不能写进标题，只能放在这里。
+#   page_next     - 下一页
+#   close         - 关闭
+# 条目格的动态信息全部由占位符供给：
+#   %entry_title%       条目标题（未解锁时替换为未知条目文案）
+#   %entry_description% 条目描述（未解锁时为空）
+#   %entry_state%       四态之一：未解锁 / 可激活 / 已激活 / 已领取
+#   %entry_hint%        当前可执行的操作提示
+#   %entry_rewards%     奖励清单，多行展开（整行只写这一个占位符才会展开）
+#   %codex_category%    分类 id
+#   %codex_entry%       条目 id
+# ============================================================
+id: "codex_gui"
+gui_type: CHEST
+title: "<gradient:#D946EF:#F59E0B>图鉴</gradient>"
+rows: 6
+
+slots:
+  category_tab:
+    type: "category_tab"
+    slots: "0-8"
+    item:
+      components:
+        custom_name: "%category_title%"
+        lore:
+          - "<gray>分类: <white>%category_id%</white></gray>"
+          - "%category_state%"
+          - "<dark_gray>点击切换到该分类</dark_gray>"
+
+  entry:
+    type: "entry"
+    slots: "10-16,19-25,28-34"
+    item:
+      components:
+        custom_name: "%entry_title%"
+        lore:
+          - "%entry_description%"
+          - ""
+          - "<gray>状态: %entry_state%</gray>"
+          - "<gray>奖励:</gray>"
+          - "%entry_rewards%"
+          - ""
+          - "%entry_hint%"
+
+  page_prev:
+    type: "page_prev"
+    slots:
+      - 45
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>上一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到上一页</dark_gray>"
+
+  page_info:
+    type: "page_info"
+    slots:
+      - 49
+    item:
+      source: "book"
+      components:
+        custom_name: "<gray>第 %current_page%/%total_pages% 页</gray>"
+        lore:
+          - "<gray>当前分类: %category_title%</gray>"
+          - "<dark_gray>可见条目: %entry_count%</dark_gray>"
+
+  page_next:
+    type: "page_next"
+    slots:
+      - 53
+    item:
+      source: "arrow"
+      components:
+        custom_name: "<gray>下一页</gray>"
+        lore:
+          - "<dark_gray>点击翻到下一页</dark_gray>"
+
+  close:
+    type: "close"
+    slots:
+      - 46
+    item:
+      source: "barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<dark_gray>关闭图鉴界面</dark_gray>"
+
+  frame:
+    slots: "9,17,18,26,27,35,36-44,47,48,50-52"
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true

@@ -9,20 +9,6 @@ import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class CoreLibBasicCommand implements BasicCommand {
 
     private static final String ROOT_LABEL = "emakicorelib";
@@ -48,7 +34,6 @@ public final class CoreLibBasicCommand implements BasicCommand {
 
     @Override
     public @Nullable String permission() {
-
 
         return null;
     }

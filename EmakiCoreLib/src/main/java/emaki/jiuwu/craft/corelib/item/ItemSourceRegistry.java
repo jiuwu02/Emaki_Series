@@ -11,23 +11,6 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Maps shorthand prefixes onto the providers that claim them.
- *
- * <p>The table is entirely provider-driven. There used to be a hard-coded list of seventeen prefixes
- * here plus a reserved-word short circuit for {@code emakiitem-} / {@code ei-}, which meant CoreLib
- * recognised an item source whose implementation lived in another plugin, and registered parsers never
- * even saw those two prefixes. Now every prefix arrives with the provider that can actually resolve it,
- * so the ownership rule is enforced by the structure rather than by convention.
- *
- * <p>Matching is by <strong>longest prefix first</strong>. Without that, {@code ei-} would swallow
- * {@code eci-} and EcoItems entries would be handed to EmakiItem.
- *
- * <p>This is a singleton because {@link ItemSourceUtil}'s static entry points must reach it. Binding a
- * prefix that is already bound to the <em>same</em> kind is idempotent rather than a failure, so a
- * secondary {@code ItemSourceService} instance re-registering the built-in vanilla provider does not
- * break; binding it to a different kind is a hard failure naming the first owner.
- */
 public final class ItemSourceRegistry {
 
     private static final ItemSourceRegistry SYSTEM = new ItemSourceRegistry();
@@ -35,25 +18,15 @@ public final class ItemSourceRegistry {
     private final Object writeLock = new Object();
     private final Map<String, Binding> bindings = new LinkedHashMap<>();
 
-    /** Prefixes ordered longest first; rebuilt on every bind/unbind, read without a lock. */
     private volatile List<Binding> orderedBindings = List.of();
 
     private ItemSourceRegistry() {
     }
 
-    /** {@return the shared registry backing {@link ItemSourceUtil}} */
     public static ItemSourceRegistry system() {
         return SYSTEM;
     }
 
-    /**
-     * Binds a provider's shorthand prefixes.
-     *
-     * @param kind the provider's kind
-     * @param provider the provider
-     * @param ownerName owning plugin name, for diagnostics; may be empty for CoreLib built-ins
-     * @return {@code null} on success, otherwise a stable reason key describing the conflict
-     */
     String bind(ItemSourceKind kind, ItemSourceProvider provider, String ownerName) {
         if (kind == null || provider == null) {
             return "itemsource.register.missing_provider";
@@ -80,11 +53,6 @@ public final class ItemSourceRegistry {
         }
     }
 
-    /**
-     * Removes every prefix bound to {@code kind}.
-     *
-     * @param kind the kind being revoked
-     */
     void unbind(ItemSourceKind kind) {
         if (kind == null) {
             return;
@@ -97,16 +65,6 @@ public final class ItemSourceRegistry {
         }
     }
 
-    /**
-     * Parses shorthand text into a reference.
-     *
-     * <p>Prefixed text goes to the claiming provider, which normalises the identifier itself. Bare text
-     * such as {@code IRON_INGOT} falls through to the vanilla reading, which stays in CoreLib because it
-     * is the catch-all path rather than any one plugin's item source.
-     *
-     * @param shorthand the shorthand text
-     * @return the reference, or {@code null} when nothing claims it and it is not a vanilla material id
-     */
     public ItemSourceRef parseShorthand(String shorthand) {
         if (Texts.isBlank(shorthand)) {
             return null;
@@ -127,12 +85,6 @@ public final class ItemSourceRegistry {
         return ItemSourceUtil.parseVanillaShorthand(text);
     }
 
-    /**
-     * Writes a reference back into shorthand text.
-     *
-     * @param ref the reference
-     * @return the shorthand, or {@code null} when no provider claims the kind
-     */
     public String toShorthand(ItemSourceRef ref) {
         if (ref == null) {
             return null;
@@ -154,11 +106,6 @@ public final class ItemSourceRegistry {
         return null;
     }
 
-    /**
-     * {@return whether any provider claims {@code kind}}
-     *
-     * @param kind the kind to test
-     */
     public boolean claims(ItemSourceKind kind) {
         if (kind == null) {
             return false;

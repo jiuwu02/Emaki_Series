@@ -16,7 +16,9 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.cooking.legacy.CookingLegacyEntry;
+
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -47,6 +49,7 @@ final class CookingCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "station" -> handleStation(sender, args);
             case "nutrition" -> handleNutrition(sender, args);
+            case "convert-legacy" -> CookingLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -59,7 +62,7 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "debug")) {
+            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -122,27 +125,30 @@ final class CookingCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", totalRecipeCount(),
                     "resources", 1
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }
 
     private void runForSender(CommandSender sender, Runnable task) {
-        ExecutionDispatcher dispatcher = plugin.executionDispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling scheduler = plugin.taskScheduler();
+        if (scheduler == null) {
             task.run();
             return;
         }
         if (sender instanceof Player player) {
-            dispatcher.runEntity(plugin, player, task, task);
+            scheduler.runForEntity(plugin, player, task, null);
             return;
         }
-        dispatcher.runGlobal(plugin, task);
+        scheduler.runGlobal(plugin, task);
     }
 
     private boolean handleInspect(CommandSender sender, String[] args) {

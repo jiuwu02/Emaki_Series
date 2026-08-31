@@ -1,27 +1,13 @@
-# ============================================================
-# EmakiAttribute 伤害类型定义 - 物理伤害
-# ============================================================
-# 此文件定义了一种伤害类型的完整计算流程。
-# 当触发对应事件时，系统按 stages 顺序依次计算伤害。
-#
-# 字段说明:
-#   id: 伤害类型标识符
-#   display_name: 显示名称
-#   aliases: 别名列表（用于命令和配置引用）
-#   allowed_events: 允许触发此伤害类型的事件
-#   hard_lock: 是否锁定为仅允许列出的事件触发
-#   stages: 伤害计算阶段列表
-#   recovery: 吸血/回复配置
-#   attacker_message/target_message: 伤害消息模板；填空字符串时不发送对应消息，可减少刷屏
-#
-# 文件放置位置: plugins/EmakiAttribute/damage_types/
-# ============================================================
+# 物理伤害流程；stages 按顺序传递输出。allowed_events 与 hard_lock 限制 Bukkit 原因。
+# recovery 在结算后处理回复；消息为空时不发送。
 
 id: physical
 
 display_name: "物理伤害"
 
-aliases: [physical_damage, phys]
+aliases:
+  - physical_damage
+  - phys
 
 # 允许触发此伤害类型的事件
 allowed_events:
@@ -31,72 +17,57 @@ allowed_events:
 # 是否锁定（true = 只有 allowed_events 中的事件才能触发）
 hard_lock: true
 
-# ============================================================
-# 伤害计算阶段
-# ============================================================
-# 按顺序执行，每个阶段的输出作为下一阶段的输入。
-# kind: 阶段类型（FLAT_PERCENT / CUSTOM）
-# source: 属性来源（ATTACKER / TARGET）
-# mode: 计算模式（ADD / MULTIPLY）
-# flat_attributes: 固定值属性列表
-# percent_attributes: 百分比属性列表
-# chance_attributes: 概率属性列表（用于暴击）
-# multiplier_attributes: 倍率属性列表（用于暴击伤害）
-# expression: 自定义计算表达式
-# variables: 本阶段可用的自定义变量（kind=CUSTOM 时被 expression 解析）
-#   每个变量的值可以是数值、表达式或随机数值配置，并可引用内置变量与其他变量：
-#     variables:
-#       soft_cap: 120
-#       overflow: "max(0, %input% - %soft_cap%)"
-#       jitter:
-#         min: 0.95
-#         max: 1.05
-#     expression: "(%input% - %overflow% * 0.5) * %jitter%"
-#   同名变量会覆盖内置变量；表达式内多次引用同一随机变量只掷一次，但每个阶段、每次命中都会重新掷。
+# 阶段支持 FLAT_PERCENT/CUSTOM、ATTACKER/TARGET 与 ADD/MULTIPLY；role 可显式指定。
+# CUSTOM 使用 expression 和可选边界。variables 可引用内置/其他变量；同名覆盖内置变量。
+# 同一阶段内重复引用随机变量只取样一次，每次命中及每个阶段重新取样。
 stages:
   - id: attack
     kind: FLAT_PERCENT
     source: ATTACKER
     mode: ADD
-    flat_attributes: [physical_attack]
-    percent_attributes: [physical_damage_bonus]
+    flat_attributes:
+      - physical_attack
+    percent_attributes:
+      - physical_damage_bonus
 
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [physical_crit_rate]
-    multiplier_attributes: [physical_crit_damage]
+    chance_attributes:
+      - physical_crit_rate
+    multiplier_attributes:
+      - physical_crit_damage
     expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
 
   - id: defense
     kind: CUSTOM
     source: TARGET
-    flat_attributes: [physical_defense]
+    flat_attributes:
+      - physical_defense
     expression: "max(0, %input% - %flat%)"
 
-  # 盾牌格挡。仅在 config.yml 的 shield.mode = attribute 时才可能生效：
-  # vanilla 模式下 %target_blocking% 恒为 0，本阶段等价于不改变伤害。
-  # %target_blocking%：目标本次是否有效举盾（含正面判定），1 或 0。
-  # %crit%：block_rate 概率是否命中。%multiplier%：block_reduction 汇总值。
-  # block_rate 为 0 时 %crit% 恒为 0，格挡永不触发，请勿把基线配成 0。
+  # 仅 shield.mode=attribute 时格挡；vanilla 模式下 %target_blocking%=0。
+  # %crit% 为 block_rate 命中结果，%multiplier% 为 block_reduction；block_rate=0 永不格挡。
   - id: block
     kind: CUSTOM
     source: TARGET
-    chance_attributes: [block_rate]
-    multiplier_attributes: [block_reduction]
+    chance_attributes:
+      - block_rate
+    multiplier_attributes:
+      - block_reduction
     expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
     min_result: 0
 
-# ============================================================
-# 吸血/回复配置
-# ============================================================
-# 伤害造成后，攻击者根据属性回复生命。
+# 吸血/回复配置：伤害结算后按攻击方与目标方属性计算回复量。
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [percentage_lifesteal]
-  percent_attributes: [lifesteal]
-  resistance_attributes: [lifesteal_resistance]
+  flat_attributes:
+    - percentage_lifesteal
+  percent_attributes:
+    - lifesteal
+  resistance_attributes:
+    - lifesteal_resistance
 
 # 伤害消息模板
 attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"

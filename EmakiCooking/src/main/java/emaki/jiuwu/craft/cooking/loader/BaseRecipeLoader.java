@@ -46,11 +46,12 @@ abstract class BaseRecipeLoader extends YamlDirectoryLoader<RecipeDocument> {
             return null;
         }
         for (String path : requiredPaths) {
-            if (!configuration.contains(path)) {
+            if (!containsAny(configuration, path)) {
                 issue("loader.load_failed", Map.of(
                         "type", typeName(),
                         "file", file.getName(),
-                        "error", localized("loader.error.missing_field", Map.of("path", path))
+                        "error", localized("loader.error.missing_field",
+                                Map.of("path", path.replace("|", " / ")))
                 ));
                 return null;
             }
@@ -66,6 +67,16 @@ abstract class BaseRecipeLoader extends YamlDirectoryLoader<RecipeDocument> {
                 stationType,
                 configuration.copy()
         );
+    }
+
+    private boolean containsAny(YamlSection configuration, String path) {
+        for (String candidate : path.split("\\|")) {
+            String trimmed = candidate.trim();
+            if (Texts.isNotBlank(trimmed) && configuration.contains(trimmed)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override

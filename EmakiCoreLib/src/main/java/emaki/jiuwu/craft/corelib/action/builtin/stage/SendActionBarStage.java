@@ -14,14 +14,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 
-/**
- * Sends an action bar message to the target.
- *
- * <p>Needs a {@code Player}, not merely an entity: the action bar is a client-side HUD element, so a
- * non-player target is {@code Skipped}.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes to that player's connection.</p>
- */
 public final class SendActionBarStage extends BaseStage {
 
     public SendActionBarStage() {

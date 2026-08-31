@@ -1,10 +1,9 @@
 package emaki.jiuwu.craft.cooking.service;
 
-import java.util.List;
 import java.util.function.Supplier;
 
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 final class ChoppingBoardSettings {
 
@@ -26,8 +25,8 @@ final class ChoppingBoardSettings {
         return Math.max(0L, configuration.get().getInt("stations.chopping_board.interaction_delay_ms", 1000));
     }
 
-    List<ItemSourceRef> toolSources() {
-        return CookingSettingsService.parseSources(configuration.get().get("stations.chopping_board.tool_item_sources"));
+    Matcher toolMatcher() {
+        return CookingMatchers.parse(configuration.get(), "stations.chopping_board.tool_matcher");
     }
 
     boolean cutDamageEnabled() {

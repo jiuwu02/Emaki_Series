@@ -6,22 +6,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiAttribute before allocated parent-attribute points are reset,
- * after the request has passed validation but before any point is refunded.
+ * Fired after an attribute-point reset is validated and before allocations are cleared or refunded.
  *
- * <p>Listeners may inspect the player, the point total that will be refunded,
- * the current available/reset-point balances and whether a reset point will be
- * spent, or cancel the reset entirely. A cancelled event stops EmakiAttribute
- * from refunding points and from clearing the allocations (the reset call
- * reports a failed result).
- *
- * <p>The refunded total is derived from the player's current allocations and
- * cannot be overridden; a partial refund would leave the allocation totals and
- * the point balance inconsistent.
- *
- * <p><strong>Thread:</strong> fired synchronously on the player's owner thread. On Paper this is the main
- * server thread; on Folia this is the player's entity scheduler thread. Internal calls that do not own the
- * player are not permitted to publish this synchronous Bukkit event.
+ * <p>Runs synchronously on the player's owner thread. Cancellation leaves allocations, available points and
+ * reset points unchanged. The refund is derived from the complete current allocation and cannot be
+ * overridden or partially applied.
  */
 public final class PlayerAttributePointResetEvent extends Event implements Cancellable {
 

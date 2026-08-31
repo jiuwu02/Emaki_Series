@@ -4,7 +4,6 @@ import java.util.UUID;
 
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 
-/** Maps the public mastery query to Forge's persisted successful-craft history. */
 final class ForgeMasteryService {
 
     private final PlayerDataStore playerDataStore;

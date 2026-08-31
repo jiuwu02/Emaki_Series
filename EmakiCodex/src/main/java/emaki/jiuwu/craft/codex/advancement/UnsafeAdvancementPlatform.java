@@ -16,39 +16,8 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.advancement.Advancement;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 @SuppressWarnings("deprecation")
 public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
-
 
     private static final String PLURAL_DIR = "advancements";
 
@@ -72,23 +41,12 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         }
         try {
 
-
-
-
-
-
-
             boolean existed = Bukkit.getAdvancement(key) != null;
             if (existed) {
                 Bukkit.getUnsafe().removeAdvancement(key);
             }
             boolean loaded = Bukkit.getUnsafe().loadAdvancement(key, json) != null;
             if (loaded) {
-
-
-
-
-
 
                 mirrorToSingularDir(key, json);
             }
@@ -138,28 +96,13 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
             }
         }
 
-
-
-
-
         int filesDeleted = purgeNamespaceDirs(namespace);
-
-
-
-
 
         if (removed > 0 || filesDeleted > 0) {
             reloadData();
         }
         return removed;
     }
-
-
-
-
-
-
-
 
     private List<NamespacedKey> collectKeys(String namespace) {
         List<NamespacedKey> keys = new ArrayList<>();
@@ -178,29 +121,6 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         return keys;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
-    /**
-     * Writes the advancement where 1.21 actually reads it.
-     *
-     * <p>CraftBukkit persists into {@code advancements/} while modern vanilla loads {@code advancement/}, so
-     * without this copy the file is invisible to any later data reload. The gate is the bukkit datapack root,
-     * not the plural directory: keying off {@code advancements/} meant that whenever CraftBukkit used the
-     * singular layout the directory never appeared and the mirror was skipped forever, leaving an incomplete
-     * set on disk. The observed symptom was a reload finding only the deepest node and reporting it as an
-     * orphan, because its parents had never been written anywhere vanilla looks. Checking the datapack root
-     * keeps the original intent of not creating stray directories in worlds that have no bukkit datapack.</p>
-     */
     private void mirrorToSingularDir(NamespacedKey key, String json) {
         String relative = key.getKey() + ".json";
         for (World world : Bukkit.getWorlds()) {
@@ -222,13 +142,6 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         }
     }
 
-
-
-
-
-
-
-
     private int purgeNamespaceDirs(String namespace) {
         int deleted = 0;
         for (World world : Bukkit.getWorlds()) {
@@ -238,22 +151,13 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         return deleted;
     }
 
-
     private File namespaceDir(World world, String namespace, String leaf) {
         return new File(world.getWorldFolder(), "datapacks/bukkit/data/" + namespace + "/" + leaf);
     }
 
-    /** The datapack CraftBukkit persists into; its absence means this world has no bukkit datapack. */
     private File datapackRoot(World world) {
         return new File(world.getWorldFolder(), "datapacks/bukkit");
     }
-
-
-
-
-
-
-
 
     private int deleteJsonTree(File dir) {
         if (dir == null || !dir.isDirectory()) {

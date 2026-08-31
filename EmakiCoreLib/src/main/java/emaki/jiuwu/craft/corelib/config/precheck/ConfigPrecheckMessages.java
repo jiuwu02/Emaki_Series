@@ -86,14 +86,6 @@ public final class ConfigPrecheckMessages {
         return messages.message(issueKey(messages, issue.severity()), issueReplacements(messages, issue));
     }
 
-    /**
-     * Picks the line template that matches the severity, so an administrator can spot a blocking issue by
-     * colour alone instead of reading every line.
-     *
-     * <p>Falls back to the plain {@link #ISSUE_KEY} template when a deployed language file predates the
-     * per-severity keys: a missing key resolves to the key itself, and printing {@code
-     * console.config_precheck_issue_error} would be worse than printing an uncoloured line.
-     */
     private static String issueKey(LogMessages messages, ConfigPrecheckSeverity severity) {
         if (severity == ConfigPrecheckSeverity.INFO) {
             return ISSUE_KEY;
@@ -123,17 +115,6 @@ public final class ConfigPrecheckMessages {
         );
     }
 
-    /**
-     * Strips formatting from a warning or blocking issue body so the severity colour applies to the whole
-     * line.
-     *
-     * <p>Issue bodies arrive already localized, and a module's own wording often carries its own colour (for
-     * example {@code station.recipe_bad_source} is wrapped in {@code <yellow>}). Left in place, that inner
-     * colour would win over the outer red and defeat the point of colouring by severity. Stripping happens
-     * here rather than in the language files because those same keys are also logged on their own at load
-     * time, where their colour is still wanted. INFO bodies are left untouched to keep passing lines looking
-     * exactly as they did before.
-     */
     private static String issueBody(ConfigPrecheckIssue issue) {
         if (issue.severity() == ConfigPrecheckSeverity.INFO) {
             return issue.message();

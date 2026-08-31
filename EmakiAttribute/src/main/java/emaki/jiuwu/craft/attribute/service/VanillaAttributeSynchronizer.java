@@ -112,15 +112,6 @@ final class VanillaAttributeSynchronizer {
         }
     }
 
-    /**
-     * Returns whether the snapshot carries any EmakiAttribute attack speed value,
-     * so callers can tell an explicitly configured attack speed apart from a plain
-     * vanilla item.
-     *
-     * @param snapshot the attribute snapshot, may be {@code null}
-     * @param attackSpeedDefinitions the generic attack speed definitions
-     * @return whether an EmakiAttribute attack speed value is present
-     */
     boolean hasAttackSpeedValue(AttributeSnapshot snapshot, List<AttributeDefinition> attackSpeedDefinitions) {
         if (snapshot == null || attackSpeedDefinitions == null) {
             return false;
@@ -166,12 +157,6 @@ final class VanillaAttributeSynchronizer {
         return Math.max(1, (int) Math.round(cooldownTicks));
     }
 
-    /**
-     * Resolves the attack cooldown from the entity's current vanilla
-     * {@code ATTACK_SPEED} attribute, so items without any EmakiAttribute attack
-     * speed value keep their vanilla attack rate (a diamond sword stays 1.6
-     * instead of being forced to 1.0).
-     */
     private int vanillaAttackCooldownTicks(LivingEntity entity) {
         double vanillaAttackRate = 0D;
         if (entity != null) {

@@ -10,31 +10,11 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 
-/**
- * 把一段 YAML 解析为 {@link DialogDefinition}。
- *
- * <p>与 {@link DialogLoader} 共用同一套键，因此写在业务插件配置里的内联对话框块
- * 和放在对话框目录中的独立文件语义完全一致。
- *
- * <p>校验失败通过 {@code issues} 上报文本，由调用方决定日志前缀与降级方式；
- * 解析器本身不持有插件实例，也不写日志。
- */
 public final class DialogDefinitions {
 
     private DialogDefinitions() {
     }
 
-    /**
-     * 解析一段内联对话框配置。
-     *
-     * <p>与目录加载不同，内联块的 id 由调用方给出：它只用于日志与提交回调标识，
-     * 配置里不需要重复声明。
-     *
-     * @param id      对话框 id，由调用方提供
-     * @param section 配置段；为空返回 {@code null}
-     * @param issues  校验问题接收者，可为 {@code null}
-     * @return 解析结果；配置为空或校验失败时返回 {@code null}
-     */
     public static DialogDefinition parse(String id, YamlSection section, Consumer<String> issues) {
         if (section == null || section.isEmpty()) {
             return null;
@@ -42,14 +22,6 @@ public final class DialogDefinitions {
         return parse(id, (Object) section, issues);
     }
 
-    /**
-     * 解析一段内联对话框配置。
-     *
-     * @param id      对话框 id，由调用方提供
-     * @param mapping 配置映射；为空返回 {@code null}
-     * @param issues  校验问题接收者，可为 {@code null}
-     * @return 解析结果；配置为空或校验失败时返回 {@code null}
-     */
     public static DialogDefinition parse(String id, Object mapping, Consumer<String> issues) {
         if (mapping == null) {
             return null;
@@ -89,7 +61,6 @@ public final class DialogDefinitions {
         );
     }
 
-    /** 解析正文条目。 */
     public static List<DialogDefinition.Body> parseBody(Object raw) {
         List<DialogDefinition.Body> result = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(raw)) {
@@ -109,7 +80,6 @@ public final class DialogDefinitions {
         return result;
     }
 
-    /** 解析输入控件。 */
     public static List<DialogDefinition.Input> parseInputs(Object raw) {
         List<DialogDefinition.Input> result = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(raw)) {
@@ -161,7 +131,6 @@ public final class DialogDefinitions {
         return result;
     }
 
-    /** 解析按钮列表。 */
     public static List<DialogDefinition.Button> parseButtons(Object raw) {
         List<DialogDefinition.Button> result = new ArrayList<>();
         for (Object entry : ConfigNodes.asObjectList(raw)) {
@@ -173,7 +142,6 @@ public final class DialogDefinitions {
         return result;
     }
 
-    /** 解析单个按钮；{@code raw} 为空或缺少 label 时返回 {@code null}。 */
     public static DialogDefinition.Button parseButton(Object raw) {
         if (raw == null) {
             return null;

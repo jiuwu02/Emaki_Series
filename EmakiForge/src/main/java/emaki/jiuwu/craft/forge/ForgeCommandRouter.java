@@ -14,6 +14,8 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
+
 
 final class ForgeCommandRouter implements TabExecutor {
 
@@ -50,6 +52,7 @@ final class ForgeCommandRouter implements TabExecutor {
             case "book" -> handleBook(sender);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
+            case "convert-legacy" -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -62,7 +65,7 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "forge", "book", "reload", "list", "debug")) {
+            for (String sub : List.of("help", "forge", "book", "reload", "list", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -109,12 +112,15 @@ final class ForgeCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true).whenComplete((result, throwable) -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             if (throwable != null || result == null || !result.successful()) {
                 plugin.messageService().send(sender, "general.reload_fail");
                 if (result != null && !result.detail().isBlank()) {
                     plugin.messageService().sendRaw(sender, "<red>" + result.detail() + "</red>");
                 }
+                plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
                 return;
             }
             plugin.messageService().send(sender, "general.reload_success");
@@ -122,6 +128,7 @@ final class ForgeCommandRouter implements TabExecutor {
                     "recipes", result.recipes(),
                     "guis", result.guiTemplates()
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }

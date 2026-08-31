@@ -7,29 +7,13 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Uniform result carrier for every Emaki public API call that can fail.
+ * Result carrier for fallible Emaki APIs.
  *
- * <p>This type exists to remove <em>semantic collapse</em>: the historic APIs returned {@code 0},
- * {@code false}, {@code null}, or an empty collection both when the backing plugin was missing and
- * when the business answer genuinely was that value. Callers could not tell the two apart. With
- * {@code EmakiResult} the "plugin is not there" case is always {@link FailureKind#UNAVAILABLE} and
- * never a business value.
+ * <p>{@link FailureKind#UNAVAILABLE} is never encoded as a business-shaped value. {@link Success}
+ * and {@link Partial} carry non-null payloads; {@link Failure} carries a stable kind, reason key, and
+ * an immutable defensive copy of rendering placeholders.
  *
- * <p>Being a sealed interface of records, callers may exhaustively pattern match:
- *
- * {@snippet lang = java:
- * switch (EmakiForgeApi.catalog().mastery(player, "iron_sword")) {
- *     case EmakiResult.Success<Integer>(Integer level) -> useLevel(level);
- *     case EmakiResult.Partial<Integer>(Integer level, String why) -> useLevel(level);
- *     case EmakiResult.Failure<Integer> failure -> switch (failure.kind()) {
- *         case UNAVAILABLE -> skipIntegration();
- *         case NOT_FOUND -> warnUnknownRecipe();
- *         default -> logRejection(failure.reasonKey());
- *     };
- * }
- *}
- *
- * @param <T> the payload type carried on success
+ * @param <T> payload type
  */
 public sealed interface EmakiResult<T> {
 
@@ -55,15 +39,7 @@ public sealed interface EmakiResult<T> {
     }
 
     /**
-     * The operation partially completed. {@code value} describes what was actually achieved and
-     * {@code reasonKey} explains why the remainder did not happen.
-     *
-     * <p>Typical producers are bulk refreshes, batched migrations, and storage deposits that could
-     * only place part of the requested amount.
-     *
-     * @param value     the achieved payload, never {@code null}
-     * @param reasonKey stable machine-readable key describing the shortfall
-     * @param <T>       the payload type
+     * Partial completion. {@code value} is what was achieved; {@code reasonKey} explains the shortfall.
      */
     record Partial<T>(@NotNull T value, @NotNull String reasonKey) implements EmakiResult<T> {
 

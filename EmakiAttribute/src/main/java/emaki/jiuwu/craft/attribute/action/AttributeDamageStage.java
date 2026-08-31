@@ -23,23 +23,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Applies attribute-typed custom damage to the target.
- *
- * <p>Unlike the builtin {@code damage} stage this routes through EmakiAttribute so the module's damage
- * types, resistances and combat snapshot all apply.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: applies damage to one entity.</p>
- */
 public final class AttributeDamageStage implements CoreActionStage {
 
     private final AttributeServiceFacade attributeService;
 
-    /**
-     * Creates the stage.
-     *
-     * @param attributeService the module's service facade
-     */
     public AttributeDamageStage(@NotNull AttributeServiceFacade attributeService) {
         this.attributeService = attributeService;
     }
@@ -99,8 +86,7 @@ public final class AttributeDamageStage implements CoreActionStage {
         if (damageTypeId.isEmpty()) {
             damageTypeId = attributeService.defaultDamageTypeId();
         }
-        // Both keys are supplied because module damage rules read one or the other; v1 did the same and
-        // dropping either would silently change which rules match.
+
         Map<String, Object> damageContext = new LinkedHashMap<>();
         damageContext.put("damage_cause", cause.name());
         damageContext.put("cause", cause.name());
@@ -114,12 +100,6 @@ public final class AttributeDamageStage implements CoreActionStage {
                         "action.stage.attribute.damage_refused");
     }
 
-    /**
-     * Resolves a Bukkit damage cause.
-     *
-     * <p>A blank value means {@code CUSTOM}, matching v1. An unrecognised value returns {@code null} so the
-     * caller can reject it rather than silently damaging with the wrong cause.</p>
-     */
     private static EntityDamageEvent.DamageCause parseCause(String raw) {
         if (Texts.isBlank(raw)) {
             return EntityDamageEvent.DamageCause.CUSTOM;

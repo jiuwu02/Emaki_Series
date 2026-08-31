@@ -16,21 +16,6 @@ import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * The one place optional API capabilities are published, shaped after
- * {@link emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry}: owner-scoped entries,
- * batch revocation by owner, a hard failure naming the first owner on a duplicate, and a degraded
- * handle instead of {@code null}.
- *
- * <p>Unlike the stage tables this registry is <strong>not</strong> rebuilt by a CoreLib reload.
- * A capability's lifetime belongs to the plugin that published it, so wiping the table when CoreLib
- * re-reads its own config would silently retract capabilities whose implementations are still there.
- * The table is cleared only when CoreLib itself shuts down.</p>
- *
- * <p>Reads go through a {@code volatile} immutable map; writes copy the whole map under a lock.
- * Publication happens a handful of times per server start, so copy-on-write costs nothing and gate
- * checks on the call path take no lock.</p>
- */
 public final class CapabilityRegistry {
 
     private final AtomicLong generationSequence = new AtomicLong();
@@ -38,13 +23,6 @@ public final class CapabilityRegistry {
 
     private volatile Map<String, Entry> entries = Map.of();
 
-    /**
-     * 发布一批能力标识。整批语义：任一能力已被他人占用时整批不发布。
-     *
-     * @param owner 发布方插件
-     * @param capabilities 待发布的能力集合
-     * @return 可撤销句柄；失败时为不活跃句柄
-     */
     public @NotNull CapabilityRegistration publish(@Nullable Plugin owner,
             @Nullable Set<ApiCapability> capabilities) {
         if (owner == null) {
@@ -83,12 +61,6 @@ public final class CapabilityRegistry {
         }
     }
 
-    /**
-     * 撤销某插件发布的全部能力。
-     *
-     * @param owner 发布方插件
-     * @return 撤销数量
-     */
     public int revokeAll(@Nullable Plugin owner) {
         if (owner == null) {
             return 0;
@@ -109,12 +81,6 @@ public final class CapabilityRegistry {
         }
     }
 
-    /**
-     * 判断某能力当前是否可用。发布方插件已被禁用时视为不可用。
-     *
-     * @param capability 能力标识
-     * @return 是否可用
-     */
     public boolean has(@Nullable ApiCapability capability) {
         if (capability == null) {
             return false;
@@ -123,7 +89,6 @@ public final class CapabilityRegistry {
         return entry != null && entry.live();
     }
 
-    /** {@return 当前全部可用能力，不可变} */
     public @NotNull Set<ApiCapability> all() {
         Set<ApiCapability> result = new LinkedHashSet<>();
         for (Entry entry : entries.values()) {
@@ -134,12 +99,6 @@ public final class CapabilityRegistry {
         return Set.copyOf(result);
     }
 
-    /**
-     * 列出某插件发布的可用能力。
-     *
-     * @param pluginName 插件名，大小写不敏感
-     * @return 该插件的能力集合，不可变
-     */
     public @NotNull Set<ApiCapability> ownedBy(@Nullable String pluginName) {
         if (Texts.isBlank(pluginName)) {
             return Set.of();
@@ -154,12 +113,10 @@ public final class CapabilityRegistry {
         return Set.copyOf(result);
     }
 
-    /** {@return 已登记的能力条目数，含发布方已禁用的条目，用于诊断} */
     public int size() {
         return entries.size();
     }
 
-    /** 清空整张表。仅在 CoreLib 自身停机时调用。 */
     public void clear() {
         synchronized (writeLock) {
             entries = Map.of();

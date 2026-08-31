@@ -58,7 +58,6 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         this.configuredItemService = this.backend.configuredItemService();
     }
 
-    /** {@return the configured item service backing this GUI service's slot rendering} */
     public ConfiguredItemService configuredItemService() {
         return configuredItemService;
     }
@@ -179,18 +178,6 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 this
         );
     }
-
-
-
-
-
-
-
-
-
-
-
-
 
     private GuiBackend resolveBackend() {
         if (backend instanceof RegistryBackedGuiBackend proxy) {

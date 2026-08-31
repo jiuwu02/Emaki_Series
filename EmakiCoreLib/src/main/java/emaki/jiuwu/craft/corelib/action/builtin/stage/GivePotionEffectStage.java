@@ -18,16 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Applies a potion effect to the target.
- *
- * <p>{@code level} is one-based as in v1, so {@code level=1} is amplifier 0 and matches what the game shows.
- * {@code duration} is now {@code DURATION} rather than {@code TIME}; the parser is the same.</p>
- *
- * <p>Widened to {@code LivingEntity}, which is where {@code addPotionEffect} is defined.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one entity's effect list.</p>
- */
 public final class GivePotionEffectStage extends BaseStage {
 
     public GivePotionEffectStage() {

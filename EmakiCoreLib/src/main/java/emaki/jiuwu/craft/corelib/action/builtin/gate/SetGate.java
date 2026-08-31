@@ -16,18 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Writes pipeline variables, readable later as {@code %var.<name>%}.
- *
- * <p>Declares no parameters because the key names are chosen by whoever writes the pipeline:
- * {@code set damage=%skill.level%*4+18} names a variable that CoreLib cannot know in advance. The static
- * validator therefore skips its unknown-argument check for this stage id; see {@code StaticValidator}.</p>
- *
- * <p>Values that evaluate as arithmetic are stored as numbers so that {@code %var.damage%} reads back as
- * {@code 22} rather than {@code %skill.level%*4+18}. Anything else is stored verbatim.</p>
- *
- * <p>Thread need {@code PURE}: string and arithmetic work only.</p>
- */
 public final class SetGate extends BaseGate {
 
     public SetGate() {

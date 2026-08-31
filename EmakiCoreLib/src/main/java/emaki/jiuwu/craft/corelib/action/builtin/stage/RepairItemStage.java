@@ -19,13 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Repairs a damageable item in one of the target's inventory slots.
- *
- * <p>{@code amount} of zero or less repairs the item fully, as in v1.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's inventory.</p>
- */
 public final class RepairItemStage extends BaseStage {
 
     public RepairItemStage() {

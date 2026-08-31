@@ -1,0 +1,44 @@
+# 宝石阶段升级示例配方（mode: gem）
+# recipe id 必须与 GemDefinition.id 相同；Gem Provider 会把宝石定义 ID 作为 recipe id。
+# Strengthen 负责材料、货币、成功率、保底和动作，Gem Provider 只负责宝石等级/阶段与矩阵写回。
+
+id: example_gem
+mode: gem
+
+target:
+  provider: gem
+
+# item_source 的原版简写必须写成 "minecraft-<物品名>"；带冒号的命名空间写法会被判为非法并解析为空。
+materials:
+  - matcher:
+      type: item_source
+      sources:
+        - "minecraft-amethyst_shard"
+    quantity: 1
+    consume: always
+
+# currency_id 为空会让该项费用被静默丢弃，因此这里显式写出。Vault 只有单一货币，忽略该 ID。
+costs:
+  - provider: vault
+    currency_id: money
+    amount: 100
+
+# Quantity 使用 0..1 的概率值；1 表示示例配方必定成功，便于开服后验证完整闭环。
+chance: 1.0
+
+pity:
+  scope: player
+  group: gem.example_gem
+  threshold: 3
+  effect: force_success
+  decay:
+    type: reset
+    value: 0
+
+actions:
+  on_success:
+    - 'send_message text="<green>宝石阶段强化成功！</green>"'
+    - "play_sound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.2"
+  on_failure:
+    - 'send_message text="<yellow>宝石阶段强化失败，材料已按配方处理。</yellow>"'
+    - "play_sound sound=minecraft:block.anvil.land volume=1 pitch=0.9"

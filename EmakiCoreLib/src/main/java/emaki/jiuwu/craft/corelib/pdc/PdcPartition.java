@@ -8,6 +8,8 @@ import org.bukkit.NamespacedKey;
 
 public record PdcPartition(String namespace, String path) {
 
+    public static final String SEPARATOR = "_";
+
     private static final Pattern NAMESPACE_PATTERN = Pattern.compile("[^a-z0-9._-]");
     private static final Pattern KEY_PATTERN = Pattern.compile("[^a-z0-9/._-]");
 
@@ -32,7 +34,7 @@ public record PdcPartition(String namespace, String path) {
         if (path.isEmpty()) {
             return normalizedField;
         }
-        return path + "." + normalizedField;
+        return path + SEPARATOR + normalizedField;
     }
 
     public PdcPartition child(String childPath) {
@@ -42,7 +44,7 @@ public record PdcPartition(String namespace, String path) {
         if (path.isEmpty()) {
             return new PdcPartition(namespace, childPath);
         }
-        return new PdcPartition(namespace, path + "." + childPath);
+        return new PdcPartition(namespace, path + SEPARATOR + childPath);
     }
 
     private static String normalizeNamespace(String value) {
@@ -54,12 +56,11 @@ public record PdcPartition(String namespace, String path) {
     private static String normalizePath(String value) {
         String result = Objects.requireNonNullElse(value, "").trim().toLowerCase(Locale.ROOT);
         result = KEY_PATTERN.matcher(result).replaceAll("_");
+
         while (result.contains("..")) {
             result = result.replace("..", ".");
         }
-        while (result.contains("__")) {
-            result = result.replace("__", "_");
-        }
+
         if (result.startsWith(".")) {
             result = result.substring(1);
         }

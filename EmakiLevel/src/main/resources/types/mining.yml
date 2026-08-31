@@ -1,3 +1,6 @@
+# EmakiLevel 等级类型 - 挖掘等级
+# 该等级类型的启用状态、显示名、等级区间与升级需求。
+
 id: "mining"
 enabled: true
 display_name: "<gray>挖掘等级</gray>"
@@ -14,10 +17,6 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies: []
-    materials: []
-  rewards:
-    items: []
   actions:
     success:
       - 'send_message text="<gray>挖掘等级提升到了 <yellow>%var.new_level%</yellow> 级。</gray>"'

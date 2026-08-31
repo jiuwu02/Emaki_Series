@@ -29,17 +29,18 @@ import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
+import emaki.jiuwu.craft.attribute.formula.AttributeFormulaEvaluator;
 import emaki.jiuwu.craft.attribute.model.AttributeContributionTrace;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
+import emaki.jiuwu.craft.attribute.model.StageRole;
 import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.RecoveryDefinition;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -560,13 +561,13 @@ final class DamageCalculationService {
         }
         CompletableFuture<SourceImpactSnapshot> future = new CompletableFuture<>();
         try {
-            ExecutionDispatcher dispatcher = dispatcher();
-            if (dispatcher == null) {
+            EmakiScheduling sched = scheduling();
+            if (sched == null) {
                 future.completeExceptionally(new IllegalStateException(
                         "Damage source snapshot dispatcher is unavailable."));
                 return future;
             }
-            var scheduled = dispatcher.runEntity(
+            sched.runForEntity(
                     service.plugin(),
                     source,
                     () -> {
@@ -581,10 +582,6 @@ final class DamageCalculationService {
                     () -> future.completeExceptionally(new IllegalStateException(
                             "Damage source retired before snapshot: " + source.getUniqueId()))
             );
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "Damage source snapshot scheduling was rejected."));
-            }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -982,10 +979,10 @@ final class DamageCalculationService {
             if (stage == null) {
                 continue;
             }
-            if (!allowCritical && isCriticalStage(stage.id())) {
+            if (!allowCritical && stage.role() == StageRole.CRITICAL) {
                 continue;
             }
-            if (!calculateTargetDefense && isDefenseStage(stage.id())) {
+            if (!calculateTargetDefense && stage.role() == StageRole.DEFENSE) {
                 continue;
             }
             filteredStages.add(stage);
@@ -1022,16 +1019,6 @@ final class DamageCalculationService {
         );
     }
 
-    private boolean isCriticalStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "crit".equals(normalized) || "critical".equals(normalized);
-    }
-
-    private boolean isDefenseStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "defense".equals(normalized) || "target_defense".equals(normalized);
-    }
-
     private double readSnapshotAttribute(AttributeSnapshot snapshot, String attributeId) {
         if (snapshot == null || snapshot.values().isEmpty() || Texts.isBlank(attributeId)) {
             return 0D;
@@ -1058,20 +1045,20 @@ final class DamageCalculationService {
         if (entityId == null || operation == null || service.plugin() == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatch is unavailable."));
         }
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatcher is unavailable."));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
-            var lookupTask = dispatcher.runGlobal(service.plugin(), () -> {
+            sched.runGlobal(service.plugin(), () -> {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
                     result.completeExceptionally(new IllegalStateException("Entity is no longer available: " + entityId));
                     return;
                 }
                 try {
-                    var entityTask = dispatcher.runEntity(
+                    sched.runForEntity(
                             service.plugin(),
                             livingEntity,
                             () -> {
@@ -1084,27 +1071,19 @@ final class DamageCalculationService {
                             () -> result.completeExceptionally(new IllegalStateException(
                                     "Entity retired before owner operation: " + entityId))
                     );
-                    if (entityTask == null) {
-                        result.completeExceptionally(new IllegalStateException(
-                                "Entity owner scheduling was rejected: " + entityId));
-                    }
                 } catch (Throwable throwable) {
                     result.completeExceptionally(throwable);
                 }
             });
-            if (lookupTask == null) {
-                result.completeExceptionally(new IllegalStateException(
-                        "Entity lookup scheduling was rejected: " + entityId));
-            }
         } catch (Throwable throwable) {
             result.completeExceptionally(throwable);
         }
         return result;
     }
 
-    private ExecutionDispatcher dispatcher() {
-        ExecutionDispatcher dispatcher = service.executionDispatcher();
-        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
+    private EmakiScheduling scheduling() {
+        EmakiScheduling sched = service.scheduling();
+        return sched != null ? sched : service.plugin().scheduling();
     }
 
     private UUID parseUuid(String value) {
@@ -1176,16 +1155,8 @@ final class DamageCalculationService {
         context.put("healing_gross", grossRecovery);
         context.put("healing_resistance", resistance);
         evaluationContext = context.build().asMap();
-        double value = Texts.isBlank(recovery.expression())
-                ? grossRecovery * (1D - (resistance / 100D))
-                : ExpressionEngine.evaluate(recovery.expression(), evaluationContext);
-        if (recovery.minResult() != null) {
-            value = Math.max(value, recovery.minResult());
-        }
-        if (recovery.maxResult() != null) {
-            value = Math.min(value, recovery.maxResult());
-        }
-        return Math.max(0D, value);
+        double defaultValue = grossRecovery * (1D - (resistance / 100D));
+        return AttributeFormulaEvaluator.evaluate(recovery.expression(), evaluationContext, defaultValue, recovery.minResult(), recovery.maxResult());
     }
 
     private AttributeSnapshot snapshotForRecovery(DamageContext damageContext, DamageStageSource source) {
@@ -1286,21 +1257,12 @@ final class DamageCalculationService {
     }
 
     private String debugStageLangKey(DamageStageDefinition stage) {
-        if (isCriticalStage(stage.id())) {
-            return "combat.damage_critical";
-        }
-        if (isDefenseStage(stage.id())) {
-            return "combat.damage_reduction";
-        }
-        if (isBlockStage(stage.id())) {
-            return "combat.damage_block";
-        }
-        return "combat.damage_bonus";
-    }
-
-    private boolean isBlockStage(String stageId) {
-        String normalized = Texts.normalizeId(stageId);
-        return "block".equals(normalized) || "shield_block".equals(normalized);
+        return switch (stage.role()) {
+            case CRITICAL -> "combat.damage_critical";
+            case DEFENSE -> "combat.damage_reduction";
+            case BLOCK -> "combat.damage_block";
+            case NORMAL -> "combat.damage_bonus";
+        };
     }
 
     private Map<String, ?> debugStageFields(DamageContext context,
@@ -1384,7 +1346,7 @@ final class DamageCalculationService {
                 builder.append("; ");
             }
             builder.append(attributeId).append('=');
-            // 与 DamageCalculationCache#computeSum 同序：先读快照，缺失时回落到上下文变量。
+
             Double snapshotValue = snapshot == null ? null : snapshot.values().get(attributeId);
             if (snapshotValue != null) {
                 builder.append(debugNumber(snapshotValue));

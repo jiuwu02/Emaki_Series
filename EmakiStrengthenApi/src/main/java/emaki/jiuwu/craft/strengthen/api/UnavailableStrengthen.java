@@ -10,18 +10,28 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
+import emaki.jiuwu.craft.strengthen.api.model.ItemMasteryView;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenTransferOutcome;
+import emaki.jiuwu.craft.strengthen.api.target.EnhancementTargetProvider;
 
 /** Unavailable no-op layers returned while no runtime bridge is installed. */
-final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperations {
+final class UnavailableStrengthen implements ItemMastery, StrengthenCatalog, StrengthenOperations {
 
+    static final ItemMastery MASTERY = new UnavailableStrengthen();
     static final StrengthenCatalog CATALOG = new UnavailableStrengthen();
     static final StrengthenOperations OPERATIONS = (StrengthenOperations) CATALOG;
 
     private UnavailableStrengthen() {
+    }
+
+    @Override
+    public EmakiResult<ItemMasteryView> snapshot(Player player, ItemStack itemStack) {
+        return EmakiResult.unavailable();
     }
 
     @Override
@@ -55,6 +65,12 @@ final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperat
     }
 
     @Override
+    public EmakiResult<EnhancementAttemptOutcome> attemptEnhancement(Player player,
+            EnhancementAttemptContext context) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
     public EmakiResult<StrengthenTransferOutcome> transfer(Player player,
             ItemStack source,
             ItemStack target,
@@ -79,6 +95,16 @@ final class UnavailableStrengthen implements StrengthenCatalog, StrengthenOperat
 
     @Override
     public EmakiResult<Integer> refreshPlayer(Player player) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Unit> registerEnhancementTarget(EnhancementTargetProvider provider) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Unit> unregisterEnhancementTarget(String providerId) {
         return EmakiResult.unavailable();
     }
 }

@@ -24,25 +24,12 @@ final class ForgeActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
-    /**
-     * Returned to callers that need a human-readable reason when the Boolean result provides no step detail.
-     *
-     * <p>The pipeline runner answers with a pass/fail verdict; per-step failure information such as action
-     * ids and line numbers is not surfaced at this layer. Callers log or display this constant instead.</p>
-     */
     static final String UNKNOWN_FAILURE_REASON = "Unknown forge action failure.";
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
     private final ActionLineRunner actionLines;
 
-    /**
-     * Creates a coordinator.
-     *
-     * @param plugin the owning plugin
-     * @param resultItemFactory resolves display names and show-item placeholders
-     * @param actionLines the pipeline runner; safe to hold because it reads the live engine per call
-     */
     ForgeActionCoordinator(EmakiForgePlugin plugin,
             ForgeResultItemFactory resultItemFactory,
             ActionLineRunner actionLines) {
@@ -51,20 +38,6 @@ final class ForgeActionCoordinator {
         this.actionLines = actionLines;
     }
 
-    /**
-     * Runs the phase for a given item target and waits for the result.
-     *
-     * @param player the acting player
-     * @param recipe the recipe being forged
-     * @param guiItems the GUI item slots
-     * @param phase phase name
-     * @param resultItem the resolved result item (may be {@code null} for pre-phase)
-     * @param quality the resolved quality label
-     * @param multiplier the stat multiplier
-     * @param errorKey the error key to surface on failure
-     * @param failureReason a human-readable failure reason
-     * @return {@code true} when all lines succeeded
-     */
     CompletableFuture<Boolean> executePhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -77,21 +50,6 @@ final class ForgeActionCoordinator {
         return executePhase(player, recipe, guiItems, phase, resultItem, null, quality, multiplier, errorKey, failureReason);
     }
 
-    /**
-     * Runs the phase for an explicit item target and waits for the result.
-     *
-     * @param player the acting player
-     * @param recipe the recipe being forged
-     * @param guiItems the GUI item slots
-     * @param phase phase name
-     * @param resultItem the resolved result item
-     * @param itemTarget mutable holder that stages write the item back through; may be {@code null}
-     * @param quality the resolved quality label
-     * @param multiplier the stat multiplier
-     * @param errorKey the error key to surface on failure
-     * @param failureReason a human-readable failure reason
-     * @return {@code true} when all lines succeeded
-     */
     CompletableFuture<Boolean> executePhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -117,19 +75,6 @@ final class ForgeActionCoordinator {
         );
     }
 
-    /**
-     * Fires a phase without waiting for it.
-     *
-     * @param player the acting player
-     * @param recipe the recipe being forged
-     * @param guiItems the GUI item slots
-     * @param phase phase name
-     * @param resultItem the resolved result item
-     * @param quality the resolved quality label
-     * @param multiplier the stat multiplier
-     * @param errorKey the error key to surface on failure
-     * @param failureMessage a human-readable failure message
-     */
     void triggerPhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -142,21 +87,6 @@ final class ForgeActionCoordinator {
         awaitPhase(player, recipe, guiItems, phase, resultItem, null, quality, multiplier, errorKey, failureMessage);
     }
 
-    /**
-     * Runs the phase and logs any failure, discarding the Boolean result.
-     *
-     * @param player the acting player
-     * @param recipe the recipe being forged
-     * @param guiItems the GUI item slots
-     * @param phase phase name
-     * @param resultItem the resolved result item
-     * @param itemTarget mutable holder for item write-back; may be {@code null}
-     * @param quality the resolved quality label
-     * @param multiplier the stat multiplier
-     * @param errorKey the error key to surface on failure
-     * @param failureMessage a human-readable failure message
-     * @return a future that completes when the phase finishes
-     */
     CompletableFuture<Void> awaitPhase(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -186,19 +116,6 @@ final class ForgeActionCoordinator {
                 });
     }
 
-    /**
-     * Runs quality-tier item-meta actions and logs any failure.
-     *
-     * @param player the acting player
-     * @param recipe the recipe being forged
-     * @param guiItems the GUI item slots
-     * @param resultItem the resolved result item
-     * @param itemTarget mutable holder for item write-back; may be {@code null}
-     * @param qualityTier the resolved quality tier
-     * @param quality the quality label
-     * @param multiplier the stat multiplier
-     * @return a future that completes when the quality actions finish
-     */
     CompletableFuture<Void> awaitQualityActions(Player player,
             Recipe recipe,
             GuiItems guiItems,
@@ -249,11 +166,6 @@ final class ForgeActionCoordinator {
         Map<String, String> placeholders = buildPlaceholders(player, recipe, guiItems, phase,
                 resultItem, itemTarget, quality, multiplier, errorKey, failureReason);
 
-        /*
-         * Pass the action item as CoreActionKeys.ITEM so stages that mutate items (e.g.
-         * item_component_add) can read and write it in place. After the batch completes the updated
-         * item is stored back into itemTarget so the caller gets the post-action item at delivery.
-         */
         ItemStack actionItem = itemTarget == null ? resultItem : itemTarget.itemStack();
         PipelineContext context = actionLines.context(player, phase, false, placeholders);
         if (actionItem != null) {
@@ -263,7 +175,7 @@ final class ForgeActionCoordinator {
         final PipelineContext finalContext = context;
         return actionLines.run(lines, finalContext, true)
                 .thenApply(success -> {
-                    // Write the (possibly mutated) item back into the caller's holder.
+
                     if (itemTarget != null && actionItem != null) {
                         ItemStack updated = finalContext.get(CoreActionKeys.ITEM).orElse(null);
                         if (updated != null && updated != actionItem) {

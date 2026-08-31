@@ -77,7 +77,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
                 continue;
             }
             ensureLoadEventListener(provider);
-            // The plugin merely enabled; whether its items are loaded is still for the provider to detect.
+
             publishStatus(provider, provider.onProviderReady(false));
         }
     }
@@ -99,7 +99,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (provider == null || !loadEventBindings.add(provider.kind().key())) {
             return;
         }
-        // The load event is authoritative, so it passes itemsLoaded=true rather than re-detecting.
+
         provider.registerLoadEventListener(plugin,
                 loaded -> publishStatus(loaded, loaded.onProviderReady(true)));
     }
@@ -127,8 +127,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (registrations.containsKey(kindKey)) {
             return false;
         }
-        // Owner is CoreLib's own plugin instance: these bridges are revoked when CoreLib shuts down,
-        // not when the bridged plugin disables — a disabled plugin only moves the provider to ABSENT.
+
         ItemSourceRegistration registration = itemSourceService.registerProvider(plugin, provider);
         if (!registration.successful()) {
             return false;
@@ -201,7 +200,6 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         }
     }
 
-    /** {@return the last published status per provider kind} */
     public Map<String, LifecycleStatus> statuses() {
         return Map.copyOf(new LinkedHashMap<>(lastStatuses));
     }
@@ -247,8 +245,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
         if (Texts.isNotBlank(detail)) {
             return detail;
         }
-        // %detail% 会填进双语模板 console.item_source_bridge_waiting，因此填充值本身也必须走 lang，
-        // 否则英文服会得到英文模板 + 中文详情的混排输出。
+
         String specific = localizedDetail("console.item_source.waiting_detail." + Texts.lower(library));
         return Texts.isNotBlank(specific)
                 ? specific
@@ -268,7 +265,7 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
 
     private String localizedDetail(String key, Map<String, ?> replacements) {
         String resolved = messageService.message(key, replacements);
-        // MessageService 在缺键时回显 key 本身，这里不把 key 当作可展示文案输出。
+
         return Texts.isBlank(resolved) || key.equals(resolved) ? "" : resolved;
     }
 

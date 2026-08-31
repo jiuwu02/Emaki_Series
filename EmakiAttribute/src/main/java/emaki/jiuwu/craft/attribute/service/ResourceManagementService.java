@@ -23,13 +23,11 @@ import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 
 final class ResourceManagementService {
-
-    private static final String HEALTH_RESOURCE_ID = "health";
 
     private final AttributeService service;
     private final Set<UUID> pendingEquipmentSyncs = ConcurrentHashMap.newKeySet();
@@ -40,33 +38,33 @@ final class ResourceManagementService {
     }
 
     public void resyncAllPlayers() {
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(service.plugin(), player, () -> {
+            sched.runForEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     syncPlayer(player, ResourceSyncReason.MANUAL, null, false);
                 }
-            });
+            }, null);
         }
     }
 
     public void regenerateOnlinePlayers() {
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         int intervalTicks = Math.max(1, service.config().regenIntervalTicks());
         double intervalSeconds = intervalTicks / 20D;
         Map<String, ResourceDefinition> resources = service.resourceDefinitions();
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(service.plugin(), player, () -> {
+            sched.runForEntity(service.plugin(), player, () -> {
                 if (isPlayerUsable(player)) {
                     regeneratePlayer(player, intervalSeconds, resources);
                 }
-            });
+            }, null);
         }
     }
 
@@ -91,12 +89,10 @@ final class ResourceManagementService {
             if (regenPerSecond == 0D) {
                 continue;
             }
-            // The regeneration increment is applied to the engine-owned baseline
-            // rather than the persisted mirror: an external setHealth call this
-            // plugin never observed would otherwise be reverted on the next tick.
+
             double baselineValue = resolveCurrentValueBaseline(player, resourceDefinition, existing);
             double nextValue = baselineValue + (regenPerSecond * intervalSeconds);
-            boolean traceHealthRegen = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) && shouldDebugResource(player);
+            boolean traceHealthRegen = resourceDefinition.isHealth() && shouldDebugResource(player);
             ResourceState refreshed = syncResource(player, resourceDefinition, snapshot, ResourceSyncReason.REGEN, nextValue);
             if (traceHealthRegen) {
                 Map<String, Object> replacements = debugReplacements(
@@ -122,13 +118,18 @@ final class ResourceManagementService {
 
     public void scheduleJoinHealthSync(Player player) {
         schedulePlayer(player, "player_join", ResourceSyncReason.HEALTH_CHANGE, online -> {
-            ResourceState existingHealth = readResourceState(online, HEALTH_RESOURCE_ID);
+            ResourceDefinition healthDef = service.resourceDefinitions().values().stream()
+                    .filter(ResourceDefinition::isHealth)
+                    .findFirst()
+                    .orElse(null);
+            if (healthDef == null) {
+                return;
+            }
+            ResourceState existingHealth = readResourceState(online, healthDef.id());
             if (existingHealth == null || existingHealth.currentValue() <= 0D) {
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, null, true);
             } else {
-                // The player's own entity health is authoritative on join: it was
-                // restored from playerdata and reflects changes this plugin never
-                // observed, whereas the persisted resource state is only a mirror.
+
                 syncPlayer(online, ResourceSyncReason.HEALTH_CHANGE, online.getHealth(), false);
             }
         });
@@ -164,13 +165,13 @@ final class ResourceManagementService {
         debugEquipmentSync(player, "resync.equipment_queued", Map.of("trigger", triggerName));
         Runnable cleanupPending = () -> pendingEquipmentSyncs.remove(playerId);
         try {
-            ExecutionDispatcher dispatcher = dispatcher();
-            if (dispatcher == null) {
+            EmakiScheduling sched = scheduling();
+            if (sched == null) {
                 cleanupPending.run();
                 debugEquipmentSync(player, "resync.equipment_dispatcher_unavailable", Map.of("trigger", triggerName));
                 return;
             }
-            TaskHandle task = dispatcher.runEntityLater(
+            TaskToken task = sched.runEntityLater(
                     service.plugin(),
                     player,
                     () -> {
@@ -317,7 +318,7 @@ final class ResourceManagementService {
         );
         putResourceState(stateReplacements, "state", state);
         debugResource(player, writeState ? "resource.state_written" : "resource.state_unchanged", stateReplacements);
-        if (resourceDefinition.syncToBukkit() && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (resourceDefinition.syncToBukkit() && resourceDefinition.isHealth()) {
             syncHealthToBukkit(player, state, reason);
         }
         return state;
@@ -385,10 +386,7 @@ final class ResourceManagementService {
             ResourceSyncReason reason,
             Double healthOverride,
             boolean forceHealthToFull) {
-        // Vanilla-mapped attributes are refreshed first: the health resource reads
-        // the modified MAX_HEALTH value as its ceiling, so a VANILLA-mapped max
-        // health binding must already be applied for this tick rather than lagging
-        // one sync behind.
+
         service.vanillaSynchronizer().syncVanillaMappedAttributes(
                 player,
                 snapshot,
@@ -396,8 +394,8 @@ final class ResourceManagementService {
                 service.registryService().vanillaMappedAttributes()
         );
         for (ResourceDefinition resourceDefinition : service.resourceDefinitions().values()) {
-            Double override = HEALTH_RESOURCE_ID.equals(resourceDefinition.id()) ? healthOverride : null;
-            ResourceSyncReason effectiveReason = forceHealthToFull && HEALTH_RESOURCE_ID.equals(resourceDefinition.id())
+            Double override = resourceDefinition.isHealth() ? healthOverride : null;
+            ResourceSyncReason effectiveReason = forceHealthToFull && resourceDefinition.isHealth()
                     ? ResourceSyncReason.INITIALIZE
                     : reason;
             syncResource(player, resourceDefinition, snapshot, effectiveReason, override);
@@ -405,32 +403,11 @@ final class ResourceManagementService {
         service.vanillaSynchronizer().syncMovementSpeed(player, snapshot, service.registryService().genericSpeedDefinitions());
     }
 
-    /**
-     * Resolves the effective ceiling for the health resource.
-     *
-     * <p>EmakiAttribute owns the {@code MAX_HEALTH} base value, but other
-     * sources (its own {@code VANILLA}-mapped attributes, potion effects such as
-     * Health Boost, and third-party plugins) contribute attribute modifiers on
-     * top of that base. {@code Player#setHealth(double)} is bounded by the
-     * modified attribute value, not by the base, so the resource ceiling must
-     * follow the engine-computed value. Otherwise the resource cap stays at the
-     * EmakiAttribute-only figure and every sync forces health back down to it,
-     * which prevents the player from ever healing past it.
-     *
-     * <p>For non-health resources, and when the health resource does not sync to
-     * Bukkit, the EmakiAttribute-only cap is returned unchanged.
-     *
-     * @param player the player being synchronized
-     * @param resourceDefinition the resource being synchronized
-     * @param ownMax the cap derived from EmakiAttribute's own resource attributes
-     * @param reason the sync reason, used for diagnostics
-     * @return the ceiling the resource state should adopt
-     */
     private double resolveHealthCeiling(Player player,
             ResourceDefinition resourceDefinition,
             double ownMax,
             ResourceSyncReason reason) {
-        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (!resourceDefinition.syncToBukkit() || !resourceDefinition.isHealth()) {
             return ownMax;
         }
         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
@@ -454,30 +431,10 @@ final class ResourceManagementService {
         return ceiling;
     }
 
-    /**
-     * Resolves the baseline EmakiAttribute derives a resource's current value
-     * from when no explicit override applies.
-     *
-     * <p>For a resource that synchronises to Bukkit, the engine owns the current
-     * value: {@code Player#setHealth(double)} can be called by any other plugin,
-     * by vanilla food regeneration, or by a command, and none of those routes
-     * fire {@code EntityRegainHealthEvent}. EmakiAttribute therefore cannot
-     * observe them and its persisted state is only a mirror. Deriving the next
-     * value from that mirror silently reverts every unobserved change, so the
-     * baseline must come from {@code Player#getHealth()} instead.
-     *
-     * <p>For resources that do not synchronise to Bukkit, such as {@code mana},
-     * the persisted state is the only authority and is returned unchanged.
-     *
-     * @param player the player being synchronized
-     * @param resourceDefinition the resource being synchronized
-     * @param existing the persisted resource state, may be {@code null}
-     * @return the baseline the current value should be derived from
-     */
     private double resolveCurrentValueBaseline(Player player,
             ResourceDefinition resourceDefinition,
             ResourceState existing) {
-        if (!resourceDefinition.syncToBukkit() || !HEALTH_RESOURCE_ID.equals(resourceDefinition.id())) {
+        if (!resourceDefinition.syncToBukkit() || !resourceDefinition.isHealth()) {
             return existing == null ? 0D : existing.currentValue();
         }
         return player.getHealth();
@@ -487,11 +444,7 @@ final class ResourceManagementService {
         if (player == null || state == null) {
             return;
         }
-        // A dead player still reports online and valid until the respawn packet is
-        // handled, so the generic usability check cannot guard this write. Writing a
-        // positive health value in that window revives the server-side entity while
-        // the client stays on the death screen, which strands the player. Respawn is
-        // handled separately by scheduleRespawnHealthSync.
+
         if (player.isDead()) {
             debugResource(player, "resource.bukkit_skipped_dead", debugReplacements(
                     "player", player.getName(),
@@ -514,15 +467,16 @@ final class ResourceManagementService {
 
     void resetHealthDisplayScaling() {
         healthDisplayScalingWarningLogged = false;
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
         for (Player player : Bukkit.getOnlinePlayers()) {
-            dispatcher.runEntity(
+            sched.runForEntity(
                     service.plugin(),
                     player,
-                    () -> resetHealthDisplayScaling(player)
+                    () -> resetHealthDisplayScaling(player),
+                    null
             );
         }
     }
@@ -594,12 +548,6 @@ final class ResourceManagementService {
         ));
     }
 
-    /**
-     * Logs every modifier currently present on the player's {@code MAX_HEALTH}
-     * instance, so the source of an unexpected effective maximum can be named
-     * instead of guessed. Each modifier is reported with its key, amount,
-     * operation and slot group.
-     */
     private void debugMaxHealthModifiers(Player player, ResourceSyncReason reason, AttributeInstance maxHealthAttribute) {
         if (maxHealthAttribute == null || !shouldDebugResource(player)) {
             return;
@@ -678,16 +626,20 @@ final class ResourceManagementService {
                 Map.entry("reason", describeReason(reason)),
                 Map.entry("delay_ticks", delayTicks)
         ));
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
-        dispatcher.runEntityLater(
+        sched.runEntityLater(
                 service.plugin(),
                 player,
                 () -> {
                     if (isPlayerUsable(player)) {
-                        ResourceState existingHealth = readResourceState(player, HEALTH_RESOURCE_ID);
+                        ResourceDefinition healthDef = service.resourceDefinitions().values().stream()
+                                .filter(ResourceDefinition::isHealth)
+                                .findFirst()
+                                .orElse(null);
+                        ResourceState existingHealth = healthDef != null ? readResourceState(player, healthDef.id()) : null;
                         AttributeInstance maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
                         Map<String, Object> replacements = debugReplacements(
                                 "player", player.getName(),
@@ -703,6 +655,7 @@ final class ResourceManagementService {
                         action.accept(player);
                     }
                 },
+                null,
                 delayTicks
         );
     }
@@ -711,11 +664,11 @@ final class ResourceManagementService {
         if (entity == null || action == null) {
             return;
         }
-        ExecutionDispatcher dispatcher = dispatcher();
-        if (dispatcher == null) {
+        EmakiScheduling sched = scheduling();
+        if (sched == null) {
             return;
         }
-        dispatcher.runEntityLater(
+        sched.runEntityLater(
                 service.plugin(),
                 entity,
                 () -> {
@@ -723,12 +676,13 @@ final class ResourceManagementService {
                         action.accept(entity);
                     }
                 },
+                null,
                 Math.max(1, service.config().syncDelayTicks())
         );
     }
 
-    private ExecutionDispatcher dispatcher() {
-        ExecutionDispatcher dispatcher = service.executionDispatcher();
-        return dispatcher != null ? dispatcher : service.plugin().executionDispatcher();
+    private EmakiScheduling scheduling() {
+        EmakiScheduling sched = service.scheduling();
+        return sched != null ? sched : service.plugin().scheduling();
     }
 }

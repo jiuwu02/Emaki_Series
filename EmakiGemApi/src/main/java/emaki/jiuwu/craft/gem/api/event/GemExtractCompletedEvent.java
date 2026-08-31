@@ -9,34 +9,16 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Fired after an extraction transaction has reached its terminal journal state.
+ * Fired after a committed extraction reaches the terminal completed journal state and its success actions
+ * finish.
  *
- * <p>The event follows all runtime entry points that commit an extraction, including the public API,
- * held-item actions, the admin extract command, and the gem GUI. It is not emitted while configured
- * success actions are pending.
+ * <p>Runs synchronously on the player's owner thread and is informational: the gem return and equipment
+ * update are already committed, so it cannot be cancelled. It covers API, action, command and GUI paths,
+ * but not validation/charge/rebuild rejection, cancelled pre-events, uncommitted or reward-pending entries,
+ * disabled/offline owners, or retired shutdown scheduling. Treat a missing event as an unknown outcome.
  *
- * <p>Informational only: the gem is already out and the outcome is committed, so this event is not
- * cancellable. Unlike the inlay counterpart there is no success flag, because this event only represents
- * completed extractions.
- *
- * <h2>Threading</h2>
- * The transaction may finish on an async chain, but EmakiGem hops back to the thread that owns the
- * player before firing, so listeners may safely touch the player, their inventory, and the surrounding
- * world. On Paper that is the main server thread; on Folia it is the player's region thread.
- *
- * <h2>Coverage — this event is not fired for every extraction</h2>
- * It fires only once the journal reaches {@code COMPLETED}, which means the caller committed the
- * transaction and the configured success actions finished. If those actions fail or never report
- * success, the journal stays in a reward-pending state and no event arrives even though the gem has
- * already been removed and handed over.
- *
- * <p>Nothing is fired when the attempt was rejected during validation, when {@link GemExtractEvent} was
- * cancelled, when the charge failed, when rebuilding the equipment failed, when the caller never
- * commits, when the plugin is disabled, when the player went offline before the thread hop, or when
- * scheduling was retired during shutdown drain.
- *
- * <p>Do not use this as an exhaustive audit trail; treat a missing event as "outcome unknown" rather
- * than "no extraction happened".
+ * <p>{@link #getFinalEquipment()} is the runtime's live committed stack, not a defensive copy; the returned
+ * gem records what was delivered and may be {@code null} when destroyed.
  *
  * @see GemExtractEvent
  */

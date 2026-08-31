@@ -5,13 +5,7 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Revocable handle for one batch of published capabilities.
- *
- * <p>Keep it and close it in {@code onDisable}, before the owning plugin uninstalls its own API
- * bridge. A handle that outlives its owner keeps advertising a capability whose implementation is
- * already gone, which is worse than never publishing it.</p>
- */
+/** Owner-scoped capability publication; close it before uninstalling the provider bridge. */
 public interface CapabilityRegistration extends AutoCloseable {
 
     /** {@return whether every requested capability was published} */

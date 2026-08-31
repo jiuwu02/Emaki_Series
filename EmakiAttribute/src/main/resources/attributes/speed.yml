@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 移速加成
-# 详细字段说明参考 physical_attack.yml
 
 id: speed
 display_name: "移速加成"

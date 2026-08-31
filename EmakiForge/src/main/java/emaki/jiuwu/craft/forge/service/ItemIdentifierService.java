@@ -47,7 +47,7 @@ public final class ItemIdentifierService {
     }
 
     public void refresh() {
-        // ItemSourceService owns the authoritative resolver snapshot. No local cache is required.
+
     }
 
     public ItemSourceRef parseSource(Object raw) {

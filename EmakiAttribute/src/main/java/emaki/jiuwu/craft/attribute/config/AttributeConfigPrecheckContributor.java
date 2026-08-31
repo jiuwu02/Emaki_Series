@@ -41,8 +41,7 @@ public final class AttributeConfigPrecheckContributor extends AbstractModuleConf
                 && (!attributeConfig.readLoreAttributes() || !attributeConfig.readPdcAttributes())) {
             addMessageIssue("config.yml:attribute_sources.require_lore_pdc_match", WARN, "attribute_sources_match_requires_both", issues);
         }
-        // Reads the normalized value: a blank `curve_type` is a legitimate shorthand for logarithmic, so
-        // checking the raw YAML here would flag every rule that omits the field.
+
         for (ScalingCurveConfig curve : attributeConfig.scalingCurves()) {
             if (!ScalingCurveConfig.isSupportedCurveType(curve.curveType())) {
                 addMessageIssue("config.yml:scaling_curves." + curve.attributeId(), WARN,

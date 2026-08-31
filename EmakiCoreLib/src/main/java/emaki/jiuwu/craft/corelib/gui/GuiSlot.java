@@ -7,7 +7,6 @@ import java.util.Objects;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
 public final class GuiSlot {
 
     private final String key;
@@ -60,10 +59,6 @@ public final class GuiSlot {
         return Texts.isNotBlank(type);
     }
 
-    /**
-     * {@return whether the template configured any item component for this slot} Renderers use this
-     * to decide between the template's own styling and their code-side fallback name/lore.
-     */
     public boolean hasConfiguredComponents() {
         return !itemDefinition.components().isEmpty();
     }

@@ -14,21 +14,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class GuiBackendRegistry {
-
 
     public static final String BUKKIT = "bukkit";
 
@@ -47,10 +33,6 @@ public final class GuiBackendRegistry {
         register(BUKKIT, bukkitBackend);
     }
 
-
-
-
-
     public synchronized void register(String name, GuiBackend backend) {
         if (name == null || backend == null) {
             return;
@@ -66,13 +48,8 @@ public final class GuiBackendRegistry {
             safeShutdownAsync(previous);
         }
 
-
         warnedNames.remove(key);
     }
-
-
-
-
 
     public synchronized void unregister(String name) {
         if (name == null) {
@@ -89,10 +66,6 @@ public final class GuiBackendRegistry {
         }
     }
 
-
-
-
-
     public void setConfiguredName(String name) {
         String normalized = name == null ? BUKKIT : normalize(name);
         if (!normalized.equals(this.configuredName)) {
@@ -104,21 +77,6 @@ public final class GuiBackendRegistry {
     public String configuredName() {
         return configuredName;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     public GuiBackend activeBackend() {
         String name = configuredName;
@@ -140,7 +98,6 @@ public final class GuiBackendRegistry {
         warnOnce(name, "gui.backend.unknown_value", name);
         return bukkitBackend;
     }
-
 
     public void shutdownAll() {
         shutdownAllAsync();

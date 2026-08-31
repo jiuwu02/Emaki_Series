@@ -9,13 +9,6 @@ import emaki.jiuwu.craft.forge.api.ForgeCatalog;
 import emaki.jiuwu.craft.forge.api.ForgeExtensions;
 import emaki.jiuwu.craft.forge.api.ForgeOperations;
 
-/**
- * {@link EmakiForgeApi.Bridge} 的运行时实现。
- *
- * <p>两个层实现只构造一次并复用，避免第三方每次调用都产生新对象。
- * {@link #status()} 把「插件已启用」与「runtime 快照已就绪」分别映射到
- * {@code installed} 与 {@code ready}，覆盖 install 早于子系统加载完成的空档窗口。
- */
 public final class DefaultEmakiForgeApi implements EmakiForgeApi.Bridge {
 
     private final EmakiForgePlugin plugin;

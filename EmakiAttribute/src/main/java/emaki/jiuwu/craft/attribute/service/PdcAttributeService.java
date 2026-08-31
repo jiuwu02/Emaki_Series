@@ -51,6 +51,16 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             PdcAttributePayload::fromMap
     );
 
+    private static final String ITEM_PARTITION_PATH = "item_attributes";
+
+    private static final String SOURCE_SEGMENT = "source";
+
+    private static final String SOURCE_INDEX_FIELD = "source_index";
+
+    private static final String LEGACY_ITEM_PARTITION_PATH = "item.attributes";
+    private static final String LEGACY_SOURCE_PARTITION_PATH =
+            LEGACY_ITEM_PARTITION_PATH + "." + SOURCE_SEGMENT;
+
     private final EmakiAttributePlugin plugin;
     private final PdcReadRuleLoader ruleLoader;
     private final ItemContributionGateRegistry gateRegistry;
@@ -66,8 +76,8 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         this.ruleLoader = ruleLoader;
         this.gateRegistry = gateRegistry;
         this.pdcService = new PdcService("emaki_attribute", "pdc", plugin == null ? null : plugin.debugLogger());
-        this.itemPartition = pdcService.partition("item.attributes");
-        this.sourcePartition = itemPartition.child("source");
+        this.itemPartition = pdcService.partition(ITEM_PARTITION_PATH);
+        this.sourcePartition = itemPartition.child(SOURCE_SEGMENT);
     }
 
     @Override
@@ -145,7 +155,14 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (itemStack == null || Texts.isBlank(sourceId)) {
             return null;
         }
-        return pdcService.readBlob(itemStack, sourcePartition.child(Texts.normalizeId(sourceId)), "payload", PAYLOAD_CODEC);
+        String normalized = Texts.normalizeId(sourceId);
+        return pdcService.readBlobMigrating(
+                itemStack,
+                sourcePartition.child(normalized),
+                LEGACY_SOURCE_PARTITION_PATH + "." + normalized,
+                "payload",
+                PAYLOAD_CODEC
+        );
     }
 
     @Override
@@ -174,7 +191,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
                 if (payload == null || Texts.isBlank(payload.sourceId()) || excluded.contains(payload.sourceId())) {
                     continue;
                 }
-                // Copy preserves persisted blocks even when their owning source is temporarily absent.
+
                 persist(toItem, payload);
             }
             return EmakiResult.ok();
@@ -207,7 +224,8 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return EmakiResult.notFound("attribute.pdc.payload_not_found");
         }
         try {
-            pdcService.remove(itemStack, sourcePartition.child(normalized), "payload");
+            pdcService.removeMigrating(itemStack, sourcePartition.child(normalized),
+                    LEGACY_SOURCE_PARTITION_PATH + "." + normalized, "payload");
             writeIndex(itemStack, removeSource(readIndex(itemStack), normalized));
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
@@ -222,9 +240,10 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         }
         try {
             for (String sourceId : readIndex(itemStack)) {
-                pdcService.remove(itemStack, sourcePartition.child(sourceId), "payload");
+                pdcService.removeMigrating(itemStack, sourcePartition.child(sourceId),
+                        LEGACY_SOURCE_PARTITION_PATH + "." + sourceId, "payload");
             }
-            pdcService.remove(itemStack, itemPartition, "source_index");
+            pdcService.removeMigrating(itemStack, itemPartition, LEGACY_ITEM_PARTITION_PATH, SOURCE_INDEX_FIELD);
             return EmakiResult.ok();
         } catch (RuntimeException exception) {
             return EmakiResult.internalError("attribute.pdc.clear_all_failed");
@@ -266,14 +285,6 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         );
     }
 
-    /**
-     * Resolves the id of the first registered gate rejecting the item.
-     *
-     * @param player the owning player
-     * @param itemStack the equipped item
-     * @param actualSlot the equipment slot being collected
-     * @return the rejecting gate id, or {@code ""} when accepted
-     */
     String resolveRejectingGateId(Player player, ItemStack itemStack, String actualSlot) {
         if (gateRegistry == null || itemStack == null || itemStack.getType().isAir()) {
             return "";
@@ -707,7 +718,13 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (itemStack == null) {
             return List.of();
         }
-        String raw = pdcService.get(itemStack, itemPartition, "source_index", PersistentDataType.STRING);
+        String raw = pdcService.getMigrating(
+                itemStack,
+                itemPartition,
+                LEGACY_ITEM_PARTITION_PATH,
+                SOURCE_INDEX_FIELD,
+                PersistentDataType.STRING
+        );
         if (Texts.isBlank(raw)) {
             return List.of();
         }
@@ -726,10 +743,11 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return;
         }
         if (sourceIds == null || sourceIds.isEmpty()) {
-            pdcService.remove(itemStack, itemPartition, "source_index");
+            pdcService.remove(itemStack, itemPartition, SOURCE_INDEX_FIELD);
             return;
         }
-        pdcService.set(itemStack, itemPartition, "source_index", PersistentDataType.STRING, String.join(",", sourceIds));
+        pdcService.set(itemStack, itemPartition, SOURCE_INDEX_FIELD, PersistentDataType.STRING,
+                String.join(",", sourceIds));
     }
     private String normalizeConditionType(String type) {
         return Texts.normalizeId(type);
@@ -760,7 +778,6 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return !declaredSlots.isEmpty();
         }
 
-        /** {@return whether every registered item contribution gate accepted the item} */
         boolean itemContributionActive() {
             return rejectingGateId.isEmpty();
         }

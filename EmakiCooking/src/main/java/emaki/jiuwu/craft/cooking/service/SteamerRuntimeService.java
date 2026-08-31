@@ -1,15 +1,9 @@
 package emaki.jiuwu.craft.cooking.service;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
@@ -22,12 +16,11 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -43,33 +36,17 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-public final class SteamerRuntimeService implements Listener {
+public final class SteamerRuntimeService extends TickingStationRuntimeService<SteamerState> implements Listener {
 
-    private static final long DIRTY_FLUSH_INTERVAL_TICKS = 100L;
-
-    private final EmakiCookingPlugin plugin;
     private final MessageService messageService;
     private final CookingSettingsService settingsService;
-    private final CookingBlockMatcher blockMatcher;
-    private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final SteamerStateCodec codec;
     private final SteamerTickProcessor tickProcessor;
     private final SteamerGuiController guiController;
-    private final CookingTextDisplayService textDisplayService;
-    private final ExecutionDispatcher executionDispatcher;
-    private CookingCompletionCoordinator completionCoordinator;
-    private final Map<StationCoordinates, SteamerState> runtimeStates = new ConcurrentHashMap<>();
-    private final Set<StationCoordinates> activeStations = ConcurrentHashMap.newKeySet();
-    private final Set<StationCoordinates> dirtyStations = ConcurrentHashMap.newKeySet();
-    private final Set<StationCoordinates> tickingStations = ConcurrentHashMap.newKeySet();
-    private TaskHandle tickerTask;
-    private TaskHandle flushTask;
 
     public SteamerRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -80,85 +57,79 @@ public final class SteamerRuntimeService implements Listener {
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingTextDisplayService textDisplayService,
-            ExecutionDispatcher executionDispatcher) {
-        this.plugin = plugin;
+            EmakiScheduling taskScheduler) {
+        super(plugin, blockMatcher, stateStore, textDisplayService, taskScheduler);
         this.messageService = messageService;
         this.settingsService = settingsService;
-        this.blockMatcher = blockMatcher;
-        this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
-        this.textDisplayService = textDisplayService;
-        this.executionDispatcher = executionDispatcher;
         this.codec = new SteamerStateCodec();
         this.tickProcessor = new SteamerTickProcessor(settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
     }
 
-    public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
-        this.completionCoordinator = completionCoordinator;
-        tickProcessor.setCompletionCoordinator(completionCoordinator);
-        if (completionCoordinator != null) {
-            completionCoordinator.register(completionStateAccess());
-        }
+    @Override
+    protected StationType stationType() {
+        return StationType.STEAMER;
     }
 
-    CookingStationStateAccess completionStateAccess() {
-        return new CookingStationStateAccess() {
-            @Override
-            public StationType stationType() {
-                return StationType.STEAMER;
-            }
+    @Override
+    protected SteamerState createEmptyState() {
+        return new SteamerState();
+    }
 
-            @Override
-            public Map<String, Object> snapshot(StationCoordinates coordinates) {
-                SteamerState state = runtimeStates.get(coordinates);
-                if (state == null) {
-                    state = codec.readState(stateStore.load(coordinates));
-                }
-                return state == null || state.isCompletelyEmpty() ? null : codec.serializeState(coordinates, state);
-            }
+    @Override
+    protected boolean stateCompletelyEmpty(SteamerState state) {
+        return state.isCompletelyEmpty();
+    }
 
-            @Override
-            public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
-                SteamerState state = codec.readState(new MapYamlSection(committedState));
-                if (state == null || state.isCompletelyEmpty()) {
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed steamer state"));
-                }
-                return stateStore.saveAsync(coordinates, committedState)
-                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
-                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
-                            runtimeStates.put(coordinates, state);
-                            dirtyStations.remove(coordinates);
-                            if (tickProcessor.shouldRemainActive(state, System.currentTimeMillis())) {
-                                activeStations.add(coordinates);
-                                ensureTicker();
-                            } else {
-                                activeStations.remove(coordinates);
-                                if (activeStations.isEmpty()) {
-                                    cancelTicker();
-                                }
-                            }
-                            refreshText(coordinates, state);
-                        }));
-            }
+    @Override
+    protected SteamerState readState(YamlSection section) {
+        return codec.readState(section);
+    }
 
-            @Override
-            public CompletionStage<Void> delete(StationCoordinates coordinates) {
-                return stateStore.deleteAsync(coordinates)
-                        .thenCompose(CookingCompletionStateAccesses::requireSaved)
-                        .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
-                            guiController.closeOpenInventories(coordinates, true);
-                            removeState(coordinates, false);
-                            activeStations.remove(coordinates);
-                            if (activeStations.isEmpty()) {
-                                cancelTicker();
-                            }
-                        }));
-            }
-        };
+    @Override
+    protected Map<String, Object> serializeState(StationCoordinates coordinates, SteamerState state) {
+        return codec.serializeState(coordinates, state);
+    }
+
+    @Override
+    protected boolean shouldRemainActive(SteamerState state, long now) {
+        return tickProcessor.shouldRemainActive(state, now);
+    }
+
+    @Override
+    protected boolean processStationTick(StationCoordinates coordinates, SteamerState state, Block block, long now) {
+        return tickProcessor.processStation(coordinates, state, block, now);
+    }
+
+    @Override
+    protected void bindCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
+        tickProcessor.setCompletionCoordinator(completionCoordinator);
+    }
+
+    @Override
+    protected void closeOpenInventories(StationCoordinates coordinates, boolean suppressSave) {
+        guiController.closeOpenInventories(coordinates, suppressSave);
+    }
+
+    @Override
+    protected void closeAllOpenInventories(boolean suppressSave) {
+        guiController.closeAllOpenInventories(suppressSave);
+    }
+
+    @Override
+    protected SteamerState snapshotInventoryState(StationCoordinates coordinates,
+            Inventory inventory,
+            UUID playerUuid,
+            String playerName) {
+        return guiController.snapshotInventoryState(coordinates, inventory, playerUuid, playerName);
+    }
+
+    @Override
+    protected StationCoordinates viewingCoordinates(UUID viewerId) {
+        return guiController.viewingCoordinates(viewerId);
     }
 
     public SteamerGuiController guiController() {
@@ -167,76 +138,6 @@ public final class SteamerRuntimeService implements Listener {
 
     SteamerTickProcessor tickProcessor() {
         return tickProcessor;
-    }
-
-    Set<StationCoordinates> activeStations() {
-        return activeStations;
-    }
-
-    public void reload() {
-        guiController.closeAllOpenInventories(false);
-        flushDirtyStates();
-        cancelFlushTask();
-        cancelTicker();
-        textDisplayService.removeStationType(StationType.STEAMER);
-        activeStations.clear();
-        runtimeStates.clear();
-        dirtyStations.clear();
-        stateStore.forEachLoadedState(StationType.STEAMER, this::restoreStoredState);
-        ensureTicker();
-    }
-
-    public boolean restoreStoredState(StationCoordinates coordinates, YamlSection section) {
-        if (coordinates == null) {
-            return false;
-        }
-        SteamerState state = codec.readState(section);
-        ItemSourceRef stationSource = stateStore.stationSource(section);
-        Block block = coordinates.block();
-        if (state == null) {
-            guiController.closeOpenInventories(coordinates, true);
-            removeState(coordinates, false);
-            return false;
-        }
-        if (!blockMatcher.matches(block, StationType.STEAMER, stationSource)) {
-            guiController.closeOpenInventories(coordinates, true);
-            removeState(coordinates, false);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=steamer coordinate=" + coordinates.runtimeKey());
-            return false;
-        }
-        cacheState(coordinates, state);
-        refreshText(coordinates, state);
-        if (tickProcessor.shouldRemainActive(state, System.currentTimeMillis())) {
-            activeStations.add(coordinates);
-        }
-        ensureTicker();
-        return true;
-    }
-
-    public void unloadStoredState(StationCoordinates coordinates) {
-        if (coordinates == null) {
-            return;
-        }
-        SteamerState state = runtimeStates.get(coordinates);
-        if (state != null && !state.isCompletelyEmpty()) {
-            stateStore.save(coordinates, codec.serializeState(coordinates, state));
-        }
-        removeState(coordinates, false);
-        if (activeStations.isEmpty()) {
-            cancelTicker();
-        }
-    }
-
-    public void shutdown() {
-        guiController.closeAllOpenInventories(false);
-        cancelTicker();
-        waitForInFlightTicks();
-        flushDirtyStates();
-        cancelFlushTask();
-        textDisplayService.removeStationType(StationType.STEAMER);
-        activeStations.clear();
-        runtimeStates.clear();
-        dirtyStations.clear();
     }
 
     public boolean handleInteraction(StationInteraction interaction) {
@@ -265,7 +166,7 @@ public final class SteamerRuntimeService implements Listener {
 
         StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
         stateStore.rememberStationSource(coordinates, interaction.stationSource());
-        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.STEAMER, coordinates)) {
+        if (completionCoordinator() != null && completionCoordinator().hasActive(StationType.STEAMER, coordinates)) {
             interaction.cancel();
             return true;
         }
@@ -301,7 +202,7 @@ public final class SteamerRuntimeService implements Listener {
             Player player) {
         ItemStack hand = player.getInventory().getItemInMainHand();
         StationCoordinates coordinates = StationCoordinates.fromBlock(steamerBlock);
-        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.STEAMER, coordinates)) {
+        if (completionCoordinator() != null && completionCoordinator().hasActive(StationType.STEAMER, coordinates)) {
             interaction.cancel();
             return true;
         }
@@ -394,7 +295,7 @@ public final class SteamerRuntimeService implements Listener {
         guiController.closeOpenInventories(coordinates, true);
         tickProcessor.extinguishHeatSource(steamerBlock.getRelative(BlockFace.DOWN));
         tickProcessor.dropStoredItems(steamerBlock, state);
-        activeStations.remove(coordinates);
+        activeStations().remove(coordinates);
         removeState(coordinates, true);
         return true;
     }
@@ -434,7 +335,7 @@ public final class SteamerRuntimeService implements Listener {
         if (settingsService.steamerIgniteHeatSource()) {
             tickProcessor.igniteHeatSource(heatSourceBlock, newBurning, now);
         }
-        activeStations.add(coordinates);
+        activeStations().add(coordinates);
         ensureTicker();
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.add_fuel", Map.of(
                 "item", itemDisplayName(hand),
@@ -463,7 +364,7 @@ public final class SteamerRuntimeService implements Listener {
             }
         }
         if (state.moisture() > 0) {
-            activeStations.add(coordinates);
+            activeStations().add(coordinates);
             ensureTicker();
         }
         CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "steamer.add_moisture", Map.of(
@@ -525,7 +426,8 @@ public final class SteamerRuntimeService implements Listener {
         return String.format(Locale.ROOT, "%.2f%%", (double) totalProgress * 100.0D / (double) totalRequired);
     }
 
-    private void refreshText(StationCoordinates coordinates, SteamerState state) {
+    @Override
+    protected void refreshText(StationCoordinates coordinates, SteamerState state) {
         if (!settingsService.textDisplayEnabled(StationType.STEAMER) || coordinates == null
                 || state == null || state.isCompletelyEmpty()) {
             textDisplayService.removeStation(StationType.STEAMER, coordinates);
@@ -557,206 +459,6 @@ public final class SteamerRuntimeService implements Listener {
                 settingsService.textDisplayProfile(StationType.STEAMER)
         ));
     }
-
-    private void appendLine(StringBuilder builder, String line) {
-        if (Texts.isBlank(line)) {
-            return;
-        }
-        if (builder.length() > 0) {
-            builder.append('\n');
-        }
-        builder.append(line);
-    }
-
-    void ensureTicker() {
-        if (activeStations.isEmpty()) {
-            cancelTicker();
-            return;
-        }
-        if (tickerTask != null && !tickerTask.isCancelled()) {
-            return;
-        }
-        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
-    }
-
-    private void ensureFlushTask() {
-        if (dirtyStations.isEmpty()) {
-            cancelFlushTask();
-            return;
-        }
-        if (flushTask != null && !flushTask.isCancelled()) {
-            return;
-        }
-        flushTask = executionDispatcher.runGlobalTimer(
-                plugin,
-                this::flushDirtyStates,
-                DIRTY_FLUSH_INTERVAL_TICKS,
-                DIRTY_FLUSH_INTERVAL_TICKS
-        );
-    }
-
-    private void flushDirtyStates() {
-        if (dirtyStations.isEmpty()) {
-            cancelFlushTask();
-            return;
-        }
-        for (StationCoordinates coordinates : List.copyOf(dirtyStations)) {
-            if (coordinates == null) {
-                continue;
-            }
-            SteamerState state = runtimeStates.get(coordinates);
-            if (state == null || state.isCompletelyEmpty()) {
-                dirtyStations.remove(coordinates);
-                continue;
-            }
-            stateStore.saveAsync(coordinates, codec.serializeState(coordinates, state))
-                    .thenAccept(saved -> {
-                        if (Boolean.TRUE.equals(saved)) {
-                            dirtyStations.remove(coordinates);
-                        }
-                        if (dirtyStations.isEmpty()) {
-                            cancelFlushTask();
-                        }
-                    });
-        }
-        if (dirtyStations.isEmpty()) {
-            cancelFlushTask();
-        }
-    }
-
-    private void cancelFlushTask() {
-        if (flushTask != null) {
-            flushTask.cancel();
-            flushTask = null;
-        }
-    }
-
-    private void cancelTicker() {
-        if (tickerTask != null) {
-            tickerTask.cancel();
-            tickerTask = null;
-        }
-    }
-
-    private void waitForInFlightTicks() {
-        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5L);
-        while (!tickingStations.isEmpty() && System.nanoTime() < deadline) {
-            try {
-                Thread.sleep(10L);
-            } catch (InterruptedException exception) {
-                Thread.currentThread().interrupt();
-                return;
-            }
-        }
-    }
-
-    private void tick() {
-        if (activeStations.isEmpty()) {
-            cancelTicker();
-            return;
-        }
-        long now = System.currentTimeMillis();
-        for (StationCoordinates coordinates : List.copyOf(activeStations)) {
-            if (coordinates == null || !tickingStations.add(coordinates)) {
-                continue;
-            }
-            Location location = coordinates.location(0.5D, 0.5D, 0.5D);
-            if (location == null || location.getWorld() == null) {
-                tickingStations.remove(coordinates);
-                activeStations.remove(coordinates);
-                continue;
-            }
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
-                try {
-                    processStation(coordinates, now);
-                } finally {
-                    tickingStations.remove(coordinates);
-                }
-            });
-            if (handle == null) {
-                tickingStations.remove(coordinates);
-            }
-        }
-        if (activeStations.isEmpty()) {
-            cancelTicker();
-        }
-    }
-
-    private void processStation(StationCoordinates coordinates, long now) {
-        Block block = coordinates == null ? null : coordinates.block();
-        SteamerState state = loadStateOrEmpty(coordinates);
-        ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
-        if (block == null || !blockMatcher.matches(block, StationType.STEAMER, stationSource)) {
-            guiController.closeOpenInventories(coordinates, true);
-            removeState(coordinates, true);
-            activeStations.remove(coordinates);
-            return;
-        }
-        if (completionCoordinator != null && completionCoordinator.hasActive(StationType.STEAMER, coordinates)) {
-            return;
-        }
-        boolean changed = tickProcessor.processStation(coordinates, state, block, now);
-        if (changed) {
-            saveState(coordinates, state);
-        }
-        if (tickProcessor.shouldRemainActive(state, now)) {
-            activeStations.add(coordinates);
-            refreshText(coordinates, state);
-        } else {
-            activeStations.remove(coordinates);
-            if (state.isCompletelyEmpty()) {
-                removeState(coordinates, true);
-            } else {
-                refreshText(coordinates, state);
-            }
-        }
-    }
-
-    SteamerState saveInventory(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) {
-        if (coordinates == null || inventory == null) {
-            return new SteamerState();
-        }
-        SteamerState updated = guiController.snapshotInventoryState(coordinates, inventory, playerUuid, playerName);
-        saveState(coordinates, updated);
-        return updated;
-    }
-
-    void saveState(StationCoordinates coordinates, SteamerState state) {
-        if (coordinates == null || state == null) {
-            return;
-        }
-        if (state.isCompletelyEmpty()) {
-            removeState(coordinates, true);
-            return;
-        }
-        runtimeStates.put(coordinates, state);
-        dirtyStations.add(coordinates);
-        ensureFlushTask();
-        refreshText(coordinates, state);
-    }
-
-    SteamerState loadStateOrEmpty(StationCoordinates coordinates) {
-        if (coordinates == null) {
-            return new SteamerState();
-        }
-        SteamerState cached = runtimeStates.get(coordinates);
-        if (cached != null) {
-            return cached;
-        }
-        SteamerState loaded = codec.readState(stateStore.load(coordinates));
-        SteamerState existing = runtimeStates.putIfAbsent(coordinates, loaded);
-        return existing == null ? loaded : existing;
-    }
-
-
-
-
-    Optional<StationCoordinates> viewingStation(UUID viewerId) {
-        return Optional.ofNullable(guiController.viewingCoordinates(viewerId));
-    }
-
-
-
 
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
@@ -824,36 +526,13 @@ public final class SteamerRuntimeService implements Listener {
         ));
     }
 
-    private void cacheState(StationCoordinates coordinates, SteamerState state) {
-        if (coordinates == null || state == null) {
-            return;
-        }
-        runtimeStates.put(coordinates, state);
-        dirtyStations.remove(coordinates);
-    }
-
-    private void removeState(StationCoordinates coordinates, boolean deleteFile) {
-        if (coordinates == null) {
-            return;
-        }
-        runtimeStates.remove(coordinates);
-        dirtyStations.remove(coordinates);
-        textDisplayService.removeStation(StationType.STEAMER, coordinates);
-        if (deleteFile) {
-            stateStore.deleteAsync(coordinates);
-        }
-        if (dirtyStations.isEmpty()) {
-            cancelFlushTask();
-        }
-    }
-
     private CookingSettingsService.SteamerFuelRule matchFuelRule(ItemStack itemStack) {
         ItemSourceRef identified = itemStack == null || itemStack.getType().isAir() ? null : itemSourceService.identifyItem(itemStack);
         if (identified == null) {
             return null;
         }
         for (CookingSettingsService.SteamerFuelRule rule : settingsService.steamerFuels()) {
-            if (rule != null && ItemSourceUtil.matches(rule.source(), identified)) {
+            if (rule != null && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }
@@ -866,17 +545,11 @@ public final class SteamerRuntimeService implements Listener {
             return null;
         }
         for (CookingSettingsService.SteamerMoistureRule rule : settingsService.steamerMoistureSources()) {
-            if (rule != null && ItemSourceUtil.matches(rule.inputSource(), identified)) {
+            if (rule != null
+                    && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
                 return rule;
             }
         }
         return null;
-    }
-
-    private String itemDisplayName(ItemStack itemStack) {
-        String displayName = EmakiCoreLibApi.itemDisplayName(itemStack).orElse("");
-        return Texts.isBlank(displayName)
-                ? (itemStack == null || itemStack.getType() == null ? "" : itemStack.getType().name())
-                : displayName;
     }
 }

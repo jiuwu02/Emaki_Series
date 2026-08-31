@@ -1,3 +1,4 @@
+# 属性点分配界面。
 id: "attribute_points"
 gui_type: CHEST
 title: "<gradient:#A78BFA:#60A5FA>属性加点</gradient> <dark_gray>%current_page%/%total_pages%</dark_gray>"

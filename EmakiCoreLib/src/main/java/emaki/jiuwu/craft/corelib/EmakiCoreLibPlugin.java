@@ -19,7 +19,6 @@ import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BuiltinStages;
-import emaki.jiuwu.craft.corelib.action.legacy.LegacyActionMigrator;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineBatchRunner;
@@ -33,6 +32,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.TriggerRegistry;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.dialog.DialogApiBridge;
@@ -88,6 +88,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.corelib.pdc.PdcMigrationJoinListener;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.ActionContextPlaceholderResolver;
 import emaki.jiuwu.craft.corelib.placeholder.ActionInlineTokenResolver;
@@ -132,30 +133,27 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private GuiBackend guiBackend;
     private AsyncFileService asyncFileService;
     private AsyncYamlFiles asyncYamlFiles;
-    private CapabilityProbe platformCapabilities;
+    CapabilityProbe platformCapabilities;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private CorePluginLifecycle corePluginLifecycle;
     private PlaceholderRegistry placeholderRegistry;
     private EconomyManager economyManager;
     private StageRegistry stageRegistry;
+
+    private final TriggerRegistry triggerRegistry = new TriggerRegistry();
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
     private final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
     private PipelineTaskService pipelineTaskService;
     private volatile ConfiguredSequenceRepository sequenceRepository = ConfiguredSequenceRepository.empty();
-    // Outlives every reload: it holds the business modules' re-registration routines, which is exactly what
-    // rebuilding the stage table needs to replay.
+
     private final StageRebuildListeners stageRebuildListeners = new StageRebuildListeners();
-    // Outlives every reload as well, but for the opposite reason: a published capability belongs to the
-    // plugin that published it, so re-reading CoreLib's own config must not retract it.
+
     private final CapabilityRegistry capabilityRegistry = new CapabilityRegistry();
-    // Same lifetime rule as the capability registry: a waiting relationship belongs to the plugin that
-    // asked to wait, so a CoreLib reload must not cancel it.
+
     private final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
-    // "Data is loaded", not "services exist": the previous criterion was a non-null messageService,
-    // which is true from initializeServices() onward and therefore reported ready while a reload was
-    // still replacing the stage table.
+
     private volatile boolean contentReady;
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
@@ -165,7 +163,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private ConfiguredItemService configuredItemService;
     private ItemSourceIntegrationCoordinator itemSourceIntegrationCoordinator;
     private final EmakiNamespaceRegistry namespaceRegistry = new EmakiNamespaceRegistry();
-    private final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
+    final EmakiItemLayerCodecRegistry itemLayerCodecRegistry = new EmakiItemLayerCodecRegistry();
     private final CraftEngineBlockBridge craftEngineBlockBridge = new CraftEngineBlockBridgeProvider(this);
     private final CustomBlockBridge itemsAdderBlockBridge = new ItemsAdderBlockBridgeProvider(this);
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
@@ -186,7 +184,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     @Override
     public void onLoad() {
-
 
     }
 
@@ -216,7 +213,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         registerPublicApiService();
         publishOwnCapabilities();
         installPacketBackend();
-        runLegacyActionMigration();
         logStartupAudit();
         metrics = registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
@@ -236,21 +232,20 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (pipelineTaskService != null) {
             pipelineTaskService.stopAll();
         }
-        // Pipeline cleanup happens here rather than in the async shutdown step: cancelling scheduler handles and
-        // detaching boss bars both touch Bukkit state, so they need the server thread the disable callback holds.
+
         if (stageDispatcher != null) {
             stageDispatcher.close();
         }
         if (stageRegistry != null) {
             stageRegistry.clear();
         }
+        triggerRegistry.clear();
         stageRebuildListeners.clear();
         capabilityRegistry.clear();
         markModuleAbsent(getName());
         moduleReadinessRegistry.clear();
         BuiltinStages.shutdown();
 
-        // Bukkit registrations must be retired while the disable callback still owns the server thread.
         HandlerList.unregisterAll(this);
         getServer().getServicesManager().unregisterAll(this);
         ExpressionEngine.clearThreadLocalCache();
@@ -309,12 +304,13 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         candidatePlaceholderRegistry.register(new PlaceholderApiResolver());
         if (pipelineTaskService == null) {
             pipelineTaskService = new PipelineTaskService(this, executionDispatcher,
-                    // Late-bound on purpose: the runner needs the engine, the engine needs the stage
-                    // registry, and the registry needs these stages. Reading the fields at call time is
-                    // what breaks that cycle without leaving a half-built engine visible.
+
                     (owner, body, context, stopOnFailure) ->
                             pipelineBatchRunner.run(owner, actionEngine, body, context, stopOnFailure));
             getServer().getPluginManager().registerEvents(pipelineTaskService, this);
+
+            getServer().getPluginManager().registerEvents(
+                    new PdcMigrationJoinListener(this::debugLogger), this);
         }
         StageRegistry candidateStageRegistry = new StageRegistry();
         BuiltinStages.Report stageReport = BuiltinStages.registerAll(
@@ -328,8 +324,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 nexoBlockBridge,
                 oraxenBlockBridge,
                 pipelineTaskService,
-                // Same reason: sequences are compiled by the engine that this registry is about to build,
-                // so the stage resolves a body when it runs rather than when it registers.
+
                 name -> sequenceRepository == null ? null : sequenceRepository.bodyOf(name)
         );
         configPrecheckService.configure(candidateStageRegistry);
@@ -339,22 +334,17 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             return false;
         }
         if (!stageReport.successful()) {
-            // Fail closed. A stage that could not register means a duplicate id or an undeclared thread domain,
-            // which is a coding error rather than a configuration one; starting anyway would hide it until a
-            // server owner hit the missing stage at runtime.
+
             for (String failure : stageReport.failures()) {
                 getLogger().severe("CoreLib pipeline stage registration failed: " + failure);
             }
             return false;
         }
         if (pipelineTaskService != null) {
-            // Tasks reference the stage table that is about to be replaced, so they cannot outlive it.
+
             pipelineTaskService.stopAll();
         }
-        // Not-ready starts here rather than at method entry: everything above only builds candidates and
-        // returns false without touching live state, so the previous runtime is still fully usable while
-        // it runs. Announcing a loading window that a failed precheck never actually opens would make
-        // every consumer's gate flap for no reason.
+
         contentReady = false;
         moduleReadinessRegistry.markLoading(getName(), this::logReadinessFailure);
         configModel = candidateConfig;
@@ -380,24 +370,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         buildSequenceRepository();
         refreshServiceRegistry();
         contentReady = true;
-        // Outside any lock by construction: this method holds none. Waiters run synchronously here, so
-        // on the first enable there are none yet (the API bridge is installed later in onEnable, and no
-        // other plugin has run), and on a reload the consumers registered earlier are notified.
+
         markModuleReady(getName());
         return true;
     }
 
-    /**
-     * Swaps in a freshly built stage registry and rebuilds the engine around it.
-     *
-     * <p>The previous registry is revoked and this plugin's pending dispatches cancelled first, so a delayed
-     * {@code after 20t} body compiled against the old stage table cannot run against the new one.</p>
-     *
-     * <p>Business modules are then asked to re-register: the candidate table holds only CoreLib's builtin
-     * stages, so without this replay every module's stages would be lost on the first reload.</p>
-     *
-     * @param candidate the registry to install
-     */
     private void installStageRuntime(StageRegistry candidate) {
         if (stageRegistry != null) {
             stageRegistry.revokeAll(this);
@@ -406,6 +383,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (stageDispatcher != null) {
             stageDispatcher.cancelOwner(this);
         }
+
+        triggerRegistry.clear();
         stageRegistry = candidate;
         if (stageDispatcher == null) {
             stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
@@ -414,8 +393,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 new RegistryStageResolver(stageRegistry),
                 new RegistryStageInvoker(stageRegistry),
                 stageDispatcher,
-                // Reads through the field rather than capturing it: the repository is compiled by this very
-                // engine right after the registry is installed, so it does not exist yet at this point.
+
                 new SequenceRepository() {
 
                     @Override
@@ -453,13 +431,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         replayStageRegistrations();
     }
 
-    /**
-     * Re-runs the business modules' stage registrations against the newly installed table.
-     *
-     * <p>Runs after the engine is rebuilt so that a module's callback observes a consistent runtime. A module
-     * whose callback throws is named in the log and skipped; the rest still get their stages, because one
-     * module's broken registration must not silently disarm every pipeline on the server.</p>
-     */
     private void replayStageRegistrations() {
         if (stageRebuildListeners.size() == 0) {
             return;
@@ -486,13 +457,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         EmakiCoreLibApi.install(coreLibApiBridge);
     }
 
-    /**
-     * 发布 CoreLib 自身提供的能力标识，供跨模块特性探测使用。
-     *
-     * <p>放在 {@link #registerPublicApiService()} 之后调用：能力表示「该 API 已可用」，
-     * 因此必须在 API 门面装好之后才发布。发布失败只记日志而不中断启动——能力缺失时
-     * 消费方会走降级路径，而 CoreLib 本身的功能并不依赖这条声明。
-     */
     private void publishOwnCapabilities() {
         CapabilityRegistration registration = capabilityRegistry.publish(
                 this,
@@ -531,8 +495,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private void registerCommandHandler() {
         commandRouter = new CoreLibCommandRouter(this, executionDispatcher);
 
-
-
         registerCommand(
                 "emakicorelib",
                 "EmakiCoreLib management command",
@@ -541,7 +503,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         );
     }
 
-    private CompletionStage<Void> finalizeCoreRuntimeAsync() {
+    CompletionStage<Void> finalizeCoreRuntimeAsync() {
         CompletionStage<Void> guiShutdown = CompletableFuture.completedFuture(null);
         if (guiBackendRegistry != null) {
             try {
@@ -606,60 +568,27 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     }
 
     private void initializeServices() {
-        CoreLibConfig config = configModel == null ? CoreLibConfig.defaults() : configModel;
-        MiniMessages.configureDefaultNoItalic(config.miniMessageConfig().defaultNoItalic());
-        languageLoader = new LanguageLoader(this, "lang", "lang", config.language(), "zh_CN");
-        messageService = new MessageService(this, languageLoader);
-        bStatsService = new BStatsService(this, messageService);
-        debugLogger = new DebugLogger(this, languageLoader);
-        itemSourceIntegrationCoordinator = new ItemSourceIntegrationCoordinator(this, messageService, itemSourceService);
-        configuredItemService = new ConfiguredItemService(this, itemSourceService);
-        configPrecheckService = new ConfigPrecheckService(messageService);
-        // The stage dispatcher outlives a reload: it owns pending scheduler handles per plugin, so rebuilding it
-        // would strand them. reloadActionSystem cancels this plugin's handles instead.
-        stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
-        performanceMonitor = new PerformanceMonitor();
-        asyncTaskScheduler = AsyncTaskScheduler.forPlugin(
-                "emaki-corelib-async",
-                performanceMonitor);
-        asyncFileService = new AsyncFileService(asyncTaskScheduler, 3, performanceMonitor);
-        asyncYamlFiles = new AsyncYamlFiles(asyncFileService);
-        loadVanillaLanguageTableAsync();
-        corePluginLifecycle = new CorePluginLifecycle(this::finalizeCoreRuntimeAsync);
-        corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
-        languageLoader.load();
-        guiBackendRegistry = new GuiBackendRegistry(messageService);
-        guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
-        GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
-        guiBackend = new RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
-        itemAssemblyService = new EmakiItemAssemblyService(
-                namespaceRegistry,
-                itemLayerCodecRegistry,
-                itemSourceService,
-                debugLogger
-        );
-        itemAssemblyService.configureAsync(asyncTaskScheduler, executionDispatcher, this, performanceMonitor);
-        String displayBackend = config.displayConfig().resolveBackend(config.guiConfig().backend());
-        DisplayRuntimeSettings displaySettings =
-                DisplayRuntimeSettings.of(
-                        config.displayConfig().viewDistanceBlocks(),
-                        config.displayConfig().refreshIntervalTicks());
-        textDisplayService = DisplayServiceFactory.createTextService(
-                this, displayBackend, displaySettings, executionDispatcher);
-        itemDisplayService = DisplayServiceFactory.createItemService(
-                this, displayBackend, displaySettings, executionDispatcher);
-        dialogService = new DialogService(
-                this,
-                new DialogLoader(this, config.dialogConfig().directory()),
-                itemSourceService,
-                executionDispatcher);
-        dialogService.setEnabled(config.dialogConfig().enabled());
-        dialogService.load();
-        gameplayEventPublisher = new GameplayEventPublisher(
-                this, executionDispatcher, eventBus,
-                () -> configModel == null ? null : configModel.gameplayEventConfig(),
-                mythicMobBridge);
-        getServer().getPluginManager().registerEvents(gameplayEventPublisher, this);
+        CoreLibRuntimeComponents components = new CoreLibLifecycleCoordinator().initialize(this);
+        languageLoader = components.languageLoader();
+        messageService = components.messageService();
+        bStatsService = components.bStatsService();
+        debugLogger = components.debugLogger();
+        itemSourceIntegrationCoordinator = components.itemSourceIntegrationCoordinator();
+        configuredItemService = components.configuredItemService();
+        configPrecheckService = components.configPrecheckService();
+        stageDispatcher = components.stageDispatcher();
+        performanceMonitor = components.performanceMonitor();
+        asyncTaskScheduler = components.asyncTaskScheduler();
+        asyncFileService = components.asyncFileService();
+        asyncYamlFiles = components.asyncYamlFiles();
+        corePluginLifecycle = components.corePluginLifecycle();
+        guiBackendRegistry = components.guiBackendRegistry();
+        guiBackend = components.guiBackend();
+        itemAssemblyService = components.itemAssemblyService();
+        textDisplayService = components.textDisplayService();
+        itemDisplayService = components.itemDisplayService();
+        dialogService = components.dialogService();
+        gameplayEventPublisher = components.gameplayEventPublisher();
         refreshServiceRegistry();
     }
 
@@ -734,12 +663,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return dialogService;
     }
 
-    /**
-     * {@return CoreLib 的默认文本展示服务}
-     *
-     * <p>按 CoreLib 的 {@code display.*} 配置创建，供无特殊需求的模块直接取用。
-     * 需要独立配置的模块应改用 {@code DisplayServiceFactory} 自建实例，并自行负责关闭。
-     */
     public TextDisplayService textDisplayService() {
         return textDisplayService;
     }
@@ -747,12 +670,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public CoreLibConfig configModel() {
         return configModel;
     }
-
-
-
-
-
-
 
     public EmakiEventBus eventBus() {
         return eventBus;
@@ -766,88 +683,51 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return economyManager;
     }
 
-    /** {@return the live pipeline stage registry, or {@code null} before the first successful reload} */
     public StageRegistry stageRegistry() {
         return stageRegistry;
     }
 
-    /** {@return the per-owner callbacks replayed when the stage table is rebuilt} */
+    public TriggerRegistry triggerRegistry() {
+        return triggerRegistry;
+    }
+
     public StageRebuildListeners stageRebuildListeners() {
         return stageRebuildListeners;
     }
 
-    /** {@return the cross-module capability registry; never {@code null} and never rebuilt by a reload} */
     public CapabilityRegistry capabilityRegistry() {
         return capabilityRegistry;
     }
 
-    /** {@return the cross-module readiness registry; never {@code null} and never rebuilt by a reload} */
     public ModuleReadinessRegistry moduleReadinessRegistry() {
         return moduleReadinessRegistry;
     }
 
-    /** {@return whether the action system, config and language data have finished loading} */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * 报告某模块已完成数据装载，并同步通知其等待方。
-     *
-     * <p>必须在模块自身的就绪锁之外调用：回调在调用线程上同步运行，在同步块或 CAS 重试循环内
-     * 发布状态会让第三方回调在持有模块状态的情况下执行。</p>
-     *
-     * @param moduleName 模块插件名
-     */
     public void markModuleReady(String moduleName) {
         moduleReadinessRegistry.markReady(moduleName, this::logReadinessFailure);
     }
 
-    /**
-     * 记录就绪回调或常驻监听器抛出的异常。
-     *
-     * <p>单个消费方的回调失败不影响其余消费方，因此这里只记录、不重抛。</p>
-     *
-     * @param failure 失败详情
-     */
     private void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
         getLogger().warning("Readiness callback failed for " + failure.owner()
                 + " waiting on " + failure.moduleName() + ": " + failure.error());
     }
 
-    /**
-     * 报告某模块开始装载数据。已注册但未触发的等待方保留，等下一次就绪。
-     *
-     * @param moduleName 模块插件名
-     */
     public void markModuleLoading(String moduleName) {
         moduleReadinessRegistry.markLoading(moduleName, this::logReadinessFailure);
     }
 
-    /**
-     * 报告某模块已停用。其等待方保留，因为该模块可能在同一次服务器会话内重新启用。
-     *
-     * @param moduleName 模块插件名
-     */
     public void markModuleAbsent(String moduleName) {
         moduleReadinessRegistry.markAbsent(moduleName, this::logReadinessFailure);
     }
 
-    /** {@return the live pipeline engine, or {@code null} before the first successful reload} */
     public ActionEngine actionEngine() {
         return actionEngine;
     }
 
-    /**
-     * Creates a runner a business module can hold for its lifetime.
-     *
-     * <p>The replacement for handing out {@code actionExecutor()}. The engine is read per call rather
-     * than captured, because a reload installs a new engine and stage table; a module holding the old one
-     * would keep running against retired stages and its actions would quietly stop working.</p>
-     *
-     * @param moduleOwner the plugin whose invocations these are
-     * @return a runner bound to that plugin
-     */
     public ActionLineRunner actionLineRunner(Plugin moduleOwner) {
         Plugin resolved = moduleOwner == null ? this : moduleOwner;
         return new ActionLineRunner(resolved, this::actionEngine, pipelineBatchRunner,
@@ -855,18 +735,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 diagnostic -> messageService().renderDiagnostic(diagnostic));
     }
 
-    /** {@return the long-running task service, or {@code null} before the first reload} */
     public PipelineTaskService pipelineTaskService() {
         return pipelineTaskService;
     }
 
-    /**
-     * Compiles the configured sequences against the freshly installed engine.
-     *
-     * <p>Runs after {@code installStageRuntime} because compiling a sequence body needs the stage table it
-     * references. Cached compilations are dropped first: they were produced by the previous engine and its
-     * stage table, so keeping them would let a reload silently run against retired stages.</p>
-     */
     private void buildSequenceRepository() {
         pipelineBatchRunner.invalidate();
         ActionEngine engine = actionEngine;
@@ -903,45 +775,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         }
     }
 
-    /**
-     * Runs the one-shot old-syntax migration across every plugin data folder.
-     *
-     * <p>The single call site of the {@code action.legacy} package: removing the migration means deleting
-     * this method, its one call, and that package. Nothing else in the runtime refers to it.</p>
-     *
-     * <p>Runs after the stage registry is live so that every converted line can be compiled before it is
-     * written. A file whose converted form does not compile is left exactly as it was.</p>
-     */
-    private void runLegacyActionMigration() {
-        ActionEngine engine = actionEngine;
-        if (engine == null) {
-            return;
-        }
-        List<Path> folders = new ArrayList<>();
-        File pluginsRoot = getDataFolder().getParentFile();
-        File[] candidates = pluginsRoot == null ? null : pluginsRoot.listFiles();
-        if (candidates != null) {
-            for (File candidate : candidates) {
-                // Only Emaki's own data folders: rewriting another plugin's configs would be well
-                // beyond what this migration was asked to do.
-                if (candidate.isDirectory() && candidate.getName().startsWith("Emaki")) {
-                    folders.add(candidate.toPath());
-                }
-            }
-        }
-        LegacyActionMigrator migrator = new LegacyActionMigrator(pipeline -> {
-            ActionEngine.Result result = engine.compile(pipeline, null);
-            if (result.successful()) {
-                return null;
-            }
-            return result.diagnostics().isEmpty()
-                    ? "did not compile"
-                    : messageService().renderFirstDiagnostic(result.diagnostics());
-        });
-        LegacyActionMigrator.Report report = migrator.run(getDataFolder().toPath(), folders, false);
-        report.describe().forEach(line -> getLogger().info(line));
-    }
-
     public ConfigPrecheckService configPrecheckService() {
         return configPrecheckService;
     }
@@ -957,23 +790,6 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     public GuiBackend guiBackend() {
         return guiBackend;
     }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     private void installPacketBackend() {
         if (guiBackendRegistry == null) {
@@ -1033,25 +849,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         return pdcService;
     }
 
-    /**
-     * {@return the shared server-side vanilla translation table}
-     *
-     * <p>Never {@code null}. When the table is disabled or could not be downloaded
-     * it simply reports unavailable, so callers can query it unconditionally.
-     */
     public VanillaTranslationService vanillaTranslationService() {
         return vanillaTranslationService;
     }
 
-    /**
-     * Loads the vanilla language table off the server thread.
-     *
-     * <p>Opt-in through {@code vanilla_language.enabled}, because it performs
-     * outbound network access on first run. The download is cached on disk, so
-     * later starts do no network IO. Any failure is reported once and leaves the
-     * table unavailable rather than delaying or aborting startup.
-     */
-    private void loadVanillaLanguageTableAsync() {
+    void loadVanillaLanguageTableAsync(AsyncTaskScheduler scheduler) {
         CoreLibConfig currentConfig = configModel == null ? CoreLibConfig.defaults() : configModel;
         CoreLibConfig.VanillaLanguageConfig languageConfig = currentConfig.vanillaLanguageConfig();
         if (languageConfig == null || !languageConfig.enabled()) {
@@ -1060,7 +862,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         String locale = languageConfig.locale();
         String minecraftVersion = resolveMinecraftVersion();
         Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
-        asyncTaskScheduler.runAsync("corelib-vanilla-language", () -> {
+        scheduler.runAsync("corelib-vanilla-language", () -> {
             VanillaLanguageDownloader downloader =
                     new VanillaLanguageDownloader(getLogger(), cacheDirectory);
             Map<String, String> table = downloader.load(minecraftVersion, locale);

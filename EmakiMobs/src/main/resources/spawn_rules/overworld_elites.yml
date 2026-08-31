@@ -1,0 +1,19 @@
+# EmakiMobs 生成规则示例 - 主世界精英
+# 自然生成与替换规则；rules 下每条独立生效。
+# natural 规则的 condition 没有玩家上下文；autonomous 规则会以当前玩家渲染 PlaceholderAPI 占位符。
+
+rules:
+  - mob_id: example_zombie
+    type: natural
+    biomes:
+      - plains
+      - forest
+    y_range:
+      - -64
+      - 50
+    light_level_max: 7
+    replacement_chance: 0.05
+    max_nearby: 3
+    count:
+      min: 1
+      max: 1

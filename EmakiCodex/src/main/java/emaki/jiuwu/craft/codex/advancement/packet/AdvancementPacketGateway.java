@@ -15,23 +15,6 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class AdvancementPacketGateway {
 
     private final JavaPlugin plugin;
@@ -44,12 +27,6 @@ public final class AdvancementPacketGateway {
     private PacketListenerCommon registeredListener;
 
     private AdvancementResyncService resyncService;
-
-
-
-
-
-
 
     public AdvancementPacketGateway(JavaPlugin plugin,
             AdvancementRegistrar registrar,
@@ -64,11 +41,6 @@ public final class AdvancementPacketGateway {
         this.executionDispatcher = executionDispatcher;
         this.threadOwnership = threadOwnership;
     }
-
-
-
-
-
 
     public boolean register() {
         if (!enabled || registeredListener != null || !isPacketEventsPresent()) {
@@ -88,7 +60,6 @@ public final class AdvancementPacketGateway {
         }
     }
 
-
     public void shutdown() {
         if (registeredListener == null) {
             return;
@@ -102,22 +73,13 @@ public final class AdvancementPacketGateway {
         }
     }
 
-
     public boolean isActive() {
         return registeredListener != null;
     }
 
-
     public boolean canResync() {
         return isPacketEventsPresent();
     }
-
-
-
-
-
-
-
 
     public CompletableFuture<Integer> resyncAll() {
         if (!isPacketEventsPresent()) {
@@ -130,15 +92,6 @@ public final class AdvancementPacketGateway {
             return CompletableFuture.completedFuture(-1);
         }
     }
-
-
-
-
-
-
-
-
-
 
     public boolean resync(Player player) {
         if (player == null || !isPacketEventsPresent()

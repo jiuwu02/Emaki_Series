@@ -5,24 +5,54 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.variable.VariableContext;
+import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementMaterialVariables;
+import emaki.jiuwu.craft.strengthen.enhancement.cost.TargetCompareEnum;
+import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
 
 final class MaterialPlanResolver {
 
     private final StrengthenRecipeResolver recipeResolver;
+    private final EmakiStrengthenPlugin plugin;
 
     MaterialPlanResolver(StrengthenRecipeResolver recipeResolver) {
+        this(recipeResolver, null);
+    }
+
+    MaterialPlanResolver(StrengthenRecipeResolver recipeResolver, EmakiStrengthenPlugin plugin) {
         this.recipeResolver = recipeResolver;
+        this.plugin = plugin;
     }
 
     MaterialPlan resolveMaterialPlan(AttemptContext context, StrengthenRecipe.StarStage stage) {
+        return resolveMaterialPlan(context, stage, null, "", "");
+    }
+
+    MaterialPlan resolveMaterialPlan(AttemptContext context,
+            StrengthenRecipe.StarStage stage,
+            @Nullable Player player,
+            String recipeId) {
+        return resolveMaterialPlan(context, stage, player, recipeId, "");
+    }
+
+    MaterialPlan resolveMaterialPlan(AttemptContext context,
+            StrengthenRecipe.StarStage stage,
+            @Nullable Player player,
+            String recipeId,
+            String branchPath) {
         if (stage == null) {
             return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
         }
@@ -34,6 +64,8 @@ final class MaterialPlanResolver {
         }
 
         List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
+        ItemStack targetItem = context == null ? null : context.targetItem();
+        ItemSourceRef targetSource = targetItem == null ? null : recipeResolver.resolveBaseSource(targetItem);
         List<String> matchedTokens = new ArrayList<>(inputs.size());
         Map<String, Integer> availableByItem = new LinkedHashMap<>();
         for (ItemStack input : inputs) {
@@ -43,6 +75,10 @@ final class MaterialPlanResolver {
             }
             String token = Texts.lower(resolveItemToken(input));
             StrengthenRecipe.StarStageMaterial matched = materialsByItem.get(token);
+            if (matched != null && !satisfiesTargetAwareRule(recipeId, stage.targetStar(), token, input,
+                    targetItem, targetSource, player, branchPath)) {
+                matched = null;
+            }
             if (matched == null) {
                 return new MaterialPlan(
                         "strengthen.error.invalid_optional_material",
@@ -180,6 +216,64 @@ final class MaterialPlanResolver {
     private String resolveItemToken(ItemStack itemStack) {
         ItemSourceRef source = recipeResolver.resolveBaseSource(itemStack);
         return source == null ? "" : ItemSourceUtil.toShorthand(source);
+    }
+
+    private boolean satisfiesTargetAwareRule(String recipeId,
+            int targetStar,
+            String itemToken,
+            ItemStack candidate,
+            @Nullable ItemStack targetItem,
+            @Nullable ItemSourceRef targetSource,
+            @Nullable Player player,
+            String branchPath) {
+        if (plugin == null || Texts.isBlank(recipeId) || plugin.recipeLoader() == null) {
+            return true;
+        }
+        StarStageMaterialRule rule = plugin.recipeLoader().materialRule(recipeId, targetStar, itemToken, branchPath);
+        if (!rule.constrains()) {
+            return true;
+        }
+        try {
+            VariableContext variables = EnhancementMaterialVariables.enrich(
+                    VariableContext.builder(player).build(), candidate, targetItem, targetStar, null, null);
+            if (!satisfiesCompare(rule.targetCompare(), variables)) {
+                return false;
+            }
+            Matcher matcher = rule.matcher();
+            if (matcher == null) {
+                return true;
+            }
+            MatchContext matchContext = new MatchContext(candidate,
+                    recipeResolver.resolveBaseSource(candidate), player, targetItem, targetSource, variables);
+            return matcher.test(matchContext);
+        } catch (RuntimeException | LinkageError exception) {
+            warnRuleFailure(exception);
+            return false;
+        }
+    }
+
+    private static boolean satisfiesCompare(TargetCompareEnum compare, VariableContext variables) {
+        Map<String, Object> values = variables.toMap();
+        return switch (compare) {
+            case NONE -> true;
+            case SAME_AFFIX -> flag(values, EnhancementMaterialVariables.VARIABLE_SHARED_AFFIX_COUNT) > 0;
+            case SAME_AFFIX_SET -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_AFFIX_SET) == 1;
+            case SAME_ITEM_TYPE -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_ITEM_TYPE) == 1;
+            case SAME_LEVEL -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_LEVEL) == 1;
+            case LEVEL_AT_LEAST -> flag(values, EnhancementMaterialVariables.VARIABLE_LEVEL_AT_LEAST_TARGET) == 1;
+        };
+    }
+
+    private static int flag(Map<String, Object> values, String key) {
+        Object value = values.get(key);
+        return value instanceof Number number ? number.intValue() : 0;
+    }
+
+    private void warnRuleFailure(Throwable throwable) {
+        if (plugin != null && plugin.getLogger() != null) {
+            plugin.getLogger().warning("星级材料目标感知规则判定失败，视为不匹配: "
+                    + String.valueOf(throwable.getMessage()));
+        }
     }
 
     record MaterialPlan(String errorKey,

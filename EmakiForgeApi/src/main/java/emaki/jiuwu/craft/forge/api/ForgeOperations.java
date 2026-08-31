@@ -23,7 +23,7 @@ import emaki.jiuwu.craft.forge.api.model.ForgeOutcome;
  * from any thread and dispatches every player/Bukkit phase onto the player's owner thread, including
  * on Folia.
  *
- * <h2>Programmatic forging uses detached escrow</h2>
+
  * {@code ForgeInputs} is a detached snapshot of items the caller has already reserved outside the
  * player's inventory. EmakiForge validates that snapshot through the same runtime execution path as
  * the GUI, but it does not search for or remove matching stacks from arbitrary inventory slots. The

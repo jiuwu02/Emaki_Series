@@ -11,25 +11,12 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.storage.api.model.StorageBatchOp;
 
 /**
- * Fired once before an atomic batch of storage increments is applied.
+ * Fired once after all batch pre-checks pass and before any storage increment is applied.
  *
- * <p><strong>Timing:</strong> after every op has passed its pre-check and before any debit or credit
- * happens, so a listener sees a batch that is known to be applicable.
- *
- * <p><strong>Thread:</strong> the storage owner's entity owner thread, synchronously.
- *
- * <p><strong>Cancellation:</strong> cancelling aborts the entire batch. No op is applied and stored
- * amounts are left untouched, regardless of {@link #allOrNothing()}.
- *
- * <p><strong>Not fired:</strong> a batch does <em>not</em> fire {@link StorageDepositEvent} or
- * {@link StorageWithdrawEvent} for its individual ops. This is deliberate rather than an oversight:
- * the plugins that submit batches are usually the same plugins that listen for deposits and
- * withdrawals, and per-op fan-out would call their own listeners recursively in the middle of their
- * own transaction. Listen for this event when you care about batch traffic.
- *
- * <p>The event carries no writable business field. It is a transaction snapshot: the op list is
- * immutable and every template is a copy with {@code amount == 1}, so a listener cannot rewrite the
- * batch it is being asked to approve.
+ * <p>Runs synchronously on the storage owner's entity-owner thread. Cancellation aborts the entire batch,
+ * regardless of {@link #allOrNothing()}, and no per-operation deposit/withdraw events are emitted. The event
+ * is a read-only transaction snapshot: {@link #ops()} is immutable and each template is defensive-copied
+ * with amount {@code 1}.
  */
 public class StorageBatchEvent extends Event implements Cancellable {
 

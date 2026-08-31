@@ -24,33 +24,18 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Grants, revokes, resyncs and resets EmakiCodex advancements on the target.
- *
- * <p>There is no {@code target} argument. Naming the subject is the target flow's job in a pipeline, so
- * {@code player_by_name Steve | codex_grant_advancement advancement=x} addresses another player, while an
- * omitted source falls back to the context player.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: every operation reads and writes one player's advancement progress.</p>
- */
 public final class CodexAdvancementStage implements CoreActionStage {
 
-    /** Which advancement mutation a stage instance performs. */
     public enum Operation {
 
-        /** Award one advancement by id. */
         GRANT("codex_grant_advancement", "Grants an EmakiCodex advancement to the target."),
 
-        /** Take back one advancement by id. */
         REVOKE("codex_revoke_advancement", "Revokes an EmakiCodex advancement from the target."),
 
-        /** Resend the advancement tree to the client. */
         RESYNC("codex_resync_advancement", "Resends the EmakiCodex advancement tree to the target."),
 
-        /** Revoke every node belonging to one page. */
         RESET_PAGE("codex_reset_page", "Revokes every EmakiCodex advancement on one page for the target."),
 
-        /** Revoke every registered node. */
         RESET_ALL("codex_reset_all", "Revokes every registered EmakiCodex advancement for the target.");
 
         private final String id;
@@ -61,7 +46,6 @@ public final class CodexAdvancementStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -70,12 +54,6 @@ public final class CodexAdvancementStage implements CoreActionStage {
     private final EmakiCodexPlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the advancement services
-     * @param operation which mutation this instance performs
-     */
     public CodexAdvancementStage(@NotNull EmakiCodexPlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;
@@ -142,8 +120,7 @@ public final class CodexAdvancementStage implements CoreActionStage {
                     "action.stage.codex.advancement_required");
         }
         if (!plugin.advancementService().grant(target, advancement).isSuccess()) {
-            // v1 reported the same two causes together: an unregistered id and an already-completed node are
-            // indistinguishable from the service's result, so narrowing the diagnostic here would be a guess.
+
             return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
                     "action.stage.codex.grant_refused", Map.of("advancement", advancement));
         }
@@ -215,12 +192,6 @@ public final class CodexAdvancementStage implements CoreActionStage {
                 "revoked", revoked));
     }
 
-    /**
-     * Collects the nodes this reset covers, deepest first.
-     *
-     * <p>The reversal is load-bearing and comes from v1: revoking a parent before its children can leave the
-     * client showing progress that no longer exists, so children are revoked first.</p>
-     */
     private List<AdvancementRegistrar.RegisteredNode> matchingNodes(String page) {
         List<AdvancementRegistrar.RegisteredNode> result = new ArrayList<>();
         String normalizedPage = Texts.normalizeId(page);

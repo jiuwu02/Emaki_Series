@@ -13,12 +13,11 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -38,10 +37,12 @@ import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.LevelFailureReason;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
+import emaki.jiuwu.craft.corelib.cost.CostReceipt;
+import emaki.jiuwu.craft.corelib.cost.CostTransaction;
 
 public final class PlayerLevelService {
 
-    private final Plugin plugin;
+    private final JavaPlugin plugin;
     private final LevelTypeRegistry typeRegistry;
     private final RequirementService requirementService;
     private final PlayerLevelDataStore dataStore;
@@ -50,15 +51,14 @@ public final class PlayerLevelService {
     private final ItemSourceService itemSourceService;
     private final EconomyManager economyManager;
     private final ActionLineRunner actionLines;
-    private final ExecutionDispatcher executionDispatcher;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final LevelOperationJournal operationJournal;
     private final Runnable attributeRefreshAll;
     private final Consumer<Player> attributeRefreshPlayer;
     private final Consumer<PlayerLevelData> dataChangeListener;
     private AppConfig config;
 
-    public PlayerLevelService(Plugin plugin,
+    public PlayerLevelService(JavaPlugin plugin,
             LevelTypeRegistry typeRegistry,
             RequirementService requirementService,
             PlayerLevelDataStore dataStore,
@@ -67,8 +67,7 @@ public final class PlayerLevelService {
             ItemSourceService itemSourceService,
             EconomyManager economyManager,
             ActionLineRunner actionLines,
-            ExecutionDispatcher executionDispatcher,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             AppConfig config,
             Runnable attributeRefreshAll,
             Consumer<Player> attributeRefreshPlayer,
@@ -82,9 +81,8 @@ public final class PlayerLevelService {
         this.itemSourceService = itemSourceService;
         this.economyManager = economyManager;
         this.actionLines = actionLines;
-        this.executionDispatcher = executionDispatcher;
-        this.threadOwnership = threadOwnership;
-        this.operationJournal = new LevelOperationJournal(plugin, executionDispatcher, threadOwnership);
+        this.scheduling = scheduling;
+        this.operationJournal = new LevelOperationJournal(plugin, scheduling);
         this.config = config;
         this.attributeRefreshAll = attributeRefreshAll == null ? () -> { } : attributeRefreshAll;
         this.attributeRefreshPlayer = attributeRefreshPlayer == null ? player -> { } : attributeRefreshPlayer;
@@ -372,10 +370,10 @@ public final class PlayerLevelService {
                 }
             }
             String operationId = operationJournal.begin("level_up:" + type.id(), uuid);
-            LevelCostTransaction.Result costResult = chargeCost(player, type, targetLevel, operationId);
+            CostReceipt costResult = chargeCost(player, type, targetLevel, operationId);
             if (!costResult.success()) {
                 operationJournal.failedCharge(operationId, costResult);
-                return levelUpFailure(uuid, type, costResult.failureReason(), silent);
+                return levelUpFailure(uuid, type, mapCostFailure(costResult.failureReason()), silent);
             }
             entry.exp(Math.max(0D, entry.exp() - requiredExp));
             entry.level(targetLevel);
@@ -420,7 +418,7 @@ public final class PlayerLevelService {
     }
 
     private boolean ownsPlayer(Player player) {
-        return player != null && threadOwnership != null && threadOwnership.isEntityOwned(player);
+        return player != null && scheduling.ownsEntity(player);
     }
 
     public void syncAllOnline() {
@@ -438,15 +436,7 @@ public final class PlayerLevelService {
             syncPlayer(player);
             return;
         }
-        if (executionDispatcher == null) {
-            plugin.getLogger().warning("EmakiLevel skipped level sync for " + player.getName()
-                    + ": caller thread does not own the player and no execution dispatcher is available.");
-            return;
-        }
-        if (executionDispatcher.runEntity(plugin, player, () -> syncPlayer(player)) == null) {
-            plugin.getLogger().warning("EmakiLevel failed to reroute level sync for " + player.getName()
-                    + ": entity task scheduling was rejected.");
-        }
+        scheduling.runForEntity(plugin, player, () -> syncPlayer(player), null);
     }
 
     public void syncPlayer(Player player) {
@@ -463,38 +453,57 @@ public final class PlayerLevelService {
         attributeRefreshPlayer.accept(player);
     }
 
-    private LevelCostTransaction.Result chargeCost(Player player, LevelTypeConfig type, int targetLevel, String operationId) {
+    private CostReceipt chargeCost(Player player, LevelTypeConfig type, int targetLevel, String operationId) {
         if (!type.upgrade().cost().enabled()) {
             operationJournal.advance(operationId, LevelOperationJournal.Phase.CHARGED);
-            return LevelCostTransaction.Result.committed();
+            return CostReceipt.noop();
         }
         if (player == null) {
-            return LevelCostTransaction.Result.failure(LevelFailureReason.PLAYER_NOT_FOUND);
+            return CostReceipt.failure(CostReceipt.FailureReason.PLAYER_UNAVAILABLE);
         }
         Map<String, Object> vars = costVariables(type, targetLevel);
-        List<LevelCostTransaction.CurrencyCharge> currencies = new ArrayList<>();
+        List<CostTransaction.CurrencyCharge> currencies = new ArrayList<>();
         for (LevelTypeConfig.CurrencyCost currency : type.upgrade().cost().currencies()) {
             vars.put("base_cost", currency.baseCost());
             double amount = Math.max(0D, ExpressionEngine.evaluate(currency.costFormula(), vars));
             if (amount > 0D) {
-                currencies.add(new LevelCostTransaction.CurrencyCharge(currency.provider(), currency.currencyId(), amount));
+                currencies.add(new CostTransaction.CurrencyCharge(currency.provider(), currency.currencyId(), amount));
             }
         }
-        List<LevelCostTransaction.MaterialCharge> materials = new ArrayList<>();
+        List<CostTransaction.MaterialSource> materials = new ArrayList<>();
         for (LevelTypeConfig.MaterialCost material : type.upgrade().cost().materials()) {
             vars.put("base_amount", material.baseAmount());
             long amount = Math.max(0L, Math.round(ExpressionEngine.evaluate(material.amountFormula(), vars)));
             if (amount > 0L) {
-                materials.add(new LevelCostTransaction.MaterialCharge(material.itemSources(), amount));
+                List<ItemSourceRef> refs = new ArrayList<>();
+                List<String> tokens = new ArrayList<>();
+                for (String token : material.itemSources()) {
+                    ItemSourceRef ref = ItemSourceUtil.parse(token);
+                    if (ref != null) {
+                        refs.add(ref);
+                        tokens.add(token);
+                    }
+                }
+                if (!refs.isEmpty()) {
+                    materials.add(CostTransaction.ofParsed(refs, tokens, amount));
+                }
             }
         }
         operationJournal.preparedCosts(operationId, currencies, materials);
-        LevelCostTransaction.Result result = LevelCostTransaction.charge(
-                player, economyManager, itemSourceService, currencies, materials);
-        if (result.success()) {
-            operationJournal.charged(operationId, result);
+        CostReceipt receipt = CostTransaction.execute(player, economyManager, itemSourceService, currencies, materials);
+        if (receipt.success()) {
+            operationJournal.charged(operationId, receipt);
         }
-        return result;
+        return receipt;
+    }
+
+    private static String mapCostFailure(CostReceipt.FailureReason reason) {
+        return switch (reason) {
+            case INSUFFICIENT_FUNDS -> LevelFailureReason.NOT_ENOUGH_MONEY;
+            case INSUFFICIENT_MATERIALS -> LevelFailureReason.NOT_ENOUGH_MATERIAL;
+            case PLAYER_UNAVAILABLE -> LevelFailureReason.PLAYER_NOT_FOUND;
+            default -> LevelFailureReason.COST_COMPENSATION_FAILED;
+        };
     }
 
     private void giveRewards(Player player, LevelTypeConfig type, int level) {

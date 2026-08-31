@@ -21,14 +21,6 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Empties one of the target's inventory slots, optionally only when it holds a given item source.
- *
- * <p>With {@code item_source} set, a slot holding something else is {@code Skipped} rather than cleared. That
- * makes {@code clear_item slot=mainhand item_source=...} safe to run unconditionally.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's inventory.</p>
- */
 public final class ClearItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;

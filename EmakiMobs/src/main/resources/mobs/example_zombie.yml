@@ -1,0 +1,20 @@
+# EmakiMobs 生物定义示例 - 示例精英僵尸
+# 自定义生物的属性、组件与经验掉落示例。
+
+id: example_zombie
+type: zombie
+display_name: "<red>示例精英僵尸</red>"
+
+components:
+  max_health: 30.0
+  movement_speed: 0.30
+  attack_damage: 5.0
+  custom_name: "<red>示例精英僵尸</red>"
+  custom_name_visible: true
+  persistent: true
+  loot_table: "emakimobs:entities/example_zombie"
+
+experience: 50
+
+# target_selector 省略时使用最高仇恨；lock_target 间隔向上取整到 20 tick 倍数，
+# 且可能覆盖其他插件设置的生物目标。

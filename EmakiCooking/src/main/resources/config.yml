@@ -1,43 +1,33 @@
-# ============================================================
-# EmakiCooking 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiCooking/config.yml
-# ============================================================
+# EmakiCooking 主配置
+# 控制工位交互、展示实体、七类工位运行参数与营养系统。
+# 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
+# 不使用 minecraft:iron_axe 这种冒号写法。
+version: "4.3.0"
 
-# 烹饪系统主配置
-# 原版物品 / 方块来源支持以下写法：
-# minecraft-iron_axe / mc-iron_axe / v-iron_axe / iron_axe
-# 不再接受 minecraft:iron_axe
-# version 由资源同步维护
-version: "4.2.0"
-
-# 语言文件 ID
+# 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
 
-# 是否写入默认 recipes
+# 是否在启动时释放内置的 recipes 等默认示例数据。
 release_default_data: true
 
-# 工位交互全局禁用世界；命中后插件不接管事件，保留原版方块行为
-station:
-  disabled_worlds: []
+# 全局禁用工位交互的世界列表；命中后不接管方块交互。
 
 input_rules:
   # 严格模式：只允许能继续匹配当前工位配方的物品进入工位输入。
   only_recipe_items: true
 
 display_entities:
-  # auto: 有 PacketEvents 时使用虚拟展示实体；不可用时回退 Bukkit 真实 ItemDisplay
-  # packet_events: 优先使用 PacketEvents，加载失败仍回退 Bukkit
-  # bukkit: 始终使用 Bukkit 真实 ItemDisplay
+  # 展示后端：auto 自动选择；packet_events 优先 PacketEvents；bukkit 使用真实展示实体。
+  # PacketEvents 后端不可用时会回退 Bukkit。
   backend: auto
+  # packet 后端可见距离，单位：方块。
   view_distance_blocks: 48
+  # packet 后端可见性刷新间隔，单位：tick。
   refresh_interval_ticks: 20
   wok:
+    # 炒锅内食材展示布局半径，单位：方块。
     layout_radius: 0.26
-  # 工位运行态文本展示实体（结果 / 过程 / 下一步引导）
-  # 文本实体跟随上面的 backend；只在工位运行时显示，结束/清空/取回/破坏后移除
+  # 工位运行时的结果、过程与下一步提示文本；生命周期跟随工位状态。
   text:
     enabled: true
     # billboard: fixed / vertical / horizontal / center（始终朝向玩家）
@@ -46,9 +36,7 @@ display_entities:
     line_width: 200
     # 背景色 ARGB 整数；0 表示完全透明（无背景框）。半透明黑示例：1056964608
     background: 0
-    # 是否渲染文字阴影
     shadow: true
-    # 是否透视（穿墙可见）
     see_through: false
     defaults:
       # 文本相对工位方块的偏移（默认悬于方块上方居中）
@@ -113,19 +101,14 @@ display_adjustments:
         rotation:
           z: "0.0-90.0"
 
-# 四类工位运行配置
-# block_item_sources 支持同时列出多个方块来源，命中任意一个即可作为对应工位：
-#   - minecraft-iron_block
-#   - craftengine-emaki:wok
-#   - itemsadder-emaki:wok
-#   - nexo-wok
-#   - oraxen-wok
+# 七类工位运行配置。
+# block_item_sources 任一项命中即可识别工位，支持 minecraft、CraftEngine、
+# ItemsAdder、Nexo 与 Oraxen 的 ItemSource shorthand。
 stations:
   chopping_board:
     # 砧板方块来源
     block_item_sources:
       - minecraft-oak_log
-    disabled_worlds: []
     # 省略时继承 input_rules.only_recipe_items
     only_recipe_items: true
     interactions:
@@ -138,9 +121,11 @@ stations:
     space_restriction: false
     # 交互最小间隔，单位毫秒
     interaction_delay_ms: 1000
-    # 识别为厨刀的物品来源
-    tool_item_sources:
-      - minecraft-iron_axe
+    # 识别为厨刀的判定：完全由 tool_matcher 决定，必填，缺失则没有物品能当厨刀
+    tool_matcher:
+      type: item_source
+      sources:
+        - minecraft-iron_axe
     cut_damage:
       enabled: true
       chance: 10
@@ -159,7 +144,6 @@ stations:
     # 炒锅方块来源
     block_item_sources:
       - minecraft-iron_block
-    disabled_worlds: []
     interactions:
       add_ingredient: shift_left_click
       stir: shift_left_click
@@ -178,11 +162,11 @@ stations:
     # 未命中配方或结果无效时的默认产物来源
     invalid_result_item_sources:
       - minecraft-stone
-    # 识别为锅铲的物品来源
-    spatula_item_sources:
-      - minecraft-iron_shovel
-    # 下方方块命中 source 后，解析为对应火候等级
-    # 自定义热源没有可直接切换的 lit 状态时，可增加 lit_item_sources 作为替换兜底
+    # 识别为锅铲的判定：完全由 spatula_matcher 决定，必填，缺失则没有物品能当锅铲
+    spatula_matcher:
+      type: item_source
+      sources:
+        - minecraft-iron_shovel
     heat_levels:
       - item_sources:
           - minecraft-campfire
@@ -227,7 +211,6 @@ stations:
     # 研磨机方块来源
     block_item_sources:
       - minecraft-grindstone
-    disabled_worlds: []
     interactions:
       start: shift_left_click
     drop_result: true
@@ -247,21 +230,12 @@ stations:
     # 蒸锅主体方块来源；GUI 细节在 gui/steamer.yml
     block_item_sources:
       - minecraft-barrel
-    disabled_worlds: []
     interactions:
       open: shift_right_click
       fuel: right_click
       moisture: right_click
     drop_result: true
     # 热源方块来源。自定义方块没有可直接切换的 lit 状态时，可使用对象写法作为替换兜底：
-    # - item_sources: [craftengine-emaki:heater]
-    #   lit_item_sources: [craftengine-emaki:heater_lit]
-    # - item_sources: [itemsadder-emaki:heater]
-    #   lit_item_sources: [itemsadder-emaki:heater_lit]
-    # - item_sources: [nexo-heater]
-    #   lit_item_sources: [nexo-heater_lit]
-    # - item_sources: [oraxen-heater]
-    #   lit_item_sources: [oraxen-heater_lit]
     heat_item_sources:
       - minecraft-furnace
       - minecraft-smoker
@@ -269,25 +243,55 @@ stations:
     # 加燃料后是否点亮下方热源外观
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
+    # 每条燃料的判定完全由 matcher 决定，必填，缺失该条燃料永不命中
+    # 与烤炉同理：燃料取【首个命中】，窄条目必须写在同物品源的宽条目【之前】。
     fuels:
-      - item_sources:
-          - minecraft-stick
+      # 名字含"油浸"的木棍视为助燃物，燃烧时间显著延长。
+      # 物品源与组件条件用 all_of 绑在一起，两者同时成立才算这条燃料。
+      # 原版木棍不带 custom_name，故全新服务器上这一条不命中，
+      # 普通木棍仍落到下面的宽条目取 5 秒，默认体验不变。
+      - matcher:
+          type: all_of
+          matchers:
+            - type: item_source
+              sources:
+                - minecraft-stick
+            - type: component
+              component: custom_name
+              operator: contains
+              value: "油浸"
+        duration_seconds: 40
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-stick
         duration_seconds: 5
-      - item_sources:
-          - minecraft-coal
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-coal
         duration_seconds: 80
-      - item_sources:
-          - minecraft-charcoal
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-charcoal
         duration_seconds: 80
     # 水分输入规则
+    # 投入物的判定完全由 input_matcher 决定，必填，缺失该条规则永不命中
+    # 注意：input_matcher 只管"投入的那一枚"；item_sources 是产出的空容器，
+    #       它不是判定位，仍按物品源构造产物，保持原样即可
     moisture_rules:
-      - input_item_sources:
-          - minecraft-water_bucket
+      - input_matcher:
+          type: item_source
+          sources:
+            - minecraft-water_bucket
         item_sources:
           - minecraft-bucket
         moisture: 120
-      - input_item_sources:
-          - minecraft-potion
+      - input_matcher:
+          type: item_source
+          sources:
+            - minecraft-potion
         item_sources:
           - minecraft-glass_bottle
         moisture: 40
@@ -311,7 +315,6 @@ stations:
     # 烤炉主体方块来源；GUI 细节在 gui/oven.yml
     block_item_sources:
       - minecraft-smoker
-    disabled_worlds: []
     interactions:
       open: shift_right_click
       fuel: shift_left_click
@@ -323,17 +326,42 @@ stations:
       max: 80
       decay_per_second: 5
     # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
+    # 每条燃料的判定完全由 matcher 决定，必填，缺失该条燃料永不命中
+    # 燃料按本列表顺序取【首个命中】，命中即停。因此窄条目必须写在同物品源的
+    # 宽条目【之前】，否则会被前面的宽条目先命中而永不生效。
     fuels:
-      - item_sources:
-          - minecraft-stick
+      # 名字含"精炼"的煤炭视为优质燃料，燃烧更久、火力更高。
+      # 物品源与组件条件用 all_of 绑在一起，两者同时成立才算这条燃料。
+      # 原版煤炭不带 custom_name，因此在全新服务器上这一条不会命中，
+      # 普通煤炭仍按下面的宽条目取 80 秒 / 火力 35，默认体验不变。
+      - matcher:
+          type: all_of
+          matchers:
+            - type: item_source
+              sources:
+                - minecraft-coal
+            - type: component
+              component: custom_name
+              operator: contains
+              value: "精炼"
+        duration_seconds: 160
+        heat: 50
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-stick
         duration_seconds: 5
         heat: 10
-      - item_sources:
-          - minecraft-coal
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-coal
         duration_seconds: 80
         heat: 35
-      - item_sources:
-          - minecraft-charcoal
+      - matcher:
+          type: item_source
+          sources:
+            - minecraft-charcoal
         duration_seconds: 80
         heat: 35
     actions:
@@ -345,7 +373,6 @@ stations:
     # 榨汁机方块来源；GUI 细节在 gui/juicer.yml
     block_item_sources:
       - minecraft-cauldron
-    disabled_worlds: []
     interactions:
       open: shift_right_click
       process: shift_left_click
@@ -358,8 +385,11 @@ stations:
     max_fluid_ml: 1000
     # 默认每次容器盛取需要的流体量，单位 ml
     default_serving_ml: 250
-    container_item_sources:
-      - minecraft-glass_bottle
+    # 盛取容器的判定：完全由 container_matcher 决定，必填，缺失则没有物品能当容器
+    container_matcher:
+      type: item_source
+      sources:
+        - minecraft-glass_bottle
     actions:
       press:
         - "play_sound sound=block.piston.extend volume=0.6 pitch=1.2"
@@ -375,7 +405,6 @@ stations:
     # 发酵桶方块来源；GUI 细节在 gui/fermentation_barrel.yml
     block_item_sources:
       - minecraft-barrel
-    disabled_worlds: []
     interactions:
       open: shift_right_click
       start: shift_left_click
@@ -393,85 +422,75 @@ stations:
         - "spawn_particle particle=HAPPY_VILLAGER count=6 offset_x=0.3 offset_y=0.2 offset_z=0.3"
 
 # ============================================================
-# 营养系统（类膳食均衡 Diet）
+# 营养系统
 # ============================================================
-# 玩家吃东西增加营养值，营养值到达阈值后执行 CoreLib 动作（加 BUFF 等），
-# 多类营养同时满足后可触发"反胃"并用循环动作持续衰减全部营养。
-#
-# 营养类型在 nutrition/<id>.yml 中定义（默认：水果/蔬菜/蛋白质/糖分/谷物），可自由增删。
-# 营养值会被限制在该类型的 min ~ max 之间。
-#
-# 营养动作（注册在 CoreLib，可在任意动作列表中使用）：
-#   emakicookingaddnutrition type=<类型> amount=<数值或表达式> [target=<玩家>]
-#   emakicookingremovenutrition type=<类型> amount=<数值>
-#   emakicookingsetnutrition type=<类型> amount=<数值>
-#
-# 占位符（需要 PlaceholderAPI）：
-#   %emakicooking_nutrition_<type>%       当前营养值
-#   %emakicooking_nutrition_<type>_max%   营养上限
-#   %emakicooking_nutrition_<type>_min%   营养下限
-#   %emakicooking_nutrition_combo_count_<规则id>%  组合规则当前达标的营养类型数量
-#
-# 反胃 / 持续 BUFF / 衰减都由下方阈值动作 + CoreLib 长期任务段（start_task/stop_task）拼装。
-# start_task 的 sequence 必须在 CoreLib 的 config.yml -> action.loop.templates 中定义。
-# 下面 thresholds 示例引用了 nutrition_decay / nutrition_well_fed 两个序列，
-# 请将以下内容粘贴到 plugins/EmakiCoreLib/config.yml 的 action.loop.templates 下：
-#
-#   nutrition_decay:
-#     - 'cooking_remove_nutrition type=fruit amount=5'
-#     - 'cooking_remove_nutrition type=vegetable amount=5'
-#     - 'cooking_remove_nutrition type=protein amount=5'
-#     - 'cooking_remove_nutrition type=sugar amount=5'
-#     - 'cooking_remove_nutrition type=grain amount=5'
-#     - 'where %emakicooking_nutrition_fruit%<=0 | stop_task key=nutrition_overeat:%caster.uuid%'
-#   nutrition_well_fed:
-#     - 'give_potion_effect type=SATURATION level=1 duration=60'
+# 营养类型在 nutrition/<id>.yml 中定义，数值限制在对应类型的 min～max 范围内。
+# 食物规则、阈值 actions 与营养操作段均使用 CoreLib 动作流水线。
+# 可用营养动作：cooking_add_nutrition、cooking_remove_nutrition、
+# cooking_set_nutrition、cooking_reset_nutrition、cooking_clear_nutrition。
+# add/remove/set 需要 type 与 amount，并作用于当前动作目标玩家。
+# PlaceholderAPI 占位符：%emakicooking_nutrition_<type>%、
+# %emakicooking_nutrition_<type>_max%、%emakicooking_nutrition_<type>_min%、
+# %emakicooking_nutrition_combo_count_<规则id>%。
 nutrition:
-  # 是否启用营养系统
+  # 是否启用营养系统。
   enabled: true
-  # 营养数据定时保存间隔（秒）；0 表示只在退出/关服时保存
+  # 玩家营养数据定时保存间隔，单位：秒；0 表示不启用定时保存。
   save_interval_seconds: 300
 
-  # 食物来源：吃下匹配 item_sources 中任意来源的物品时，按 nutrition 增加对应营养值。
-  # item_sources 支持：minecraft-xxx / craftengine-xxx / itemsadder-xxx / nexo-xxx / oraxen-xxx / mmoitems-xxx / neigeitems-xxx
-  # 原版、CraftEngine、ItemsAdder、Nexo、Oraxen 食物走原版食用事件；MMOItems、NeigeItems 食用走各自接入。
+  # 食物来源：食用命中 matcher 的物品时，应用 nutrition 与 actions。
+  # 每条规则的判定完全由 matcher 决定，必填，缺失该条规则永不命中。
+  # 按物品源判定就写 type: item_source，sources 支持 minecraft、craftengine、
+  # itemsadder、nexo、oraxen、mmoitems、neigeitems 来源。
+  # 要收窄成"名字含【慢炖】的苹果"这类条件，就换成 all_of 组合写法（见第一条注释）。
   food_sources:
-    - item_sources:
-        - minecraft-apple
-        - minecraft-sweet_berries
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-apple
+          - minecraft-sweet_berries
       nutrition:
         fruit: 20
-    - item_sources:
-        - minecraft-golden_apple
-        - minecraft-enchanted_golden_apple
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-golden_apple
+          - minecraft-enchanted_golden_apple
       nutrition:
         fruit: 35
         sugar: 10
-    - item_sources:
-        - minecraft-carrot
-        - minecraft-potato
-        - minecraft-beetroot
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-carrot
+          - minecraft-potato
+          - minecraft-beetroot
       nutrition:
         vegetable: 20
-    - item_sources:
-        - minecraft-cooked_beef
-        - minecraft-cooked_porkchop
-        - minecraft-cooked_chicken
-        - minecraft-cooked_mutton
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-cooked_beef
+          - minecraft-cooked_porkchop
+          - minecraft-cooked_chicken
+          - minecraft-cooked_mutton
       nutrition:
         protein: 25
-    - item_sources:
-        - minecraft-cake
-        - minecraft-cookie
-        - minecraft-pumpkin_pie
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-cake
+          - minecraft-cookie
+          - minecraft-pumpkin_pie
       nutrition:
         sugar: 30
-      # 命中后可额外执行 CoreLib 动作（可选）
       actions:
         - "play_sound sound=entity.player.burp volume=1.0 pitch=1.0"
-    - item_sources:
-        - minecraft-bread
-        - minecraft-baked_potato
+    - matcher:
+        type: item_source
+        sources:
+          - minecraft-bread
+          - minecraft-baked_potato
       nutrition:
         grain: 25
 
@@ -481,14 +500,12 @@ nutrition:
     single:
       # 示例：任意营养类型 >= 80 时给玩家持续饱和 BUFF（用循环动作实现），跌回 <80 时取消循环
       - id: well_fed
-        types: []
         value: 80
         compare: ">="
         actions:
-          # 用长期任务持续给 BUFF；key 绑定玩家与营养类型，避免重复
-          # times 受 CoreLib config.yml 的 action.pipeline.max_repeat_times 限制（默认 100）；
-          # 需要更久就调高该值。BUFF 会在营养跌回阈值下方时由 on_recover 取消，
-          # 或在玩家离线时由 stop_when_offline 自动停止。
+          # 用长期任务持续给 BUFF；key 绑定玩家与营养类型，避免重复。
+          # times 受 EmakiCoreLib 的 action.loop.max_times 限制。
+          # 营养跌回阈值下方时由 on_recover 取消；玩家离线时也会停止。
           - "start_task sequence=nutrition_well_fed times=100 interval=40t key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type% on_conflict=replace stop_when_offline=true"
         on_recover:
           - "stop_task key=nutrition_wellfed:%caster.uuid%:%var.nutrition_type%"
@@ -498,7 +515,6 @@ nutrition:
     combo:
       - id: overeat
         # 参与统计的营养类型；为空表示统计全部营养类型
-        types: []
         # 每个营养类型达到该值算"已满"
         value: 100
         compare: ">="
@@ -509,9 +525,9 @@ nutrition:
           - "send_message text=<red>你吃得太撑了，开始反胃……"
           - "play_sound sound=entity.player.burp volume=1.0 pitch=0.8"
           - "give_potion_effect type=NAUSEA level=1 duration=200"
-          # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0；
-          # 序列内的 stop_task 会在水果营养 <=0 时结束该任务。
-          # times 受 action.pipeline.max_repeat_times 限制（默认 100），需要更久请调高该值。
+          # 启动长期任务：每 2 秒扣除全部营养各 5 点，直到某营养跌到 0。
+          # 序列内的 stop_task 会在水果营养 <=0 时结束任务。
+          # times 受 EmakiCoreLib 的 action.loop.max_times 限制。
           - "start_task sequence=nutrition_decay times=100 interval=40t key=nutrition_overeat:%caster.uuid% on_conflict=replace stop_when_offline=true"
         on_recover:
           - "stop_task key=nutrition_overeat:%caster.uuid%"

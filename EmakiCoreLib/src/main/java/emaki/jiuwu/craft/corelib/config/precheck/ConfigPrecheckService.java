@@ -34,14 +34,6 @@ public final class ConfigPrecheckService {
         registry.register(new CoreLibConfigPrecheckContributor(this.messagesSupplier));
     }
 
-    /**
-     * Binds the stage table pipeline checks validate against.
-     *
-     * <p>Called with the freshly built candidate registry before it is installed, which is what lets a
-     * reload reject a configuration without having replaced the live stage table first.</p>
-     *
-     * @param stageRegistry the stage table
-     */
     public void configure(StageRegistry stageRegistry) {
         this.stageRegistry = stageRegistry;
     }
@@ -79,8 +71,7 @@ public final class ConfigPrecheckService {
 
     private ConfigPrecheckReport run(CoreLibConfig config, List<ConfigPrecheckContributor> contributors) {
         CoreLibConfig safeConfig = config == null ? CoreLibConfig.defaults() : config;
-        // Built from the config being checked rather than the live one: a reload prechecks its candidate, so
-        // a sequence added in that candidate has to be visible to `run` validation right now.
+
         ConfigPrecheckContext context = ConfigPrecheckContext.of(stageRegistry,
                 safeConfig.actionTemplates(),
                 safeConfig.pipelineConfig() == null ? null : safeConfig.pipelineConfig().toLimits());

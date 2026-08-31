@@ -47,6 +47,9 @@ import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveMoneyStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.GivePotionEffectStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.HealStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.IgniteStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsComputeStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsEntityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.JsLocationStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.KillEntityStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaceBlockStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.PlaySoundStage;
@@ -85,41 +88,17 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/**
- * Registers every builtin pipeline stage into one {@link StageRegistry}.
- *
- * <p>Registration failures are collected rather than ignored: a
- * duplicate id or an undeclared thread domain is a coding error, and reporting it lets CoreLib refuse to enable
- * instead of running with a stage table that silently lost an entry.</p>
- */
 public final class BuiltinStages {
 
-    /** Number of source stages this class registers. */
     public static final int SOURCE_COUNT = 10;
 
-    /** Number of gate stages this class registers, including the two timing stages. */
     public static final int GATE_COUNT = 10;
 
-    /** Number of action stages this class registers. */
-    public static final int ACTION_COUNT = 44;
+    public static final int ACTION_COUNT = 47;
 
     private BuiltinStages() {
     }
 
-    /**
-     * Registers every builtin stage.
-     *
-     * @param registry the target registry
-     * @param owner the owning plugin, recorded so a reload can revoke exactly these stages
-     * @param executionDispatcher scheduler bridge for the stages that drive their own tasks
-     * @param economyManager economy access for the money stages
-     * @param itemSourceService item construction for the item and block stages
-     * @param craftEngineBlockBridge CraftEngine block bridge, may be {@code null}
-     * @param itemsAdderBlockBridge ItemsAdder block bridge, may be {@code null}
-     * @param nexoBlockBridge Nexo block bridge, may be {@code null}
-     * @param oraxenBlockBridge Oraxen block bridge, may be {@code null}
-     * @return the registration report
-     */
     public static @NotNull Report registerAll(@NotNull StageRegistry registry,
             @Nullable Plugin owner,
             @Nullable ExecutionDispatcher executionDispatcher,
@@ -206,7 +185,7 @@ public final class BuiltinStages {
             PipelineTaskService taskService,
             StartTaskStage.SequenceSource sequences) {
         List<CoreActionStage> stages = new ArrayList<>(ACTION_COUNT);
-        // Messaging and feedback.
+
         stages.add(new SendMessageStage());
         stages.add(new SendActionBarStage());
         stages.add(new SendTitleStage());
@@ -215,7 +194,7 @@ public final class BuiltinStages {
         stages.add(new SpawnParticleStage());
         stages.add(new BossBarShowStage());
         stages.add(new BossBarHideStage());
-        // Health and status.
+
         stages.add(new HealStage());
         stages.add(new DamageStage());
         stages.add(new SetHealthStage());
@@ -225,11 +204,11 @@ public final class BuiltinStages {
         stages.add(new KillEntityStage());
         stages.add(new ProjectileStage(
                 executionDispatcher, owner));
-        // Potion effects.
+
         stages.add(new GivePotionEffectStage());
         stages.add(new RemovePotionEffectStage());
         stages.add(new ClearPotionEffectsStage());
-        // Items.
+
         stages.add(new SendItemStage());
         stages.add(new GiveItemStage(itemSourceService));
         stages.add(new SetItemStage(itemSourceService));
@@ -241,11 +220,11 @@ public final class BuiltinStages {
         stages.add(new PlaceBlockStage(itemSourceService,
                 craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge));
         stages.add(new SetBlockStage());
-        // Blocks and world.
+
         stages.add(new BreakBlockStage());
         stages.add(new ExplosionStage());
         stages.add(new SpawnEntityStage());
-        // Teleport, economy and experience.
+
         stages.add(new TeleportStage());
         stages.add(new GiveMoneyStage(economyManager));
         stages.add(new TakeMoneyStage(economyManager));
@@ -253,23 +232,21 @@ public final class BuiltinStages {
         stages.add(new GiveExpStage());
         stages.add(new TakeExpStage());
         stages.add(new SetExpStage());
-        // Commands.
+
         stages.add(new RunCommandAsPlayerStage());
         stages.add(new RunCommandAsOpStage());
         stages.add(new RunCommandAsConsoleStage());
-        // Long-running tasks, replacing the v1 loop actions.
+
         stages.add(new StartTaskStage(
                 taskService, sequences));
         stages.add(new StopTaskStage(taskService));
+
+        stages.add(new JsComputeStage());
+        stages.add(new JsEntityStage());
+        stages.add(new JsLocationStage());
         return List.copyOf(stages);
     }
 
-    /**
-     * Releases the state builtin stages hold outside the registry.
-     *
-     * <p>Only the boss bar stages keep anything: a bar attached to a player's connection is not removed by
-     * revoking the stage that created it, so it has to be detached explicitly or it would outlive the plugin.</p>
-     */
     public static void shutdown() {
         BossBarStages.clearAll();
     }
@@ -280,18 +257,12 @@ public final class BuiltinStages {
         }
     }
 
-    /**
-     * Outcome of one {@link #registerAll} call.
-     *
-     * @param failures one entry per stage that could not be registered, as {@code id: reasonKey}
-     */
     public record Report(@NotNull List<String> failures) {
 
         public Report {
             failures = failures == null ? List.of() : List.copyOf(failures);
         }
 
-        /** {@return whether every builtin stage registered} */
         public boolean successful() {
             return failures.isEmpty();
         }

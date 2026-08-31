@@ -7,6 +7,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
@@ -16,6 +19,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
@@ -24,7 +28,6 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.CurrencyEntry;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyConfig;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.EconomyOverride;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.Limits;
-import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.MatchRule;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStage;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StarStageMaterial;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe.StatLineDefinition;
@@ -51,7 +54,6 @@ public final class StrengthenRecipeParser {
                 parseEconomy(section.getSection("economy")),
                 parseLimits(section.getSection("limits")),
                 parseSuccessRates(section.getSection("success_rates")),
-                parseMatchRule(section.getSection("match")),
                 parseStatLines(section.getSection("stat_lines")),
                 parseStars(section.getSection("stars")),
                 toApiConditionGroup(conditionGroup),
@@ -59,8 +61,22 @@ public final class StrengthenRecipeParser {
                 conditionGroup.requiredCount(),
                 parseBranchTree(section.getSection("branch_tree")),
                 section.get("name_actions"),
-                section.get("lore_actions")
+                section.get("lore_actions"),
+                matcherConfig(section),
+                section.getStringList("slot_groups"),
+                section.getStringList("stats_any"),
+                section.getStringList("source_patterns")
         );
+    }
+
+    public static @Nullable Matcher parseRecipeMatcher(@Nullable YamlSection section) {
+        Object rawMatcher = section == null ? null : section.get("matcher");
+        return rawMatcher == null ? null : Matcher.fromConfig(rawMatcher);
+    }
+
+    private static @Nullable Object matcherConfig(@NotNull YamlSection section) {
+        YamlSection matcherSection = section.getSection("matcher");
+        return matcherSection == null ? null : matcherSection.asMap();
     }
 
     private static StrengthenConditionGroup toApiConditionGroup(ConditionGroup group) {
@@ -152,20 +168,6 @@ public final class StrengthenRecipeParser {
         return result;
     }
 
-    static MatchRule parseMatchRule(YamlSection section) {
-        if (section == null) {
-            return new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of());
-        }
-        return new MatchRule(
-                section.getStringList("source_types"),
-                section.getStringList("source_ids"),
-                section.getStringList("source_patterns"),
-                section.getStringList("slot_groups"),
-                section.getStringList("lore_contains"),
-                section.getStringList("stats_any")
-        );
-    }
-
     static Map<String, StatLineDefinition> parseStatLines(YamlSection section) {
         if (section == null) {
             return Map.of();
@@ -216,6 +218,63 @@ public final class StrengthenRecipeParser {
             ));
         }
         return result;
+    }
+
+    public static Map<String, StarStageMaterialRule> parseStageMaterialRules(YamlSection section) {
+        if (section == null) {
+            return Map.of();
+        }
+        Map<String, StarStageMaterialRule> rules = new LinkedHashMap<>();
+        collectStageMaterialRules(section.getSection("stars"), "", rules);
+        collectBranchMaterialRules(section.getSection("branch_tree"), "", rules);
+        return Map.copyOf(rules);
+    }
+
+    private static void collectBranchMaterialRules(YamlSection node,
+            String branchPath,
+            Map<String, StarStageMaterialRule> rules) {
+        if (node == null) {
+            return;
+        }
+        collectStageMaterialRules(node.getSection("stars"), branchPath, rules);
+        YamlSection childrenSection = node.getSection("children");
+        if (childrenSection == null) {
+            return;
+        }
+        for (String childKey : childrenSection.getKeys(false)) {
+            YamlSection childSection = childrenSection.getSection(childKey);
+            if (childSection == null) {
+                continue;
+            }
+            collectBranchMaterialRules(childSection,
+                    StrengthenBranchNode.appendBranch(branchPath, childKey), rules);
+        }
+    }
+
+    private static void collectStageMaterialRules(YamlSection stars,
+            String branchPath,
+            Map<String, StarStageMaterialRule> rules) {
+        if (stars == null) {
+            return;
+        }
+        for (String key : stars.getKeys(false)) {
+            Integer targetStar = Numbers.tryParseInt(key, null);
+            YamlSection stageSection = stars.getSection(key);
+            if (targetStar == null || targetStar <= 0 || stageSection == null) {
+                continue;
+            }
+            List<Map<?, ?>> rawMaterials = stageSection.getMapList("materials");
+            if (rawMaterials == null) {
+                continue;
+            }
+            for (Map<?, ?> rawEntry : rawMaterials) {
+                StarStageMaterialRule rule = StarStageMaterialRule.fromRawEntry(rawEntry);
+                if (!rule.constrains()) {
+                    continue;
+                }
+                rules.put(StarStageMaterialRule.key(branchPath, targetStar, parseMaterialItem(rawEntry)), rule);
+            }
+        }
     }
 
     static List<StarStageMaterial> parseStageMaterials(List<Map<?, ?>> rawEntries) {

@@ -229,13 +229,6 @@ public final class ForgeLookupIndex {
         }
     }
 
-    /**
-     * Records which item source kinds a recipe set touches.
-     *
-     * <p>Only the resulting {@code size()} is ever read &mdash; it feeds the "distinct source kinds"
-     * diagnostic counter. The key was the enum's {@code name()} and is now the kind's canonical key;
-     * both are just de-duplication tokens that never leave this method's caller.
-     */
     private static void recordSourceType(Map<String, Boolean> sink, ItemSourceRef source) {
         if (sink != null && source != null) {
             sink.put(source.kind().key(), Boolean.TRUE);

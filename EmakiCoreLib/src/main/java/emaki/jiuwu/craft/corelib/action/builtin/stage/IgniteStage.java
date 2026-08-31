@@ -15,13 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Sets the target on fire for a duration.
- *
- * <p>Works on any entity, since {@code Entity#setFireTicks} is defined at that level.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one entity's fire ticks.</p>
- */
 public final class IgniteStage extends BaseStage {
 
     public IgniteStage() {

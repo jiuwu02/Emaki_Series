@@ -7,15 +7,11 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Fired by EmakiCooking when a player consumes an item that matches a
- * configured nutrition food source, before any nutrition is applied.
+ * Fired after a consumed item source is resolved and before matching nutrition rules are applied.
  *
- * <p>This event aggregates all consumption channels (vanilla
- * {@code PlayerItemConsumeEvent}, MMOItems and NeigeItems). Listeners may
- * inspect the player, the consumed item and the resolved item source, and
- * cancel the event to prevent EmakiCooking from applying the matched nutrition
- * and running the food source actions. This synchronous event is fired on the consuming player's
- * entity-owner thread.
+ * <p>Runs synchronously on the player's owner thread and covers vanilla, MMOItems and NeigeItems consume
+ * channels. Cancellation suppresses both nutrition changes and food-source actions. The item accessor is a
+ * live reference; in-place mutations are visible to the rule matching that follows this event.
  */
 public final class PlayerNutritionConsumeEvent extends Event implements Cancellable {
 

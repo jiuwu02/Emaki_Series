@@ -24,8 +24,8 @@ import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -48,14 +48,13 @@ public final class GrinderRuntimeService {
     private final CookingBlockMatcher blockMatcher;
     private final StationStateStore stateStore;
     private final CookingRecipeService recipeService;
-    private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final CookingTextDisplayService textDisplayService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<String> tickingStations = ConcurrentHashMap.newKeySet();
     private CookingCompletionCoordinator completionCoordinator;
-    private TaskHandle tickerTask;
+    private TaskToken tickerTask;
 
     public GrinderRuntimeService(EmakiCookingPlugin plugin,
             MessageService messageService,
@@ -63,20 +62,18 @@ public final class GrinderRuntimeService {
             CookingBlockMatcher blockMatcher,
             StationStateStore stateStore,
             CookingRecipeService recipeService,
-            CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             CookingTextDisplayService textDisplayService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling taskScheduler) {
         this.plugin = plugin;
         this.messageService = messageService;
         this.settingsService = settingsService;
         this.blockMatcher = blockMatcher;
         this.stateStore = stateStore;
         this.recipeService = recipeService;
-        this.rewardService = rewardService;
         this.itemSourceService = itemSourceService;
         this.textDisplayService = textDisplayService;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
     }
 
     public void setCompletionCoordinator(CookingCompletionCoordinator completionCoordinator) {
@@ -222,7 +219,7 @@ public final class GrinderRuntimeService {
         }
         ItemSourceRef source = itemSourceService.identifyItem(hand);
         String shorthand = source == null ? null : ItemSourceUtil.toShorthand(source);
-        RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player);
+        RecipeDocument recipe = recipeService.findGrinderRecipe(shorthand, player, hand);
         if (recipe == null) {
             CookingRuntimeUtil.sendActionBar(plugin, player, messageService, "grinder.no_recipe", Map.of());
             interaction.cancel();
@@ -282,9 +279,6 @@ public final class GrinderRuntimeService {
         return true;
     }
 
-
-
-
     public Optional<StationSnapshot> snapshotAt(StationCoordinates coordinates) {
         if (coordinates == null) {
             return Optional.empty();
@@ -337,10 +331,10 @@ public final class GrinderRuntimeService {
             return;
         }
         int interval = settingsService.grinderCheckDelayTicks();
-        if (tickerTask != null && !tickerTask.isCancelled()) {
+        if (tickerTask != null && !tickerTask.cancelled()) {
             return;
         }
-        tickerTask = executionDispatcher.runGlobalTimer(plugin, this::tick, interval, interval);
+        tickerTask = taskScheduler.runGlobalTimer(plugin, this::tick, interval, interval);
     }
 
     private void cancelTicker() {
@@ -378,7 +372,7 @@ public final class GrinderRuntimeService {
                 activeStations.remove(stationKey);
                 continue;
             }
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
                 try {
                     GrinderState state = readState(stateStore.load(coordinates));
                     if (state == null) {
@@ -461,7 +455,7 @@ public final class GrinderRuntimeService {
                         "station_type", StationType.GRINDER.folderName()
                 ),
                 List.of(),
-                // No player inventory input on this path; the pipeline evaluates the condition itself.
+
                 null
         ));
         if (accepted && player != null && player.isOnline()) {

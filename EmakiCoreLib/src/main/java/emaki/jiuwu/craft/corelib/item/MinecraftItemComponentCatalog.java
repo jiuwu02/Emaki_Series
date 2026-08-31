@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
 public final class MinecraftItemComponentCatalog {
 
     public record Entry(String componentId,

@@ -17,11 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Removes one potion effect from the target.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one entity's effect list.</p>
- */
 public final class RemovePotionEffectStage extends BaseStage {
 
     public RemovePotionEffectStage() {

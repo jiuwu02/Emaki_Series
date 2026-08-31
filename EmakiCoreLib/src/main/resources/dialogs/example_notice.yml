@@ -1,11 +1,6 @@
-# ============================================================
-# EmakiCoreLib 对话框示例
-# ============================================================
-# 文件放置位置: plugins/EmakiCoreLib/dialogs/
-# 需要客户端 1.21.6 及以上；低版本客户端表现未经验证。
-#
-# 业务插件通过公开 API 展示: DialogApi.show(player, "example/notice")
-# ============================================================
+# EmakiCoreLib 原版对话框示例。
+# 需要 Minecraft 1.21.6+ 客户端，且调用方必须位于目标玩家的所有者线程。
+# 业务插件按 ID example/notice 展示。
 
 # 对话框 id，跨插件唯一
 id: "example/notice"
@@ -48,8 +43,3 @@ buttons:
     # command_template 可引用输入项，例如 "say $(feedback)"
     action:
       type: "none"
-
-# multi_action 类型可额外配置退出按钮与列数
-# exit_button:
-#   label: "<red>关闭</red>"
-# columns: 2

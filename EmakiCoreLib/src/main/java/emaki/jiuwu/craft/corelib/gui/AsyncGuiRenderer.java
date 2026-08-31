@@ -18,11 +18,6 @@ final class AsyncGuiRenderer {
         this.performanceMonitor = performanceMonitor;
     }
 
-
-
-
-
-
     CompletableFuture<Map<Integer, ItemStack>> prepare(GuiSession session) {
         if (session == null) {
             return CompletableFuture.completedFuture(Map.of());

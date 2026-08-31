@@ -67,7 +67,6 @@ final class ItemsAdderItemSourceResolver
 
         private String failureReason = "";
 
-        // ItemsAdder 的 areItemsLoaded() 已弃用，但该 API 没有提供任何替代的加载态判定入口。
         @SuppressWarnings("deprecation")
         @Override
         public boolean ensureAvailable() {
@@ -88,7 +87,6 @@ final class ItemsAdderItemSourceResolver
             return failureReason;
         }
 
-        // 同上：areItemsLoaded() 无替代 API。
         @SuppressWarnings("deprecation")
         @Override
         public boolean detectLoaded() {

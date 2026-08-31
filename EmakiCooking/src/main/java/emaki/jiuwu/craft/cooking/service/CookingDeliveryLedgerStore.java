@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
 final class CookingDeliveryLedgerStore {
 
     private static final int SCHEMA_VERSION = 1;

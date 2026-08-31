@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import org.bukkit.entity.Player;
 
-/** Sets the target's experience to an absolute value. See {@link ExperienceStage} for the shared contract. */
 public final class SetExpStage extends ExperienceStage {
 
     public SetExpStage() {

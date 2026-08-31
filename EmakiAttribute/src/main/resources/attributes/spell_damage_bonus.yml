@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 法术伤害加成
-# 详细字段说明参考 physical_attack.yml
 
 id: spell_damage_bonus
 display_name: "法术伤害加成"

@@ -11,12 +11,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
-/**
- * The caster itself. Also the implicit source when a pipeline omits one (decision Q4).
- *
- * <p>Domain {@code SERVER_GLOBAL}: this wraps the already-held {@code caster()} reference in a
- * single-element flow and reads no entity state, so it needs no particular owner thread.</p>
- */
 public final class SelfSource extends BaseSource {
 
     public SelfSource() {

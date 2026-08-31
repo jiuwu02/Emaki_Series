@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.corelib.metrics;
 
-import java.io.File;
-import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -10,7 +8,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -39,7 +36,6 @@ public final class BStatsService {
             previous.close();
         }
         try {
-            ensureBStatsEnabled();
             Object metrics = createMetrics(plugin, pluginId);
             Method shutdownMethod = metrics.getClass().getMethod("shutdown");
             BStatsRegistration registration = BStatsRegistration.active(plugin, pluginId, () -> {
@@ -81,25 +77,6 @@ public final class BStatsService {
             return metricsType.getConstructor(Plugin.class, int.class);
         } catch (NoSuchMethodException ignored) {
             return metricsType.getConstructor(JavaPlugin.class, int.class);
-        }
-    }
-
-    private void ensureBStatsEnabled() {
-        File pluginsFolder = owner.getDataFolder().getParentFile();
-        File bStatsFolder = pluginsFolder == null ? new File("bStats") : new File(pluginsFolder, "bStats");
-        if (!bStatsFolder.exists() && !bStatsFolder.mkdirs()) {
-            fine("console.bstats_config_directory_create_failed", Map.of("path", bStatsFolder.getPath()), null);
-        }
-        File configFile = new File(bStatsFolder, "config.yml");
-        YamlConfiguration config = YamlConfiguration.loadConfiguration(configFile);
-        config.set("enabled", true);
-        try {
-            config.save(configFile);
-        } catch (IOException exception) {
-            fine("console.bstats_config_write_failed", Map.of(
-                    "path", configFile.getPath(),
-                    "error", errorMessage(exception)
-            ), exception);
         }
     }
 

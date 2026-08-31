@@ -69,7 +69,7 @@ final class ForgeValidationService {
                 return ValidationResult.fail("forge.error.no_target_item");
             }
         }
-        return materialValidationService.validate(recipe, guiItems);
+        return materialValidationService.validate(player, recipe, guiItems);
     }
 
     private String replacePlaceholders(Player player, String text) {

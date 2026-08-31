@@ -19,9 +19,11 @@ import emaki.jiuwu.craft.attribute.api.PdcAttributeAccess;
 import emaki.jiuwu.craft.attribute.api.event.PlayerResourceConsumeEvent;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
 import emaki.jiuwu.craft.attribute.api.extension.AttributeExtensions;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeSlotProvider;
 import emaki.jiuwu.craft.attribute.api.extension.ContributionProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGate;
 import emaki.jiuwu.craft.attribute.api.extension.ItemContributionGateRegistration;
+import emaki.jiuwu.craft.attribute.api.extension.SlotProviderRegistration;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageResult;
 import emaki.jiuwu.craft.attribute.api.model.ResourceDefinitionView;
@@ -29,37 +31,40 @@ import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
 import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/** Runtime mapping from the four-layer public facade to existing Attribute services. */
 public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeApi.Bridge,
         AttributeCatalog,
         AttributeOperations,
         AttributeExtensions {
 
     private final AttributeServiceFacade attributeService;
-    private final ThreadOwnership threadOwnership;
+    private final EmakiScheduling scheduling;
     private final ItemContributionGateRegistry gateRegistry;
     private final ContributionProviderRegistrationRegistry contributionRegistry;
     private final PdcAttributeAccess pdcAccess;
+    private final AttributeSlotRegistry slotRegistry;
 
     public ServiceBackedEmakiAttributeBridge(AttributeServiceFacade attributeService,
-            ThreadOwnership threadOwnership,
+            EmakiScheduling scheduling,
             ItemContributionGateRegistry gateRegistry,
             ContributionProviderRegistrationRegistry contributionRegistry,
-            PdcAttributeAccess pdcAccess) {
+            PdcAttributeAccess pdcAccess,
+            AttributeSlotRegistry slotRegistry) {
         this.attributeService = attributeService;
-        this.threadOwnership = threadOwnership;
+        this.scheduling = scheduling;
         this.gateRegistry = gateRegistry;
         this.contributionRegistry = contributionRegistry;
         this.pdcAccess = pdcAccess;
+        this.slotRegistry = slotRegistry;
     }
 
     @Override
@@ -263,8 +268,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (playerCheck.isFailure()) {
             return playerCheck;
         }
-        // The scheduled sync recomputes from the definition tables, so accepting the request while they
-        // are loading would queue work against data that is about to be replaced.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }
@@ -349,6 +353,13 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
     }
 
     @Override
+    public SlotProviderRegistration registerSlotProvider(Plugin owner, AttributeSlotProvider provider) {
+        return slotRegistry == null
+                ? SlotProviderRegistration.noop()
+                : slotRegistry.register(owner, provider);
+    }
+
+    @Override
     public @NotNull PdcAttributeAccess pdc() {
         return pdcAccess;
     }
@@ -372,9 +383,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (Texts.isBlank(resourceId)) {
             return EmakiResult.invalidInput("attribute.resource_id_invalid");
         }
-        // Gates resourceCurrent and resourceMax: the definition table is what "not_found" is judged
-        // against, so answering it while that table is still loading reports a config error that is not
-        // one.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }
@@ -408,7 +417,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
         if (!isEntityOwned(target) || (attacker != null && !isEntityOwned(attacker))) {
             return EmakiResult.wrongThread();
         }
-        // Gates calculateDamage and applyDamage: both resolve against the damage type registry below.
+
         if (!runtimeReady()) {
             return EmakiResult.unavailable();
         }
@@ -445,7 +454,7 @@ public final class ServiceBackedEmakiAttributeBridge implements EmakiAttributeAp
     }
 
     private boolean isEntityOwned(LivingEntity entity) {
-        return threadOwnership != null && entity != null && threadOwnership.isEntityOwned(entity);
+        return scheduling != null && entity != null && scheduling.ownsEntity(entity);
     }
 
     private static ResourceDefinitionView toView(ResourceDefinition definition) {

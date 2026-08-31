@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.cooking;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -8,10 +7,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import org.bukkit.plugin.ServicePriority;
@@ -19,11 +14,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
@@ -33,12 +30,14 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
+import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.listener.MmoItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NeigeItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NutritionConsumeListener;
@@ -102,6 +101,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private DebugCommand debugCommand;
     private CookingStageRegistrar stageRegistrar;
 
+    private EmakiScheduling taskScheduler;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
     private YamlConfigLoader<AppConfig> appConfigLoader;
@@ -164,6 +164,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         bootstrapService.bootstrap();
         registerConfigPrecheckContributor();
         reloadPluginState();
+        reportLegacyItemSources();
         recoverCookingCompletions();
         registerCommandHandler();
         registerEventHandlers();
@@ -268,12 +269,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
                 });
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module sets {@code publicApiReady} in a plain method body with no lock held, so there is
-     * no monitor to leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -286,11 +281,6 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
@@ -315,6 +305,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     private void applyRuntimeComponents(CookingRuntimeComponents components) {
+        taskScheduler = components.taskScheduler();
         executionDispatcher = components.executionDispatcher();
         threadOwnership = components.threadOwnership();
         appConfigLoader = components.appConfigLoader();
@@ -358,8 +349,18 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
         stationLocator = new CookingStationLocator(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                CookingLegacyTargets.specs(),
+                getLogger(),
+                "emakicooking"
+        );
     }
 
     private void registerCommandHandler() {
@@ -559,14 +560,12 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
+    }
+
+    public EmakiScheduling taskScheduler() {
+        return taskScheduler;
     }
 
     public ExecutionDispatcher executionDispatcher() {
@@ -684,40 +683,4 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     public DebugCommand debugCommand() {
         return debugCommand;
     }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
-    }
-
 }

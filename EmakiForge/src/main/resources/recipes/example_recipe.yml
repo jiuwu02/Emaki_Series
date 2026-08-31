@@ -1,19 +1,12 @@
 # ============================================================
 # EmakiForge 锻造配方示例
 # ============================================================
-# 此文件定义了一个完整的锻造配方，展示所有可用字段和推荐写法。
-# 锻造系统允许玩家通过组合多种材料来创造新物品，
-# 每种材料可以提供不同的属性、技能和外观效果。
-# 锻造容量系统限制了单次锻造可以使用的材料总量。
-#
-# 文件放置位置: plugins/EmakiForge/recipes/
-# 文件名即为配方的内部标识，加载时自动注册。
+# 材料效果累计，但 capacity_cost 总和受 forge_capacity 限制。
+# 配方 ID 取自 id，与文件名无关。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称（支持 MiniMessage 格式）
 display_name: "<gold>烈焰之剑锻造配方</gold>"
 
 # ============================================================
@@ -28,9 +21,43 @@ forge_capacity: 35
 # ============================================================
 # 锻造前必须拥有的物品（不消耗，仅检测持有）。
 # 用于实现"需要先获得配方图纸"的玩法。
+# 判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该条目永不命中。
+# item_sources 已经不参与判定，它在这里只剩一个职责——充当该条目的计数键。
+# 因此推荐两者并写：matcher 负责"算不算这本图纸"，item_sources 负责"按哪个键计数"。
+# 只写 matcher 时计数键改由 matcher 内容派生（哈希形态），
+# 修改 matcher 内容会让派生键随之改变。
+# ⚠ 写法差异（易错点）：
+#   物品源简写用连字符：  "minecraft-enchanted_book"
+#   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
+# ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
+#   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
+# ⚠ 不要为同一种图纸写两个条目：两个条目的计数键不同，会被当成两种图纸，
+#   要求玩家同时持有。要把多种可接受形态写进同一个 matcher 的 any_of 里，
+#   就像下面这样。
 blueprint_requirements:
+  # item_sources 在这里仍然保留：它不参与判定，只作为该条目的计数键。
+  # 判定全部交给 matcher，用 any_of 接受两种图纸形态，其中第二种再用 all_of 追加组件条件：
+  #   ① 普通附魔书
+  #   ② 带 custom_model_data 标记的知识书（"官方发放的配方图纸"）
   - item_sources:
       - "minecraft-enchanted_book"
+    matcher:
+      type: any_of
+      matchers:
+        - type: item_source
+          sources:
+            - minecraft-enchanted_book
+        - type: all_of
+          matchers:
+            - type: item_source
+              sources:
+                - "minecraft-knowledge_book"
+            - type: component
+              component: custom_model_data
+              path: "floats[0]"
+              operator: "=="
+              value: 1.0
+
     amount: 1
 
 # ============================================================
@@ -42,7 +69,6 @@ blueprint_requirements:
 #   capacity_cost: 占用的锻造容量
 #   optional: 是否为可选材料（默认 false）
 #   effects: 此材料提供的效果列表
-#
 # effects 支持的类型:
 #   - type: "variables"       → 表达式引擎变量（用于 Lore 占位符渲染）
 #   - type: "ea_attribute"    → EmakiAttribute PDC 属性
@@ -50,10 +76,26 @@ blueprint_requirements:
 #   - type: "name_action"     → 修改物品名称
 #   - type: "lore_action"     → 修改物品 Lore
 #   - type: "capacity_bonus"  → 扩展锻造容量（特殊类型）
+# 材料判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该材料永不命中。
+# item_sources 已经不参与判定，它在这里只剩一个职责——充当该材料的计数键，
+# 同时作为写入成品 PDC 的锻造审计标识。所以下面每条材料都两者并写：
+# matcher 负责"这枚算不算这味材料"，item_sources 负责"按哪个键计数与留痕"。
+# 只写 matcher 不写 item_sources 也合法，此时计数键由 matcher 内容派生
+# （GUI 里显示为该派生键）。⚠ 该派生键随 matcher 内容变化，改动 matcher 会让
+# 已锻造物品的审计记录失配，刷新时该材料会被判定为缺失。
+# ⚠ 写法差异（易错点）：
+#   物品源简写用连字符：  "minecraft-iron_ingot"
+#   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
+# ⚠ 判定顺序：同一物品按材料声明顺序取第一个匹配者，先声明的宽条件会
+#   遮蔽后声明的窄条件。窄条件请写在前面。
 materials:
   # ---- 基础材料：铁锭（提供物理属性）----
   - item_sources:
       - "minecraft-iron_ingot"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-iron_ingot
     amount: 3
     capacity_cost: 5
     effects:
@@ -76,6 +118,10 @@ materials:
   # ---- 基础材料：烈焰粉（提供火焰属性 + 技能 + 名称修改）----
   - item_sources:
       - "minecraft-blaze_powder"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-blaze_powder
     amount: 1
     capacity_cost: 10
     effects:
@@ -108,6 +154,10 @@ materials:
   # ---- 可选材料：火焰弹（额外火焰属性）----
   - item_sources:
       - "minecraft-fire_charge"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-fire_charge
     amount: 1
     optional: true
     capacity_cost: 12
@@ -130,6 +180,10 @@ materials:
   # ---- 可选材料：羽毛（移动速度）----
   - item_sources:
       - "minecraft-feather"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-feather
     amount: 1
     optional: true
     capacity_cost: 8
@@ -146,6 +200,10 @@ materials:
   # ---- 可选材料：回响碎片（魔法穿透）----
   - item_sources:
       - "minecraft-echo_shard"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-echo_shard
     amount: 1
     optional: true
     capacity_cost: 15
@@ -162,6 +220,10 @@ materials:
   # ---- 可选材料：下界之星（扩展容量，不占用容量）----
   - item_sources:
       - "minecraft-nether_star"
+    matcher:
+      type: item_source
+      sources:
+        - minecraft-nether_star
     amount: 1
     optional: true
     capacity_cost: 0
@@ -169,6 +231,92 @@ materials:
       # capacity_bonus: 特殊效果类型，增加锻造容量上限
       - type: "capacity_bonus"
         value: 20
+
+  # ---- matcher 示例①：任何"锋利 III 以上"的附魔物品 ----
+  # 不限定物品源，只看组件取值：enchantments 组件下 minecraft:sharpness 的等级。
+  # path 写附魔的资源 ID（冒号形式）；operator 支持 >= > <= < == != 等。
+  # 这类材料没有 item_sources，计数键由 matcher 内容派生。
+  - matcher:
+      type: component
+      component: enchantments
+      path: "minecraft:sharpness"
+      operator: ">="
+      value: 3
+    amount: 1
+    optional: true
+    capacity_cost: 6
+    effects:
+      - type: "variables"
+        variables:
+          inherited_sharpness: 4
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 4.0
+
+  # ---- matcher 示例②：三项品相条件满足任意两项即可 ----
+  # at_least + required_count: 子条件里至少成立 required_count 条才算匹配。
+  # 组合五态：all_of（全部成立）/ any_of（任一成立）/ none_of（全部不成立）
+  #          / at_least（至少 N 条）/ exactly（恰好 N 条）。
+  # 后两者需配合 required_count；子条件写在 matchers 列表里，可继续嵌套。
+  # 这里同时演示三种不同的组件读取方式：
+  #   rarity      → 枚举值，用 == 比较
+  #   custom_name → 文本组件，用 contains 做子串匹配
+  #   unbreakable → 单元组件（无值），只支持 exists / absent
+  - matcher:
+      type: at_least
+      required_count: 2
+      matchers:
+        - type: component
+          component: rarity
+          operator: "=="
+          value: epic
+        - type: component
+          component: custom_name
+          operator: contains
+          value: "锻"
+        - type: component
+          component: unbreakable
+          operator: exists
+    amount: 1
+    optional: true
+    capacity_cost: 10
+    effects:
+      - type: "variables"
+        variables:
+          masterwork_bonus: 8
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 8.0
+      - type: "name_action"
+        name_actions:
+          - action: "append_suffix"
+            value: "<light_purple> [名匠]"
+
+  # ---- matcher 示例③：物品源 + 组件条件同时成立 ----
+  # all_of 把"物品必须是某个源"和"组件取值必须匹配"绑在一起，
+  # 用于把一类物品收窄为"官方发放的那一批"。
+  # 注意两种写法的分隔符差异：sources 用连字符，component/path 用冒号。
+  - matcher:
+      type: all_of
+      matchers:
+        - type: item_source
+          sources:
+            - minecraft-amethyst_shard
+        - type: component
+          component: custom_model_data
+          path: "floats[0]"
+          operator: "=="
+          value: 1.0
+    amount: 1
+    optional: true
+    capacity_cost: 4
+    effects:
+      - type: "variables"
+        variables:
+          durability_bonus: 5
+      - type: "ea_attribute"
+        ea_attributes:
+          max_health: 5.0
 
 # ============================================================
 # 可选材料数量限制
@@ -184,7 +332,6 @@ optional_material_limit: 3
 # guarantee: 保底机制（连续锻造一定次数后保证获得指定品质）
 quality:
   enabled: true
-  custom_pool: []
   guarantee:
     enabled: true
     attempts: 60
@@ -227,41 +374,10 @@ result:
 actions:
   pre:
     - 'send_action_bar text="<gray>烈焰之力正在熔铸...</gray>"'
-  success: []
   failure:
     - 'send_message text="<red>锻造前置操作失败: %var.forge_failure_reason%</red>"'
 
-# ============================================================
-# 锻造成功率（可选）
-# ============================================================
-# 默认 100 表示必定成功（不启用失败机制）。
-# 设为低于 100 的值时，锻造有概率失败。
-# success_rate: 70
-
-# ============================================================
-# 失败结果方案（可选，仅在 success_rate < 100 时生效）
-# ============================================================
-# 锻造失败时按权重随机选取一个结果方案执行。
-# 支持的 type:
-#   - return_materials: 返还材料（params.return_rate 控制返还概率，默认 1.0 = 全额返还）
-#   - consume_materials: 全部消耗，不返还任何材料
-#   - partial_consume: 部分返还（params.return_rate 控制返还比例）
-#   - fixed_quality: 强制以指定品质产出（params.quality 指定品质名）
-#   - byproduct: 产出副产品（params.item_sources 指定副产品）
-#   - economy_penalty: 额外扣除金币（params.amount 指定金额）
-#   - downgrade_quality: 正常产出但品质降低 N 档（params.levels 指定降档数）
-#
-# 未配置 failure_outcomes 时默认行为是 return_materials（全额返还）。
-#
-# 示例:
-# failure_outcomes:
-#   - type: "return_materials"
-#     weight: 50
-#     params:
-#       return_rate: 1.0
-#   - type: "partial_consume"
-#     weight: 30
-#     params:
-#       return_rate: 0.5
-#   - type: "consume_materials"
-#     weight: 20
+# success_rate 默认 100；低于 100 时按概率失败。
+# failure_outcomes 仅在失败时按权重选取；未配置时默认全额返还材料。
+# 合法类型：return_materials、consume_materials、partial_consume、fixed_quality、
+# byproduct、economy_penalty、downgrade_quality。

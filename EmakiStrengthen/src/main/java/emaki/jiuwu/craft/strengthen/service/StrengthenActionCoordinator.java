@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptResult;
+import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipe;
 
 public final class StrengthenActionCoordinator {
 
@@ -75,6 +77,38 @@ public final class StrengthenActionCoordinator {
                 wasStar, operationId);
     }
 
+    public CompletableFuture<Boolean> triggerEnhancementActions(Player player,
+            EnhancementRecipe recipe,
+            ItemStack resultItem,
+            EnhancementAttemptResult result,
+            String operationId) {
+        if (recipe == null || player == null || result == null) {
+            return CompletableFuture.completedFuture(true);
+        }
+        List<String> actions = result.actionPhaseKeys().stream()
+                .flatMap(key -> recipe.actions().getOrDefault(key, List.of()).stream())
+                .toList();
+        if (actions.isEmpty()) {
+            return CompletableFuture.completedFuture(true);
+        }
+        String phase = result.success() ? "enhancement_success" : "enhancement_failure";
+        Map<String, String> placeholders = new LinkedHashMap<>(result.toPlaceholders());
+        placeholders.put("operation_id", operationId == null ? "" : operationId);
+        placeholders.put("strengthen_operation_id", operationId == null ? "" : operationId);
+        placeholders.put("strengthen_recipe_id", recipe.id());
+        placeholders.put("enhancement_recipe_id", recipe.id());
+        placeholders.put("enhancement_mode", recipe.mode());
+        placeholders.put("enhancement_provider", recipe.target().provider());
+        var context = plugin.actionLines().context(player, phase, false, placeholders);
+        if (resultItem != null) {
+            context = context.with(CoreActionKeys.ITEM, resultItem);
+        }
+        return plugin.actionLines().run(actions, context, true)
+                .orTimeout(ACTION_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                .whenComplete((success, throwable) -> logEnhancementActionResult(
+                        recipe, phase, operationId, success, throwable));
+    }
+
     private CompletableFuture<Boolean> triggerActions(Player player,
             StrengthenRecipe recipe,
             List<String> actions,
@@ -117,12 +151,6 @@ public final class StrengthenActionCoordinator {
                 .whenComplete((success, throwable) -> logActionResult(recipe, phase, star, operationId, success, throwable));
     }
 
-    /**
-     * Reports a failed action phase.
-     *
-     * <p>The pipeline reports one aggregate boolean instead of v1's per-line failure list, so the reason a
-     * line failed is only in the CoreLib pipeline log; this message names the phase and operation for context.</p>
-     */
     private void logActionResult(StrengthenRecipe recipe,
             String phase,
             int star,
@@ -148,6 +176,23 @@ public final class StrengthenActionCoordinator {
                     "error", "action batch unsuccessful"
             ));
         }
+    }
+
+    private void logEnhancementActionResult(EnhancementRecipe recipe,
+            String phase,
+            String operationId,
+            Boolean success,
+            Throwable throwable) {
+        if (throwable == null && Boolean.TRUE.equals(success)) {
+            return;
+        }
+        plugin.messageService().warning("console.recipe_action_failed", Map.of(
+                "operation_id", operationId == null ? "" : operationId,
+                "recipe", recipe == null ? "-" : recipe.id(),
+                "phase", phase,
+                "star", "-",
+                "error", throwable == null ? "action batch unsuccessful" : String.valueOf(throwable.getMessage())
+        ));
     }
 
     public String buildShowItem(ItemStack itemStack) {

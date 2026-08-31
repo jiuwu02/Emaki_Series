@@ -4,18 +4,6 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
-
-
-
-
-
-
 public record BrewGameplayEvent(Player player, String potionType, long ageTicks)
         implements GameplayEvent {
 

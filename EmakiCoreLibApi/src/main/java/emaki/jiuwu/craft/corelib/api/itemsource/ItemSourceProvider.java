@@ -9,26 +9,12 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Supplies one kind of item source: its identity, how it is written in config, and how to build,
- * recognise and probe its items.
+ * Provider for one item-source kind, including shorthand, creation, identification, display, probing,
+ * and lifecycle state.
  *
- * <h2>One registration carries the whole chain</h2>
- * A provider declares {@link #kind()} <em>and</em> {@link #shorthandPrefixes()} together, on purpose.
- * The old design split them: EmakiItem supplied the resolver while CoreLib hard-coded the
- * {@code emakiitem-} prefix and the enum constant, so CoreLib knew about an item source it did not
- * implement. Registering a provider whose prefixes lived somewhere else would be worse than useless
- * &mdash; nothing would claim {@code emakiitem-mystic_dust} in config and parsing would just return
- * nothing.
- *
- * <h2>Threading</h2>
- * {@link #identify}, {@link #create}, {@link #supports} and {@link #probe} may be called from any
- * thread and must not touch Bukkit world or entity state. The lifecycle hooks are always called on the
- * server thread.
- *
- * <h2>Lifecycle</h2>
- * Keep the {@link ItemSourceRegistration} handle and close it in {@code onDisable}. A CoreLib reload
- * rebuilds nothing here, but a provider whose handle outlives its owner keeps answering for a plugin
- * that is already gone.
+ * <p>{@link #identify}, {@link #create}, {@link #supports}, and {@link #probe} may run on any thread
+ * and must not touch Bukkit world/entity state. Lifecycle hooks run on the server thread. Close the
+ * {@link ItemSourceRegistration} on disable.
  */
 public interface ItemSourceProvider {
 
@@ -45,11 +31,9 @@ public interface ItemSourceProvider {
     int priority();
 
     /**
-     * {@return the shorthand prefixes this provider claims, such as {@code {"emakiitem-", "ei-"}}}
+     * {@return claimed shorthand prefixes}
      *
-     * <p>Two providers claiming the same prefix is a hard registration failure naming the first owner,
-     * never a silent takeover. Matching is by longest prefix first, so {@code eci-} is not swallowed by
-     * {@code ei-}.
+     * <p>Prefixes must be unique; matching uses longest-prefix-first.
      */
     @NotNull
     Set<String> shorthandPrefixes();
@@ -98,17 +82,8 @@ public interface ItemSourceProvider {
     }
 
     /**
-     * Claims or declines a reference; CoreLib calls this first and skips the provider entirely when it
-     * returns {@code false}, so {@link #create}, {@link #displayName} and {@link #probe} are only
-     * reached for references this method accepted.
-     *
-     * <p>Return {@code false} for a {@code null} reference rather than throwing. CoreLib's own
-     * resolution paths null-check before calling, but {@link #probe}'s default implementation does not.
-     * A thrown {@link RuntimeException} or {@link LinkageError} is swallowed and treated as
-     * {@code false}, which silently removes the provider from resolution.
-     *
-     * @param ref the reference to test
-     * @return whether this provider handles it
+     * Claims a reference. Rejection skips this provider's create/display/probe paths; {@code null}
+     * should return false. Runtime and linkage failures are treated as rejection.
      */
     boolean supports(@Nullable ItemSourceRef ref);
 
@@ -132,17 +107,8 @@ public interface ItemSourceProvider {
     ItemStack create(@Nullable ItemSourceRef ref, int amount);
 
     /**
-     * Supplies this source's own display name for a reference, ahead of CoreLib's fallbacks.
-     *
-     * <p>Only consulted after {@link #supports} accepted the reference, and only after CoreLib has
-     * already tried an explicit custom name on the built stack and, for vanilla references, the
-     * translatable vanilla name. Returning {@code null} or blank lets CoreLib continue to lower-priority
-     * providers and then to its own derived names, so it is not an error. A thrown
-     * {@link RuntimeException} or {@link LinkageError} is swallowed and treated the same as
-     * {@code null}.
-     *
-     * @param ref the reference to name
-     * @return a MiniMessage display name, or {@code null} to let CoreLib derive one from the built item
+     * Supplies a MiniMessage name after {@link #supports} accepts the reference. {@code null}, blank,
+     * runtime failure, or linkage failure continues to lower-priority providers and CoreLib fallbacks.
      */
     default @Nullable String displayName(@Nullable ItemSourceRef ref) {
         return null;
@@ -198,16 +164,8 @@ public interface ItemSourceProvider {
     }
 
     /**
-     * Called when the backing plugin becomes usable.
-     *
-     * <p>The {@code itemsLoaded} flag is not decoration. "The plugin enabled" and "the plugin finished
-     * loading its items" are different facts: on the first, a provider may still have to detect whether
-     * items are available; on the second, it has been told so and may mark itself loaded outright.
-     * Collapsing the two would either make load events useless or mark a provider ready too early.
-     *
-     * @param itemsLoaded {@code true} when the backing plugin signalled that its items are loaded,
-     *                    {@code false} when it merely became enabled
-     * @return the resulting lifecycle status
+     * Called when the backing plugin enables or signals completed item loading.
+     * {@code itemsLoaded} distinguishes those phases.
      */
     default @NotNull LifecycleStatus onProviderReady(boolean itemsLoaded) {
         return LifecycleStatus.ready();

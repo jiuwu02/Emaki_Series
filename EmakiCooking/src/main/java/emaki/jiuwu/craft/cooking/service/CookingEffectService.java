@@ -19,25 +19,10 @@ public final class CookingEffectService {
         this.settingsService = settingsService;
     }
 
-    /**
-     * Runs the action lines configured for one station operation.
-     *
-     * @param stationType the station whose settings hold the lines
-     * @param operation the operation key under that station
-     * @param player the acting player
-     */
     public void playActions(StationType stationType, String operation, Player player) {
         playActions(stationType, operation, player, null);
     }
 
-    /**
-     * Runs the action lines configured for one station operation, with extra placeholders.
-     *
-     * @param stationType the station whose settings hold the lines
-     * @param operation the operation key under that station
-     * @param player the acting player
-     * @param placeholders values readable as {@code %var.name%}, may be {@code null}
-     */
     public void playActions(StationType stationType, String operation, Player player, Map<String, ?> placeholders) {
         if (stationType == null || operation == null || player == null) {
             return;

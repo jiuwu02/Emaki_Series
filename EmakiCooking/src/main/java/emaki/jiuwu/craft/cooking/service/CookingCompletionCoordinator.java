@@ -29,8 +29,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
@@ -43,20 +43,10 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionRecoveryPlanner.NextStep;
 
-
 public final class CookingCompletionCoordinator {
 
     private static final long RETRY_DELAY_TICKS = 20L;
 
-    /**
-     * How many times a player-inventory input may be attempted before the completion is abandoned.
-     *
-     * <p>These units read the player's main hand at execution time, so an unbounded retry would keep
-     * watching the hand and consume the item at some arbitrary later moment — long after the
-     * interaction that asked for it. With {@link #RETRY_DELAY_TICKS} at 20 ticks this bounds the watch
-     * to roughly five seconds, after which nothing has been consumed and no state has been committed,
-     * so abandoning simply returns the station to the player untouched.
-     */
     private static final int MAX_PLAYER_INPUT_ATTEMPTS = 5;
 
     private final JavaPlugin plugin;
@@ -66,7 +56,7 @@ public final class CookingCompletionCoordinator {
     private final Logger logger;
     private final RetryScheduler retryScheduler;
     private final FrozenRewardExecutor frozenRewardExecutor;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final CookingCompletionRecoveryPlanner recoveryPlanner = new CookingCompletionRecoveryPlanner();
     private final Map<StationType, CookingStationStateAccess> stateAccesses = new EnumMap<>(StationType.class);
     private final ConcurrentMap<String, CookingCompletionOperation> operations = new ConcurrentHashMap<>();
@@ -78,15 +68,15 @@ public final class CookingCompletionCoordinator {
     public CookingCompletionCoordinator(JavaPlugin plugin,
             CookingRewardService rewardService,
             FileScope fileScope,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling taskScheduler) {
         this.plugin = Objects.requireNonNull(plugin, "plugin");
         this.rewardService = Objects.requireNonNull(rewardService, "rewardService");
         this.journalStore = new CookingCompletionJournalStore(plugin, fileScope);
         this.deliveryLedger = new CookingDeliveryLedgerStore(plugin, fileScope);
         this.logger = plugin.getLogger();
-        ExecutionDispatcher dispatcher = Objects.requireNonNull(executionDispatcher, "executionDispatcher");
-        this.executionDispatcher = dispatcher;
-        this.retryScheduler = (task, delayTicks) -> dispatcher.runGlobalLater(this.plugin, task, delayTicks);
+        EmakiScheduling scheduler = Objects.requireNonNull(taskScheduler, "taskScheduler");
+        this.taskScheduler = scheduler;
+        this.retryScheduler = (task, delayTicks) -> scheduler.runGlobalLater(this.plugin, task, delayTicks);
         this.frozenRewardExecutor = this.rewardService::executeFrozen;
     }
 
@@ -101,7 +91,7 @@ public final class CookingCompletionCoordinator {
         this.logger = Objects.requireNonNull(logger, "logger");
         this.retryScheduler = Objects.requireNonNull(retryScheduler, "retryScheduler");
         this.frozenRewardExecutor = Objects.requireNonNull(frozenRewardExecutor, "frozenRewardExecutor");
-        this.executionDispatcher = null;
+        this.taskScheduler = null;
     }
 
     public synchronized void register(CookingStationStateAccess access) {
@@ -115,10 +105,6 @@ public final class CookingCompletionCoordinator {
                 && coordinates != null
                 && activeByStation.containsKey(stationKey(stationType, coordinates));
     }
-
-
-
-
 
     public boolean submit(CookingCompletionRequest request) {
         if (!accepting.get() || request == null || request.stationType() == null || request.coordinates() == null) {
@@ -155,7 +141,6 @@ public final class CookingCompletionCoordinator {
         });
         return true;
     }
-
 
     public CompletableFuture<Void> recover() {
         if (!accepting.get()) {
@@ -283,7 +268,7 @@ public final class CookingCompletionCoordinator {
     }
 
     private boolean dispatchAdvance(String operationId, StationCoordinates coordinates) {
-        if (executionDispatcher == null) {
+        if (taskScheduler == null) {
             advanceOnOwnerThread(operationId);
             return true;
         }
@@ -292,7 +277,7 @@ public final class CookingCompletionCoordinator {
             return false;
         }
         try {
-            return executionDispatcher.runAtLocation(
+            return taskScheduler.runAtLocation(
                     plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
         } catch (Throwable error) {
             logger.warning("Failed to schedule cooking completion advance " + operationId + ": "
@@ -382,10 +367,7 @@ public final class CookingCompletionCoordinator {
                     if (success) {
                         return save(saved.withInputUnit(current.complete())).thenApply(_ -> true);
                     }
-                    // The unit reads the player's main hand when it runs, so retrying forever would let it
-                    // consume the item at an unrelated later moment. Give up once the attempt budget is
-                    // spent: nothing was consumed and no state was committed, so the station is released
-                    // exactly as the player left it.
+
                     if (current.attempts() >= MAX_PLAYER_INPUT_ATTEMPTS) {
                         return abandonUnavailableInput(saved, current).thenApply(_ -> false);
                     }
@@ -398,18 +380,6 @@ public final class CookingCompletionCoordinator {
                 }));
     }
 
-    /**
-     * Abandons a completion whose required player-inventory input never became available.
-     *
-     * <p>Reached only while the operation is still {@code PREPARED}: no input has been consumed and the
-     * station state has not been committed, so there is nothing to roll back and nothing to salvage.
-     * The operation is archived rather than quarantined because it is a benign outcome — the player
-     * simply no longer held the item — and archiving releases the station through {@code remove}.
-     *
-     * @param operation the operation to abandon
-     * @param unit the input unit that exhausted its attempts
-     * @return the archived operation
-     */
     private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
             CookingCompletionOperation operation,
             Unit unit) {
@@ -561,11 +531,11 @@ public final class CookingCompletionCoordinator {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
         try {
             Player target = player;
-            if (executionDispatcher == null) {
+            if (taskScheduler == null) {
                 result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
                 return result;
             }
-            TaskHandle handle = executionDispatcher.runEntity(plugin, target, () -> {
+            TaskToken handle = taskScheduler.runForEntity(plugin, target, () -> {
                 try {
                     ItemStack current = target.getInventory().getItemInMainHand();
                     if (current == null || current.getType().isAir() || !current.isSimilar(template) || current.getAmount() < amount) {

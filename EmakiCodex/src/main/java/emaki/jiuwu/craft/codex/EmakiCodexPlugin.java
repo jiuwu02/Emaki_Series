@@ -1,15 +1,9 @@
 package emaki.jiuwu.craft.codex;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
-
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -24,17 +18,25 @@ import emaki.jiuwu.craft.codex.advancement.packet.AdvancementPacketGateway;
 import emaki.jiuwu.craft.codex.advancement.trigger.AdvancementTriggerRegistry;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexGameplaySubscriber;
 import emaki.jiuwu.craft.codex.advancement.trigger.CodexTriggerService;
+import emaki.jiuwu.craft.codex.codex.gui.CodexGuiService;
+import emaki.jiuwu.craft.codex.codex.loader.CodexCategoryLoader;
+import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
+import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
+import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.config.CodexConfigPrecheckContributor;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -44,10 +46,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
-
-
-
-
 
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
@@ -83,6 +81,13 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private CodexTriggerService triggerService;
     private ExecutionDispatcher executionDispatcher;
     private ThreadOwnership threadOwnership;
+    private GuiService guiService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private CodexCategoryLoader codexCategoryLoader;
+    private PlayerCodexStore codexStore;
+    private CodexProviderRegistrar codexProviderRegistrar;
+    private CodexEntryService codexEntryService;
+    private CodexGuiService codexGuiService;
 
     private AdvancementListener advancementListener;
     private CodexGameplaySubscriber gameplaySubscriber;
@@ -90,8 +95,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DebugCommand debugCommand;
     private CodexStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
-    // "Data is loaded", not "components exist": the runtime components are non-null from initialize()
-    // onward, so a component null-check reported ready for the whole duration of a reload.
+
     private volatile boolean contentReady;
 
     private final EmakiCodexApi.Bridge apiBridge =
@@ -113,7 +117,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         registerActions();
-        // Registered before the first reload because that reload is now gated on this contributor.
+
         registerConfigPrecheckContributor();
         reloadPluginState();
         registerCommandHandler();
@@ -148,23 +152,10 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         publishReady();
     }
 
-    /**
-     * {@return whether this module's configured content has finished loading}
-     *
-     * <p>Read by the API bridge so {@code status()} means "data is loaded" rather than "the components
-     * were constructed". The components are non-null from {@code initialize} onward, so gating on them
-     * alone reported ready throughout a reload.</p>
-     */
     public boolean contentReady() {
         return contentReady;
     }
 
-    /**
-     * Publishes "my data is loaded" to CoreLib's readiness registry.
-     *
-     * <p>This module's flag is set in a plain method body with no lock held, so there is no monitor to
-     * leave before the waiting third-party callbacks run synchronously here.</p>
-     */
     private void publishReady() {
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleReady(getName()));
     }
@@ -177,11 +168,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -209,9 +195,17 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         triggerService = components.triggerService();
         executionDispatcher = components.executionDispatcher();
         threadOwnership = components.threadOwnership();
+        guiService = components.guiService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        codexCategoryLoader = components.codexCategoryLoader();
+        codexStore = components.codexStore();
+        codexProviderRegistrar = components.codexProviderRegistrar();
+        codexEntryService = components.codexEntryService();
+        codexGuiService = components.codexGuiService();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
     }
 
@@ -220,7 +214,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         stageRegistrar.register();
     }
 
-    /** {@return the pipeline stage registrar, or {@code null} before actions are registered} */
     public CodexStageRegistrar stageRegistrar() {
         return stageRegistrar;
     }
@@ -279,12 +272,6 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
@@ -321,39 +308,31 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return threadOwnership;
     }
 
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
+    public GuiService guiService() {
+        return guiService;
     }
 
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public CodexCategoryLoader codexCategoryLoader() {
+        return codexCategoryLoader;
+    }
+
+    public PlayerCodexStore codexStore() {
+        return codexStore;
+    }
+
+    public CodexProviderRegistrar codexProviderRegistrar() {
+        return codexProviderRegistrar;
+    }
+
+    public CodexEntryService codexEntryService() {
+        return codexEntryService;
+    }
+
+    public CodexGuiService codexGuiService() {
+        return codexGuiService;
+    }
 }

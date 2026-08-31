@@ -21,15 +21,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Breaks or clears the block at the target position.
- *
- * <p>Fires {@code BlockBreakEvent} when the caster is a player, so protection plugins can cancel it; a
- * console-triggered pipeline breaks without the event, as in v1. With {@code drop_items} the block breaks
- * naturally using the caster's held item for drop rules, otherwise it is replaced with air.</p>
- *
- * <p>Domain {@code LOCATION_REGION}: reads and writes one block.</p>
- */
 public final class BreakBlockStage extends BaseStage {
 
     public BreakBlockStage() {

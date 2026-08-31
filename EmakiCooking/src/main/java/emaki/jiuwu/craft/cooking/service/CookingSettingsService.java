@@ -13,7 +13,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import org.bukkit.Location;
@@ -25,6 +24,7 @@ import org.joml.Vector3f;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
@@ -167,7 +167,6 @@ public final class CookingSettingsService {
         return wokSettings.displayLayoutRadius();
     }
 
-
     public boolean textDisplayEnabled(StationType stationType) {
         if (stationType == null) {
             return false;
@@ -275,8 +274,8 @@ public final class CookingSettingsService {
         return choppingBoardSettings.interactionDelayMs();
     }
 
-    public List<ItemSourceRef> choppingToolSources() {
-        return choppingBoardSettings.toolSources();
+    public Matcher choppingToolMatcher() {
+        return choppingBoardSettings.toolMatcher();
     }
 
     public boolean choppingCutDamageEnabled() {
@@ -315,8 +314,8 @@ public final class CookingSettingsService {
         return wokSettings.timeoutMs();
     }
 
-    public List<ItemSourceRef> wokSpatulaSources() {
-        return wokSettings.spatulaSources();
+    public Matcher wokSpatulaMatcher() {
+        return wokSettings.spatulaMatcher();
     }
 
     public List<HeatLevelRule> wokHeatLevels() {
@@ -463,8 +462,8 @@ public final class CookingSettingsService {
         return juicerSettings.requireContainer();
     }
 
-    public List<ItemSourceRef> juicerContainerSources() {
-        return juicerSettings.containerSources();
+    public Matcher juicerContainerMatcher() {
+        return juicerSettings.containerMatcher();
     }
 
     public int juicerMaxFluidMl() {
@@ -816,7 +815,7 @@ public final class CookingSettingsService {
         if (text.isEmpty()) {
             return null;
         }
-        Matcher matcher = RANGE_PATTERN.matcher(text);
+        var matcher = RANGE_PATTERN.matcher(text);
         if (matcher.matches()) {
             double min = parseDouble(matcher.group(1), 0D);
             double max = parseDouble(matcher.group(2), min);
@@ -835,13 +834,25 @@ public final class CookingSettingsService {
     public record HeatSourceIgnitionRule(ItemSourceRef source, ItemSourceRef litSource, ItemSourceRef unlitSource) {
     }
 
-    public record SteamerFuelRule(ItemSourceRef source, int durationSeconds) {
+    public record SteamerFuelRule(ItemSourceRef source, int durationSeconds, Matcher matcher) {
+
+        public SteamerFuelRule(ItemSourceRef source, int durationSeconds) {
+            this(source, durationSeconds, null);
+        }
     }
 
-    public record SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture) {
+    public record SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture, Matcher matcher) {
+
+        public SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture) {
+            this(inputSource, outputSource, moisture, null);
+        }
     }
 
-    public record OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat) {
+    public record OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat, Matcher matcher) {
+
+        public OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat) {
+            this(source, durationSeconds, heat, null);
+        }
     }
 
     private enum DisplayAdjustmentKind {
@@ -996,7 +1007,6 @@ public final class CookingSettingsService {
         }
     }
 
-
     public List<String> getStationActions(StationType stationType, String operation) {
         if (stationType == null || Texts.isBlank(operation)) {
             return List.of();
@@ -1006,8 +1016,6 @@ public final class CookingSettingsService {
         return actions == null ? List.of() : actions;
     }
 
-
-
     public boolean nutritionEnabled() {
         return configuration.getBoolean("nutrition.enabled", true);
     }
@@ -1016,15 +1024,13 @@ public final class CookingSettingsService {
         return Math.max(0, configuration.getInt("nutrition.save_interval_seconds", 300));
     }
 
-
-
-
     public List<NutritionFoodSource> nutritionFoodSources() {
         List<NutritionFoodSource> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.getMapList("nutrition.food_sources")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             List<ItemSourceRef> sources = parseSources(normalized.get("item_sources"));
-            if (sources.isEmpty()) {
+            Matcher matcher = CookingMatchers.parse(normalized, "matcher");
+            if (sources.isEmpty() && matcher == null) {
                 continue;
             }
             Map<String, Double> nutrition = parseNutritionAmounts(normalized.get("nutrition"));
@@ -1032,13 +1038,10 @@ public final class CookingSettingsService {
             if (nutrition.isEmpty() && actions.isEmpty()) {
                 continue;
             }
-            result.add(new NutritionFoodSource(sources, nutrition, actions));
+            result.add(new NutritionFoodSource(sources, nutrition, actions, matcher));
         }
         return List.copyOf(result);
     }
-
-
-
 
     public List<NutritionSingleThreshold> nutritionSingleThresholds() {
         List<NutritionSingleThreshold> result = new ArrayList<>();
@@ -1063,9 +1066,6 @@ public final class CookingSettingsService {
         }
         return List.copyOf(result);
     }
-
-
-
 
     public List<NutritionComboThreshold> nutritionComboThresholds() {
         List<NutritionComboThreshold> result = new ArrayList<>();

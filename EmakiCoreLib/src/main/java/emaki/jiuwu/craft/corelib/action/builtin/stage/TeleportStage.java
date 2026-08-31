@@ -19,18 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Teleports the target to a coordinate.
- *
- * <p>Widened from v1's {@code Player} to any {@code Entity}, so {@code nearby | teleport ...} can move mobs.</p>
- *
- * <p>This stage keeps its coordinate arguments, unlike {@code spawn_particle} or {@code drop_item}. The
- * distinction is what the target flow means: here the target is <em>who moves</em> and the coordinates are
- * <em>where to</em>, so the two are different pieces of information rather than duplicates. Coordinates are
- * relative to the entity being moved, which is why {@code teleport y=~5} lifts each target by five.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: moving an entity is an operation on that entity.</p>
- */
 public final class TeleportStage extends BaseStage {
 
     public TeleportStage() {

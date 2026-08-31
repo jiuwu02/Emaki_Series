@@ -1,29 +1,5 @@
-# ============================================================
-# EmakiAttribute 属性定义 - 物理伤害
-# ============================================================
-# 此文件定义了一个属性的完整配置，展示所有可用字段。
-# 每个属性文件定义了属性的数值范围、显示格式和战斗关联。
-#
-# 字段说明:
-#   id: 属性唯一标识符
-#   display_name: 属性显示名称
-#   value_kind: 数值类型（FLAT = 固定值 / PERCENT = 百分比）
-#   target_type: 关联目标类型（DAMAGE = 伤害类型 / NONE = 无关联）
-#   target_id: 关联的伤害类型 ID
-#   default_value: 默认值
-#   min_value / max_value: 数值范围
-#   allow_negative: 是否允许负值
-#   priority: 属性优先级（影响计算顺序）
-#   lore_format_id: Lore 显示格式（对应 lore_formats/ 下的定义）
-#                   读取 Lore 时支持单值（物理伤害: 5）与区间（物理伤害: 1-5 / 1~5）。
-#                   区间在每次命中时按 [最小值, 最大值] 随机取本次物理伤害。
-#   attribute_power: 战力权重
-#   tags: 属性标签列表（如 DEBUFF），供 MythicMobs 按标签批量增删临时属性
-#   temporary_stack_mode: 作为临时属性重复施加时的叠加模式（REPLACE 覆盖 / STACK 相加）
-#   description: 属性描述
-#
-# 文件放置位置: plugins/EmakiAttribute/attributes/
-# ============================================================
+# 物理伤害属性示例。value_kind 与 target_type 使用已声明枚举；数值边界由 min/max 和 allow_negative 控制。
+# priority 越高越先匹配；attribute_power 仅在 attribute_balance.yml 无 score 时回退使用。
 
 id: physical_attack
 
@@ -49,13 +25,10 @@ lore_format_id: default_flat
 
 attribute_power: 1.0
 
-# 属性标签：供 MythicMobs 的 emaki_attribute_add_tag / emaki_attribute_clear_tag 按标签批量操作临时属性。
-tags: []
+# MythicMobs 临时属性动作可按 tags 批量操作。
 
-# 临时属性叠加模式：当同一 effect_id 的临时属性重复施加时的默认行为。
-#   REPLACE（默认）：新数值与新持续时间直接覆盖旧的。
-#   STACK：数值相加，持续时间在剩余时间基础上叠加。
-# 技能显式传入 stack_mode 时以技能为准。
+# 同一 effect_id 重复施加时，REPLACE 覆盖数值/时长，STACK 累加数值/剩余时长。
+# 技能显式 stack_mode 优先。
 temporary_stack_mode: REPLACE
 
 description: "Adds flat physical damage."

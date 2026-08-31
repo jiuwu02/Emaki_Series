@@ -10,14 +10,6 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleStatus;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Shared body for CoreLib's seven third-party item source bridges.
- *
- * <p>Internal on purpose. A third-party plugin implements {@link
- * emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider} directly: it knows when its own items are
- * ready and does not need the "is the plugin enabled, did its API link, has it loaded yet" state machine
- * that only matters when bridging someone else's plugin.
- */
 abstract class AbstractManagedItemSourceProvider<A extends AbstractManagedItemSourceProvider.Accessor>
         implements ManagedItemSourceProvider {
 
@@ -127,12 +119,6 @@ abstract class AbstractManagedItemSourceProvider<A extends AbstractManagedItemSo
         accessor.reset();
     }
 
-    /**
-     * Re-evaluates readiness.
-     *
-     * @param loadedSignal {@code true} when the backing plugin told us its items are loaded, which is
-     *                     authoritative; {@code false} means fall back to detection
-     */
     private LifecycleStatus refresh(boolean loadedSignal) {
         if (!pluginAvailability.isPluginEnabled(providerPluginName())) {
             loaded.set(false);

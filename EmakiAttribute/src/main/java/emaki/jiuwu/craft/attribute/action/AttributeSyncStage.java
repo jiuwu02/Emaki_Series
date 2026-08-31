@@ -20,25 +20,12 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Recomputes attribute values, for one target or for everyone online.
- *
- * <p>{@code attribute_refresh} additionally drops the module's caches, which is what makes it the stage to
- * run after editing attribute configuration.</p>
- *
- * <p>This is the one stage in the module whose thread domain depends on its arguments: {@code all=true} walks
- * the online-player list and therefore needs {@code SERVER_GLOBAL}, while {@code all=false} touches a single
- * entity. Both are declared through {@link #executionTarget}, which receives the raw arguments.</p>
- */
 public final class AttributeSyncStage implements CoreActionStage {
 
-    /** Which sync variant a stage instance performs. */
     public enum Operation {
 
-        /** Recompute values without dropping caches. Defaults to the single target. */
         SYNC("attribute_sync", "Recomputes attribute values for the target or everyone online.", "false"),
 
-        /** Drop caches, then recompute. Defaults to everyone online. */
         REFRESH("attribute_refresh", "Drops attribute caches and recomputes values.", "true");
 
         private final String id;
@@ -51,7 +38,6 @@ public final class AttributeSyncStage implements CoreActionStage {
             this.allDefault = allDefault;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -60,12 +46,6 @@ public final class AttributeSyncStage implements CoreActionStage {
     private final AttributeServiceFacade attributeService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param attributeService the module's service facade
-     * @param operation which variant this instance performs
-     */
     public AttributeSyncStage(@NotNull AttributeServiceFacade attributeService,
             @NotNull Operation operation) {
         this.attributeService = attributeService;
@@ -93,12 +73,6 @@ public final class AttributeSyncStage implements CoreActionStage {
                 operation.allDefault, "Apply to every online player instead of the target"));
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>{@code OPTIONAL} rather than {@code REQUIRED_ENTITY} because {@code all=true} needs no target at all.
-     * The per-target path checks for a player itself.</p>
-     */
     @Override
     public @NotNull CoreTargetRequirement targetRequirement() {
         return CoreTargetRequirement.OPTIONAL;
@@ -134,14 +108,6 @@ public final class AttributeSyncStage implements CoreActionStage {
         return CoreActionOutcome.success(Map.of("all", false, "player", target.getName()));
     }
 
-    /**
-     * Reads the {@code all} argument during planning.
-     *
-     * <p>Parsed from raw text because {@link #executionTarget} runs before arguments are resolved. An unresolved
-     * placeholder cannot be read here, so it falls back to the operation's default; picking the narrower
-     * per-entity domain in that case would be wrong for {@code attribute_refresh}, whose default is global,
-     * which is why the default is consulted rather than assuming {@code false}.</p>
-     */
     private boolean appliesToEveryone(String rawAll) {
         String value = rawAll == null ? "" : rawAll.trim();
         if (value.isEmpty() || value.indexOf('%') >= 0) {

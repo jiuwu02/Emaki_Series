@@ -12,16 +12,6 @@ import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-/**
- * 伤害飘字设置。
- *
- * <p>飘字的渲染后端与可见范围由 CoreLib 的 {@code display.backend} 决定：
- * 发包后端下 {@link #visibleToInvolved()} 生效，真实体后端下附近玩家均可见。
- *
- * <p>配置形状为「顶层默认值 + 逐触发器覆盖」：{@code lifetime_ticks}、{@code spawn}、
- * {@code motion} 写在顶层作为全部触发器的默认，{@code triggers.<name>} 下重写的键
- * 逐键覆盖，未写的键继承默认。取用时一律走 {@link #settingsFor(String)}。
- */
 public record DamageIndicatorConfig(boolean enabled,
         long mergeWindowMs,
         int maxPerTargetPerSecond,
@@ -30,7 +20,6 @@ public record DamageIndicatorConfig(boolean enabled,
         TriggerSettings defaultSettings,
         Map<String, TriggerSettings> triggers) {
 
-    /** 触发器 ID。 */
     public static final String TRIGGER_NORMAL = "normal";
     public static final String TRIGGER_CRITICAL = "critical";
     public static final String TRIGGER_HEAL = "heal";
@@ -86,24 +75,15 @@ public record DamageIndicatorConfig(boolean enabled,
         );
     }
 
-    /** {@return 该触发器的生效设置；未配置时回落顶层默认} */
     public TriggerSettings settingsFor(String triggerId) {
         TriggerSettings settings = triggerId == null ? null : triggers.get(triggerId);
         return settings == null ? defaultSettings : settings;
     }
 
-    /** {@return 该伤害原因是否应跳过飘字} */
     public boolean isIgnored(EntityDamageEvent.DamageCause cause) {
         return cause != null && ignoredCauses.contains(cause.name());
     }
 
-    /**
-     * 读取单个触发器。
-     *
-     * <p>同时接受 {@code normal: true} 的布尔写法与 {@code normal: {enabled: true}} 的小节写法。
-     * 布尔按 {@code enabled} 处理，其余键全部继承默认。这是本段唯一保留的双写法容错点，
-     * 目的是让管理员既有文件不至于解析失败。
-     */
     private static TriggerSettings readTrigger(YamlSection triggersSection,
             String id,
             TriggerSettings defaults) {
@@ -142,7 +122,6 @@ public record DamageIndicatorConfig(boolean enabled,
         return fallback;
     }
 
-    /** 单个触发器的设置。 */
     public record TriggerSettings(boolean enabled,
             int lifetimeTicks,
             SpawnSettings spawn,
@@ -175,7 +154,6 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 飘字生成位置。 */
     public record SpawnSettings(Vector3 offset, Vector3 randomOffset) {
 
         public SpawnSettings {
@@ -198,7 +176,6 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 飘字运动参数。 */
     public record MotionSettings(boolean enabled,
             int stepTicks,
             double speed,
@@ -233,14 +210,12 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 抛出方向。 */
     public record DirectionSettings(String mode, Vector3 fixed, Range pitch, Range yaw) {
 
-        /** 按 pitch/yaw 区间随机。 */
         public static final String MODE_RANDOM = "random";
-        /** 用显式向量。 */
+
         public static final String MODE_FIXED = "fixed";
-        /** 取攻击者到目标的水平方向再叠加 pitch 仰角；无攻击者时退化为 {@link #MODE_RANDOM}。 */
+
         public static final String MODE_AWAY_FROM_ATTACKER = "away_from_attacker";
 
         public DirectionSettings {
@@ -279,7 +254,6 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 出场与退场缩放。 */
     public record ScaleSettings(double popFrom, int popTicks, double shrinkTo, int shrinkTicks) {
 
         public ScaleSettings {
@@ -306,7 +280,6 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 三维向量。 */
     public record Vector3(double x, double y, double z) {
 
         public static final Vector3 ZERO = new Vector3(0D, 0D, 0D);
@@ -323,7 +296,6 @@ public record DamageIndicatorConfig(boolean enabled,
         }
     }
 
-    /** 闭区间，支持区间随机。 */
     public record Range(double min, double max) {
 
         public Range {
@@ -344,7 +316,6 @@ public record DamageIndicatorConfig(boolean enabled,
             );
         }
 
-        /** {@return 本次取用的值；区间为单点时直接返回该点} */
         public double resolve() {
             return min == max ? min : ThreadLocalRandom.current().nextDouble(min, max);
         }

@@ -19,14 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Adds durability damage to an item in one of the target's inventory slots.
- *
- * <p>Without {@code delete_item} the damage stops one point short of breaking, so the item survives; with it,
- * reaching maximum durability clears the slot. Both behaviours are v1's.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's inventory.</p>
- */
 public final class DamageItemStage extends BaseStage {
 
     public DamageItemStage() {

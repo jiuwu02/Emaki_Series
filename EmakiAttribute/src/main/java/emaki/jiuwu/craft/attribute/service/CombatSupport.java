@@ -1,13 +1,17 @@
 package emaki.jiuwu.craft.attribute.service;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
+import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
 public final class CombatSupport {
 
@@ -44,6 +48,61 @@ public final class CombatSupport {
             return;
         }
         EntityPhysicsSupport.applyKnockback(target, source, strength);
+    }
+
+    public static CompletableFuture<Boolean> applyFallbackDamage(EmakiAttributePlugin plugin,
+            EmakiScheduling scheduling,
+            LivingEntity target,
+            double damage,
+            String dispatcherName) {
+        if (target == null || damage <= 0D) {
+            return CompletableFuture.completedFuture(false);
+        }
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        try {
+            EmakiScheduling sched = scheduling != null ? scheduling : plugin.scheduling();
+            if (sched == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        dispatcherName + " damage dispatcher is unavailable."));
+                return future;
+            }
+            var scheduled = sched.runForEntity(
+                    plugin,
+                    target,
+                    () -> {
+                        if (!target.isValid() || target.isDead()) {
+                            future.complete(false);
+                            return;
+                        }
+                        try {
+                            target.setNoDamageTicks(0);
+                            double remaining = Math.max(0D, damage);
+                            double absorption = Math.max(0D, target.getAbsorptionAmount());
+                            if (absorption > 0D) {
+                                double absorbed = Math.min(absorption, remaining);
+                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
+                                remaining -= absorbed;
+                            }
+                            target.setLastDamage(damage);
+                            if (remaining > 0D) {
+                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
+                            }
+                            future.complete(true);
+                        } catch (Throwable throwable) {
+                            future.completeExceptionally(throwable);
+                        }
+                    },
+                    () -> future.completeExceptionally(new IllegalStateException(
+                            dispatcherName + " damage entity retired before execution."))
+            );
+            if (scheduled == null) {
+                future.completeExceptionally(new IllegalStateException(
+                        dispatcherName + " damage scheduling was rejected."));
+            }
+        } catch (Throwable throwable) {
+            future.completeExceptionally(throwable);
+        }
+        return future;
     }
 
     public static String rootCauseMessage(Throwable throwable) {

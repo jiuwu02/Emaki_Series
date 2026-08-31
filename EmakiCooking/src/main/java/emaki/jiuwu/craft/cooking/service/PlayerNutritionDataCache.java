@@ -12,9 +12,6 @@ import java.util.function.Function;
 
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-
-
-
 final class PlayerNutritionDataCache {
 
     enum SessionState {

@@ -8,9 +8,6 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Status;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 
-
-
-
 public final class CookingCompletionRecoveryPlanner {
 
     public enum NextStep {
@@ -33,10 +30,6 @@ public final class CookingCompletionRecoveryPlanner {
             case COMPLETED -> NextStep.ARCHIVE;
             case QUARANTINED -> NextStep.QUARANTINE;
         };
-    }
-
-    public NextStep plan(CookingCompletionOperation operation) {
-        return nextStep(operation);
     }
 
     public CookingCompletionOperation normalizeForRecovery(CookingCompletionOperation operation) {

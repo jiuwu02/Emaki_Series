@@ -1,15 +1,8 @@
-# ============================================================
-# EmakiCoreLib 语言文件 - 简体中文
-# ============================================================
-# 此文件包含插件的所有消息文本，支持 MiniMessage 格式。
-# 修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiCoreLib/lang/
-# ============================================================
+# EmakiCoreLib 简体中文语言资源。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
+# version 由资源同步流程维护，用于合并新增默认键。
 
-# Emaki CoreLib 默认语言文件
-# version 由资源同步维护
-version: "4.7.0"
+version: "4.8.0"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -108,7 +101,6 @@ loader:
 action:
   debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white> <white>id=%id%</white> <gray>args=%args%</gray>"
   execute_failed: "<red>[Action] 执行 %action% 失败: %error%</red>"
-  # 管道加载期校验诊断
   register:
     blank_id: "<red>[管道] 段 id 为空，注册被拒绝</red>"
     duplicate_id: "<red>[管道] 段 id 重复，注册被拒绝</red>"
@@ -116,14 +108,12 @@ action:
     undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
     async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
     key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
-  # 诊断渲染的公共后缀。位置与候选值单独成键，便于翻译时调整顺序或省略。
   diagnostic:
     at_column: "<gray>（第 %column% 列）</gray>"
     at_file: "<gray>（%file% 的 %key_path%，第 %line% 行第 %column% 列）</gray>"
     candidates: "<gray> 可选值: <white>%candidates%</white></gray>"
     more_problems: "<gray> 该行另有 <yellow>%count%</yellow> 处问题，修好这处后会继续提示。</gray>"
     unknown_reason: "<red>[管道] 校验未通过（诊断键 %reason% 尚无对应文案，请反馈该键）</red>"
-  # 语法层诊断：词法与括号/管道结构，先于 validate 触发
   lex:
     unclosed_quote: "<red>[管道] 引号没有闭合，%column% 列起的引号缺少配对的结束引号</red>"
   parse:
@@ -138,6 +128,8 @@ action:
     branch_missing_condition: "<red>[管道] if 缺少条件表达式，应写成 if <条件> [ ... ]</red>"
     branch_missing_body: "<red>[管道] %keyword% 缺少用 [ ] 包裹的分支体</red>"
     empty_branch_body: "<red>[管道] 第 %open_column% 列的分支体是空的，[ ] 之间必须有段</red>"
+    weight_missing_option: "<red>[管道] weight 至少需要一个「权重 [ ... ]」分支，应写成 weight 70 [ ... ] 30 [ ... ]</red>"
+    weight_named_argument: "<red>[管道] weight 的权重必须是无名值，收到了 名称=值 形式的 %token%</red>"
     run_missing_sequence: "<red>[管道] run 缺少序列名，应写成 run <序列名> 参数=值</red>"
     run_positional_parameter: "<red>[管道] run 的参数必须写成 名称=值，收到了无名参数 %token%</red>"
     duplicate_argument: "<red>[管道] 参数 %argument% 重复出现，同一段内每个参数只能写一次</red>"
@@ -165,6 +157,9 @@ action:
     repeat_must_be_literal: "<red>[管道] 重复次数必须是字面量，不能是占位符 %value%</red>"
     repeat_limit_exceeded: "<red>[管道] 重复次数 %value% 超过上限 %maximum%</red>"
     branch_depth_exceeded: "<red>[管道] 分支嵌套深度 %depth% 超过上限 %maximum%</red>"
+    invalid_weight: "<red>[管道] 权重 %value% 不是合法数值，权重必须是非负数字、算式或占位符</red>"
+    negative_weight: "<red>[管道] 权重 %value% 是负数，权重必须大于或等于 0（写 0 表示禁用该分支）</red>"
+    weight_total_not_positive: "<red>[管道] weight 的权重总和为 %total%，至少要有一个分支的权重大于 0，否则该段永远不会选中任何分支</red>"
     unknown_sequence: "<red>[管道] 未知序列 %token%</red>"
     missing_sequence_parameter: "<red>[管道] 序列 %sequence% 缺少参数 %parameter%</red>"
     sequence_cycle: "<red>[管道] 序列调用存在环：%path%</red>"
@@ -177,6 +172,8 @@ action:
     all_targets_invalid: "<gray>[管道] 所有目标在执行前已失效</gray>"
     partial_targets: "<yellow>[管道] 部分目标执行失败</yellow>"
     invalid_condition: "<red>[管道] 条件 %condition% 无法求值</red>"
+    invalid_weight: "<red>[管道] 权重 %value% 在运行期求值失败或为负数，请检查其中的占位符</red>"
+    weight_not_rolled: "<gray>[管道] weight 的所有分支权重均为 0，本次未选中任何分支</gray>"
     unknown_sequence: "<red>[管道] 运行期找不到序列 %sequence%</red>"
     sequence_depth_exceeded: "<red>[管道] 序列 %sequence% 超过最大嵌套深度 %maximum%</red>"
     timeout: "<red>[管道] 段执行超时</red>"
@@ -193,7 +190,6 @@ action:
     player_limit_reached: "<red>[管道] 已达到该玩家的活动任务上限</red>"
     plugin_limit_reached: "<red>[管道] 已达到该插件的活动任务上限</red>"
     exception: "<red>[管道] 段执行抛出异常：%error%</red>"
-  # 内置源段诊断
   source:
     self:
       no_caster: "<gray>[管道] self 源段没有施法者</gray>"
@@ -224,7 +220,6 @@ action:
     player_by_name:
       name_required: "<red>[管道] player_by_name 必须指定 name</red>"
       not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
-  # 内置闸门段诊断
   gate:
     where:
       condition_required: "<red>[管道] where 必须给出条件</red>"
@@ -242,13 +237,19 @@ action:
       no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
     stop:
       stopped: "<gray>[管道] 已由 stop 段终止</gray>"
-  # 内置动作段诊断
   stage:
     common:
       not_entity: "<gray>[管道] 该段需要实体目标</gray>"
       not_living_entity: "<gray>[管道] 该段需要生物目标</gray>"
       not_player: "<gray>[管道] 该段需要玩家目标</gray>"
+      not_location: "<gray>[管道] 该段需要位置目标</gray>"
       no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
+    script:
+      eval:
+        empty_code: "<gray>[脚本] 脚本代码为空，已跳过</gray>"
+        timeout: "<yellow>[脚本] 脚本执行超时</yellow>"
+        interrupted: "<yellow>[脚本] 脚本执行被中断</yellow>"
+        error: "<red>[脚本] 脚本执行失败: %error_message%</red>"
     play_sound:
       unknown_sound: "<red>[管道] 未知音效 %sound%</red>"
     spawn_particle:
@@ -290,7 +291,7 @@ action:
       no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
       already_repaired: "<gray>[管道] 该物品耐久已满</gray>"
       zero_damage: "<gray>[管道] 耐久损耗量必须大于零</gray>"
-      # 以下由 EmakiItem 的段使用，与上面内置段共用同一命名空间
+       # EmakiItem 段与内置物品段共用此命名空间。
       inspector_unavailable: "<red>[管道] EmakiItem 组件检查器当前不可用</red>"
       empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
       no_result: "<red>[管道] EmakiItem 未返回任何物品</red>"
@@ -347,8 +348,6 @@ action:
       unavailable: "<red>[管道] MythicMobs 当前不可用</red>"
       cast_failed: "<red>[管道] MythicMobs 技能 %skill% 施放失败</red>"
       cast_error: "<red>[管道] MythicMobs 技能 %skill% 施放异常：%error%</red>"
-    # 业务模块提供的动作段诊断。段实现在各模块 jar 内，诊断文案统一留在 CoreLib，
-    # 因为这些 key 由 CoreLib 定义的 CoreActionOutcome 契约产出，文案与契约同处一地便于对照。
     strengthen:
       service_unavailable: "<red>[管道] EmakiStrengthen 强化服务当前不可用</red>"
       empty_hand: "<gray>[管道] 目标主手没有物品</gray>"
@@ -385,6 +384,13 @@ action:
       effect_id_required: "<red>[管道] 该段必须指定 effect_id</red>"
       tag_required: "<red>[管道] 该段必须指定 tag</red>"
       unknown_resource: "<red>[管道] 未知资源 %resource%</red>"
+      not_living_entity: "<red>[管道] 该段的目标必须是生物实体</red>"
+      temporary_not_found: "<yellow>[管道] 目标身上没有效果组 %effect_id%</yellow>"
+      temporary_no_match: "<yellow>[管道] 没有属性匹配该标签，未做任何改动</yellow>"
+      temporary_invalid_input: "<red>[管道] 临时属性参数非法：%detail%</red>"
+      temporary_unknown_attribute: "<red>[管道] 未注册的属性 %attribute%</red>"
+      temporary_wrong_thread: "<red>[管道] 临时属性写入线程不正确，已拒绝</red>"
+      temporary_closed: "<red>[管道] 临时属性服务已关闭，已拒绝</red>"
     level:
       service_unavailable: "<red>[管道] EmakiLevel 等级服务当前不可用</red>"
       operation_failed: "<red>[管道] EmakiLevel 操作失败：%reason%</red>"
@@ -424,14 +430,19 @@ action:
       generation_changed: "<red>[管道] 刷新期间 EmakiForge 运行代数已变更，结果已过期</red>"
       partial_refresh: "<red>[管道] %failed% 名在线玩家的锻造物品刷新失败</red>"
 
-# 跨模块能力注册表诊断
 capability:
   publish:
     missing_owner: "<red>[能力] 未提供发布方插件，能力发布被拒绝</red>"
     empty: "<red>[能力] 能力集合为空，能力发布被拒绝</red>"
     duplicate: "<red>[能力] 该能力标识已被占用，能力发布被拒绝</red>"
 
-# Debug 模式消息
+# 材料分配缺口；使用联合短缺表述。
+allocation:
+  shortage:
+    combined: "<red>这组材料凑不出：<yellow>%slots%</yellow> 个槽位合计还缺 <yellow>%missing%</yellow> 个可用物品</red>"
+    slot_detail: "<gray>- 槽位 <aqua>%slot%</aqua> 需 <yellow>%required%</yellow>，当前可分配 <yellow>%allocated%</yellow></gray>"
+    hint: "<gray>提示：多个槽位可能争用同一批物品，补齐任意一处未必消除缺口，请按上面的合计数量准备。</gray>"
+
 debug:
   common:
     placeholder:
@@ -548,7 +559,7 @@ debug:
   console:
     line: "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%"
   command:
-    status_header: "<gold>========== Debug 状态 ==========</gold>"
+    status_header: "<gold>========== %plugin% Debug 状态 ==========</gold>"
     status_enabled: "<green>Debug 已开启</green>"
     status_disabled: "<gray>Debug 已关闭</gray>"
     tracked_players: "<gray>追踪玩家: <yellow>%players%</yellow></gray>"
@@ -571,8 +582,12 @@ debug:
   item_source:
     resolve: "解析物品来源 | 输入=%input% | 结果=%result%"
     create: "创建物品 | 来源=%source% | 数量=%amount% | 成功=%success%"
+  pdc:
+    skill_payload: "技能 PDC 载荷变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 变更前=%before% | 变更后=%after% | 已提交=%committed% | 原因=%reason%"
+    mutation: "PDC 变更 | 操作=%operation% | 物品=%item% | 数量=%amount% | 键=%key% | 值=%value% | 变更前=%before% | 变更后=%after% | 新增=%added% | 移除=%removed% | 修改=%changed% | 已提交=%committed% | 原因=%reason%"
+    cooking_history: "烹饪历史 PDC 变更 | 物品=%item% | 数量=%amount% | 键=%key% | 变更前=%before% | 变更后=%after% | 配方=%recipe% | 已提交=%committed%"
+    join_migrated: "玩家加入时转换历史 PDC 键 | 玩家=%player% | 键数=%keys%"
 
-# 命令消息
 command:
   no_permission_reload: "<red>你没有权限重载 EmakiCoreLib</red>"
   no_permission_admin: "<red>你没有权限执行 EmakiCoreLib 管理命令</red>"
@@ -600,3 +615,12 @@ command:
   help_action: "<green>%root% action [list|run <动作行>]</green><gray> - 查看已注册段，或直接执行一条动作行</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - 控制所有 Emaki 模块的全局 Debug（重载后以配置为准）</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消长期管道任务</gray>"
+  help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - 把历史带点 PDC 键转换为扁平键</gray>"
+  pdc_convert_usage: "<yellow>用法: /corelib pdc-convert <%scopes%> [--dry-run]</yellow>"
+  pdc_convert_started: "<gray>开始转换历史 PDC 键，范围 <aqua>%scope%</aqua>，完成后汇报</gray>"
+  pdc_convert_started_dry_run: "<gray>开始试运行（不改写数据），范围 <aqua>%scope%</aqua>，完成后汇报</gray>"
+  pdc_convert_header: "<aqua>历史 PDC 键转换结果：</aqua>"
+  pdc_convert_header_dry_run: "<aqua>历史 PDC 键试运行结果（未改写数据）：</aqua>"
+  pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> 扫描=<white>%scanned%</white> 转换键=<yellow>%migrated%</yellow> 跳过=<gray>%skipped%</gray> 失败=<red>%failed%</red></gray>"
+  pdc_convert_total: "<green>共转换 <yellow>%migrated%</yellow> 个键。离线玩家与未加载区块依赖读取时的懒转换，无需手工处理。</green>"
+  pdc_convert_failed: "<red>历史 PDC 键转换失败: %error%</red>"

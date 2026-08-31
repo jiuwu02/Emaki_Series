@@ -1,3 +1,6 @@
+# EmakiLevel 经验来源 - 战斗
+# 击杀生物获得经验的来源定义与刷怪笼防刷参数。
+
 id: "combat_sources"
 enabled: true
 sources:
@@ -11,11 +14,20 @@ sources:
       ignore_near_spawner: true
       spawner_scan_radius: 8
     rules:
-      - entity_types: ["ZOMBIE", "SKELETON", "SPIDER", "CREEPER"]
+      - entity_types:
+          - "ZOMBIE"
+          - "SKELETON"
+          - "SPIDER"
+          - "CREEPER"
         exp_formula: "10"
-      - entity_types: ["ENDERMAN", "BLAZE", "WITHER_SKELETON"]
+      - entity_types:
+          - "ENDERMAN"
+          - "BLAZE"
+          - "WITHER_SKELETON"
         exp_formula: "25"
-      - entity_types: ["WITHER", "ENDER_DRAGON"]
+      - entity_types:
+          - "WITHER"
+          - "ENDER_DRAGON"
         exp_formula: "500"
     actions:
       gain:

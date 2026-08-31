@@ -1,0 +1,19 @@
+# EmakiLevel 经验来源 - 驯养
+# 驯服生物相关的经验来源定义。
+
+id: "taming_sources"
+enabled: true
+sources:
+  entity_tame:
+    enabled: true
+    type: "taming"
+    trigger: "entity_tame"
+    anti_abuse:
+      exp_cooldown_ticks: 10
+    rules:
+      - entity_types:
+          - "WOLF"
+          - "CAT"
+          - "HORSE"
+          - "PARROT"
+        exp_formula: "20"

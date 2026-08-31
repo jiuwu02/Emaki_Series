@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 法术暴击伤害
-# 详细字段说明参考 physical_attack.yml
 
 id: spell_crit_damage
 display_name: "法术暴击伤害"

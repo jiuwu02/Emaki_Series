@@ -23,12 +23,6 @@ import emaki.jiuwu.craft.codex.api.model.CodexPageView;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * {@link CodexCatalog} 的运行时实现。
- *
- * <p>完成状态直接读玩家的原版 advancement 进度，而不是 EmakiCodex 自己的记录——因为 EmakiCodex
- * 注册的就是真实成就，任何来源的授予都应被同等看见。
- */
 public final class DefaultCodexCatalog implements CodexCatalog {
 
     private final EmakiCodexPlugin plugin;
@@ -117,8 +111,7 @@ public final class DefaultCodexCatalog implements CodexCatalog {
             return EmakiResult.invalidInput("codex.error.no_advancement_id");
         }
         AdvancementRegistrar registrar = plugin.isEnabled() ? plugin.advancementRegistrar() : null;
-        // Ready, not just non-null: "unknown_advancement" below is judged against the registrar's
-        // contents, so answering it mid-reload would report a config error that is not one.
+
         if (registrar == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
@@ -140,12 +133,6 @@ public final class DefaultCodexCatalog implements CodexCatalog {
         return EmakiResult.success(player.getAdvancementProgress(advancement).isDone());
     }
 
-    /**
-     * 把已注册节点映射为只读视图。
-     *
-     * @param node 已注册节点
-     * @return 只读视图
-     */
     static AdvancementView toView(AdvancementRegistrar.RegisteredNode node) {
         AdvancementDefinition definition = node.definition();
         String pageId = node.page() == null ? "" : Texts.lower(node.page().pageId());
@@ -166,12 +153,6 @@ public final class DefaultCodexCatalog implements CodexCatalog {
                 node.parentKey());
     }
 
-    /**
-     * 把 runtime 帧类型映射为 API 枚举。
-     *
-     * @param frame runtime 帧类型
-     * @return API 枚举；入参为 null 时回落 TASK
-     */
     static AdvancementFrameType toFrameType(AdvancementFrame frame) {
         if (frame == null) {
             return AdvancementFrameType.TASK;

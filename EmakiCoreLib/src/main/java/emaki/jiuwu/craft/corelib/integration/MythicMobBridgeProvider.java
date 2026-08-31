@@ -8,12 +8,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * MythicMobs 怪物元数据桥的门禁与延迟链接入口。
- *
- * <p>与 CoreLib 既有的方块桥 provider 同构：MythicMobs 未启用时返回 no-op，
- * 实例化失败只告警一次并永久落到 no-op，避免热路径反复重试与日志刷屏。
- */
 public final class MythicMobBridgeProvider implements MythicMobBridge {
 
     private static final String PLUGIN_NAME = "MythicMobs";

@@ -7,8 +7,14 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
+import emaki.jiuwu.craft.forge.ForgePdcKeys;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -20,9 +26,15 @@ final class ForgePdcAttributeWriter {
     private static final String SOURCE_ID = "forge";
 
     private final EmakiForgePlugin plugin;
+    private final PdcService pdcService;
 
     ForgePdcAttributeWriter(EmakiForgePlugin plugin) {
         this.plugin = plugin;
+        this.pdcService = new PdcService(
+                ForgePdcKeys.NAMESPACE,
+                "pdc",
+                plugin == null ? null : plugin.debugLogger()
+        );
     }
 
     void apply(Recipe recipe,
@@ -56,6 +68,7 @@ final class ForgePdcAttributeWriter {
             }
         }
         observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds));
+        writeForgeVariables(recipe, multiplier, qualityTier, itemStack);
         if (gateway == null || !gateway.available()) {
             return;
         }
@@ -70,6 +83,32 @@ final class ForgePdcAttributeWriter {
             meta.put("quality", qualityTier.name());
         }
         gateway.write(itemStack, SOURCE_ID, attributes, meta);
+    }
+
+    private void writeForgeVariables(Recipe recipe,
+            double multiplier,
+            QualitySettings.QualityTier qualityTier,
+            ItemStack itemStack) {
+        if (pdcService == null) {
+            return;
+        }
+        PdcPartition partition = pdcService.partition(ForgePdcKeys.FORGE_PARTITION);
+        if (recipe != null && Texts.isNotBlank(recipe.id())) {
+            pdcService.set(itemStack, partition, ForgePdcKeys.FORGE_RECIPE_ID,
+                    PersistentDataType.STRING, recipe.id());
+        }
+        if (qualityTier != null && Texts.isNotBlank(qualityTier.name())) {
+            pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_ID,
+                    PersistentDataType.STRING, qualityTier.name());
+            pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_DISPLAY,
+                    PersistentDataType.STRING, qualityTier.name());
+        }
+        if (Double.isFinite(multiplier)) {
+            pdcService.set(itemStack, partition, ForgePdcKeys.QUALITY_MULTIPLIER,
+                    PersistentDataType.STRING, Numbers.formatNumber(multiplier, "0.##"));
+        }
+
+        pdcService.purgeLegacyKeys(itemStack);
     }
 
     private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {

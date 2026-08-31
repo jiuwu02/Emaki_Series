@@ -17,26 +17,11 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.logger.slf4j.ComponentLogger;
 
-
-
-
-
-
-
-
 public final class RuntimeLibraryLoader {
 
     private static final String ALIYUN_REPO = "https://maven.aliyun.com/repository/central";
     private static final String CENTRAL_REPO = "https://repo1.maven.org/maven2";
 
-    /**
-     * Adventure 家族各 artifact 之间存在内部 API 契约，必须整组同版本加载，
-     * 混版是已知的 {@code NoSuchMethodError} 来源，因此所有 {@code net.kyori:adventure-*}
-     * 坐标共用这一个常量。
-     *
-     * <p>该值必须与根 {@code pom.xml} 的 {@code <adventure.version>} 保持一致：
-     * 编译期依赖来自 POM，运行期依赖来自这里，两侧不同版本会让编译通过的调用在运行时失败。
-     */
     private static final String ADVENTURE_VERSION = "4.26.1";
     private static final Component LOG_PREFIX = Component.text("[LibraryLoader] ", NamedTextColor.GRAY);
 
@@ -57,12 +42,6 @@ public final class RuntimeLibraryLoader {
         this.logger = logger;
         this.cacheDirectory = dataDirectory.resolve("libraries");
     }
-
-
-
-
-
-
 
     public List<Path> prepare() {
         List<RuntimeLibrary> libraries = libraries();
@@ -94,6 +73,8 @@ public final class RuntimeLibraryLoader {
         return List.copyOf(prepared);
     }
 
+    private static final String GRAALVM_VERSION = "25.2.4";
+
     private List<RuntimeLibrary> libraries() {
         return List.of(
                 adventure("adventure-api"),
@@ -110,12 +91,18 @@ public final class RuntimeLibraryLoader {
                 adventure("adventure-text-serializer-json-legacy-impl"),
                 adventure("adventure-text-serializer-commons"),
                 RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0")),
-                // gson 与 paper-api 声明的 2.11.0 对齐：Paper 运行时自带 gson，这里下载更旧的版本
-                // 会把服务端已有实现挤到后面，造成 adventure gson serializer 与服务端行为不一致。
+
                 RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4"))
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
+
+                RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-api", new LibraryCoordinate("org.graalvm.truffle", "truffle-api", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("truffle-runtime", new LibraryCoordinate("org.graalvm.truffle", "truffle-runtime", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("regex", new LibraryCoordinate("org.graalvm.regex", "regex", GRAALVM_VERSION)),
+                RuntimeLibrary.maven("icu4j", new LibraryCoordinate("org.graalvm.shadowed", "icu4j", GRAALVM_VERSION))
         );
     }
 

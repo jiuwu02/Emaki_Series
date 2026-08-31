@@ -18,16 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * An absolute or origin-relative coordinate.
- *
- * <p>Coordinates are {@code STRING} rather than {@code DOUBLE} so that the {@code ~} form keeps working:
- * {@code ~} means "the origin's value on this axis" and {@code ~5} means "five more than it", matching
- * the v1 coordinate parser and vanilla command syntax.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: resolves a world through {@code Bukkit.getWorld}, a global lookup
- * table, and constructs a {@code Location}. No block is touched, so no region ownership is implied.</p>
- */
 public final class AtSource extends BaseSource {
 
     public AtSource() {

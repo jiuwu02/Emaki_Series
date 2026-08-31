@@ -18,36 +18,11 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerUp
 import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class AdvancementPacketCoordinateChannel extends PacketListenerAbstract {
 
     private final AdvancementRegistrar registrar;
     private final String namespace;
     private final Logger logger;
-
-
-
-
-
-
-
 
     public AdvancementPacketCoordinateChannel(AdvancementRegistrar registrar, String namespace, Logger logger) {
         super(PacketListenerPriority.NORMAL);
@@ -77,7 +52,6 @@ public final class AdvancementPacketCoordinateChannel extends PacketListenerAbst
                 event.markForReEncode(true);
             }
         } catch (Throwable throwable) {
-
 
             logger.log(Level.WARNING, "[Codex] Advancement coordinate injection skipped: " + throwable.getMessage());
         }

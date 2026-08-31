@@ -19,7 +19,18 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
+import emaki.jiuwu.craft.strengthen.api.StrengthenOperations;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementOperationView;
+import emaki.jiuwu.craft.strengthen.api.model.EnhancementPityStateView;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
+import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.InMemoryPityStateStore;
+import emaki.jiuwu.craft.strengthen.enhancement.pity.PityPersistenceRetryScheduler;
+import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
+import emaki.jiuwu.craft.strengthen.legacy.StrengthenLegacyEntry;
 
 final class StrengthenCommandRouter implements TabExecutor {
 
@@ -47,13 +58,18 @@ final class StrengthenCommandRouter implements TabExecutor {
                 yield true;
             }
             case "open" -> handleOpen(sender);
+            case "affix" -> handleAffix(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
             case "refresh" -> handleRefresh(sender, args);
             case "setstar" -> handleSetStar(sender, args);
+            case "branch" -> handleBranch(sender, args);
             case "clearstate" -> handleClearState(sender);
             case "clearcrack" -> handleClearCrack(sender);
             case "givecatalyst" -> handleGiveCatalyst(sender, args);
+            case "operation" -> handleOperation(sender, args);
+            case "pity" -> handlePity(sender, args);
+            case "convert-legacy" -> StrengthenLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -66,7 +82,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "reload", "inspect", "refresh", "setstar", "clearstate", "clearcrack", "givecatalyst", "debug")) {
+            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -92,6 +108,48 @@ final class StrengthenCommandRouter implements TabExecutor {
                     }
                 }
                 case "givecatalyst" -> plugin.recipeLoader().materialCatalog().keySet().stream()
+                        .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                        .forEach(result::add);
+                case "operation" -> {
+                    if ("list".startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                        result.add("list");
+                    }
+                    if (plugin.enhancementAttemptService() != null) {
+                        plugin.enhancementAttemptService().operationViews().stream()
+                                .map(EnhancementOperationView::operationId)
+                                .filter(id -> id.startsWith(args[1]))
+                                .forEach(result::add);
+                    }
+                }
+                case "pity" -> {
+                    for (String sub : List.of("list", "set", "clear", "diagnose")) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                            result.add(sub);
+                        }
+                    }
+                }
+                case "convert-legacy" -> {
+                    for (String sub : List.of("confirm", "--apply")) {
+                        if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                            result.add(sub);
+                        }
+                    }
+                }
+                case "branch" -> {
+                    if (sender instanceof Player player) {
+                        plugin.attemptService()
+                                .selectBranch(player.getInventory().getItemInMainHand(), "")
+                                .options()
+                                .keySet()
+                                .stream()
+                                .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
+                                .forEach(result::add);
+                    }
+                }
+                case "affix" -> plugin.enhancementRecipeLoader().all().values().stream()
+                        .filter(recipe -> recipe != null
+                                && "affix".equals(Texts.lower(recipe.target().provider())))
+                        .map(recipe -> recipe.id())
                         .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
                 default -> {
@@ -122,6 +180,24 @@ final class StrengthenCommandRouter implements TabExecutor {
         return result;
     }
 
+    private boolean handleAffix(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (plugin.affixGuiService() == null) {
+            plugin.messageService().send(sender, "gui.open_failed");
+            return true;
+        }
+        String recipeId = args.length >= 2 ? args[1] : "";
+        plugin.affixGuiService().open(player, recipeId);
+        return true;
+    }
+
     private boolean handleOpen(CommandSender sender) {
         if (!(sender instanceof Player player)) {
             plugin.messageService().send(sender, "general.player_only");
@@ -144,13 +220,16 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginStateAsync(true).thenRun(() -> runForSender(sender, () -> {
+            long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", plugin.recipeLoader().all().size(),
                     "materials", plugin.recipeLoader().materialCatalog().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
+            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         }));
         return true;
     }
@@ -195,6 +274,147 @@ final class StrengthenCommandRouter implements TabExecutor {
                 "value", state.firstReachFlags().isEmpty() ? "-" : state.firstReachFlags()
         )));
         return true;
+    }
+
+    private boolean handleOperation(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        EnhancementAttemptService service = plugin.enhancementAttemptService();
+        if (service == null) {
+            plugin.messageService().send(sender, "command.operation.unavailable");
+            return true;
+        }
+        if (args.length >= 2 && !"list".equalsIgnoreCase(args[1])) {
+            EnhancementOperationView view = service.operationView(args[1]);
+            if (view == null) {
+                plugin.messageService().send(sender, "command.operation.not_found",
+                        Map.of("operation_id", args[1]));
+                return true;
+            }
+            sendOperationLine(sender, view);
+            return true;
+        }
+        List<EnhancementOperationView> views = service.operationViews();
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.operation.header",
+                Map.of("count", views.size())));
+        if (views.isEmpty()) {
+            plugin.messageService().send(sender, "command.operation.empty");
+            return true;
+        }
+        views.forEach(view -> sendOperationLine(sender, view));
+        return true;
+    }
+
+    private boolean handlePity(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        InMemoryPityStateStore store = plugin.pityStateStore();
+        if (store == null) {
+            plugin.messageService().send(sender, "command.pity.unavailable");
+            return true;
+        }
+        String action = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "list";
+        return switch (action) {
+            case "diagnose" -> handlePityDiagnose(sender, store);
+            case "set" -> handlePitySet(sender, args);
+            case "clear" -> handlePityClear(sender, args);
+            default -> handlePityList(sender, args);
+        };
+    }
+
+    private boolean handlePityList(CommandSender sender, String[] args) {
+        String group = args.length >= 3 ? args[2] : "";
+        EmakiResult<List<EnhancementPityStateView>> result = pityOperations().pityStates(group);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.unavailable");
+            return true;
+        }
+        List<EnhancementPityStateView> views = result.orElse(List.of());
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.pity.header",
+                Map.of("count", views.size())));
+        if (views.isEmpty()) {
+            plugin.messageService().send(sender, "command.pity.empty");
+            return true;
+        }
+        for (EnhancementPityStateView view : views) {
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.pity.line", Map.of(
+                    "group", view.group(),
+                    "scope", view.scope(),
+                    "key", view.ownerKey(),
+                    "counter", view.counter(),
+                    "triggered", view.triggered()
+            )));
+        }
+        return true;
+    }
+
+    private boolean handlePitySet(CommandSender sender, String[] args) {
+        if (args.length < 6) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Integer counter = Numbers.tryParseInt(args[5], null);
+        if (counter == null || counter < 0) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        EmakiResult<Unit> result = pityOperations().setPityCounter(args[2], args[3], args[4], counter);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.invalid_scope",
+                    Map.of("legal", "player, item"));
+            return true;
+        }
+        plugin.messageService().send(sender, "command.pity.set_success",
+                Map.of("group", args[3], "counter", counter));
+        return true;
+    }
+
+    private boolean handlePityClear(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        EmakiResult<Integer> result = pityOperations().clearPityGroup(args[2]);
+        if (!result.isSuccess()) {
+            plugin.messageService().send(sender, "command.pity.not_found");
+            return true;
+        }
+        plugin.messageService().send(sender, "command.pity.clear_success",
+                Map.of("count", result.orElse(0)));
+        return true;
+    }
+
+    private boolean handlePityDiagnose(CommandSender sender, InMemoryPityStateStore store) {
+        PityPersistenceRetryScheduler scheduler = plugin.pityRetryScheduler();
+        plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.pity.diagnose_header"));
+        Map<String, Object> lines = new LinkedHashMap<>();
+        lines.put("records", store.size());
+        lines.put("dirty", store.isDirty());
+        lines.put("persistent", store.persistent());
+        lines.put("retry_running", scheduler != null && scheduler.running());
+        lines.put("retry_attempts", scheduler == null ? 0 : scheduler.attemptCount());
+        lines.forEach((key, value) -> plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.pity.diagnose_line",
+                        Map.of("key", key, "value", value))));
+        return true;
+    }
+
+    private StrengthenOperations pityOperations() {
+        return EmakiStrengthenApi.operations();
+    }
+
+    private void sendOperationLine(CommandSender sender, EnhancementOperationView view) {
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.operation.line", Map.of(
+                "operation_id", view.operationId(),
+                "player", view.playerId() == null ? "-" : view.playerId().toString(),
+                "phase", view.phase().isBlank() ? "-" : view.phase(),
+                "pending", view.compensationPending()
+        )));
     }
 
     private boolean handleRefresh(CommandSender sender, String[] args) {
@@ -243,6 +463,44 @@ final class StrengthenCommandRouter implements TabExecutor {
         player.getInventory().setItemInMainHand(rebuilt);
         plugin.messageService().send(sender, "command.setstar.success", Map.of("star", star));
         return true;
+    }
+
+    private boolean handleBranch(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        ItemStack held = player.getInventory().getItemInMainHand();
+        StrengthenAttemptService.BranchSelection selection =
+                plugin.attemptService().selectBranch(held, args.length >= 2 ? args[1] : "");
+        switch (selection.outcome()) {
+            case FAILED -> plugin.messageService().send(sender, selection.errorKey());
+            case PENDING_CHOICE -> sendBranchOptions(sender, selection, "command.branch.options");
+            case INVALID_CHOICE -> sendBranchOptions(sender, selection, "command.branch.invalid");
+            case APPLIED -> {
+                player.getInventory().setItemInMainHand(selection.rebuilt());
+                plugin.messageService().send(sender, "command.branch.success", Map.of(
+                        "branch", selection.displayName(),
+                        "path", selection.branchPath()
+                ));
+            }
+        }
+        return true;
+    }
+
+    private void sendBranchOptions(CommandSender sender,
+            StrengthenAttemptService.BranchSelection selection,
+            String headerKey) {
+        plugin.messageService().send(sender, headerKey);
+        selection.options().forEach((id, displayName) -> plugin.messageService().sendRaw(sender,
+                plugin.messageService().message("command.branch.option", Map.of(
+                        "id", id,
+                        "name", displayName
+                ))));
     }
 
     private boolean handleClearState(CommandSender sender) {
@@ -342,13 +600,18 @@ final class StrengthenCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("open", plugin.messageService().message("command.help.desc.open"));
+        lines.put("affix [recipe]", plugin.messageService().message("command.help.desc.affix"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("refresh [player]", plugin.messageService().message("command.help.desc.refresh"));
         lines.put("setstar <star> [recipe]", plugin.messageService().message("command.help.desc.setstar"));
+        lines.put("branch [id]", plugin.messageService().message("command.help.desc.branch"));
         lines.put("clearstate", plugin.messageService().message("command.help.desc.clearstate"));
         lines.put("clearcrack", plugin.messageService().message("command.help.desc.clearcrack"));
         lines.put("givecatalyst <id> [amount] [player]", plugin.messageService().message("command.help.desc.givecatalyst"));
+        lines.put("operation [list|<id>]", plugin.messageService().message("command.help.desc.operation"));
+        lines.put("pity [list|set|clear|diagnose] [...]", plugin.messageService().message("command.help.desc.pity"));
+        lines.put("convert-legacy [confirm]", plugin.messageService().message("command.help.desc.convert_legacy"));
         lines.put("debug <status|player|module|all> [...]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
                 plugin.messageService().message("command.help.line", Map.of("cmd", name, "desc", description))));

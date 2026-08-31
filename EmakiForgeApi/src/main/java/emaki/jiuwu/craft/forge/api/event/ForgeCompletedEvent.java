@@ -12,12 +12,12 @@ import org.bukkit.inventory.ItemStack;
  * <p>Informational only: the outcome is already committed, so this event is not cancellable. Use
  * {@link #isSuccess()} to distinguish a failed attempt from a successful one.
  *
- * <h2>Threading</h2>
+
  * The attempt itself resolves on an async chain, but EmakiForge hops back to the thread that owns the
  * forging player before firing, so listeners may safely touch the player, their inventory, and the
  * surrounding world.
  *
- * <h2>Coverage — this event is not fired for every attempt</h2>
+
  * It is skipped when the player's owner thread is unavailable, when the GUI session has gone stale,
  * when the completion task is rejected during shutdown drain, and when execution ends in an
  * unexpected exception. Do not use it as an exhaustive audit trail; treat a missing event as

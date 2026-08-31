@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-attribute</artifactId>
-    <version>4.7.0</version>
+    <version>4.8.0</version>
     <name>EmakiAttribute</name>
     <packaging>jar</packaging>
 
@@ -21,6 +21,11 @@
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-corelib-api</artifactId>
+            <version>${emaki.corelib.version}</version>
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>

@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -74,7 +75,7 @@ final class ForgeGuiStateSupport {
         if (recipe == null) {
             return 0;
         }
-        return usagePlanner(state).optionalCapacityCost(recipe, state.toGuiItems());
+        return usagePlanner(state).optionalCapacityCost(state.player(), recipe, state.toGuiItems());
     }
 
     public int resolveMaxCapacity(ForgeGuiSession state) {
@@ -90,7 +91,7 @@ final class ForgeGuiStateSupport {
             }
         }
         if (recipe != null) {
-            max += usagePlanner(state).optionalCapacityBonus(recipe, state.toGuiItems());
+            max += usagePlanner(state).optionalCapacityBonus(state.player(), recipe, state.toGuiItems());
         }
         return max;
     }
@@ -145,10 +146,7 @@ final class ForgeGuiStateSupport {
         List<String> requiredIds = new ArrayList<>();
         List<String> optionalIds = new ArrayList<>();
         int optionalLimit = 0;
-        List<Recipe> candidateRecipes = new ArrayList<>(resolveCandidateRecipes(state));
-        if (candidateRecipes.isEmpty() && state != null && state.runtimeSnapshot().recipeLoader() != null) {
-            candidateRecipes.addAll(state.runtimeSnapshot().recipeLoader().all().values());
-        }
+        List<Recipe> candidateRecipes = slotRuleRecipes(state);
         for (Recipe recipe : candidateRecipes) {
             if (recipe == null) {
                 continue;
@@ -166,6 +164,45 @@ final class ForgeGuiStateSupport {
             }
         }
         return new MaterialSlotRules(requiredIds, optionalIds, optionalLimit);
+    }
+
+    public String resolveMaterialKey(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {
+        if (state == null) {
+            return "";
+        }
+        MatchContext context = MatchContext.of(itemStack, source, state.player());
+        for (Recipe recipe : slotRuleRecipes(state)) {
+            if (recipe == null) {
+                continue;
+            }
+            ForgeMaterial material = recipe.findMaterialMatching(context);
+            if (material != null) {
+                return material.key();
+            }
+        }
+        ForgeMaterial material = findMaterialBySource(state, source);
+        return material == null ? "" : material.key();
+    }
+
+    public boolean acceptsBlueprint(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {
+        if (state == null) {
+            return false;
+        }
+        MatchContext context = MatchContext.of(itemStack, source, state.player());
+        for (Recipe recipe : slotRuleRecipes(state)) {
+            if (recipe != null && recipe.findBlueprintRequirementMatching(context) != null) {
+                return true;
+            }
+        }
+        return findBlueprintRequirementBySource(state, source) != null;
+    }
+
+    private List<Recipe> slotRuleRecipes(ForgeGuiSession state) {
+        List<Recipe> candidateRecipes = new ArrayList<>(resolveCandidateRecipes(state));
+        if (candidateRecipes.isEmpty() && state != null && state.runtimeSnapshot().recipeLoader() != null) {
+            candidateRecipes.addAll(state.runtimeSnapshot().recipeLoader().all().values());
+        }
+        return candidateRecipes;
     }
 
     public List<Recipe> resolveCandidateRecipes(ForgeGuiSession state) {
@@ -245,7 +282,7 @@ final class ForgeGuiStateSupport {
             return;
         }
         if (!state.returnPlanPrepared()) {
-            state.prepareReturnPlan(usagePlanner(state).unconsumedInputs(recipe, state.toGuiItems()));
+            state.prepareReturnPlan(usagePlanner(state).unconsumedInputs(state.player(), recipe, state.toGuiItems()));
         }
         drainPendingReturns(state);
     }
@@ -289,7 +326,7 @@ final class ForgeGuiStateSupport {
         if (recipe.blueprintRequirements().isEmpty()) {
             return true;
         }
-        Map<String, Integer> available = blueprintAvailability(state, blueprints);
+        Map<String, Integer> available = blueprintAvailability(state, recipe, blueprints);
         for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
             if (available.getOrDefault(requirement.key(), 0) < requirement.amount()) {
                 return false;
@@ -298,15 +335,15 @@ final class ForgeGuiStateSupport {
         return true;
     }
 
-    private Map<String, Integer> blueprintAvailability(ForgeGuiSession state, List<ItemStack> blueprints) {
+    private Map<String, Integer> blueprintAvailability(ForgeGuiSession state, Recipe recipe, List<ItemStack> blueprints) {
         Map<String, Integer> available = new LinkedHashMap<>();
         if (state == null || blueprints == null || state.runtimeSnapshot().itemIdentifierService() == null) {
             return available;
         }
         for (ItemStack itemStack : blueprints) {
-            BlueprintRequirement requirement = findBlueprintRequirementBySource(
-                    state,
-                    state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
+            ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
+            BlueprintRequirement requirement = recipe.findBlueprintRequirementMatching(
+                    MatchContext.of(itemStack, source, state.player()));
             if (requirement == null) {
                 continue;
             }

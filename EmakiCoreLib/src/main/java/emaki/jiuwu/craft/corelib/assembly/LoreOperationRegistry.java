@@ -77,7 +77,6 @@ public final class LoreOperationRegistry {
         return Set.copyOf(processors.keySet());
     }
 
-
     private static int findInsertIndex(List<String> lines, String anchor, boolean below) {
         if (Texts.isBlank(anchor)) {
             return below ? (lines == null ? 0 : lines.size()) : 0;

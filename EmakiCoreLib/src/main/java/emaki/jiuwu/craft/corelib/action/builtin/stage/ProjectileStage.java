@@ -30,39 +30,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Launches a self-driven projectile from the caster's eyes.
- *
- * <p>Ported from the Skills-side {@code projectile} action. Two behaviours were deliberately narrowed and
- * neither is faked back:</p>
- *
- * <ol>
- *   <li><b>The hit entity does not re-enter the target flow.</b> v1 wrote {@code context.setTarget(living)},
- *       a {@code projectile_hit} variable and a shared-state entry, so later lines could act on whatever the
- *       projectile struck. {@link CoreStageContext} is read-only and only a gate's {@code Passed.data} is
- *       written back, so this stage can report {@code hit_count} in its success data but cannot change what
- *       follows it. Configuration that needs the impact point has to pick its own targets.</li>
- *   <li><b>It does not wait for the flight to finish.</b> {@code execute} returns a synchronous outcome, so
- *       the launch returns {@code Success} immediately and the flight continues on the region scheduler.
- *       Lines after this one run at once rather than after impact; use {@code after} when a later line must
- *       be delayed.</li>
- * </ol>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: the launch reads the caster's eye location and direction. Each flight tick
- * then re-schedules itself onto the region that owns its current position, which is what keeps the moving
- * projectile legal on Folia.</p>
- */
 public final class ProjectileStage extends BaseStage {
 
     private final ExecutionDispatcher executionDispatcher;
     private final Plugin owner;
 
-    /**
-     * Creates the stage.
-     *
-     * @param executionDispatcher scheduler bridge used to drive the flight, may be {@code null} in tests
-     * @param owner plugin the flight tasks belong to, may be {@code null} in tests
-     */
     public ProjectileStage(ExecutionDispatcher executionDispatcher, Plugin owner) {
         super("projectile", "combat", "Launches a self-driven projectile from the caster.",
                 CoreTargetRequirement.OPTIONAL, CoreActionExecutionDomain.CONTEXT_ENTITY,
@@ -135,20 +107,6 @@ public final class ProjectileStage extends BaseStage {
         return direction.normalize().multiply(speed);
     }
 
-    /**
-     * The resolved arguments of one launch.
-     *
-     * @param speed blocks travelled per tick
-     * @param gravity downward pull applied per tick
-     * @param lifetime maximum lifetime in ticks
-     * @param hitRadius hit detection radius
-     * @param pierce how many extra entities the projectile passes through
-     * @param homing whether to steer toward the aim location
-     * @param homingStrength homing turn strength
-     * @param particle trail particle, {@code null} when the key is unknown
-     * @param damage damage dealt on hit, zero means none
-     * @param direction {@code look} or {@code target}
-     */
     private record Settings(double speed,
             double gravity,
             int lifetime,
@@ -176,12 +134,6 @@ public final class ProjectileStage extends BaseStage {
         }
     }
 
-    /**
-     * One projectile in flight.
-     *
-     * <p>Each tick re-schedules itself at its own current position, so a projectile crossing a Folia region
-     * boundary continues on the thread that owns the new region rather than touching the old one.</p>
-     */
     private final class Flight {
 
         private final Settings settings;
@@ -254,7 +206,6 @@ public final class ProjectileStage extends BaseStage {
             scheduleNextTick();
         }
 
-        /** {@return whether the projectile stopped on this tick} */
         private boolean applyHits(World world) {
             Collection<Entity> nearby = world.getNearbyEntities(current,
                     settings.hitRadius(), settings.hitRadius(), settings.hitRadius());

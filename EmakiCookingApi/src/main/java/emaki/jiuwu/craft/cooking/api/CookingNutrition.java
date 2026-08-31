@@ -25,9 +25,8 @@ public interface CookingNutrition {
     /**
      * Reads one nutrition value for a player, falling back to the type's configured default.
      *
-     * <p>Returns {@code INVALID_INPUT} for a {@code null} player id or blank type id,
-     * {@code UNAVAILABLE} when the nutrition runtime is not built, {@code REJECTED} when nutrition
-     * gameplay is disabled, and {@code NOT_FOUND} for an unregistered type id.
+     * <p>Validation, disabled-subsystem and availability failures use the shared {@link EmakiResult}
+     * contract.
      *
      * @param playerId player id
      * @param typeId   nutrition type id

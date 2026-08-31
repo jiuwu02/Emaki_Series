@@ -1,45 +1,8 @@
-# ============================================================
-# EmakiCodex 示例成就页
-# ============================================================
-# 一个文件 = 一个成就页（原版成就标签页）。
-# 新建一页只需在 advancements/ 下新建一个 yml 文件。
-#
-# 成就 key 规则: emakicodex:<page_id>/<成就本地id>
-# 完成条件统一为 impossible，通过 /codex grant 或 codex-grant-advancement action 授予。
-#
-# 节点坐标 x/y（可选）：仅在安装了 PacketEvents 且 config.yml 的
-# advancement.packet-coordinates=true 时生效，用于精确指定节点在成就页 GUI 中的位置。
-# 未装 PacketEvents 时 x/y 被忽略，位置由客户端按 parent 树自动排布。
-# x/y 都为 0 视为“未设置”，该节点回退自动排布；要用坐标建议整页都配，避免节点重叠。
-#
-# 节点完成动作 actions.complete（可选）：
-# actions:
-#   complete:
-#     - "sendmessage text=<green>达成成就！</green>"
-#
-# ------------------------------------------------------------
-# 事件触发器 triggers.entries（可选）：
-# 在成就节点下写 triggers.entries，玩家完成对应事件且条件满足时自动授予该成就。
-# 需 config.yml 的 advancement.triggers-enabled=true（默认开）。
-# 每个 trigger 含:
-#   event:     事件类型（见下表）
-#   condition: CoreLib 条件组（可省略；省略=只要事件发生就触发）
-#              推荐使用 type + entries，与其他插件的 condition 块保持一致。
-#              entries 内支持 == != < <= > >= 与 && || !，字符串值建议加引号。
-#              变量用 %名称%，会先替换成事件的实际值再求值。
-# 同一节点可写多个 trigger，满足任意一个即授予（“或”关系）。
-#
-# 可用 event 及其条件变量:
-#   entity_kill      击杀实体          %entity_type%（如 ZOMBIE）
-#   mythic_mob_kill  击杀 MythicMobs   %mythic_id%, %mythic_level%（需装 MythicMobs）
-#   block_break      破坏方块          %block_type%（如 DIAMOND_ORE）
-#   crop_harvest     收割成熟作物      %block_type%
-#   craft_item       合成物品          %result_type%, %result_amount%
-#   furnace_extract  从熔炉取出        %result_type%, %result_amount%
-#   player_fish      钓鱼              %fish_state%（如 CAUGHT_FISH）
-#   brew_complete    酿造完成          %potion_type%
-#   entity_tame      驯服生物          %entity_type%
-# 所有事件都额外提供: %player%（玩家名）, %world%（所在世界名）
+# EmakiCodex 示例成就页。
+# 成就键为 emakicodex:<page_id>/<节点ID>，可由命令、CoreLib 动作或事件触发器授予。
+# 坐标仅在 PacketEvents 可用且 packet-coordinates 启用时生效；x/y 同为 0 表示未指定。
+# trigger.condition 省略时事件即命中；同一节点多个 trigger 为 OR。
+# 条件变量先替换再求值；所有事件提供 %player% 和 %world%，依赖事件仅在对应插件可用时触发。
 # ============================================================
 
 # 成就页 id（也作为成就 key 的路径前缀）
@@ -67,8 +30,6 @@ advancements:
     toast: false
     announce: false
     hidden: false
-    actions:
-      complete: []
 
   first_step:
     icon: "minecraft-crafting_table"

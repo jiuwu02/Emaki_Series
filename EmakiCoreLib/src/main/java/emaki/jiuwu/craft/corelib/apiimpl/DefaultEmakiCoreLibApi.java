@@ -3,22 +3,34 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
+import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
+import emaki.jiuwu.craft.corelib.api.contract.FailureKind;
+import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
@@ -51,8 +63,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         }
         String pluginName = plugin.getName();
         String version = plugin.getPluginMeta().getVersion();
-        // Data criterion, not "one service exists": messageService is non-null from initializeServices()
-        // onward, so the old check reported ready while a reload was still swapping the stage table.
+
         return plugin.contentReady()
                 ? ApiStatus.ready(pluginName, version, version)
                 : ApiStatus.loading(pluginName, version, version);
@@ -74,11 +85,6 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         return resolved;
     }
 
-    /**
-     * 安装对话框层。由 {@link EmakiCoreLibPlugin} 在对话框子系统就绪后调用。
-     *
-     * @param dialogs 对话框层实现；{@code null} 表示子系统不可用
-     */
     public void installDialogs(CoreLibDialogs dialogs) {
         this.dialogBridge = dialogs;
     }
@@ -158,6 +164,50 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
         return registry == null
                 ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "action.register.registry_unavailable")
                 : registry.registerGate(owner, gate);
+    }
+
+    @Override
+    public CoreTriggerRegistration registerActionTrigger(Plugin owner, CoreActionTrigger trigger) {
+        return plugin.triggerRegistry().register(owner, trigger);
+    }
+
+    @Override
+    public CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(Plugin owner,
+            String triggerId,
+            CoreTriggerDispatch dispatch) {
+        if (Texts.isBlank(triggerId)) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.invalidInput("action.trigger.dispatch.blank_id"));
+        }
+        if (dispatch == null) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.invalidInput("action.trigger.dispatch.no_dispatch"));
+        }
+
+        TriggerContract contract = plugin.triggerRegistry().contractOf(triggerId);
+        if (contract == null) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.notFound("action.trigger.dispatch.unknown_trigger"));
+        }
+        if (dispatch.lines().isEmpty()) {
+            return CompletableFuture.completedFuture(EmakiResult.ok());
+        }
+        ActionLineRunner runner = plugin.actionLineRunner(owner);
+        if (!runner.available()) {
+            return CompletableFuture.completedFuture(EmakiResult.failure(FailureKind.UNAVAILABLE,
+                    "action.trigger.dispatch.engine_unavailable"));
+        }
+
+        Player caster = dispatch.casterId() == null ? null : Bukkit.getPlayer(dispatch.casterId());
+        PipelineContext context = runner.context(caster, dispatch.phase(), dispatch.silent(),
+                dispatch.variables());
+        if (dispatch.hasTriggerName()) {
+            context = context.with(CoreActionKeys.TRIGGER, dispatch.triggerName());
+        }
+        return runner.run(dispatch.lines(), context, contract, false)
+                .thenApply(succeeded -> succeeded
+                        ? EmakiResult.ok()
+                        : EmakiResult.partial(Unit.INSTANCE, "action.trigger.dispatch.line_failed"));
     }
 
     @Override

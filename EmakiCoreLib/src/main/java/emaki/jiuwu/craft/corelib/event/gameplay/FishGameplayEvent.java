@@ -4,13 +4,6 @@ import java.util.Map;
 
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
-
 public record FishGameplayEvent(Player player, String state)
         implements GameplayEvent {
 

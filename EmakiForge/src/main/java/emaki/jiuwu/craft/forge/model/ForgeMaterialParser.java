@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial.MaterialEffect;
 
 final class ForgeMaterialParser {
@@ -29,10 +30,10 @@ final class ForgeMaterialParser {
         }
         ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(raw, "item_sources"));
         String item = ItemSourceUtil.toShorthand(source);
-        if (Texts.isBlank(item)) {
-            return null;
-        }
-        if (source == null) {
+        Object matcherNode = ConfigNodes.get(raw, "matcher");
+        Matcher matcher = matcherNode == null ? null : Matcher.fromConfig(matcherNode);
+        String matcherKey = matcher == null ? "" : MatcherIdentity.syntheticKey(matcherNode);
+        if (Texts.isBlank(matcherKey) && (Texts.isBlank(item) || source == null)) {
             return null;
         }
         int amount = Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1);
@@ -53,7 +54,9 @@ final class ForgeMaterialParser {
                 ConfigNodes.bool(raw, "optional", false),
                 Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(ConfigNodes.get(raw, "capacity_cost"))),
                 effects,
-                source
+                source,
+                matcher,
+                matcherKey
         );
     }
 

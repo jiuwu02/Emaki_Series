@@ -3,12 +3,6 @@ package emaki.jiuwu.craft.cooking.model;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-
-
-
-
-
-
 public final class NutritionTypeConfig {
 
     private final String id;
@@ -47,9 +41,6 @@ public final class NutritionTypeConfig {
         return defaultValue;
     }
 
-
-
-
     public double clamp(double value) {
         return clamp(value, min, max);
     }
@@ -60,9 +51,6 @@ public final class NutritionTypeConfig {
         }
         return Math.min(value, high);
     }
-
-
-
 
     public static NutritionTypeConfig parse(YamlSection section, String fallbackId) {
         if (section == null) {

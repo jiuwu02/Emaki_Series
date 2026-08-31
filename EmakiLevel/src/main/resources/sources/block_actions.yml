@@ -1,0 +1,79 @@
+# EmakiLevel 经验来源 - 方块行为
+# 挖掘、放置等方块交互的经验来源与反滥用参数。
+
+id: "block_actions"
+enabled: true
+sources:
+  mining:
+    enabled: true
+    type: "mining"
+    trigger: "block_break"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 2
+    rules:
+      - blocks:
+          - "STONE"
+          - "DEEPSLATE"
+        exp_formula: "1"
+      - blocks:
+          - "COAL_ORE"
+          - "DEEPSLATE_COAL_ORE"
+          - "IRON_ORE"
+          - "DEEPSLATE_IRON_ORE"
+        exp_formula: "5"
+      - blocks:
+          - "DIAMOND_ORE"
+          - "DEEPSLATE_DIAMOND_ORE"
+          - "EMERALD_ORE"
+          - "DEEPSLATE_EMERALD_ORE"
+        exp_formula: "25"
+  logging:
+    enabled: true
+    type: "logging"
+    trigger: "block_break"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 2
+    rules:
+      - blocks:
+          - "OAK_LOG"
+          - "BIRCH_LOG"
+          - "SPRUCE_LOG"
+          - "JUNGLE_LOG"
+          - "ACACIA_LOG"
+          - "DARK_OAK_LOG"
+          - "MANGROVE_LOG"
+          - "CHERRY_LOG"
+        exp_formula: "5"
+  gathering:
+    enabled: true
+    type: "gathering"
+    trigger: "block_break"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 2
+    rules:
+      - blocks:
+          - "GRASS"
+          - "FERN"
+          - "LARGE_FERN"
+          - "DANDELION"
+          - "POPPY"
+          - "SWEET_BERRY_BUSH"
+        exp_formula: "2"
+  farming:
+    enabled: true
+    type: "farming"
+    trigger: "crop_harvest"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 2
+    rules:
+      - blocks:
+          - "WHEAT"
+          - "CARROTS"
+          - "POTATOES"
+          - "BEETROOTS"
+          - "NETHER_WART"
+        exp_formula: "4"

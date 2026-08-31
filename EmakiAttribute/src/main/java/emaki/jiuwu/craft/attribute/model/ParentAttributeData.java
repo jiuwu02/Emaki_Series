@@ -24,10 +24,6 @@ public final class ParentAttributeData {
         this.updatedAt = System.currentTimeMillis();
     }
 
-    /**
-     * Returns a deep, detached copy used to isolate save snapshots from
-     * concurrent mutation of the live instance.
-     */
     public ParentAttributeData copy() {
         ParentAttributeData copy = new ParentAttributeData(uuid, name);
         copy.availablePoints = availablePoints;
@@ -79,46 +75,20 @@ public final class ParentAttributeData {
         }
     }
 
-    /**
-     * Returns an immutable, insertion-ordered snapshot of the allocations.
-     *
-     * <p>The returned map is detached from this instance, so callers may
-     * iterate it while another thread mutates the backing data. Mutation must
-     * go through {@link #putAllocation(String, int)},
-     * {@link #addAllocation(String, int)}, {@link #removeAllocation(String)} or
-     * {@link #clearAllocations()}.
-     */
     public Map<String, Integer> allocations() {
         return Collections.unmodifiableMap(new LinkedHashMap<>(allocations));
     }
 
-    /**
-     * Replaces the points allocated to {@code attributeId}.
-     *
-     * <p>Equivalent to {@code allocations.put(id, points)} on the previously
-     * exposed mutable map; used when rebuilding state from disk.
-     */
     public void putAllocation(String attributeId, int points) {
         allocations.put(Texts.normalizeId(attributeId), points);
         markDirty();
     }
 
-    /**
-     * Adds {@code points} to the current allocation of {@code attributeId}.
-     *
-     * <p>Equivalent to {@code allocations.merge(id, points, Integer::sum)} on
-     * the previously exposed mutable map.
-     */
     public void addAllocation(String attributeId, int points) {
         allocations.merge(Texts.normalizeId(attributeId), points, Integer::sum);
         markDirty();
     }
 
-    /**
-     * Removes the allocation of {@code attributeId}.
-     *
-     * @return {@code true} when an entry was actually removed.
-     */
     public boolean removeAllocation(String attributeId) {
         if (allocations.remove(Texts.normalizeId(attributeId)) == null) {
             return false;
@@ -127,12 +97,6 @@ public final class ParentAttributeData {
         return true;
     }
 
-    /**
-     * Removes every allocation.
-     *
-     * <p>Equivalent to {@code allocations.clear()} on the previously exposed
-     * mutable map.
-     */
     public void clearAllocations() {
         if (allocations.isEmpty()) {
             return;
@@ -173,13 +137,6 @@ public final class ParentAttributeData {
         this.persistedRevision = revision;
     }
 
-    /**
-     * Marks everything up to {@code revision} as persisted.
-     *
-     * <p>Unlike {@link #clearDirty()} this keeps the instance dirty when it was
-     * mutated after the save snapshot was taken, so concurrent edits are not
-     * silently dropped by an in-flight asynchronous save.
-     */
     public void markPersisted(long revision) {
         this.persistedRevision = Math.max(this.persistedRevision, revision);
     }

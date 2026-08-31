@@ -12,12 +12,6 @@ import io.lumine.mythic.api.skills.placeholders.PlaceholderString;
 import io.lumine.mythic.bukkit.MythicBukkit;
 import io.lumine.mythic.core.mobs.ActiveMob;
 
-/**
- * 直接使用 MythicMobs 编译期类型的实现。
- *
- * <p>包内可见：只由 {@link MythicMobBridgeProvider} 在确认 MythicMobs 已启用后实例化，
- * 借此把对 {@code io.lumine.*} 的类链接延迟到那一刻，同时保留编译期类型检查。
- */
 final class MythicMobBridgeApi implements MythicMobBridge {
 
     @Override
@@ -49,10 +43,6 @@ final class MythicMobBridgeApi implements MythicMobBridge {
                 resolveDisplayName(activeMob));
     }
 
-    /**
-     * 显示名优先取 {@link ActiveMob#getDisplayName()}，为空再回落怪物类型配置的显示名，
-     * 与迁移前 EA 侧的取值顺序一致。
-     */
     private String resolveDisplayName(ActiveMob activeMob) {
         String activeName = Texts.trim(activeMob.getDisplayName());
         if (Texts.isNotBlank(activeName)) {

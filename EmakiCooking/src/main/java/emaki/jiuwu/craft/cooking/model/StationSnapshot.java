@@ -1,38 +1,5 @@
 package emaki.jiuwu.craft.cooking.model;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public record StationSnapshot(
         StationType stationType,
         String worldName,

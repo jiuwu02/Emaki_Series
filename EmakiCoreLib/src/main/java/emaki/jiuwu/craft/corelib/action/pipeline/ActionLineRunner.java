@@ -16,21 +16,9 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
-import emaki.jiuwu.craft.corelib.action.pipeline.compile.TriggerContract;
 
-/**
- * What business modules use to run a list of configured pipeline lines.
- *
- * <p>This replaces holding an {@code ActionExecutor}. The distinction matters: the v1
- * executor was a stable object a module could keep for its lifetime, while {@link ActionEngine} is rebuilt
- * on every CoreLib reload because a reload installs a new stage table. A module that captured an engine at
- * construction would keep running against retired stages, and the symptom would be actions silently doing
- * nothing after a reload rather than an error.</p>
- *
- * <p>So this class holds a {@link Supplier} and reads it per call. Modules keep one of these for their
- * lifetime and never see the engine swap.</p>
- */
 public final class ActionLineRunner {
 
     private final Plugin owner;
@@ -39,14 +27,6 @@ public final class ActionLineRunner {
     private final PlaceholderBridge placeholders;
     private final Function<CompileDiagnostic, String> diagnosticFormatter;
 
-    /**
-     * Creates a runner.
-     *
-     * @param owner the plugin whose invocations these are
-     * @param engineSupplier reads the live engine; must not capture it
-     * @param batchRunner the shared batch runner, holding the compile cache
-     * @param placeholders renders placeholders, may be {@code null} for variables-only rendering
-     */
     public ActionLineRunner(@NotNull Plugin owner,
             @NotNull Supplier<ActionEngine> engineSupplier,
             @NotNull PipelineBatchRunner batchRunner,
@@ -54,16 +34,6 @@ public final class ActionLineRunner {
         this(owner, engineSupplier, batchRunner, placeholders, null);
     }
 
-    /**
-     * Creates a runner that reports rejected lines as readable text.
-     *
-     * @param owner the plugin whose invocations these are
-     * @param engineSupplier reads the live engine; must not capture it
-     * @param batchRunner the shared batch runner, holding the compile cache
-     * @param placeholders renders placeholders, may be {@code null} for variables-only rendering
-     * @param diagnosticFormatter renders a diagnostic through the language file; when {@code null} the
-     *        stable reason key is logged instead, which is what a caller without a message service gets
-     */
     public ActionLineRunner(@NotNull Plugin owner,
             @NotNull Supplier<ActionEngine> engineSupplier,
             @NotNull PipelineBatchRunner batchRunner,
@@ -78,19 +48,6 @@ public final class ActionLineRunner {
                 : diagnosticFormatter;
     }
 
-    /**
-     * Builds a root context in the shape business triggers use.
-     *
-     * <p>Mirrors what the v1 {@code ActionContext.create(...).withPlaceholders(...)} produced, so a caller
-     * migrating from v1 does not have to reason about the target flow: the caster is the acting player and
-     * the pipeline's own source segment decides what it acts on.</p>
-     *
-     * @param caster the acting entity, may be {@code null} for server-side triggers
-     * @param phase phase name, surfaced to stages and used in diagnostics
-     * @param silent whether player-facing feedback is suppressed
-     * @param placeholders values readable as {@code %var.name%}
-     * @return the root context
-     */
     public @NotNull PipelineContext context(@Nullable Entity caster,
             @Nullable String phase,
             boolean silent,
@@ -104,29 +61,12 @@ public final class ActionLineRunner {
                 : context.withVariables(placeholders);
     }
 
-    /**
-     * Compiles and runs a list of configured lines.
-     *
-     * @param lines the configured pipeline lines
-     * @param context the root context
-     * @param stopOnFailure whether the first failing line ends the batch
-     * @return whether every executed line succeeded; {@code true} when there is nothing to run
-     */
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
             @NotNull PipelineContext context,
             boolean stopOnFailure) {
         return run(lines, context, phaseContract(context), stopOnFailure);
     }
 
-    /**
-     * Compiles and runs with an explicit phase contract.
-     *
-     * @param lines the configured pipeline lines
-     * @param context the root context
-     * @param phase what this invocation provides
-     * @param stopOnFailure whether the first failing line ends the batch
-     * @return whether every executed line succeeded; {@code true} when there is nothing to run
-     */
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
             @NotNull PipelineContext context,
             @Nullable PhaseContract phase,
@@ -142,15 +82,6 @@ public final class ActionLineRunner {
                         + diagnosticFormatter.apply(diagnostic)));
     }
 
-    /**
-     * Compiles and runs with a trigger contract resolved by the context phase.
-     *
-     * @param lines the configured pipeline lines
-     * @param context the root context
-     * @param trigger trigger contract containing phase contracts
-     * @param stopOnFailure whether the first failing line ends the batch
-     * @return whether every executed line succeeded; {@code true} when there is nothing to run
-     */
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
             @NotNull PipelineContext context,
             @Nullable TriggerContract trigger,
@@ -159,17 +90,6 @@ public final class ActionLineRunner {
         return run(lines, context, phase, stopOnFailure);
     }
 
-    /**
-     * Compiles and runs in the common shape, building the context for the caller.
-     *
-     * @param lines the configured pipeline lines
-     * @param caster the acting entity, may be {@code null}
-     * @param phase phase name
-     * @param silent whether player-facing feedback is suppressed
-     * @param placeholders values readable as {@code %var.name%}
-     * @param stopOnFailure whether the first failing line ends the batch
-     * @return whether every executed line succeeded
-     */
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
             @Nullable Entity caster,
             @Nullable String phase,
@@ -179,7 +99,6 @@ public final class ActionLineRunner {
         return run(lines, context(caster, phase, silent, placeholders), stopOnFailure);
     }
 
-    /** {@return whether an engine is currently available} */
     public boolean available() {
         return engineSupplier.get() != null;
     }

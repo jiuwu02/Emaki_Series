@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
 public final class DebugCommand {
@@ -21,9 +23,11 @@ public final class DebugCommand {
 
     private final DebugLogger debugLogger;
     private final Set<String> availableModules;
+    private final String pluginName;
 
-    public DebugCommand(DebugLogger debugLogger, Set<String> availableModules) {
+    public DebugCommand(DebugLogger debugLogger, Set<String> availableModules, String pluginName) {
         this.debugLogger = debugLogger;
+        this.pluginName = Objects.requireNonNull(pluginName, "pluginName");
         LinkedHashSet<String> modules = new LinkedHashSet<>();
         if (availableModules != null) {
             availableModules.stream()
@@ -44,11 +48,11 @@ public final class DebugCommand {
             case "status" -> sendStatus(sender, messageService);
             case "on" -> {
                 debugLogger.enableAll();
-                messageService.sendRaw(sender, messageService.message("debug.command.all_enabled"));
+                messageService.sendRaw(sender, message(messageService, "debug.command.all_enabled"));
             }
             case "off" -> {
                 debugLogger.disableAll();
-                messageService.sendRaw(sender, messageService.message("debug.command.all_disabled"));
+                messageService.sendRaw(sender, message(messageService, "debug.command.all_disabled"));
             }
             case "player" -> handlePlayer(sender, args, messageService);
             case "module" -> handleModule(sender, args, messageService);
@@ -91,53 +95,54 @@ public final class DebugCommand {
 
     private void handlePlayer(CommandSender sender, String[] args, AbstractMessageService messageService) {
         if (args.length < 2) {
-            messageService.sendRaw(sender, messageService.message("debug.command.available_modules",
+            messageService.sendRaw(sender, message(messageService, "debug.command.available_modules",
                     Map.of("modules", String.join(", ", availableModules))));
             return;
         }
         Player target = Bukkit.getPlayerExact(args[1]);
         if (target == null) {
-            messageService.sendRaw(sender, messageService.message("debug.command.player_not_found",
+            messageService.sendRaw(sender, message(messageService, "debug.command.player_not_found",
                     Map.of("player", args[1])));
             return;
         }
         boolean nowTracked = debugLogger.togglePlayer(target.getUniqueId());
         if (nowTracked) {
-            messageService.sendRaw(sender, messageService.message("debug.command.player_added",
+            messageService.sendRaw(sender, message(messageService, "debug.command.player_added",
                     Map.of("player", target.getName())));
         } else {
-            messageService.sendRaw(sender, messageService.message("debug.command.player_removed",
+            messageService.sendRaw(sender, message(messageService, "debug.command.player_removed",
                     Map.of("player", target.getName())));
         }
     }
 
     private void handleModule(CommandSender sender, String[] args, AbstractMessageService messageService) {
         if (args.length < 2) {
-            messageService.sendRaw(sender, messageService.message("debug.command.available_modules",
+            messageService.sendRaw(sender, message(messageService, "debug.command.available_modules",
                     Map.of("modules", String.join(", ", availableModules))));
             return;
         }
         String module = args[1].toLowerCase(Locale.ROOT);
         boolean nowEnabled = debugLogger.toggleModule(module);
         if (nowEnabled) {
-            messageService.sendRaw(sender, messageService.message("debug.command.module_enabled",
+            messageService.sendRaw(sender, message(messageService, "debug.command.module_enabled",
                     Map.of("module", module)));
         } else {
-            messageService.sendRaw(sender, messageService.message("debug.command.module_disabled",
+            messageService.sendRaw(sender, message(messageService, "debug.command.module_disabled",
                     Map.of("module", module)));
         }
     }
 
     private void sendStatus(CommandSender sender, AbstractMessageService messageService) {
-        messageService.sendRaw(sender, messageService.message("debug.command.status_header"));
+        messageService.sendRaw(sender,
+            message(messageService, "debug.command.status_header", Map.of("plugin", pluginName)));
         if (debugLogger.isGlobalEnabled()) {
-            messageService.sendRaw(sender, messageService.message("debug.command.status_enabled"));
+            messageService.sendRaw(sender, message(messageService, "debug.command.status_enabled"));
         } else {
-            messageService.sendRaw(sender, messageService.message("debug.command.status_disabled"));
+            messageService.sendRaw(sender, message(messageService, "debug.command.status_disabled"));
         }
         Set<UUID> players = debugLogger.trackedPlayers();
         if (players.isEmpty()) {
-            messageService.sendRaw(sender, messageService.message("debug.command.tracked_players",
+            messageService.sendRaw(sender, message(messageService, "debug.command.tracked_players",
                     Map.of("players", "*")));
         } else {
             List<String> names = new ArrayList<>();
@@ -145,13 +150,28 @@ public final class DebugCommand {
                 Player player = Bukkit.getPlayer(uuid);
                 names.add(player != null ? player.getName() : uuid.toString());
             }
-            messageService.sendRaw(sender, messageService.message("debug.command.tracked_players",
+            messageService.sendRaw(sender, message(messageService, "debug.command.tracked_players",
                     Map.of("players", String.join(", ", names))));
         }
         Set<String> modules = debugLogger.enabledModules();
-        messageService.sendRaw(sender, messageService.message("debug.command.tracked_modules",
+        messageService.sendRaw(sender, message(messageService, "debug.command.tracked_modules",
                 Map.of("modules", modules.isEmpty() ? "*" : String.join(", ", modules))));
-        messageService.sendRaw(sender, messageService.message("debug.command.available_modules",
+        messageService.sendRaw(sender, message(messageService, "debug.command.available_modules",
                 Map.of("modules", String.join(", ", availableModules))));
+    }
+
+    private String message(AbstractMessageService messageService, String key) {
+        return message(messageService, key, Map.of());
+    }
+
+    private String message(AbstractMessageService messageService, String key, Map<String, ?> replacements) {
+        String resolved = messageService.message(key, replacements);
+        if (!key.equals(resolved)) {
+            return resolved;
+        }
+        String template = debugLogger.resolveTemplate(key);
+        return replacements == null || replacements.isEmpty()
+                ? template
+                : Texts.formatTemplate(template, replacements);
     }
 }

@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.codex.api.AdvancementTrigger;
 import emaki.jiuwu.craft.codex.api.AdvancementTriggerRegistration;
 import emaki.jiuwu.craft.codex.api.CodexExtensions;
 
-/** Runtime extension layer backed by owner-scoped registries. */
 public final class DefaultCodexExtensions implements CodexExtensions {
 
     private final EmakiCodexPlugin plugin;

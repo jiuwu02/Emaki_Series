@@ -17,6 +17,7 @@ public record DamageStageDefinition(String id,
         DamageStageKind kind,
         DamageStageSource source,
         DamageStageMode mode,
+        StageRole role,
         List<String> flatAttributes,
         List<String> percentAttributes,
         List<String> chanceAttributes,
@@ -38,6 +39,7 @@ public record DamageStageDefinition(String id,
         kind = kind == null ? DamageStageKind.FLAT_PERCENT : kind;
         source = source == null ? DamageStageSource.ATTACKER : source;
         mode = mode == null ? DamageStageMode.ADD : mode;
+        role = role == null ? inferRole(id) : role;
         flatAttributes = flatAttributes == null ? List.of() : List.copyOf(flatAttributes);
         percentAttributes = percentAttributes == null ? List.of() : List.copyOf(percentAttributes);
         chanceAttributes = chanceAttributes == null ? List.of() : List.copyOf(chanceAttributes);
@@ -58,11 +60,14 @@ public record DamageStageDefinition(String id,
         DamageStageKind kind = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "kind", "FLAT_PERCENT"), DamageStageKind.FLAT_PERCENT);
         DamageStageSource source = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "source", "ATTACKER"), DamageStageSource.ATTACKER);
         DamageStageMode mode = ConfigNodes.enumOrDefault(ConfigNodes.string(raw, "mode", "ADD"), DamageStageMode.ADD);
+        String roleStr = ConfigNodes.string(raw, "role", null);
+        StageRole role = Texts.isBlank(roleStr) ? null : ConfigNodes.enumOrDefault(roleStr, StageRole.NORMAL);
         return new DamageStageDefinition(
                 id,
                 kind,
                 source,
                 mode,
+                role,
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "flat_attributes")), attributeNormalizer),
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "percent_attributes")), attributeNormalizer),
                 normalizeAttributes(Texts.asStringList(ConfigNodes.get(raw, "chance_attributes")), attributeNormalizer),
@@ -135,6 +140,20 @@ private static Map<String, Object> normalizeVariables(Map<String, Object> variab
             }
         }
         return List.copyOf(normalized);
+    }
+
+    private static StageRole inferRole(String id) {
+        String normalized = Texts.normalizeId(id);
+        if ("crit".equals(normalized) || "critical".equals(normalized)) {
+            return StageRole.CRITICAL;
+        }
+        if ("defense".equals(normalized) || "target_defense".equals(normalized)) {
+            return StageRole.DEFENSE;
+        }
+        if ("block".equals(normalized) || "shield_block".equals(normalized)) {
+            return StageRole.BLOCK;
+        }
+        return StageRole.NORMAL;
     }
 
     private record AttributeSignatureCache(String flatAttributesSignature,

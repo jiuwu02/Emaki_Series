@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.function.ToIntFunction;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.BlueprintRequirement;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
@@ -31,32 +33,24 @@ final class ForgeMaterialUsagePlanner {
         this.itemIdentifierService = itemIdentifierService;
     }
 
-    List<ForgeMaterialContribution> collectMaterialContributions(Recipe recipe, GuiItems guiItems) {
+    List<ForgeMaterialContribution> collectMaterialContributions(Player player, Recipe recipe, GuiItems guiItems) {
         List<ForgeMaterialContribution> result = new ArrayList<>();
         if (recipe == null || guiItems == null) {
             return result;
         }
         int sequence = 0;
-        sequence = appendRequiredContributions(result, recipe, guiItems, sequence);
-        appendOptionalContributions(result, recipe, guiItems, sequence);
+        sequence = appendRequiredContributions(result, player, recipe, guiItems, sequence);
+        appendOptionalContributions(result, player, recipe, guiItems, sequence);
         return result;
     }
 
-    /**
-     * {@return how much of each recipe material is currently sitting in the GUI slots, keyed by
-     * {@link ForgeMaterial#key()}}
-     *
-     * <p>Counts the GUI input slots rather than the player's inventory, because materials are moved out
-     * of the inventory when placed. Reuses the same matching and summing helpers the consumption planner
-     * uses, so a requirement display built on this cannot disagree with what validation will accept.</p>
-     */
-    Map<String, Integer> placedAmounts(Recipe recipe, GuiItems guiItems) {
+    Map<String, Integer> placedAmounts(Player player, Recipe recipe, GuiItems guiItems) {
         Map<String, Integer> result = new LinkedHashMap<>();
         if (recipe == null || guiItems == null) {
             return result;
         }
-        List<InputStack> requiredInputs = inputStacks(guiItems.requiredMaterials());
-        List<InputStack> optionalInputs = inputStacks(guiItems.optionalMaterials());
+        List<InputStack> requiredInputs = inputStacks(player, guiItems.requiredMaterials());
+        List<InputStack> optionalInputs = inputStacks(player, guiItems.optionalMaterials());
         for (ForgeMaterial material : recipe.materials()) {
             if (material == null || isBlank(material.key())) {
                 continue;
@@ -67,53 +61,60 @@ final class ForgeMaterialUsagePlanner {
         return result;
     }
 
-    int optionalCapacityCost(Recipe recipe, GuiItems guiItems) {
-        return sumOptionalContributions(recipe, guiItems, ForgeMaterial::effectiveCapacityCost);
+    int optionalCapacityCost(Player player, Recipe recipe, GuiItems guiItems) {
+        return sumOptionalContributions(player, recipe, guiItems, ForgeMaterial::effectiveCapacityCost);
     }
 
-    int optionalCapacityBonus(Recipe recipe, GuiItems guiItems) {
-        return sumOptionalContributions(recipe, guiItems, ForgeMaterial::forgeCapacityBonus);
+    int optionalCapacityBonus(Player player, Recipe recipe, GuiItems guiItems) {
+        return sumOptionalContributions(player, recipe, guiItems, ForgeMaterial::forgeCapacityBonus);
     }
 
-    private int sumOptionalContributions(Recipe recipe, GuiItems guiItems, ToIntFunction<ForgeMaterial> extractor) {
+    private int sumOptionalContributions(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            ToIntFunction<ForgeMaterial> extractor) {
         int total = 0;
-        for (ForgeMaterialContribution c : collectOptionalContributions(recipe, guiItems, 0)) {
+        for (ForgeMaterialContribution c : collectOptionalContributions(player, recipe, guiItems, 0)) {
             total += extractor.applyAsInt(c.material()) * c.amount();
         }
         return total;
     }
 
-    List<ItemStack> unconsumedInputs(Recipe recipe, GuiItems guiItems) {
+    List<ItemStack> unconsumedInputs(Player player, Recipe recipe, GuiItems guiItems) {
         List<ItemStack> result = new ArrayList<>();
         if (recipe == null || guiItems == null) {
             return result;
         }
         appendUnconsumedItems(
                 result,
+                player,
                 guiItems.blueprints(),
-                source -> blueprintKey(recipe, source),
+                context -> blueprintKey(recipe, context),
                 blueprintConsumption(recipe)
         );
         appendUnconsumedItems(
                 result,
+                player,
                 guiItems.requiredMaterials(),
-                source -> materialKey(recipe, source, false),
+                context -> materialKey(recipe, context, false),
                 requiredMaterialConsumption(recipe)
         );
         appendUnconsumedItems(
                 result,
+                player,
                 guiItems.optionalMaterials(),
-                source -> materialKey(recipe, source, true),
-                optionalMaterialConsumption(recipe, guiItems)
+                context -> materialKey(recipe, context, true),
+                optionalMaterialConsumption(player, recipe, guiItems)
         );
         return result;
     }
 
     private int appendRequiredContributions(List<ForgeMaterialContribution> result,
+            Player player,
             Recipe recipe,
             GuiItems guiItems,
             int sequence) {
-        List<InputStack> inputs = inputStacks(guiItems.requiredMaterials());
+        List<InputStack> inputs = inputStacks(player, guiItems.requiredMaterials());
         int nextSequence = sequence;
         for (ForgeMaterial material : recipe.requiredMaterials()) {
             InputStack firstInput = firstMatchingInput(inputs, material);
@@ -133,23 +134,27 @@ final class ForgeMaterialUsagePlanner {
     }
 
     private int appendOptionalContributions(List<ForgeMaterialContribution> result,
+            Player player,
             Recipe recipe,
             GuiItems guiItems,
             int sequence) {
         int nextSequence = sequence;
-        for (ForgeMaterialContribution contribution : collectOptionalContributions(recipe, guiItems, sequence)) {
+        for (ForgeMaterialContribution contribution : collectOptionalContributions(player, recipe, guiItems, sequence)) {
             result.add(contribution);
             nextSequence = Math.max(nextSequence, contribution.sequence() + 1);
         }
         return nextSequence;
     }
 
-    private List<ForgeMaterialContribution> collectOptionalContributions(Recipe recipe, GuiItems guiItems, int sequence) {
+    private List<ForgeMaterialContribution> collectOptionalContributions(Player player,
+            Recipe recipe,
+            GuiItems guiItems,
+            int sequence) {
         List<ForgeMaterialContribution> result = new ArrayList<>();
         if (recipe == null || guiItems == null) {
             return result;
         }
-        List<InputStack> inputs = inputStacks(guiItems.optionalMaterials());
+        List<InputStack> inputs = inputStacks(player, guiItems.optionalMaterials());
         int nextSequence = sequence;
         for (ForgeMaterial material : recipe.optionalMaterials()) {
             InputStack firstInput = firstMatchingInput(inputs, material);
@@ -200,12 +205,12 @@ final class ForgeMaterialUsagePlanner {
         return result;
     }
 
-    private Map<String, Integer> optionalMaterialConsumption(Recipe recipe, GuiItems guiItems) {
+    private Map<String, Integer> optionalMaterialConsumption(Player player, Recipe recipe, GuiItems guiItems) {
         Map<String, Integer> result = new LinkedHashMap<>();
         if (recipe == null || guiItems == null) {
             return result;
         }
-        List<InputStack> inputs = inputStacks(guiItems.optionalMaterials());
+        List<InputStack> inputs = inputStacks(player, guiItems.optionalMaterials());
         for (ForgeMaterial material : recipe.optionalMaterials()) {
             if (material == null || isBlank(material.key())) {
                 continue;
@@ -220,6 +225,7 @@ final class ForgeMaterialUsagePlanner {
     }
 
     private void appendUnconsumedItems(List<ItemStack> result,
+            Player player,
             Map<Integer, ItemStack> inputs,
             InputKeyResolver keyResolver,
             Map<String, Integer> remainingConsumption) {
@@ -227,12 +233,12 @@ final class ForgeMaterialUsagePlanner {
             return;
         }
         Map<String, Integer> consumption = new LinkedHashMap<>(remainingConsumption == null ? Map.of() : remainingConsumption);
-        for (InputStack input : inputStacks(inputs)) {
+        for (InputStack input : inputStacks(player, inputs)) {
             ItemStack itemStack = input.itemStack();
             if (itemStack == null || isEmpty(itemStack)) {
                 continue;
             }
-            String key = keyResolver == null ? "" : keyResolver.resolve(input.source());
+            String key = keyResolver == null ? "" : keyResolver.resolve(input.context());
             int consume = isBlank(key) ? 0 : Math.min(itemStack.getAmount(), consumption.getOrDefault(key, 0));
             if (consume > 0) {
                 consumption.computeIfPresent(key, (_, current) -> Math.max(0, current - consume));
@@ -247,7 +253,7 @@ final class ForgeMaterialUsagePlanner {
         }
     }
 
-    private List<InputStack> inputStacks(Map<Integer, ItemStack> inputs) {
+    private List<InputStack> inputStacks(Player player, Map<Integer, ItemStack> inputs) {
         List<InputStack> result = new ArrayList<>();
         if (inputs == null || inputs.isEmpty()) {
             return result;
@@ -259,10 +265,12 @@ final class ForgeMaterialUsagePlanner {
             if (isEmpty(itemStack)) {
                 continue;
             }
+            ItemSourceRef source = identify(itemStack);
             result.add(new InputStack(
                     entry.getKey() == null ? -1 : entry.getKey(),
                     itemStack,
-                    identify(itemStack)
+                    source,
+                    MatchContext.of(itemStack, source, player)
             ));
         }
         return result;
@@ -273,7 +281,7 @@ final class ForgeMaterialUsagePlanner {
             return null;
         }
         for (InputStack input : inputs) {
-            if (input != null && material.matches(input.source())) {
+            if (input != null && material.matches(input.context())) {
                 return input;
             }
         }
@@ -286,7 +294,7 @@ final class ForgeMaterialUsagePlanner {
         }
         int total = 0;
         for (InputStack input : inputs) {
-            if (input == null || !material.matches(input.source())) {
+            if (input == null || !material.matches(input.context())) {
                 continue;
             }
             total += input.itemStack().getAmount();
@@ -294,20 +302,16 @@ final class ForgeMaterialUsagePlanner {
         return total;
     }
 
-    private String blueprintKey(Recipe recipe, ItemSourceRef source) {
-        if (recipe == null || source == null) {
+    private String blueprintKey(Recipe recipe, MatchContext context) {
+        if (recipe == null || context == null) {
             return "";
         }
-        for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
-            if (requirement != null && requirement.matches(source)) {
-                return requirement.key();
-            }
-        }
-        return "";
+        BlueprintRequirement requirement = recipe.findBlueprintRequirementMatching(context);
+        return requirement == null ? "" : requirement.key();
     }
 
-    private String materialKey(Recipe recipe, ItemSourceRef source, boolean optional) {
-        ForgeMaterial material = recipe == null || source == null ? null : recipe.findMaterialBySource(source, optional);
+    private String materialKey(Recipe recipe, MatchContext context, boolean optional) {
+        ForgeMaterial material = recipe == null ? null : recipe.findMaterialMatching(context, optional);
         return material == null ? "" : material.key();
     }
 
@@ -333,10 +337,10 @@ final class ForgeMaterialUsagePlanner {
     @FunctionalInterface
     private interface InputKeyResolver {
 
-        String resolve(ItemSourceRef source);
+        String resolve(MatchContext context);
     }
 
-    private record InputStack(int slot, ItemStack itemStack, ItemSourceRef source) {
+    private record InputStack(int slot, ItemStack itemStack, ItemSourceRef source, MatchContext context) {
 
     }
 }

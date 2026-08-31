@@ -1,3 +1,4 @@
+# 按等级类型展示排名的界面。
 id: "top_gui"
 gui_type: CHEST
 title: "<gradient:#FACC15:#FB7185>%type_display_name% 排行榜</gradient> <dark_gray>%current_page%/%total_pages%</dark_gray>"

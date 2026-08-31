@@ -9,8 +9,8 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -24,9 +24,11 @@ import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
+import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
@@ -40,6 +42,7 @@ import emaki.jiuwu.craft.strengthen.api.model.AttemptMaterial;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptOutcome;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptPreview;
 import emaki.jiuwu.craft.strengthen.api.model.AttemptResult;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionGroup;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenConditionNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
@@ -63,10 +66,9 @@ public final class StrengthenAttemptService {
     private final StrengthenPdcAttributeWriter pdcAttributeWriter;
     private final ItemOperationLedger operationLedger;
     private final ThreadOwnership threadOwnership;
-    private final Object lifecycleMonitor = new Object();
-    private final LinkedHashMap<String, JournalEntry> operationJournal = new LinkedHashMap<>();
-    private boolean accepting = true;
-    private int inFlight;
+    private final AtomicBoolean accepting = new AtomicBoolean(true);
+    private final CraftOperationJournal<JournalEntry> operationJournal =
+            CraftOperationJournal.ofMemory(MAX_JOURNAL_ENTRIES);
 
     public StrengthenAttemptService(EmakiStrengthenPlugin plugin,
             StrengthenRecipeResolver recipeResolver,
@@ -78,7 +80,7 @@ public final class StrengthenAttemptService {
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
-        this.materialPlanResolver = new MaterialPlanResolver(recipeResolver);
+        this.materialPlanResolver = new MaterialPlanResolver(recipeResolver, plugin);
         this.chanceCalculator = chanceCalculator;
         this.economyService = economyService;
         this.snapshotBuilder = snapshotBuilder;
@@ -147,12 +149,17 @@ public final class StrengthenAttemptService {
         }
 
         int targetStar = state.currentStar() + 1;
-        StrengthenRecipe.StarStage stage = recipe.stage(targetStar);
+        if (recipe.hasBranchTree()
+                && recipe.branchTree().needsForkSelection(state.branchPath(), state.currentStar())) {
+            return ineligiblePreview("strengthen.branch.selection_required", state, recipe);
+        }
+        StrengthenRecipe.StarStage stage = recipe.stage(targetStar, state.branchPath());
         if (stage == null) {
             return ineligiblePreview("strengthen.error.already_max", state, recipe);
         }
 
-        MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(context, stage);
+        MaterialPlanResolver.MaterialPlan materials = materialPlanResolver.resolveMaterialPlan(
+                context, stage, player, recipe.id(), state.branchPath());
         if (Texts.isNotBlank(materials.errorKey())) {
             return new AttemptPreview(false, materials.errorKey(), state, recipe, state.currentStar(), targetStar, 0D, List.of(),
                     state.currentStar(), state.temperLevel(), false, 0, Map.of(), Set.of(), materials.requiredMaterials(), materials.optionalMaterials());
@@ -191,7 +198,7 @@ public final class StrengthenAttemptService {
                 : context.withOperationId(operationId);
         String journalKey = journalKey(player, operationId);
         int fingerprint = attemptFingerprint(safeContext);
-        AttemptStart start = beginOperation(journalKey, fingerprint);
+        AttemptStart start = beginOperation(journalKey, player == null ? null : player.getUniqueId(), fingerprint);
         if (start.existingResult() != null) {
             return start.existingResult();
         }
@@ -214,7 +221,7 @@ public final class StrengthenAttemptService {
                 result = AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
             }
             completeOperation(journalKey, fingerprint, result);
-            finishInFlight();
+            finishInFlight(journalKey);
             logOperation(player, operationId, "completed", result.outcome());
         }
         return result;
@@ -257,7 +264,7 @@ public final class StrengthenAttemptService {
             }
         }
 
-        double rollSuccessRate = sanitizeRate(preview.successRate());
+        double rollSuccessRate = CraftRollEngine.clamp(preview.successRate());
         if (isPlayerOwned(player)) {
             StrengthenPreAttemptEvent preAttemptEvent = new StrengthenPreAttemptEvent(
                     player,
@@ -272,10 +279,10 @@ public final class StrengthenAttemptService {
                 return finishAttempt(player, AttemptResult.failure("strengthen.error.cancelled", preview,
                         replacements(preview, preview.currentStar()), operationId));
             }
-            rollSuccessRate = sanitizeRate(preAttemptEvent.getSuccessRate());
+            rollSuccessRate = CraftRollEngine.clamp(preAttemptEvent.getSuccessRate());
         }
 
-        boolean success = ThreadLocalRandom.current().nextDouble(100D) < rollSuccessRate;
+        boolean success = CraftRollEngine.roll(rollSuccessRate);
         StrengthenState currentState = preview.state();
         int resultStar = success ? preview.targetStar() : preview.failureStar();
         int resultTemper = success ? 0 : preview.failureTemper();
@@ -333,99 +340,61 @@ public final class StrengthenAttemptService {
     }
 
     public boolean accepting() {
-        synchronized (lifecycleMonitor) {
-            return accepting;
-        }
+        return accepting.get();
     }
 
     public void freezeAccepting() {
-        synchronized (lifecycleMonitor) {
-            accepting = false;
-        }
+        accepting.set(false);
     }
 
     public void resumeAccepting() {
-        synchronized (lifecycleMonitor) {
-            accepting = true;
-        }
+        accepting.set(true);
     }
 
     public boolean drain(long timeout, TimeUnit unit) {
-        long timeoutNanos = Math.max(0L, unit == null ? 0L : unit.toNanos(timeout));
-        long deadline = System.nanoTime() + timeoutNanos;
-        synchronized (lifecycleMonitor) {
-            while (inFlight > 0) {
-                long remaining = deadline - System.nanoTime();
-                if (remaining <= 0L) {
-                    return false;
-                }
-                try {
-                    TimeUnit.NANOSECONDS.timedWait(lifecycleMonitor, remaining);
-                } catch (InterruptedException exception) {
-                    Thread.currentThread().interrupt();
-                    return false;
-                }
-            }
-            return true;
-        }
+        return operationJournal.drain(timeout, unit);
     }
 
     public Map<String, String> journalSnapshot() {
-        synchronized (lifecycleMonitor) {
-            Map<String, String> snapshot = new LinkedHashMap<>();
-            operationJournal.forEach((operationId, entry) -> snapshot.put(operationId,
-                    entry.result() == null ? "IN_FLIGHT" : entry.result().outcome().name()));
-            return Map.copyOf(snapshot);
-        }
+        Map<String, String> snapshot = new LinkedHashMap<>();
+        operationJournal.snapshot().forEach((operationId, entry) -> snapshot.put(operationId, entry.phase()));
+        return Map.copyOf(snapshot);
     }
 
-    private AttemptStart beginOperation(String journalKey, int fingerprint) {
-        synchronized (lifecycleMonitor) {
-            JournalEntry existing = operationJournal.get(journalKey);
-            if (existing != null) {
-                if (existing.fingerprint() != fingerprint) {
-                    return new AttemptStart(false, null, "strengthen.error.operation_conflict");
-                }
-                return existing.result() == null
-                        ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
-                        : new AttemptStart(false, existing.result(), "");
+    private AttemptStart beginOperation(String journalKey, UUID playerId, int fingerprint) {
+        CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
+                journalKey, OPERATION_NAMESPACE, playerId, new JournalEntry(fingerprint, null));
+        if (existing != null) {
+            JournalEntry payload = existing.payload();
+            if (payload.fingerprint() != fingerprint) {
+                return new AttemptStart(false, null, "strengthen.error.operation_conflict");
             }
-            if (!accepting) {
-                return new AttemptStart(false, null, "strengthen.error.not_accepting");
-            }
-            operationJournal.put(journalKey, new JournalEntry(fingerprint, null));
-            inFlight++;
-            pruneJournal();
-            return new AttemptStart(true, null, "");
+            return payload.result() == null
+                    ? new AttemptStart(false, null, "strengthen.error.operation_in_progress")
+                    : new AttemptStart(false, payload.result(), "");
         }
+        if (!accepting.get()) {
+            operationJournal.archive(journalKey);
+            return new AttemptStart(false, null, "strengthen.error.not_accepting");
+        }
+        pruneJournal();
+        return new AttemptStart(true, null, "");
     }
 
     private void completeOperation(String journalKey, int fingerprint, AttemptResult result) {
-        synchronized (lifecycleMonitor) {
-            operationJournal.put(journalKey, new JournalEntry(fingerprint, result));
-            pruneJournal();
-        }
+        operationJournal.update(journalKey, result.outcome().name(), new JournalEntry(fingerprint, result));
+        pruneJournal();
     }
 
-    private void finishInFlight() {
-        synchronized (lifecycleMonitor) {
-            inFlight = Math.max(0, inFlight - 1);
-            lifecycleMonitor.notifyAll();
-        }
+    private void finishInFlight(String journalKey) {
+        operationJournal.release(journalKey);
     }
 
     private void pruneJournal() {
-        if (operationJournal.size() <= MAX_JOURNAL_ENTRIES) {
-            return;
-        }
-        var iterator = operationJournal.entrySet().iterator();
-        while (operationJournal.size() > MAX_JOURNAL_ENTRIES && iterator.hasNext()) {
-            var entry = iterator.next();
-            AttemptResult result = entry.getValue().result();
-            if (result != null && !result.compensationPending()) {
-                iterator.remove();
-            }
-        }
+        operationJournal.prune(entry -> {
+            AttemptResult result = entry.payload() == null ? null : entry.payload().result();
+            return result != null && !result.compensationPending();
+        });
     }
 
     private String resolveOperationId(AttemptContext context) {
@@ -439,10 +408,6 @@ public final class StrengthenAttemptService {
 
     private int attemptFingerprint(AttemptContext context) {
         return context == null ? 0 : Objects.hash(context.targetItem(), context.materialInputs());
-    }
-
-    private double sanitizeRate(double value) {
-        return Double.isFinite(value) ? Numbers.clamp(value, 0D, 100D) : 0D;
     }
 
     private void logOperation(Player player, String operationId, String phase, AttemptOutcome outcome) {
@@ -494,6 +459,65 @@ public final class StrengthenAttemptService {
                 current.branchPath()
         );
         return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
+    }
+
+    public BranchSelection selectBranch(ItemStack itemStack, String childId) {
+        StrengthenState current = readState(itemStack);
+        if (!current.eligible()) {
+            return BranchSelection.failure(Texts.isBlank(current.eligibleReason())
+                    ? "strengthen.error.no_recipe"
+                    : current.eligibleReason());
+        }
+        StrengthenRecipe recipe = plugin.recipeLoader().get(current.recipeId());
+        if (recipe == null) {
+            return BranchSelection.failure("strengthen.error.no_recipe");
+        }
+        if (!recipe.hasBranchTree()) {
+            return BranchSelection.failure("strengthen.branch.not_branching");
+        }
+        StrengthenBranchNode tree = recipe.branchTree();
+        if (!tree.needsForkSelection(current.branchPath(), current.currentStar())) {
+            return BranchSelection.failure("strengthen.branch.not_pending");
+        }
+        Map<String, StrengthenBranchNode> options = tree.childrenAt(current.branchPath());
+        if (options.isEmpty()) {
+            return BranchSelection.failure("strengthen.branch.not_pending");
+        }
+        if (Texts.isBlank(childId)) {
+            return BranchSelection.pending(options);
+        }
+        String resolvedId = null;
+        for (String candidate : options.keySet()) {
+            if (candidate.equalsIgnoreCase(childId)) {
+                resolvedId = candidate;
+            }
+        }
+        if (resolvedId == null) {
+            return BranchSelection.invalid(options);
+        }
+        String updatedPath = StrengthenBranchNode.appendBranch(current.branchPath(), resolvedId);
+        StrengthenState updated = new StrengthenState(
+                true,
+                "",
+                true,
+                current.baseSource(),
+                current.baseSourceSignature(),
+                current.recipeId(),
+                current.currentStar(),
+                current.temperLevel(),
+                current.milestoneFlags(),
+                current.successCount(),
+                current.failureCount(),
+                current.lastAttemptAt(),
+                updatedPath
+        );
+        ItemStack rebuilt = rebuildWithState(itemStack, updated,
+                readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()),
+                        current.baseSourceSignature()).materialsSignature());
+        if (rebuilt == null) {
+            return BranchSelection.failure("strengthen.branch.apply_failed");
+        }
+        return BranchSelection.applied(rebuilt, resolvedId, options.get(resolvedId), updatedPath);
     }
 
     public ItemStack clearStrengthenLayer(ItemStack itemStack) {
@@ -847,6 +871,55 @@ public final class StrengthenAttemptService {
 
     private record ResolvedState(StrengthenState state, StoredState stored) {
 
+    }
+
+    public record BranchSelection(Outcome outcome,
+            String errorKey,
+            ItemStack rebuilt,
+            String branchId,
+            String displayName,
+            String branchPath,
+            Map<String, String> options) {
+
+        public enum Outcome {
+            APPLIED,
+            PENDING_CHOICE,
+            INVALID_CHOICE,
+            FAILED
+        }
+
+        private static BranchSelection failure(String errorKey) {
+            return new BranchSelection(Outcome.FAILED, errorKey, null, "", "", "", Map.of());
+        }
+
+        private static BranchSelection pending(Map<String, StrengthenBranchNode> options) {
+            return new BranchSelection(Outcome.PENDING_CHOICE, "", null, "", "", "", describe(options));
+        }
+
+        private static BranchSelection invalid(Map<String, StrengthenBranchNode> options) {
+            return new BranchSelection(Outcome.INVALID_CHOICE, "", null, "", "", "", describe(options));
+        }
+
+        private static BranchSelection applied(ItemStack rebuilt,
+                String branchId,
+                StrengthenBranchNode node,
+                String branchPath) {
+            String displayName = node == null || Texts.isBlank(node.displayName()) ? branchId : node.displayName();
+            return new BranchSelection(Outcome.APPLIED, "", rebuilt, branchId, displayName, branchPath, Map.of());
+        }
+
+        private static Map<String, String> describe(Map<String, StrengthenBranchNode> options) {
+            Map<String, String> described = new LinkedHashMap<>();
+            if (options == null) {
+                return Map.copyOf(described);
+            }
+            for (Map.Entry<String, StrengthenBranchNode> entry : options.entrySet()) {
+                StrengthenBranchNode node = entry.getValue();
+                described.put(entry.getKey(),
+                        node == null || Texts.isBlank(node.displayName()) ? entry.getKey() : node.displayName());
+            }
+            return Map.copyOf(described);
+        }
     }
 
     record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {

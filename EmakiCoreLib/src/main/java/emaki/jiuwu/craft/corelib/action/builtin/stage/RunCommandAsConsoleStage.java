@@ -14,15 +14,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Runs a command as the console.
- *
- * <p>Target requirement {@code NONE}: the console is the sender, so this stage has no subject and does not get
- * decision Q4's implicit {@code self} source. A pipeline that needs the player's name in the command line still
- * writes it as a placeholder, which is rendered against the context before dispatch.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: console commands are dispatched on the main server thread.</p>
- */
 public final class RunCommandAsConsoleStage extends BaseStage {
 
     public RunCommandAsConsoleStage() {

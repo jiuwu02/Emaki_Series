@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 吸血抗性
-# 详细字段说明参考 physical_attack.yml
 
 id: lifesteal_resistance
 display_name: "吸血抗性"

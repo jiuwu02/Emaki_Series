@@ -30,12 +30,6 @@ import emaki.jiuwu.craft.forge.model.RecipeMatch;
 import emaki.jiuwu.craft.forge.model.ValidationResult;
 import emaki.jiuwu.craft.forge.service.ForgeService;
 
-/**
- * {@link ForgeCatalog} 的运行时实现，把只读查询接到 {@link ForgeService}。
- *
- * <p>只做委托与模型映射，不新增业务判断。runtime 侧「找不到返回 null」的约定在这里被翻译成
- * {@code Optional.empty()} 或 {@link EmakiResult} 失败，从而消除语义坍缩。
- */
 public final class DefaultForgeCatalog implements ForgeCatalog {
 
     private final EmakiForgePlugin plugin;
@@ -256,13 +250,6 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
         return service != null && plugin.isRuntimeReady() && service.isAccepting();
     }
 
-    /**
-     * 按 id 查配方，未命中返回 {@code null}。
-     *
-     * @param service  锻造服务
-     * @param recipeId 配方 id
-     * @return 命中的配方或 {@code null}
-     */
     static Recipe findRecipe(ForgeService service, String recipeId) {
         String normalized = Texts.lower(recipeId);
         for (Recipe recipe : service.sortedRecipes()) {
@@ -273,12 +260,6 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
         return null;
     }
 
-    /**
-     * 把 API 输入布局转成 runtime 的 GUI 物品容器。
-     *
-     * @param inputs API 输入布局
-     * @return runtime 物品容器
-     */
     static GuiItems toGuiItems(ForgeInputs inputs) {
         return new GuiItems(inputs.targetItem(),
                 inputs.blueprints(),
@@ -286,12 +267,6 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
                 inputs.optionalMaterials());
     }
 
-    /**
-     * 把 runtime 配方映射为只读视图。
-     *
-     * @param recipe runtime 配方
-     * @return 只读视图
-     */
     static ForgeRecipeView toRecipeView(Recipe recipe) {
         return new ForgeRecipeView(Texts.lower(recipe.id()),
                 recipe.displayName(),
@@ -306,23 +281,11 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
                 recipe.hasFailureMechanism());
     }
 
-    /**
-     * 把 runtime 蓝图需求映射为只读视图。
-     *
-     * @param blueprint runtime 蓝图需求
-     * @return 只读视图
-     */
     static ForgeBlueprintView toBlueprintView(BlueprintRequirement blueprint) {
         return new ForgeBlueprintView(Texts.toStringSafe(ItemSourceUtil.toShorthand(blueprint.source())),
                 blueprint.amount());
     }
 
-    /**
-     * 把 runtime 材料映射为只读视图。
-     *
-     * @param material runtime 材料
-     * @return 只读视图
-     */
     static ForgeMaterialView toMaterialView(ForgeMaterial material) {
         return new ForgeMaterialView(Texts.lower(material.id()),
                 Texts.toStringSafe(material.item()),
@@ -334,12 +297,6 @@ public final class DefaultForgeCatalog implements ForgeCatalog {
                 material.skillIds());
     }
 
-    /**
-     * 把 runtime 的替换表转成不可变 placeholder map。
-     *
-     * @param replacements runtime 替换表
-     * @return 不可变 map；入参为 null 时返回空 map
-     */
     static Map<String, Object> safePlaceholders(Map<String, Object> replacements) {
         return replacements == null ? Map.of() : Map.copyOf(replacements);
     }

@@ -33,14 +33,6 @@ import io.papermc.paper.registry.data.dialog.type.DialogType;
 import net.kyori.adventure.text.event.ClickEvent;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 
-/**
- * 管理对话框定义并把它们展示给玩家。
- *
- * <p>定义由 {@link DialogLoader} 从 YAML 载入，本服务负责转换为原版对话框对象。
- * 转换结果不缓存：原版对话框依赖注册表上下文，重载后按需重建更安全。
- *
- * <p>展示与关闭必须在目标玩家的所有者线程调用。
- */
 public final class DialogService {
 
     private final JavaPlugin plugin;
@@ -67,7 +59,6 @@ public final class DialogService {
         return enabled;
     }
 
-    /** {@return 加载的定义数量} */
     public int load() {
         if (!enabled) {
             return 0;
@@ -87,13 +78,6 @@ public final class DialogService {
         return Texts.isBlank(dialogId) ? null : loader.get(Texts.normalizeId(dialogId));
     }
 
-    /**
-     * 向玩家展示指定对话框。
-     *
-     * @param player   目标玩家，必须在其所有者线程调用
-     * @param dialogId 对话框 id
-     * @return 成功展示返回 {@code true}
-     */
     public boolean show(Player player, String dialogId) {
         if (!enabled || player == null) {
             return false;
@@ -112,20 +96,6 @@ public final class DialogService {
         }
     }
 
-    /**
-     * 展示运行时构造的对话框，并在玩家提交时回调。
-     *
-     * <p>用于取值随上下文变化、无法预先写进 YAML 的场景，例如让玩家输入取出数量。
-     * 定义不会进入注册表，每次调用现构建。
-     *
-     * <p>{@code handler} 最多被调用一次，且在玩家的所有者线程执行。玩家直接关闭
-     * 对话框时不会触发回调。
-     *
-     * @param player     目标玩家，必须在其所有者线程调用
-     * @param definition 运行时构造的定义；其按钮动作会被替换为提交回调
-     * @param handler    提交回调
-     * @return 成功展示返回 {@code true}
-     */
     public boolean show(Player player, DialogDefinition definition, DialogSubmitHandler handler) {
         if (!enabled || player == null || definition == null || handler == null) {
             return false;
@@ -140,12 +110,6 @@ public final class DialogService {
         }
     }
 
-    /**
-     * 关闭玩家当前的对话框。
-     *
-     * @param player 目标玩家，必须在其所有者线程调用
-     * @return 已发出关闭请求返回 {@code true}
-     */
     public boolean close(Player player) {
         if (player == null) {
             return false;
@@ -166,7 +130,6 @@ public final class DialogService {
                 .type(buildType(definition)));
     }
 
-    /** 构建按钮动作为提交回调的对话框。 */
     private Dialog buildInteractive(DialogDefinition definition, DialogSubmitHandler handler) {
         AtomicBoolean delivered =
                 new AtomicBoolean();
@@ -202,7 +165,6 @@ public final class DialogService {
         };
     }
 
-    /** 构建一个把提交派发给 handler 的按钮。 */
     private ActionButton submitButton(DialogDefinition.Button button,
             DialogSubmitHandler handler,
             AtomicBoolean delivered) {
@@ -223,11 +185,6 @@ public final class DialogService {
         return builder.build();
     }
 
-    /**
-     * 把提交派发回玩家的所有者线程。
-     *
-     * <p>用 CAS 保证回调恰好一次：Paper 的回调可能因客户端重复提交而多次触发。
-     */
     private void dispatch(DialogResponseView response,
             Audience audience,
             String buttonId,

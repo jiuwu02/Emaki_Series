@@ -5,13 +5,20 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.logging.Logger;
+
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public final class StrengthenMaterial {
+
+    private static final Logger LOGGER = Logger.getLogger(StrengthenMaterial.class.getName());
 
     public enum Role {
         BASE,
@@ -46,6 +53,7 @@ public final class StrengthenMaterial {
     private final int protectionMinTargetStar;
     private final int requiredFromTargetStar;
     private final int crackRemove;
+    private final Matcher matcher;
 
     public StrengthenMaterial(String recipeId,
             String id,
@@ -61,6 +69,25 @@ public final class StrengthenMaterial {
             int protectionMinTargetStar,
             int requiredFromTargetStar,
             int crackRemove) {
+        this(recipeId, id, displayName, description, source, role, consumeAmount, minTargetStar, maxTargetStar,
+                successBonus, successCap, protectionMinTargetStar, requiredFromTargetStar, crackRemove, null);
+    }
+
+    public StrengthenMaterial(String recipeId,
+            String id,
+            String displayName,
+            List<String> description,
+            ItemSourceRef source,
+            Role role,
+            int consumeAmount,
+            int minTargetStar,
+            int maxTargetStar,
+            double successBonus,
+            double successCap,
+            int protectionMinTargetStar,
+            int requiredFromTargetStar,
+            int crackRemove,
+            @Nullable Matcher matcher) {
         this.recipeId = Texts.trim(recipeId);
         this.id = Texts.trim(id);
         this.displayName = displayName;
@@ -75,6 +102,7 @@ public final class StrengthenMaterial {
         this.protectionMinTargetStar = protectionMinTargetStar;
         this.requiredFromTargetStar = requiredFromTargetStar;
         this.crackRemove = crackRemove;
+        this.matcher = matcher;
     }
 
     public static StrengthenMaterial fromMap(String recipeId, Role role, Map<?, ?> raw, int index) {
@@ -91,8 +119,10 @@ public final class StrengthenMaterial {
         if (Texts.isBlank(id)) {
             id = Texts.lower(recipeId) + "_" + Texts.lower(role.name()) + "_" + Math.max(1, index + 1);
         }
+        Object rawMatcher = values.get("matcher");
+        Matcher matcher = rawMatcher == null ? null : Matcher.fromConfig(rawMatcher);
         ItemSourceRef source = ItemSourceUtil.parse(values.get("item"));
-        if (source == null) {
+        if (source == null && matcher == null) {
             return null;
         }
         return new StrengthenMaterial(
@@ -109,7 +139,8 @@ public final class StrengthenMaterial {
                 Numbers.tryParseDouble(values.get("success_cap"), 0D),
                 Numbers.tryParseInt(values.get("protection_min_target_star"), 0),
                 Numbers.tryParseInt(values.get("required_from_target_star"), 0),
-                Numbers.tryParseInt(values.get("crack_remove"), 0)
+                Numbers.tryParseInt(values.get("crack_remove"), 0),
+                matcher
         );
     }
 
@@ -133,6 +164,24 @@ public final class StrengthenMaterial {
 
     public boolean matches(ItemSourceRef itemSource, int targetStar) {
         return availableForTargetStar(targetStar) && ItemSourceUtil.matches(source, itemSource);
+    }
+
+    public boolean matches(@Nullable MatchContext context, int targetStar) {
+        if (!availableForTargetStar(targetStar)) {
+            return false;
+        }
+        if (matcher == null) {
+            return ItemSourceUtil.matches(source, context == null ? null : context.itemSource());
+        }
+        if (context == null) {
+            return false;
+        }
+        try {
+            return matcher.test(context);
+        } catch (RuntimeException | LinkageError exception) {
+            LOGGER.warning("材料 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            return false;
+        }
     }
 
     public String recipeId() {
@@ -189,5 +238,9 @@ public final class StrengthenMaterial {
 
     public int crackRemove() {
         return crackRemove;
+    }
+
+    public @Nullable Matcher matcher() {
+        return matcher;
     }
 }

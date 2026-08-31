@@ -69,6 +69,32 @@ public interface AttributeExtensions {
             @Nullable ItemContributionGate gate);
 
     /**
+     * Registers an owner-scoped equipment slot provider so the items it exposes take part in attribute
+     * aggregation.
+     *
+     * <p>Slot providers are keyed by the normalized {@link AttributeSlotProvider#id()}, and as with
+     * contribution providers that key is global rather than per-owner, so reusing an id supersedes the
+     * existing provider. The vanilla slots are registered by EmakiAttribute itself under the names
+     * {@code main_hand}, {@code off_hand}, {@code helmet}, {@code chestplate}, {@code leggings}, and
+     * {@code boots}; registering one of those ids replaces the built-in provider, which is rarely what a
+     * caller wants. Registration is internally synchronized and allowed from any thread; the same
+     * idempotent close and inert-superseded-handle rules apply.
+     *
+     * <p>Adding or removing a provider changes the snapshot cache signature, so an aggregated value
+     * picks up the new slot on the next collection rather than requiring a manual invalidation.
+     *
+     * @param owner    the registering plugin, used for automatic cleanup on disable; {@code null} yields
+     *                 an inactive no-op handle
+     * @param provider the slot provider; {@code null} or a blank {@code id()} yields an inactive no-op
+     *                 handle
+     * @return a closeable handle for this registration, never {@code null}; the handle is inert when the
+     *         arguments were rejected or EmakiAttribute is unavailable
+     */
+    @NotNull
+    SlotProviderRegistration registerSlotProvider(@Nullable Plugin owner,
+            @Nullable AttributeSlotProvider provider);
+
+    /**
      * {@return item persistent-data access for this module's own attribute keys; never {@code null}, falling
      * back to a no-op implementation while EmakiAttribute is unavailable}
      */

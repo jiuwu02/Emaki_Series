@@ -82,8 +82,21 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
     }
 
     public ItemStack refreshItem(ItemStack itemStack) {
-        ItemStack rebuilt = attemptService.rebuild(itemStack);
-        return rebuilt == null ? itemStack : rebuilt;
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return itemStack;
+        }
+        try {
+            ItemStack rebuilt = attemptService.rebuild(itemStack);
+            if (rebuilt == null) {
+                plugin.getLogger().warning("刷新失败：rebuild 返回 null | material=" + itemStack.getType().name());
+                return itemStack;
+            }
+            return rebuilt;
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("刷新失败：rebuild 抛出异常 | material=" + itemStack.getType().name()
+                    + " | error=" + exception.getMessage());
+            return itemStack;
+        }
     }
 
     private int refreshArray(ItemStack[] items) {

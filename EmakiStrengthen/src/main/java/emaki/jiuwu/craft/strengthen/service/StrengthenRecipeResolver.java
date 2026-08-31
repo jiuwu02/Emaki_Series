@@ -6,11 +6,14 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 import java.util.regex.Pattern;
+import java.util.function.Function;
 import java.util.function.Predicate;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
@@ -20,10 +23,14 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 public final class StrengthenRecipeResolver {
+
+    private static final Logger LOGGER = Logger.getLogger(StrengthenRecipeResolver.class.getName());
 
     private static final double EPSILON = 1.0E-9D;
 
@@ -48,7 +55,8 @@ public final class StrengthenRecipeResolver {
         Map<String, Double> stats = aggregateStats(itemStack, isEmaki);
         List<String> loreLines = extractLore(itemStack);
         String slotGroup = resolveSlotGroup(itemStack, baseSource);
-        String resolvedRecipeId = resolveRecipeId(explicitRecipeId, shorthand, baseSource, slotGroup, loreLines, stats);
+        String resolvedRecipeId = resolveRecipeId(explicitRecipeId, shorthand, baseSource, slotGroup, loreLines, stats,
+                itemStack);
         return new ResolvedItem(baseSource, shorthand, stats, loreLines, slotGroup, isEmaki, resolvedRecipeId);
     }
 
@@ -81,28 +89,51 @@ public final class StrengthenRecipeResolver {
             ItemSourceRef baseSource,
             String slotGroup,
             List<String> loreLines,
-            Map<String, Double> stats) {
+            Map<String, Double> stats,
+            ItemStack itemStack) {
         return selectRecipeId(
                 explicitRecipeId,
                 recipeId -> plugin.recipeLoader().get(recipeId) != null,
                 plugin.recipeLoader().ordered(),
                 shorthand,
-                baseSource,
                 slotGroup,
                 loreLines,
-                stats
+                stats,
+                recipeId -> plugin.recipeLoader().recipeMatcher(recipeId),
+                buildMatchContext(itemStack, baseSource)
         );
+    }
+
+    private static @Nullable MatchContext buildMatchContext(@Nullable ItemStack itemStack,
+            @Nullable ItemSourceRef baseSource) {
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return null;
+        }
+        return MatchContext.of(itemStack, baseSource, null);
     }
 
     static String selectRecipeId(String explicitRecipeId,
             Predicate<String> recipeExists,
             List<StrengthenRecipe> orderedRecipes,
             String shorthand,
-            ItemSourceRef baseSource,
             String slotGroup,
             List<String> loreLines,
             Map<String, Double> stats) {
+        return selectRecipeId(explicitRecipeId, recipeExists, orderedRecipes, shorthand, slotGroup,
+                loreLines, stats, recipeId -> null, null);
+    }
+
+    static String selectRecipeId(String explicitRecipeId,
+            Predicate<String> recipeExists,
+            List<StrengthenRecipe> orderedRecipes,
+            String shorthand,
+            String slotGroup,
+            List<String> loreLines,
+            Map<String, Double> stats,
+            Function<String, Matcher> matcherLookup,
+            @Nullable MatchContext matchContext) {
         Predicate<String> exists = recipeExists == null ? recipeId -> false : recipeExists;
+        Function<String, Matcher> matchers = matcherLookup == null ? recipeId -> null : matcherLookup;
         if (Texts.isNotBlank(explicitRecipeId) && exists.test(explicitRecipeId)) {
             return explicitRecipeId;
         }
@@ -111,7 +142,10 @@ public final class StrengthenRecipeResolver {
                 if (recipe == null || !exists.test(recipe.id())) {
                     continue;
                 }
-                if (matchesRecipe(recipe, shorthand, baseSource, slotGroup, loreLines, stats)) {
+                if (!matchesRecipe(recipe, shorthand, slotGroup, stats)) {
+                    continue;
+                }
+                if (satisfiesRecipeMatcher(matchers.apply(recipe.id()), matchContext)) {
                     return recipe.id();
                 }
             }
@@ -119,74 +153,68 @@ public final class StrengthenRecipeResolver {
         return resolveHeuristicRecipeId(exists, slotGroup, loreLines, stats);
     }
 
+    static boolean satisfiesRecipeMatcher(@Nullable Matcher matcher, @Nullable MatchContext matchContext) {
+        if (matcher == null) {
+            return true;
+        }
+        if (matchContext == null) {
+            return false;
+        }
+        try {
+            return matcher.test(matchContext);
+        } catch (RuntimeException | LinkageError exception) {
+            LOGGER.warning("配方 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            return false;
+        }
+    }
+
     static boolean matchesRecipe(StrengthenRecipe recipe,
             String shorthand,
-            ItemSourceRef baseSource,
             String slotGroup,
-            List<String> loreLines,
             Map<String, Double> stats) {
-        if (recipe == null || recipe.matchRule() == null || recipe.matchRule().empty()) {
+        if (recipe == null || !recipe.matchingConfigured()) {
             return false;
         }
-        StrengthenRecipe.MatchRule rule = recipe.matchRule();
-        if (!rule.sourceTypes().isEmpty()) {
-            // Config writes bare source-type names such as "vanilla" / "craftengine" / "emakiitem",
-            // which used to be the enum constant lower-cased. kind().id() reproduces all nine spellings
-            // exactly, which is why EmakiItem's kind is "emakiitem:emakiitem" rather than the
-            // better-reading "emakiitem:item".
-            String sourceType = baseSource == null ? "" : Texts.lower(baseSource.kind().id());
-            if (!rule.sourceTypes().contains(sourceType)) {
-                return false;
-            }
-        }
-        if (!rule.sourceIds().isEmpty()) {
-            String value = Texts.lower(shorthand);
-            if (Texts.isBlank(value) || !rule.sourceIds().contains(value)) {
-                return false;
-            }
-        }
-        if (!rule.sourcePatterns().isEmpty()) {
-            String value = Texts.toStringSafe(shorthand);
-            if (Texts.isBlank(value)) {
-                return false;
-            }
-            boolean matched = false;
-            for (String pattern : rule.sourcePatterns()) {
-                if (Texts.isBlank(pattern)) {
-                    continue;
-                }
-                Pattern compiled = PATTERN_CACHE.computeIfAbsent(pattern,
-                        p -> Pattern.compile(p, Pattern.CASE_INSENSITIVE));
-                if (compiled.matcher(value).find()) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched) {
-                return false;
-            }
-        }
-        if (!rule.slotGroups().isEmpty() && !rule.slotGroups().contains(Texts.lower(slotGroup))) {
+        if (!matchesSourcePatterns(recipe.sourcePatterns(), shorthand)) {
             return false;
         }
-        for (String fragment : rule.loreContains()) {
-            if (!containsLore(loreLines, fragment)) {
-                return false;
+        if (!recipe.slotGroups().isEmpty() && !recipe.slotGroups().contains(Texts.lower(slotGroup))) {
+            return false;
+        }
+        return matchesStatsAny(recipe.statsAny(), stats);
+    }
+
+    private static boolean matchesSourcePatterns(List<String> patterns, String shorthand) {
+        if (patterns.isEmpty()) {
+            return true;
+        }
+        String value = Texts.toStringSafe(shorthand);
+        if (Texts.isBlank(value)) {
+            return false;
+        }
+        for (String pattern : patterns) {
+            if (Texts.isBlank(pattern)) {
+                continue;
+            }
+            Pattern compiled = PATTERN_CACHE.computeIfAbsent(pattern,
+                    p -> Pattern.compile(p, Pattern.CASE_INSENSITIVE));
+            if (compiled.matcher(value).find()) {
+                return true;
             }
         }
-        if (!rule.statsAny().isEmpty()) {
-            boolean matched = false;
-            for (String statId : rule.statsAny()) {
-                if (Math.abs(stats.getOrDefault(Texts.lower(statId), 0D)) > EPSILON) {
-                    matched = true;
-                    break;
-                }
-            }
-            if (!matched) {
-                return false;
+        return false;
+    }
+
+    private static boolean matchesStatsAny(List<String> statIds, Map<String, Double> stats) {
+        if (statIds.isEmpty()) {
+            return true;
+        }
+        for (String statId : statIds) {
+            if (Math.abs(stats.getOrDefault(Texts.lower(statId), 0D)) > EPSILON) {
+                return true;
             }
         }
-        return true;
+        return false;
     }
 
     static String resolveHeuristicRecipeId(Predicate<String> recipeExists,

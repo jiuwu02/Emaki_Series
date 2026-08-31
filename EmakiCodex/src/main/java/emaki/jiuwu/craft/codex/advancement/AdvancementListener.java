@@ -14,12 +14,6 @@ import emaki.jiuwu.craft.codex.EmakiCodexPlugin;
 import emaki.jiuwu.craft.codex.advancement.model.AdvancementDefinition;
 import emaki.jiuwu.craft.codex.api.event.AdvancementCompletedEvent;
 
-
-
-
-
-
-
 public final class AdvancementListener implements Listener {
 
     private final EmakiCodexPlugin plugin;
@@ -33,6 +27,7 @@ public final class AdvancementListener implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onAdvancementDone(PlayerAdvancementDoneEvent event) {
         NamespacedKey key = event.getAdvancement().getKey();
+        plugin.codexEntryService().unlockByAdvancement(event.getPlayer(), key.toString());
         AdvancementDefinition definition = registrar.definitionByKey(key);
         if (definition == null) {
             return;

@@ -7,7 +7,6 @@ import emaki.jiuwu.craft.level.api.ExpSourceProvider;
 import emaki.jiuwu.craft.level.api.ExpSourceRegistration;
 import emaki.jiuwu.craft.level.api.LevelExtensions;
 
-/** Default experience source registration adapter. */
 public final class DefaultLevelExtensions implements LevelExtensions {
 
     private final EmakiLevelPlugin plugin;

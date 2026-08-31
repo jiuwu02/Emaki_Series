@@ -8,8 +8,9 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
 /**
  * Static public API facade for the EmakiStrengthen strengthening system.
  *
- * <p>Capabilities are grouped behind {@link #catalog()} for read-only queries and
- * {@link #operations()} for state-changing work. All accessors are non-null. When the runtime bridge
+ * <p>Capabilities are grouped behind {@link #mastery()} for provider-owned item mastery snapshots,
+ * {@link #catalog()} for strengthening queries, and {@link #operations()} for state-changing work.
+ * All accessors are non-null. When the runtime bridge
  * is absent, catalog collections are empty and result-bearing calls return
  * {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
  */
@@ -51,6 +52,19 @@ public final class EmakiStrengthenApi {
         return resolved == null ? ApiStatus.notInstalled() : resolved.status();
     }
 
+    /**
+     * {@return the read-only item mastery layer; never {@code null}, and an unavailable implementation
+     * when the bridge or its mastery provider is absent}
+     */
+    public static @NotNull ItemMastery mastery() {
+        Bridge resolved = bridge;
+        if (resolved == null) {
+            return UnavailableStrengthen.MASTERY;
+        }
+        ItemMastery mastery = resolved.mastery();
+        return mastery == null ? UnavailableStrengthen.MASTERY : mastery;
+    }
+
     /** {@return the read-only catalog layer; never {@code null}} */
     public static @NotNull StrengthenCatalog catalog() {
         Bridge resolved = bridge;
@@ -70,6 +84,14 @@ public final class EmakiStrengthenApi {
         /** {@return availability and identity metadata; must never be {@code null}} */
         @NotNull
         ApiStatus status();
+
+        /**
+         * {@return the read-only item mastery layer; defaults to the unavailable implementation for
+         * bridges compiled before this layer existed}
+         */
+        default @NotNull ItemMastery mastery() {
+            return UnavailableStrengthen.MASTERY;
+        }
 
         /** {@return the read-only catalog layer; must never be {@code null}} */
         @NotNull

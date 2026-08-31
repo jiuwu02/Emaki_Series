@@ -10,7 +10,6 @@ import java.util.logging.Logger;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import net.kyori.adventure.text.Component;
 
-
 public final class MinecraftComponentValueCodec {
 
     private static final Logger LOGGER = Logger.getLogger(MinecraftComponentValueCodec.class.getName());

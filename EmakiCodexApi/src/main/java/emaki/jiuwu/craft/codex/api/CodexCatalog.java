@@ -15,11 +15,8 @@ import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 /**
  * Read-only queries against the advancements EmakiCodex has registered.
  *
- * <p>Reached through {@code EmakiCodexApi.catalog()}.
- *
- * <h2>Threading</h2>
- * Definition and page lookups may be called from any thread. {@link #completed(UUID, String)} reads a live
- * player's advancement progress and must run on that player's owner thread.
+ * <p>Definition and page lookups use immutable snapshots and may run from any thread.
+ * {@link #completed(UUID, String)} reads live progress and requires the player's owner thread.
  */
 @ApiStatus.NonExtendable
 public interface CodexCatalog {
@@ -70,8 +67,7 @@ public interface CodexCatalog {
      *
      * @param playerId      the player's unique id
      * @param advancementId the advancement id or key
-     * @return whether the advancement is complete, or a failure when the player is offline, the id is
-     *         unknown, or the call came from the wrong thread
+     * @return whether the advancement is complete through the shared result contract
      */
     @NotNull
     EmakiResult<Boolean> completed(@Nullable UUID playerId, @Nullable String advancementId);

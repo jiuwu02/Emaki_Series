@@ -8,7 +8,7 @@ import java.util.Map;
  *
  * <p>Carries the final damage produced by the attribute pipeline along with the
  * diagnostic breakdown (per-stage values, critical flag and the random roll)
- * and the {@link DamageContext} the calculation was performed against.
+ * and the {@link DamageContext} the calculation was performed against. Stage values are defensively copied.
  *
  * @param damageTypeId  the resolved damage type id; never {@code null}
  * @param finalDamage   the computed final damage; clamped to be {@code >= 0}

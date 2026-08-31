@@ -56,14 +56,6 @@ public enum GuiClickType {
         };
     }
 
-    /**
-     * {@return the pre-expansion click type this value used to collapse into, or {@code null}
-     * when this value already existed before the enum was expanded}
-     *
-     * <p>Templates written before the expanded click set only configure {@code click},
-     * {@code left_click} and {@code right_click} sounds. Sound lookup walks this fallback so
-     * those templates keep their original behaviour for shift, double and creative clicks.
-     */
     public GuiClickType legacyFallback() {
         return switch (this) {
             case SHIFT_LEFTCLICK, DOUBLECLICK -> LEFTCLICK;

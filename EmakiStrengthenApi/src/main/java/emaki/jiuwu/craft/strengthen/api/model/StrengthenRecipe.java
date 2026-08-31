@@ -18,51 +18,17 @@ import java.util.Set;
  * skills) up to a given star, optionally along a branch path, plus per-star cost
  * and success-rate lookups.
  *
- * <p>The nested records ({@link MatchRule}, {@link CurrencyEntry},
+ * <p>Which items a recipe accepts is decided by the declarative
+ * {@link #matcherConfig()} together with the top-level {@link #slotGroups()},
+ * {@link #statsAny()} and {@link #sourcePatterns()} criteria, all combined as a
+ * logical AND.
+ *
+ * <p>The nested records ({@link CurrencyEntry},
  * {@link EconomyConfig}, {@link Limits}, {@link StatLineDefinition},
  * {@link EconomyOverride}, {@link StarStageMaterial}, {@link StarStage}) model
- * the individual configuration sections.
+ * the individual configuration sections. Nested collection components are defensively copied and immutable.
  */
 public final class StrengthenRecipe {
-
-    /**
-     * Criteria deciding whether an item matches this recipe. A rule is
-     * considered {@link #empty()} when no criterion is set.
-     *
-     * @param sourceTypes    accepted item source types (lower-cased)
-     * @param sourceIds      accepted item source ids (lower-cased)
-     * @param sourcePatterns accepted source id patterns
-     * @param slotGroups     accepted slot groups (lower-cased)
-     * @param loreContains   required lore substrings (mini-tags stripped)
-     * @param statsAny       any-of stat ids that must be present (lower-cased)
-     */
-    public record MatchRule(List<String> sourceTypes,
-            List<String> sourceIds,
-            List<String> sourcePatterns,
-            List<String> slotGroups,
-            List<String> loreContains,
-            List<String> statsAny) {
-
-        /** Canonical constructor; normalizes each criterion list. */
-        public MatchRule {
-            sourceTypes = normalizeLower(sourceTypes);
-            sourceIds = normalizeLower(sourceIds);
-            sourcePatterns = normalizeList(sourcePatterns);
-            slotGroups = normalizeLower(slotGroups);
-            loreContains = normalizeStripped(loreContains);
-            statsAny = normalizeLower(statsAny);
-        }
-
-        /** {@return whether no matching criterion is configured} */
-        public boolean empty() {
-            return sourceTypes.isEmpty()
-                    && sourceIds.isEmpty()
-                    && sourcePatterns.isEmpty()
-                    && slotGroups.isEmpty()
-                    && loreContains.isEmpty()
-                    && statsAny.isEmpty();
-        }
-    }
 
     /**
      * A single currency cost entry.
@@ -233,7 +199,6 @@ public final class StrengthenRecipe {
     private final EconomyConfig economy;
     private final Limits limits;
     private final Map<Integer, Double> successRates;
-    private final MatchRule matchRule;
     private final Map<String, StatLineDefinition> statLines;
     private final Map<Integer, StarStage> stars;
     private final StrengthenConditionGroup conditions;
@@ -242,9 +207,14 @@ public final class StrengthenRecipe {
     private final StrengthenBranchNode branchTree;
     private final Object nameActions;
     private final Object loreActions;
+    private final Object matcherConfig;
+    private final List<String> slotGroups;
+    private final List<String> statsAny;
+    private final List<String> sourcePatterns;
 
     /**
-     * Creates a recipe without a branch tree or name/lore actions.
+     * Creates a recipe carrying only its structural configuration, with no
+     * matching criteria and no name/lore actions.
      *
      * @param id                    the recipe id
      * @param displayName           the display name
@@ -252,12 +222,12 @@ public final class StrengthenRecipe {
      * @param economy               the economy configuration
      * @param limits                the numeric limits
      * @param successRates          per-target-star success rates
-     * @param matchRule             the item matching rule
      * @param statLines             stat-line definitions keyed by id
      * @param stars                 star stages keyed by star level
      * @param conditions            activation conditions
      * @param conditionType         condition combination type
      * @param conditionRequiredCount required count for any-of conditions
+     * @param branchTree            the branching star tree, may be {@code null}
      */
     public StrengthenRecipe(String id,
             String displayName,
@@ -265,48 +235,15 @@ public final class StrengthenRecipe {
             EconomyConfig economy,
             Limits limits,
             Map<Integer, Double> successRates,
-            MatchRule matchRule,
-            Map<String, StatLineDefinition> statLines,
-            Map<Integer, StarStage> stars,
-            StrengthenConditionGroup conditions,
-            String conditionType,
-            int conditionRequiredCount) {
-        this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
-                conditions, conditionType, conditionRequiredCount, null, null, null);
-    }
-
-    /**
-     * Creates a recipe with a branch tree but no name/lore actions.
-     *
-     * @param id                    the recipe id
-     * @param displayName           the display name
-     * @param guiTemplate           the GUI template id
-     * @param economy               the economy configuration
-     * @param limits                the numeric limits
-     * @param successRates          per-target-star success rates
-     * @param matchRule             the item matching rule
-     * @param statLines             stat-line definitions keyed by id
-     * @param stars                 star stages keyed by star level
-     * @param conditions            activation conditions
-     * @param conditionType         condition combination type
-     * @param conditionRequiredCount required count for any-of conditions
-     * @param branchTree            the branching star tree
-     */
-    public StrengthenRecipe(String id,
-            String displayName,
-            String guiTemplate,
-            EconomyConfig economy,
-            Limits limits,
-            Map<Integer, Double> successRates,
-            MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
             StrengthenConditionGroup conditions,
             String conditionType,
             int conditionRequiredCount,
             StrengthenBranchNode branchTree) {
-        this(id, displayName, guiTemplate, economy, limits, successRates, matchRule, statLines, stars,
-                conditions, conditionType, conditionRequiredCount, branchTree, null, null);
+        this(id, displayName, guiTemplate, economy, limits, successRates, statLines, stars,
+                conditions, conditionType, conditionRequiredCount, branchTree, null, null, null,
+                List.of(), List.of(), List.of());
     }
 
     /**
@@ -319,7 +256,6 @@ public final class StrengthenRecipe {
      * @param economy               the economy configuration
      * @param limits                the numeric limits
      * @param successRates          per-target-star success rates
-     * @param matchRule             the item matching rule
      * @param statLines             stat-line definitions keyed by id
      * @param stars                 star stages keyed by star level
      * @param conditions            activation conditions
@@ -329,6 +265,12 @@ public final class StrengthenRecipe {
      * @param branchTree            the branching star tree, may be {@code null}
      * @param nameActions           raw name-action config, may be {@code null}
      * @param loreActions           raw lore-action config, may be {@code null}
+     * @param matcherConfig         raw {@code matcher} config, may be
+     *                              {@code null}
+     * @param slotGroups            accepted slot groups (lower-cased)
+     * @param statsAny              any-of stat ids that must be present
+     *                              (lower-cased)
+     * @param sourcePatterns        accepted item source shorthand patterns
      */
     public StrengthenRecipe(String id,
             String displayName,
@@ -336,7 +278,6 @@ public final class StrengthenRecipe {
             EconomyConfig economy,
             Limits limits,
             Map<Integer, Double> successRates,
-            MatchRule matchRule,
             Map<String, StatLineDefinition> statLines,
             Map<Integer, StarStage> stars,
             StrengthenConditionGroup conditions,
@@ -344,14 +285,17 @@ public final class StrengthenRecipe {
             int conditionRequiredCount,
             StrengthenBranchNode branchTree,
             Object nameActions,
-            Object loreActions) {
+            Object loreActions,
+            Object matcherConfig,
+            List<String> slotGroups,
+            List<String> statsAny,
+            List<String> sourcePatterns) {
         this.id = StrengthenApiValues.trim(id);
         this.displayName = StrengthenApiValues.toStringSafe(displayName);
         this.guiTemplate = StrengthenApiValues.isBlank(guiTemplate) ? "strengthen_gui" : StrengthenApiValues.toStringSafe(guiTemplate);
         this.economy = economy == null ? new EconomyConfig(false, List.of()) : economy;
         this.limits = limits == null ? Limits.defaults() : limits;
         this.successRates = successRates == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(successRates));
-        this.matchRule = matchRule == null ? new MatchRule(List.of(), List.of(), List.of(), List.of(), List.of(), List.of()) : matchRule;
         this.statLines = statLines == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(statLines));
         this.stars = stars == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stars));
         this.conditions = conditions == null ? StrengthenConditionGroup.empty() : conditions;
@@ -360,6 +304,10 @@ public final class StrengthenRecipe {
         this.branchTree = branchTree;
         this.nameActions = StrengthenApiValues.toPlainData(nameActions);
         this.loreActions = StrengthenApiValues.toPlainData(loreActions);
+        this.matcherConfig = StrengthenApiValues.toPlainData(matcherConfig);
+        this.slotGroups = normalizeLower(slotGroups);
+        this.statsAny = normalizeLower(statsAny);
+        this.sourcePatterns = normalizeList(sourcePatterns);
     }
 
 
@@ -481,6 +429,27 @@ public final class StrengthenRecipe {
     }
 
     /**
+     * Branch-aware variant of {@link #stage(int)}.
+     *
+     * <p>Branching recipes may declare their star stages inside {@code branch_tree}
+     * instead of the top-level {@code stars} block, in which case {@link #stage(int)}
+     * resolves nothing. This variant falls back to the stage owned by the node
+     * reached along {@code branchPath}, so a star defined only on a branch is still
+     * found.
+     *
+     * @param targetStar the target star level
+     * @param branchPath the slash-separated branch path
+     * @return the stage for the target star, or {@code null} if undefined
+     */
+    public StarStage stage(int targetStar, String branchPath) {
+        StarStage direct = stars.get(targetStar);
+        if (direct != null || branchTree == null) {
+            return direct;
+        }
+        return branchTree.collectStages(branchPath, targetStar).get(targetStar);
+    }
+
+    /**
      * {@return the success actions configured for a target star}
      *
      * @param targetStar the target star level
@@ -563,9 +532,42 @@ public final class StrengthenRecipe {
         return successRates;
     }
 
-    /** {@return the item matching rule} */
-    public MatchRule matchRule() {
-        return matchRule;
+    /**
+     * {@return the accepted slot groups, empty when unrestricted}
+     *
+     * <p>Combined with {@link #matcherConfig()}, {@link #statsAny()} and
+     * {@link #sourcePatterns()} as a logical AND.
+     */
+    public List<String> slotGroups() {
+        return slotGroups;
+    }
+
+    /**
+     * {@return the any-of stat ids that must be present, empty when unrestricted}
+     *
+     * <p>Combined with {@link #matcherConfig()}, {@link #slotGroups()} and
+     * {@link #sourcePatterns()} as a logical AND.
+     */
+    public List<String> statsAny() {
+        return statsAny;
+    }
+
+    /**
+     * {@return the accepted item source shorthand patterns, empty when unrestricted}
+     *
+     * <p>Combined with {@link #matcherConfig()}, {@link #slotGroups()} and
+     * {@link #statsAny()} as a logical AND.
+     */
+    public List<String> sourcePatterns() {
+        return sourcePatterns;
+    }
+
+    /** {@return whether any matching criterion is configured at all} */
+    public boolean matchingConfigured() {
+        return matcherConfig != null
+                || !slotGroups.isEmpty()
+                || !statsAny.isEmpty()
+                || !sourcePatterns.isEmpty();
     }
 
     /** {@return the stat-line definitions keyed by id} */
@@ -611,6 +613,21 @@ public final class StrengthenRecipe {
     /** {@return the raw lore-action configuration, or {@code null}} */
     public Object loreActions() {
         return loreActions;
+    }
+
+    /**
+     * {@return the raw {@code matcher} configuration, or {@code null} when absent}
+     *
+     * <p>Evaluated as a logical AND together with {@link #slotGroups()},
+     * {@link #statsAny()} and {@link #sourcePatterns()}.
+     */
+    public Object matcherConfig() {
+        return matcherConfig;
+    }
+
+    /** {@return whether an optional {@code matcher} configuration is present} */
+    public boolean matcherConfigured() {
+        return matcherConfig != null;
     }
 
     /**

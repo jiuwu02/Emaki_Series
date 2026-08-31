@@ -40,27 +40,6 @@ import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.event.EmakiEventBus;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public final class GameplayEventPublisher implements Listener {
 
     private final Plugin plugin;
@@ -92,10 +71,6 @@ public final class GameplayEventPublisher implements Listener {
     private boolean disabled() {
         return !config().enabled();
     }
-
-
-
-
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onDamage(EntityDamageByEntityEvent event) {
@@ -142,10 +117,6 @@ public final class GameplayEventPublisher implements Listener {
         return null;
     }
 
-
-
-
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBlockPlace(BlockPlaceEvent event) {
         if (disabled()) {
@@ -166,10 +137,6 @@ public final class GameplayEventPublisher implements Listener {
     private boolean isMature(Block block) {
         return block.getBlockData() instanceof Ageable ageable && ageable.getAge() >= ageable.getMaximumAge();
     }
-
-
-
-
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onCraft(CraftItemEvent event) {
@@ -193,10 +160,6 @@ public final class GameplayEventPublisher implements Listener {
         eventBus.publish(new FurnaceExtractGameplayEvent(event.getPlayer(), result, amount));
     }
 
-
-
-
-
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onFish(PlayerFishEvent event) {
         if (disabled()) {
@@ -212,10 +175,6 @@ public final class GameplayEventPublisher implements Listener {
         }
         eventBus.publish(new TameGameplayEvent(player, event.getEntityType()));
     }
-
-
-
-
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onBrewInventoryOpen(InventoryOpenEvent event) {
@@ -290,10 +249,6 @@ public final class GameplayEventPublisher implements Listener {
         return (location.getWorld() == null ? "unknown" : location.getWorld().getUID())
                 + ":" + location.getBlockX() + ":" + location.getBlockY() + ":" + location.getBlockZ();
     }
-
-
-
-
 
     private record DamageAttribution(UUID playerId, long time) {
     }

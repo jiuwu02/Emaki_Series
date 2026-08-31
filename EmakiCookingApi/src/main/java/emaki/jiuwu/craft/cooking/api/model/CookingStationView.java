@@ -7,13 +7,11 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Read-only snapshot of one placed cooking station.
+ * Immutable snapshot of one placed cooking station.
  *
- * <p>EmakiCooking stores all seven station kinds in a single wide structure where each kind fills only
- * the fields it cares about and leaves the rest at zero. That makes a raw {@code 0} ambiguous: an oven
- * at zero heat and a chopping board that has no concept of heat look identical. This view therefore
- * exposes the kind-specific readings as {@link OptionalInt}, present only when the station type
- * actually tracks them.
+ * <p>Kind-specific numeric readings use {@link OptionalInt}: an empty value means the station type does not
+ * track that reading, while a present zero is a real measurement. Blank optional text is normalized to
+ * absent, null optionals to empty, and ingredient counts to non-negative values.
  *
  * @param stationType   the station kind
  * @param recipeId      the recipe currently running, or {@code null} when idle

@@ -12,8 +12,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -28,17 +28,6 @@ import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
 import emaki.jiuwu.craft.cooking.model.NutritionSingleThreshold;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
-
-
-
-
-
-
-
-
-
-
-
 
 public final class NutritionService {
 
@@ -68,9 +57,8 @@ public final class NutritionService {
     private final CookingSettingsService settingsService;
     private final NutritionTypeRegistry typeRegistry;
     private final PlayerNutritionDataStore dataStore;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
-
 
     private final Map<UUID, Set<String>> metSingleKeys = new ConcurrentHashMap<>();
     private final Map<UUID, Set<String>> metComboKeys = new ConcurrentHashMap<>();
@@ -79,21 +67,21 @@ public final class NutritionService {
     private volatile List<NutritionFoodSource> foodSources = List.of();
     private volatile List<NutritionSingleThreshold> singleThresholds = List.of();
     private volatile List<NutritionComboThreshold> comboThresholds = List.of();
-    private TaskHandle saveTask;
+    private TaskToken saveTask;
 
     public NutritionService(EmakiCookingPlugin plugin,
             ItemSourceService itemSourceService,
             CookingSettingsService settingsService,
             NutritionTypeRegistry typeRegistry,
             PlayerNutritionDataStore dataStore,
-            ExecutionDispatcher executionDispatcher,
+            EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.itemSourceService = itemSourceService;
         this.settingsService = settingsService;
         this.typeRegistry = typeRegistry;
         this.dataStore = dataStore;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.threadOwnership = threadOwnership;
     }
 
@@ -108,9 +96,6 @@ public final class NutritionService {
     public PlayerNutritionDataStore dataStore() {
         return dataStore;
     }
-
-
-
 
     public void reload() {
         this.enabled = settingsService.nutritionEnabled();
@@ -131,8 +116,6 @@ public final class NutritionService {
     public void shutdown() {
         cancelSaveTask();
     }
-
-
 
     public double value(UUID uuid, String typeId) {
         NutritionTypeConfig type = typeRegistry.type(typeId).orElse(null);
@@ -182,13 +165,6 @@ public final class NutritionService {
         return result;
     }
 
-
-
-
-
-
-
-
     public boolean applyFood(Player player, ItemStack itemStack) {
         return applyFoodDetailed(player, itemStack).applied();
     }
@@ -215,7 +191,7 @@ public final class NutritionService {
         boolean ruleMatched = false;
         boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
-            if (!matchesAny(rule.itemSources(), source)) {
+            if (!CookingMatchers.accepts(rule.matcher(), itemStack, source, player)) {
                 continue;
             }
             ruleMatched = true;
@@ -251,17 +227,6 @@ public final class NutritionService {
         return new FoodApplyResult(ruleMatched ? FoodApplyStatus.DATA_UNAVAILABLE : FoodApplyStatus.NO_RULE);
     }
 
-    private boolean matchesAny(List<ItemSourceRef> sources, ItemSourceRef target) {
-        for (ItemSourceRef candidate : sources) {
-            if (ItemSourceUtil.matches(candidate, target)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-
-
     public boolean recheckThresholds(Player player) {
         if (!enabled || player == null) {
             return false;
@@ -278,18 +243,17 @@ public final class NutritionService {
         if (player == null) {
             return;
         }
-        // Threshold evaluation runs action lines and fires Bukkit events against the player,
-        // so it must happen on the thread that owns this player entity.
+
         if (threadOwnership != null && threadOwnership.isEntityOwned(player)) {
             evaluateCachedThresholds(player);
             return;
         }
-        if (executionDispatcher == null) {
+        if (taskScheduler == null) {
             plugin.getLogger().warning("EmakiCooking skipped nutrition threshold evaluation for " + player.getName()
                     + ": caller thread does not own the player and no execution dispatcher is available.");
             return;
         }
-        if (executionDispatcher.runEntity(plugin, player, () -> evaluateCachedThresholds(player)) == null) {
+        if (taskScheduler.runForEntity(plugin, player, () -> evaluateCachedThresholds(player), null) == null) {
             plugin.getLogger().warning("EmakiCooking failed to reroute nutrition threshold evaluation for "
                     + player.getName() + ": entity task scheduling was rejected.");
         }
@@ -395,8 +359,6 @@ public final class NutritionService {
                 player, kind, ruleId, typeId, met, value, threshold, matchedCount, requiredCount));
     }
 
-
-
     private void runActions(Player player, PlayerNutritionData data, List<String> actions, String phase,
             Map<String, Object> extra) {
         if (actions == null || actions.isEmpty()) {
@@ -404,14 +366,11 @@ public final class NutritionService {
         }
         Map<String, Object> placeholders = nutritionPlaceholders(data);
         if (extra != null && !extra.isEmpty()) {
-            // Threshold-specific keys are merged last so they win over the per-type snapshot, matching v1.
+
             placeholders.putAll(extra);
         }
         plugin.actionLines().run(actions, player, phase, false, placeholders, false);
     }
-
-
-
 
     public Map<String, Object> nutritionPlaceholders(PlayerNutritionData data) {
         Map<String, Object> placeholders = new LinkedHashMap<>();
@@ -439,9 +398,6 @@ public final class NutritionService {
         placeholders.put("nutrition_threshold", formatValue(threshold));
         return placeholders;
     }
-
-
-
 
     public int comboCount(UUID uuid, NutritionComboThreshold rule) {
         if (uuid == null || rule == null) {
@@ -472,8 +428,6 @@ public final class NutritionService {
         return Texts.toStringSafe(value);
     }
 
-
-
     private void restartSaveTask() {
         cancelSaveTask();
         int seconds = settingsService.nutritionSaveIntervalSeconds();
@@ -481,7 +435,7 @@ public final class NutritionService {
             return;
         }
         long periodTicks = (long) seconds * 20L;
-        saveTask = executionDispatcher.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
+        saveTask = taskScheduler.runGlobalTimer(plugin, () -> dataStore.saveAllAsync(), periodTicks, periodTicks);
     }
 
     private void cancelSaveTask() {

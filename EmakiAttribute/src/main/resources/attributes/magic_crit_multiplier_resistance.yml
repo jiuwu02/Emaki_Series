@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 法术暴伤抗性
-# 详细字段说明参考 physical_attack.yml
 
 id: magic_crit_multiplier_resistance
 display_name: "法术暴伤抗性"

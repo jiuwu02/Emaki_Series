@@ -22,28 +22,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Adds to, subtracts from, or sets one of the target's nutrition values.
- *
- * <p>Target selection is composed rather than an argument: {@code player_by_name Steve |
- * cooking_add_nutrition ...} addresses another player through CoreLib's {@code player_by_name} source.
- * Expression variables need no hand-built map either, because the pipeline renders placeholders into
- * argument text before arguments are resolved, so {@code amount} declared as {@code EXPRESSION} suffices.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's nutrition record.</p>
- */
 public final class NutritionOperationStage implements CoreActionStage {
 
-    /** Which nutrition mutation a stage instance performs. */
     public enum Operation {
 
-        /** Increase the value. */
         ADD("cooking_add_nutrition", "Adds to one of the target's nutrition values."),
 
-        /** Decrease the value. */
         REMOVE("cooking_remove_nutrition", "Removes from one of the target's nutrition values."),
 
-        /** Replace the value. */
         SET("cooking_set_nutrition", "Sets one of the target's nutrition values.");
 
         private final String id;
@@ -54,7 +40,6 @@ public final class NutritionOperationStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -63,12 +48,6 @@ public final class NutritionOperationStage implements CoreActionStage {
     private final EmakiCookingPlugin plugin;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param plugin owning plugin, source of the nutrition service
-     * @param operation which mutation this instance performs
-     */
     public NutritionOperationStage(@NotNull EmakiCookingPlugin plugin, @NotNull Operation operation) {
         this.plugin = plugin;
         this.operation = operation;

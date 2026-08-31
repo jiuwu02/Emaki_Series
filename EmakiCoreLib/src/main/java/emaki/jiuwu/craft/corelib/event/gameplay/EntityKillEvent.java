@@ -5,18 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
-
-
-
-
-
-
 public record EntityKillEvent(Player player, LivingEntity victim, boolean directKill)
         implements GameplayEvent {
 

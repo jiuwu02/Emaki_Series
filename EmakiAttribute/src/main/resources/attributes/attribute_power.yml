@@ -1,5 +1,4 @@
 # EmakiAttribute 属性定义 - 战斗力
-# 详细字段说明参考 physical_attack.yml
 
 id: attribute_power
 display_name: "战斗力"

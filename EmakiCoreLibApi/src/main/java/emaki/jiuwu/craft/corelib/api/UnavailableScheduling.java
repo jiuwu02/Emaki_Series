@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.corelib.api;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -56,6 +58,11 @@ final class UnavailableScheduling implements EmakiScheduling {
     }
 
     @Override
+    public TaskToken runEntityLater(Plugin owner, Entity entity, Runnable task, Runnable retired, long delayTicks) {
+        return TaskToken.UNAVAILABLE;
+    }
+
+    @Override
     public TaskToken runAtLocation(Plugin owner, Location location, Runnable task) {
         return TaskToken.UNAVAILABLE;
     }
@@ -68,5 +75,11 @@ final class UnavailableScheduling implements EmakiScheduling {
     @Override
     public TaskToken runAsyncLater(Plugin owner, Runnable task, long delay, TimeUnit unit) {
         return TaskToken.UNAVAILABLE;
+    }
+
+    @Override
+    public <T> CompletableFuture<T> submitGlobal(Plugin owner, Supplier<T> task) {
+        return CompletableFuture.failedFuture(
+                new UnsupportedOperationException("EmakiCoreLib is not available"));
     }
 }

@@ -26,35 +26,16 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.kyori.adventure.text.Component;
 
-/**
- * The one registry of item source providers, keyed by {@link ItemSourceKind}.
- *
- * <p>Shaped after {@code StageRegistry}: entries carry a {@link Plugin} owner, a duplicate kind is a
- * hard failure naming the first owner rather than a silent overwrite, revocation is available per
- * handle and per owner, and a failed registration yields an inactive handle instead of {@code null}.
- *
- * <p>Registering a provider also binds its shorthand prefixes into {@link ItemSourceRegistry}, because
- * a provider whose prefixes lived elsewhere would be unreachable from config. Both halves are installed
- * and revoked together.
- */
 public final class ItemSourceService {
 
     private final Map<String, RegisteredProvider> providers = new LinkedHashMap<>();
     private final AtomicLong registrationSequence = new AtomicLong();
     private volatile List<ItemSourceProvider> orderedProviders = List.of();
 
-    /** Creates a service already carrying CoreLib's built-in vanilla provider. */
     public ItemSourceService() {
         registerProvider(null, new VanillaItemSourceProvider());
     }
 
-    /**
-     * Registers a provider and binds its shorthand prefixes.
-     *
-     * @param owner the owning plugin, or {@code null} for CoreLib's own built-ins
-     * @param provider the provider implementation
-     * @return a revocable handle; an inactive handle when the kind or a prefix is already taken
-     */
     public synchronized ItemSourceRegistration registerProvider(@Nullable Plugin owner,
             @Nullable ItemSourceProvider provider) {
         if (provider == null) {
@@ -92,12 +73,6 @@ public final class ItemSourceService {
         return new Handle(this, kind, generation, true, "");
     }
 
-    /**
-     * Revokes every provider owned by {@code owner}.
-     *
-     * @param owner the owning plugin
-     * @return how many providers were revoked
-     */
     public synchronized int revokeAll(@Nullable Plugin owner) {
         if (owner == null) {
             return 0;
@@ -117,11 +92,6 @@ public final class ItemSourceService {
         return removed;
     }
 
-    /**
-     * {@return the provider owning {@code kind}, or {@code null} when none is registered}
-     *
-     * @param kind the kind to look up
-     */
     public @Nullable ItemSourceProvider providerOf(@Nullable ItemSourceKind kind) {
         if (kind == null) {
             return null;
@@ -130,17 +100,10 @@ public final class ItemSourceService {
         return registered == null ? null : registered.provider();
     }
 
-    /** {@return every registered provider, highest priority first} */
     public List<ItemSourceProvider> providers() {
         return orderedProviders;
     }
 
-    /**
-     * Recognises an existing stack.
-     *
-     * @param itemStack the stack to inspect
-     * @return the reference, or {@code null} when no provider claims it
-     */
     public @Nullable ItemSourceRef identifyItem(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) {
             return null;
@@ -154,13 +117,6 @@ public final class ItemSourceService {
         return null;
     }
 
-    /**
-     * Builds an item.
-     *
-     * @param ref the reference to build
-     * @param amount the stack amount
-     * @return the item, or {@code null} when no provider can build it
-     */
     public @Nullable ItemStack createItem(@Nullable ItemSourceRef ref, int amount) {
         if (ref == null) {
             return null;
@@ -177,20 +133,10 @@ public final class ItemSourceService {
         return null;
     }
 
-    /**
-     * @param ref the reference to test
-     * @return whether it resolves right now
-     */
     public boolean isAvailable(@Nullable ItemSourceRef ref) {
         return probe(ref).ready();
     }
 
-    /**
-     * Probes shorthand text, separating "no plugin claims this prefix" from "the item does not exist".
-     *
-     * @param shorthand the shorthand text
-     * @return the outcome; never {@code null}
-     */
     public ItemSourceProbeResult probeShorthand(@Nullable String shorthand) {
         if (Texts.isBlank(shorthand)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
@@ -201,9 +147,7 @@ public final class ItemSourceService {
             if (ref != null) {
                 return probe(ref);
             }
-            // No provider claimed the prefix, and the vanilla fallback rejected it too. This is the
-            // distinction the old design could not express: it is not a missing item, it is a missing
-            // plugin, and the message shown to a server owner has to say so.
+
             return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_MISSING, null, "",
                     "No installed plugin supplies the item source \"" + Texts.trim(shorthand) + "\".");
         } catch (LinkageError exception) {
@@ -213,12 +157,6 @@ public final class ItemSourceService {
         }
     }
 
-    /**
-     * Probes a reference.
-     *
-     * @param ref the reference to probe
-     * @return the outcome; never {@code null}
-     */
     public ItemSourceProbeResult probe(@Nullable ItemSourceRef ref) {
         if (ref == null) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
@@ -253,12 +191,6 @@ public final class ItemSourceService {
         return firstFailure == null ? ItemSourceProbeResult.providerMissing(ref) : firstFailure;
     }
 
-    /**
-     * Resolves a unified display name.
-     *
-     * @param ref the reference to name
-     * @return MiniMessage text, or an empty string when nothing could be resolved
-     */
     public String displayName(@Nullable ItemSourceRef ref) {
         if (ref == null) {
             return "";
@@ -399,7 +331,6 @@ public final class ItemSourceService {
         return Texts.isBlank(shorthand) ? ref.identifier() : shorthand;
     }
 
-    /** CoreLib's own vanilla provider. Priority {@code 0} so every other provider outranks it. */
     private static final class VanillaItemSourceProvider implements ItemSourceProvider {
 
         @Override

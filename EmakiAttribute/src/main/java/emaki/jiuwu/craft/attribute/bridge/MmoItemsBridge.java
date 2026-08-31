@@ -34,7 +34,7 @@ import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.CombatSupport;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import net.Indyuce.mmoitems.MMOItems;
 import net.Indyuce.mmoitems.api.Type;
@@ -48,7 +48,7 @@ public final class MmoItemsBridge implements Listener {
 
     private final EmakiAttributePlugin plugin;
     private final AttributeService attributeService;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling scheduling;
     private final DirectMmoItemsAccessor accessor;
     private final AttributeContributionProvider contributionProvider;
     private final Set<UUID> trackedProjectiles = ConcurrentHashMap.newKeySet();
@@ -59,10 +59,10 @@ public final class MmoItemsBridge implements Listener {
 
     public MmoItemsBridge(EmakiAttributePlugin plugin,
             AttributeService attributeService,
-            ExecutionDispatcher executionDispatcher) {
+            EmakiScheduling scheduling) {
         this.plugin = plugin;
         this.attributeService = attributeService;
-        this.executionDispatcher = executionDispatcher;
+        this.scheduling = scheduling;
         this.accessor = new DirectMmoItemsAccessor(plugin);
         this.contributionProvider = new MmoItemsAttributeContributionProvider();
         this.attributeService.registerContributionProvider(contributionProvider);
@@ -230,54 +230,7 @@ public final class MmoItemsBridge implements Listener {
     }
 
     private CompletableFuture<Boolean> applyFallbackDamage(LivingEntity target, double damage) {
-        if (target == null || damage <= 0D) {
-            return CompletableFuture.completedFuture(false);
-        }
-        CompletableFuture<Boolean> future = new CompletableFuture<>();
-        try {
-            ExecutionDispatcher dispatcher = executionDispatcher != null ? executionDispatcher : plugin.executionDispatcher();
-            if (dispatcher == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "MMOItems fallback damage dispatcher is unavailable."));
-                return future;
-            }
-            var scheduled = dispatcher.runEntity(
-                    plugin,
-                    target,
-                    () -> {
-                        if (!target.isValid() || target.isDead()) {
-                            future.complete(false);
-                            return;
-                        }
-                        try {
-                            target.setNoDamageTicks(0);
-                            double remaining = Math.max(0D, damage);
-                            double absorption = Math.max(0D, target.getAbsorptionAmount());
-                            if (absorption > 0D) {
-                                double absorbed = Math.min(absorption, remaining);
-                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
-                                remaining -= absorbed;
-                            }
-                            target.setLastDamage(damage);
-                            if (remaining > 0D) {
-                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
-                            }
-                            future.complete(true);
-                        } catch (Throwable throwable) {
-                            future.completeExceptionally(throwable);
-                        }
-                    },
-                    () -> future.completeExceptionally(new IllegalStateException(
-                            "MMOItems fallback damage entity retired before execution."))
-            );
-            if (scheduled == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "MMOItems fallback damage scheduling was rejected."));
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
+        return CombatSupport.applyFallbackDamage(plugin, scheduling, target, damage, "MMOItems fallback");
     }
 
     private void warnBridgeUnavailable(String error) {
@@ -494,7 +447,7 @@ public final class MmoItemsBridge implements Listener {
                 if (stat == null) {
                     continue;
                 }
-                // MMOItems 的 ItemStat#name() 已弃用但未提供替代读取入口，保留以维持旧 stat 名索引。
+
                 @SuppressWarnings("deprecation")
                 String statName = stat.name();
                 statObjects.putIfAbsent(normalizeMmoId(statName), stat);

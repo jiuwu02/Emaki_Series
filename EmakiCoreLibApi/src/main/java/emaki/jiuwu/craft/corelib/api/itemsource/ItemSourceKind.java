@@ -6,23 +6,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Which kind of item source a reference belongs to, written {@code namespace:id}.
+ * Extensible item-source kind in {@code namespace:id} form.
  *
- * <p>This is a record rather than an enum, and that is the entire point of it. The enum it replaces
- * was {@code final} by construction, so a third-party plugin could not add its own item source kind,
- * and every {@code switch} over it was exhaustive &mdash; adding one constant broke CoreLib's own
- * compilation. A record has neither problem: anyone may mint a kind, and no call site can be
- * exhaustive over it.
- *
- * <h2>Ownership rule</h2>
- * Whoever supplies the {@link ItemSourceProvider} declares the kind and the shorthand prefixes, in
- * one registration. The eight constants here are exactly the ones CoreLib itself implements, which is
- * why they use the {@code emaki} namespace. There is deliberately <strong>no</strong> constant for
- * EmakiItem: its resolver lives in EmakiItem, so its kind and prefixes are declared there too.
- * Third-party providers should use their own namespace.
- *
- * @param namespace owning namespace, lower-cased; blank input becomes {@code emaki}
- * @param id kind id within the namespace, lower-cased
+ * <p>The provider that supplies a kind also owns its shorthand prefixes. Built-in constants use the
+ * {@code emaki} namespace; third-party providers should use their own namespace.
  */
 public record ItemSourceKind(@NotNull String namespace, @NotNull String id) {
 

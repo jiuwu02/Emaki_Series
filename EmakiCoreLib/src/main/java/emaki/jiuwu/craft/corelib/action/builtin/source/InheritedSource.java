@@ -8,14 +8,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
-/**
- * The target flow supplied by the caller or the previous phase.
- *
- * <p>Must be written explicitly: omitting the source means {@code self}, so a pipeline that intends to
- * act on inherited targets and leaves the source out would silently act on the caster instead.</p>
- *
- * <p>Domain {@code SERVER_GLOBAL}: pure reference passing of the list the context already holds.</p>
- */
 public final class InheritedSource extends BaseSource {
 
     public InheritedSource() {

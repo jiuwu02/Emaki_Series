@@ -1,18 +1,11 @@
 # ============================================================
 # EmakiStrengthen 强化配方示例
 # ============================================================
-# 此文件定义了一个完整的强化配方，展示所有可用字段和推荐写法。
-# 强化系统允许玩家通过消耗材料和金币来提升装备的星级，
-# 每个星级可以提供不同的属性加成、技能效果和外观变化。
-#
-# 文件放置位置: plugins/EmakiStrengthen/recipes/
-# 文件名即为配方的内部标识，加载时自动注册。
+# 配方 ID 取自 id，与文件名无关。
 # ============================================================
 
-# 配方唯一标识符（必填）
 id: "example_recipe"
 
-# 配方显示名称（支持 MiniMessage 格式）
 display_name: "<gold>物理武器强化</gold>"
 
 # GUI 模板引用（对应 gui/ 目录下的模板文件名，不含 .yml 后缀）
@@ -67,13 +60,28 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
-# 定义哪些物品可以使用此配方进行强化。
-# 推荐优先使用 source_ids 精确绑定 EmakiItem / ItemSource，避免示例配方泛匹配所有武器。
-# slot_groups 是粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），不是 main_hand/helmet 这类具体装备槽位。
-# 也支持 lore_contains（Lore 包含指定文本）和 stats_any（拥有指定属性）。
-match:
-  source_ids:
-    - "emakiitem-example_item"
+# matcher 使用 CoreLib 统一匹配器；当前 all_of 要求物品源与组件条件同时成立。
+matcher:
+  type: all_of
+  matchers:
+    - type: item_source
+      sources:
+        - emakiitem-example_item
+    - type: component
+      component: custom_name
+      operator: exists
+
+# ============================================================
+# 三个顶层匹配字段（与 matcher 取 AND，都成立才命中）
+# ============================================================
+# 它们不属于组件匹配范畴，所以不写进 matcher：
+#   slot_groups     粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），
+#                   不是 main_hand/helmet 这类具体装备槽位
+#   stats_any       只要拥有其中任一属性即满足（读 EmakiAttribute 属性）
+#   source_patterns 对物品源简写做正则（忽略大小写，部分匹配即算命中）
+slot_groups:
+  - "weapon"
+
 
 # ============================================================
 # 全局名称与 Lore 修改
@@ -105,7 +113,6 @@ lore_actions:
 #     - type: "name_action"   → 对物品名称的修改
 #   materials: 强化所需材料
 #   actions: 强化成功/失败时执行的动作
-#
 # Lore 操作策略说明:
 #   ★1 首次使用 "append" 添加属性行；
 #   ★2+ 使用 "replace_line" 通过 anchor 匹配已有行并替换为新数值；
@@ -131,6 +138,17 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 2
+      # item_sources 先选择材料令牌，matcher 再复核实际物品；两者都必须成立。
+      # 星级区间由 min_target_star/max_target_star 独立控制；optional 不阻断强化。
+      - item_sources:
+          - "minecraft-gold_nugget"
+        amount: 1
+        optional: true
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "炎"
 
   # ★2+: 使用 replace_line 更新已有行
   2:

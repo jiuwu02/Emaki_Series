@@ -20,16 +20,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
-/** Read-only compiler view over the live stage registry. */
 public final class RegistryStageResolver implements StageResolver {
 
     private final StageRegistry registry;
 
-    /**
-     * Creates a registry-backed resolver.
-     *
-     * @param registry the live registry
-     */
     public RegistryStageResolver(@NotNull StageRegistry registry) {
         this.registry = Objects.requireNonNull(registry, "registry");
     }

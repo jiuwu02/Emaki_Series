@@ -3,8 +3,10 @@ package emaki.jiuwu.craft.attribute.service;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -174,18 +176,51 @@ public final class AttributeTraceService {
             Map<String, Double> reconstructed,
             List<AttributeContributionTrace> traces,
             String filter) {
-        for (Map.Entry<String, Double> entry : service.temporaryAttributeService().additiveValues(player).entrySet()) {
-            addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "temporary", "additive", "临时属性 ADD", "", "", "temporary", true, "", filter);
+        TemporaryAttributeCapture capture = service.temporaryAttributeService().capture(player);
+        if (capture.isEmpty()) {
+            return;
         }
-        for (Map.Entry<String, Double> entry : service.temporaryAttributeService().setValues(player).entrySet()) {
-            String id = Texts.normalizeId(entry.getKey());
+        for (TemporaryCapturedEffect captured : capture.effects()) {
+            if (captured.effect().mode() != TemporaryAttributeService.TemporaryAttributeMode.ADD) {
+                continue;
+            }
+            addTrace(reconstructed, traces, captured.attributeId(), captured.value(), "EmakiAttribute", "temporary",
+                    captured.groupId(), temporaryLabel(captured, capture.capturedAtMillis()), "", "", "temporary",
+                    true, "", filter);
+        }
+        Set<String> settled = new LinkedHashSet<>();
+        for (TemporaryCapturedEffect captured : capture.effects()) {
+            if (captured.effect().mode() != TemporaryAttributeService.TemporaryAttributeMode.SET) {
+                continue;
+            }
+            String id = Texts.normalizeId(captured.attributeId());
+            Double winning = capture.setValues().get(id);
+            if (winning == null) {
+                continue;
+            }
+            if (!settled.add(id) || Math.abs(captured.value() - winning) > 1.0E-9D) {
+                addRejectedTrace(traces, id, captured.value(), "temporary", "",
+                        temporaryLabel(captured, capture.capturedAtMillis()) + "（被更高 revision 覆盖）",
+                        "temporary", filter);
+                continue;
+            }
             double before = reconstructed.getOrDefault(id, 0D);
-            double after = entry.getValue() == null ? 0D : entry.getValue();
-            reconstructed.put(id, after);
+            reconstructed.put(id, winning);
             if (matches(filter, id)) {
-                traces.add(new AttributeContributionTrace(id, after - before, "EmakiAttribute", "temporary", "set", "临时属性 SET", "", "", "temporary", true, "", before, after));
+                traces.add(new AttributeContributionTrace(id, winning - before, "EmakiAttribute", "temporary",
+                        captured.groupId(), temporaryLabel(captured, capture.capturedAtMillis()), "", "",
+                        "temporary", true, "", before, winning));
             }
         }
+    }
+
+    private String temporaryLabel(TemporaryCapturedEffect captured, long capturedAtMillis) {
+        return "临时属性 " + captured.effect().mode().name()
+                + " / 组 " + captured.groupId()
+                + " / 属性 " + captured.attributeId()
+                + " / 来源 " + captured.source().label()
+                + " / 模式 " + captured.effect().stackMode().name()
+                + " / 剩余 " + captured.remainingTicks(capturedAtMillis) + " tick";
     }
 
     private void addDerivedOrAdjustedContributions(Map<String, Double> reconstructed,

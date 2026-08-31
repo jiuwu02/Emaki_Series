@@ -4,11 +4,15 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
+import emaki.jiuwu.craft.attribute.service.TemporaryAttributeOutcome;
 import emaki.jiuwu.craft.attribute.service.TemporaryAttributeService;
+import emaki.jiuwu.craft.attribute.service.TemporaryAttributeService.TemporaryAttributeMode;
+import emaki.jiuwu.craft.attribute.service.TemporaryAttributeStatus;
+import emaki.jiuwu.craft.attribute.service.TemporaryEffectSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
@@ -22,27 +26,15 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Grants, replaces or withdraws a timed attribute modifier on the target.
- *
- * <p>{@code add} stacks onto an existing effect of the same id while {@code set} replaces it, which is why
- * they are separate stages rather than one with a mode argument.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's temporary modifier table.</p>
- */
 public final class TemporaryAttributeStage implements CoreActionStage {
 
-    /** Which modifier mutation a stage instance performs. */
     public enum Operation {
 
-        /** Stack onto an existing effect of the same id. */
-        ADD("attribute_add", "Adds a timed attribute modifier to the target."),
+        ADD("attribute_add", "Adds a timed attribute modifier into an effect group on the target."),
 
-        /** Replace any existing effect of the same id. */
-        SET("attribute_set", "Sets a timed attribute modifier on the target."),
+        SET("attribute_set", "Sets a timed attribute modifier inside an effect group on the target."),
 
-        /** Withdraw an effect by id. */
-        REMOVE("attribute_remove", "Removes a timed attribute modifier from the target.");
+        REMOVE("attribute_remove", "Removes a whole timed effect group from the target.");
 
         private final String id;
         private final String description;
@@ -52,7 +44,6 @@ public final class TemporaryAttributeStage implements CoreActionStage {
             this.description = description;
         }
 
-        /** {@return the pipeline stage id} */
         public String id() {
             return id;
         }
@@ -61,12 +52,6 @@ public final class TemporaryAttributeStage implements CoreActionStage {
     private final AttributeServiceFacade attributeService;
     private final Operation operation;
 
-    /**
-     * Creates a stage.
-     *
-     * @param attributeService the module's service facade
-     * @param operation which mutation this instance performs
-     */
     public TemporaryAttributeStage(@NotNull AttributeServiceFacade attributeService,
             @NotNull Operation operation) {
         this.attributeService = attributeService;
@@ -92,14 +77,17 @@ public final class TemporaryAttributeStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         if (operation == Operation.REMOVE) {
             return List.of(CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
-                    "Effect id to remove"));
+                    "Effect group id to remove, clearing every attribute in that group"));
         }
         return List.of(
-                CoreStageParameter.required("effect_id", CoreStageParameterType.STRING, "Effect id"),
+                CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
+                        "Effect group id; reusing one id groups several attributes together"),
                 CoreStageParameter.required("attribute", CoreStageParameterType.STRING, "Attribute id"),
                 CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "Modifier value"),
                 CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
-                        "How long the modifier lasts"));
+                        "How long the modifier lasts"),
+                CoreStageParameter.optional("stack_mode", CoreStageParameterType.STRING, "",
+                        "How to combine with an existing effect on the same attribute: REPLACE or STACK"));
     }
 
     @Override
@@ -119,9 +107,9 @@ public final class TemporaryAttributeStage implements CoreActionStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
                     "action.stage.attribute.service_unavailable");
         }
-        Player target = player(context.currentTarget());
+        LivingEntity target = target(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.attribute.not_living_entity");
         }
         TemporaryAttributeService service = attributeService.temporaryAttributeService();
         String effectId = Texts.normalizeId(arguments.getString("effect_id"));
@@ -130,19 +118,38 @@ public final class TemporaryAttributeStage implements CoreActionStage {
                     "action.stage.attribute.effect_id_required");
         }
         if (operation == Operation.REMOVE) {
-            TemporaryAttributeService.TemporaryAttributeResult result = service.remove(target, effectId);
-            return CoreActionOutcome.success(data(result, effectId, "", 0D, 0L));
+            return outcome(service.removeGroup(target, effectId), effectId, "", 0D, 0L);
         }
         String attributeId = Texts.normalizeId(arguments.getString("attribute"));
         double value = arguments.getDouble("value", 0D);
         long durationTicks = arguments.getDurationTicks("duration_ticks", 0L);
-        TemporaryAttributeService.TemporaryAttributeResult result = operation == Operation.ADD
-                ? service.add(target, effectId, attributeId, value, durationTicks)
-                : service.set(target, effectId, attributeId, value, durationTicks);
-        return CoreActionOutcome.success(data(result, effectId, attributeId, value, durationTicks));
+        TemporaryAttributeMode mode = operation == Operation.ADD
+                ? TemporaryAttributeMode.ADD
+                : TemporaryAttributeMode.SET;
+        TemporaryAttributeOutcome result = service.applyGroupEffect(target, effectId, attributeId, value,
+                durationTicks, mode, arguments.getString("stack_mode", ""), TemporaryEffectSource.CORE_ACTION);
+        return outcome(result, effectId, attributeId, value, durationTicks);
     }
 
-    private static Map<String, Object> data(TemporaryAttributeService.TemporaryAttributeResult result,
+    private static CoreActionOutcome outcome(TemporaryAttributeOutcome result,
+            String effectId,
+            String attributeId,
+            double value,
+            long durationTicks) {
+        return switch (result.status()) {
+            case APPLIED, REPLACED, STACKED, REMOVED ->
+                    CoreActionOutcome.success(data(result, effectId, attributeId, value, durationTicks));
+            case NOT_FOUND, NO_MATCH -> CoreActionOutcome.skipped(result.reasonKey());
+            case UNKNOWN_ATTRIBUTE -> CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    result.reasonKey(), Map.of("attribute", attributeId));
+            case INVALID_INPUT -> CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    result.reasonKey(), Map.of("detail", result.detail()));
+            case WRONG_THREAD -> CoreActionOutcome.failure(CoreActionFailureKind.WRONG_THREAD, result.reasonKey());
+            case CLOSED -> CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED, result.reasonKey());
+        };
+    }
+
+    private static Map<String, Object> data(TemporaryAttributeOutcome result,
             String effectId,
             String attributeId,
             double value,
@@ -152,14 +159,15 @@ public final class TemporaryAttributeStage implements CoreActionStage {
         data.put("attribute", attributeId);
         data.put("value", value);
         data.put("duration_ticks", durationTicks);
-        data.put("existed", result != null && result.existed());
-        if (result != null && result.entry() != null) {
-            data.put("remaining_ticks", result.entry().remainingTicks(System.currentTimeMillis()));
-        }
+        data.put("status", result.status().name());
+        data.put("affected_count", result.affectedCount());
+        data.put("existed", result.status() == TemporaryAttributeStatus.REPLACED
+                || result.status() == TemporaryAttributeStatus.STACKED);
+        data.put("remaining_ticks", result.remainingTicks());
         return Map.copyOf(data);
     }
 
-    private static Player player(CoreActionSubject subject) {
-        return subject != null && subject.entityOrNull() instanceof Player resolved ? resolved : null;
+    private static LivingEntity target(CoreActionSubject subject) {
+        return subject != null && subject.entityOrNull() instanceof LivingEntity resolved ? resolved : null;
     }
 }

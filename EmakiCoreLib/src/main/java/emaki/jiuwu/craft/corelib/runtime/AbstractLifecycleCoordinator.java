@@ -7,7 +7,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -81,14 +84,14 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 }
                 return CompletableFuture.completedFuture(result);
             } catch (Exception exception) {
-                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
                 return failedFuture(exception);
             }
         }
         if (executionDispatcher == null || executionOwner == null) {
             IllegalStateException exception = new IllegalStateException(
                     "Reload pipeline requires an ExecutionDispatcher and owner for the global apply stage");
-            handleReloadPipelineFailure(config, config.applyStageName(), exception);
+            handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
             return failedFuture(exception);
         }
         String prefix = config.taskPrefix() == null || config.taskPrefix().isBlank() ? "reload" : config.taskPrefix();
@@ -97,7 +100,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             try {
                 return config.asyncLoad() == null ? null : config.asyncLoad().get();
             } catch (Exception exception) {
-                handleReloadPipelineFailure(config, config.loadStageName(), exception);
+                handleReloadPipelineFailure(config, config.loadStageName(), exception, executionOwner);
                 throw new CompletionException(exception);
             }
         }).thenCompose(loaded -> runReloadApplyOnGlobal(executionDispatcher, executionOwner, loaded, config));
@@ -118,7 +121,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
                 }
                 future.complete(result);
             } catch (Exception exception) {
-                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
                 future.completeExceptionally(exception);
             }
         };
@@ -126,26 +129,43 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             if (executionDispatcher.runGlobal(executionOwner, task) == null) {
                 RejectedExecutionException exception = new RejectedExecutionException(
                         "Reload pipeline global apply stage was rejected");
-                handleReloadPipelineFailure(config, config.applyStageName(), exception);
+                handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
                 future.completeExceptionally(exception);
             }
         } catch (RuntimeException exception) {
-            handleReloadPipelineFailure(config, config.applyStageName(), exception);
+            handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
             future.completeExceptionally(exception);
         }
         return future;
     }
 
-    private <L, R> void handleReloadPipelineFailure(ReloadPipelineConfig<L, R> config, String stageName, Exception exception) {
+    private <L, R> void handleReloadPipelineFailure(ReloadPipelineConfig<L, R> config,
+            String stageName,
+            Exception exception,
+            Plugin rollbackLogOwner) {
         if (config.rollback() != null) {
             try {
                 config.rollback().accept(exception);
-            } catch (Exception ignored) {
+            } catch (Exception rollbackFailure) {
+                logRollbackFailure(rollbackLogOwner, stageName, exception, rollbackFailure);
             }
         }
         if (config.failureHandler() != null) {
             config.failureHandler().accept(stageName, exception);
         }
+    }
+
+    private void logRollbackFailure(Plugin rollbackLogOwner,
+            String stageName,
+            Exception stageFailure,
+            Exception rollbackFailure) {
+        Logger logger = rollbackLogOwner == null ? Bukkit.getLogger() : rollbackLogOwner.getLogger();
+        logger.log(Level.SEVERE,
+                "Reload rollback failed after stage failure; module may be left with neither the new"
+                        + " nor the previous configuration applied: stage=" + stageName
+                        + ", stageFailure=" + stageFailure
+                        + ", rollbackFailure=" + rollbackFailure,
+                rollbackFailure);
     }
 
     private static <T> CompletableFuture<T> failedFuture(Throwable throwable) {

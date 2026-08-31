@@ -19,14 +19,6 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
-/**
- * Removes matching items from the target's inventory.
- *
- * <p>All or nothing: the removal is planned first and only applied when the full amount is available, so a
- * partial take cannot leave a player charged half the cost of something they did not receive.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's inventory.</p>
- */
 public final class TakeItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;

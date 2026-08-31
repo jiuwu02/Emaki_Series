@@ -15,15 +15,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Shared body for {@code give_exp}, {@code take_exp} and {@code set_exp}.
- *
- * <p>{@code mode=points} works on total experience and {@code mode=levels} on the level counter, matching v1.</p>
- *
- * <p>Requires a {@code Player}: experience is a player-only concept.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: reads and writes one player's experience.</p>
- */
 abstract class ExperienceStage extends BaseStage {
 
     ExperienceStage(String id, String description) {
@@ -49,24 +40,8 @@ abstract class ExperienceStage extends BaseStage {
                 "total_experience", target.getTotalExperience()));
     }
 
-    /**
-     * Applies the experience change.
-     *
-     * @param target the affected player
-     * @param amount non-negative amount
-     * @param levels whether {@code amount} counts levels rather than points
-     */
     abstract void apply(Player target, int amount, boolean levels);
 
-    /**
-     * Rewrites a player's total experience.
-     *
-     * <p>Bukkit has no direct total-experience setter that also fixes the level and progress bar, so the counters
-     * are zeroed and the target amount granted. Same approach as v1's {@code ExperienceSupport}.</p>
-     *
-     * @param player the affected player
-     * @param value the new total, clamped at zero
-     */
     static void setTotalExperience(Player player, int value) {
         if (player == null) {
             return;

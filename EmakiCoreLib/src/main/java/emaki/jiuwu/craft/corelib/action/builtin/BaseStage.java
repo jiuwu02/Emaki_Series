@@ -13,13 +13,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 
-/**
- * Metadata carrier for the builtin action stages.
- *
- * <p>Target requirement and domain are constructor arguments so that neither can be left implicit.
- * That replaces the v1 pattern where every builtin repeated {@code requirePlayerResult(context)} inside
- * {@code execute} and inherited a domain guess from {@code BaseAction}.</p>
- */
 public abstract class BaseStage implements CoreActionStage {
 
     private final String id;

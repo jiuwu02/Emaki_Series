@@ -26,8 +26,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.DrainResult;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -41,7 +41,7 @@ public final class StationStateStore {
 
     private final JavaPlugin plugin;
     private final FileScope fileScope;
-    private final ExecutionDispatcher executionDispatcher;
+    private final EmakiScheduling taskScheduler;
     private final StationStateArbiter arbiter;
     private final StationStateFileStore fileStore;
     private final StationIndexRegistry indexRegistry;
@@ -51,15 +51,15 @@ public final class StationStateStore {
 
     public StationStateStore(JavaPlugin plugin,
             FileScope fileScope,
-            ExecutionDispatcher executionDispatcher,
+            EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
         this.fileScope = fileScope;
-        this.executionDispatcher = executionDispatcher;
+        this.taskScheduler = taskScheduler;
         this.arbiter = new StationStateArbiter();
         this.fileStore = new StationStateFileStore(plugin, fileScope, threadOwnership, arbiter);
         this.indexRegistry = new StationIndexRegistry(
-                plugin, fileScope, executionDispatcher, fileStore, arbiter, this::trackOperation);
+                plugin, fileScope, taskScheduler, fileStore, arbiter, this::trackOperation);
         this.fileStore.attachIndexRegistry(indexRegistry);
     }
 
@@ -385,7 +385,7 @@ public final class StationStateStore {
                 future.completeExceptionally(throwable);
             }
         };
-        executionDispatcher.submitGlobal(plugin, () -> entries == null || entries.isEmpty()
+        taskScheduler.submitGlobal(plugin, () -> entries == null || entries.isEmpty()
                         ? null
                         : chunkCenterLocation(entries.getFirst().coordinates()))
                 .whenComplete((location, throwable) -> {
@@ -399,7 +399,7 @@ public final class StationStateStore {
                         return;
                     }
                     try {
-                        TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, task);
+                        TaskToken handle = taskScheduler.runAtLocation(plugin, location, task);
                         if (handle == null) {
                             future.completeExceptionally(new RejectedExecutionException(
                                     "Location dispatcher rejected station restore"));
@@ -478,7 +478,7 @@ public final class StationStateStore {
             return;
         }
         try {
-            TaskHandle handle = executionDispatcher.runAtLocation(plugin, location, () -> {
+            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
                 try {
                     task.run();
                 } catch (Throwable throwable) {

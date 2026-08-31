@@ -3,8 +3,8 @@ package emaki.jiuwu.craft.cooking.api.model;
 /**
  * How far a station has advanced through its current recipe.
  *
- * @param current   ticks or steps completed
- * @param target    ticks or steps required; {@code 0} when no recipe is running
+ * @param current   non-negative ticks or steps completed
+ * @param target    non-negative ticks or steps required; {@code 0} when no recipe is running
  * @param completed whether the station has finished and is waiting to be collected
  */
 public record CookingProgress(int current, int target, boolean completed) {

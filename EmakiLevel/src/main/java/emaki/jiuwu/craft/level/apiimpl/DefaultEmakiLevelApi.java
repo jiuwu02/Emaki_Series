@@ -9,7 +9,6 @@ import emaki.jiuwu.craft.level.api.LevelCatalog;
 import emaki.jiuwu.craft.level.api.LevelExtensions;
 import emaki.jiuwu.craft.level.api.LevelOperations;
 
-/** Named runtime bridge composed from the three public capability implementations. */
 public final class DefaultEmakiLevelApi implements EmakiLevelApi.Bridge {
 
     private final EmakiLevelPlugin plugin;

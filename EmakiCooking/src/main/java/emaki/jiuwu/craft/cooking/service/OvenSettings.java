@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 final class OvenSettings {
 
@@ -42,7 +43,8 @@ final class OvenSettings {
         for (Map<?, ?> entry : configuration.get().getMapList("stations.oven.fuels")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
             ItemSourceRef source = ItemSourceUtil.parse(normalized.get("item_sources"));
-            if (source == null) {
+            Matcher matcher = CookingMatchers.parse(normalized, "matcher");
+            if (source == null && matcher == null) {
                 continue;
             }
             Integer duration = CookingSettingsService.configurationValueToInt(normalized.get("duration_seconds"), 0);
@@ -50,7 +52,8 @@ final class OvenSettings {
             result.add(new CookingSettingsService.OvenFuelRule(
                     source,
                     duration == null ? 0 : Math.max(0, duration),
-                    heat == null ? 0 : Math.max(0, heat)
+                    heat == null ? 0 : Math.max(0, heat),
+                    matcher
             ));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);

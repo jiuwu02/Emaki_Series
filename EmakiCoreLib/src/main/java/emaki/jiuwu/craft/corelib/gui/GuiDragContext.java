@@ -6,32 +6,13 @@ import java.util.Set;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-
-
-
-
-
-
-
-
-
 public interface GuiDragContext {
 
     Player viewer();
 
-
-
-
     Set<Integer> rawSlots();
 
-
-
-
     Map<Integer, ItemStack> newItems();
-
-
-
-
 
     ItemStack oldCursor();
 

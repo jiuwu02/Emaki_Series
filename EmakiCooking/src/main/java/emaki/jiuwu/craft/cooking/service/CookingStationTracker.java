@@ -16,23 +16,9 @@ import emaki.jiuwu.craft.cooking.api.event.CookingStationInteractEvent;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 
-
-
-
-
-
-
-
-
 public final class CookingStationTracker implements Listener {
 
     private final Map<UUID, RecentStation> recentInteractions = new ConcurrentHashMap<>();
-
-
-
-
-
-
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onStationInteract(CookingStationInteractEvent event) {
@@ -52,11 +38,6 @@ public final class CookingStationTracker implements Listener {
         recentInteractions.put(player.getUniqueId(), new RecentStation(type, coordinates));
     }
 
-
-
-
-
-
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         if (event.getPlayer() != null) {
@@ -64,16 +45,9 @@ public final class CookingStationTracker implements Listener {
         }
     }
 
-
-
-
-
-
-
     public Optional<RecentStation> recent(UUID playerId) {
         return playerId == null ? Optional.empty() : Optional.ofNullable(recentInteractions.get(playerId));
     }
-
 
     public void clear() {
         recentInteractions.clear();
@@ -90,12 +64,6 @@ public final class CookingStationTracker implements Listener {
         }
         return null;
     }
-
-
-
-
-
-
 
     public record RecentStation(StationType type, StationCoordinates coordinates) {
     }

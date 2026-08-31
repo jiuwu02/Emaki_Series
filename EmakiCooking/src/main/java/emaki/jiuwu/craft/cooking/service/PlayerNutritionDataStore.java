@@ -28,11 +28,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.model.NutritionTypeConfig;
 import emaki.jiuwu.craft.cooking.model.PlayerNutritionData;
 
-
-
-
-
-
 public final class PlayerNutritionDataStore {
 
     private static final int SCHEMA_VERSION = 1;
@@ -163,9 +158,6 @@ public final class PlayerNutritionDataStore {
                     return cache.activeData(uuid);
                 });
     }
-
-
-
 
     public PlayerNutritionData getOrLoad(OfflinePlayer player, Map<String, NutritionTypeConfig> types) {
         return player == null ? null : cached(player.getUniqueId());

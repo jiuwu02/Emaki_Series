@@ -7,6 +7,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
+import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.ServicePriority;
@@ -35,17 +36,17 @@ import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -57,11 +58,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
- /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\   
- \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\/_/\\ \\/\\/_/\\ \\/\\ \\  __<\\ \\ \\ \\  __<\\ \\ \\_\\ \\/_/\\ \\/\\ \\  __\\   
-  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\ \\_\\   \\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\ \\_\\ \\ \\_____\\ 
+ /\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __ \\/\\__  _\\/\\__  _\\/\\  == \\/\\ \\/\\  == \\/\\ \\/\\ \\/\\__  _\\/\\  ___\\
+ \\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\  __ \\/_/\\ \\/\\/_/\\ \\/\\ \\  __<\\ \\ \\ \\  __<\\ \\ \\_\\ \\/_/\\ \\/\\ \\  __\\
+  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\_\\ \\_\\ \\ \\_\\   \\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\ \\_\\ \\ \\_____\\
    \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_/\\/_/  \\/_/    \\/_/  \\/_/ /_/\\/_/\\/_____/\\/_____/  \\/_/  \\/_____/
-                                                                                                                
+
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0xF43F5E;
     private static final int STARTUP_ASCII_END_COLOR = 0xFB923C;
@@ -75,8 +76,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     private DebugCommand debugCommand;
 
-    private ExecutionDispatcher executionDispatcher;
-    private ThreadOwnership threadOwnership;
+    private EmakiScheduling scheduling;
     private AttributeConfig configModel = AttributeConfig.defaults();
     private AttributeRegistry attributeRegistry;
     private AttributeBalanceRegistry attributeBalanceRegistry;
@@ -86,6 +86,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
     private ItemContributionGateRegistry itemContributionGateRegistry;
+    private AttributeSlotRegistry attributeSlotRegistry;
     private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
     private MessageService messageService;
@@ -104,7 +105,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private boolean betterHudBridgeRegistered;
     private MmoItemsBridge mmoItemsBridge;
     private AttributePlaceholderExpansion placeholderExpansion;
-    private TaskHandle regenTask;
+    private TaskToken regenTask;
     private AttributeStageRegistrar stageRegistrar;
     private CompletableFuture<Void> reloadFuture;
 
@@ -143,21 +144,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
             metrics = null;
         }
         regenTask = null;
-        // Bukkit 在 disable 时注销本插件的监听，这里同步清掉句柄与注册标记，
-        // 避免旧 bridge 实例与「已注册」状态跨 reload 泄漏到下一次 enable。
-        mythicBridge = null;
-        mythicBridgeRegistered = false;
+
+        releaseMythicBridge();
         betterHudBridge = null;
         betterHudBridgeRegistered = false;
     }
 
-    /**
-     * MythicBridge 的唯一注册入口：幂等地保证实例存在且已注册一次监听。
-     *
-     * <p>守卫针对「是否已注册」而非「是否已构造」，因为实例可能由生命周期协调器的
-     * {@code initialize} 预先构造；只防重复构造会让注册责任落到别处，
-     * 导致同一实例被注册两次、处理器触发两次。
-     */
     public void ensureMythicBridge() {
         if (mythicBridgeRegistered) {
             return;
@@ -172,6 +164,18 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         mythicBridgeRegistered = true;
     }
 
+    public void releaseMythicBridge() {
+        if (!mythicBridgeRegistered && mythicBridge == null) {
+            return;
+        }
+        if (mythicBridge != null) {
+            HandlerList.unregisterAll(mythicBridge);
+            mythicBridge.close();
+        }
+        mythicBridge = null;
+        mythicBridgeRegistered = false;
+    }
+
     public void ensureMmoItemsBridge() {
         if (mmoItemsBridge != null || attributeService == null) {
             return;
@@ -179,7 +183,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         if (!Bukkit.getPluginManager().isPluginEnabled("MMOItems")) {
             return;
         }
-        mmoItemsBridge = new MmoItemsBridge(this, attributeService, executionDispatcher);
+        mmoItemsBridge = new MmoItemsBridge(this, attributeService, scheduling);
         getServer().getPluginManager().registerEvents(mmoItemsBridge, this);
         attributeService.resyncAllPlayers();
     }
@@ -221,9 +225,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     public CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
         publishLoading();
         CompletableFuture<Void> reload = startReloadAsync(resyncPlayers, progressListener);
-        // Appended outside the synchronized method on purpose: waiting third-party callbacks run
-        // synchronously wherever this stage executes, and the reload chain can complete inline on the
-        // calling thread, which would run them while this plugin's monitor is held.
+
         return reload.whenComplete((ignored, throwable) -> syncReadiness());
     }
 
@@ -248,13 +250,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return reloadFuture;
     }
 
-    /**
-     * Publishes the current registry load state to CoreLib's readiness registry.
-     *
-     * <p>Uses the same three-registry predicate the API bridge reports through {@code status()}, so the
-     * registry cannot disagree with it. Must be called outside this plugin's monitor: waiting
-     * third-party callbacks run synchronously on the calling thread.</p>
-     */
     private void syncReadiness() {
         boolean ready = attributeService != null
                 && attributeService.attributeRegistry() != null
@@ -280,11 +275,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -298,8 +288,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     private void applyRuntimeComponents(AttributeRuntimeComponents components) {
-        executionDispatcher = components.executionDispatcher();
-        threadOwnership = components.threadOwnership();
+        scheduling = components.scheduling();
         attributeRegistry = components.attributeRegistry();
         attributeBalanceRegistry = components.attributeBalanceRegistry();
         damageTypeRegistry = components.damageTypeRegistry();
@@ -308,10 +297,11 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         itemContributionGateRegistry = components.itemContributionGateRegistry();
+        attributeSlotRegistry = components.attributeSlotRegistry();
         contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
         messageService = components.messageService();
-        // 飘字服务用 Supplier 取依赖，这样 reload 后自动读到新配置，无需重建实例。
+
         damageIndicatorService = new DamageIndicatorService(
                 () -> {
                     EmakiCoreLibPlugin coreLib =
@@ -334,10 +324,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     private void initDebugLogger() {
-        LanguageLoader coreLanguageLoader = new LanguageLoader(this);
-        coreLanguageLoader.load();
-        setDebugLogger(new DebugLogger(this, coreLanguageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        setDebugLogger(new DebugLogger(this, languageLoader));
+        debugLogger().setFallbackLoader(coreLib().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
     }
 
     private void registerAttributeBridgeService() {
@@ -367,12 +356,8 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return configModel;
     }
 
-    public ExecutionDispatcher executionDispatcher() {
-        return executionDispatcher;
-    }
-
-    public ThreadOwnership threadOwnership() {
-        return threadOwnership;
+    public EmakiScheduling scheduling() {
+        return scheduling;
     }
 
     public AttributeRegistry attributeRegistry() {
@@ -407,6 +392,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return itemContributionGateRegistry;
     }
 
+    public AttributeSlotRegistry attributeSlotRegistry() {
+        return attributeSlotRegistry;
+    }
+
     public ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry() {
         return contributionProviderRegistrationRegistry;
     }
@@ -415,7 +404,6 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return languageLoader;
     }
 
-    /** {@return 伤害飘字服务，未启用飘字时仍返回实例但不会生成任何实体} */
     public DamageIndicatorService damageIndicatorService() {
         return damageIndicatorService;
     }
@@ -472,9 +460,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         if (attributeService == null) {
             return;
         }
-        // Rebuilt on every module reload: the stages capture the service facade, and a reload may have
-        // replaced it.
-        stageRegistrar = new AttributeStageRegistrar(this, attributeService);
+
+        if (stageRegistrar == null) {
+            stageRegistrar = new AttributeStageRegistrar(this, attributeService);
+        }
         stageRegistrar.register();
     }
 

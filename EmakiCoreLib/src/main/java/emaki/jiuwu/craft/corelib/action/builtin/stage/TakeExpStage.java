@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import org.bukkit.entity.Player;
 
-/** Removes experience from the target. See {@link ExperienceStage} for the shared contract. */
 public final class TakeExpStage extends ExperienceStage {
 
     public TakeExpStage() {

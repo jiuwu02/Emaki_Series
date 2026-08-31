@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-codex</artifactId>
-    <version>1.0.0</version>
+    <version>1.1.0</version>
     <name>EmakiCodex</name>
     <packaging>jar</packaging>
 
@@ -24,6 +24,11 @@
         </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-corelib-api</artifactId>
+            <version>${emaki.corelib.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib</artifactId>
             <version>${emaki.corelib.version}</version>
         </dependency>
@@ -31,6 +36,12 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-codex-api</artifactId>
             <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-attribute-api</artifactId>
+            <version>${emaki.attribute.api.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>me.clip</groupId>

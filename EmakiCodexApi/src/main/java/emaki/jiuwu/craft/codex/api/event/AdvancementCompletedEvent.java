@@ -5,18 +5,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiCodex after an advancement has been granted to a player.
+ * Fired from Bukkit's actual completion callback after a registered advancement criterion is awarded.
  *
- * <p>Informational only: the advancement criterion is already awarded and any configured completion actions
- * have been queued, so this event is not cancellable.
- *
- * <h2>Threading</h2>
- * Fired synchronously on the thread that owns the target player.
- *
- * <h2>Coverage</h2>
- * Fired from Bukkit's actual player advancement-completion event for every advancement registered by
- * EmakiCodex. It therefore covers EmakiCodex grant paths and criterion awards performed by other sources.
- * Re-granting an already-completed advancement does not produce another completion event.
+ * <p>Runs synchronously on the player's owner thread and covers both EmakiCodex grants and awards made by
+ * other sources. It is informational: completion actions are already queued, cancellation is unavailable,
+ * and re-granting an already-complete advancement does not fire it again.
  *
  * @see AdvancementGrantEvent
  */

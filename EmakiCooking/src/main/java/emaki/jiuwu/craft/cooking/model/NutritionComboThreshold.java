@@ -2,23 +2,6 @@ package emaki.jiuwu.craft.cooking.model;
 
 import java.util.List;
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 public record NutritionComboThreshold(String id,
         List<String> types,
         double value,
@@ -34,9 +17,6 @@ public record NutritionComboThreshold(String id,
         compare = compare == null ? NutritionCompare.GREATER_OR_EQUAL : compare;
         requiredCount = Math.max(1, requiredCount);
     }
-
-
-
 
     public boolean counts(String typeId) {
         return types.isEmpty() || types.contains(typeId);

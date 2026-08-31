@@ -1,3 +1,6 @@
+# EmakiLevel 等级类型 - 主等级
+# 该等级类型的启用状态、显示名、等级区间与升级需求。
+
 id: "main"
 enabled: true
 display_name: "<gold>主等级</gold>"
@@ -9,7 +12,6 @@ max_level: 100
 requirement:
   group: "main"
   formula: ""
-  values: {}
 upgrade:
   enabled: true
   auto_upgrade: true
@@ -18,8 +20,6 @@ upgrade:
     enabled: false
     economy:
       enabled: false
-      currencies: []
-    materials: []
   rewards:
     items:
       - levels: "*"
@@ -29,7 +29,6 @@ upgrade:
   actions:
     success:
       - 'send_message text="<green>你的 <gold>主等级</gold> 提升到了 <yellow>%var.new_level%</yellow> 级！</green>"'
-    failure: []
 pdc:
   enabled: true
 attributes:

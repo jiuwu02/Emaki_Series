@@ -13,8 +13,10 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.level.legacy.LevelLegacyEntry;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.LevelPermissions;
+
 import emaki.jiuwu.craft.level.api.LevelOperationResult;
 import emaki.jiuwu.craft.level.api.LevelUpCause;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
@@ -54,6 +56,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             case "setlevel" -> handleLevel(sender, tail(args), "set");
             case "reset" -> handleReset(sender, tail(args));
             case "reload" -> handleReload(sender);
+            case "convert-legacy" -> LevelLegacyEntry.handle(plugin, sender, tail(args), LevelPermissions.ADMIN);
             case "debug" -> handleDebug(sender, tail(args));
             default -> {
                 plugin.messages().send(sender, "command.usage");
@@ -223,8 +226,11 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         plugin.dataStore().saveAll();
+        long startTime = System.currentTimeMillis();
         plugin.reloadPluginState();
+        long elapsedMs = System.currentTimeMillis() - startTime;
         plugin.messages().send(sender, "command.reload_success");
+        plugin.messages().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
         return true;
     }
 
@@ -311,7 +317,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "debug")) {
+            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;

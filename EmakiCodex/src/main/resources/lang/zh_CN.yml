@@ -1,11 +1,8 @@
-# ============================================================
-# EmakiCodex 语言文件 - 简体中文
-# ============================================================
-# 支持 MiniMessage 格式。修改后使用 /codex reload 重载。
-# ============================================================
+# EmakiCodex 简体中文语言资源。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
+# version 由资源同步流程维护，用于合并新增默认键。
 
-# version 由资源同步维护
-version: "1.0.0"
+version: "1.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -25,8 +22,11 @@ command:
     line: "<yellow>/codex %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       reload: "重载配置、重注册成就并给全员重发成就"
+      codex: "打开图鉴界面"
       grant: "授予玩家成就"
       revoke: "撤销玩家成就"
+      admin_unlock: "强制为玩家解锁图鉴条目"
+      admin_reset: "重置玩家的图鉴状态，省略条目则清空全部"
       debug: "管理 Debug 模式"
   grant:
     done: "<green>已授予 %player% 成就 %advancement%。</green>"
@@ -35,8 +35,12 @@ command:
   advancement:
     failed: "<red>成就 %advancement% 操作失败：%reason%</red>"
     reason_unknown: "<red>未知原因</red>"
+  codex:
+    unlocked: "<green>已为 %player% 解锁图鉴条目 %entry%。</green>"
+    reset: "<green>已重置 %player% 的 %count% 个图鉴条目。</green>"
+    failed: "<red>图鉴条目 %entry% 操作失败：%reason%</red>"
+    bad_reference: "<red>条目引用 %entry% 格式错误，应为 <分类id>/<条目id>。</red>"
 
-# 授予/撤销失败的具体原因。由服务层的 reasonKey 直接解析，新增原因只需在此加一条。
 codex:
   player:
     required: "未指定玩家。"
@@ -53,6 +57,45 @@ codex:
     not_completed: "玩家尚未完成该成就。"
     cancelled: "撤销被其他插件取消。"
     rejected: "服务端拒绝撤销完成条件。"
+  entry:
+    not_found: "图鉴条目未配置。请检查 codex/ 下的分类文件是否包含该条目。"
+    locked: "该图鉴条目尚未解锁。"
+    already_unlocked: "该图鉴条目已经解锁。"
+    already_activated: "该图鉴条目已经激活。"
+    already_claimed: "该图鉴条目的奖励已领取。"
+    no_reward: "该图鉴条目没有可领取的一次性奖励。"
+    nothing_to_reset: "没有可重置的图鉴状态。"
+    state_stale: "图鉴数据尚未就绪或已被其他会话更新，请稍后重试。"
+  loader:
+    entry_skipped: "已跳过 %file% 中无法解析的图鉴条目 %entry%。"
+    category_empty: "%file% 的图鉴分类 %category% 没有任何条目。"
+
+gui:
+  open_failed: "<red>无法打开图鉴界面，请检查 gui/codex_gui.yml 是否存在。</red>"
+  no_categories: "<red>当前没有可用的图鉴分类。</red>"
+  entry_unknown: "<dark_gray>未知条目</dark_gray>"
+  entry_unlocked: "<green>已解锁图鉴条目 %codex_title%。</green>"
+  entry_action_done: "<green>操作成功。</green>"
+  category_active: "<green>当前分类</green>"
+  category_inactive: "<dark_gray>点击查看</dark_gray>"
+  state_locked: "<dark_gray>未解锁</dark_gray>"
+  state_unlocked: "<yellow>可激活</yellow>"
+  state_activated: "<aqua>已激活</aqua>"
+  state_claimed: "<green>已领取</green>"
+  hint_locked: "<dark_gray>达成解锁条件后可激活</dark_gray>"
+  hint_activate: "<yellow>左键</yellow> <gray>激活以开启属性加成</gray>"
+  hint_claim: "<yellow>右键</yellow> <gray>领取一次性奖励</gray>"
+  hint_done: "<dark_gray>该条目已全部完成</dark_gray>"
+  reward_attribute: "<gray>- <white>%attribute%</white> <green>+%value%</green></gray>"
+  reward_claimable: "<gray>- <yellow>可领取的一次性奖励</yellow></gray>"
+  reward_hidden: "<dark_gray>- 解锁后可见</dark_gray>"
+  reward_none: "<dark_gray>- 无</dark_gray>"
+
+broadcast:
+  frame:
+    task: "<white>%player% 达成了成就 <green>[%title%]</green></white>"
+    goal: "<white>%player% 达成了目标 <green>[%title%]</green></white>"
+    challenge: "<white>%player% 完成了挑战 <light_purple>[%title%]</light_purple></white>"
 
 emaki:
   api:
@@ -72,6 +115,7 @@ console:
   default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   advancements_registered: "已注册成就 %count% 个。"
+  codex_categories_loaded: "已加载图鉴分类 %count% 个。"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
@@ -96,99 +140,3 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "指定路径不是目录。"
       directory_not_readable: "目录不可读。"
-
-debug:
-  common:
-    placeholder:
-      papi_resolved: "PlaceholderAPI 解析完成 | 来源=%source% | 原文=%before% | 结果=%after%"
-      papi_failed: "PlaceholderAPI 解析失败 | 来源=%source% | 错误=%error% | 文本=%text%"
-      variables: "应用变量 | 来源=%source% | 变量=%values%"
-      internal_resolved: "内部占位符解析完成 | 来源=%source% | 命中=%hits% | 缺失=%missing% | 文本=%text%"
-      resolver_changed: "占位符解析器修改文本 | 解析器=%resolver% | 修改前=%before% | 修改后=%after%"
-    item_operation:
-      apply_start: "开始应用物品操作 | 操作=%operation_id% | 命名空间=%namespace% | 物品=%item% | 名称动作=%name_actions% | Lore 动作=%lore_actions% | 变量=%variables%"
-      apply_empty: "物品操作未产生结果 | 操作=%operation_id%"
-      apply_success: "物品操作应用完成 | 操作=%operation_id% | 名称记录=%name_records% | Lore 记录=%lore_records%"
-      name_action: "执行名称动作 | 动作=%action% | 已识别=%recognized% | 值=%value% | 原文=%raw%"
-      name_result: "名称动作完成 | 基础名称=%base% | 结果名称=%result%"
-      lore_action_skipped: "跳过无效 Lore 动作 | 原文=%raw%"
-      lore_action: "执行 Lore 动作 | 动作=%action% | 已识别=%recognized% | 锚点=%anchor% | 内容=%content% | 原文=%raw%"
-      lore_result: "Lore 动作完成 | 修改前行数=%before_lines% | 修改后行数=%after_lines%"
-    assembly:
-      input: "物品组装输入 | 目标=%target% | 请求层=%request_layers% | 移除层=%removed% | 物品为空=%item_empty% | 类型=%item_type% | Lore 行数=%item_lore_lines% | 套装签名=%item_set_signature% | 套装 Lore 行数=%item_set_lore_lines% | 操作=%item_operations%"
-      output_no_context: "物品组装失败：无法解析上下文 | 目标=%target%"
-      context: "物品组装上下文 | 目标=%target% | 基础来源=%base% | 数量=%amount% | 基础 Lore 行数=%base_lore% | 活动层=%active_layers% | 先前活动层=%previous_layers% | 操作=%operations% | 组装签名=%assembly_signature%"
-      output_render_invalid: "物品组装渲染结果无效 | 目标=%target% | 预期操作=%expected%"
-      output_commit_failed: "物品组装提交失败 | 目标=%target%"
-      output: "物品组装输出 | 目标=%target% | 来源=%source% | 物品为空=%item_empty% | 类型=%item_type% | Lore 行数=%item_lore_lines% | 套装签名=%item_set_signature% | 套装 Lore 行数=%item_set_lore_lines% | 操作=%item_operations%"
-    gui:
-      sync_open_rejected_invalid_request: "同步打开 GUI 被拒绝：请求、玩家或模板无效"
-      sync_open_requested: "请求同步打开 GUI | 后端=%backend%"
-      sync_open_complete: "同步打开 GUI 完成 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      sync_open_failed: "同步打开 GUI 失败 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      async_open_rejected_invalid_request: "异步打开 GUI 被拒绝：请求、玩家或模板无效"
-      async_open_requested: "请求异步打开 GUI | 所有者=%owner% | 后端=%backend%"
-      async_open_retired_initial_dispatch: "异步打开 GUI 的初始分派因玩家所有者退役而取消"
-      async_open_retired_apply_render: "异步 GUI 渲染应用因玩家所有者退役而取消 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      async_open_render_failed: "异步 GUI 渲染失败 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      async_open_dropped_session_replaced: "丢弃异步 GUI 打开结果：会话已被替换 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      async_open_complete: "异步打开 GUI 完成 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      async_open_dispatch_failed_apply_render: "异步 GUI 渲染应用分派失败 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      async_open_rejected_initial_dispatch: "异步打开 GUI 的初始分派被拒绝"
-      async_open_dispatch_failed_initial_dispatch: "异步打开 GUI 的初始分派失败 | 错误类型=%error_type% | 错误=%error_message%"
-      async_close_retired: "异步关闭 GUI 因玩家所有者退役而取消 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      async_close_rejected: "异步关闭 GUI 分派被拒绝 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      async_close_dispatch_failed: "异步关闭 GUI 分派失败 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      close_requested: "请求关闭 GUI | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      close_backend_completed_session_already_removed: "GUI 后端关闭完成，但会话已移除 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      close_complete: "关闭 GUI 完成 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      bukkit_click: "Bukkit GUI 点击 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 原始槽位=%raw_slot% | 点击=%click_type% | 动作=%action% | 当前物品=%current_item_type%x%current_item_amount% | 光标物品=%cursor_item_type%x%cursor_item_amount% | 顶部背包=%top_inventory%"
-      bukkit_drag: "Bukkit GUI 拖拽 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 原始槽位数=%raw_slot_count% | 原光标物品=%old_cursor_item_type%x%old_cursor_item_amount%"
-      bukkit_close_event: "收到 Bukkit GUI 关闭事件 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      player_quit_close_active_session: "玩家退出，关闭活动 GUI 会话"
-      player_kick_close_active_session: "玩家被踢出，关闭活动 GUI 会话"
-      packet_open: "打开数据包 GUI | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_open_replaced: "打开数据包 GUI 并替换旧窗口 | 窗口=%window_id% | 替换窗口=%replaced_window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_open_failed: "打开数据包 GUI 失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_apply_ignored_window_or_session_mismatch: "忽略数据包 GUI 槽位应用：窗口或会话不匹配 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_apply_deferred: "延后应用数据包 GUI 槽位 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_apply: "应用数据包 GUI 槽位 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_apply_failed: "应用数据包 GUI 槽位失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_close_ignored_window_or_session_mismatch: "忽略数据包 GUI 关闭：窗口或会话不匹配 | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_close: "关闭数据包 GUI | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_close_failed: "关闭数据包 GUI 失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_shutdown_window_close_incomplete: "数据包 GUI 关闭窗口未完整完成 | 错误类型=%error_type% | 错误=%error_message%"
-      packet_shutdown_incomplete: "数据包 GUI 后端关闭未完整完成 | 错误类型=%error_type% | 错误=%error_message%"
-      packet_listener_unregister_failed: "注销数据包 GUI 监听器失败 | 错误类型=%error_type% | 错误=%error_message%"
-      packet_bukkit_listener_unregister_incomplete: "注销数据包 GUI 的 Bukkit 监听器未完整完成 | 错误类型=%error_type% | 错误=%error_message%"
-      packet_bukkit_listener_unregister_dispatch_failed: "分派注销数据包 GUI 的 Bukkit 监听器失败 | 错误类型=%error_type% | 错误=%error_message%"
-      packet_shutdown_dispatch_retired: "数据包 GUI 关闭清理分派因所有者退役而取消 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_shutdown_dispatch_rejected: "数据包 GUI 关闭清理分派被拒绝 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_shutdown_dispatch_failed: "数据包 GUI 关闭清理分派失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_shutdown_cleanup_failed: "数据包 GUI 关闭清理失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_shutdown_close_handler_failed: "数据包 GUI 关闭处理器执行失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_send_open: "发送数据包 GUI 打开包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_send_items: "发送数据包 GUI 物品 | 窗口=%window_id% | 状态=%window_state_id% | 已发送状态=%sent_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_resync_skipped_stale_window_or_session: "跳过数据包 GUI 重同步：窗口或会话已过期 | 原因=%cause% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_resync: "数据包 GUI 权威重同步 | 原因=%cause% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_resync_failed: "数据包 GUI 权威重同步失败 | 原因=%cause% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_dispatch_retired: "数据包 GUI 事件分派因所有者退役而取消 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_dispatch_scheduled: "数据包 GUI 事件已分派 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_dispatch_execute: "执行数据包 GUI 事件 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_dispatch_task_failed: "数据包 GUI 事件任务失败 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_dispatch_rejected: "数据包 GUI 事件分派被拒绝 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_dispatch_failed: "数据包 GUI 事件分派失败 | 阶段=%phase% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_click_dropped_stale_window_or_session: "丢弃数据包 GUI 点击：窗口或会话已过期 | 传入窗口=%incoming_window_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_state_mismatch: "数据包 GUI 状态不匹配 | 传入状态=%incoming_state_id% | 预期状态=%expected_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_state_absent_compatibility: "数据包 GUI 点击缺少状态 ID，使用兼容处理 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_click_rejected_unsupported_type: "拒绝不支持的数据包 GUI 点击类型 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_click_rejected_invalid_range: "拒绝超出有效范围的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_click_handler_failed: "数据包 GUI 点击处理器执行失败 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_click_final_sync_skipped_window_or_session_replaced_or_closed: "跳过数据包 GUI 点击后的最终同步：窗口或会话已替换或关闭 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_close_receive_dropped_stale_window_or_session: "丢弃数据包 GUI 关闭：窗口或会话已过期 | 传入窗口=%incoming_window_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_close_receive: "收到数据包 GUI 关闭 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_close_handler_failed: "数据包 GUI 关闭处理器执行失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
-      packet_quit_cleanup: "玩家退出时清理数据包 GUI | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_close: "接收数据包 GUI 关闭包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"

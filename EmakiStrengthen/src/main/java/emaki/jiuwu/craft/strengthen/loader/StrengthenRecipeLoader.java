@@ -4,17 +4,24 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.strengthen.api.model.StrengthenBranchNode;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
+import emaki.jiuwu.craft.strengthen.model.StarStageMaterialRule;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
 
 public final class StrengthenRecipeLoader {
@@ -23,6 +30,8 @@ public final class StrengthenRecipeLoader {
     private final Object stateLock = new Object();
     private final Map<String, StrengthenRecipe> recipes = new LinkedHashMap<>();
     private final Map<String, String> materialCatalog = new LinkedHashMap<>();
+    private final Map<String, Map<String, StarStageMaterialRule>> materialRules = new LinkedHashMap<>();
+    private final Map<String, Matcher> recipeMatchers = new LinkedHashMap<>();
     private final List<String> issues = new ArrayList<>();
 
     public StrengthenRecipeLoader(EmakiStrengthenPlugin plugin) {
@@ -33,6 +42,8 @@ public final class StrengthenRecipeLoader {
         synchronized (stateLock) {
             recipes.clear();
             materialCatalog.clear();
+            materialRules.clear();
+            recipeMatchers.clear();
             issues.clear();
             File directory = plugin.dataPath("recipes").toFile();
             if (!directory.exists()) {
@@ -96,6 +107,52 @@ public final class StrengthenRecipeLoader {
         }
     }
 
+    public @NotNull StarStageMaterialRule materialRule(String recipeId, int targetStar, String itemToken) {
+        return materialRule(recipeId, targetStar, itemToken, "");
+    }
+
+    public @NotNull StarStageMaterialRule materialRule(String recipeId,
+            int targetStar,
+            String itemToken,
+            String branchPath) {
+        synchronized (stateLock) {
+            Map<String, StarStageMaterialRule> rules = materialRules.get(Texts.lower(recipeId));
+            if (rules == null) {
+                return StarStageMaterialRule.inert();
+            }
+            String path = Texts.toStringSafe(branchPath);
+            while (true) {
+                StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(path, targetStar, itemToken));
+                if (rule != null) {
+                    return rule;
+                }
+                if (path.isEmpty()) {
+                    return StarStageMaterialRule.inert();
+                }
+                int separator = path.lastIndexOf('/');
+                path = separator < 0 ? "" : path.substring(0, separator);
+            }
+        }
+    }
+
+    public boolean hasMaterialRules() {
+        synchronized (stateLock) {
+            return !materialRules.isEmpty();
+        }
+    }
+
+    public @Nullable Matcher recipeMatcher(String recipeId) {
+        synchronized (stateLock) {
+            return Texts.isBlank(recipeId) ? null : recipeMatchers.get(Texts.lower(recipeId));
+        }
+    }
+
+    public boolean hasRecipeMatchers() {
+        synchronized (stateLock) {
+            return !recipeMatchers.isEmpty();
+        }
+    }
+
     private void loadFile(File file) {
         try {
             YamlSection configuration = YamlFiles.load(file);
@@ -117,6 +174,15 @@ public final class StrengthenRecipeLoader {
                 return;
             }
             recipes.put(recipeId, recipe);
+            Matcher recipeMatcher = StrengthenRecipeParser.parseRecipeMatcher(configuration);
+            if (recipeMatcher != null) {
+                recipeMatchers.put(recipeId, recipeMatcher);
+            }
+            Map<String, StarStageMaterialRule> rules =
+                    StrengthenRecipeParser.parseStageMaterialRules(configuration);
+            if (!rules.isEmpty()) {
+                materialRules.put(recipeId, rules);
+            }
             indexMaterials(recipe);
         } catch (Exception exception) {
             issue("loader.load_failed", Map.of(
@@ -131,7 +197,25 @@ public final class StrengthenRecipeLoader {
         if (recipe == null) {
             return;
         }
-        for (StrengthenRecipe.StarStage stage : recipe.stars().values()) {
+        indexStageMaterials(recipe.stars().values());
+        indexBranchMaterials(recipe.branchTree());
+    }
+
+    private void indexBranchMaterials(StrengthenBranchNode node) {
+        if (node == null) {
+            return;
+        }
+        indexStageMaterials(node.stages().values());
+        for (StrengthenBranchNode child : node.children().values()) {
+            indexBranchMaterials(child);
+        }
+    }
+
+    private void indexStageMaterials(Collection<StrengthenRecipe.StarStage> stages) {
+        if (stages == null) {
+            return;
+        }
+        for (StrengthenRecipe.StarStage stage : stages) {
             if (stage == null) {
                 continue;
             }

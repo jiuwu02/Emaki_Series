@@ -5,16 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
-
-
-
-
-
-
-
-
-
-
 public record MythicKillEvent(Player player, LivingEntity victim, String mobId, double level)
         implements GameplayEvent {
 

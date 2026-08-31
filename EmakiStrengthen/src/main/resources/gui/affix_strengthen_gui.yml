@@ -1,0 +1,169 @@
+# ============================================================
+# EmakiStrengthen GUI 配置 - 词条强化界面
+# ============================================================
+# 玩家进行「单条词条强化」的界面，由 /emakistrengthen affix 打开。
+# 与整件星级强化的 strengthen_gui.yml 完全独立：本界面只影响选中的
+# 那一条词条，不读取也不写入整件装备的星级。
+# ============================================================
+id: "affix_strengthen_gui"
+
+gui_type: CHEST
+title: "<dark_gray>词条强化</dark_gray>"
+
+rows: 5
+
+slots:
+  top_frame:
+    slots:
+      - 0
+      - 1
+      - 2
+      - 3
+      - 4
+      - 5
+      - 6
+      - 7
+      - 8
+    item:
+      source: "gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  bottom_frame:
+    slots:
+      - 36
+      - 37
+      - 38
+      - 39
+      - 41
+      - 42
+      - 43
+      - 44
+    item:
+      source: "gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  side_frame:
+    slots:
+      - 9
+      - 17
+      - 18
+      - 26
+      - 27
+      - 35
+    item:
+      source: "black_stained_glass_pane"
+      components:
+        custom_name: "<dark_gray>"
+        tooltip_display:
+          hide_tooltip: true
+
+  target_item:
+    slots:
+      - 13
+    type: "target_item"
+    item:
+      source: "light_blue_stained_glass_pane"
+      components:
+        custom_name: "<aqua>放入要强化词条的装备</aqua>"
+        lore:
+          - "<gray>只强化选中的那一条词条"
+          - "<gray>不改变整件装备的星级"
+
+  affix_select:
+    slots:
+      - 22
+    type: "affix_select"
+    item:
+      source: "name_tag"
+      components:
+        # 标题与内容由插件按当前候选词条供给，文案见 lang 的 gui.affix.select.*
+        custom_name: "%affix_title%"
+        lore:
+          # %affix_lines% 每项各占一行：当前词条、左键下一条、右键上一条
+          - "%affix_lines%"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0
+
+  preview_display:
+    slots:
+      - 15
+    type: "preview_display"
+    item:
+      source: "book"
+      components:
+        # 文案见 lang 的 gui.affix.preview.*
+        custom_name: "%preview_title%"
+        lore:
+          # %preview_lines% 每项各占一行：旧值/新值、容量、概率、费用与材料
+          - "%preview_lines%"
+
+  material_input_1:
+    slots:
+      - 19
+    type: "material_input_1"
+    item:
+      source: "gold_nugget"
+      components:
+        custom_name: "<yellow>词条材料槽 I</yellow>"
+        lore:
+          - "<gray>放入本次词条强化要消耗的材料"
+
+  material_input_2:
+    slots:
+      - 20
+    type: "material_input_2"
+    item:
+      source: "paper"
+      components:
+        custom_name: "<yellow>词条材料槽 II</yellow>"
+        lore:
+          - "<gray>按配方的材料槽定义匹配"
+
+  material_input_3:
+    slots:
+      - 29
+    type: "material_input_3"
+    item:
+      source: "echo_shard"
+      components:
+        custom_name: "<yellow>词条材料槽 III</yellow>"
+        lore:
+          - "<gray>支持拆分放置不同材料组合"
+
+  material_input_4:
+    slots:
+      - 30
+    type: "material_input_4"
+    item:
+      source: "potion"
+      components:
+        custom_name: "<yellow>词条材料槽 IV</yellow>"
+        lore:
+          - "<gray>关闭界面时未消耗的材料会退回背包"
+
+  confirm:
+    slots:
+      - 40
+    type: "confirm"
+    item:
+      source: "anvil"
+      components:
+        # 不满足条件时插件会把图标换成 BARRIER 并改写标题
+        custom_name: "%confirm_title%"
+        lore:
+          # %confirm_lines% 每项各占一行，文案见 lang 的 gui.affix.confirm.* 与 gui.affix.preview.*
+          - "%confirm_lines%"
+    sounds:
+      click:
+        sound: "ui.button.click"
+        volume: 1.0
+        pitch: 1.0

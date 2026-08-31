@@ -9,11 +9,6 @@ import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 
-/**
- * 从对话框目录加载 {@link DialogDefinition}。
- *
- * <p>目录名由 CoreLib 配置 {@code dialog.directory} 决定，因此在构造时传入。
- */
 public final class DialogLoader extends YamlDirectoryLoader<DialogDefinition> {
 
     private final String directoryName;

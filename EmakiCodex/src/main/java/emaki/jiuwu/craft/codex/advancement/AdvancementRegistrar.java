@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.codex.api.AdvancementRegistration;
 import emaki.jiuwu.craft.codex.api.AdvancementSpec;
 import emaki.jiuwu.craft.codex.api.model.AdvancementFrameType;
 
-/** Registry for configured and owner-scoped external advancements. */
 public final class AdvancementRegistrar implements Listener, AutoCloseable {
 
     private final JavaPlugin plugin;
@@ -52,19 +51,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         this.jsonBuilder = jsonBuilder;
     }
 
-    /**
-     * Reloads configured pages while preserving third-party registrations.
-     *
-     * <p>Deliberately does <strong>not</strong> reload data after registering. {@code loadAdvancement} is
-     * documented to persist on its own ("stored and persisted across server restarts and reloads"), while
-     * {@code reloadData()} is the documented companion of <em>removal</em>. Reloading here rebuilt the
-     * advancement tree from disk and discarded everything just registered in memory: the server logged
-     * {@code 3 of 3 configured advancement(s) are absent}, reported {@code 0} registered, and every later
-     * grant failed with {@code missing_on_server}. The reload that removal genuinely needs now happens in
-     * {@link #unregisterConfigured(boolean)}, before re-registration rather than after it.</p>
-     *
-     * @return how many configured advancements the server actually exposes
-     */
     public synchronized int registerAll() {
         unregisterConfigured(true);
         for (AdvancementPage page : pageLoader.all().values()) {
@@ -73,17 +59,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         return verifyConfigured();
     }
 
-    /**
-     * Reports configured keys the server does not actually expose.
-     *
-     * <p>Diagnostic only: the entries stay in the registry. The catalog API, the resync service and tab
-     * completion all read those maps, so dropping a key here would silently shrink the published catalog and
-     * trade one confusing failure for a wider one. What was missing before is the report itself — the
-     * mismatch used to be invisible, and every grant then failed with {@code missing_on_server} for no
-     * stated reason.</p>
-     *
-     * @return how many configured advancements the server actually exposes
-     */
     private int verifyConfigured() {
         List<NamespacedKey> missing = new ArrayList<>();
         for (NamespacedKey key : configuredKeys) {
@@ -101,7 +76,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         return configuredKeys.size() - missing.size();
     }
 
-    /** Names the missing keys, capped so a whole failed page cannot flood the log. */
     private String describeMissing(List<NamespacedKey> missing) {
         int shown = Math.min(missing.size(), 5);
         StringBuilder text = new StringBuilder();
@@ -140,7 +114,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         return true;
     }
 
-    /** Registers one owner-namespaced external advancement. Must run on the global thread. */
     public synchronized AdvancementRegistration register(Plugin owner, AdvancementSpec spec) {
         if (owner == null || !owner.isEnabled() || spec == null || spec.id().isBlank()) {
             return AdvancementRegistration.noop();
@@ -153,8 +126,7 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         ExternalKey externalKey = new ExternalKey(owner, path);
         ExternalRegistration previous = externalRegistrations.remove(externalKey);
         if (previous != null) {
-            // Reload here, not after registering: removal only deletes the file, so without this the key
-            // stays live and the loadAdvancement below would be re-registering something still present.
+
             removeExternalNode(previous, true);
         } else if (byKey.containsKey(key.toString())) {
             return AdvancementRegistration.noop();
@@ -168,12 +140,10 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         ExternalRegistration registration = new ExternalRegistration(key, definition, parentKey, generation);
         externalRegistrations.put(externalKey, registration);
         addNode(key, null, definition, parentKey);
-        // No reload after registering: it would rebuild the tree from disk and discard what was just
-        // registered, exactly as it did for configured pages. See registerAll for the full reasoning.
+
         return new RegistrationHandle(this, externalKey, key, generation);
     }
 
-    /** Removes all configured and external registrations. */
     public synchronized void unregisterAll() {
         unregisterConfigured(false);
         for (ExternalRegistration registration : List.copyOf(externalRegistrations.values())) {
@@ -187,19 +157,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         unregisterConfigured(true);
     }
 
-    /**
-     * Drops every configured registration.
-     *
-     * <p>{@code reloadIfRemoved} exists because {@code removeAdvancement} is documented to remove the
-     * advancement from persistent storage only and "should be accompanied by a call to
-     * {@code Server#reloadData()} in order to fully remove it from the running instance". Skipping that
-     * reload leaves the file deleted while the key is still live, so the following {@code loadAdvancement}
-     * would be handed a key the server still holds. Callers that reload themselves right afterwards pass
-     * {@code false} to avoid reloading twice.</p>
-     *
-     * @param reloadIfRemoved reload the server data, but only when something was actually removed, so a
-     *        first startup with nothing registered yet does not pay for a reload
-     */
     private void unregisterConfigured(boolean reloadIfRemoved) {
         boolean removedAny = false;
         for (NamespacedKey key : List.copyOf(configuredKeys)) {
@@ -267,7 +224,6 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         }
     }
 
-    /** Stops lifecycle cleanup; external nodes are always removed, configured nodes follow policy. */
     public synchronized void shutdown(boolean removeConfigured) {
         HandlerList.unregisterAll(this);
         if (removeConfigured) {

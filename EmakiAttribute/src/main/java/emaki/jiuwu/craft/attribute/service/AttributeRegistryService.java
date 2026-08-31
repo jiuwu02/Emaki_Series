@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.attribute.model.AttributeTargetType;
 import emaki.jiuwu.craft.attribute.model.AttributeValueKind;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
+import emaki.jiuwu.craft.attribute.registry.DerivedAttributeProvider;
 import emaki.jiuwu.craft.attribute.service.VanillaAttributeSynchronizer.VanillaAttributeBinding;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -35,6 +36,7 @@ final class AttributeRegistryService {
     private final AttributePresetRegistry presetRegistry;
     private final VanillaAttributeSynchronizer vanillaSynchronizer;
     private final Map<String, AttributeContributionProvider> contributionProviders = new LinkedHashMap<>();
+    private final Map<String, DerivedAttributeProvider> derivedAttributeProviders = new LinkedHashMap<>();
     private volatile List<AttributeDefinition> attributeDefinitions = List.of();
     private volatile List<DefaultProfile> defaultProfiles = List.of();
     private volatile Map<String, ResourceDefinition> resourceDefinitions = Map.of();
@@ -50,6 +52,7 @@ final class AttributeRegistryService {
     private volatile String attributeDefinitionsSignature = "";
     private volatile String combatBaseSignature = "";
     private volatile List<AttributeContributionProvider> orderedContributionProviders = List.of();
+    private volatile List<DerivedAttributeProvider> orderedDerivedAttributeProviders = List.of();
 
     AttributeRegistryService(AttributeRegistry attributeRegistry,
             AttributeBalanceRegistry attributeBalanceRegistry,
@@ -151,6 +154,26 @@ final class AttributeRegistryService {
             refreshContributionProviderCache();
         }
         return removed;
+    }
+
+    synchronized void registerDerivedAttributeProvider(DerivedAttributeProvider provider) {
+        if (provider == null || Texts.isBlank(provider.attributeId())) {
+            return;
+        }
+        derivedAttributeProviders.put(Texts.normalizeId(provider.attributeId()), provider);
+        refreshDerivedAttributeProviderCache();
+    }
+
+    synchronized void unregisterDerivedAttributeProvider(String attributeId) {
+        if (Texts.isBlank(attributeId)) {
+            return;
+        }
+        derivedAttributeProviders.remove(Texts.normalizeId(attributeId));
+        refreshDerivedAttributeProviderCache();
+    }
+
+    List<DerivedAttributeProvider> orderedDerivedAttributeProviders() {
+        return orderedDerivedAttributeProviders;
     }
 
     List<AttributeDefinition> attributeDefinitions() {
@@ -266,5 +289,11 @@ final class AttributeRegistryService {
         providers.sort(Comparator.comparingInt(AttributeContributionProvider::priority).reversed()
                 .thenComparing(provider -> Texts.normalizeId(provider.id())));
         orderedContributionProviders = providers.isEmpty() ? List.of() : List.copyOf(providers);
+    }
+
+    private synchronized void refreshDerivedAttributeProviderCache() {
+        List<DerivedAttributeProvider> providers = new ArrayList<>(derivedAttributeProviders.values());
+        providers.sort(Comparator.comparing(provider -> Texts.normalizeId(provider.attributeId())));
+        orderedDerivedAttributeProviders = providers.isEmpty() ? List.of() : List.copyOf(providers);
     }
 }

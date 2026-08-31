@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.attribute;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -12,20 +11,15 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
-
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 import emaki.jiuwu.craft.attribute.bridge.ServiceBackedEmakiAttributeBridge;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
@@ -36,6 +30,7 @@ import emaki.jiuwu.craft.attribute.listener.CombatDamageListener;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugHandler;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugListener;
 import emaki.jiuwu.craft.attribute.listener.InventoryInteractionListener;
+import emaki.jiuwu.craft.attribute.listener.EntityLifecycleListener;
 import emaki.jiuwu.craft.attribute.listener.PlayerLifecycleListener;
 import emaki.jiuwu.craft.attribute.listener.PluginIntegrationListener;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
@@ -43,12 +38,14 @@ import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DamageTypeRegistry;
 import emaki.jiuwu.craft.attribute.loader.DefaultProfileRegistry;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
+import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
@@ -71,8 +68,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader,
                 "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>", true);
@@ -84,6 +81,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         AttributePresetRegistry presetRegistry = new AttributePresetRegistry(plugin);
         PdcReadRuleLoader pdcReadRuleLoader = new PdcReadRuleLoader(plugin);
         ItemContributionGateRegistry itemContributionGateRegistry = new ItemContributionGateRegistry(plugin.getLogger());
+        AttributeSlotRegistry attributeSlotRegistry = new AttributeSlotRegistry(plugin.getLogger());
         PdcAttributeService pdcAttributeService = new PdcAttributeService(plugin, pdcReadRuleLoader, itemContributionGateRegistry);
         ParentAttributeDataStore parentAttributeDataStore = new ParentAttributeDataStore(plugin);
         ParentAttributeService parentAttributeService = new ParentAttributeService(plugin, parentAttributeDataStore);
@@ -103,39 +101,41 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcAttributeService,
                 parentAttributeService,
-                executionDispatcher,
-                threadOwnership
+                scheduling,
+                attributeSlotRegistry
         );
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
                 new ContributionProviderRegistrationRegistry(attributeService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
-                threadOwnership,
+                scheduling,
                 itemContributionGateRegistry,
                 contributionProviderRegistrationRegistry,
-                pdcAttributeService);
+                pdcAttributeService,
+                attributeSlotRegistry);
         CombatDebugHandler combatDebugHandler = new CombatDebugHandler(attributeService);
         List<Listener> listeners = List.of(
                 new PlayerLifecycleListener(attributeService),
+                new EntityLifecycleListener(attributeService),
                 new PluginIntegrationListener(plugin),
                 new InventoryInteractionListener(attributeService),
-                new CombatDamageListener(plugin, attributeService, combatDebugHandler, executionDispatcher),
+                new CombatDamageListener(plugin, attributeService, combatDebugHandler, scheduling),
                 attributeService.perfectTakeoverCoordinator(),
                 new CombatDebugListener(attributeService),
                 new DamageIndicatorListener(
                         plugin::damageIndicatorService,
                         () -> plugin.configModel() == null ? null : plugin.configModel().damageIndicator()),
                 itemContributionGateRegistry,
+                attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
                 guiService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
                 : null;
-        AttributeCommand command = new AttributeCommand(plugin, attributeService, executionDispatcher);
+        AttributeCommand command = new AttributeCommand(plugin, attributeService, scheduling);
         return new AttributeRuntimeComponents(
-                executionDispatcher,
-                threadOwnership,
+                scheduling,
                 attributeRegistry,
                 attributeBalanceRegistry,
                 damageTypeRegistry,
@@ -144,6 +144,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 presetRegistry,
                 pdcReadRuleLoader,
                 itemContributionGateRegistry,
+                attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
                 languageLoader,
                 messageService,
@@ -179,15 +180,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 plugin.getServer().getPluginManager().registerEvents(listener, plugin);
             }
         }
-        // mythicBridge 不在此注册：它的唯一注册入口是 EmakiAttributePlugin#ensureMythicBridge，
-        // 那里同时覆盖 reload 与 MythicMobs 后启用两条路径。
+
     }
 
-    public TaskHandle reload(EmakiAttributePlugin plugin, TaskHandle currentTask, boolean resyncPlayers) {
-        // Entry B rather than the single-loader gate: this module loads in stages, and two of its
-        // registries (DefaultProfileRegistry, AttributeBalanceRegistry) read plugin.configModel()
-        // while loading, so the candidate config has to be in place before the stages can run. The
-        // previous model is captured here and put back if the precheck rejects the candidate.
+    public TaskToken reload(EmakiAttributePlugin plugin, TaskToken currentTask, boolean resyncPlayers) {
+
         AttributeConfig previousConfig = plugin.configModel();
         if (plugin.languageLoader() != null) {
             plugin.languageLoader().load();
@@ -207,8 +204,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runReloadStage("pdc_read_rule_loader", () -> plugin.pdcReadRuleLoader().load(), failureHandler(plugin));
         runReloadStage("attribute_balance_registry", () -> plugin.attributeBalanceRegistry().load(), failureHandler(plugin));
         runReloadStage("damage_type_registry", () -> plugin.damageTypeRegistry().load(), failureHandler(plugin));
-        // Gate after the stages because the attribute precheck reads every registry's issue list, and
-        // before the cache/bridge/player work so a rejected candidate never reaches online entities.
+
         if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
             restoreConfigModel(plugin, previousConfig);
             return currentTask;
@@ -227,14 +223,16 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         return rescheduleRegenTask(plugin, currentTask);
     }
 
-    public CompletableFuture<TaskHandle> reloadAsync(EmakiAttributePlugin plugin,
-            TaskHandle currentTask,
+    public CompletableFuture<TaskToken> reloadAsync(EmakiAttributePlugin plugin,
+            TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
-        // Captured before the pipeline mutates it, for the same reason as the synchronous path.
+        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
+        var executionDispatcher = coreLibPlugin.executionDispatcher();
+
         AttributeConfig previousConfig = plugin.configModel();
-        return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<>(
+        return runReloadPipelineAsync(scheduler, executionDispatcher, plugin, new ReloadPipelineConfig<>(
                 "attribute",
                 "bootstrap",
                 "正在读取语言与配置...",
@@ -318,7 +316,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 () -> plugin.damageTypeRegistry().load(),
                 configModel,
                 failureHandler(plugin)
-        ))).thenCompose(configModel -> plugin.executionDispatcher().submitGlobal(plugin, () -> {
+        ))).thenCompose(configModel -> plugin.scheduling().submitGlobal(plugin, () -> {
             if (ConfigCommitGate.evaluate(plugin.messageService(), "attribute").rejected()) {
                 restoreConfigModel(plugin, previousConfig);
                 notifyProgress(progressListener, "EmakiAttribute 配置预检未通过，已保留上一份配置。");
@@ -336,19 +334,19 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null && resyncPlayers) {
                 plugin.attributeService().resyncAllPlayers();
             }
-            TaskHandle nextTask = rescheduleRegenTask(plugin, currentTask);
+            TaskToken nextTask = rescheduleRegenTask(plugin, currentTask);
             notifyProgress(progressListener, "EmakiAttribute 重载完成。");
             return nextTask;
         }));
     }
 
-    public TaskHandle rescheduleRegenTask(EmakiAttributePlugin plugin, TaskHandle currentTask) {
-        TaskHandle nextTask = cancelRegenTask(currentTask);
+    public TaskToken rescheduleRegenTask(EmakiAttributePlugin plugin, TaskToken currentTask) {
+        TaskToken nextTask = cancelRegenTask(currentTask);
         if (plugin.attributeService() == null) {
             return nextTask;
         }
         int intervalTicks = Math.max(1, plugin.configModel().regenIntervalTicks());
-        return plugin.executionDispatcher().runGlobalTimer(
+        return plugin.scheduling().runGlobalTimer(
                 plugin,
                 plugin.attributeService()::regenerateOnlinePlayers,
                 intervalTicks,
@@ -356,17 +354,20 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
     }
 
-    public TaskHandle cancelRegenTask(TaskHandle currentTask) {
+    public TaskToken cancelRegenTask(TaskToken currentTask) {
         if (currentTask != null) {
             currentTask.cancel();
         }
         return null;
     }
 
-    public void shutdown(EmakiAttributePlugin plugin, TaskHandle currentTask) {
+    public void shutdown(EmakiAttributePlugin plugin, TaskToken currentTask) {
         cancelRegenTask(currentTask);
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
+        }
+        if (plugin.attributeSlotRegistry() != null) {
+            plugin.attributeSlotRegistry().close();
         }
         if (plugin.contributionProviderRegistrationRegistry() != null) {
             plugin.contributionProviderRegistrationRegistry().close();
@@ -384,7 +385,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             plugin.getLogger().info("EmakiAttribute stopped.");
         }
     }
-
 
     private void loadGuiTemplates(EmakiAttributePlugin plugin) {
         if (plugin.guiTemplateLoader() == null) {
@@ -415,13 +415,6 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         ));
     }
 
-    /**
-     * Puts the last known good config model back after a rejected precheck.
-     *
-     * <p>Restoring the captured instance rather than reloading from disk is deliberate: the file on disk
-     * is the rejected candidate, and {@code loadConfigModel} falls back to {@link AttributeConfig#defaults()}
-     * when parsing fails, which would silently discard the operator's working configuration.
-     */
     private void restoreConfigModel(EmakiAttributePlugin plugin, AttributeConfig previousConfig) {
         AttributeConfig restored = previousConfig == null ? AttributeConfig.defaults() : previousConfig;
         plugin.setConfigModel(restored);
@@ -537,40 +530,4 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         runtime.set("allowed_damage_causes", runtimeEntries);
         return true;
     }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                String permission,
-                CommandExecutor executor,
-                TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[] { "" } : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
-    }
-
 }

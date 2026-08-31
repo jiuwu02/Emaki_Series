@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.codex.config;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
 
-
-
-
 public final class AppConfig extends BaseAppConfig {
 
     public static final String CURRENT_VERSION = "1.0.14";
@@ -12,7 +9,6 @@ public final class AppConfig extends BaseAppConfig {
     private final boolean releaseDefaultData;
 
     private final boolean advancementEnabled;
-    private final String advancementPlatform;
     private final boolean announceDefault;
     private final boolean removeOnDisable;
     private final boolean packetCoordinates;
@@ -24,7 +20,6 @@ public final class AppConfig extends BaseAppConfig {
             String configVersion,
             boolean releaseDefaultData,
             boolean advancementEnabled,
-            String advancementPlatform,
             boolean announceDefault,
             boolean removeOnDisable,
             boolean packetCoordinates,
@@ -33,8 +28,6 @@ public final class AppConfig extends BaseAppConfig {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.advancementEnabled = advancementEnabled;
-        this.advancementPlatform = advancementPlatform == null || advancementPlatform.isBlank()
-                ? "unsafe" : advancementPlatform;
         this.announceDefault = announceDefault;
         this.removeOnDisable = removeOnDisable;
         this.packetCoordinates = packetCoordinates;
@@ -48,7 +41,6 @@ public final class AppConfig extends BaseAppConfig {
                 CURRENT_VERSION,
                 true,
                 true,
-                "unsafe",
                 false,
                 true,
                 true,
@@ -65,10 +57,6 @@ public final class AppConfig extends BaseAppConfig {
         return advancementEnabled;
     }
 
-    public String advancementPlatform() {
-        return advancementPlatform;
-    }
-
     public boolean announceDefault() {
         return announceDefault;
     }
@@ -77,21 +65,9 @@ public final class AppConfig extends BaseAppConfig {
         return removeOnDisable;
     }
 
-
-
-
-
-
-
     public boolean packetCoordinates() {
         return packetCoordinates;
     }
-
-
-
-
-
-
 
     public boolean advancementTriggersEnabled() {
         return advancementTriggersEnabled;

@@ -10,9 +10,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.PluginManager;
 
-
-
-
 public final class CapabilityProbe {
 
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";

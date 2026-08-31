@@ -18,26 +18,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
-/**
- * Downloads a vanilla language file from Mojang's official asset index.
- *
- * <p>Vanilla item and block names only exist as translation keys on the server,
- * so a server-side feature that needs the localized name has to obtain the
- * client's language table itself. The file is fetched once and cached on disk;
- * later starts reuse the cache and perform no network access at all.
- *
- * <p>Resolution chain, all official Mojang endpoints:
- * <ol>
- *   <li>{@code version_manifest_v2.json} locates the version entry;</li>
- *   <li>the version JSON exposes {@code assetIndex.url};</li>
- *   <li>the asset index maps {@code minecraft/lang/<locale>.json} to a hash;</li>
- *   <li>the object is downloaded from {@code resources.download.minecraft.net}.</li>
- * </ol>
- *
- * <p>Every failure is non-fatal: the caller keeps working without a translation
- * table rather than blocking startup. All methods here perform blocking IO and
- * must never be called from a server thread.
- */
 public final class VanillaLanguageDownloader {
 
     private static final String VERSION_MANIFEST_URL =
@@ -57,13 +37,6 @@ public final class VanillaLanguageDownloader {
         this.cacheDirectory = cacheDirectory;
     }
 
-    /**
-     * Loads the language table, preferring the on-disk cache over the network.
-     *
-     * @param minecraftVersion the running server's Minecraft version
-     * @param locale the vanilla locale id, such as {@code zh_cn}
-     * @return the translation table, or an empty map when it cannot be obtained
-     */
     public Map<String, String> load(String minecraftVersion, String locale) {
         String safeLocale = locale == null ? "" : locale.trim().toLowerCase(Locale.ROOT);
         if (safeLocale.isEmpty()) {
@@ -114,16 +87,11 @@ public final class VanillaLanguageDownloader {
             try {
                 Files.deleteIfExists(temporary);
             } catch (IOException _) {
-                // Nothing further can be done about a leftover temporary file.
+
             }
         }
     }
 
-    /**
-     * Walks Mojang's manifest chain and returns the raw language JSON.
-     *
-     * @return the file body, or {@code null} when any step fails
-     */
     private String downloadLanguageFile(String minecraftVersion, String locale) {
         String versionUrl = resolveVersionUrl(minecraftVersion);
         if (versionUrl == null) {
@@ -142,15 +110,6 @@ public final class VanillaLanguageDownloader {
         return fetch(RESOURCE_BASE_URL + hash.substring(0, 2) + "/" + hash);
     }
 
-    /**
-     * Locates the version metadata URL for the running server.
-     *
-     * <p>An exact id match is preferred. Because a server may report a version
-     * Mojang's manifest does not list verbatim, the search falls back to the
-     * newest release sharing the same {@code major.minor} prefix, then to the
-     * manifest's latest release. Language files barely differ inside one minor
-     * series, so an approximate match is still useful.
-     */
     private String resolveVersionUrl(String minecraftVersion) {
         String manifest = fetch(VERSION_MANIFEST_URL);
         if (manifest == null) {
@@ -176,7 +135,7 @@ public final class VanillaLanguageDownloader {
                     return url;
                 }
                 boolean release = "release".equals(optionalString(entry, "type"));
-                // Entries are ordered newest first, so the first prefix hit wins.
+
                 if (prefixMatch == null && release && !prefix.isEmpty() && id.startsWith(prefix)) {
                     prefixMatch = url;
                 }
@@ -235,13 +194,6 @@ public final class VanillaLanguageDownloader {
         }
     }
 
-    /**
-     * Parses a flat vanilla language file.
-     *
-     * <p>Only string values are kept; the file is a single-level
-     * {@code {"key": "text"}} object and any other shape is treated as invalid
-     * rather than partially accepted.
-     */
     private Map<String, String> parseLanguageJson(String body) {
         try {
             JsonObject root = JsonParser.parseString(body).getAsJsonObject();
@@ -259,14 +211,6 @@ public final class VanillaLanguageDownloader {
         }
     }
 
-    /**
-     * Performs one blocking GET and returns the body as UTF-8 text.
-     *
-     * <p>Responses are capped at {@value #MAX_RESPONSE_BYTES} bytes so a wrong or
-     * hostile endpoint cannot exhaust heap.
-     *
-     * @return the response body, or {@code null} on any failure
-     */
     private String fetch(String url) {
         HttpURLConnection connection = null;
         try {

@@ -3,12 +3,7 @@ package emaki.jiuwu.craft.corelib.api.action;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * Revocable handle for one registered stage.
- *
- * <p>Keep it and close it in {@code onDisable}. A registration that outlives its owner leaks across
- * reloads. Unlike v1 there is no way to unregister another plugin's stage by id.</p>
- */
+/** Owner-scoped stage registration; close it on disable. */
 public interface CoreStageRegistration extends AutoCloseable {
 
     /** {@return whether the registration succeeded} */

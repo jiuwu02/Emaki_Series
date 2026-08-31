@@ -7,12 +7,12 @@ import java.util.Map;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.api.model.DamageContext;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.formula.AttributeFormulaEvaluator;
 import emaki.jiuwu.craft.attribute.model.DamageRequest;
 import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageStageKind;
 import emaki.jiuwu.craft.attribute.model.DamageStageMode;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class StageCalculator {
@@ -45,7 +45,7 @@ final class StageCalculator {
         } else {
             result = (input + inputs.flat()) * (1D + (inputs.percent() / 100D));
         }
-        return clampResult(result, stage);
+        return AttributeFormulaEvaluator.clampResult(result, stage.minResult(), stage.maxResult());
     }
 
     private double applyCustom(double input,
@@ -62,8 +62,7 @@ final class StageCalculator {
         variables.put("multiplier", inputs.multiplier());
         variables.put("roll", roll);
         variables.put("crit", inputs.critical() ? 1D : 0D);
-        // 兜底：不带目标实体的伤害请求（公开 API 直接构造 DamageRequest）没有格挡上下文，
-        // 缺失变量会让引用它的表达式整体求值失败并把结果压成 0。真实值随后由上下文覆盖。
+
         variables.put(ShieldBlockResolver.TARGET_BLOCKING, 0D);
         if (context != null) {
             variables.putAll(context.asMap());
@@ -71,10 +70,8 @@ final class StageCalculator {
         if (!stage.variables().isEmpty()) {
             variables.putAll(stage.variables());
         }
-        double result = Texts.isBlank(stage.expression())
-                ? defaultCustomResult(input, inputs, stage)
-                : ExpressionEngine.evaluate(stage.expression(), variables);
-        return clampResult(result, stage);
+        double defaultResult = defaultCustomResult(input, inputs, stage);
+        return AttributeFormulaEvaluator.evaluate(stage.expression(), variables, defaultResult, stage.minResult(), stage.maxResult());
     }
 
     private double defaultCustomResult(double input, StageInputs inputs, DamageStageDefinition stage) {
@@ -147,17 +144,6 @@ final class StageCalculator {
             case CONTEXT ->
                 null;
         };
-    }
-
-    private double clampResult(double value, DamageStageDefinition stage) {
-        double result = value;
-        if (stage.minResult() != null) {
-            result = Math.max(result, stage.minResult());
-        }
-        if (stage.maxResult() != null) {
-            result = Math.min(result, stage.maxResult());
-        }
-        return Math.max(0D, result);
     }
 
     private double clamp(double value, Double min, Double max, double fallbackMin, double fallbackMax) {

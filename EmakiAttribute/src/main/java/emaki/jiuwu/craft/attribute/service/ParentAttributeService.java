@@ -13,7 +13,7 @@ import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointAllocateEvent;
 import emaki.jiuwu.craft.attribute.api.event.PlayerAttributePointResetEvent;
 import emaki.jiuwu.craft.attribute.model.AttributeDefinition;
 import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
-import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
@@ -209,18 +209,12 @@ public final class ParentAttributeService {
         dataStore.saveAll();
     }
 
-    /**
-     * Fires the public allocation event when the caller owns the player's thread.
-     *
-     * @return the amount to allocate, or {@code 0} when cancelled or invoked
-     *         without ownership of the player's entity thread.
-     */
     private int fireAllocateEvent(Player player,
             AttributeDefinition definition,
             ParentAttributeData data,
             int requestedAmount) {
-        ThreadOwnership threadOwnership = plugin.threadOwnership();
-        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        EmakiScheduling scheduling = plugin.scheduling();
+        if (scheduling == null || !scheduling.ownsEntity(player)) {
             return 0;
         }
         PlayerAttributePointAllocateEvent event = new PlayerAttributePointAllocateEvent(
@@ -233,18 +227,12 @@ public final class ParentAttributeService {
         return event.isCancelled() ? 0 : event.getAmount();
     }
 
-    /**
-     * Fires the public reset event when the caller owns the player's thread.
-     *
-     * @return {@code true} to proceed with the reset, {@code false} when
-     *         cancelled or invoked without ownership of the player's entity thread.
-     */
     private boolean fireResetEvent(Player player,
             ParentAttributeData data,
             int refundedPoints,
             boolean consumeResetPoint) {
-        ThreadOwnership threadOwnership = plugin.threadOwnership();
-        if (threadOwnership == null || !threadOwnership.isEntityOwned(player)) {
+        EmakiScheduling scheduling = plugin.scheduling();
+        if (scheduling == null || !scheduling.ownsEntity(player)) {
             return false;
         }
         PlayerAttributePointResetEvent event = new PlayerAttributePointResetEvent(

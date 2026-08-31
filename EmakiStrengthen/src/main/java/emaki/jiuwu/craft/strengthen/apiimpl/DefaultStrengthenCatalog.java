@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenState;
 import emaki.jiuwu.craft.strengthen.service.StrengthenAttemptService;
 
-/** Read-only API adapter backed by the recipe loader and attempt service. */
 public final class DefaultStrengthenCatalog implements StrengthenCatalog {
 
     private final EmakiStrengthenPlugin plugin;
@@ -34,8 +33,7 @@ public final class DefaultStrengthenCatalog implements StrengthenCatalog {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
         StrengthenAttemptService service = plugin.attemptService();
-        // Not a pure PDC read: readState resolves eligibility through recipeLoader().get(recipeId), so
-        // mid-reload it would report "no_recipe" for an item whose recipe exists.
+
         if (service == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }
@@ -46,24 +44,11 @@ public final class DefaultStrengthenCatalog implements StrengthenCatalog {
         }
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>A plain lookup with no unavailable state to report: during a reload the result may be stale or
-     * empty. Callers that need to act only on loaded content should wait via
-     * {@code EmakiCoreLibApi.whenReady}.</p>
-     */
     @Override
     public @NotNull List<StrengthenRecipe> recipes() {
         return plugin.recipeLoader() == null ? List.of() : plugin.recipeLoader().ordered();
     }
 
-    /**
-     * {@inheritDoc}
-     *
-     * <p>Same reload caveat as {@link #recipes()}: an empty result may mean "not loaded yet" rather
-     * than "no such recipe".</p>
-     */
     @Override
     public @NotNull Optional<StrengthenRecipe> recipe(@Nullable String recipeId) {
         if (Texts.isBlank(recipeId) || plugin.recipeLoader() == null || plugin.recipeResolver() == null) {
@@ -120,7 +105,7 @@ public final class DefaultStrengthenCatalog implements StrengthenCatalog {
         if (context == null || context.targetItem() == null) {
             return EmakiResult.invalidInput("strengthen.error.no_target");
         }
-        // Gates preview and, through it, successRate: both resolve the target against the recipe table.
+
         if (plugin.attemptService() == null || !plugin.contentReady()) {
             return EmakiResult.unavailable();
         }

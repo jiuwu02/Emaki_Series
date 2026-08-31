@@ -43,9 +43,6 @@ import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.Unit;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitKind;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.UnitState;
 
-
-
-
 public final class CookingCompletionJournalStore {
 
     private static final int SCHEMA_VERSION = 1;

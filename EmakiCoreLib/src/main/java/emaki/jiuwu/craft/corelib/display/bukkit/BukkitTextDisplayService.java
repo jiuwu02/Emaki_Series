@@ -12,30 +12,25 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
+import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
 import emaki.jiuwu.craft.corelib.display.DisplayMotionRunner;
 import emaki.jiuwu.craft.corelib.display.TextDisplayService;
 import emaki.jiuwu.craft.corelib.display.TextDisplaySpec;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 
-/**
- * 用真实 {@link TextDisplay} 实体实现的文本展示服务。
- *
- * <p>真实体对所有玩家可见，因此 {@link TextDisplaySpec#viewers()} 在此后端无效。
- */
 public final class BukkitTextDisplayService implements TextDisplayService {
 
     private final Plugin plugin;
     private final ExecutionDispatcher executionDispatcher;
     private final DisplayMotionRunner motionRunner;
     private final Map<String, TextDisplay> displays = new ConcurrentHashMap<>();
-    private final Map<String, Set<String>> displaysByGroup = new ConcurrentHashMap<>();
-    private final Map<String, TaskHandle> expiryTasks = new ConcurrentHashMap<>();
+    private final DisplayLifetimeTracker lifetime;
 
     public BukkitTextDisplayService(Plugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
         this.executionDispatcher = executionDispatcher;
         this.motionRunner = new DisplayMotionRunner(plugin, executionDispatcher);
+        this.lifetime = new DisplayLifetimeTracker(plugin, executionDispatcher, this::removeKey);
     }
 
     @Override
@@ -67,7 +62,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             display.teleport(location);
             apply(display, spec);
             startMotion(spec, display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         }, () -> {
             removeMapOnly(spec.groupKey(), key);
             spawnAtLocation(spec);
@@ -96,7 +91,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             return;
         }
         String prefix = namespace + ":" + groupPrefix;
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -109,7 +104,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             return;
         }
         String prefix = namespace + ":";
-        for (String groupKey : Set.copyOf(displaysByGroup.keySet())) {
+        for (String groupKey : lifetime.groupKeys()) {
             if (groupKey.startsWith(prefix)) {
                 removeGroupKey(groupKey);
             }
@@ -118,10 +113,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     @Override
     public void shutdown() {
-        for (TaskHandle handle : Map.copyOf(expiryTasks).values()) {
-            cancelQuietly(handle);
-        }
-        expiryTasks.clear();
+        lifetime.cancelAllExpiry();
         motionRunner.shutdown();
         for (Map.Entry<String, TextDisplay> entry : Map.copyOf(displays).entrySet()) {
             TextDisplay display = entry.getValue();
@@ -135,7 +127,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             }
         }
         displays.clear();
-        displaysByGroup.clear();
+        lifetime.clearGroups();
     }
 
     @Override
@@ -143,12 +135,6 @@ public final class BukkitTextDisplayService implements TextDisplayService {
         return "bukkit";
     }
 
-    /**
-     * 写入 spec 的静态渲染参数。
-     *
-     * <p>有运动时这里直接写运动第 0 帧且插值时长为 0：调度器会把后续帧回调推迟到下一 tick，
-     * 若此处只写 profile 原始变换，出场缩放会有一 tick 显示为错误尺寸。
-     */
     private void apply(TextDisplay display, TextDisplaySpec spec) {
         DisplayGeometry.TextProfile profile = spec.profile();
         display.text(spec.component());
@@ -195,19 +181,13 @@ public final class BukkitTextDisplayService implements TextDisplayService {
             }
             TextDisplay display = location.getWorld().spawn(location, TextDisplay.class);
             displays.put(key, display);
-            displaysByGroup.computeIfAbsent(spec.groupKey(), ignored -> ConcurrentHashMap.newKeySet()).add(key);
+            lifetime.trackGroupMember(spec.groupKey(), key);
             apply(display, spec);
             startMotion(spec, display);
-            scheduleExpiry(spec);
+            lifetime.scheduleExpiry(spec);
         });
     }
 
-    /**
-     * 启动或重启该条目的运动。
-     *
-     * <p>帧回调在全局线程触发，写实体状态前必须切回实体所属 region 线程，
-     * 这是 Folia 下的硬要求。实体已退休时顺带取消运动，避免空转。
-     */
     private void startMotion(TextDisplaySpec spec, TextDisplay display) {
         String key = spec.runtimeKey();
         if (!spec.hasMotion()) {
@@ -226,45 +206,8 @@ public final class BukkitTextDisplayService implements TextDisplayService {
                 }, () -> motionRunner.cancel(key)));
     }
 
-    /**
-     * 为有存活时长的条目安排到期移除。
-     *
-     * <p>必须先取消同 key 的上一个到期任务，否则旧任务会提前删掉刚刷新的实体，
-     * 这是伤害飘字等「窗口内反复 upsert 同一 key」场景的正确性前提。
-     */
-    private void scheduleExpiry(TextDisplaySpec spec) {
-        String key = spec.runtimeKey();
-        cancelQuietly(expiryTasks.remove(key));
-        if (!spec.hasLifetime()) {
-            return;
-        }
-        String groupKey = spec.groupKey();
-        TaskHandle handle = executionDispatcher.runGlobalLater(
-                plugin,
-                () -> {
-                    expiryTasks.remove(key);
-                    removeKey(groupKey, key);
-                },
-                spec.lifetimeTicks()
-        );
-        if (handle != null) {
-            expiryTasks.put(key, handle);
-        }
-    }
-
-    private void cancelQuietly(TaskHandle handle) {
-        if (handle == null) {
-            return;
-        }
-        try {
-            handle.cancel();
-        } catch (RuntimeException _) {
-            // 任务可能已结束，忽略
-        }
-    }
-
     private void removeGroupKey(String groupKey) {
-        Set<String> keys = displaysByGroup.remove(groupKey);
+        Set<String> keys = lifetime.removeGroup(groupKey);
         if (keys == null || keys.isEmpty()) {
             return;
         }
@@ -274,7 +217,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
     }
 
     private void removeKey(String groupKey, String key) {
-        cancelQuietly(expiryTasks.remove(key));
+        lifetime.cancelExpiry(key);
         motionRunner.cancel(key);
         TextDisplay display = displays.get(key);
         if (display == null) {
@@ -294,14 +237,7 @@ public final class BukkitTextDisplayService implements TextDisplayService {
 
     private void removeMapOnly(String groupKey, String key) {
         displays.remove(key);
-        Set<String> groupKeys = displaysByGroup.get(groupKey);
-        if (groupKeys == null) {
-            return;
-        }
-        groupKeys.remove(key);
-        if (groupKeys.isEmpty()) {
-            displaysByGroup.remove(groupKey);
-        }
+        lifetime.removeGroupMember(groupKey, key);
     }
 
     private boolean sameWorld(Location left, Location right) {

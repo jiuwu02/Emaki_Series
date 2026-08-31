@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
@@ -32,9 +33,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "actions");
+    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "actions", "pdc-convert");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
+    private static final List<String> PDC_CONVERT_SCOPES = List.of("players", "containers", "entities", "all");
+    private static final String DRY_RUN_FLAG = "--dry-run";
     private static final List<String> DEBUG_MODES = List.of("loops", "all");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
@@ -62,6 +65,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "check" -> handleCheck(sender, args);
             case "debug" -> handleDebug(sender, args);
             case "action", "actions" -> handleAction(sender, args);
+            case "pdc-convert" -> handlePdcConvert(sender, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -87,6 +91,10 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[1], stageIds(), result);
         } else if (args.length == 3 && isActionCommand(args[0]) && "run".equalsIgnoreCase(args[1])) {
             complete(args[2], stageIds(), result);
+        } else if (args.length == 2 && "pdc-convert".equalsIgnoreCase(args[0])) {
+            complete(args[1], PDC_CONVERT_SCOPES, result);
+        } else if (args.length == 3 && "pdc-convert".equalsIgnoreCase(args[0])) {
+            complete(args[2], List.of(DRY_RUN_FLAG), result);
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "all".equalsIgnoreCase(args[1])) {
@@ -157,13 +165,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
-    /**
-     * Compiles and runs one pipeline line typed at the console or in chat.
-     *
-     * <p>Compiled first so a syntax or unknown-stage problem is reported with its own diagnostic instead of
-     * surfacing as a generic run failure. Only the first diagnostic is shown: the compiler reports every
-     * problem it finds on a line, and the rest are usually consequences of the first.</p>
-     */
     private void runPipelineLine(CommandSender sender, String rawLine) {
         ActionEngine engine = plugin.actionEngine();
         Player player = sender instanceof Player resolvedPlayer ? resolvedPlayer : null;
@@ -189,12 +190,73 @@ public final class CoreLibCommandRouter implements TabExecutor {
         );
     }
 
-    /**
-     * Lists the registered pipeline stages, grouped by role.
-     *
-     * <p>Grouped because a stage id is only valid in one position of a line, so a flat list would not tell
-     * an operator where the id they are looking at can actually be used.</p>
-     */
+    private boolean handlePdcConvert(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            sendLang(sender, "command.no_permission_admin");
+            return true;
+        }
+        String rawScope = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "";
+        Set<PdcConvertScanner.Scope> scopes = resolveScopes(rawScope);
+        if (scopes.isEmpty()) {
+            sendLang(sender, "command.pdc_convert_usage", Map.of("scopes", String.join("|", PDC_CONVERT_SCOPES)));
+            return true;
+        }
+        boolean dryRun = false;
+        for (int index = 2; index < args.length; index++) {
+            if (DRY_RUN_FLAG.equalsIgnoreCase(args[index])) {
+                dryRun = true;
+            }
+        }
+        sendLang(sender, dryRun ? "command.pdc_convert_started_dry_run" : "command.pdc_convert_started",
+                Map.of("scope", rawScope));
+        boolean dryRunMode = dryRun;
+        new PdcConvertScanner(plugin, executionDispatcher).convertAsync(scopes, dryRun)
+                .whenComplete((reports, throwable) ->
+                        dispatchSender(sender, () -> sendPdcConvertReports(sender, reports, throwable, dryRunMode)));
+        return true;
+    }
+
+    private Set<PdcConvertScanner.Scope> resolveScopes(String rawScope) {
+        return switch (rawScope) {
+            case "players" -> Set.of(PdcConvertScanner.Scope.PLAYERS);
+            case "containers" -> Set.of(PdcConvertScanner.Scope.CONTAINERS);
+            case "entities" -> Set.of(PdcConvertScanner.Scope.ENTITIES);
+            case "all" -> Set.of(PdcConvertScanner.Scope.PLAYERS,
+                    PdcConvertScanner.Scope.CONTAINERS,
+                    PdcConvertScanner.Scope.ENTITIES);
+            default -> Set.of();
+        };
+    }
+
+    private void sendPdcConvertReports(CommandSender sender,
+            Map<PdcConvertScanner.Scope, PdcConvertScanner.ScopeReport> reports,
+            Throwable throwable,
+            boolean dryRun) {
+        if (throwable != null || reports == null) {
+            sendLang(sender, "command.pdc_convert_failed", Map.of(
+                    "error", throwable == null ? "No result returned." : Texts.toStringSafe(throwable.getMessage())
+            ));
+            return;
+        }
+        sendLang(sender, dryRun ? "command.pdc_convert_header_dry_run" : "command.pdc_convert_header");
+        int migrated = 0;
+        for (PdcConvertScanner.Scope scope : PdcConvertScanner.Scope.values()) {
+            PdcConvertScanner.ScopeReport report = reports.get(scope);
+            if (report == null) {
+                continue;
+            }
+            migrated += report.migrated();
+            sendLang(sender, "command.pdc_convert_scope", Map.of(
+                    "scope", Texts.lower(scope.name()),
+                    "scanned", String.valueOf(report.scanned()),
+                    "migrated", String.valueOf(report.migrated()),
+                    "skipped", String.valueOf(report.skipped()),
+                    "failed", String.valueOf(report.failed())
+            ));
+        }
+        sendLang(sender, "command.pdc_convert_total", Map.of("migrated", String.valueOf(migrated)));
+    }
+
     private void sendStageList(CommandSender sender, StageRegistry registry) {
         Map<CoreStageKind, List<String>> byKind = registry.allIds();
         int total = byKind.values().stream().mapToInt(List::size).sum();
@@ -231,12 +293,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
     }
 
-    /**
-     * Reports how a manually run pipeline ended.
-     *
-     * <p>Names the stage that failed rather than only the overall status, because a line typed by hand is
-     * usually being debugged and the failing stage is the whole answer.</p>
-     */
     private void sendPipelineOutcome(CommandSender sender, PipelineOutcome outcome, Throwable throwable) {
         if (throwable != null) {
             sendLang(sender, "command.action_execute_failed", Map.of(
@@ -251,8 +307,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {
             PipelineOutcome.StageResult failure = firstFailedStage(outcome);
-            // Only the pipeline-level outcome carries placeholder arguments; StageResult has just a key.
-            // Prefer the stage's key when the pipeline did not set one, so the more specific reason wins.
+
             String reasonKey = Texts.isBlank(outcome.reasonKey()) && failure != null
                     ? failure.reasonKey()
                     : outcome.reasonKey();
@@ -340,8 +395,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "key" -> sendTaskSnapshots(sender, tasks.snapshotsByKey(args.length >= 4 ? args[3] : ""));
             case "cancel" -> {
                 String key = args.length >= 4 ? args[3] : "";
-                // Exact match, matching what this command did under v1: an operator cancelling by a key
-                // they typed should not also take out everything that happens to share its prefix.
+
                 int cancelled = tasks.stop(key, false);
                 if (cancelled > 0) {
                     sendLang(sender, "command.loop_cancelled", Map.of("key", key));
@@ -413,6 +467,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.help_action", Map.of("root", root));
         sendLang(sender, "command.help_debug_all", Map.of("root", root));
         sendLang(sender, "command.help_debug_loops", Map.of("root", root));
+        sendLang(sender, "command.help_pdc_convert", Map.of("root", root));
     }
 
     private void complete(String rawPrefix, List<String> options, List<String> result) {

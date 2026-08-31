@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Supplier;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -12,16 +14,8 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
-/**
- * {@link EmakiScheduling} 的运行时实现，把窄门面接到内部的 {@link ExecutionDispatcher}
- * 与 {@link ThreadOwnership}。
- *
- * <p>只转发，不新增调度策略；{@link TaskHandle} 被包装成 API 侧的 {@link TaskToken}，
- * 避免第三方直接依赖内部类型。
- */
 public final class DefaultEmakiScheduling implements EmakiScheduling {
 
     private final ExecutionDispatcher dispatcher;
@@ -74,6 +68,15 @@ public final class DefaultEmakiScheduling implements EmakiScheduling {
     }
 
     @Override
+    public @NotNull TaskToken runEntityLater(@NotNull Plugin owner,
+            @NotNull Entity entity,
+            @NotNull Runnable task,
+            @Nullable Runnable retired,
+            long delayTicks) {
+        return wrap(dispatcher.runEntityLater(owner, entity, task, retired, delayTicks));
+    }
+
+    @Override
     public @NotNull TaskToken runAtLocation(@NotNull Plugin owner, @NotNull Location location, @NotNull Runnable task) {
         return wrap(dispatcher.runAtLocation(owner, location, task));
     }
@@ -91,20 +94,12 @@ public final class DefaultEmakiScheduling implements EmakiScheduling {
         return wrap(dispatcher.runAsyncLater(owner, task, delay, unit));
     }
 
-    private static TaskToken wrap(TaskHandle handle) {
-        return handle == null ? TaskToken.UNAVAILABLE : new HandleToken(handle);
+    @Override
+    public @NotNull <T> CompletableFuture<T> submitGlobal(@NotNull Plugin owner, @NotNull Supplier<T> task) {
+        return dispatcher.submitGlobal(owner, task);
     }
 
-    private record HandleToken(TaskHandle handle) implements TaskToken {
-
-        @Override
-        public void cancel() {
-            handle.cancel();
-        }
-
-        @Override
-        public boolean cancelled() {
-            return handle.isCancelled();
-        }
+    private static TaskToken wrap(TaskToken token) {
+        return token == null ? TaskToken.UNAVAILABLE : token;
     }
 }

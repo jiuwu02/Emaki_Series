@@ -2,9 +2,13 @@ package emaki.jiuwu.craft.level.service;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
-import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.progression.CompositeProgression;
+import emaki.jiuwu.craft.corelib.progression.FormulaProgression;
+import emaki.jiuwu.craft.corelib.progression.Progression;
+import emaki.jiuwu.craft.corelib.progression.TableProgression;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.config.RequirementConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
@@ -12,30 +16,20 @@ import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 public final class RequirementService {
 
     private RequirementConfig config = RequirementConfig.parse(null);
+    private final Map<String, Progression<Double>> progressionCache = new ConcurrentHashMap<>();
 
     public void reload(RequirementConfig config) {
         this.config = config == null ? RequirementConfig.parse(null) : config;
+        progressionCache.clear();
     }
 
     public double requiredExp(LevelTypeConfig type, PlayerLevelEntry entry, int targetLevel) {
         if (type == null) {
             return 0D;
         }
-        double value = resolveValue(type, targetLevel);
-        if (value > 0D) {
-            return value;
-        }
-        String formula = resolveFormula(type);
-        if (Texts.isBlank(formula)) {
-            return 0D;
-        }
-        Map<String, Object> variables = new LinkedHashMap<>();
-        variables.put("current_level", entry == null ? type.startLevel() : entry.level());
-        variables.put("target_level", targetLevel);
-        variables.put("max_level", type.maxLevel());
-        variables.put("exp", entry == null ? 0D : entry.exp());
-        variables.put("total_exp", entry == null ? 0D : entry.totalExp());
-        return Math.max(0D, ExpressionEngine.evaluate(formula, variables));
+        Progression<Double> progression = progressionCache.computeIfAbsent(type.id(), id -> buildProgression(type));
+        Double value = progression.valueAt(targetLevel);
+        return Math.max(0D, value == null ? 0D : value);
     }
 
     public String debugSource(LevelTypeConfig type, int targetLevel) {
@@ -61,20 +55,43 @@ public final class RequirementService {
         return "global.formula";
     }
 
-    private double resolveValue(LevelTypeConfig type, int targetLevel) {
-        Double value = type.requirement().values().get(targetLevel);
-        if (value != null) {
-            return value;
-        }
+    private Progression<Double> buildProgression(LevelTypeConfig type) {
+        Map<Integer, Double> mergedTable = new LinkedHashMap<>();
+        mergedTable.putAll(config.global().values());
         RequirementConfig.RequirementGroup group = config.groups().get(type.requirement().group());
         if (group != null) {
-            value = group.values().get(targetLevel);
-            if (value != null) {
-                return value;
-            }
+            mergedTable.putAll(group.values());
         }
-        value = config.global().values().get(targetLevel);
-        return value == null ? 0D : value;
+        mergedTable.putAll(type.requirement().values());
+
+        String formula = resolveFormula(type);
+
+        TableProgression<Double> tableProgression = new TableProgression<>(mergedTable, null);
+        if (Texts.isBlank(formula)) {
+            return tableProgression;
+        }
+
+        final int maxLevel = type.maxLevel();
+        final int startLevel = type.startLevel();
+        FormulaProgression<Double> formulaProgression = FormulaProgression.forDouble(
+                formula,
+                level -> {
+                    Map<String, Object> vars = new LinkedHashMap<>();
+                    vars.put("target_level", level);
+                    vars.put("max_level", maxLevel);
+                    vars.put("current_level", startLevel);
+                    vars.put("exp", 0D);
+                    vars.put("total_exp", 0D);
+                    return vars;
+                },
+                0D
+        );
+
+        return CompositeProgression.<Double>builder()
+                .add(tableProgression)
+                .add(formulaProgression)
+                .fallback(0D)
+                .build();
     }
 
     private String resolveFormula(LevelTypeConfig type) {

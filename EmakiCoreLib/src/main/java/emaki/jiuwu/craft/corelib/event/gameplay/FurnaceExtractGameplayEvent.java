@@ -5,17 +5,6 @@ import java.util.Map;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-
-
-
-
-
-
-
-
-
-
-
 public record FurnaceExtractGameplayEvent(Player player, ItemStack result, int amount)
         implements GameplayEvent {
 

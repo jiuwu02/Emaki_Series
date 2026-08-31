@@ -12,11 +12,6 @@ import emaki.jiuwu.craft.cooking.service.CookingSettingsService;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.ItemDisplaySpec;
 
-/**
- * 工位物品展示的入参。
- *
- * <p>与文本线同理，通过 {@link #toCoreSpec()} 转成 CoreLib 的通用 spec。
- */
 public record CookingDisplaySpec(StationType stationType,
         StationCoordinates stationCoordinates,
         String displayKey,
@@ -53,7 +48,6 @@ public record CookingDisplaySpec(StationType stationType,
         transformation = transformation == null ? adjustment.transformation() : transformation;
     }
 
-    /** {@return 转换为 CoreLib 通用 spec} */
     public ItemDisplaySpec toCoreSpec() {
         return new ItemDisplaySpec(
                 CookingDisplayKeys.of(stationType, stationCoordinates, displayKey),

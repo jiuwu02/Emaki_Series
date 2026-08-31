@@ -1,10 +1,11 @@
 package emaki.jiuwu.craft.attribute.service;
 
-
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
@@ -15,11 +16,23 @@ import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.attribute.model.AttributeSnapshotCodecs;
 import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
 import emaki.jiuwu.craft.attribute.model.ResourceState;
+import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class AttributeStateRepository {
+
+    private static final List<String> RESOURCE_FIELDS = List.of(
+            "schema_version",
+            "default_max",
+            "bonus_max",
+            "current_max",
+            "current_value",
+            "source_signature"
+    );
+
+    private static final String LEGACY_RESOURCE_PREFIX = "combat.resource.";
 
     private final PdcService pdcService;
     private final PdcPartition itemPartition;
@@ -168,12 +181,14 @@ final class AttributeStateRepository {
             return null;
         }
         PdcPartition resourcePartition = resourcePartition(resourceId);
-        Double defaultMax = pdcService.get(player, resourcePartition, "default_max", PersistentDataType.DOUBLE);
-        Double bonusMax = pdcService.get(player, resourcePartition, "bonus_max", PersistentDataType.DOUBLE);
-        Double currentMax = pdcService.get(player, resourcePartition, "current_max", PersistentDataType.DOUBLE);
-        Double currentValue = pdcService.get(player, resourcePartition, "current_value", PersistentDataType.DOUBLE);
-        String sourceSignature = pdcService.get(player, resourcePartition, "source_signature", PersistentDataType.STRING);
-        Integer schemaVersion = pdcService.get(player, resourcePartition, "schema_version", PersistentDataType.INTEGER);
+
+        String legacyPath = legacyResourcePartitionPath(resourceId);
+        Double defaultMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "default_max", PersistentDataType.DOUBLE);
+        Double bonusMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "bonus_max", PersistentDataType.DOUBLE);
+        Double currentMax = pdcService.getMigrating(player, resourcePartition, legacyPath, "current_max", PersistentDataType.DOUBLE);
+        Double currentValue = pdcService.getMigrating(player, resourcePartition, legacyPath, "current_value", PersistentDataType.DOUBLE);
+        String sourceSignature = pdcService.getMigrating(player, resourcePartition, legacyPath, "source_signature", PersistentDataType.STRING);
+        Integer schemaVersion = pdcService.getMigrating(player, resourcePartition, legacyPath, "schema_version", PersistentDataType.INTEGER);
         if (defaultMax == null && bonusMax == null && currentMax == null && currentValue == null
                 && (sourceSignature == null || sourceSignature.isBlank()) && schemaVersion == null) {
             return null;
@@ -200,6 +215,22 @@ final class AttributeStateRepository {
         pdcService.set(player, resourcePartition, "current_max", PersistentDataType.DOUBLE, state.currentMax());
         pdcService.set(player, resourcePartition, "current_value", PersistentDataType.DOUBLE, state.currentValue());
         pdcService.set(player, resourcePartition, "source_signature", PersistentDataType.STRING, state.sourceSignature());
+
+        removeLegacyResourceState(player, state.resourceId());
+    }
+
+    private void removeLegacyResourceState(Player player, String resourceId) {
+        String legacyPath = legacyResourcePartitionPath(resourceId);
+        for (String field : RESOURCE_FIELDS) {
+            NamespacedKey legacyKey = PdcKeyMigration.legacyKey(pdcService.namespace(), legacyPath, field);
+            if (legacyKey != null) {
+                player.getPersistentDataContainer().remove(legacyKey);
+            }
+        }
+    }
+
+    private String legacyResourcePartitionPath(String resourceId) {
+        return new PdcPartition(pdcService.namespace(), LEGACY_RESOURCE_PREFIX + resourceId).path();
     }
 
     ProjectileDamageSnapshot readProjectileSnapshot(Projectile projectile) {

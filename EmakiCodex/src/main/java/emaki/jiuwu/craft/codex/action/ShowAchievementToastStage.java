@@ -31,15 +31,6 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Shows a client-side advancement toast without registering or granting an advancement.
- *
- * <p>The toast is a fake advancement pushed over the wire and withdrawn again a moment later, so the removal
- * is scheduled rather than immediate.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: the packet goes to one player's connection. Despite touching the network
- * layer this is not global state, so it does not need the global domain.</p>
- */
 public final class ShowAchievementToastStage implements CoreActionStage {
 
     private static final String PACKET_BRIDGE_CLASS =
@@ -49,23 +40,11 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     private static final String DEFAULT_REMOVE_DELAY = "20t";
     private static final long DEFAULT_REMOVE_DELAY_TICKS = 20L;
 
-    /**
-     * Guards against a stale removal cancelling a newer toast.
-     *
-     * <p>Static because the tokens have to survive a reload: a removal scheduled before the reload still fires
-     * afterwards, and it must recognise that its own toast has since been replaced.</p>
-     */
     private static final ConcurrentMap<String, UUID> REMOVAL_TOKENS = new ConcurrentHashMap<>();
 
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
 
-    /**
-     * Creates the stage.
-     *
-     * @param plugin owning plugin, used for scheduling the removal
-     * @param itemSourceService resolves the toast icon, may be {@code null}
-     */
     public ShowAchievementToastStage(@NotNull EmakiCodexPlugin plugin, ItemSourceService itemSourceService) {
         this.plugin = plugin;
         this.itemSourceService = itemSourceService;
@@ -163,12 +142,6 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         return parsed <= 0L ? DEFAULT_REMOVE_DELAY_TICKS : parsed;
     }
 
-    /**
-     * Builds a namespace-safe toast id.
-     *
-     * <p>A blank id becomes a random one so two simultaneous toasts cannot collide, and every other character
-     * is folded to an underscore because the key becomes a {@code NamespacedKey} path.</p>
-     */
     private String toastId(CoreResolvedArguments arguments) {
         String raw = arguments.getString("id", "");
         String normalized = Texts.isBlank(raw) ? UUID.randomUUID().toString() : Texts.normalizeId(raw);
@@ -193,7 +166,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
                     }
                 }
             } catch (RuntimeException ignored) {
-                // Fall through to the material lookup: a bad icon must not stop the toast.
+
             }
         }
         String normalized = Texts.toStringSafe(rawIcon)
@@ -235,7 +208,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         UUID token = UUID.randomUUID();
         REMOVAL_TOKENS.put(tokenKey, token);
         if (!plugin.isEnabled()) {
-            // Withdraw immediately rather than leaving a permanent fake advancement on the client.
+
             removeToast(target, key, tokenKey, token);
             return;
         }
@@ -259,7 +232,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         try {
             invokeBridge("remove", target, key, "", "", new ItemStack(Material.BOOK), DEFAULT_FRAME);
         } catch (Throwable ignored) {
-            // The client drops the fake advancement on its own when it leaves; nothing else to do here.
+
         }
     }
 

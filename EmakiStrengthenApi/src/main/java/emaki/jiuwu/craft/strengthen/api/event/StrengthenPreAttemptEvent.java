@@ -7,28 +7,14 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.inventory.ItemStack;
 
 /**
- * Fired by EmakiStrengthen after a strengthen attempt has been previewed and
- * passed its condition checks, but before the success roll and before any cost
- * is charged.
+ * Fired after an enhancement attempt passes preview and condition checks, immediately before its success
+ * roll and cost charge.
  *
- * <p>Listeners may inspect the player, the target item, the recipe and the
- * current/target stars, override the success rate via
- * {@link #setSuccessRate(double)}, or cancel the attempt entirely. A cancelled
- * event stops EmakiStrengthen from rolling, rebuilding the item or charging any
- * cost.
- *
- * <p><strong>Thread:</strong> fired synchronously on the player's entity-owner thread. On Paper
- * this is the main server thread; on Folia it is the player's region thread.
- *
- * <h2>Coverage — this event is not fired for every attempt</h2>
- * It is skipped when the runtime rejects the attempt before reaching the roll: an ineligible or missing
- * target item, a missing strengthen recipe, a star level already at maximum, unsatisfied material
- * inputs, the recipe's own condition group failing, a conflicting in-flight operation on the same
- * operation id, the service no longer accepting attempts during shutdown, and an internal error.
- *
- * <p>It is also skipped, without any error, when the attempt is invoked off the owner thread of the
- * player. The public API rejects that case with {@code WRONG_THREAD}, but a listener should still not
- * assume {@link #setSuccessRate(double)} is consulted on every roll.
+ * <p>Runs synchronously on the player's owner thread. Cancellation prevents the roll, rebuild and charge;
+ * {@link #setSuccessRate(double)} is clamped to {@code [0, 100]} and the last listener write is rolled.
+ * The target item is exposed as a defensive copy. This event is emitted only for attempts that reach the
+ * pre-roll stage; invalid targets/recipes, maxed or unpaid inputs, failed conditions, duplicate operation
+ * ids, shutdown rejection, internal errors and wrong-thread calls do not emit it.
  *
  * @see StrengthenAttemptEvent
  */

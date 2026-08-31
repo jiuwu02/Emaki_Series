@@ -63,7 +63,7 @@ final class ForgeGuiInteractionController {
         }
         ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
         ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
-        String materialId = materialKey(state, source);
+        String materialId = materialKey(state, itemStack, source);
 
         if (rules.requiredIds().contains(materialId)) {
             int slot = stateSupport.firstFreeSlot(stateSupport.slotsForType(state, "required_materials"), state.requiredMaterialItems());
@@ -115,9 +115,10 @@ final class ForgeGuiInteractionController {
                 slot,
                 "blueprint_inputs",
                 state.blueprintItems(),
-                itemStack -> stateSupport.findBlueprintRequirementBySource(
+                itemStack -> stateSupport.acceptsBlueprint(
                         state,
-                        state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack)) != null
+                        itemStack,
+                        state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack))
         );
     }
 
@@ -133,7 +134,7 @@ final class ForgeGuiInteractionController {
                 itemStack -> {
         ItemSourceRef source = state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack);
 
-                    String materialId = materialKey(state, source);
+                    String materialId = materialKey(state, itemStack, source);
                     if (Texts.isBlank(materialId)) {
                         return false;
                     }
@@ -541,14 +542,16 @@ final class ForgeGuiInteractionController {
         switch (slotType) {
             case "blueprint_inputs" ->
                 handleDragPlacement(drag, state, rawSlot, "blueprint_inputs", placedItem, state.blueprintItems(),
-                        itemStack -> stateSupport.findBlueprintRequirementBySource(
+                        itemStack -> stateSupport.acceptsBlueprint(
                                 state,
-                                state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack)) != null);
+                                itemStack,
+                                state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack)));
             case "required_materials" ->
                 handleDragPlacement(drag, state, rawSlot, "required_materials", placedItem, state.requiredMaterialItems(),
                         itemStack -> {
                             ForgeGuiStateSupport.MaterialSlotRules rules = stateSupport.resolveMaterialSlotRules(state);
-                            String materialId = materialKey(state, state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
+                            String materialId = materialKey(state, itemStack,
+                                    state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
                             return Texts.isNotBlank(materialId) && rules.requiredIds().contains(materialId);
                         });
             case "optional_materials" ->
@@ -558,7 +561,8 @@ final class ForgeGuiInteractionController {
                             int occupied = state.optionalMaterialItems().containsKey(rawSlot)
                                     ? state.optionalMaterialItems().size() - 1
                                     : state.optionalMaterialItems().size();
-                            String materialId = materialKey(state, state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
+                            String materialId = materialKey(state, itemStack,
+                                    state.runtimeSnapshot().itemIdentifierService().identifyItem(itemStack));
                             return stateSupport.canPlaceOptionalMaterial(materialId, rules, Math.max(0, occupied));
                         });
             default -> debug(state.player(), "forge.gui.drag.ignored_unsupported_slot_type", replacements(
@@ -682,7 +686,7 @@ final class ForgeGuiInteractionController {
             try {
                 recordSettlementFailure(state, failureReason + ": " + Texts.toStringSafe(throwable.getMessage()));
             } catch (Throwable ignored) {
-                // Terminal cleanup must not be prevented by diagnostic failures.
+
             }
         } finally {
             if (state != null) {
@@ -735,12 +739,11 @@ final class ForgeGuiInteractionController {
         stateSupport.returnItems(state);
     }
 
-    private String materialKey(ForgeGuiSession state, ItemSourceRef source) {
-        if (state == null || source == null || state.runtimeSnapshot().forgeService() == null) {
+    private String materialKey(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {
+        if (state == null) {
             return "";
         }
-        var material = state.runtimeSnapshot().forgeService().findMaterialBySource(source);
-        return material == null ? "" : material.key();
+        return stateSupport.resolveMaterialKey(state, itemStack, source);
     }
 
     private boolean ensureCurrentGeneration(ForgeGuiSession state) {
@@ -762,7 +765,7 @@ final class ForgeGuiInteractionController {
         try {
             GuiDebugSupport.log(plugin, player, langKey, replacements == null ? Map.of() : replacements);
         } catch (Throwable ignored) {
-            // Debug diagnostics must not interrupt GUI ownership or settlement.
+
         }
     }
 

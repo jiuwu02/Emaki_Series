@@ -3,18 +3,19 @@ package emaki.jiuwu.craft.level.service;
 import java.io.File;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.logging.Level;
 
-import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
-public final class LevelMessageService implements LogMessages {
+public final class LevelMessageService implements LogMessages, LegacyMessageSink {
 
     private final JavaPlugin plugin;
     private String language = "zh_CN";
@@ -54,12 +55,6 @@ public final class LevelMessageService implements LogMessages {
             prefix = resolveText("prefix", "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>");
         }
         return Texts.toStringSafe(prefix);
-    }
-
-    private String withPrefix(String text) {
-        String prefix = prefix();
-        String normalizedText = Texts.toStringSafe(text);
-        return prefix + (prefix.endsWith(" ") ? "" : " ") + normalizedText;
     }
 
     private String resolveText(String key, String fallback) {
@@ -121,7 +116,7 @@ public final class LevelMessageService implements LogMessages {
 
     @Override
     public void info(String key, Map<String, ?> replacements) {
-        sendConsole(message(key, replacements));
+        sendConsole(Level.INFO, message(key, replacements));
     }
 
     @Override
@@ -131,7 +126,7 @@ public final class LevelMessageService implements LogMessages {
 
     @Override
     public void warning(String key, Map<String, ?> replacements) {
-        sendConsole(message(key, replacements));
+        sendConsole(Level.WARNING, message(key, replacements));
     }
 
     @Override
@@ -141,14 +136,21 @@ public final class LevelMessageService implements LogMessages {
 
     @Override
     public void severe(String key, Map<String, ?> replacements) {
-        sendConsole(message(key, replacements));
+        sendConsole(Level.SEVERE, message(key, replacements));
     }
 
-    private void sendConsole(String text) {
+    private void sendConsole(Level level, String text) {
         if (Texts.isBlank(text)) {
             return;
         }
-        Bukkit.getConsoleSender().sendMessage(MiniMessages.parse(withPrefix(text)));
+        var component = MiniMessages.parse(text);
+        if (level.intValue() >= Level.SEVERE.intValue()) {
+            plugin.getComponentLogger().error(component);
+        } else if (level.intValue() >= Level.WARNING.intValue()) {
+            plugin.getComponentLogger().warn(component);
+        } else {
+            plugin.getComponentLogger().info(component);
+        }
     }
 
     public String language() {

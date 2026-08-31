@@ -5,7 +5,6 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.action.ActionResult;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 
-/** Sets the target's balance to an absolute value. See {@link MoneyStage} for the shared contract. */
 public final class SetMoneyStage extends MoneyStage {
 
     public SetMoneyStage(EconomyManager economyManager) {

@@ -5,15 +5,11 @@ import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
- * Fired by EmakiCooking when a player crosses a nutrition threshold, either a
- * single-type threshold or a combo (balanced-diet) threshold.
+ * Fired when a single-type or combo nutrition threshold changes between met and unmet.
  *
- * <p>This is an edge-triggered notification: it fires once when a threshold
- * becomes met and again when it is no longer met (recovered). The configured
- * threshold actions are still driven by EmakiCooking; this event is purely
- * informational and cannot be cancelled. It is suitable for achievements,
- * custom buffs/debuffs and UI updates. This synchronous event is fired while the runtime owns the
- * affected player's entity execution boundary.
+ * <p>Runs synchronously on the player's owner thread and is edge-triggered, not emitted for unchanged state.
+ * It is informational and cannot override or cancel configured threshold actions. Single-threshold fields
+ * and combo-count fields are mutually exclusive as indicated by {@link Kind}.
  */
 public final class NutritionThresholdChangeEvent extends Event {
 

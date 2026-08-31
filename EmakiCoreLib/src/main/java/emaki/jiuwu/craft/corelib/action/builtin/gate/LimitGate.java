@@ -14,11 +14,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
-/**
- * Keeps the first {@code count} targets, preserving the flow's order.
- *
- * <p>Thread need {@code PURE}: takes a sublist. Nothing about the subjects themselves is read.</p>
- */
 public final class LimitGate extends BaseGate {
 
     public LimitGate() {

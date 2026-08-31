@@ -3,24 +3,10 @@ package emaki.jiuwu.craft.corelib.api.contract;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Uniform availability and identity metadata for an Emaki API facade.
+ * Availability and identity metadata for an Emaki API facade.
  *
- * <p>This record replaces the three historic detection names ({@code available()},
- * {@code isAvailable()}, {@code isReady()}) and the two metadata accessors ({@code apiVersion()},
- * {@code pluginName()}) with one value object.
- *
- * <p>{@link #installed()} and {@link #ready()} are deliberately separate. A bridge may be installed
- * early in the owning plugin's enable sequence while its subsystems (recipe tables, registries, data
- * stores) are still loading. Business calls are only safe once {@link #usable()} is {@code true}.
- *
- * <p>{@link #apiVersion()} is diagnostic only. Never gate behaviour on it: this project forbids
- * hard-coded cross-plugin version comparisons.
- *
- * @param installed     whether the owning plugin has installed its API bridge
- * @param ready         whether the owning plugin's subsystems have finished loading
- * @param pluginName    the owning plugin's name, or an empty string when not installed
- * @param pluginVersion the owning plugin's version, or an empty string when not installed
- * @param apiVersion    the API artifact's version, or an empty string when not installed
+ * <p>{@link #installed()} only means the bridge exists; business calls require {@link #usable()}.
+ * Version fields are diagnostic only and must not gate optional features.
  */
 public record ApiStatus(boolean installed,
                         boolean ready,

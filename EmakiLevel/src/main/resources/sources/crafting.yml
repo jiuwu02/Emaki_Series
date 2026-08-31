@@ -1,0 +1,35 @@
+# EmakiLevel 经验来源 - 合成
+# 工作台与合成类操作的经验来源定义。
+
+id: "crafting_sources"
+enabled: true
+sources:
+  craft_item:
+    enabled: true
+    type: "crafting"
+    trigger: "craft_item"
+    count_result_amount: true
+    anti_abuse:
+      exp_cooldown_ticks: 1
+    rules:
+      - matcher:
+          type: item_source
+          sources:
+            - "minecraft-crafting_table"
+            - "minecraft-furnace"
+        exp_formula: "5 * %result_amount%"
+      - matcher:
+          type: item_source
+          sources:
+            - "minecraft-diamond_pickaxe"
+            - "minecraft-diamond_sword"
+        exp_formula: "40 * %result_amount%"
+      # matcher 必填，缺失时规则不命中；item_source 匹配物品源，component 匹配组件路径。
+      # 组件命名空间缺省为 minecraft；operator 支持比较、字符串、regex、键值存在性和 size。
+      - matcher:
+          type: component
+          component: enchantments
+          path: sharpness
+          operator: ">="
+          value: 5
+        exp_formula: "120 * %result_amount%"

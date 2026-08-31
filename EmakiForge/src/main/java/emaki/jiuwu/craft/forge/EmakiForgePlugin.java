@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.forge;
 
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -10,11 +9,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import io.papermc.paper.command.brigadier.BasicCommand;
-import io.papermc.paper.command.brigadier.CommandSourceStack;
-import org.bukkit.command.CommandExecutor;
-import org.bukkit.command.TabCompleter;
-
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
@@ -23,8 +17,9 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -38,12 +33,14 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.forge.action.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
+import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.papi.ForgePlaceholderExpansion;
@@ -99,7 +96,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
     private ForgePlaceholderExpansion placeholderExpansion;
-    private TaskHandle autoSaveTask;
+    private TaskToken autoSaveTask;
     private DebugCommand debugCommand;
     private ForgeStageRegistrar stageRegistrar;
     private final EmakiForgeApi.Bridge forgeApiBridge =
@@ -126,6 +123,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
+        reportLegacyItemSources();
         registerCommandHandler();
         registerActions();
         registerEventHandlers();
@@ -306,11 +304,20 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         recipeBookGuiService = components.recipeBookGuiService();
         commandRouter = new ForgeCommandRouter(this, executionDispatcher, threadOwnership);
         itemRefreshListener = new ForgeItemRefreshListener(this, executionDispatcher);
-        setDebugLogger(new DebugLogger(this, languageLoader));
-        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES);
+        setDebugLogger(buildDebugLogger(languageLoader));
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
         runtimeSnapshot.set(ForgeRuntimeSnapshot.starting(components, appConfigLoader, languageLoader,
                 messageService, bootstrapService, recipeLoader, guiTemplateLoader));
+    }
+
+    private void reportLegacyItemSources() {
+        LegacyItemSourceScanner.report(
+                getDataFolder().toPath(),
+                ForgeLegacyTargets.specs(),
+                getLogger(),
+                "emakiforge"
+        );
     }
 
     private void registerCommandHandler() {
@@ -415,12 +422,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
     }
 
-    /**
-     * {@return the runner used to execute configured pipeline lines}
-     *
-     * <p>Created on demand rather than cached: it reads the live engine per call, so a CoreLib reload
-     * needs no action here.</p>
-     */
     public ActionLineRunner actionLines() {
         return coreLib().actionLineRunner(this);
     }
@@ -595,7 +596,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         DebugLogger previousLogger = debugLogger();
         DebugCommand previousCommand = debugCommand;
         DebugLogger nextLogger = replacementDebugLogger(previousLogger, candidate.languageLoader());
-        DebugCommand nextCommand = new DebugCommand(nextLogger, DEBUG_MODULES);
+        DebugCommand nextCommand = new DebugCommand(nextLogger, DEBUG_MODULES, getName());
         boolean committed = false;
         try {
             nextForgeService.installLookupSnapshot(candidate.lookupSnapshot());
@@ -607,8 +608,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             setDebugLogger(nextLogger);
             debugCommand = nextCommand;
             previousComponents.forgeService().close();
-            // The published snapshot is RELOADING, so this reports "loading" rather than ready; the
-            // ready transition belongs to completeCandidateInstallation.
+
             syncReadiness();
         } catch (RuntimeException | Error failure) {
             boolean restored = !committed || runtimeSnapshot.compareAndSet(next, previous);
@@ -617,9 +617,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 setDebugLogger(previousLogger);
                 debugCommand = previousCommand;
             }
-            // A restored previous runtime can be ACTIVE and available again, and the caller never
-            // reaches completeCandidateInstallation on this path. Without this the registry would stay
-            // stuck reporting "loading" while status() reports ready.
+
             syncReadiness();
             try {
                 nextForgeService.close();
@@ -643,8 +641,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     boolean completeCandidateInstallation(long generation) {
         boolean completed = installActiveGeneration(generation);
-        // Published outside the CAS loop above: waiting third-party callbacks run synchronously, so a
-        // retry iteration must never carry one, and no lock may be held while they run.
+
         syncReadiness();
         return completed;
     }
@@ -677,8 +674,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
     }
 
+    private DebugLogger buildDebugLogger(LanguageLoader loader) {
+        DebugLogger debugLogger = new DebugLogger(this, loader);
+        debugLogger.setFallbackLoader(coreLib().languageLoader());
+        return debugLogger;
+    }
+
     private DebugLogger replacementDebugLogger(DebugLogger previous, LanguageLoader nextLanguageLoader) {
-        DebugLogger replacement = new DebugLogger(this, nextLanguageLoader);
+        DebugLogger replacement = buildDebugLogger(nextLanguageLoader);
         if (previous == null || !previous.isGlobalEnabled()) {
             return replacement;
         }
@@ -767,13 +770,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         runtimeSnapshot.updateAndGet(current -> current.withStatus(status));
     }
 
-    /**
-     * Publishes the current runtime availability to CoreLib's readiness registry.
-     *
-     * <p>Derived from the snapshot rather than tracked separately so the registry cannot disagree with
-     * {@link #isRuntimeReady()}. Must be called outside any CAS retry loop: waiting third-party
-     * callbacks run synchronously on the calling thread.</p>
-     */
     private void syncReadiness() {
         boolean ready = runtimeSnapshot.get().available();
         publishReadiness(coreLibPlugin -> {
@@ -789,14 +785,6 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         publishReadiness(coreLibPlugin -> coreLibPlugin.markModuleAbsent(getName()));
     }
 
-    /**
-     * Runs a readiness publication, tolerating CoreLib being gone.
-     *
-     * <p>Shutdown ordering is the reason for the guard: the disable path publishes too, and failing to
-     * tell CoreLib about it must never turn into an exception out of {@code onDisable}.</p>
-     *
-     * @param action what to publish
-     */
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
             action.accept(coreLib());
@@ -804,40 +792,4 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             getLogger().fine("EmakiForge readiness publication skipped: " + exception);
         }
     }
-
-    private static final class PaperCommandAdapter implements BasicCommand {
-
-        private final String rootLabel;
-        private final String permission;
-        private final CommandExecutor executor;
-        private final TabCompleter tabCompleter;
-
-        private PaperCommandAdapter(String rootLabel,
-                                    String permission,
-                                    CommandExecutor executor,
-                                    TabCompleter tabCompleter) {
-            this.rootLabel = rootLabel;
-            this.permission = permission;
-            this.executor = executor;
-            this.tabCompleter = tabCompleter;
-        }
-
-        @Override
-        public void execute(CommandSourceStack source, String[] args) {
-            executor.onCommand(source.getSender(), null, rootLabel, args);
-        }
-
-        @Override
-        public Collection<String> suggest(CommandSourceStack source, String[] args) {
-            String[] completionArgs = args.length == 0 ? new String[]{""} : args;
-            List<String> suggestions = tabCompleter.onTabComplete(source.getSender(), null, rootLabel, completionArgs);
-            return suggestions == null ? List.of() : suggestions;
-        }
-
-        @Override
-        public String permission() {
-            return permission;
-        }
-    }
-
 }

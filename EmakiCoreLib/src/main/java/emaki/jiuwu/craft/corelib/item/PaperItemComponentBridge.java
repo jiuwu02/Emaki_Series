@@ -20,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import io.papermc.paper.datacomponent.DataComponentType;
 
-
 final class PaperItemComponentBridge {
 
     private static final Logger LOGGER = Logger.getLogger(PaperItemComponentBridge.class.getName());

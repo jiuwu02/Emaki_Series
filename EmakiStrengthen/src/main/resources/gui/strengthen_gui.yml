@@ -2,8 +2,6 @@
 # EmakiStrengthen GUI 配置 - 强化界面
 # ============================================================
 # 玩家进行装备强化操作的主界面
-#
-# 文件放置位置: plugins/EmakiStrengthen/gui/
 # ============================================================
 id: "strengthen_gui"
 
@@ -57,7 +55,7 @@ slots:
       - 27
       - 35
     item:
-      source: "BLACK_STAINED_GLASS_PANE"
+      source: "black_stained_glass_pane"
       components:
         custom_name: "<dark_gray>"
         tooltip_display:
@@ -68,7 +66,7 @@ slots:
       - 13
     type: "target_item"
     item:
-      source: "LIGHT_BLUE_STAINED_GLASS_PANE"
+      source: "light_blue_stained_glass_pane"
       components:
         custom_name: "<aqua>放入待强化装备</aqua>"
         lore:
@@ -94,7 +92,7 @@ slots:
       - 22
     type: "temper_display"
     item:
-      source: "INK_SAC"
+      source: "ink_sac"
       components:
         custom_name: "<gold>强化值状态</gold>"
         lore:
@@ -106,7 +104,7 @@ slots:
       - 19
     type: "material_input_1"
     item:
-      source: "GOLD_NUGGET"
+      source: "gold_nugget"
       components:
         custom_name: "<yellow>强化材料槽 I</yellow>"
         lore:
@@ -117,7 +115,7 @@ slots:
       - 20
     type: "material_input_2"
     item:
-      source: "PAPER"
+      source: "paper"
       components:
         custom_name: "<yellow>强化材料槽 II</yellow>"
         lore:
@@ -128,7 +126,7 @@ slots:
       - 29
     type: "material_input_3"
     item:
-      source: "ECHO_SHARD"
+      source: "echo_shard"
       components:
         custom_name: "<yellow>强化材料槽 III</yellow>"
         lore:
@@ -139,7 +137,7 @@ slots:
       - 30
     type: "material_input_4"
     item:
-      source: "POTION"
+      source: "potion"
       components:
         custom_name: "<yellow>强化材料槽 IV</yellow>"
         lore:
@@ -150,7 +148,7 @@ slots:
       - 40
     type: "confirm"
     item:
-      source: "ANVIL"
+      source: "anvil"
       components:
         # 不满足强化条件时插件会把图标换成 BARRIER 并改写标题
         custom_name: "%confirm_title%"

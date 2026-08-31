@@ -34,6 +34,7 @@
         <module>EmakiStorageApi</module>
         <module>EmakiStationApi</module>
         <module>EmakiAccessoryApi</module>
+        <module>EmakiMobsApi</module>
         <module>EmakiForge</module>
         <module>EmakiStrengthen</module>
         <module>EmakiCooking</module>
@@ -41,6 +42,7 @@
         <module>EmakiLevel</module>
         <module>EmakiCodex</module>
         <module>EmakiStation</module>
+        <module>EmakiMobs</module>
     </modules>
 
     <profiles>
@@ -64,42 +66,44 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.7.0</emaki.corelib.version>
-        <emaki.attribute.version>4.7.0</emaki.attribute.version>
-        <emaki.item.version>2.7.0</emaki.item.version>
-        <emaki.skills.version>2.7.0</emaki.skills.version>
-        <emaki.corelib.api.version>4.7.0</emaki.corelib.api.version>
-        <emaki.attribute.api.version>4.7.0</emaki.attribute.api.version>
-        <emaki.item.api.version>2.7.0</emaki.item.api.version>
-        <emaki.skills.api.version>2.7.0</emaki.skills.api.version>
-        <emaki.forge.api.version>4.7.0</emaki.forge.api.version>
-        <emaki.strengthen.api.version>4.7.0</emaki.strengthen.api.version>
-        <emaki.cooking.api.version>4.2.0</emaki.cooking.api.version>
-        <emaki.gem.api.version>2.7.0</emaki.gem.api.version>
-        <emaki.level.api.version>1.5.0</emaki.level.api.version>
-        <emaki.codex.api.version>1.0.0</emaki.codex.api.version>
-        <emaki.storage.api.version>1.0.0</emaki.storage.api.version>
-        <emaki.station.api.version>1.0.0</emaki.station.api.version>
-        <emaki.station.version>1.0.0</emaki.station.version>
-        <emaki.accessory.api.version>1.0.0</emaki.accessory.api.version>
-        <emaki.accessory.version>1.0.0</emaki.accessory.version>
+        <emaki.corelib.version>4.8.0</emaki.corelib.version>
+        <emaki.attribute.version>4.8.0</emaki.attribute.version>
+        <emaki.item.version>2.8.0</emaki.item.version>
+        <emaki.skills.version>2.8.0</emaki.skills.version>
+        <emaki.corelib.api.version>4.8.0</emaki.corelib.api.version>
+        <emaki.attribute.api.version>4.8.0</emaki.attribute.api.version>
+        <emaki.item.api.version>2.8.0</emaki.item.api.version>
+        <emaki.skills.api.version>2.8.0</emaki.skills.api.version>
+        <emaki.forge.api.version>4.8.0</emaki.forge.api.version>
+        <emaki.strengthen.api.version>4.8.0</emaki.strengthen.api.version>
+        <emaki.cooking.api.version>4.3.0</emaki.cooking.api.version>
+        <emaki.gem.api.version>2.8.0</emaki.gem.api.version>
+        <emaki.level.api.version>1.6.0</emaki.level.api.version>
+        <emaki.codex.api.version>1.1.0</emaki.codex.api.version>
+        <emaki.storage.api.version>1.1.0</emaki.storage.api.version>
+        <emaki.station.api.version>1.1.0</emaki.station.api.version>
+        <emaki.station.version>1.1.0</emaki.station.version>
+        <emaki.accessory.api.version>1.1.0</emaki.accessory.api.version>
+        <emaki.accessory.version>1.1.0</emaki.accessory.version>
+        <emaki.mobs.api.version>1.0.0</emaki.mobs.api.version>
+        <emaki.mobs.version>1.0.0</emaki.mobs.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
         <jetbrains.annotations.version>26.1.0</jetbrains.annotations.version>
         <boosted.yaml.version>1.3.7</boosted.yaml.version>
-        <mythicmobs.version>5.12.1</mythicmobs.version>
+        <mythicmobs.version>5.13.0</mythicmobs.version>
         <mythiclib.version>1.7.1-SNAPSHOT</mythiclib.version>
         <vault.api.version>1.7.1</vault.api.version>
         <excellenteconomy.version>2.8.0</excellenteconomy.version>
-        <nightcore.version>2.16.3</nightcore.version>
+        <nightcore.version>2.16.4</nightcore.version>
         <placeholderapi.version>2.12.3</placeholderapi.version>
         <mmoitems.version>6.10.1-SNAPSHOT</mmoitems.version>
-        <craftengine.version>26.7.2</craftengine.version>
+        <craftengine.version>26.8</craftengine.version>
         <itemsadder.version>4.0.17</itemsadder.version>
-        <nexo.version>1.25.0</nexo.version>
-        <oraxen.version>1.217.0</oraxen.version>
-        <neigeitems.version>1.21.151</neigeitems.version>
+        <nexo.version>1.27.0</nexo.version>
+        <oraxen.version>1.218.0</oraxen.version>
+        <neigeitems.version>1.21.160</neigeitems.version>
         <ecoitems.version>2026.27</ecoitems.version>
         <eco.version>2026.28</eco.version>
         <libreforge.version>2026.27</libreforge.version>
@@ -107,6 +111,7 @@
         <packetevents.version>2.13.0</packetevents.version>
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.2.4</caffeine.version>
+        <junit.version>5.14.2</junit.version>
         <betterhud.version>2.0.0</betterhud.version>
     </properties>
 
@@ -341,6 +346,13 @@
                 <version>${betterhud.version}</version>
                 <scope>provided</scope>
             </dependency>
+            <dependency>
+                <groupId>org.junit</groupId>
+                <artifactId>junit-bom</artifactId>
+                <version>${junit.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
@@ -392,6 +404,10 @@
         <repository>
             <id>auxilor-releases</id>
             <url>https://repo.auxilor.io/repository/maven-public/</url>
+        </repository>
+        <repository>
+            <id>mockbukkit-releases</id>
+            <url>https://s01.oss.sonatype.org/content/repositories/releases/</url>
         </repository>
         <repository>
             <id>codemc-releases</id>

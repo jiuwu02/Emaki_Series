@@ -1,17 +1,13 @@
-# ============================================================
-# EmakiAttribute 伤害类型定义 - 投射物伤害
-# ============================================================
-# 投射物（弓箭、弩箭等）造成的伤害计算流程。
-# 结构与 physical.yml 相同，参考该文件获取详细字段说明。
-#
-# 文件放置位置: plugins/EmakiAttribute/damage_types/
-# ============================================================
+# 投射物伤害流程；字段契约同 physical.yml。
 
 id: projectile
 
 display_name: "投射物伤害"
 
-aliases: [ranged, projectile_damage, arrow]
+aliases:
+  - ranged
+  - projectile_damage
+  - arrow
 
 allowed_events:
   - PROJECTILE
@@ -23,40 +19,48 @@ stages:
     kind: FLAT_PERCENT
     source: ATTACKER
     mode: ADD
-    flat_attributes: [projectile_attack]
-    percent_attributes: [projectile_damage_bonus]
+    flat_attributes:
+      - projectile_attack
+    percent_attributes:
+      - projectile_damage_bonus
 
   - id: crit
     kind: CUSTOM
     source: ATTACKER
-    chance_attributes: [projectile_crit_rate]
-    multiplier_attributes: [projectile_crit_damage]
+    chance_attributes:
+      - projectile_crit_rate
+    multiplier_attributes:
+      - projectile_crit_damage
     expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
 
   - id: defense
     kind: FLAT_PERCENT
     source: TARGET
     mode: SUBTRACT
-    flat_attributes: [projectile_defense]
-    percent_attributes: []
+    flat_attributes:
+      - projectile_defense
     expression: "max(0, %input% - %flat%)"
 
-  # 盾牌格挡。原版盾牌同样能挡投射物，故与 physical.yml 保持一致。
-  # 仅在 config.yml 的 shield.mode = attribute 时才可能生效；字段说明见 physical.yml。
+  # 投射物格挡仅在 shield.mode=attribute 时生效，字段同 physical.yml。
   - id: block
     kind: CUSTOM
     source: TARGET
-    chance_attributes: [block_rate]
-    multiplier_attributes: [block_reduction]
+    chance_attributes:
+      - block_rate
+    multiplier_attributes:
+      - block_reduction
     expression: "%input% * (1 - (%target_blocking% * %crit% * (%multiplier% / 100)))"
     min_result: 0
 
 recovery:
   source: ATTACKER
   resistance_source: TARGET
-  flat_attributes: [percentage_lifesteal]
-  percent_attributes: [lifesteal]
-  resistance_attributes: [lifesteal_resistance]
+  flat_attributes:
+    - percentage_lifesteal
+  percent_attributes:
+    - lifesteal
+  resistance_attributes:
+    - lifesteal_resistance
 
 attacker_message: "<gray>[<gold>%damage_type%</gold>]</gray> <green>你对 <white>%target%</white> 造成了 <yellow>%final_damage%</yellow> 点伤害</green>%critical_suffix%"
 target_message: "<gray>[<gold>%damage_type%</gold>]</gray> <red>%attacker%</red> 对你造成了 <yellow>%final_damage%</yellow> 点伤害%critical_suffix%"

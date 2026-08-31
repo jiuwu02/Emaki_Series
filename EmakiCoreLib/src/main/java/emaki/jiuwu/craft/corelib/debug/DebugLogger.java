@@ -12,6 +12,7 @@ import java.util.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
@@ -22,6 +23,8 @@ public final class DebugLogger {
     private final Logger logger;
     private final JavaPlugin plugin;
     private final LanguageLoader languageLoader;
+    @Nullable
+    private LanguageLoader fallbackLoader;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
     private static volatile boolean globalAllEnabled;
 
@@ -42,13 +45,24 @@ public final class DebugLogger {
         this.languageLoader = Objects.requireNonNull(languageLoader, "languageLoader");
     }
 
-
     public static void setGlobalAllEnabled(boolean enabled) {
         globalAllEnabled = enabled;
     }
 
     public static boolean isGlobalAllEnabled() {
         return globalAllEnabled;
+    }
+
+    public void setFallbackLoader(@Nullable LanguageLoader fallbackLoader) {
+        this.fallbackLoader = fallbackLoader;
+    }
+
+    String resolveTemplate(String fullKey) {
+        String template = languageLoader.getMessage(fullKey);
+        if (fallbackLoader != null && fullKey.equals(template)) {
+            template = fallbackLoader.getMessage(fullKey);
+        }
+        return template;
     }
 
     public boolean shouldLog(String module, UUID player) {
@@ -69,12 +83,11 @@ public final class DebugLogger {
         return shouldLog(module, player == null ? null : player.getUniqueId());
     }
 
-
     public void log(String module, UUID player, String langKey, Map<String, ?> replacements) {
         if (!shouldLog(module, player)) {
             return;
         }
-        String template = languageLoader.getMessage("debug." + langKey);
+        String template = resolveTemplate("debug." + langKey);
         String message = replacements == null || replacements.isEmpty()
                 ? template
                 : Texts.formatTemplate(template, replacements);
@@ -110,7 +123,6 @@ public final class DebugLogger {
         log(module, player == null ? null : player.getUniqueId(), langKey, Map.of());
     }
 
-
     public boolean addPlayer(UUID player) {
         if (player == null) {
             return false;
@@ -145,7 +157,6 @@ public final class DebugLogger {
     public Set<UUID> trackedPlayers() {
         return Collections.unmodifiableSet(trackedPlayers);
     }
-
 
     public boolean enableModule(String module) {
         if (Texts.isBlank(module)) {
@@ -183,7 +194,6 @@ public final class DebugLogger {
         return Collections.unmodifiableSet(enabledModules);
     }
 
-
     public void enableAll() {
         trackedPlayers.clear();
         enabledModules.clear();
@@ -201,7 +211,7 @@ public final class DebugLogger {
     }
 
     private void logConsole(String langKey, Map<String, ?> replacements) {
-        String template = languageLoader.getMessage(langKey);
+        String template = resolveTemplate(langKey);
         if (Texts.isBlank(template) || langKey.equals(template)) {
             template = "<gray>[DEBUG][<aqua>%module%</aqua>]</gray> %message%";
         }

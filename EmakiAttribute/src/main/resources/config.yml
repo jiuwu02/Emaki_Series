@@ -1,88 +1,52 @@
-# ============================================================
-# EmakiAttribute 主配置文件
-# ============================================================
-# 此文件包含插件的全局设置。修改后使用 reload 命令重载。
-#
-# 文件放置位置: plugins/EmakiAttribute/config.yml
-# ============================================================
+# EmakiAttribute 主配置
 
-# 属性系统主配置
-# version 由资源同步维护
-version: "4.7.0"
+version: "4.8.0"
 
-# 语言文件 ID
-language: zh_CN
+# 对应 lang/<language>.yml。
+language: "zh_CN"
 
-# 是否释放内置示例资源。
-# false 时不会自动生成属性、伤害类型、读取规则、词条格式与平衡系数等默认数据。
+# 关闭后不释放缺失的内置数据文件。
 release_default_data: true
 
-# 物品属性来源策略。
-# read_lore_attributes: 是否解析物品 Lore 中的属性词条。
-# read_pdc_attributes: 是否读取 EmakiAttribute PDC 属性。
-# require_lore_pdc_match: 开启后按属性 ID 逐项要求 Lore 与 PDC 同时存在且数值一致；
-#                         一致时仅计入一次，不一致或仅单侧存在时该属性失效。
-#                         默认 false，保持 Lore 与 PDC 同 key 相加的既有行为。
+# Lore 与 PDC 默认分别读取，同属性值相加。
+# require_lore_pdc_match 启用后要求同一属性两侧均存在且数值一致，仅计一次；否则该属性失效。
 attribute_sources:
   read_lore_attributes: true
   read_pdc_attributes: true
   require_lore_pdc_match: false
 
-# 是否接管未命中白名单的原版伤害
-# true 时，所有原版伤害都会进入 EA 结算；未命中的环境伤害会回退到默认伤害类型
-# false 时，只有白名单或 vanilla_event_damage.enabled 接管的伤害原因会进入 EA
 hard_lock_damage: true
 
-# 默认伤害类型 ID
+# 未指定时使用的伤害类型 ID。
 default_damage_type: physical
 
-# 投射物默认伤害类型 ID。
-# 弓箭、弩箭、三叉戟等投射物发射时会缓存攻击者当前属性快照，命中时按这里配置的伤害类型结算。
-# projectile：使用 projectile_attack / projectile_damage_bonus / projectile_crit_* 等投射物属性。
-# physical：使用 physical_attack / physical_damage_bonus / physical_crit_* 等物理属性。
+# 投射时缓存攻击者属性快照，命中时使用此伤害类型。
 projectile_damage_type: projectile
 
-# 原版事件伤害接管
-# enabled: true 时启用「完美接管」——不取消原版伤害事件，只把最终伤害数值替换为 EA 结算值，
-#          屏蔽原版护甲/抗性/魔法减伤、保留吸收之心与举盾格挡，原版副作用照常触发
-#          （着火僵尸点燃玩家、铁傀儡命中击飞、僵尸击退铁傀儡、荆棘、冻结、盾反等）。
-#          此时未在 allowed_damage_causes 中单独配置的原版伤害也会进入 EA 结算。
-# enabled: false 时使用「兼容模式」——取消原版事件后由 EA 合成重新施加伤害（含合成击退/受伤音效），
-#          只有 allowed_damage_causes 白名单内的伤害原因进入 EA；该模式下原版副作用可能缺失。
-# damage_type: 这些未单独映射的原版伤害统一使用的 EA 伤害类型。
-#          base_damage 会直接使用 Bukkit 事件里的原版伤害值，适合让原版物品、原版生物也有基础伤害。
+# enabled 时保留原版事件并替换伤害值；关闭时取消事件并由 EA 重施伤害。
+# 关闭后仅 allowed_damage_causes 白名单进入 EA；damage_type 处理未单独映射的原版伤害。
 vanilla_event_damage:
   enabled: true
   damage_type: physical
 
-# 同批次攻击无视目标受伤间隔
-# enabled: true 时，同一攻击者在同一属性快照签名与同一伤害类型下产生的多段攻击
-#          （多重射击三箭、同一批多投射物、同签名连续命中等）互相不受原版受伤间隔限制，
-#          每一段都按 EA 结算值完整掉血；不同攻击者、换手后属性变化、不同伤害类型不共享批次。
-# window_ms: 批次有效时间窗，单位毫秒；超过该时间的同签名攻击视为新一轮攻击，重新受受伤间隔限制。
+# 同一攻击者、属性快照签名和伤害类型的多段命中在窗口内共享批次。
+# window_ms 单位：毫秒。
 same_signature_ignores_invulnerability:
   enabled: true
   window_ms: 500
 
-# 攻速冷却应用范围
-# global：所有攻击都由 EA 接管攻速冷却。物品未写 EA 攻速属性时，
-#         按原版当前 ATTACK_SPEED 换算冷却（原版钻石剑 1.6 → 约 13 tick），
-#         由 EA 负责拦截过快的攻击。
-# attribute_only：只有 Lore/PDC 明确写了 EA 攻速属性（attack_speed 等 GENERIC 攻速属性）
-#         的物品才由 EA 拦截；其余物品完全交还原版攻速机制，EA 既不写冷却也不拦截。
-#         注意：从 EA 攻速武器换到原版武器时，上一次写入的冷却仍会拦下换手后的第一次攻击。
+# global 接管所有攻击；缺少 EA 攻速时按 Bukkit ATTACK_SPEED 换算冷却。
+# attribute_only 仅接管 Lore/PDC 明确含 EA 攻速的物品；切换物品不会清除上次已写入的冷却。
 attack_speed:
   scope: global
 
-# 资源自然回复间隔，单位 tick
+# 资源自然回复间隔，单位：tick。
 regen_interval_ticks: 20
 
-# 属性同步到 Bukkit 的延迟，单位 tick
+# 属性同步到 Bukkit 的延迟，单位：tick。
 sync_delay_ticks: 1
 
-# 客户端血量显示压缩。
-# enabled: true 时仅缩放玩家客户端血量条显示，不改变真实最大生命值、不改变实际生命值与伤害结算。
-# target: 客户端显示目标血量；20 表示最多显示为 20 血（即一排红心）。
+# 仅压缩客户端血条显示，不改变真实生命值或伤害结算；target 20 为一排红心。
 health_display_scaling:
   enabled: false
   target: 20.0
@@ -122,55 +86,37 @@ default_profile:
     spell_defense: 0.0
     health_regen: 0.1
     mana_regen: 0.1
-    # 格挡基线：只在 shield.mode = attribute 时参与结算。
-    # 默认 100/100 表示举盾必定触发且完全免伤，与原版行为一致，切换模式不改变手感。
-    # 想做成百分比格挡就调低 block_reduction，例如 40 表示只挡掉四成；
-    # 想做成概率格挡就调低 block_rate。盾牌物品的 EA 属性会叠加在此基线之上。
+    # 仅 shield.mode = attribute 时生效；100/100 表示必定格挡并完全免伤。
+    # 盾牌物品的 EA 属性在此基线上叠加。
     block_rate: 100.0
     block_reduction: 100.0
 
-# 盾牌格挡
-# mode: vanilla   —— 默认。保持原版 BLOCKING 减伤，举盾按原版规则完全免除该次伤害，
-#                    EA 计算出的攻击、暴击、穿透在举盾时全部不生效。
-#       attribute —— 清零原版 BLOCKING，改由伤害类型里的格挡阶段结算，可做成百分比减伤。
-#                    需要在 damage_types/*.yml 保留 block 阶段，并配置 block_rate / block_reduction 属性。
-#                    把 block_reduction 配到 100 即等价于原版全免。
-# require_facing: 仅 attribute 模式生效。原版 BLOCKING 自带正面判定，改由 EA 接管后
-#                 必须自行重建，否则会退化成全向格挡。环境伤害没有来源方向，按不构成正面处理。
-# facing_angle_degrees: 正面判定张角，单位度。180 等价于原版行为（以视线为中心的半平面）；
-#                 调小会要求玩家更精确地正对来源。
+# vanilla 保留原版 BLOCKING；attribute 清零原版结果，改由伤害类型的 block 阶段结算。
+# attribute 模式需保留 block 阶段及 block_rate、block_reduction 属性。
+# require_facing 仅对 attribute 生效；环境伤害无来源方向，不能构成正面格挡。
+# facing_angle_degrees 单位：度；180 为以视线为中心的半平面。
 shield:
   mode: vanilla
   require_facing: true
   facing_angle_degrees: 180
 
 synthetic_hit_feedback:
-  # 仅在兼容模式（vanilla_event_damage.enabled = false）下生效：
-  # 取消原版事件并合成施加伤害后，是否补发击退和受伤音效。
-  # 完美接管模式（enabled = true）下原版自身已处理击退与受伤反馈，这些设置不参与。
+  # 仅 vanilla_event_damage.enabled = false 时补发击退与受伤音效。
   knockback: true
   knockback_strength: 0.4
   hurt_sound: true
 
-# 伤害飘字
-# 用展示实体在目标上方显示伤害数字，覆盖普通攻击、暴击、生命恢复与闪避。
-# 渲染后端由 EmakiCoreLib 的 display.backend 决定，可见范围随后端而不同：
-#   packet 后端 - 只有下方 visible_to 指定的相关玩家能看到。
-#   bukkit 后端 - 飘字是真实体，附近所有玩家都能看到，visible_to 不生效。
+# 伤害飘字覆盖普通攻击、暴击、恢复与闪避。
+# EmakiCoreLib packet 后端遵循 visible_to；bukkit 后端为附近玩家可见的真实实体。
 damage_indicator:
   enabled: true
-  # 同一目标在该窗口(毫秒)内的多次伤害会累加合并为一个飘字。
-  # 与 same_signature_ignores_invulnerability.window_ms 保持一致时，
-  # 多重射击的多段命中会显示为一个总伤害而不是一堆数字。0 表示不合并。
-  # 窗口内再次命中会让飘字从起点重新抛出。
+  # 窗口内同一目标的伤害合并为一个飘字；0 表示不合并，重命中会重置起点。
   merge_window_ms: 500
-  # 同一目标每秒最多生成的飘字数，用于抑制 AOE 群伤刷屏。0 表示不限制。
+  # 每目标每秒最多生成的飘字数；0 表示不限制。
   max_per_target_per_second: 4
-  # 可见对象，仅 packet 后端生效：
-  #   involved - 仅攻击者与受击者可见(默认)
-  #   all      - 附近所有玩家可见
+  # 仅 packet 后端生效：involved 仅双方可见，all 为附近玩家可见。
   visible_to: "involved"
-  # 不显示飘字的伤害原因。持续伤害每 tick 都会结算，默认全部屏蔽。
+  # 不显示飘字的伤害原因；持续伤害通常每 tick 结算。
   ignored_causes:
     - FIRE_TICK
     - POISON
@@ -180,24 +126,22 @@ damage_indicator:
     - SUFFOCATION
     - STARVATION
 
-  # --- 以下为全部触发器的默认表现，可在 triggers.<名称> 下逐键覆盖 ---
+  # triggers.<名称> 仅覆盖已写键，其余继承下列默认值。
 
-  # 飘字存活时长(tick)，同时是一次抛物运动的总时长。
-  # 到期由 CoreLib 展示实体服务自动回收。
+  # 存活与抛物运动总时长，单位：tick；到期由 CoreLib 回收。
   lifetime_ticks: 24
   spawn:
-    # 相对目标脚部的固定偏移(格)。
+    # 相对目标脚部的固定偏移，单位：格。
     offset:
       x: 0.0
       y: 2.0
       z: 0.0
-    # 各轴的随机散布范围(格)，实际取 ±该值，避免同位置飘字完全重叠。0 表示该轴不散布。
+    # 各轴随机散布为 ±该值，单位：格；0 表示该轴不散布。
     random_offset:
       x: 0.4
       y: 0.15
       z: 0.4
-  # 抛物运动。轨迹为 p(t) = v·t + ½·a·t²，由客户端插值渲染，
-  # 飘字实体本身不移动，因此不产生传送开销。
+  # 抛物运动参数；轨迹由展示实体的关键帧插值呈现。
   motion:
     enabled: true
     # 关键帧间隔(tick)，同时是客户端插值时长。1 最平滑，值越大包越少、折线感越强。
@@ -250,7 +194,7 @@ damage_indicator:
           pop_ticks: 4
     heal:
       enabled: true
-      # 治疗改为垂直缓慢上浮。
+      # 治疗数字垂直缓慢上浮。
       motion:
         speed: 0.16
         gravity: -0.004
@@ -266,52 +210,11 @@ damage_indicator:
         speed: 0.20
         gravity: -0.016
 
-# ============================================================
-# 属性衰减曲线（Scaling Curves）
-# ============================================================
-# 当属性值超过阈值时，超出部分按衰减函数折算，防止数值无限膨胀。
-# 每个条目定义一个属性的衰减规则:
-#   attribute: 属性 ID
-#   threshold: 衰减起始阈值（低于此值不受影响）
-#   curve_type: 衰减函数类型
-#     - "logarithmic": 对数衰减（推荐，平滑且直觉）
-#     - "sqrt": 平方根衰减。实现为 sqrt(factor × 超出量)，同一 factor 下
-#       实际弱于对数；且超出量小于 factor 时会放大而非衰减，需谨慎取值。
-#     - "piecewise_linear": 线性折扣（超出部分乘以 factor）
-#   factor: 衰减系数。不同曲线下含义不同:
-#     - logarithmic/sqrt: 控制曲线陡峭程度（越大越平缓）。作除数使用，
-#       填 0 或负数会被抬为 1。
-#     - piecewise_linear: 超出部分的保留比例（如 0.5 = 保留 50%）。
-#       填 0 表示超出部分全部作废，是合法取值。
-# 说明: curve_type 拼写无法识别时回退为 logarithmic，并在配置预检中告警。
-#       piecewise_linear 实际是「超出部分乘以 factor」的单一折扣，不支持多段。
-#
-# 默认为空，即不启用任何衰减。取消下方注释即可生效。
-# 示例: 物理攻击超过 500 后对数衰减
-# scaling_curves:
-#   physical_attack_cap:
-#     attribute: "physical_attack"
-#     threshold: 500
-#     curve_type: "logarithmic"
-#     factor: 100
-#   physical_defense_cap:
-#     attribute: "physical_defense"
-#     threshold: 400
-#     curve_type: "sqrt"
-#     factor: 80
-#   crit_rate_cap:
-#     attribute: "physical_crit_rate"
-#     threshold: 80
-#     curve_type: "piecewise_linear"
-#     factor: 0.3
-scaling_curves: {}
+# 属性超过 threshold 后按 logarithmic、sqrt 或 piecewise_linear 折算；未知类型回退 logarithmic。
+# logarithmic/sqrt 的 factor <=0 按 1；piecewise_linear 的 factor=0 合法，表示超出部分作废。
+# 空映射不启用衰减。
 
-# 允许进入 EA 结算的 DamageCause 白名单
-# cause: Bukkit DamageCause
-# damage_type: 对应 damage_types/ 下的伤害类型 ID
-# damage: 可选；留空时直接使用服务端已经计算好的原版事件伤害。
-#         适合摔落、接触、爆炸、燃烧、溺水、虚空、荆棘、龙息、音爆等
-#         会随高度、状态或持续叠加变化的来源。
+# EA 结算的 DamageCause 白名单；damage_type 引用伤害类型，damage 省略时使用原版事件伤害。
 allowed_damage_causes:
   - cause: ENTITY_ATTACK
     damage_type: physical

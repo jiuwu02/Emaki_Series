@@ -1,0 +1,19 @@
+# EmakiLevel 经验来源 - 垂钓
+# 钓鱼产出相关的经验来源定义。
+
+id: "fishing_sources"
+enabled: true
+sources:
+  player_fish:
+    enabled: true
+    type: "fishing"
+    trigger: "player_fish"
+    anti_abuse:
+      exp_cooldown_ticks: 5
+    rules:
+      - states:
+          - "CAUGHT_FISH"
+        exp_formula: "10"
+      - states:
+          - "CAUGHT_ENTITY"
+        exp_formula: "5"

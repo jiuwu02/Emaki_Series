@@ -9,8 +9,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 import org.bukkit.entity.Player;
@@ -21,6 +19,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.craft.CraftOperationJournal;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -69,9 +68,7 @@ public final class ForgeService {
     private final ThreadOwnership threadOwnership;
     private final ForgeResultPostProcessor resultPostProcessor;
     private final AtomicBoolean accepting = new AtomicBoolean(false);
-    private final AtomicInteger inFlight = new AtomicInteger();
-    private final AtomicReference<CompletableFuture<Void>> drainFuture = new AtomicReference<>(
-            CompletableFuture.completedFuture(null));
+    private final CraftOperationJournal<Void> operationJournal = CraftOperationJournal.ofMemory(Integer.MAX_VALUE);
 
     public ForgeService(EmakiForgePlugin plugin,
                         AsyncTaskScheduler asyncTaskScheduler,
@@ -197,7 +194,7 @@ public final class ForgeService {
     }
 
     public int inFlight() {
-        return inFlight.get();
+        return operationJournal.inFlightCount();
     }
 
     public void resumeAccepting() {
@@ -207,33 +204,12 @@ public final class ForgeService {
 
     public CompletableFuture<Void> quiesce() {
         accepting.set(false);
-        while (true) {
-            if (inFlight.get() == 0) {
-                CompletableFuture<Void> completed = CompletableFuture.completedFuture(null);
-                drainFuture.set(completed);
-                return completed;
-            }
-            CompletableFuture<Void> current = drainFuture.get();
-            if (!current.isDone()) {
-                return current;
-            }
-            CompletableFuture<Void> pending = new CompletableFuture<>();
-            if (!drainFuture.compareAndSet(current, pending)) {
-                continue;
-            }
-            if (inFlight.get() == 0) {
-                pending.complete(null);
-            }
-            return pending;
-        }
+        return operationJournal.quiesce();
     }
 
     public void close() {
         accepting.set(false);
         preparedForgeCache.clear();
-        if (inFlight.get() == 0) {
-            drainFuture.get().complete(null);
-        }
     }
 
     public List<Recipe> sortedRecipes() {
@@ -486,7 +462,7 @@ public final class ForgeService {
         if (recipe == null || guiItems == null) {
             return List.of();
         }
-        return layerSnapshotBuilder.collectQualityModifiers(layerSnapshotBuilder.collectMaterialContributions(recipe, guiItems));
+        return layerSnapshotBuilder.collectQualityModifiers(layerSnapshotBuilder.collectMaterialContributions(null, recipe, guiItems));
     }
 
     private boolean isPreparationThreadOwned(Player player) {
@@ -500,19 +476,17 @@ public final class ForgeService {
         if (!accepting.get() || !plugin.isRuntimeReady() || !plugin.isGenerationActive(generation)) {
             return null;
         }
-        inFlight.incrementAndGet();
+        String permitId = UUID.randomUUID().toString();
+        operationJournal.begin(permitId, "forge", null, null);
         if (!accepting.get() || !plugin.isRuntimeReady() || !plugin.isGenerationActive(generation)) {
-            release();
+            operationJournal.archive(permitId);
             return null;
         }
-        return new RequestPermit();
+        return new RequestPermit(permitId);
     }
 
-    private void release() {
-        int remaining = inFlight.updateAndGet(value -> Math.max(0, value - 1));
-        if (remaining == 0) {
-            drainFuture.get().complete(null);
-        }
+    private void release(String permitId) {
+        operationJournal.archive(permitId);
     }
 
     private ForgeResult unavailableResult(String reason) {
@@ -524,12 +498,17 @@ public final class ForgeService {
     }
 
     private final class RequestPermit implements AutoCloseable {
+        private final String permitId;
         private final AtomicBoolean closed = new AtomicBoolean();
+
+        RequestPermit(String permitId) {
+            this.permitId = permitId;
+        }
 
         @Override
         public void close() {
             if (closed.compareAndSet(false, true)) {
-                release();
+                release(permitId);
             }
         }
     }

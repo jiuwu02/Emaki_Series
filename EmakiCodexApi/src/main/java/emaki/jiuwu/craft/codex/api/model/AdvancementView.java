@@ -4,11 +4,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Read-only view of one advancement defined in EmakiCodex.
+ * Immutable metadata view of one registered advancement.
  *
- * <p>Deliberately narrower than EmakiCodex's internal {@code AdvancementDefinition}: the parent localId
- * field, action scripts, trigger conditions, and GUI coordinates are not exposed. This view carries only
- * what is stable and useful to third parties.
+ * <p>Reference components are normalized so only {@code parentKey} may be {@code null}.
  *
  * @param key         the fully qualified advancement key in the form {@code namespace:path}
  * @param nodeId      the local advancement id within its page

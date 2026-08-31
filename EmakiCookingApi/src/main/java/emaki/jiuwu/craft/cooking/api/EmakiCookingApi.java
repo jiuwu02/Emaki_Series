@@ -5,26 +5,14 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * Static public API facade for the EmakiCooking cooking and nutrition system.
+ * Static public facade for EmakiCooking recipes, stations and nutrition.
  *
- * <h2>Layout</h2>
- * {@link #nutrition()} for the player nutrition subsystem, {@link #catalog()} for read-only recipe and
- * station queries, {@link #operations()} for the small set of state-changing actions that can report
- * their outcome honestly. {@link #status()} reports availability.
- *
- * <h2>Availability</h2>
- * Check {@code status().usable()} before relying on results. The accessors never return {@code null};
- * when EmakiCooking is absent they return no-op implementations whose queries yield empty answers and
- * whose operations yield {@link emaki.jiuwu.craft.corelib.api.contract.EmakiResult#unavailable()}.
- *
- * <p>Note that {@code status().ready()} does not imply the nutrition subsystem is on: a server owner may
- * disable nutrition while cooking stations keep working. Check
+ * <p>Accessors never return {@code null}: while the bridge is absent, queries are empty and result-bearing
+ * calls are unavailable. Runtime readiness does not imply nutrition is enabled; check
  * {@link CookingNutrition#enabled()} separately.
  *
- * <h2>Do not shade</h2>
- * Depend on {@code emaki-cooking-api} with {@code provided} (Maven) or {@code compileOnly} (Gradle).
- * EmakiCooking's jar already carries an un-relocated copy of these classes; a second copy would make your
- * event listeners silently unreachable.
+ * <p>Depend on this API as {@code provided} or {@code compileOnly}; do not shade it, because bridge and event
+ * delivery require a single class identity.
  */
 public final class EmakiCookingApi {
 

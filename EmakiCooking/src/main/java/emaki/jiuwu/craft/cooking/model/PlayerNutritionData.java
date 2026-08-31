@@ -7,9 +7,6 @@ import java.util.UUID;
 import emaki.jiuwu.craft.corelib.session.SessionData;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-
-
-
 public final class PlayerNutritionData implements SessionData<PlayerNutritionData> {
 
     private final UUID uuid;
@@ -42,9 +39,6 @@ public final class PlayerNutritionData implements SessionData<PlayerNutritionDat
         return Map.copyOf(values);
     }
 
-
-
-
     public double value(String typeId, double fallback) {
         Double value = values.get(Texts.normalizeId(typeId));
         return value == null ? fallback : value;
@@ -57,9 +51,6 @@ public final class PlayerNutritionData implements SessionData<PlayerNutritionDat
     public boolean has(String typeId) {
         return values.containsKey(Texts.normalizeId(typeId));
     }
-
-
-
 
     public void set(String typeId, double value) {
         String id = Texts.normalizeId(typeId);

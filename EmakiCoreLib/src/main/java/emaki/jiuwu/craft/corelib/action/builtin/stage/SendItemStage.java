@@ -19,18 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 
-/**
- * Gives the pipeline's {@link CoreActionKeys#ITEM} value to the target.
- *
- * <p>Declaring {@code requiredContext()} is what makes {@code send_item} without a preceding
- * {@code create_item} a load-time error instead of a runtime null: the validator compares this against what
- * the triggering phase promises to provide.</p>
- *
- * <p>The v1 {@code id} and {@code keep} arguments are gone. There is one item key rather than a named map, and
- * reading a context value does not consume it, so "keep it in the store" has nothing left to mean.</p>
- *
- * <p>Domain {@code CONTEXT_ENTITY}: writes one player's inventory.</p>
- */
 public final class SendItemStage extends BaseStage {
 
     public SendItemStage() {

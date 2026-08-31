@@ -26,9 +26,10 @@ import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import emaki.jiuwu.craft.corelib.execution.TaskHandle;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
@@ -39,6 +40,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.config.AppConfig;
@@ -63,6 +65,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
+    private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
+            new ConfigKeyMigration.Rename("permission.op_bypass", "op_bypass"));
     private static final long SHUTDOWN_SETTLEMENT_DELAY_TICKS = 100L;
     private static final long SHUTDOWN_RETIREMENT_TIMEOUT_SECONDS = 10L;
 
@@ -117,7 +121,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         PlayerDataStore playerDataStore = new PlayerDataStore(plugin, () -> playerDataFiles);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
-        BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
+        BootstrapService bootstrapService = createBootstrapService(plugin, messageService, appConfigLoader);
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         var threadOwnership = coreLibPlugin.threadOwnership();
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(),
@@ -308,7 +312,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         loadCandidateAppConfigReadOnly(appConfigLoader);
         validateCandidateLanguagesReadOnly(new File(plugin.getDataFolder(), "lang"));
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
-        BootstrapService bootstrapService = createBootstrapService(plugin, messageService);
+        BootstrapService bootstrapService = createBootstrapService(plugin, messageService, appConfigLoader);
         RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLib::actionEngine,
                 plugin.itemIdentifierService(), true);
         ForgeGuiTemplateLoader guiTemplateLoader = new ForgeGuiTemplateLoader(
@@ -435,36 +439,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     }
 
     private List<File> discoverYamlFiles(File directory) {
-        List<File> files = new ArrayList<>();
-        collectYamlFiles(directory, files);
-        files.sort((left, right) -> left.getPath().compareToIgnoreCase(right.getPath()));
-        return List.copyOf(files);
+        return List.copyOf(YamlDirectoryLoader.collectYamlFiles(directory));
     }
 
-    private void collectYamlFiles(File directory, List<File> sink) {
-        if (directory == null || sink == null || !directory.exists()) {
-            return;
-        }
-        File[] entries = directory.listFiles();
-        if (entries == null) {
-            return;
-        }
-        for (File entry : entries) {
-            if (entry == null) {
-                continue;
-            }
-            if (entry.isDirectory()) {
-                collectYamlFiles(entry, sink);
-                continue;
-            }
-            String name = entry.getName().toLowerCase(Locale.ROOT);
-            if (name.endsWith(".yml") || name.endsWith(".yaml")) {
-                sink.add(entry);
-            }
-        }
-    }
-
-    private BootstrapService createBootstrapService(EmakiForgePlugin plugin, MessageService messageService) {
+    private BootstrapService createBootstrapService(EmakiForgePlugin plugin,
+            MessageService messageService,
+            YamlConfigLoader<AppConfig> appConfigLoader) {
         return new BootstrapService(
                 plugin,
                 messageService,
@@ -475,7 +455,17 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 new BootstrapHooks() {
                     @Override
                     public boolean shouldInstallDefaultData() {
-                        return shouldReleaseDefaultData(plugin);
+                        AppConfig current = appConfigLoader.current();
+                        return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
+                        if (!"config.yml".equals(relativePath)) {
+                            return;
+                        }
+                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                        ConfigKeyMigration.pruneEmptySection(runtime, "permission");
                     }
                 }
         );
@@ -622,7 +612,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         });
     }
 
-    public TaskHandle rescheduleAutoSave(EmakiForgePlugin plugin, TaskHandle currentTask) {
+    public TaskToken rescheduleAutoSave(EmakiForgePlugin plugin, TaskToken currentTask) {
         cancelAutoSave(currentTask);
         AppConfig config = plugin.appConfig();
         if (!config.historyEnabled() || !config.historyAutoSave()) {
@@ -642,9 +632,9 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
     }
 
-    public TaskHandle cancelAutoSave(TaskHandle currentTask) {
+    public TaskToken cancelAutoSave(TaskToken currentTask) {
         autoSaveGeneration.incrementAndGet();
-        if (currentTask != null && !currentTask.isCancelled()) {
+        if (currentTask != null && !currentTask.cancelled()) {
             currentTask.cancel();
         }
         return null;
@@ -902,7 +892,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 retired.run();
                 return;
             }
-            TaskHandle scheduled = plugin.executionDispatcher().runEntityLater(
+            TaskToken scheduled = plugin.executionDispatcher().runEntityLater(
                     coreLibPlugin,
                     player,
                     settle,
@@ -918,7 +908,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         return;
                     }
                     try {
-                        if (!scheduled.isCancelled()) {
+                        if (!scheduled.cancelled()) {
                             scheduled.cancel();
                         }
                     } catch (Throwable cancellationFailure) {
@@ -1022,7 +1012,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 numberFormat == null ? "0.##" : numberFormat.getString("default", "0.##"),
                 numberFormat == null ? "0" : numberFormat.getString("integer", "0"),
                 numberFormat == null ? "0.##%" : numberFormat.getString("percentage", "0.##%"),
-                permission != null && permission.getBoolean("op_bypass", false),
+                resolveOpBypass(configuration, permission),
                 ConditionBlock.fromConfig(condition, true, false).invalidAsFailure(),
                 history == null || history.getBoolean("enabled", true),
                 history == null || history.getBoolean("auto_save", true),
@@ -1030,9 +1020,18 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
     }
 
-    private boolean shouldReleaseDefaultData(EmakiForgePlugin plugin) {
-        YamlSection configuration = YamlFiles.load(plugin.dataPath("config.yml").toFile());
-        return configuration.getBoolean("release_default_data", true);
+    private boolean resolveOpBypass(YamlSection configuration, YamlSection permission) {
+        if (configuration.contains("op_bypass")) {
+            return configuration.getBoolean("op_bypass", false);
+        }
+        if (permission != null && permission.contains("op_bypass")) {
+            boolean legacyValue = permission.getBoolean("op_bypass", false);
+            JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("配置键 permission.op_bypass"
+                    + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
+                    + " 生效，启动时会自动迁移到新键。");
+            return legacyValue;
+        }
+        return false;
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

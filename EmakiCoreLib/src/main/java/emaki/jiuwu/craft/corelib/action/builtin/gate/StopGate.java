@@ -11,15 +11,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreGateThread;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 
-/**
- * Ends the pipeline here.
- *
- * <p>Reports {@code Halted}, so the pipeline outcome is {@code Skipped} rather than a failure: stopping on
- * purpose is not an error. Mostly useful inside a branch, as in
- * {@code if %var.dead% [ stop ] else [ damage amount=5 ]}.</p>
- *
- * <p>Thread need {@code PURE}: returns a decision and touches nothing.</p>
- */
 public final class StopGate extends BaseGate {
 
     public StopGate() {

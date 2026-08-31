@@ -46,25 +46,6 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
         return messages.message(messageKey, replacements == null ? Map.of() : replacements);
     }
 
-    /**
-     * Renders a pipeline compile diagnostic as readable text.
-     *
-     * <p>Kept separate from {@link #message(String, Map)} because that method prefixes every key with the
-     * precheck namespace, while a diagnostic's reason key is already absolute.</p>
-     *
-     * <p><strong>Only valid when this contributor's message supplier points at CoreLib's message
-     * service.</strong> Every {@code action.*} text lives in CoreLib's language file and {@code
-     * LanguageLoader} only falls back between one module's own {@code zh_CN}/{@code en_US}, so a business
-     * module's service resolves none of these keys. A contributor for another module must render through
-     * CoreLib's service directly instead of calling this, as {@code SkillsConfigPrecheckContributor}
-     * does.</p>
-     *
-     * <p>Falls back to {@link CompileDiagnostic#toString()} rather than the bare reason key, so an
-     * unresolved diagnostic still carries its token, column and detail.</p>
-     *
-     * @param diagnostic the diagnostic
-     * @return the rendered text, never {@code null}
-     */
     protected final String renderDiagnostic(CompileDiagnostic diagnostic) {
         if (diagnostic == null) {
             return "";

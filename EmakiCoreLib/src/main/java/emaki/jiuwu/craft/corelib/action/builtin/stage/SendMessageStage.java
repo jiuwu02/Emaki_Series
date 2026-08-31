@@ -14,11 +14,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 
-/**
- * Sends a MiniMessage chat message to the target.
- *
- * <p>Domain {@code CONTEXT_ENTITY}: sending to a player writes to that player's connection.</p>
- */
 public final class SendMessageStage extends BaseStage {
 
     public SendMessageStage() {

@@ -79,6 +79,12 @@ public final class EmakiItemApi {
         return resolved == null ? UnavailableItem.EXTENSIONS : resolved.extensions();
     }
 
+    /** {@return the typed persistent item-state layer or its unavailable implementation} */
+    public static @NotNull ItemState state() {
+        Bridge resolved = bridge;
+        return resolved == null ? UnavailableItem.STATE : resolved.state();
+    }
+
     /**
      * Runtime bridge contract. Third-party plugins must not implement it.
      *
@@ -107,5 +113,8 @@ public final class EmakiItemApi {
 
         /** {@return the runtime extension registration layer} */
         @NotNull ItemExtensions extensions();
+
+        /** {@return the runtime typed persistent item-state layer} */
+        @NotNull ItemState state();
     }
 }

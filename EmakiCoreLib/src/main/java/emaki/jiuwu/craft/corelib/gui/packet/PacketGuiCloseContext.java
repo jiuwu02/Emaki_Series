@@ -5,11 +5,6 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 
-
-
-
-
-
 final class PacketGuiCloseContext implements GuiCloseContext {
 
     private final Player player;

@@ -15,15 +15,11 @@ import emaki.jiuwu.craft.corelib.api.contract.Unit;
 /**
  * State-changing resource, damage and synchronization operations.
  *
- * <p>Reached through {@code EmakiAttributeApi.operations()}. When EmakiAttribute is absent every method
- * returns a {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#UNAVAILABLE} result rather than
- * {@code null} or an exception, so callers must classify on {@code FailureKind} instead of catching
- * {@code NullPointerException}.
+ * <p>All methods use the shared {@link EmakiResult} contract and return an unavailable failure while the
+ * runtime bridge is absent.
  *
- * <p><strong>Thread:</strong> these are synchronous methods that touch live entity state and must run on the
- * relevant owner thread, returning {@link emaki.jiuwu.craft.corelib.api.contract.FailureKind#WRONG_THREAD}
- * elsewhere rather than silently rescheduling. {@link #scheduleEquipmentSync(Player)} is the exception: it
- * only enqueues work and accepts calls from any thread.
+ * <p><strong>Thread:</strong> synchronous calls must run on every referenced entity's owner thread and do not
+ * reschedule. {@link #scheduleEquipmentSync(Player)} is the only any-thread, fire-and-forget entry point.
  *
  * <p>Resource and damage-type ids are normalized before matching (trimmed, lower-cased with
  * {@code Locale.ROOT}, spaces folded to {@code _}).
@@ -42,16 +38,11 @@ public interface AttributeOperations {
      *
      * <p><strong>Thread:</strong> the player's owner thread.
      *
-     * @param player     the player to charge; {@code null} yields {@code INVALID_INPUT} and offline yields
-     *                   {@code TARGET_OFFLINE}
-     * @param resourceId the resource to charge; blank yields {@code INVALID_INPUT} and an unknown id yields
-     *                   {@code NOT_FOUND}
-     * @param amount     the amount to consume; must be finite and non-negative, so {@code NaN}, infinity and
-     *                   negatives yield {@code INVALID_INPUT}. Zero is a legitimate no-cost charge.
-     * @return success, {@code NOT_FOUND} when the player has no state for that resource,
-     *         {@code REJECTED} when the current value is below the amount to charge, {@code CANCELLED} when a
-     *         listener cancels the event, {@code INVALID_INPUT} when a listener rewrote the amount to a
-     *         non-finite or negative value, or {@code INTERNAL_ERROR} when the write threw
+     * @param player     the player to charge
+     * @param resourceId the resource to charge
+     * @param amount     the finite, non-negative amount; zero is a valid no-cost charge
+     * @return success after writing the listener-adjusted amount; insufficient balance and cancellation are
+     *         reported through the shared failure contract
      */
     @NotNull
     EmakiResult<Unit> consumeResource(@Nullable Player player, @Nullable String resourceId, double amount);
@@ -65,11 +56,9 @@ public interface AttributeOperations {
      * for the same player are coalesced, and the queued task is dropped if the player becomes unusable or the
      * task is retired during shutdown drain, in which case no refresh runs and nothing is reported back.
      *
-     * @param player the player whose equipment contributions are recomputed; {@code null} yields
-     *               {@code INVALID_INPUT} and offline yields {@code TARGET_OFFLINE}. Note this check does not
-     *               require the caller to own the player's thread.
-     * @return success once the refresh has been requested or folded into a pending one, or
-     *         {@code INTERNAL_ERROR} when scheduling itself threw
+     * @param player the player whose equipment contributions are recomputed
+     * @return success once the refresh has been requested or folded into a pending request; completion is not
+     *         reported
      */
     @NotNull
     EmakiResult<Unit> scheduleEquipmentSync(@Nullable Player player);
@@ -81,19 +70,12 @@ public interface AttributeOperations {
      *
      * <p><strong>Thread:</strong> the owner thread of both live combatants.
      *
-     * @param attacker     the attacking entity, or {@code null} for damage with no attacker; when non-null it
-     *                     must be owned by the calling thread or the call fails with {@code WRONG_THREAD}
-     * @param target       the entity being evaluated; {@code null} yields {@code INVALID_INPUT}, a dead or
-     *                     invalid target yields {@code REJECTED}, and an offline player target yields
-     *                     {@code TARGET_OFFLINE}
-     * @param damageTypeId the damage type to use; blank falls back to the configured default type instead of
-     *                     failing, while a non-blank unknown id yields {@code NOT_FOUND}
-     * @param baseDamage   the pre-mitigation damage; must be finite and non-negative, so {@code NaN},
-     *                     infinity and negatives yield {@code INVALID_INPUT}
-     * @param context      optional extra context for the calculation; {@code null} is accepted as "no
-     *                     context"
-     * @return the calculated breakdown, or {@code INTERNAL_ERROR} when the calculation threw or produced no
-     *         usable result
+     * @param attacker     the attacking entity, or {@code null} for damage with no attacker
+     * @param target       the entity being evaluated
+     * @param damageTypeId the damage type to use; blank selects the configured default
+     * @param baseDamage   the finite, non-negative pre-mitigation damage
+     * @param context      optional extra context; {@code null} means no extra context
+     * @return the calculated breakdown through the shared result contract
      */
     @NotNull
     EmakiResult<DamageResult> calculateDamage(@Nullable LivingEntity attacker,
@@ -116,9 +98,8 @@ public interface AttributeOperations {
      * @param damageTypeId the damage type to use; blank falls back to the configured default type
      * @param baseDamage   the pre-mitigation damage; must be finite and non-negative
      * @param context      optional extra context for the calculation; {@code null} is accepted
-     * @return success when the damage was applied, {@code REJECTED} when the runtime declined to apply it —
-     *         including an immune, already-dead or otherwise unaffected target — or {@code INTERNAL_ERROR}
-     *         when application threw
+     * @return success only when damage was applied; an immune, dead or otherwise unaffected target is a
+     *         rejected result rather than a successful zero-damage application
      */
     @NotNull
     EmakiResult<Unit> applyDamage(@Nullable LivingEntity attacker,
@@ -136,9 +117,8 @@ public interface AttributeOperations {
      *
      * <p><strong>Thread:</strong> the player's owner thread.
      *
-     * @param player the player to resynchronize; {@code null} yields {@code INVALID_INPUT} and offline yields
-     *               {@code TARGET_OFFLINE}
-     * @return success once the resync has run, or {@code INTERNAL_ERROR} when it threw
+     * @param player the player to resynchronize
+     * @return success once the resync has completed
      */
     @NotNull
     EmakiResult<Unit> resyncPlayer(@Nullable Player player);

@@ -1,9 +1,5 @@
 # ============================================================
-# EmakiForge GUI 配置 - 配方书界面
-# ============================================================
-# 玩家查看可用锻造配方的界面
-#
-# 文件放置位置: plugins/EmakiForge/gui/
+# EmakiForge 配方书界面
 # ============================================================
 id: "recipe_book"
 gui_type: CHEST
@@ -86,7 +82,7 @@ slots:
       - 45
     type: "prev_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<gray>上一页</gray>"
         lore:
@@ -102,7 +98,7 @@ slots:
       - 49
     type: "close"
     item:
-      source: "BARRIER"
+      source: "barrier"
       components:
         custom_name: "<red>关闭</red>"
         lore:
@@ -118,7 +114,7 @@ slots:
       - 53
     type: "next_page"
     item:
-      source: "ARROW"
+      source: "arrow"
       components:
         custom_name: "<gray>下一页</gray>"
         lore:
