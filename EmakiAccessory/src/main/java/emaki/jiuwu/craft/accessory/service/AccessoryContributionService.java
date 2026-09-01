@@ -18,8 +18,6 @@ import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
-import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
-import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
 
 public final class AccessoryContributionService {
 
@@ -148,11 +146,8 @@ public final class AccessoryContributionService {
     }
 
     private void collectSkills(String slotInstanceId, ItemStack item, Map<String, String> skills) {
-        if (!EquipmentSkillPdcCodec.hasPayload(item)) {
-            return;
-        }
-        EquipmentSkillPayload payload = EquipmentSkillPdcCodec.read(item);
-        if (payload == null || payload.empty()) {
+        AccessorySkillPayloadCodec.Payload payload = AccessorySkillPayloadCodec.read(item);
+        if (!payload.present() || payload.skillIds().isEmpty()) {
             return;
         }
         if (!AccessorySlotDeclarations.matchesAny(slotInstanceId,

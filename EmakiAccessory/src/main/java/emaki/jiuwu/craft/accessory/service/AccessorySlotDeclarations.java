@@ -20,8 +20,6 @@ import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
-import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
 
 public final class AccessorySlotDeclarations {
 
@@ -75,11 +73,8 @@ public final class AccessorySlotDeclarations {
     }
 
     private static void collectSkillPayload(ItemStack item, Set<String> declared) {
-        if (!EquipmentSkillPdcCodec.hasPayload(item)) {
-            return;
-        }
-        EquipmentSkillPayload payload = EquipmentSkillPdcCodec.read(item);
-        if (payload != null) {
+        AccessorySkillPayloadCodec.Payload payload = AccessorySkillPayloadCodec.read(item);
+        if (payload.present()) {
             addNormalized(payload.activeSlot(), declared);
         }
     }

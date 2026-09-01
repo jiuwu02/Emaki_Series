@@ -276,6 +276,6 @@ final class DamageMessageDispatcher {
         }
         MythicMobBridge.MythicMobSnapshot snapshot =
                 JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).mythicMobBridge().snapshot(entity);
-        return snapshot == null ? "" : Texts.toStringSafe(snapshot.displayName());
+        return snapshot == null ? "" : MiniMessages.legacyAmpersandToMiniMessage(snapshot.displayName());
     }
 }
