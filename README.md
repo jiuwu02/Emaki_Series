@@ -2,13 +2,13 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采用多模块 Maven 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、装备成长、技能、烹饪、制作、图鉴、仓库与自定义生物等 RPG 玩法模块。
 
-当前源码版本线为：`EmakiCoreLib 4.8.0`、`EmakiAttribute 4.8.0`、`EmakiForge 4.8.0`、`EmakiStrengthen 4.8.0`、`EmakiCooking 4.3.0`、`EmakiGem 2.8.0`、`EmakiSkills 2.8.0`、`EmakiItem 2.8.0`、`EmakiLevel 1.6.0`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.0`、`EmakiAccessory 1.1.0`、`EmakiMobs 1.0.0`。
+当前源码版本线为：`EmakiCoreLib 4.8.1`、`EmakiAttribute 4.8.0`、`EmakiForge 4.8.0`、`EmakiStrengthen 4.8.0`、`EmakiCooking 4.3.0`、`EmakiGem 2.8.0`、`EmakiSkills 2.8.0`、`EmakiItem 2.8.0`、`EmakiLevel 1.6.0`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.0`、`EmakiAccessory 1.1.0`、`EmakiMobs 1.0.0`。
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.8.0`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
+| `EmakiCoreLib`    | `4.8.1`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
 | `EmakiAttribute`  | `4.8.0`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
 | `EmakiForge`      | `4.8.0`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
 | `EmakiStrengthen` | `4.8.0`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
@@ -180,7 +180,7 @@ Maven 配置使用以下仓库地址：
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>4.8.0</version>
+  <version>4.8.1</version>
   <scope>provided</scope>
 </dependency>
 ```

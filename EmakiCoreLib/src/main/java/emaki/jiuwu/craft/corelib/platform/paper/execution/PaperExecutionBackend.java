@@ -79,7 +79,7 @@ public final class PaperExecutionBackend implements ExecutionBackend {
 
     @Override
     public TaskToken runAtLocation(Plugin owner, Location location, Runnable task) {
-        return location == null || location.getWorld() == null ? null : runGlobal(owner, task);
+        return location == null ? null : runGlobal(owner, task);
     }
 
     @Override

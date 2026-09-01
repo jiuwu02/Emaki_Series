@@ -24,10 +24,18 @@ public final class PipelineBatchRunner {
             @Nullable List<String> lines,
             @Nullable PhaseContract phase,
             @Nullable Consumer<CompileDiagnostic> onDiagnostic) {
+        return compileDetailed(engine, lines, phase, onDiagnostic).pipelines();
+    }
+
+    public @NotNull Compilation compileDetailed(@Nullable ActionEngine engine,
+            @Nullable List<String> lines,
+            @Nullable PhaseContract phase,
+            @Nullable Consumer<CompileDiagnostic> onDiagnostic) {
         if (engine == null || lines == null || lines.isEmpty()) {
-            return List.of();
+            return Compilation.empty();
         }
         List<CompiledPipeline> compiled = new ArrayList<>(lines.size());
+        List<CompileDiagnostic> diagnostics = new ArrayList<>();
         for (String line : lines) {
             if (line == null || line.isBlank()) {
                 continue;
@@ -39,8 +47,11 @@ public final class PipelineBatchRunner {
                 compiled.add(hit);
                 continue;
             }
-            if (cached != null) {
-
+            if (cached instanceof CompileFailure failure) {
+                diagnostics.addAll(failure.diagnostics());
+                if (onDiagnostic != null) {
+                    failure.diagnostics().forEach(onDiagnostic);
+                }
                 continue;
             }
             ActionEngine.Result result = engine.compile(line, phase);
@@ -49,12 +60,14 @@ public final class PipelineBatchRunner {
                 compiled.add(result.pipeline());
                 continue;
             }
-            cache.put(key, Boolean.FALSE);
+            List<CompileDiagnostic> lineDiagnostics = result.diagnostics();
+            cache.put(key, new CompileFailure(lineDiagnostics));
+            diagnostics.addAll(lineDiagnostics);
             if (onDiagnostic != null) {
-                result.diagnostics().forEach(onDiagnostic);
+                lineDiagnostics.forEach(onDiagnostic);
             }
         }
-        return List.copyOf(compiled);
+        return new Compilation(compiled, diagnostics);
     }
 
     public @NotNull CompletableFuture<Boolean> run(@NotNull Plugin owner,
@@ -84,8 +97,12 @@ public final class PipelineBatchRunner {
             @Nullable PhaseContract phase,
             boolean stopOnFailure,
             @Nullable Consumer<CompileDiagnostic> onDiagnostic) {
-        List<CompiledPipeline> body = compile(engine, lines, phase, onDiagnostic);
-        return run(owner, engine, body, context, stopOnFailure);
+        Compilation compilation = compileDetailed(engine, lines, phase, onDiagnostic);
+        if (compilation.hasFailures() && stopOnFailure) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return run(owner, engine, compilation.pipelines(), context, stopOnFailure)
+                .thenApply(success -> success && !compilation.hasFailures());
     }
 
     private CompletableFuture<Boolean> runFrom(Plugin owner,
@@ -116,6 +133,30 @@ public final class PipelineBatchRunner {
 
     public int cachedCount() {
         return cache.size();
+    }
+
+    public record Compilation(@NotNull List<CompiledPipeline> pipelines,
+            @NotNull List<CompileDiagnostic> diagnostics) {
+
+        public Compilation {
+            pipelines = pipelines == null ? List.of() : List.copyOf(pipelines);
+            diagnostics = diagnostics == null ? List.of() : List.copyOf(diagnostics);
+        }
+
+        private static Compilation empty() {
+            return new Compilation(List.of(), List.of());
+        }
+
+        public boolean hasFailures() {
+            return !diagnostics.isEmpty();
+        }
+    }
+
+    private record CompileFailure(@NotNull List<CompileDiagnostic> diagnostics) {
+
+        private CompileFailure {
+            diagnostics = diagnostics == null ? List.of() : List.copyOf(diagnostics);
+        }
     }
 
     private record CacheKey(int engineIdentity, @NotNull String line, @NotNull String phase) {

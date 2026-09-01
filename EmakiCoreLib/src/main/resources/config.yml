@@ -1,7 +1,7 @@
 # EmakiCoreLib 主配置
 # 为其他 Emaki 模块提供 GUI、展示实体、事件、动作、对话框与语言表能力。
 
-version: "4.8.0"
+version: "4.8.1"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"

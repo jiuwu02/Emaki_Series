@@ -227,7 +227,7 @@ public final class FoliaExecutionBackend implements ExecutionBackend {
     }
 
     private boolean validLocation(Location location) {
-        return location != null && location.getWorld() != null;
+        return location != null;
     }
 
     private TaskToken wrap(ScheduledTask task) {

@@ -2,13 +2,13 @@
 
 Emaki Series is a multi-module Maven project for Minecraft 1.21.8+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
 
-Current source versions: `EmakiCoreLib 4.8.0`, `EmakiAttribute 4.8.0`, `EmakiForge 4.8.0`, `EmakiStrengthen 4.8.0`, `EmakiCooking 4.3.0`, `EmakiGem 2.8.0`, `EmakiSkills 2.8.0`, `EmakiItem 2.8.0`, `EmakiLevel 1.6.0`, `EmakiCodex 1.1.0`, `EmakiStorage 1.1.0`, `EmakiStation 1.1.0`, `EmakiAccessory 1.1.0`, and `EmakiMobs 1.0.0`.
+Current source versions: `EmakiCoreLib 4.8.1`, `EmakiAttribute 4.8.0`, `EmakiForge 4.8.0`, `EmakiStrengthen 4.8.0`, `EmakiCooking 4.3.0`, `EmakiGem 2.8.0`, `EmakiSkills 2.8.0`, `EmakiItem 2.8.0`, `EmakiLevel 1.6.0`, `EmakiCodex 1.1.0`, `EmakiStorage 1.1.0`, `EmakiStation 1.1.0`, `EmakiAccessory 1.1.0`, and `EmakiMobs 1.0.0`.
 
 ## Modules
 
 | Module            | Version | Role                  | Description                                                                                                               |
 | ----------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.8.0`  | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
+| `EmakiCoreLib`    | `4.8.1`  | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
 | `EmakiAttribute`  | `4.8.0`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
 | `EmakiForge`      | `4.8.0`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
 | `EmakiStrengthen` | `4.8.0`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
@@ -154,7 +154,7 @@ For example, to depend on `EmakiCoreLibApi`:
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>4.8.0</version>
+  <version>4.8.1</version>
   <scope>provided</scope>
 </dependency>
 ```

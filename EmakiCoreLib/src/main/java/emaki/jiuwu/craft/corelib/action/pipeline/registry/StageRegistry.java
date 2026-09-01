@@ -197,7 +197,7 @@ public final class StageRegistry {
 
         @Override
         public boolean active() {
-            return active;
+            return active && table.active(stageId, generation);
         }
 
         @Override

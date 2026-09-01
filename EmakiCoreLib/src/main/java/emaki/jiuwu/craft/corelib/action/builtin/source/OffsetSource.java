@@ -8,10 +8,12 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
@@ -25,6 +27,13 @@ public final class OffsetSource extends BaseSource {
                 CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z offset"),
                 CoreStageParameter.optional("relative", CoreStageParameterType.BOOLEAN, "false",
                         "Offset along the origin facing instead of world axes"));
+    }
+
+    @Override
+    public @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
+        return context.caster().entityOrNull() == null
+                ? CoreActionExecutionTarget.global()
+                : CoreActionExecutionTarget.contextEntity();
     }
 
     @Override

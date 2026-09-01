@@ -5,6 +5,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -17,9 +18,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRebuildRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
@@ -216,6 +222,67 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Compiles and executes one action pipeline line through EmakiCoreLib's shared action engine.
+     *
+     * <p>The method may be called from any thread. It does not promise a fixed completion thread: the
+     * future may complete on the calling thread for immediate validation results, or on the final stage's
+     * execution domain. Schedule through {@link #scheduling()} before touching Bukkit state in a
+     * continuation.</p>
+     *
+     * <p>Compilation and business failures complete normally as a structured result. The runtime parser,
+     * compiled representation and interpreter remain internal implementation details.</p>
+     *
+     * @param owner plugin that owns the execution lifecycle
+     * @param line one complete action pipeline line
+     * @param context immutable caster, target, origin and typed-data input; defaults when {@code null}
+     * @return a future carrying compile diagnostics and the final execution outcome
+     */
+    public static @NotNull CompletableFuture<CoreActionExecutionResult> executeActionLineAsync(
+            @Nullable Plugin owner,
+            @Nullable String line,
+            @Nullable CoreActionExecutionContext context) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(
+                        CoreActionExecutionResult.unavailable("action.execution.corelib_unavailable"))
+                : resolved.executeActionLineAsync(owner, line, context);
+    }
+
+    /** {@return immutable metadata for every currently registered action stage} */
+    public static @NotNull List<CoreActionStageDescriptor> actionStages() {
+        Bridge resolved = bridge;
+        return resolved == null ? List.of() : List.copyOf(resolved.actionStages());
+    }
+
+    /**
+     * Looks up one registered stage by id.
+     *
+     * @param stageId stage id, matched case-insensitively
+     * @return the immutable descriptor, or an empty optional
+     */
+    public static @NotNull Optional<CoreActionStageDescriptor> actionStage(@Nullable String stageId) {
+        Bridge resolved = bridge;
+        return resolved == null ? Optional.empty() : resolved.actionStage(stageId);
+    }
+
+    /** {@return immutable metadata for every currently registered action trigger} */
+    public static @NotNull List<CoreActionTriggerDescriptor> actionTriggers() {
+        Bridge resolved = bridge;
+        return resolved == null ? List.of() : List.copyOf(resolved.actionTriggers());
+    }
+
+    /**
+     * Looks up one registered trigger by id.
+     *
+     * @param triggerId namespaced trigger id, matched case-insensitively
+     * @return the immutable descriptor, or an empty optional
+     */
+    public static @NotNull Optional<CoreActionTriggerDescriptor> actionTrigger(@Nullable String triggerId) {
+        Bridge resolved = bridge;
+        return resolved == null ? Optional.empty() : resolved.actionTrigger(triggerId);
+    }
+
+    /**
      * Registers an action stage into EmakiCoreLib's single stage registry.
      *
      * <p>There is no {@code source} parameter and no unregister-by-id method: a stage is revoked only
@@ -299,10 +366,32 @@ public final class EmakiCoreLibApi {
     /**
      * Registers a stage/trigger re-registration callback for reload. A second callback for the same owner
      * replaces the first; owner disable removes it automatically.
+     *
+     * <p>This compatibility method retains replacement semantics. Prefer
+     * {@link #addStageRegistryRebuildListener} when one plugin has independent registrars.</p>
      */
     public static boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister) {
         Bridge resolved = bridge;
         return resolved != null && resolved.onStageRegistryRebuilt(owner, reregister);
+    }
+
+    /**
+     * Registers one independent stage/trigger re-registration callback for reload.
+     *
+     * <p>Callbacks from the same owner do not replace each other. Keep and close the returned handle when
+     * the registrar is retired; owner disable also prevents future replay.</p>
+     *
+     * @param owner plugin that owns the callback lifecycle
+     * @param reregister registration routine to replay after a registry rebuild
+     * @return a revocable registration, inactive when CoreLib is unavailable or input is invalid
+     */
+    public static @NotNull CoreStageRebuildRegistration addStageRegistryRebuildListener(
+            @Nullable Plugin owner,
+            @Nullable Runnable reregister) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreStageRebuildRegistration.inactive()
+                : resolved.addStageRegistryRebuildListener(owner, reregister);
     }
 
     /**
@@ -478,6 +567,49 @@ public final class EmakiCoreLibApi {
         List<ItemComponentCapability> itemComponentCapabilities();
 
         /**
+         * Backs {@link EmakiCoreLibApi#executeActionLineAsync(Plugin, String, CoreActionExecutionContext)}.
+         * A default unavailable result keeps a newer API facade safe when it encounters an older runtime
+         * bridge that does not implement the execution boundary yet.
+         *
+         * @param owner plugin that owns the execution lifecycle
+         * @param line one complete action pipeline line
+         * @param context immutable execution input
+         * @return the structured execution result
+         */
+        @NotNull
+        default CompletableFuture<CoreActionExecutionResult> executeActionLineAsync(
+                @Nullable Plugin owner,
+                @Nullable String line,
+                @Nullable CoreActionExecutionContext context) {
+            return CompletableFuture.completedFuture(
+                    CoreActionExecutionResult.unavailable("action.execution.runtime_unsupported"));
+        }
+
+        /** {@return immutable metadata for every registered action stage} */
+        @NotNull
+        default List<CoreActionStageDescriptor> actionStages() {
+            return List.of();
+        }
+
+        /** {@return one stage descriptor, or an empty optional} */
+        @NotNull
+        default Optional<CoreActionStageDescriptor> actionStage(@Nullable String stageId) {
+            return Optional.empty();
+        }
+
+        /** {@return immutable metadata for every registered action trigger} */
+        @NotNull
+        default List<CoreActionTriggerDescriptor> actionTriggers() {
+            return List.of();
+        }
+
+        /** {@return one trigger descriptor, or an empty optional} */
+        @NotNull
+        default Optional<CoreActionTriggerDescriptor> actionTrigger(@Nullable String triggerId) {
+            return Optional.empty();
+        }
+
+        /**
          * Backs {@link EmakiCoreLibApi#registerActionStage(Plugin, CoreActionStage)} by delegating to the
          * runtime stage registry. Returns an inactive handle carrying a stable {@code reasonKey} when the
          * registry has not been built yet, instead of throwing.
@@ -552,6 +684,16 @@ public final class EmakiCoreLibApi {
          * @return whether the callback was accepted
          */
         boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#addStageRegistryRebuildListener(Plugin, Runnable)} with an
+         * independent owner-scoped registration.
+         */
+        @NotNull
+        default CoreStageRebuildRegistration addStageRegistryRebuildListener(@Nullable Plugin owner,
+                @Nullable Runnable reregister) {
+            return CoreStageRebuildRegistration.inactive();
+        }
 
         /**
          * Backs {@link EmakiCoreLibApi#publishCapabilities(Plugin, Set)} by delegating to the runtime

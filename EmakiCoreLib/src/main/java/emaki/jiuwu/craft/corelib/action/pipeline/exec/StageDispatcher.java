@@ -268,7 +268,7 @@ public final class StageDispatcher implements AutoCloseable {
             return switch (domain) {
                 case SERVER_GLOBAL, ASYNC_COMPUTE, PHYSICAL_FILE -> true;
                 case ENTITY -> entity != null;
-                case LOCATION_REGION -> location != null && location.getWorld() != null;
+                case LOCATION_REGION -> location != null;
             };
         }
     }

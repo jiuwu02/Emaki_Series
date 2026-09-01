@@ -13,7 +13,11 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
+import org.bukkit.event.server.PluginDisableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -308,6 +312,19 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     (owner, body, context, stopOnFailure) ->
                             pipelineBatchRunner.run(owner, actionEngine, body, context, stopOnFailure));
             getServer().getPluginManager().registerEvents(pipelineTaskService, this);
+            getServer().getPluginManager().registerEvents(new Listener() {
+
+                @EventHandler(priority = EventPriority.MONITOR)
+                public void onPluginDisable(PluginDisableEvent event) {
+                    Plugin owner = event.getPlugin();
+                    StageRegistry registry = stageRegistry;
+                    if (registry != null) {
+                        registry.revokeAll(owner);
+                    }
+                    triggerRegistry.revokeAll(owner);
+                    stageRebuildListeners.remove(owner);
+                }
+            }, this);
 
             getServer().getPluginManager().registerEvents(
                     new PdcMigrationJoinListener(this::debugLogger), this);

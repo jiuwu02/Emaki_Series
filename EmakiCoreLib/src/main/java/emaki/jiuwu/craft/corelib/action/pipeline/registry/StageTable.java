@@ -77,6 +77,11 @@ public final class StageTable {
         return Texts.toStringSafe(tombstones.get(key));
     }
 
+    public boolean active(@Nullable String id, long generation) {
+        RegisteredStage entry = entries.get(Texts.lower(id));
+        return entry != null && entry.generation() == generation;
+    }
+
     public boolean revoke(@Nullable String id, long generation) {
         String key = Texts.lower(id);
         synchronized (writeLock) {

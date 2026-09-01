@@ -43,7 +43,7 @@ public abstract class BaseSource implements CoreActionSource {
     }
 
     @Override
-    public final @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
+    public @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
         return BuiltinDomains.target(domain);
     }
 }

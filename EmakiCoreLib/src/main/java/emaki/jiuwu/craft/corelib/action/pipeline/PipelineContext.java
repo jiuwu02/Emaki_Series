@@ -57,10 +57,22 @@ public final class PipelineContext implements CoreStageContext {
             @Nullable String phase,
             boolean silent,
             @Nullable PlaceholderBridge placeholders) {
+        return root(sourcePlugin, caster, List.of(), origin, phase, silent, Map.of(), Map.of(), placeholders);
+    }
+
+    public static @NotNull PipelineContext root(@Nullable Plugin sourcePlugin,
+            @Nullable CoreActionSubject caster,
+            @Nullable List<CoreActionSubject> targets,
+            @Nullable Location origin,
+            @Nullable String phase,
+            boolean silent,
+            @Nullable Map<String, String> variables,
+            @Nullable Map<CoreActionKey<?>, Object> data,
+            @Nullable PlaceholderBridge placeholders) {
         CoreActionSubject resolvedCaster = caster == null ? CoreActionSubject.absent() : caster;
-        Location resolvedOrigin = origin != null ? origin.clone() : resolvedCaster.location();
-        return new PipelineContext(sourcePlugin, resolvedCaster, List.of(), resolvedOrigin,
-                phase, silent, Map.of(), Map.of(), 0, placeholders);
+        Location resolvedOrigin = origin == null ? null : origin.clone();
+        return new PipelineContext(sourcePlugin, resolvedCaster, targets, resolvedOrigin,
+                phase, silent, variables, data, 0, placeholders);
     }
 
     @Override
@@ -105,7 +117,11 @@ public final class PipelineContext implements CoreStageContext {
     }
 
     public boolean hasOrigin() {
-        return origin != null || caster.location() != null;
+        return origin != null;
+    }
+
+    public @Nullable Location explicitOrigin() {
+        return origin == null ? null : origin.clone();
     }
 
     @Override

@@ -11,6 +11,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -194,7 +195,8 @@ public final class ActionInterpreter {
                 state.context(), probeSubject(state));
         return dispatcher.dispatch(run.owner(), target, delayTicks, "delay",
                         CoreActionStage.DEFAULT_TIMEOUT_MILLIS, run.cancellation(), () -> state)
-                .handle((resumed, throwable) -> {
+                .thenCompose(resumed -> revalidate(run, resumed))
+                .handle((revalidated, throwable) -> {
                     if (throwable != null) {
                         CoreActionOutcome outcome = throwableOutcome(throwable);
 
@@ -206,22 +208,54 @@ public final class ActionInterpreter {
                         }
                         return dispatchFailure(run, "delay", state, throwable);
                     }
-                    return revalidate(run, resumed);
+                    return revalidated;
                 });
     }
 
-    private State revalidate(Run run, State state) {
+    private CompletableFuture<State> revalidate(Run run, State state) {
         if (!run.owner().isEnabled()) {
             run.record("delay", PipelineOutcome.Status.SKIPPED, "action.run.owner_disabled", 0);
-            return state.stopped("action.run.owner_disabled");
+            return CompletableFuture.completedFuture(state.stopped("action.run.owner_disabled"));
         }
-        PipelineContext revalidated = state.context().revalidated();
-        List<CoreActionSubject> survivors = revalidated.targets();
-        if (!state.flow().isEmpty() && survivors.isEmpty()) {
-            run.record("delay", PipelineOutcome.Status.SKIPPED, "action.run.all_targets_invalid", 0);
-            return state.stopped("action.run.all_targets_invalid");
+        List<CoreActionSubject> current = state.flow();
+        if (current.isEmpty()) {
+            return CompletableFuture.completedFuture(state);
         }
-        return state.withContext(revalidated).withFlow(survivors);
+        CompletableFuture<List<CoreActionSubject>> chain = CompletableFuture.completedFuture(new ArrayList<>());
+        for (CoreActionSubject subject : current) {
+            chain = chain.thenCompose(survivors -> validateSubject(run, subject)
+                    .thenApply(valid -> {
+                        if (valid) {
+                            survivors.add(subject);
+                        }
+                        return survivors;
+                    }));
+        }
+        return chain.thenApply(survivors -> {
+            if (!current.isEmpty() && survivors.isEmpty()) {
+                run.record("delay", PipelineOutcome.Status.SKIPPED, "action.run.all_targets_invalid", 0);
+                return state.stopped("action.run.all_targets_invalid");
+            }
+            return state.withFlow(survivors);
+        });
+    }
+
+    private CompletableFuture<Boolean> validateSubject(Run run, CoreActionSubject subject) {
+        if (subject instanceof CoreActionSubject.OfEntity entity) {
+            return validateSubject(run, subject, StageDispatcher.DispatchTarget.entity(entity.entity()));
+        }
+        if (subject instanceof CoreActionSubject.OfLocation location) {
+            return validateSubject(run, subject, StageDispatcher.DispatchTarget.location(location.location()));
+        }
+        return CompletableFuture.completedFuture(false);
+    }
+
+    private CompletableFuture<Boolean> validateSubject(Run run,
+            CoreActionSubject subject,
+            StageDispatcher.DispatchTarget target) {
+        return dispatcher.dispatch(run.owner(), target, 0L, "revalidate",
+                        CoreActionStage.DEFAULT_TIMEOUT_MILLIS, run.cancellation(), subject::valid)
+                .handle((valid, throwable) -> throwable == null && Boolean.TRUE.equals(valid));
     }
 
     private CompletableFuture<State> runStageRun(Run run, List<ActionAst> batch, State state) {
@@ -359,7 +393,7 @@ public final class ActionInterpreter {
         }
         PipelineContext context = state.context();
         StageDispatcher.DispatchTarget target = dispatchTarget(
-                invoker.domainOf(handle, context, context.caster(), raw), context, context.caster());
+                invoker.domainOf(handle, context, context.caster(), raw), context, context.caster(), true);
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
                 () -> invoker.invokeSource(handle, context, arguments(handle, render(context, raw))))
@@ -393,7 +427,7 @@ public final class ActionInterpreter {
         List<CoreActionSubject> inbound = state.flow();
         CoreActionSubject probe = inbound.isEmpty() ? context.caster() : inbound.get(0);
         StageDispatcher.DispatchTarget target = dispatchTarget(
-                invoker.domainOf(handle, context, probe, raw), context, probe);
+                invoker.domainOf(handle, context, probe, raw), context, probe, true);
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
                 () -> invoker.invokeGate(handle, context, inbound, arguments(handle, render(context, raw))))
@@ -457,11 +491,6 @@ public final class ActionInterpreter {
                     return CompletableFuture.completedFuture(null);
                 }
                 CoreActionSubject subject = flow.get(position);
-                if (!subject.valid()) {
-
-                    skippedTargets[0]++;
-                    return CompletableFuture.completedFuture(null);
-                }
                 if (!handle.targetRequirement().accepts(subject)) {
                     skippedTargets[0]++;
                     return CompletableFuture.completedFuture(null);
@@ -489,11 +518,26 @@ public final class ActionInterpreter {
 
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
-                () -> invoker.invokeAction(handle, invocationContext,
-                        arguments(handle, render(invocationContext, raw))))
-                .handle((outcome, throwable) -> throwable == null
-                        ? outcome
-                        : throwableOutcome(throwable));
+                () -> {
+                    if (target.domain() == ExecutionDomain.ENTITY
+                            && subject instanceof CoreActionSubject.OfEntity
+                            && !subject.valid()) {
+                        return CoreActionOutcome.skipped("action.run.all_targets_invalid");
+                    }
+                    return invoker.invokeAction(handle, invocationContext,
+                            arguments(handle, render(invocationContext, raw)));
+                })
+                .handle((outcome, throwable) -> {
+                    if (throwable == null) {
+                        return outcome;
+                    }
+                    CoreActionOutcome failure = throwableOutcome(throwable);
+                    return failure instanceof CoreActionOutcome.Failure failed
+                            && failed.kind() == CoreActionFailureKind.MISSING_CONTEXT
+                            && "action.run.target_retired".equals(failed.reasonKey())
+                            ? CoreActionOutcome.skipped("action.run.all_targets_invalid")
+                            : failure;
+                });
     }
 
     private State actionResult(Run run,
@@ -512,6 +556,10 @@ public final class ActionInterpreter {
         }
         long failures = outcomes.stream().filter(CoreActionOutcome::failed).count();
         long successes = outcomes.stream().filter(CoreActionOutcome::successful).count();
+        if (failures == 0L && successes == 0L) {
+            run.record(stageId, PipelineOutcome.Status.SKIPPED, "action.run.all_targets_invalid", 0);
+            return state.stopped("action.run.all_targets_invalid");
+        }
         if (failures == 0L) {
             run.record(stageId, PipelineOutcome.Status.SUCCESS, "", outcomes.size());
             return state;
@@ -681,17 +729,47 @@ public final class ActionInterpreter {
     private static StageDispatcher.DispatchTarget dispatchTarget(ExecutionDomain domain,
             PipelineContext context,
             CoreActionSubject subject) {
+        return dispatchTarget(domain, context, subject, false);
+    }
+
+    private static StageDispatcher.DispatchTarget dispatchTarget(ExecutionDomain domain,
+            PipelineContext context,
+            CoreActionSubject subject,
+            boolean originFirst) {
         return switch (domain) {
             case SERVER_GLOBAL -> StageDispatcher.DispatchTarget.global();
             case ASYNC_COMPUTE -> StageDispatcher.DispatchTarget.async();
             case PHYSICAL_FILE -> StageDispatcher.DispatchTarget.physicalFile();
-            case ENTITY -> StageDispatcher.DispatchTarget.entity(subject.entityOrNull() != null
-                    ? subject.entityOrNull()
-                    : context.caster().entityOrNull());
-            case LOCATION_REGION -> StageDispatcher.DispatchTarget.location(subject.location() != null
-                    ? subject.location()
-                    : (context.hasOrigin() ? context.origin() : null));
+            case ENTITY -> StageDispatcher.DispatchTarget.entity(entityTarget(context, subject));
+            case LOCATION_REGION -> locationTarget(context, subject, originFirst);
         };
+    }
+
+    private static Entity entityTarget(PipelineContext context, CoreActionSubject subject) {
+        Entity entity = subject.entityOrNull();
+        return entity == null ? context.caster().entityOrNull() : entity;
+    }
+
+    private static StageDispatcher.DispatchTarget locationTarget(PipelineContext context,
+            CoreActionSubject subject,
+            boolean originFirst) {
+        if (originFirst && context.explicitOrigin() != null) {
+            return StageDispatcher.DispatchTarget.location(context.explicitOrigin());
+        }
+        if (subject instanceof CoreActionSubject.OfLocation located) {
+            return StageDispatcher.DispatchTarget.location(located.location());
+        }
+        Entity subjectEntity = subject.entityOrNull();
+        if (subjectEntity != null) {
+            return StageDispatcher.DispatchTarget.entity(subjectEntity);
+        }
+        if (context.explicitOrigin() != null) {
+            return StageDispatcher.DispatchTarget.location(context.explicitOrigin());
+        }
+        Entity caster = context.caster().entityOrNull();
+        return caster == null
+                ? StageDispatcher.DispatchTarget.location(null)
+                : StageDispatcher.DispatchTarget.entity(caster);
     }
 
     private record Run(Plugin owner,
