@@ -66,11 +66,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.8.3</emaki.corelib.version>
+        <emaki.corelib.version>4.8.4</emaki.corelib.version>
         <emaki.attribute.version>4.8.1</emaki.attribute.version>
         <emaki.item.version>2.8.1</emaki.item.version>
         <emaki.skills.version>2.8.1</emaki.skills.version>
-        <emaki.corelib.api.version>4.8.3</emaki.corelib.api.version>
+        <emaki.corelib.api.version>4.8.4</emaki.corelib.api.version>
         <emaki.attribute.api.version>4.8.1</emaki.attribute.api.version>
         <emaki.item.api.version>2.8.1</emaki.item.api.version>
         <emaki.skills.api.version>2.8.1</emaki.skills.api.version>
@@ -81,8 +81,8 @@
         <emaki.level.api.version>1.6.1</emaki.level.api.version>
         <emaki.codex.api.version>1.1.0</emaki.codex.api.version>
         <emaki.storage.api.version>1.1.0</emaki.storage.api.version>
-        <emaki.station.api.version>1.1.2</emaki.station.api.version>
-        <emaki.station.version>1.1.2</emaki.station.version>
+        <emaki.station.api.version>1.1.3</emaki.station.api.version>
+        <emaki.station.version>1.1.3</emaki.station.version>
         <emaki.accessory.api.version>1.1.2</emaki.accessory.api.version>
         <emaki.accessory.version>1.1.2</emaki.accessory.version>
         <emaki.mobs.api.version>1.0.0</emaki.mobs.api.version>

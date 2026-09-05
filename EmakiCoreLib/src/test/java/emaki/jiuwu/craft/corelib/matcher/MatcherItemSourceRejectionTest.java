@@ -64,6 +64,16 @@ class MatcherItemSourceRejectionTest {
     }
 
     @Test
+    @DisplayName("合法 matcher 类型携带物品源字段时也被拒绝")
+    void validMatcherTypeWithItemSourceFieldIsRejected() {
+        for (String key : List.of("item_sources", "item_source", "sources", "source")) {
+            assertInstanceOf(Matcher.AnyMatcher.class,
+                    Matcher.fromConfig(node("type", "component", "component", "custom_name", key,
+                            List.of("minecraft-iron_ingot"))));
+        }
+    }
+
+    @Test
     @DisplayName("null matcher 表示未声明额外条件")
     void nullConfigStaysUnconstrained() {
         assertInstanceOf(Matcher.AllMatcher.class, Matcher.fromConfig(null));

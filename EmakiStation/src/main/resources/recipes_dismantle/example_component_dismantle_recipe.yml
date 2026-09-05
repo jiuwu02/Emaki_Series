@@ -1,15 +1,13 @@
 # EmakiStation 组件条件分解配方示例
 # 这个文件专门演示拆解侧 matcher（物品组件条件）的写法，与
-# example_dismantle_recipe.yml 分开放：那条按 input_source 判定铁块，
-# 给它加 matcher 会让默认的铁块分解直接失效。
+# example_dismantle_recipe.yml 分开放：那条只按来源判定铁块。
 # 与合成配方侧的区别：拆解只判定"放进去的那一件物品"，没有材料分配，
 # 所以【不存在"切换到栈模型 / 退出仓库通道"的问题】——拆解输入一向只看
 # 玩家背包里的实际物品。
 # 行为约束：
-#   写了 matcher 时，【input_source 不再参与判定】，是否可分解完全由 matcher 决定。
-#   input_source 仍然必填，仅用于界面显示与配置自检，所以请让它和 matcher
-#   想表达的物品保持一致，否则界面会显示得很奇怪。
-#   不写 matcher 时行为逐字不变：仍按 input_source 相等判定。
+#   item_sources 与 matcher 同级时必须同时满足（AND）。
+#   省略 item_sources 时不限制物品源，matcher 仍然必须满足。
+#   matcher 不再承载物品源条件；物品源条件请始终写在 item_sources。
 id: "example_component_dismantle"
 display_name: "<light_purple>附魔武器分解示例</light_purple>"
 
@@ -19,9 +17,10 @@ tags:
 
 permission: ""
 
-# 仅用于界面显示与自检；判定由下面的 matcher 接管。
-# 简写用【连字符】。
-input_source: "minecraft-iron_sword"
+# 输入物品来源条件；简写用【连字符】。
+# 该条件与下面的 matcher 同时生效。
+item_sources:
+  - "minecraft-iron_sword"
 
 # 组件条件：只接受锋利 3 及以上的物品。
 # 组件 ID 与 path 资源 ID 用【冒号】形状：

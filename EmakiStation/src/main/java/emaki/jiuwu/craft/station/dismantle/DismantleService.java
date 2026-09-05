@@ -48,7 +48,7 @@ public final class DismantleService {
         }
         List<DismantleRecipeDefinition> results = new ArrayList<>();
         for (DismantleRecipeDefinition recipe : byId.values()) {
-            if (!inputRef.equals(recipe.inputSource())) {
+            if (recipe.hasMatcher() || !recipe.inputRequirement().matchesSource(inputRef)) {
                 continue;
             }
             if (recipe.hasScopedStation() && !recipe.stationId().equals(stationId)) {

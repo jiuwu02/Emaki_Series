@@ -44,6 +44,10 @@ public sealed interface Matcher permits
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
+        if (containsItemSourceField(section)) {
+            return reject("matcher must not contain item source fields; move them to the sibling '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' field, which is evaluated as AND with the matcher");
+        }
         String type = Texts.lower(section.getString("type", ""));
         if (type.isEmpty()) {
             return reject("matcher is missing the required 'type' key; item source conditions now belong to the sibling '"
@@ -65,6 +69,13 @@ public sealed interface Matcher permits
             case "exactly" -> parseCount(section, CountMode.EXACTLY);
             default -> reject("unknown matcher type '" + type + "'");
         };
+    }
+
+    private static boolean containsItemSourceField(@NotNull YamlSection section) {
+        return section.contains("item_sources")
+                || section.contains("item_source")
+                || section.contains("sources")
+                || section.contains("source");
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {

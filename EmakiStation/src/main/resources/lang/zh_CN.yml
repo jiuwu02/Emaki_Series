@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.2"
+version: "1.1.3"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -90,8 +90,9 @@ station:
   recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
 
   dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id：%file%</yellow>"
-  dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 input_source，已跳过（%file%）</yellow>"
-  dismantle_recipe_bad_input: "<yellow>分解配方 %recipe% 的 input_source %source% 无法解析（%file%）</yellow>"
+  dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 item_sources 或 matcher，已跳过（%file%）</yellow>"
+  dismantle_recipe_bad_input: "<yellow>分解配方 %recipe% 的输入物品源 %source% 无法解析（%file%）</yellow>"
+  dismantle_recipe_legacy_input_source: "<yellow>分解配方 %recipe% 使用旧版 input_source，仍会兼容读取；请迁移到 item_sources（%file%）</yellow>"
   dismantle_recipe_bad_source: "<yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析（%file%）</yellow>"
   dismantle_recipe_empty_pool: "<yellow>分解配方 %recipe% 的 pool 为空或全部无效，已跳过（%file%）</yellow>"
 

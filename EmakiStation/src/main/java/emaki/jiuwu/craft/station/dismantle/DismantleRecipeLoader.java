@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 
 public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRecipeDefinition> {
@@ -52,15 +52,8 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             return null;
         }
 
-        String inputToken = configuration.getString("input_source");
-        if (inputToken == null || inputToken.isBlank()) {
-            issue("station.dismantle_recipe_no_input", Map.of("recipe", id, "file", fileName(file)));
-            return null;
-        }
-        ItemSourceRef inputSource = ItemSourceUtil.parse(inputToken);
-        if (inputSource == null) {
-            issue("station.dismantle_recipe_bad_input", Map.of("recipe", id,
-                    "source", inputToken, "file", fileName(file)));
+        ItemRequirement inputRequirement = parseInputRequirement(file, id, configuration);
+        if (inputRequirement == null) {
             return null;
         }
 
@@ -72,18 +65,51 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             return null;
         }
 
-        YamlSection matcherSection = configuration.getSection("matcher");
         return new DismantleRecipeDefinition(
                 id,
                 configuration.getString("display_name", id),
                 configuration.getString("station_id", ""),
                 parseTags(configuration),
-                inputSource,
+                inputRequirement,
                 rolls,
                 pool,
                 configuration.getString("permission", ""),
-                ConditionBlock.fromRoot(configuration, true, false),
-                matcherSection == null ? null : Matcher.fromConfig(matcherSection));
+                ConditionBlock.fromRoot(configuration, true, false));
+    }
+
+    private ItemRequirement parseInputRequirement(File file, String recipeId, YamlSection configuration) {
+        boolean canonicalDeclared = configuration.contains(ItemRequirement.KEY_ITEM_SOURCES);
+        boolean legacyDeclared = configuration.contains("input_source");
+        if (canonicalDeclared && legacyDeclared) {
+            issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId, "file", fileName(file)));
+            return null;
+        }
+
+        Map<String, Object> node = new LinkedHashMap<>();
+        if (canonicalDeclared) {
+            node.put(ItemRequirement.KEY_ITEM_SOURCES, configuration.get(ItemRequirement.KEY_ITEM_SOURCES));
+        } else if (legacyDeclared) {
+            String inputToken = configuration.getString("input_source");
+            if (inputToken != null && !inputToken.isBlank()) {
+                if (ItemSourceUtil.parse(inputToken) == null) {
+                    issue("station.dismantle_recipe_bad_input", Map.of("recipe", recipeId,
+                            "source", inputToken, "file", fileName(file)));
+                    return null;
+                }
+                issue("station.dismantle_recipe_legacy_input_source", Map.of("recipe", recipeId, "file", fileName(file)));
+                node.put(ItemRequirement.KEY_ITEM_SOURCES, List.of(inputToken));
+            }
+        }
+        if (configuration.contains(ItemRequirement.KEY_MATCHER)) {
+            node.put(ItemRequirement.KEY_MATCHER, configuration.get(ItemRequirement.KEY_MATCHER));
+        }
+
+        ItemRequirement requirement = ItemRequirement.fromConfig(node);
+        if (requirement.empty()) {
+            issue("station.dismantle_recipe_no_input", Map.of("recipe", recipeId, "file", fileName(file)));
+            return null;
+        }
+        return requirement;
     }
 
     private RollsRange parseRolls(YamlSection configuration) {

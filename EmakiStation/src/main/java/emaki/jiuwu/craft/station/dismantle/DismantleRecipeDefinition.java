@@ -5,6 +5,7 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
@@ -13,19 +14,18 @@ public record DismantleRecipeDefinition(
         String displayName,
         String stationId,
         Set<String> tags,
-        ItemSourceRef inputSource,
+        ItemRequirement inputRequirement,
         RollsRange rolls,
         List<DismantlePoolEntry> pool,
         String permission,
-        ConditionBlock condition,
-        Matcher matcher) {
+        ConditionBlock condition) {
 
     public DismantleRecipeDefinition {
         if (id == null) {
             throw new NullPointerException("id");
         }
-        if (inputSource == null) {
-            throw new NullPointerException("inputSource");
+        if (inputRequirement == null) {
+            throw new NullPointerException("inputRequirement");
         }
         if (rolls == null) {
             throw new NullPointerException("rolls");
@@ -50,7 +50,32 @@ public record DismantleRecipeDefinition(
             List<DismantlePoolEntry> pool,
             String permission,
             ConditionBlock condition) {
-        this(id, displayName, stationId, tags, inputSource, rolls, pool, permission, condition, null);
+        this(id, displayName, stationId, tags, sourceRequirement(inputSource), rolls, pool, permission, condition);
+    }
+
+    public DismantleRecipeDefinition(String id,
+            String displayName,
+            String stationId,
+            Set<String> tags,
+            ItemSourceRef inputSource,
+            RollsRange rolls,
+            List<DismantlePoolEntry> pool,
+            String permission,
+            ConditionBlock condition,
+            Matcher matcher) {
+        this(id, displayName, stationId, tags, requirement(inputSource, matcher), rolls, pool, permission, condition);
+    }
+
+    public ItemSourceRef inputSource() {
+        return inputRequirement.sources().isEmpty() ? null : inputRequirement.sources().getFirst();
+    }
+
+    public List<ItemSourceRef> inputSources() {
+        return inputRequirement.sources();
+    }
+
+    public Matcher matcher() {
+        return inputRequirement.matcher();
     }
 
     public boolean hasPermission() {
@@ -62,16 +87,22 @@ public record DismantleRecipeDefinition(
     }
 
     public boolean hasMatcher() {
-        return matcher != null;
+        return inputRequirement.declaresMatcher();
     }
 
     public boolean acceptsInput(MatchContext context) {
-        if (context == null) {
-            return false;
+        return inputRequirement.test(context);
+    }
+
+    private static ItemRequirement sourceRequirement(ItemSourceRef inputSource) {
+        return requirement(inputSource, null);
+    }
+
+    private static ItemRequirement requirement(ItemSourceRef inputSource, Matcher matcher) {
+        if (inputSource == null) {
+            throw new NullPointerException("inputSource");
         }
-        if (!inputSource.equals(context.itemSource())) {
-            return false;
-        }
-        return matcher == null || matcher.test(context);
+        List<ItemSourceRef> sources = List.of(inputSource);
+        return new ItemRequirement(sources, matcher, ItemRequirement.sourceIdentity(sources));
     }
 }
