@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.display.packet;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,6 +32,8 @@ import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerEn
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerSpawnEntity;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.display.DisplayGeometry;
 import emaki.jiuwu.craft.corelib.display.DisplayKey;
 import emaki.jiuwu.craft.corelib.display.DisplayLifetimeTracker;
@@ -81,6 +84,7 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             display = new VirtualText(VirtualEntityIds.next(), UUID.randomUUID(), spec);
             displays.put(key, display);
             lifetime.trackGroupMember(spec.groupKey(), key);
+            debug(spec, "created", Map.of());
 
             startMotion(key, display);
             refreshEntry(display);
@@ -88,17 +92,13 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         display.spec = spec;
+        debug(spec, "updated", Map.of());
+        pruneTargetedViewers(display);
 
         startMotion(key, display);
         WrapperPlayServerEntityMetadata packet =
                 new WrapperPlayServerEntityMetadata(display.entityId, metadata(display));
-        for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
-            Player player = Bukkit.getPlayer(playerId);
-            if (player != null && player.isOnline()) {
-                sendPacket(player, packet);
-            }
-        }
-        refreshEntry(display);
+        refreshEntry(display, packet);
         lifetime.scheduleExpiry(spec);
     }
 
@@ -169,31 +169,63 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     }
 
     private void refreshEntry(VirtualText display) {
+        refreshEntry(display, null);
+    }
+
+    private void refreshEntry(VirtualText display, WrapperPlayServerEntityMetadata metadataPacket) {
         if (display == null || display.spec == null || !display.spec.hasText()) {
             return;
         }
+        TextDisplaySpec expectedSpec = display.spec;
         Set<UUID> onlinePlayers = ConcurrentHashMap.newKeySet();
         for (Player player : Bukkit.getOnlinePlayers()) {
             onlinePlayers.add(player.getUniqueId());
-            executionDispatcher.runEntity(plugin, player, () -> refreshVisibilityForPlayer(display, player), () ->
-                    display.visiblePlayers.remove(player.getUniqueId()));
+            executionDispatcher.runEntity(plugin, player,
+                    () -> refreshVisibilityForPlayer(display, expectedSpec, player, metadataPacket), () -> {
+                        if (display.spec == expectedSpec && isCurrentDisplay(display)) {
+                            display.visiblePlayers.remove(player.getUniqueId());
+                        }
+                    });
         }
         display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
     }
 
-    private void refreshVisibilityForPlayer(VirtualText display, Player player) {
-        if (display == null || player == null || !player.isOnline()) {
+    private void refreshVisibilityForPlayer(VirtualText display,
+            TextDisplaySpec expectedSpec,
+            Player player,
+            WrapperPlayServerEntityMetadata metadataPacket) {
+        if (display == null || expectedSpec == null || player == null || !player.isOnline()
+                || display.spec != expectedSpec || !isCurrentDisplay(display)) {
             return;
         }
-        boolean visible = isVisible(player, display.spec);
+        boolean visible = isVisible(player, expectedSpec);
         boolean alreadyVisible = display.visiblePlayers.contains(player.getUniqueId());
         if (visible && !alreadyVisible) {
             spawnFor(player, display);
             display.visiblePlayers.add(player.getUniqueId());
+            debug(display.spec, "viewer_added", Map.of(
+                    "viewer", player.getName(),
+                    "visible", true,
+                    "visible_players", display.visiblePlayers.size()
+            ));
+        } else if (visible && alreadyVisible && metadataPacket != null) {
+            sendPacket(player, metadataPacket);
         } else if (!visible && alreadyVisible) {
             destroyFor(player, display);
             display.visiblePlayers.remove(player.getUniqueId());
+            debug(display.spec, "viewer_removed", Map.of(
+                    "viewer", player.getName(),
+                    "visible", false,
+                    "visible_players", display.visiblePlayers.size()
+            ));
         }
+    }
+
+    private boolean isCurrentDisplay(VirtualText display) {
+        if (display == null || display.spec == null) {
+            return false;
+        }
+        return displays.get(display.spec.runtimeKey()) == display;
     }
 
     private boolean isVisible(Player player, TextDisplaySpec spec) {
@@ -223,17 +255,46 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
             return;
         }
         motionRunner.start(key, spec.motion(), (interpolationTicks, translation, scaleFactor) -> {
+            if (display.spec != spec || !isCurrentDisplay(display)) {
+                return;
+            }
             display.motionTranslation = translation;
             display.motionScaleFactor = scaleFactor;
             sendMotionFrame(display, interpolationTicks, translation, scaleFactor);
         });
     }
 
+    private void pruneTargetedViewers(VirtualText display) {
+        TextDisplaySpec spec = display == null ? null : display.spec;
+        if (display == null || spec == null || !spec.isTargeted()) {
+            return;
+        }
+        for (UUID playerId : Set.copyOf(display.visiblePlayers)) {
+            if (spec.viewers().contains(playerId)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                destroyFor(player, display);
+            }
+            display.visiblePlayers.remove(playerId);
+            debug(spec, "viewer_pruned", Map.of(
+                    "viewer", playerId,
+                    "visible", false,
+                    "visible_players", display.visiblePlayers.size()
+            ));
+        }
+    }
+
     private void sendMotionFrame(VirtualText display,
             int interpolationTicks,
             DisplayGeometry.Vector3 translation,
             double scaleFactor) {
+        if (!isCurrentDisplay(display)) {
+            return;
+        }
         TextDisplaySpec spec = display.spec;
+        pruneTargetedViewers(display);
         if (spec == null) {
             return;
         }
@@ -400,6 +461,22 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
 
     private void destroyFor(Player player, VirtualText display) {
         sendPacket(player, new WrapperPlayServerDestroyEntities(display.entityId));
+    }
+
+    private void debug(TextDisplaySpec spec, String event, Map<String, ?> fields) {
+        DebugLogger debugLogger = plugin instanceof DebugLoggerProvider provider ? provider.debugLogger() : null;
+        if (debugLogger == null || spec == null) {
+            return;
+        }
+        Map<String, Object> replacements = new LinkedHashMap<>();
+        if (fields != null) {
+            replacements.putAll(fields);
+        }
+        replacements.put("display_backend", backendName());
+        replacements.put("display_key", spec.runtimeKey());
+        replacements.put("targeted", spec.isTargeted());
+        replacements.put("viewers", spec.viewers());
+        debugLogger.log("display", (UUID) null, "common.display.packet_" + event, replacements);
     }
 
     private void sendPacket(Player player, WrapperPlayServerSpawnEntity packet) {

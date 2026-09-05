@@ -17,6 +17,8 @@ final class PacketGuiClickContext implements GuiClickContext {
     private final PacketGuiBackend.ClickSnapshot click;
     private final int containerTopSize;
     private final boolean topInventory;
+    private boolean cancelled;
+    private boolean cursorChanged;
 
     PacketGuiClickContext(Player viewer,
             PacketGuiBackend.PacketWindow window,
@@ -100,6 +102,7 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public void setCursor(ItemStack item) {
+        cursorChanged = true;
         window.setCursor(clone(item));
     }
 
@@ -160,7 +163,15 @@ final class PacketGuiClickContext implements GuiClickContext {
 
     @Override
     public void setCancelled(boolean cancelled) {
+        this.cancelled = cancelled;
+    }
 
+    boolean isCancelled() {
+        return cancelled;
+    }
+
+    boolean cursorChanged() {
+        return cursorChanged;
     }
 
     private ItemStack playerSlotItem(int rawSlot) {

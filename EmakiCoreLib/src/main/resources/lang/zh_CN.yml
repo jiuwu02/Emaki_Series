@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.2"
+version: "4.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -536,9 +536,17 @@ debug:
       packet_close_receive: "收到数据包 GUI 关闭 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
       packet_close_handler_failed: "数据包 GUI 关闭处理器执行失败 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title% | 错误类型=%error_type% | 错误=%error_message%"
       packet_quit_cleanup: "玩家退出时清理数据包 GUI | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
-      packet_receive_close: "接收数据包 GUI 关闭包 | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+      packet_receive_click: "收到数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 传入状态=%incoming_state_id% | 携带物=%carried_item_type%x%carried_item_amount% | 变更槽位数=%changed_item_count% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+      packet_receive_click_state_absent: "收到缺少状态 ID 的数据包 GUI 点击 | 点击=%click_type% | 原始槽位=%raw_slot% | 按钮=%button% | 携带物=%carried_item_type%x%carried_item_amount% | 变更槽位数=%changed_item_count% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+      packet_cursor_return: "数据包 GUI 归还窗口游标 | 物品=%cursor_item_type%x%cursor_item_amount% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+      packet_receive_close: "接收数据包 GUI 关闭包 | 游标=%cursor_item_type%x%cursor_item_amount% | 窗口=%window_id% | 状态=%window_state_id% | 顶部大小=%window_top_size% | 会话=%session_id% | 所有者=%session_owner% | 后端=%session_backend% | 标题=%session_title%"
+    display:
+      backend_selected: "文本/物品显示后端已选择 | 请求后端=%requested_backend% | 文本实际后端=%text_backend% | 物品实际后端=%item_backend%"
+      packet_created: "创建数据包文本显示 | 后端=%display_backend% | 标识=%display_key% | 定向=%targeted% | 白名单=%viewers%"
+      packet_updated: "更新数据包文本显示 | 后端=%display_backend% | 标识=%display_key% | 定向=%targeted% | 白名单=%viewers%"
+      packet_viewer_added: "数据包文本显示加入可见玩家 | 后端=%display_backend% | 标识=%display_key% | 玩家=%viewer% | 可见=%visible% | 当前可见数=%visible_players% | 白名单=%viewers%"
+      packet_viewer_removed: "数据包文本显示移除可见玩家 | 后端=%display_backend% | 标识=%display_key% | 玩家=%viewer% | 可见=%visible% | 当前可见数=%visible_players% | 白名单=%viewers%"
+      packet_viewer_pruned: "数据包文本显示清理白名单外玩家 | 后端=%display_backend% | 标识=%display_key% | 玩家=%viewer% | 可见=%visible% | 当前可见数=%visible_players% | 白名单=%viewers%"
     chat_input:
       await_registered: "注册聊天输入等待 | 所有者=%request_owner% | 超时=%request_timeout_seconds%s | 取消词数=%request_cancel_keywords%"
       await_replaced_previous: "新的聊天输入等待顶替旧等待 | 旧所有者=%request_owner% | 旧超时=%request_timeout_seconds%s | 旧取消词数=%request_cancel_keywords%"

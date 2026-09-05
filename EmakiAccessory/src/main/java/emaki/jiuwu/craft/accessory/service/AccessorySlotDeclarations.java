@@ -42,7 +42,7 @@ public final class AccessorySlotDeclarations {
 
     public static boolean matchesAny(String slotInstanceId, Set<String> declared) {
         if (declared == null || declared.isEmpty()) {
-            return true;
+            return false;
         }
         for (String candidate : declared) {
             if (AccessoryPartRegistry.matchesAccessorySlot(slotInstanceId, candidate)) {

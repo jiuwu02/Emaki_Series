@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.gui.packet;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -15,6 +16,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
@@ -35,6 +37,8 @@ import com.github.retrooper.packetevents.wrapper.play.client.WrapperPlayClientCl
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerCloseWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerOpenWindow;
 import com.github.retrooper.packetevents.wrapper.play.server.WrapperPlayServerWindowItems;
+
+import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiBackend;
@@ -80,8 +84,16 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             return;
         }
         Player viewer = session.viewer();
+        UUID viewerId = viewer.getUniqueId();
+        PacketWindow previous = windows.get(viewerId);
+        if (previous != null) {
+            returnCursor(viewer, previous);
+            windows.remove(viewerId, previous);
+        }
         PacketWindow window = new PacketWindow(nextWindowId(), topSize(session), session);
-        PacketWindow previous = windows.put(viewer.getUniqueId(), window);
+        window.setCursor(viewer.getItemOnCursor());
+        viewer.setItemOnCursor(null);
+        windows.put(viewerId, window);
         if (previous == null) {
             debug(viewer, "common.gui.packet_open", windowFields(window));
         } else {
@@ -95,7 +107,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             applyTopItems(window, renderedSlots);
             sendWindowItems(viewer, window);
         } catch (RuntimeException | Error throwable) {
-            windows.remove(viewer.getUniqueId(), window);
+            if (windows.remove(viewerId, window)) {
+                returnCursor(viewer, window);
+            }
             debug(viewer, "common.gui.packet_open_failed", GuiDebugSupport.errorFields(
                     throwable,
                     windowFields(window)
@@ -391,7 +405,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
     private void authoritativeResync(Player viewer, PacketWindow window, String reason) {
         if (!isCurrentSession(viewer.getUniqueId(), window)) {
-            windows.remove(viewer.getUniqueId(), window);
+            retireWindow(viewer.getUniqueId(), window);
             debug(viewer, "common.gui.packet_resync_skipped_stale_window_or_session", windowFields(
                     window,
                     GuiDebugSupport.replacements("cause", reason)
@@ -419,17 +433,25 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     private void returnCursor(Player viewer, PacketWindow window) {
-        if (window.cursor == null || window.cursor.getType().isAir()) {
+        if (viewer == null || window == null || window.cursor == null || window.cursor.getType().isAir()) {
             return;
         }
+        ItemStack returned = window.cursor.clone();
         Map<Integer, ItemStack> overflow =
-                viewer.getInventory().addItem(window.cursor.clone());
+                viewer.getInventory().addItem(returned);
         for (ItemStack leftover : overflow.values()) {
             if (leftover != null && !leftover.getType().isAir()) {
                 viewer.getWorld().dropItemNaturally(viewer.getLocation(), leftover);
             }
         }
         window.cursor = null;
+        debug(viewer, "common.gui.packet_cursor_return", windowFields(
+                window,
+                GuiDebugSupport.replacements(
+                        "cursor_item_type", GuiDebugSupport.itemType(returned),
+                        "cursor_item_amount", GuiDebugSupport.itemAmount(returned)
+                )
+        ));
     }
 
     private void dispatchViewerEvent(Player viewer,
@@ -490,11 +512,66 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     private void retireWindow(UUID viewerId, PacketWindow window) {
-        windows.remove(viewerId, window);
+        if (windows.remove(viewerId, window)) {
+            Player viewer = window.session.viewer();
+            if (viewer != null && viewer.isOnline()) {
+                returnCursor(viewer, window);
+            }
+        }
         GuiSessionRegistry registry = window.session.registry();
         if (registry != null) {
             registry.removeSession(viewerId, window.session);
         }
+    }
+
+    private ItemStack toBukkitItem(com.github.retrooper.packetevents.protocol.item.ItemStack item) {
+        if (item == null) {
+            return null;
+        }
+        ItemStack converted = SpigotConversionUtil.toBukkitItemStack(item);
+        return converted == null || converted.getType().isAir() ? null : converted;
+    }
+
+    private Map<Integer, ItemStack> toBukkitItems(
+            Optional<Map<Integer, com.github.retrooper.packetevents.protocol.item.ItemStack>> items) {
+        if (items == null || items.isEmpty()) {
+            return Map.of();
+        }
+        Map<Integer, ItemStack> converted = new LinkedHashMap<>();
+        for (Map.Entry<Integer, com.github.retrooper.packetevents.protocol.item.ItemStack> entry
+                : items.get().entrySet()) {
+            if (entry.getKey() == null || entry.getKey() < 0) {
+                continue;
+            }
+            ItemStack item = toBukkitItem(entry.getValue());
+            converted.put(entry.getKey(), item == null ? new ItemStack(Material.AIR) : item);
+        }
+        return Map.copyOf(converted);
+    }
+
+    private void applyPlayerInventoryChanges(Player viewer,
+            int containerTopSize,
+            Map<Integer, ItemStack> changedItems) {
+        if (viewer == null || changedItems == null || changedItems.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Integer, ItemStack> entry : changedItems.entrySet()) {
+            int playerSlot = toPlayerInventorySlot(entry.getKey(), containerTopSize);
+            if (playerSlot < 0) {
+                continue;
+            }
+            ItemStack item = entry.getValue();
+            viewer.getInventory().setItem(playerSlot,
+                    item == null || item.getType().isAir() ? null : item.clone());
+        }
+    }
+
+    private int toPlayerInventorySlot(int rawSlot, int containerTopSize) {
+        int offset = rawSlot - containerTopSize;
+        if (offset < 0 || offset >= PLAYER_INVENTORY_SLOTS) {
+            return -1;
+        }
+        return offset < 27 ? offset + 9 : offset - 27;
     }
 
     private void handleClick(Player viewer, PacketWindow expectedWindow, ClickSnapshot click) {
@@ -504,7 +581,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     expectedWindow,
                     GuiDebugSupport.replacements("incoming_window_id", click.windowId())
             ));
-            windows.remove(viewerId, expectedWindow);
+            retireWindow(viewerId, expectedWindow);
             return;
         }
         Optional<Integer> incomingState = click.stateId();
@@ -569,6 +646,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 viewer, expectedWindow, click, containerTopSize, top);
         expectedWindow.beginClick();
         String outcome = "handled";
+        boolean handlerSucceeded = false;
         try {
             if (top) {
                 GuiTemplate.ResolvedSlot slot = expectedWindow.session.template().resolvedSlotAt(click.rawSlot());
@@ -577,6 +655,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             } else {
                 expectedWindow.session.handler().onPlayerInventoryClick(expectedWindow.session, context);
             }
+            handlerSucceeded = true;
         } catch (Throwable throwable) {
             outcome = "handler-exception";
             debug(viewer, "common.gui.packet_click_handler_failed", GuiDebugSupport.errorFields(
@@ -592,6 +671,14 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             ));
         } finally {
             boolean refreshRequested = expectedWindow.pendingSync;
+            if (handlerSucceeded && !context.isCancelled()) {
+                if (!top) {
+                    applyPlayerInventoryChanges(viewer, containerTopSize, click.changedItems());
+                }
+                if (!context.cursorChanged()) {
+                    expectedWindow.setCursor(click.carriedItem());
+                }
+            }
             expectedWindow.finishClick();
             if (isCurrentSession(viewerId, expectedWindow)) {
                 authoritativeResync(viewer, expectedWindow,
@@ -626,11 +713,21 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                     expectedWindow,
                     GuiDebugSupport.replacements("incoming_window_id", windowId)
             ));
+            if (expectedWindow.windowId == windowId) {
+                retireWindow(viewerId, expectedWindow);
+            }
             return;
         }
         GuiSession session = expectedWindow.session;
-        debug(viewer, "common.gui.packet_close_receive", windowFields(expectedWindow));
+        debug(viewer, "common.gui.packet_receive_close", windowFields(
+                expectedWindow,
+                GuiDebugSupport.replacements(
+                        "cursor_item_type", GuiDebugSupport.itemType(expectedWindow.cursor),
+                        "cursor_item_amount", GuiDebugSupport.itemAmount(expectedWindow.cursor)
+                )
+        ));
         try {
+
             returnCursor(viewer, expectedWindow);
             session.handler().onClose(session, new PacketGuiCloseContext(viewer, expectedWindow));
         } catch (Throwable throwable) {
@@ -678,8 +775,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player viewer = event.getPlayer();
-        PacketWindow window = windows.remove(viewer.getUniqueId());
+        PacketWindow window = windows.get(viewer.getUniqueId());
         if (window != null) {
+            returnCursor(viewer, window);
+            windows.remove(viewer.getUniqueId(), window);
             debug(viewer, "common.gui.packet_quit_cleanup", windowFields(window));
         }
     }
@@ -707,11 +806,21 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             Optional<Integer> stateId,
             int rawSlot,
             int button,
-            WindowClickType clickType) {
+            WindowClickType clickType,
+            ItemStack carriedItem,
+            Map<Integer, ItemStack> changedItems) {
 
         ClickSnapshot {
             stateId = stateId == null ? Optional.empty() : stateId;
             clickType = clickType == null ? WindowClickType.UNKNOWN : clickType;
+            carriedItem = carriedItem == null ? null : carriedItem.clone();
+            if (changedItems == null || changedItems.isEmpty()) {
+                changedItems = Map.of();
+            } else {
+                Map<Integer, ItemStack> copy = new LinkedHashMap<>();
+                changedItems.forEach((slot, item) -> copy.put(slot, item == null ? new ItemStack(Material.AIR) : item.clone()));
+                changedItems = Map.copyOf(copy);
+            }
         }
     }
 
@@ -768,7 +877,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         }
 
         void setCursor(ItemStack cursor) {
-            this.cursor = cursor;
+            this.cursor = cursor == null || cursor.getType().isAir() ? null : cursor.clone();
         }
 
         GuiSession session() {
@@ -800,7 +909,9 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                         packet.getStateId(),
                         packet.getSlot(),
                         packet.getButton(),
-                        packet.getWindowClickType()
+                        packet.getWindowClickType(),
+                        toBukkitItem(packet.getCarriedItemStack()),
+                        toBukkitItems(packet.getSlots())
                 );
                 if (click.windowId() != expectedWindow.windowId || windows.get(viewerId) != expectedWindow) {
                     return;
@@ -809,7 +920,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 Map<String, Object> clickFields = GuiDebugSupport.replacements(
                         "click_type", click.clickType(),
                         "raw_slot", click.rawSlot(),
-                        "button", click.button()
+                        "button", click.button(),
+                        "carried_item_type", GuiDebugSupport.itemType(click.carriedItem()),
+                        "carried_item_amount", GuiDebugSupport.itemAmount(click.carriedItem()),
+                        "changed_item_count", click.changedItems().size()
                 );
                 if (click.stateId().isPresent()) {
                     clickFields.put("incoming_state_id", click.stateId().get());
@@ -838,7 +952,13 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
                 if (windowId != expectedWindow.windowId || windows.get(viewerId) != expectedWindow) {
                     return;
                 }
-                debug(viewer, "common.gui.packet_receive_close", windowFields(expectedWindow));
+                debug(viewer, "common.gui.packet_receive_close", windowFields(
+                        expectedWindow,
+                        GuiDebugSupport.replacements(
+                                "cursor_item_type", GuiDebugSupport.itemType(expectedWindow.cursor),
+                                "cursor_item_amount", GuiDebugSupport.itemAmount(expectedWindow.cursor)
+                        )
+                ));
                 dispatchViewerEvent(viewer, expectedWindow, "close",
                         () -> handleClose(viewer, expectedWindow, windowId));
             }

@@ -1,7 +1,7 @@
 # EmakiAccessory 简体中文语言资源。
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
-version: "1.1.1"
+version: "1.1.2"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiAccessory...</gray>"

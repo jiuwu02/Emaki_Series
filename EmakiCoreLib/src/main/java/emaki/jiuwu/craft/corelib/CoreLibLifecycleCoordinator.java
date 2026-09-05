@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.corelib;
 
+import java.util.Map;
+import java.util.UUID;
+
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
@@ -86,6 +89,11 @@ final class CoreLibLifecycleCoordinator
                 plugin, displayBackend, displaySettings, plugin.executionDispatcher());
         ItemDisplayService itemDisplayService = DisplayServiceFactory.createItemService(
                 plugin, displayBackend, displaySettings, plugin.executionDispatcher());
+        debugLogger.log("display", (UUID) null, "common.display.backend_selected", Map.of(
+                "requested_backend", displayBackend,
+                "text_backend", textDisplayService.backendName(),
+                "item_backend", itemDisplayService.backendName()
+        ));
         DialogService dialogService = new DialogService(
                 plugin,
                 new DialogLoader(plugin, config.dialogConfig().directory()),

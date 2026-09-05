@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.2"
+version: "4.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -567,9 +567,17 @@ debug:
       packet_close_receive: "Packet GUI close received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_close_handler_failed: "Packet GUI close handler failed | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title% | error_type=%error_type% | error=%error_message%"
       packet_quit_cleanup: "Packet GUI cleaned up after player quit | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_close: "Packet GUI close packet received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | carried_item=%carried_item_type%x%carried_item_amount% | changed_items=%changed_item_count% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | carried_item=%carried_item_type%x%carried_item_amount% | changed_items=%changed_item_count% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_cursor_return: "Packet GUI window cursor returned | item=%cursor_item_type%x%cursor_item_amount% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_close: "Packet GUI close packet received | cursor=%cursor_item_type%x%cursor_item_amount% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+    display:
+      backend_selected: "Display backends selected | requested=%requested_backend% | text_actual=%text_backend% | item_actual=%item_backend%"
+      packet_created: "Packet text display created | backend=%display_backend% | key=%display_key% | targeted=%targeted% | viewers=%viewers%"
+      packet_updated: "Packet text display updated | backend=%display_backend% | key=%display_key% | targeted=%targeted% | viewers=%viewers%"
+      packet_viewer_added: "Packet text display viewer added | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
+      packet_viewer_removed: "Packet text display viewer removed | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
+      packet_viewer_pruned: "Packet text display viewer pruned | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
     chat_input:
       await_registered: "Chat input await registered | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
       await_replaced_previous: "New chat input await replaced the previous one | previous_owner=%request_owner% | previous_timeout=%request_timeout_seconds%s | previous_cancel_keywords=%request_cancel_keywords%"
