@@ -111,7 +111,7 @@ public final class LegacyItemSourceRewriter {
         for (Map.Entry<Path, List<LegacyTargetSpec>> entry : groupByFile().entrySet()) {
             reports.add(processFile(entry.getKey(), entry.getValue(), apply));
         }
-        return new RunReport(apply, reports);
+        return new RunReport(apply && reports.stream().anyMatch(report -> report.status() == Status.CONVERTED), reports);
     }
 
     private Map<Path, List<LegacyTargetSpec>> groupByFile() {
@@ -208,16 +208,17 @@ public final class LegacyItemSourceRewriter {
                 unconvertible.add(spec.legacyKey() + " 未解析出物品源");
                 continue;
             }
-            if (match.matcher() != null && spec.semantics() == LegacyTargetSpec.RuntimeSemantics.OVERRIDE) {
+            if ("item_source".equals(spec.matcherKey())
+                    && (match.matcher() != null
+                            || YamlBlockLocator.hasSiblingAtKeyColumn(lines, hit, "item_source"))) {
+                unconvertible.add(spec.legacyKey() + " 与 item_source 同时存在，无法自动迁移");
                 continue;
             }
-            YamlBlockLocator.Hit matcherHit = spec.semantics() == LegacyTargetSpec.RuntimeSemantics.AND
-                    ? match.matcher()
-                    : null;
-            List<String> existing = matcherHit == null
-                    ? List.of()
-                    : List.copyOf(lines.subList(matcherHit.startLine() + 1, matcherHit.endLine()));
-            List<String> rendered = LegacyMatcherFragment.render(sources, hit, spec.matcherKey(), existing);
+            if ("item_source".equals(spec.matcherKey()) && sources.size() != 1) {
+                unconvertible.add(spec.legacyKey() + " 必须恰好包含一个来源，当前为 " + sources.size() + " 个");
+                continue;
+            }
+            List<String> rendered = LegacyMatcherFragment.render(sources, hit, spec.matcherKey());
             if (rendered.isEmpty()) {
                 unconvertible.add(spec.legacyKey() + " 渲染结果为空");
                 continue;
@@ -225,7 +226,7 @@ public final class LegacyItemSourceRewriter {
             if (spec.retainLegacyKey()) {
                 rendered = new ArrayList<>(withRetainedLegacy(lines, hit, rendered));
             }
-            replacements.add(new Replacement(hit, matcherHit, List.copyOf(rendered), spec.retainLegacyKey()));
+            replacements.add(new Replacement(hit, null, List.copyOf(rendered), spec.retainLegacyKey()));
         }
     }
 
@@ -334,7 +335,12 @@ public final class LegacyItemSourceRewriter {
         try {
             Files.writeString(temp, String.join(lineSeparator, lines) + (trailingNewline ? lineSeparator : ""),
                     StandardCharsets.UTF_8);
-            Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+            try {
+                Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (java.nio.file.AtomicMoveNotSupportedException failure) {
+                Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
+            }
             moved = true;
         } finally {
             if (!moved) {

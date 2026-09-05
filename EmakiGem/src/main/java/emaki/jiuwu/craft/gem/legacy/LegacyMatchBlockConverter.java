@@ -58,23 +58,15 @@ public final class LegacyMatchBlockConverter {
 
     public static @NotNull Conversion convert(@Nullable LegacyMatchBlock block) {
         LegacyMatchBlock source = block == null ? LegacyMatchBlock.none() : block;
-        List<Map<String, Object>> parts = new ArrayList<>();
-        if (!source.itemSources().isEmpty()) {
-            parts.add(itemSourceMatcher(source.itemSources()));
-        }
-        parts.addAll(loreMatchers(source.loreContains()));
+        List<Map<String, Object>> parts = new ArrayList<>(loreMatchers(source.loreContains()));
         Map<String, List<String>> promoted = new LinkedHashMap<>();
+        if (!source.itemSources().isEmpty()) {
+            promoted.put(FIELD_ITEM_SOURCES, source.itemSources());
+        }
         if (!source.slotGroups().isEmpty()) {
             promoted.put(FIELD_SLOT_GROUPS, source.slotGroups());
         }
         return new Conversion(combine(parts), promoted, List.of());
-    }
-
-    public static @NotNull Map<String, Object> itemSourceMatcher(@NotNull List<String> sources) {
-        Map<String, Object> node = new LinkedHashMap<>();
-        node.put("type", "item_source");
-        node.put("sources", List.copyOf(sources));
-        return node;
     }
 
     public static @NotNull List<Map<String, Object>> loreMatchers(@NotNull List<String> fragments) {

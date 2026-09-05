@@ -140,7 +140,8 @@ public final class StorageChannel {
         List<ConsumedMaterial> planned = new ArrayList<>();
         amounts.forEach((source, amount) -> {
             if (amount != null && amount > 0L) {
-                planned.add(new ConsumedMaterial(source, amount, MaterialChannel.STORAGE));
+                planned.add(new ConsumedMaterial("legacy", "legacy", "legacy", source, -1,
+                        MaterialChannel.STORAGE, amount, 0L));
             }
         });
         return EmakiStorageApi.operations()
@@ -247,7 +248,8 @@ public final class StorageChannel {
                     return false;
                 }
                 ops.add(new StorageBatchOp(template, -taken));
-                planned.add(new ConsumedMaterial(source, taken, MaterialChannel.STORAGE));
+                planned.add(new ConsumedMaterial(requirement.materialId(), requirement.requirementId(),
+                        requirement.countKey(), source, -1, MaterialChannel.STORAGE, taken, 0L));
             }
             if (needed > 0L) {
                 return false;

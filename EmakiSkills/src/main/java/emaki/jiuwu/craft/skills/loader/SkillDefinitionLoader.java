@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -367,7 +368,8 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                     intValue(parseInt(map.get("amount"), 1), 1),
                     parseBoolean(map.get("optional"), false),
                     parseBoolean(map.get("protection"), false),
-                    matcher
+                    matcher,
+                    ItemRequirement.fromConfig(map)
             ));
         }
         return List.copyOf(materials);

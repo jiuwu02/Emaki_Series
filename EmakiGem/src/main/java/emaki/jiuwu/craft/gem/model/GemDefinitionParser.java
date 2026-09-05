@@ -10,7 +10,7 @@ import java.util.Set;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -34,11 +34,22 @@ final class GemDefinitionParser {
         if (Texts.isBlank(id)) {
             return null;
         }
-        ItemSourceRef itemSource = ItemSourceUtil.parse(section.get("item_sources"));
-        if (itemSource == null) {
+        Object rawBaseItemSource = section.get("base_item_source");
+        if (!section.contains("base_item_source") && section.contains("item_sources")) {
+            List<ItemSourceRef> legacySources = ItemRequirement.parseSources(section.get("item_sources"));
+            if (legacySources.size() != 1) {
+                return null;
+            }
+            rawBaseItemSource = legacySources.getFirst();
+        }
+        if (rawBaseItemSource instanceof Iterable<?> && !(rawBaseItemSource instanceof String)) {
             return null;
         }
-        YamlSection matcherSection = section.getSection("matcher");
+        ItemSourceRef baseItemSource = ItemSourceUtil.parse(rawBaseItemSource);
+        if (baseItemSource == null) {
+            return null;
+        }
+        ItemRequirement recognition = ItemRequirement.fromConfig(section);
         Set<String> socketCompatibility = new LinkedHashSet<>();
         for (String value : section.getStringList("socket_compatibility")) {
             if (Texts.isNotBlank(value)) {
@@ -51,8 +62,8 @@ final class GemDefinitionParser {
                 section.getStringList("lore"),
                 section.getString("gem_type", "universal"),
                 section.getInt("level", 1),
-                itemSource,
-                matcherSection == null ? null : Matcher.fromConfig(matcherSection),
+                baseItemSource,
+                recognition,
                 Numbers.tryParseInt(section.get("custom_model_data"), null),
                 parseVariables(section),
                 parseAttributes(section),

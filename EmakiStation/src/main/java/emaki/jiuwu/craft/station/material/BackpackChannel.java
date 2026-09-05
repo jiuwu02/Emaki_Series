@@ -144,21 +144,42 @@ public final class BackpackChannel {
                 inventory.setItem(entry.getKey(), current);
             }
         }
-        Map<ItemSourceRef, Long> merged = new LinkedHashMap<>();
+        List<ConsumedMaterial> consumed = new ArrayList<>(debits.size());
         for (MergedMaterialChannel.StackDebit debit : debits) {
             if (debit.amount() > 0) {
-                merged.merge(debit.source(), (long) debit.amount(), Long::sum);
+                consumed.add(new ConsumedMaterial(debit.materialId(), debit.requirementId(), debit.countKey(),
+                        debit.source(), debit.slotIndex(), MaterialChannel.BACKPACK, debit.amount(), 0L,
+                        debit.expected()));
             }
         }
-        List<ConsumedMaterial> consumed = new ArrayList<>(merged.size());
-        merged.forEach((source, amount) ->
-                consumed.add(new ConsumedMaterial(source, amount, MaterialChannel.BACKPACK)));
         return consumed;
     }
 
     private void rollbackSlots(PlayerInventory inventory, Map<Integer, ItemStack> restore) {
         restore.forEach(inventory::setItem);
         restore.clear();
+    }
+
+    public long refund(Player player, ConsumedMaterial material, long amount) {
+        if (player == null || material == null || amount <= 0L) {
+            return 0L;
+        }
+        ItemStack snapshot = material.itemSnapshot();
+        if (snapshot == null || snapshot.getType().isAir()) {
+            return refund(player, material.source(), amount);
+        }
+        int maxStack = Math.max(1, snapshot.getMaxStackSize());
+        long remaining = amount;
+        long delivered = 0L;
+        while (remaining > 0L) {
+            int chunk = (int) Math.min(remaining, maxStack);
+            ItemStack stack = snapshot.clone();
+            stack.setAmount(chunk);
+            InventoryItemUtil.addOrDrop(player, stack);
+            delivered += chunk;
+            remaining -= chunk;
+        }
+        return delivered;
     }
 
     public long refund(Player player, ItemSourceRef source, long amount) {

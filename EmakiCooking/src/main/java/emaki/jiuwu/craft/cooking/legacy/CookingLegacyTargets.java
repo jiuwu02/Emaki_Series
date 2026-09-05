@@ -32,7 +32,9 @@ public final class CookingLegacyTargets {
             LegacyTargetSpec.replaceAnd("recipes/wok", "ingredients[]",
                     "item_sources", "matcher"),
             LegacyTargetSpec.replaceAnd("recipes/fermentation_barrel", "inputs[]",
-                    "item_sources", "matcher").retainingLegacyKey());
+                    "item_sources", "matcher").retainingLegacyKey(),
+            LegacyTargetSpec.replace("recipes", "result.*.outputs[]",
+                    "item_sources", "item_source"));
 
     private CookingLegacyTargets() {
     }

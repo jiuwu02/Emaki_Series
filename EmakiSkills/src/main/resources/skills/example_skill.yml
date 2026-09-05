@@ -188,20 +188,18 @@ upgrade:
         - item_sources:
             - "minecraft-nether_star"
           amount: 1
-        # matcher 存在时完全接管判定，同条 item_sources 不参与；限制物品源时须写入 matcher。
-        # item_sources 同类项合并累计；matcher 项彼此独立且不与 item_sources 合并，同一物品不重复计入。
+        # 判定由同级 item_sources 与 matcher 取 AND，两者都成立才算命中。
+        # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+        # item_sources 同类项合并累计；带 matcher 的条目彼此独立，同一物品不重复计入。
         # 组件命名空间缺省为 minecraft；组合支持 all_of/any_of/none_of/at_least/exactly。
         # 下例要求物品源与组件条件同时满足。
-        - matcher:
-            type: all_of
-            matchers:
-              - type: item_source
-                sources:
-                  - minecraft-diamond
-              - type: component
-                component: custom_name
-                operator: contains
-                value: "灵"
+        - item_sources:
+            - minecraft-diamond
+          matcher:
+            type: component
+            component: custom_name
+            operator: contains
+            value: "灵"
           amount: 1
       success_rate: 40.0
       actions:

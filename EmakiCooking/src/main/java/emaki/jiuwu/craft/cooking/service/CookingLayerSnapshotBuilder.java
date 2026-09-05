@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiStructuredPresentation;
 import emaki.jiuwu.craft.corelib.assembly.StructuredPresentationTemplateResolver;
@@ -19,8 +20,13 @@ public final class CookingLayerSnapshotBuilder {
 
     private static final String NAMESPACE_ID = "cooking";
 
+    private final EmakiCookingPlugin plugin;
     private final StructuredPresentationTemplateResolver structuredResolver = new StructuredPresentationTemplateResolver();
     private final StructuredPresentationValidator structuredValidator = new StructuredPresentationValidator();
+
+    public CookingLayerSnapshotBuilder(EmakiCookingPlugin plugin) {
+        this.plugin = plugin;
+    }
 
     public EmakiItemLayerSnapshot buildSnapshot(RecipeDocument recipe,
             Map<String, Object> output,
@@ -121,7 +127,7 @@ public final class CookingLayerSnapshotBuilder {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

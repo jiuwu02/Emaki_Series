@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -27,6 +28,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class SteamerTickProcessor {
 
+    private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
     private final CookingBlockMatcher blockMatcher;
     private final CookingRecipeService recipeService;
@@ -35,12 +37,14 @@ final class SteamerTickProcessor {
     private final SteamerStateCodec codec;
     private CookingCompletionCoordinator completionCoordinator;
 
-    SteamerTickProcessor(CookingSettingsService settingsService,
+    SteamerTickProcessor(EmakiCookingPlugin plugin,
+            CookingSettingsService settingsService,
             CookingBlockMatcher blockMatcher,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             SteamerStateCodec codec) {
+        this.plugin = plugin;
         this.settingsService = settingsService;
         this.blockMatcher = blockMatcher;
         this.recipeService = recipeService;
@@ -269,7 +273,7 @@ final class SteamerTickProcessor {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

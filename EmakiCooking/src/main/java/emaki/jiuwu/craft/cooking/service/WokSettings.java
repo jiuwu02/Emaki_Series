@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 
 final class WokSettings {
 
@@ -40,8 +40,12 @@ final class WokSettings {
         return Math.max(0L, configuration.get().getInt("stations.wok.timeout_ms", 30000));
     }
 
-    Matcher spatulaMatcher() {
-        return CookingMatchers.parse(configuration.get(), "stations.wok.spatula_matcher");
+    ItemRequirement spatulaRequirement() {
+        return CookingMatchers.requirementWithLegacyFallback(
+                configuration.get().getSection("stations.wok"),
+                "spatula",
+                "spatula_item_sources",
+                "spatula_matcher");
     }
 
     List<CookingSettingsService.HeatLevelRule> heatLevels() {

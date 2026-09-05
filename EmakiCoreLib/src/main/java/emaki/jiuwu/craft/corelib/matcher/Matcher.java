@@ -14,17 +14,14 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ComponentPath;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
 public sealed interface Matcher permits
-        Matcher.ItemSourceMatcher,
         Matcher.PdcMatcher,
         Matcher.LoreMatcher,
         Matcher.ComponentMatcher,
@@ -47,9 +44,15 @@ public sealed interface Matcher permits
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
-        String type = Texts.lower(section.getString("type", "item_source"));
+        String type = Texts.lower(section.getString("type", ""));
+        if (type.isEmpty()) {
+            return reject("matcher is missing the required 'type' key; item source conditions now belong to the sibling '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' field");
+        }
         return switch (type) {
-            case "item_source" -> parseItemSource(section);
+            case "item_source", "item_sources", "source", "sources" -> reject(
+                    "matcher no longer accepts item source conditions ('type: " + type + "'); move them to the sibling '"
+                            + ItemRequirement.KEY_ITEM_SOURCES + "' field, which is evaluated as AND with the matcher");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
             case "component", "component_match" -> parseComponentMatch(section);
@@ -60,8 +63,13 @@ public sealed interface Matcher permits
             case "none_of", "none", "not" -> parseNone(section);
             case "at_least" -> parseCount(section, CountMode.AT_LEAST);
             case "exactly" -> parseCount(section, CountMode.EXACTLY);
-            default -> new AllMatcher(List.of());
+            default -> reject("unknown matcher type '" + type + "'");
         };
+    }
+
+    private static @NotNull Matcher reject(@NotNull String reason) {
+        ComponentMatcherSupport.LOGGER.warning("Matcher rejected at load time, it will never match: " + reason + ".");
+        return new AnyMatcher(List.of());
     }
 
     private static @Nullable YamlSection asSection(@NotNull Object config) {
@@ -78,21 +86,6 @@ public sealed interface Matcher permits
             return new MapYamlSection(keyed);
         }
         return null;
-    }
-
-    private static @NotNull Matcher parseItemSource(@NotNull YamlSection section) {
-        List<String> sourceList = section.getStringList("sources");
-        if (sourceList.isEmpty()) {
-            sourceList = section.getStringList("source");
-        }
-        List<ItemSourceRef> sources = new ArrayList<>();
-        for (String token : sourceList) {
-            ItemSourceRef ref = ItemSourceUtil.parseShorthand(token);
-            if (ref != null) {
-                sources.add(ref);
-            }
-        }
-        return new ItemSourceMatcher(sources);
     }
 
     private static @NotNull Matcher parsePdcMatch(@NotNull YamlSection section) {
@@ -278,31 +271,6 @@ public sealed interface Matcher permits
                 case "size" -> SIZE;
                 default -> null;
             };
-        }
-    }
-
-    record ItemSourceMatcher(@NotNull List<ItemSourceRef> sources) implements Matcher {
-        public ItemSourceMatcher {
-            sources = List.copyOf(sources);
-        }
-
-        @Override
-        public boolean test(@NotNull MatchContext context) {
-            if (context.item() == null || context.item().getType().isAir()) {
-                return false;
-            }
-            if (sources.isEmpty()) {
-                return true;
-            }
-            if (context.itemSource() == null) {
-                return false;
-            }
-            for (ItemSourceRef source : sources) {
-                if (ItemSourceUtil.matches(source, context.itemSource())) {
-                    return true;
-                }
-            }
-            return false;
         }
     }
 

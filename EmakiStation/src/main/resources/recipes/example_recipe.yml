@@ -52,7 +52,10 @@ cost:
 #   "有哪些物品源"。背包扣料也依赖它定位具体物品。
 #   所以下面的材料保持 item_sources 写法，不要照搬其他插件改成纯 matcher。
 materials:
-  - item_sources:
+  - material_id: iron_ingot
+    requirement_id: iron_ingot_input
+    count_key: iron_ingot
+    item_sources:
       - "minecraft-iron_ingot"
     amount: 9
     # consume: false 表示只校验持有、不扣除（用于"需要工具在手"这类需求）
@@ -61,8 +64,7 @@ materials:
 
 result:
   outputs:
-    - item_sources:
-        - "minecraft-iron_block"
+    - item_source: "minecraft-iron_block"
       amount: 1
 
   # 结算后执行的动作行，语法与其他 Emaki 模块一致。

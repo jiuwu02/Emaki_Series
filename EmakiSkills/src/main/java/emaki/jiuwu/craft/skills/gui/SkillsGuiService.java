@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshotScope;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -606,7 +607,7 @@ public final class SkillsGuiService {
             return 0L;
         }
         if (material.matcher() != null) {
-            return countMatcherMaterial(player, material.matcher());
+            return countRequirementMaterial(player, material.requirement());
         }
         if (Texts.isBlank(material.item())) {
             return 0L;
@@ -616,7 +617,10 @@ public final class SkillsGuiService {
                 ItemSourceUtil.parse(material.item()));
     }
 
-    private long countMatcherMaterial(Player player, Matcher matcher) {
+    private long countRequirementMaterial(Player player, ItemRequirement requirement) {
+        if (requirement == null || requirement.empty()) {
+            return 0L;
+        }
         ItemSourceService itemSourceService = plugin.coreLib().itemSourceService();
         long total = 0L;
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
@@ -625,12 +629,12 @@ public final class SkillsGuiService {
                     continue;
                 }
                 ItemSourceRef source = itemSourceService == null ? null : itemSourceService.identifyItem(stack);
-                if (matcher.test(MatchContext.of(stack, source, player))) {
+                if (requirement.test(stack, source, player)) {
                     total += stack.getAmount();
                 }
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Skill upgrade material matcher threw and counts as zero: "
+            plugin.getLogger().warning("Skill upgrade material requirement threw and counts as zero: "
                     + exception.getClass().getSimpleName());
             return 0L;
         }

@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.matcher.MaterialAllocation;
@@ -56,7 +57,12 @@ public final class SkillUpgradeService {
         }
     }
 
-    public record MaterialCost(String item, int amount, String displayName, Matcher matcher, int configIndex) {
+    public record MaterialCost(String item,
+            int amount,
+            String displayName,
+            Matcher matcher,
+            ItemRequirement requirement,
+            int configIndex) {
 
         public MaterialCost {
             item = Texts.toStringSafe(item);
@@ -356,6 +362,7 @@ public final class SkillUpgradeService {
                             ? matcherDisplayName(index)
                             : resolveMaterialDisplayName(material.item()),
                     material.matcher(),
+                    material.requirement(),
                     index
             ));
         }
@@ -486,7 +493,7 @@ public final class SkillUpgradeService {
             if (material.matcher() != null) {
                 MaterialKey key = new MaterialKey(null, "", material.configIndex() + 1);
                 aggregated.put(key, new ResolvedMaterialCost(
-                        null, material.amount(), material.displayName(), material.matcher()));
+                        null, material.amount(), material.displayName(), material.matcher(), material.requirement()));
                 continue;
             }
             ItemSourceRef source = ItemSourceUtil.parse(material.item());
@@ -496,7 +503,7 @@ public final class SkillUpgradeService {
                     ? material.amount()
                     : Math.min(Integer.MAX_VALUE, (long) existing.amount() + material.amount());
             String displayName = existing == null ? material.displayName() : existing.displayName();
-            aggregated.put(key, new ResolvedMaterialCost(source, (int) amount, displayName, null));
+            aggregated.put(key, new ResolvedMaterialCost(source, (int) amount, displayName, null, null));
         }
         return List.copyOf(aggregated.values());
     }
@@ -509,7 +516,7 @@ public final class SkillUpgradeService {
                 continue;
             }
             costs.add(material);
-            requests.add(new MaterialRequest(material.matcher(), material.amount()));
+            requests.add(new MaterialRequest(material.requirement(), material.amount()));
         }
         if (requests.isEmpty()) {
             return new MatcherMaterialPlan(List.of(), null, Map.of());
@@ -764,7 +771,11 @@ public final class SkillUpgradeService {
 
     }
 
-    private record ResolvedMaterialCost(ItemSourceRef source, int amount, String displayName, Matcher matcher) {
+    private record ResolvedMaterialCost(ItemSourceRef source,
+            int amount,
+            String displayName,
+            Matcher matcher,
+            ItemRequirement requirement) {
 
     }
 

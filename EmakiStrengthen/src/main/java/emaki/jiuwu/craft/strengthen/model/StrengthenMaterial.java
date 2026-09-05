@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
@@ -40,10 +41,11 @@ public final class StrengthenMaterial {
     }
 
     private final String recipeId;
-    private final String id;
+    private final String materialId;
+    private final String countKey;
     private final String displayName;
     private final List<String> description;
-    private final ItemSourceRef source;
+    private final List<ItemSourceRef> itemSources;
     private final Role role;
     private final int consumeAmount;
     private final int minTargetStar;
@@ -54,6 +56,8 @@ public final class StrengthenMaterial {
     private final int requiredFromTargetStar;
     private final int crackRemove;
     private final Matcher matcher;
+    private final ItemRequirement requirement;
+    private final boolean legacyInput;
 
     public StrengthenMaterial(String recipeId,
             String id,
@@ -88,11 +92,33 @@ public final class StrengthenMaterial {
             int requiredFromTargetStar,
             int crackRemove,
             @Nullable Matcher matcher) {
+        this(recipeId, id, id, displayName, description,
+                source == null ? List.of() : List.of(source), role, consumeAmount, minTargetStar, maxTargetStar,
+                successBonus, successCap, protectionMinTargetStar, requiredFromTargetStar, crackRemove, matcher);
+    }
+
+    public StrengthenMaterial(String recipeId,
+            String materialId,
+            String countKey,
+            String displayName,
+            List<String> description,
+            List<ItemSourceRef> itemSources,
+            Role role,
+            int consumeAmount,
+            int minTargetStar,
+            int maxTargetStar,
+            double successBonus,
+            double successCap,
+            int protectionMinTargetStar,
+            int requiredFromTargetStar,
+            int crackRemove,
+            @Nullable Matcher matcher) {
         this.recipeId = Texts.trim(recipeId);
-        this.id = Texts.trim(id);
+        this.materialId = Texts.lower(materialId);
+        this.countKey = Texts.isBlank(countKey) ? this.materialId : Texts.lower(countKey);
         this.displayName = displayName;
         this.description = description == null ? List.of() : List.copyOf(description);
-        this.source = source;
+        this.itemSources = itemSources == null ? List.of() : List.copyOf(itemSources);
         this.role = role;
         this.consumeAmount = Math.max(1, consumeAmount);
         this.minTargetStar = Math.max(1, minTargetStar);
@@ -103,6 +129,8 @@ public final class StrengthenMaterial {
         this.requiredFromTargetStar = requiredFromTargetStar;
         this.crackRemove = crackRemove;
         this.matcher = matcher;
+        this.requirement = new ItemRequirement(this.itemSources, matcher, this.materialId);
+        this.legacyInput = false;
     }
 
     public static StrengthenMaterial fromMap(String recipeId, Role role, Map<?, ?> raw, int index) {
@@ -115,22 +143,36 @@ public final class StrengthenMaterial {
                 values.put(Texts.lower(String.valueOf(entry.getKey())), entry.getValue());
             }
         }
-        String id = Texts.toStringSafe(values.get("id"));
-        if (Texts.isBlank(id)) {
-            id = Texts.lower(recipeId) + "_" + Texts.lower(role.name()) + "_" + Math.max(1, index + 1);
-        }
         Object rawMatcher = values.get("matcher");
         Matcher matcher = rawMatcher == null ? null : Matcher.fromConfig(rawMatcher);
-        ItemSourceRef source = ItemSourceUtil.parse(values.get("item"));
-        if (source == null && matcher == null) {
+        List<ItemSourceRef> sources = ItemRequirement.parseSources(values.get("item_sources"));
+        if (sources.isEmpty()) {
+            sources = ItemRequirement.parseSources(values.get("item"));
+        }
+        String materialId = Texts.toStringSafe(values.get("material_id"));
+        if (Texts.isBlank(materialId)) {
+            materialId = Texts.toStringSafe(values.get("id"));
+        }
+        if (Texts.isBlank(materialId)) {
+            materialId = ItemRequirement.sourceIdentity(sources);
+        }
+        if (Texts.isBlank(materialId)) {
+            materialId = Texts.lower(recipeId) + "_" + Texts.lower(role.name()) + "_" + Math.max(1, index + 1);
+        }
+        String countKey = Texts.toStringSafe(values.get("count_key"));
+        if (Texts.isBlank(countKey)) {
+            countKey = materialId;
+        }
+        if (sources.isEmpty() && matcher == null) {
             return null;
         }
         return new StrengthenMaterial(
                 recipeId,
-                id,
-                Texts.toStringSafe(values.getOrDefault("display_name", id)),
+                materialId,
+                countKey,
+                Texts.toStringSafe(values.getOrDefault("display_name", materialId)),
                 parseStringList(values.get("description")),
-                source,
+                sources,
                 role,
                 Numbers.tryParseInt(values.get("consume_amount"), 1),
                 Numbers.tryParseInt(values.get("min_target_star"), 1),
@@ -163,23 +205,17 @@ public final class StrengthenMaterial {
     }
 
     public boolean matches(ItemSourceRef itemSource, int targetStar) {
-        return availableForTargetStar(targetStar) && ItemSourceUtil.matches(source, itemSource);
+        return availableForTargetStar(targetStar) && matcher == null && requirement.matchesSource(itemSource);
     }
 
     public boolean matches(@Nullable MatchContext context, int targetStar) {
-        if (!availableForTargetStar(targetStar)) {
-            return false;
-        }
-        if (matcher == null) {
-            return ItemSourceUtil.matches(source, context == null ? null : context.itemSource());
-        }
-        if (context == null) {
+        if (!availableForTargetStar(targetStar) || context == null) {
             return false;
         }
         try {
-            return matcher.test(context);
+            return requirement.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("材料 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            LOGGER.warning("材料判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
             return false;
         }
     }
@@ -189,7 +225,15 @@ public final class StrengthenMaterial {
     }
 
     public String id() {
-        return id;
+        return materialId;
+    }
+
+    public String materialId() {
+        return materialId;
+    }
+
+    public String countKey() {
+        return countKey;
     }
 
     public String displayName() {
@@ -201,7 +245,11 @@ public final class StrengthenMaterial {
     }
 
     public ItemSourceRef source() {
-        return source;
+        return itemSources.isEmpty() ? null : itemSources.getFirst();
+    }
+
+    public List<ItemSourceRef> itemSources() {
+        return itemSources;
     }
 
     public Role role() {
@@ -242,5 +290,13 @@ public final class StrengthenMaterial {
 
     public @Nullable Matcher matcher() {
         return matcher;
+    }
+
+    public ItemRequirement requirement() {
+        return requirement;
+    }
+
+    public boolean legacyInput() {
+        return legacyInput;
     }
 }

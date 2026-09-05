@@ -12,13 +12,13 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 
 public final class ForgeMaterial {
 
     public static final class MaterialEffect {
-
         private final String type;
         private final Map<String, Object> data;
 
@@ -45,7 +45,6 @@ public final class ForgeMaterial {
     }
 
     public record QualityModifier(String mode, String tier) {
-
         public static QualityModifier fromEffect(MaterialEffect effect) {
             if (effect == null || !"quality_modify".equals(Texts.lower(effect.type()))) {
                 return null;
@@ -72,35 +71,64 @@ public final class ForgeMaterial {
     private final boolean optional;
     private final int capacityCost;
     private final List<MaterialEffect> effects;
-    private final ItemSourceRef source;
+    private final List<ItemSourceRef> itemSources;
     private final Matcher matcher;
     private final String matcherKey;
+    private final String materialId;
+    private final String countKey;
+    private final String auditId;
+    private final boolean materialIdDeclared;
+    private final boolean countKeyDeclared;
+    private final boolean auditIdDeclared;
+    private final ItemRequirement requirement;
 
-    public ForgeMaterial(String item,
-            int amount,
-            boolean optional,
-            int capacityCost,
-            List<MaterialEffect> effects,
-            ItemSourceRef source) {
-        this(item, amount, optional, capacityCost, effects, source, null, "");
+    public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
+            List<MaterialEffect> effects, ItemSourceRef source) {
+        this(item, amount, optional, capacityCost, effects,
+                source == null ? List.of() : List.of(source), null, "", "", "", "");
     }
 
-    public ForgeMaterial(String item,
-            int amount,
-            boolean optional,
-            int capacityCost,
-            List<MaterialEffect> effects,
-            ItemSourceRef source,
-            Matcher matcher,
-            String matcherKey) {
-        this.item = item;
+    public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
+            List<MaterialEffect> effects, ItemSourceRef source, Matcher matcher, String matcherKey) {
+        this(item, amount, optional, capacityCost, effects,
+                source == null ? List.of() : List.of(source), matcher, matcherKey, "", "", "");
+    }
+
+    public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
+            List<MaterialEffect> effects, ItemSourceRef source, Matcher matcher, String matcherKey,
+            String materialId) {
+        this(item, amount, optional, capacityCost, effects,
+                source == null ? List.of() : List.of(source), matcher, matcherKey, materialId, materialId, materialId);
+    }
+
+    public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
+            List<MaterialEffect> effects, List<ItemSourceRef> itemSources, Matcher matcher,
+            String matcherKey, String materialId, String countKey, String auditId) {
+        this(item, amount, optional, capacityCost, effects, itemSources, matcher, matcherKey,
+                materialId, countKey, auditId, true, true, true);
+    }
+
+    public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
+            List<MaterialEffect> effects, List<ItemSourceRef> itemSources, Matcher matcher,
+            String matcherKey, String materialId, String countKey, String auditId,
+            boolean materialIdDeclared, boolean countKeyDeclared, boolean auditIdDeclared) {
+        this.item = Texts.toStringSafe(item);
         this.amount = amount;
         this.optional = optional;
         this.capacityCost = capacityCost;
-        this.effects = List.copyOf(effects);
-        this.source = source;
+        this.effects = List.copyOf(effects == null ? List.of() : effects);
+        this.itemSources = List.copyOf(itemSources == null ? List.of() : itemSources);
         this.matcher = matcher;
-        this.matcherKey = matcherKey == null ? "" : matcherKey;
+        this.matcherKey = Texts.toStringSafe(matcherKey);
+        this.materialIdDeclared = materialIdDeclared && Texts.isNotBlank(materialId);
+        this.countKeyDeclared = countKeyDeclared && Texts.isNotBlank(countKey);
+        this.auditIdDeclared = auditIdDeclared && Texts.isNotBlank(auditId);
+        ForgeMaterialIdentity identity = ForgeMaterialIdentity.resolve(
+                materialId, countKey, auditId, ItemRequirement.sourceIdentity(this.itemSources), this.matcherKey);
+        this.materialId = identity.materialId();
+        this.countKey = identity.countKey();
+        this.auditId = identity.auditId();
+        this.requirement = new ItemRequirement(this.itemSources, matcher, this.materialId);
     }
 
     public static ForgeMaterial fromConfig(YamlSection section) {
@@ -112,22 +140,27 @@ public final class ForgeMaterial {
     }
 
     public boolean matches(ItemSourceRef other) {
-        return other != null && ItemSourceUtil.matches(source, other);
+        return other != null && requirement.matchesSource(other);
     }
 
     public boolean matches(MatchContext context) {
-        if (context == null) {
-            return false;
-        }
-        return matcher != null && matcher.test(context);
+        return requirement.test(context);
+    }
+
+    public ItemRequirement requirement() {
+        return requirement;
     }
 
     public String key() {
-        String shorthand = ItemSourceUtil.toShorthand(source);
-        if (Texts.isBlank(shorthand)) {
-            return matcherKey;
+        return materialId;
+    }
+
+    public String legacySourceKey() {
+        String shorthand = itemSources.isEmpty() ? "" : ItemSourceUtil.toShorthand(itemSources.get(0));
+        if (Texts.isNotBlank(shorthand)) {
+            return Texts.lower(shorthand);
         }
-        return Texts.lower(shorthand);
+        return Texts.isBlank(matcherKey) ? "" : "matcher:" + Texts.lower(matcherKey);
     }
 
     public int forgeCapacityBonus() {
@@ -221,8 +254,7 @@ public final class ForgeMaterial {
             if (!"lore_action".equals(Texts.lower(effect.type()))) {
                 continue;
             }
-            Object actionsRaw = effect.get("lore_actions");
-            for (Object raw : ConfigNodes.asObjectList(actionsRaw)) {
+            for (Object raw : ConfigNodes.asObjectList(effect.get("lore_actions"))) {
                 Object plain = ConfigNodes.toPlainData(raw);
                 if (!(plain instanceof Map<?, ?> map)) {
                     continue;
@@ -259,7 +291,22 @@ public final class ForgeMaterial {
             map.put("data", effect.data());
             effectData.add(map);
         }
+        List<String> sources = itemSources.stream().map(ItemSourceUtil::toShorthand).filter(Texts::isNotBlank).toList();
         Map<String, Object> result = new LinkedHashMap<>();
+        if (materialIdDeclared) {
+            result.put("material_id", materialId);
+        }
+        if (countKeyDeclared) {
+            result.put("count_key", countKey);
+        }
+        if (auditIdDeclared) {
+            result.put("audit_id", auditId);
+        }
+        if (!materialIdDeclared || !countKeyDeclared || !auditIdDeclared) {
+            result.put("legacy_identity", legacySourceKey());
+            result.put("identity_diagnostic", "missing canonical identity field");
+        }
+        result.put("item_sources", sources);
         result.put("item", item);
         result.put("amount", amount);
         result.put("optional", optional);
@@ -311,49 +358,25 @@ public final class ForgeMaterial {
             return 0;
         }
         Object raw = effect.get("value");
-        if (raw == null) {
-            return 0;
-        }
-        return Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(raw));
+        return raw == null ? 0 : Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(raw));
     }
 
-    public String item() {
-        return item;
-    }
-
-    public String id() {
-        return key();
-    }
-
-    public String displayName() {
-        return item;
-    }
-
-    public int amount() {
-        return amount;
-    }
-
-    public boolean optional() {
-        return optional;
-    }
-
-    public int capacityCost() {
-        return capacityCost;
-    }
-
-    public int priority() {
-        return 0;
-    }
-
-    public List<MaterialEffect> effects() {
-        return effects;
-    }
-
-    public ItemSourceRef source() {
-        return source;
-    }
-
-    public Matcher matcher() {
-        return matcher;
-    }
+    public String item() { return item; }
+    public String id() { return materialId; }
+    public String materialId() { return materialId; }
+    public String countKey() { return countKey; }
+    public String auditId() { return auditId; }
+    public boolean materialIdDeclared() { return materialIdDeclared; }
+    public boolean countKeyDeclared() { return countKeyDeclared; }
+    public boolean auditIdDeclared() { return auditIdDeclared; }
+    public String matcherKey() { return matcherKey; }
+    public String displayName() { return item; }
+    public int amount() { return amount; }
+    public boolean optional() { return optional; }
+    public int capacityCost() { return capacityCost; }
+    public int priority() { return 0; }
+    public List<MaterialEffect> effects() { return effects; }
+    public List<ItemSourceRef> itemSources() { return itemSources; }
+    public ItemSourceRef source() { return itemSources.isEmpty() ? null : itemSources.get(0); }
+    public Matcher matcher() { return matcher; }
 }

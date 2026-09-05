@@ -10,7 +10,7 @@ import java.util.Set;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -21,8 +21,8 @@ public final class GemDefinition {
     private final List<String> lore;
     private final String gemType;
     private final int level;
-    private final ItemSourceRef itemSource;
-    private final Matcher matcher;
+    private final ItemSourceRef baseItemSource;
+    private final ItemRequirement recognition;
     private final Integer customModelData;
     private final Map<String, Object> stats;
     private final Map<String, Object> attributes;
@@ -45,8 +45,8 @@ public final class GemDefinition {
             List<String> lore,
             String gemType,
             int level,
-            ItemSourceRef itemSource,
-            Matcher matcher,
+            ItemSourceRef baseItemSource,
+            ItemRequirement recognition,
             Integer customModelData,
             Map<String, Object> stats,
             Map<String, Object> attributes,
@@ -68,8 +68,8 @@ public final class GemDefinition {
         this.lore = lore == null ? List.of() : List.copyOf(lore);
         this.gemType = Texts.isBlank(gemType) ? "universal" : Texts.lower(gemType);
         this.level = Math.max(1, level);
-        this.itemSource = itemSource;
-        this.matcher = matcher;
+        this.baseItemSource = baseItemSource;
+        this.recognition = recognition;
         this.customModelData = customModelData;
         this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
         this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
@@ -108,12 +108,12 @@ public final class GemDefinition {
         return level;
     }
 
-    public ItemSourceRef itemSource() {
-        return itemSource;
+    public ItemSourceRef baseItemSource() {
+        return baseItemSource;
     }
 
-    public Matcher matcher() {
-        return matcher;
+    public ItemRequirement recognition() {
+        return recognition;
     }
 
     public Integer customModelData() {

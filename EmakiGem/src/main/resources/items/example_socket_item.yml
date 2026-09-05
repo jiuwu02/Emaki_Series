@@ -9,16 +9,17 @@ id: "example_socket_item"
 # ============================================================
 # 物品匹配规则
 # ============================================================
-# matcher 是 CoreLib 统一匹配器配置，决定哪些物品会被此配置匹配、从而拥有宝石插槽。
-# 顶层 slot_groups 与 matcher 取 AND：两者都成立才算命中。
+# 决定哪些物品会被此配置匹配、从而拥有宝石插槽。
+# slot_groups、item_sources、matcher 三者取 AND：都成立才算命中。
+#   item_sources: 允许的物品源，省略表示不限来源。
+#   matcher:      组件、PDC、Lore 等非物品源条件，省略表示不加额外条件。
+# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
 # 注意两种 ID 形状不同，不要混写：
-#   物品源用连字符 —— type: item_source 的 sources 里写 "minecraft-diamond_sword"。
+#   物品源用连字符 —— item_sources 里写 "minecraft-diamond_sword"。
 #   组件用冒号   —— component / path 里的资源 ID 写 "minecraft:sharpness"，
 #                     命名空间可省略，直接写 sharpness 等价。
-matcher:
-  type: item_source
-  sources:
-    - "minecraft-diamond_sword"
+item_sources:
+  - "minecraft-diamond_sword"
 
 
 # ============================================================

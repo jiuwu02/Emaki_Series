@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.station.apiimpl.DefaultStationBridge;
 import emaki.jiuwu.craft.station.config.QueueCostConfig;
 import emaki.jiuwu.craft.station.config.QueueCostLoader;
 import emaki.jiuwu.craft.station.definition.StationLoader;
+import emaki.jiuwu.craft.station.dismantle.DismantleRecipeDefinition;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
 import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
@@ -182,19 +183,33 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
         components.recipeLoader().load();
         components.dismantleStationLoader().load();
         components.dismantleRecipeLoader().load();
-        components.dismantleService().reload(
-                List.copyOf(components.dismantleRecipeLoader().all().values()));
-        dismantleRegistry.set(DismantleStationRegistry.build(
-                components.dismantleStationLoader().all().values()));
-
-        queueCosts.set(QueueCostLoader.load(
-                dataPath(appConfig().purchaseSettings().costFile()).toFile(), getLogger(), true));
+        List<DismantleRecipeDefinition> resolvedDismantleRecipes =
+                List.copyOf(components.dismantleRecipeLoader().all().values());
+        DismantleStationRegistry resolvedDismantle = DismantleStationRegistry.build(
+                components.dismantleStationLoader().all().values());
+        QueueCostConfig resolvedQueueCosts = QueueCostLoader.load(
+                dataPath(appConfig().purchaseSettings().costFile()).toFile(), getLogger(), true);
         StationRegistry resolved = StationRegistry.resolve(components.stationLoader().all(),
                 components.recipeLoader().all());
-        registry.set(resolved);
-        ConfigCommitGate.evaluate(components.messageService(), MODULE);
-        return new ReloadSummary(resolved.stationCount(), resolved.recipeCount(),
-                components.stationLoader().issues().size() + components.recipeLoader().issues().size());
+        int issues = components.stationLoader().issues().size() + components.recipeLoader().issues().size();
+        ConfigCommitGate.Result gate = ConfigCommitGate.evaluate(components.messageService(), MODULE);
+        if (gate.rejected()) {
+            StationRegistry retained = registry.get();
+            return new ReloadSummary(retained.stationCount(), retained.recipeCount(), issues);
+        }
+        commitIfAccepted(gate, () -> {
+            components.dismantleService().reload(resolvedDismantleRecipes);
+            dismantleRegistry.set(resolvedDismantle);
+            queueCosts.set(resolvedQueueCosts);
+            registry.set(resolved);
+        });
+        return new ReloadSummary(resolved.stationCount(), resolved.recipeCount(), issues);
+    }
+
+    static void commitIfAccepted(ConfigCommitGate.Result gate, Runnable replacement) {
+        if (gate != null && gate.committed() && replacement != null) {
+            replacement.run();
+        }
     }
 
     public boolean contentReady() {

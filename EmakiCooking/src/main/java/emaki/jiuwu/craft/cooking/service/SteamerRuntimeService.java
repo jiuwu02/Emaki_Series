@@ -64,7 +64,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
         this.recipeService = recipeService;
         this.itemSourceService = itemSourceService;
         this.codec = new SteamerStateCodec();
-        this.tickProcessor = new SteamerTickProcessor(settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
+        this.tickProcessor = new SteamerTickProcessor(plugin, settingsService, blockMatcher, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new SteamerGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
     }
@@ -532,7 +532,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
             return null;
         }
         for (CookingSettingsService.SteamerFuelRule rule : settingsService.steamerFuels()) {
-            if (rule != null && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
+            if (rule != null && CookingMatchers.accepts(rule.requirement(), itemStack, identified, null)) {
                 return rule;
             }
         }
@@ -546,7 +546,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
         }
         for (CookingSettingsService.SteamerMoistureRule rule : settingsService.steamerMoistureSources()) {
             if (rule != null
-                    && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
+                    && CookingMatchers.accepts(rule.inputRequirement(), itemStack, identified, null)) {
                 return rule;
             }
         }

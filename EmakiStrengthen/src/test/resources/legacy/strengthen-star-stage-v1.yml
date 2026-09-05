@@ -1,0 +1,6 @@
+id: flame_sword
+star: 3
+materials:
+  - item: minecraft-diamond
+    amount: 2
+    optional: false

@@ -1,7 +1,7 @@
 # EmakiStation 主配置
 # 控制工作站队列、容量限制、EmakiStorage 通道、持久化与界面刷新。
 
-version: "1.1.0"
+version: "1.1.2"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

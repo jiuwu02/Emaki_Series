@@ -10,7 +10,8 @@ public final class ForgeLegacyTargets {
 
     private static final List<LegacyTargetSpec> SPECS = List.of(
             LegacyTargetSpec.replace("recipes", "materials[]", "item_sources").retainingLegacyKey(),
-            LegacyTargetSpec.replace("recipes", "blueprint_requirements[]", "item_sources"));
+            LegacyTargetSpec.replace("recipes", "blueprint_requirements[]", "item_sources"),
+            LegacyTargetSpec.replace("recipes", "result.*.outputs[]", "item_sources", "item_source"));
 
     private ForgeLegacyTargets() {
     }

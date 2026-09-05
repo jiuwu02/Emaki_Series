@@ -402,7 +402,9 @@ public final class StationCraftService {
             if (material.channel() == MaterialChannel.STORAGE) {
                 toStorage.merge(material.source(), refundable, Long::sum);
             } else {
-                toBackpack.add(new ConsumedMaterial(material.source(), refundable, material.channel()));
+                toBackpack.add(new ConsumedMaterial(material.materialId(), material.requirementId(),
+                        material.countKey(), material.source(), material.position(), material.channel(),
+                        refundable, material.refundedAmount(), material.itemSnapshot()));
             }
         }
         boolean[] shortfall = {false};
@@ -428,8 +430,10 @@ public final class StationCraftService {
         Map<ItemSourceRef, Long> requested = Map.copyOf(toStorage);
         return storageChannel.depositAsync(player.getUniqueId(), requested).thenApply(accepted -> {
             for (Map.Entry<ItemSourceRef, Long> entry : requested.entrySet()) {
-                if (accepted.getOrDefault(entry.getKey(), 0L) < entry.getValue()) {
-                    return true;
+                long returned = accepted.getOrDefault(entry.getKey(), 0L);
+                long remaining = Math.max(0L, entry.getValue() - returned);
+                if (remaining > 0L && backpackChannel.refund(player, entry.getKey(), remaining) < remaining) {
+                    shortfall[0] = true;
                 }
             }
             return shortfall[0];

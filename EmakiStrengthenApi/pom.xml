@@ -12,11 +12,16 @@
     </parent>
 
     <artifactId>emaki-strengthen-api</artifactId>
-    <version>4.8.0</version>
+    <version>4.8.2</version>
     <name>EmakiStrengthenApi</name>
     <packaging>jar</packaging>
 
     <dependencies>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-corelib-api</artifactId>

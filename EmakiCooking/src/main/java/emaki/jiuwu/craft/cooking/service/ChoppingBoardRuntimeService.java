@@ -667,7 +667,7 @@ public final class ChoppingBoardRuntimeService {
         if (source == null) {
             return false;
         }
-        return CookingMatchers.accepts(settingsService.choppingToolMatcher(), itemStack, source, null);
+        return CookingMatchers.accepts(settingsService.choppingToolRequirement(), itemStack, source, null);
     }
 
     private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {

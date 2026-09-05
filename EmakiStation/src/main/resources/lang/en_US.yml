@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.0"
+version: "1.1.2"
 
 console:
   plugin_starting: "Starting EmakiStation..."
@@ -83,6 +83,10 @@ station:
   recipe_no_outputs: "<yellow>Recipe %recipe% has no outputs, skipped (%file%)</yellow>"
   recipe_bad_amount: "<yellow>Recipe %recipe% has an invalid amount %amount%, entry skipped</yellow>"
   recipe_bad_source: "<yellow>Recipe %recipe% has an unresolvable item source %source% (%file%)</yellow>"
+  recipe_legacy_item_source: "<yellow>Recipe %recipe% uses legacy item_source; it remains readable but should migrate to item_sources (%file%)</yellow>"
+  recipe_derived_material_identity: "<yellow>Material #%index% of recipe %recipe% lacks explicit material_id, requirement_id, or count_key; it remains readable via index fallback, but should declare stable identities (%file%)</yellow>"
+  recipe_source_field_conflict: "<red>Recipe %recipe% declares both item_source and item_sources, so loading is blocked (%file%)</red>"
+  recipe_duplicate_material_identity: "<red>Recipe %recipe% repeats or conflicts on material identity %identity%, so loading is blocked (%file%)</red>"
   recipe_many_materials: "<yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
   dismantle_recipe_missing_id: "<yellow>Dismantle recipe file is missing its id: %file%</yellow>"
   dismantle_recipe_no_input: "<yellow>Dismantle recipe %recipe% has no input_source, skipped (%file%)</yellow>"

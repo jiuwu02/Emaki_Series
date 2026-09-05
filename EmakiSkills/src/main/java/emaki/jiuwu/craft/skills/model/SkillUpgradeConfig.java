@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.progression.Progression;
 import emaki.jiuwu.craft.corelib.progression.TableProgression;
@@ -93,7 +94,12 @@ public record SkillUpgradeConfig(
         }
     }
 
-    public record MaterialCost(String item, int amount, boolean optional, boolean protection, Matcher matcher) {
+    public record MaterialCost(String item,
+            int amount,
+            boolean optional,
+            boolean protection,
+            Matcher matcher,
+            ItemRequirement requirement) {
 
         public MaterialCost {
             item = Texts.toStringSafe(item);

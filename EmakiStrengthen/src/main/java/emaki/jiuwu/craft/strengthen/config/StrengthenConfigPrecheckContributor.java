@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -46,6 +47,10 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         addLoaderIssues("enhancement_recipes",
                 plugin.enhancementRecipeLoader() == null ? null : plugin.enhancementRecipeLoader().issues(), issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "recipes"), "recipes"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "enhancement_recipes"), "enhancement_recipes"));
         checkEnhancementVariableContract(issues);
         checkForgeVariableKeys(issues);
         checkEnhancementRecipeContracts(issues);

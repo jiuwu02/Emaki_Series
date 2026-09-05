@@ -1,0 +1,8 @@
+recipe_id: flame_sword
+quality: RARE
+multiplier: 1.0
+forged_at: 1700000000000
+materials:
+  - material_item: minecraft-iron_ingot
+    amount: 3
+    source: minecraft-iron_ingot

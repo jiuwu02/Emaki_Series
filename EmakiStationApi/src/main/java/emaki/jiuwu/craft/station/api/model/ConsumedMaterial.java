@@ -1,34 +1,31 @@
 package emaki.jiuwu.craft.station.api.model;
 
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
-/**
- * One material that was actually debited for a queued craft, together with the channel it came from.
- *
- * <p>This is the receipt EmakiStation keeps for materials it already took. Because consumption happens
- * at submit time rather than on completion, the queue entry itself is the only proof the player paid,
- * and this record is what a cancellation refunds and what a manual reconciliation reads after a crash.
- * The channel is stored per material rather than per entry so a refund returns each material to the
- * place it was taken from.
- *
- * @param source the item identity that was debited
- * @param amount the debited units; always positive
- * @param channel where the units were taken from
- */
-public record ConsumedMaterial(@NotNull ItemSourceRef source, long amount, @NotNull MaterialChannel channel) {
+public record ConsumedMaterial(@NotNull String materialId,
+        @NotNull String requirementId,
+        @NotNull String countKey,
+        @NotNull ItemSourceRef source,
+        int position,
+        @NotNull MaterialChannel channel,
+        long amount,
+        long refundedAmount,
+        @Nullable ItemStack itemSnapshot) {
 
-    /**
-     * Creates a consumed-material receipt.
-     *
-     * @param source  the item identity that was debited
-     * @param amount  the debited units
-     * @param channel where the units were taken from
-     * @throws NullPointerException     when {@code source} or {@code channel} is {@code null}
-     * @throws IllegalArgumentException when {@code amount} is not positive
-     */
     public ConsumedMaterial {
+        if (materialId == null) {
+            throw new NullPointerException("materialId");
+        }
+        if (requirementId == null) {
+            throw new NullPointerException("requirementId");
+        }
+        if (countKey == null) {
+            throw new NullPointerException("countKey");
+        }
         if (source == null) {
             throw new NullPointerException("source");
         }
@@ -38,5 +35,31 @@ public record ConsumedMaterial(@NotNull ItemSourceRef source, long amount, @NotN
         if (amount <= 0L) {
             throw new IllegalArgumentException("amount must be positive: " + amount);
         }
+        refundedAmount = Math.clamp(refundedAmount, 0L, amount);
+        itemSnapshot = itemSnapshot == null ? null : itemSnapshot.clone();
+    }
+
+    public ConsumedMaterial(String materialId,
+            String requirementId,
+            String countKey,
+            ItemSourceRef source,
+            int position,
+            MaterialChannel channel,
+            long amount,
+            long refundedAmount) {
+        this(materialId, requirementId, countKey, source, position, channel, amount, refundedAmount, null);
+    }
+
+    public ConsumedMaterial(ItemSourceRef source, long amount, MaterialChannel channel) {
+        this("legacy", "legacy", "legacy", source, -1, channel, amount, 0L, null);
+    }
+
+    public ConsumedMaterial withRefundedAmount(long value) {
+        return new ConsumedMaterial(materialId, requirementId, countKey, source, position, channel, amount, value,
+                itemSnapshot);
+    }
+
+    public long refundableAmount() {
+        return amount - refundedAmount;
     }
 }

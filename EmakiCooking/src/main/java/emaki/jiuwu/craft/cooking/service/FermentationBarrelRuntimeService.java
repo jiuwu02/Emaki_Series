@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -30,7 +31,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -110,13 +111,14 @@ public final class FermentationBarrelRuntimeService implements Listener {
             @Override
             public Map<String, Object> snapshot(StationCoordinates coordinates) {
                 FermentationBarrelState state = loadStateOrEmpty(coordinates);
-                return state == null || state.isCompletelyEmpty() ? null : codec.serializeState(coordinates, state);
+                return state == null || !state.valid() || !state.slotIdsResolved() || state.isCompletelyEmpty()
+                        ? null : codec.serializeState(coordinates, state);
             }
 
             @Override
             public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
                 FermentationBarrelState state = codec.readState(new MapYamlSection(committedState));
-                if (state == null || state.isCompletelyEmpty()) {
+                if (state == null || !state.valid() || !state.slotIdsResolved() || state.isCompletelyEmpty()) {
                     return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed fermentation barrel state"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
@@ -155,7 +157,17 @@ public final class FermentationBarrelRuntimeService implements Listener {
         Block block = coordinates.block();
         FermentationBarrelState state = codec.readState(section);
         ItemSourceRef stationSource = stateStore.stationSource(section);
-        if (state == null || state.isCompletelyEmpty()) {
+        boolean needsCanonicalWriteback = state != null && (state.needsSchemaWriteback() || !state.slotIdsResolved());
+        if (state == null || !state.valid()) {
+            plugin.getLogger().warning("Station restore report: rejected_invalid_fermentation_barrel_state coordinate=" + coordinates.runtimeKey());
+            return false;
+        }
+        if (!migrateSlotIds(state)) {
+            plugin.getLogger().warning("Station restore report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey()
+                    + " recipe=" + state.activeRecipeId());
+            return false;
+        }
+        if (state.isCompletelyEmpty()) {
             removeState(coordinates, false);
             activeStations.remove(coordinates);
             return false;
@@ -167,8 +179,12 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return false;
         }
         runtimeStates.put(coordinates, state);
+        if (needsCanonicalWriteback) {
+            state.markSchemaCurrent();
+            saveState(coordinates, state);
+        }
         refreshText(coordinates, state);
-        if (tickProcessor.shouldRemainActive(state)) {
+        if (state.slotIdsResolved() && tickProcessor.shouldRemainActive(state)) {
             activeStations.add(coordinates);
         }
         ensureTicker();
@@ -180,7 +196,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return;
         }
         FermentationBarrelState state = runtimeStates.get(coordinates);
-        if (state != null && !state.isCompletelyEmpty()) {
+        if (state != null && state.valid() && state.slotIdsResolved() && !state.isCompletelyEmpty()) {
             stateStore.save(coordinates, codec.serializeState(coordinates, state));
         }
         removeState(coordinates, false);
@@ -244,6 +260,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelGuiHolder openHolder = guiController.findOpenSession(coordinates);
         FermentationBarrelState state = openHolder == null ? loadStateOrEmpty(coordinates) : guiController.snapshotInventoryState(coordinates,
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            context.cancel();
+            plugin.getLogger().warning("Station break report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey());
+            return true;
+        }
         if (state.isCompletelyEmpty()) {
             textDisplayService.removeStation(StationType.FERMENTATION_BARREL, coordinates);
             return false;
@@ -261,6 +282,11 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     private boolean startOrCollect(Player player, Block block, StationCoordinates coordinates, StationInteraction interaction) {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            interaction.cancel();
+            plugin.getLogger().warning("Station interaction report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey());
+            return true;
+        }
         if (state.completed()) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_COLLECT) && !player.hasPermission(CookingPermissions.ADMIN)) {
@@ -313,12 +339,15 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     private RecipeDocument findMatchingRecipe(FermentationBarrelState state, Player player) {
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            return null;
+        }
         Map<String, Integer> actual = aggregateActual(state);
         if (actual.isEmpty()) {
             return null;
         }
         for (RecipeDocument recipe : recipeService.fermentationBarrelRecipes()) {
-            if (!recipeService.canUseRecipe(recipe, player)) {
+            if (!recipeService.canUseRecipe(recipe, player) || invalidFermentationIdentities(recipe)) {
                 continue;
             }
             if (actual.equals(aggregateExpected(recipe)) && matchesInputMatchers(recipe, state, player)) {
@@ -330,64 +359,187 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     private boolean matchesInputMatchers(RecipeDocument recipe, FermentationBarrelState state, Player player) {
         for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
-            Matcher matcher = CookingMatchers.parse(input, "matcher");
-            if (matcher == null) {
-                continue;
+            ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
+            if (requirement.empty()) {
+                return false;
             }
-            String expectedSource = firstSource(input.get("item_sources"));
-            if (Texts.isBlank(expectedSource)) {
-                continue;
-            }
-            if (!matchesSlotWithSource(state, expectedSource, matcher, player)) {
+            String expectedSlotId = inputSlotId(input);
+            if (!matchesSlotWithId(state, expectedSlotId, requirement, player)) {
                 return false;
             }
         }
         return true;
     }
 
-    private boolean matchesSlotWithSource(FermentationBarrelState state,
-            String expectedSource,
-            Matcher matcher,
+    private boolean matchesSlotWithId(FermentationBarrelState state,
+            String expectedSlotId,
+            ItemRequirement requirement,
             Player player) {
-        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
-            if (!expectedSource.equalsIgnoreCase(entry.getValue())) {
+        boolean matched = false;
+        for (Map.Entry<Integer, String> entry : state.slotIds().entrySet()) {
+            if (Texts.isNotBlank(expectedSlotId) && !expectedSlotId.equalsIgnoreCase(entry.getValue())) {
                 continue;
             }
             ItemStack stored = StoredItemCodec.deserialize(state.slotItemData(entry.getKey()));
             if (stored == null || stored.getType().isAir()) {
                 continue;
             }
-            if (!CookingMatchers.test(matcher, stored, ItemSourceUtil.parse(entry.getValue()), player)) {
+            if (!requirement.test(stored, ItemSourceUtil.parse(state.slotSources().get(entry.getKey())), player)) {
                 return false;
             }
+            matched = true;
         }
-        return true;
+        return matched;
     }
 
     private Map<String, Integer> aggregateActual(FermentationBarrelState state) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
-            result.merge(entry.getValue(), Math.max(1, state.slotAmounts().getOrDefault(entry.getKey(), 1)), Integer::sum);
-        }
-        return result;
+        return FermentationIdentityResolver.aggregate(state.slotCountKeys(), state.slotAmounts());
     }
 
     private Map<String, Integer> aggregateExpected(RecipeDocument recipe) {
         Map<String, Integer> result = new LinkedHashMap<>();
         for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
-            String source = firstSource(input.get("item_sources"));
+            String countKey = inputCountKey(input);
             int amount = Math.max(1, CookingRuntimeUtil.parseInteger(input.get("amount"), 1));
-            if (Texts.isNotBlank(source)) {
-                result.merge(source, amount, Integer::sum);
+            if (Texts.isNotBlank(countKey)) {
+                result.merge(countKey, amount, Integer::sum);
             }
         }
         return result;
     }
 
-    private String firstSource(Object raw) {
-        ItemSourceRef source = ItemSourceUtil.parse(raw);
-        String shorthand = ItemSourceUtil.toShorthand(source);
-        return shorthand == null ? "" : shorthand;
+    String resolveSlotId(ItemStack item, String source, Player player) {
+        if (item == null || item.getType().isAir() || Texts.isBlank(source)) {
+            return "";
+        }
+        ItemSourceRef itemSource = ItemSourceUtil.parse(source);
+        Set<String> candidates = new LinkedHashSet<>();
+        for (RecipeDocument recipe : recipeService.fermentationBarrelRecipes()) {
+            if (!recipeService.canUseRecipe(recipe, player) || invalidFermentationIdentities(recipe)) {
+                continue;
+            }
+            for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
+                ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
+                if (requirement.empty() || !requirement.test(item, itemSource, player)) {
+                    continue;
+                }
+                String slotId = inputSlotId(input);
+                if (Texts.isNotBlank(slotId)) {
+                    candidates.add(slotId);
+                }
+            }
+        }
+        if (candidates.size() != 1) {
+            return "";
+        }
+        return candidates.iterator().next();
+    }
+
+    String resolveCountKey(ItemStack item, String slotId, String source, Player player) {
+        if (item == null || item.getType().isAir() || Texts.isBlank(slotId) || Texts.isBlank(source)) {
+            return "";
+        }
+        ItemSourceRef itemSource = ItemSourceUtil.parse(source);
+        Set<String> candidates = new LinkedHashSet<>();
+        for (RecipeDocument recipe : recipeService.fermentationBarrelRecipes()) {
+            if (!recipeService.canUseRecipe(recipe, player)) {
+                continue;
+            }
+            for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
+                if (!slotId.equalsIgnoreCase(inputSlotId(input))) {
+                    continue;
+                }
+                ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
+                if (requirement.empty() || !requirement.test(item, itemSource, player)) {
+                    continue;
+                }
+                String countKey = inputCountKey(input);
+                if (Texts.isNotBlank(countKey)) {
+                    candidates.add(countKey);
+                }
+            }
+        }
+        return candidates.size() == 1 ? candidates.iterator().next() : "";
+    }
+
+    private String inputSlotId(Map<String, Object> input) {
+        String declared = Texts.toStringSafe(input == null ? null : input.get("slot_id")).trim();
+        return Texts.isNotBlank(declared) ? declared.toLowerCase(Locale.ROOT) : "";
+    }
+
+    private String inputCountKey(Map<String, Object> input) {
+        String declared = Texts.toStringSafe(input == null ? null : input.get("count_key")).trim();
+        return Texts.isNotBlank(declared) ? declared.toLowerCase(Locale.ROOT) : "";
+    }
+
+    private boolean migrateSlotIds(FermentationBarrelState state) {
+        if (state == null || state.slotIdsResolved()) {
+            return state != null && state.valid();
+        }
+        if (!state.valid() || Texts.isBlank(state.activeRecipeId())) {
+            if (state != null) {
+                state.markSlotIdMigrationFailed();
+            }
+            return false;
+        }
+        RecipeDocument activeRecipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
+        if (activeRecipe == null || invalidFermentationIdentities(activeRecipe)) {
+            state.markSlotIdMigrationFailed();
+            return false;
+        }
+        Map<Integer, List<FermentationIdentityResolver.Identity>> candidatesBySlot = new LinkedHashMap<>();
+        for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
+            ItemStack stored = StoredItemCodec.deserialize(state.slotItemData(entry.getKey()));
+            if (stored == null || stored.getType().isAir()) {
+                state.markSlotIdMigrationFailed();
+                return false;
+            }
+            ItemSourceRef source = ItemSourceUtil.parse(entry.getValue());
+            List<FermentationIdentityResolver.Identity> candidates = new ArrayList<>();
+            for (Map<String, Object> input : recipeService.fermentationInputs(activeRecipe)) {
+                ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
+                if (requirement.empty() || !requirement.test(stored, source, null)) {
+                    continue;
+                }
+                candidates.add(new FermentationIdentityResolver.Identity(inputSlotId(input), inputCountKey(input)));
+            }
+            candidatesBySlot.put(entry.getKey(), candidates);
+        }
+        FermentationIdentityResolver.MigrationResult migration = FermentationIdentityResolver.migrate(candidatesBySlot);
+        if (!migration.accepted()) {
+            state.markSlotIdMigrationFailed();
+            return false;
+        }
+        for (Map.Entry<Integer, FermentationIdentityResolver.Identity> entry : migration.allocations().entrySet()) {
+            state.replaceSlotIdentity(entry.getKey(), entry.getValue().slotId(), entry.getValue().countKey());
+        }
+        state.markSlotIdsResolved();
+        return true;
+    }
+
+    private CookingInputIngredient fermentationInputBySlotId(RecipeDocument recipe, String slotId) {
+        if (Texts.isBlank(slotId)) {
+            return null;
+        }
+        for (CookingInputIngredient input : recipeService.fermentationInputIngredients(recipe)) {
+            if (slotId.equalsIgnoreCase(input.slotId())) {
+                return input;
+            }
+        }
+        return null;
+    }
+
+    private boolean invalidFermentationIdentities(RecipeDocument recipe) {
+        List<FermentationIdentityResolver.Identity> identities = new ArrayList<>();
+        for (Map<String, Object> input : recipeService.fermentationInputs(recipe)) {
+            String slotId = inputSlotId(input);
+            String countKey = inputCountKey(input);
+            if (Texts.isBlank(slotId) || Texts.isBlank(countKey)) {
+                return true;
+            }
+            identities.add(new FermentationIdentityResolver.Identity(slotId, countKey));
+        }
+        return identities.isEmpty() || FermentationIdentityResolver.hasDuplicateSlotIds(identities);
     }
 
     private boolean showInfo(Player player, StationCoordinates coordinates) {
@@ -498,6 +650,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return;
         }
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            activeStations.remove(coordinates);
+            return;
+        }
         Block block = coordinates.block();
         ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || !blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
@@ -549,6 +705,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
             FermentationStage stage,
             boolean dropResult,
             boolean notifyPlayer) {
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            return false;
+        }
         RecipeDocument recipe = recipeService.fermentationBarrelRecipeById(state.activeRecipeId());
         if (recipe == null || completionCoordinator == null) {
             return false;
@@ -557,7 +716,15 @@ public final class FermentationBarrelRuntimeService implements Listener {
         Map<String, Object> outcome = recipeService.fermentationOutcomeForStage(recipe, stage);
         List<CookingInputIngredient> inputs = new ArrayList<>();
         for (Map.Entry<Integer, String> entry : state.slotSources().entrySet()) {
-            inputs.add(new CookingInputIngredient(entry.getValue(), state.slotAmounts().getOrDefault(entry.getKey(), 1)));
+            int slot = entry.getKey();
+            CookingInputIngredient configured = fermentationInputBySlotId(recipe, state.slotIds().get(slot));
+            inputs.add(new CookingInputIngredient(
+                    entry.getValue(),
+                    state.slotAmounts().getOrDefault(slot, 1),
+                    state.slotIds().getOrDefault(slot, ""),
+                    state.slotCountKeys().getOrDefault(slot, ""),
+                    configured == null ? List.of(entry.getValue()) : configured.itemSources(),
+                    configured == null ? Map.of() : configured.matcher()));
         }
         String stageName = stage.name().toLowerCase(Locale.ROOT);
         boolean accepted = completionCoordinator.submit(new CookingCompletionRequest(
@@ -615,7 +782,10 @@ public final class FermentationBarrelRuntimeService implements Listener {
     }
 
     void saveState(StationCoordinates coordinates, FermentationBarrelState state) {
-        if (coordinates == null || state == null || state.isCompletelyEmpty()) {
+        if (coordinates == null || state == null || !state.valid() || !state.slotIdsResolved()) {
+            return;
+        }
+        if (state.isCompletelyEmpty()) {
             removeState(coordinates, true);
             return;
         }
@@ -630,8 +800,18 @@ public final class FermentationBarrelRuntimeService implements Listener {
             return cached;
         }
         FermentationBarrelState loaded = codec.readState(stateStore.load(coordinates));
+        boolean needsCanonicalWriteback = loaded.needsSchemaWriteback() || !loaded.slotIdsResolved();
+        boolean resolved = migrateSlotIds(loaded);
+        if (!loaded.valid() || !resolved) {
+            return loaded;
+        }
         FermentationBarrelState existing = runtimeStates.putIfAbsent(coordinates, loaded);
-        return existing == null ? loaded : existing;
+        FermentationBarrelState result = existing == null ? loaded : existing;
+        if (existing == null && needsCanonicalWriteback && !loaded.isCompletelyEmpty()) {
+            loaded.markSchemaCurrent();
+            stateStore.saveAsync(coordinates, codec.serializeState(coordinates, loaded));
+        }
+        return result;
     }
 
     Optional<StationCoordinates> viewingStation(UUID viewerId) {
@@ -758,8 +938,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
 
     private void flushAll() {
         for (Map.Entry<StationCoordinates, FermentationBarrelState> entry : runtimeStates.entrySet()) {
-            if (!entry.getValue().isCompletelyEmpty()) {
-                stateStore.saveAsync(entry.getKey(), codec.serializeState(entry.getKey(), entry.getValue()));
+            FermentationBarrelState state = entry.getValue();
+            if (state.valid() && state.slotIdsResolved() && !state.isCompletelyEmpty()) {
+                stateStore.saveAsync(entry.getKey(), codec.serializeState(entry.getKey(), state));
             }
         }
     }

@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-forge</artifactId>
-    <version>4.8.0</version>
+    <version>4.8.1</version>
     <name>EmakiForge</name>
     <packaging>jar</packaging>
 
@@ -52,6 +52,21 @@
             <groupId>me.clip</groupId>
             <artifactId>placeholderapi</artifactId>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>net.objecthunter</groupId>
+            <artifactId>exp4j</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.dejvokep</groupId>
+            <artifactId>boosted-yaml</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
 

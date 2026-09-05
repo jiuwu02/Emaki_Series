@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
@@ -56,200 +57,201 @@ final class MaterialPlanResolver {
         if (stage == null) {
             return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
         }
-        Map<String, StrengthenRecipe.StarStageMaterial> materialsByItem = new LinkedHashMap<>();
-        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
-            if (material != null && Texts.isNotBlank(material.item())) {
-                materialsByItem.putIfAbsent(Texts.lower(material.item()), material);
-            }
-        }
-
         List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
-        ItemStack targetItem = context == null ? null : context.targetItem();
-        ItemSourceRef targetSource = targetItem == null ? null : recipeResolver.resolveBaseSource(targetItem);
-        List<String> matchedTokens = new ArrayList<>(inputs.size());
-        Map<String, Integer> availableByItem = new LinkedHashMap<>();
-        for (ItemStack input : inputs) {
-            if (input == null || input.getType().isAir()) {
-                matchedTokens.add("");
+        ItemStack target = context == null ? null : context.targetItem();
+        ItemSourceRef targetSource = target == null ? null : recipeResolver.resolveBaseSource(target);
+        List<InputState> inputStates = createInputStates(inputs);
+        List<MaterialIdentityPlanner.Definition> definitions = new ArrayList<>();
+        Map<Integer, StrengthenRecipe.StarStageMaterial> materialByOrder = new LinkedHashMap<>();
+        Map<Integer, InputState> inputByIndex = new LinkedHashMap<>();
+        for (InputState input : inputStates) {
+            inputByIndex.put(input.index(), input);
+        }
+        for (int definitionIndex = 0; definitionIndex < stage.materials().size(); definitionIndex++) {
+            StrengthenRecipe.StarStageMaterial material = stage.materials().get(definitionIndex);
+            if (material == null || Texts.isBlank(material.materialId())) {
+                return new MaterialPlan("strengthen.error.material_missing", List.of(), List.of(), false, 0);
+            }
+            materialByOrder.put(definitionIndex, material);
+            StarStageMaterialRule rule = materialRule(recipeId, stage.targetStar(), material, branchPath);
+            definitions.add(new MaterialIdentityPlanner.Definition(definitionIndex, material.materialId(),
+                    material.countKey(), material.amount(), material.optional(), material.protection(),
+                    material.temperBoost(), material.matcherConfig() != null || rule.constrains()));
+        }
+        List<MaterialIdentityPlanner.Input> plannerInputs = inputStates.stream()
+                .filter(input -> input.stack() != null && !input.stack().getType().isAir())
+                .map(input -> new MaterialIdentityPlanner.Input(input.index(), input.stack().getAmount()))
+                .toList();
+        Map<String, Boolean> matchCache = new LinkedHashMap<>();
+        MaterialIdentityPlanner.Plan planned = MaterialIdentityPlanner.plan(definitions, plannerInputs, (definition, input) -> {
+            String key = definition.order() + "|" + input.index();
+            return matchCache.computeIfAbsent(key, ignored -> {
+                StrengthenRecipe.StarStageMaterial material = materialByOrder.get(definition.order());
+                InputState state = inputByIndex.get(input.index());
+                return material != null && state != null && matches(material, recipeId, stage.targetStar(), state.stack(),
+                        state.source(), target, targetSource, player, branchPath);
+            });
+        });
+        List<DefinitionAllocation> allocations = toAllocations(planned, materialByOrder, inputByIndex);
+        if (!planned.satisfied()) {
+            return new MaterialPlan("strengthen.error.material_missing",
+                    requiredMaterials(stage, allocations, -1, null, 0),
+                    inputMaterials(inputStates, definitions, planned), false, 0);
+        }
+        for (InputState input : inputStates) {
+            if (input.stack() == null || input.stack().getType().isAir()) {
                 continue;
             }
-            String token = Texts.lower(resolveItemToken(input));
-            StrengthenRecipe.StarStageMaterial matched = materialsByItem.get(token);
-            if (matched != null && !satisfiesTargetAwareRule(recipeId, stage.targetStar(), token, input,
-                    targetItem, targetSource, player, branchPath)) {
-                matched = null;
+            boolean recognized = false;
+            for (int definitionIndex = 0; definitionIndex < stage.materials().size(); definitionIndex++) {
+                String key = definitionIndex + "|" + input.index();
+                Boolean matched = matchCache.get(key);
+                if (matched == null) {
+                    StrengthenRecipe.StarStageMaterial material = materialByOrder.get(definitionIndex);
+                    matched = material != null && matches(material, recipeId, stage.targetStar(), input.stack(),
+                            input.source(), target, targetSource, player, branchPath);
+                    matchCache.put(key, matched);
+                }
+                if (matched) {
+                    recognized = true;
+                    break;
+                }
             }
-            if (matched == null) {
-                return new MaterialPlan(
-                        "strengthen.error.invalid_optional_material",
-                        buildRequiredMaterials(stage, availableByItem),
-                        buildEmptyOptionalMaterials(context),
-                        false,
-                        0
-                );
-            }
-            matchedTokens.add(token);
-            availableByItem.merge(token, input.getAmount(), Integer::sum);
-        }
-
-        List<AttemptMaterial> requiredMaterials = buildRequiredMaterials(stage, availableByItem);
-        for (AttemptMaterial material : requiredMaterials) {
-            if (!material.satisfied()) {
-                return new MaterialPlan(
-                        "strengthen.error.material_missing",
-                        requiredMaterials,
-                        buildGuiMaterials(inputs, matchedTokens, materialsByItem, new LinkedHashMap<>()),
-                        false,
-                        0
-                );
+            if (!recognized) {
+                return new MaterialPlan("strengthen.error.invalid_optional_material",
+                        requiredMaterials(stage, allocations, -1, null, 0),
+                        inputMaterials(inputStates, definitions, planned), false, 0);
             }
         }
 
-        Map<String, Integer> remainingConsumes = new LinkedHashMap<>();
-        boolean protectionApplied = false;
-        for (Map.Entry<String, StrengthenRecipe.StarStageMaterial> entry : materialsByItem.entrySet()) {
-            int available = availableByItem.getOrDefault(entry.getKey(), 0);
-            remainingConsumes.put(entry.getKey(), resolveTotalConsumeAmount(entry.getValue(), available));
-            protectionApplied = protectionApplied || (entry.getValue().protection() && available > 0);
-        }
-
-        List<AttemptMaterial> guiMaterials = buildGuiMaterials(inputs, matchedTokens, materialsByItem, remainingConsumes);
+        List<AttemptMaterial> required = requiredMaterials(stage, allocations, -1, null, 0);
+        List<AttemptMaterial> inputMaterials = inputMaterials(inputStates, definitions, planned);
+        boolean protection = false;
         int temperBonus = 0;
-        for (AttemptMaterial material : guiMaterials) {
-            if (material == null || material.consumedAmount() <= 0) {
-                continue;
+        for (DefinitionAllocation allocation : allocations) {
+            int consumed = allocation.consumed();
+            if (allocation.material().protection() && allocation.assigned() > 0) {
+                protection = true;
             }
-            temperBonus += material.consumedAmount() * material.temperBoost();
+            temperBonus += consumed * allocation.material().temperBoost();
         }
-
-        return new MaterialPlan("", requiredMaterials, guiMaterials, protectionApplied, temperBonus);
+        return new MaterialPlan("", required, inputMaterials, protection, temperBonus);
     }
 
-    private List<AttemptMaterial> buildRequiredMaterials(StrengthenRecipe.StarStage stage, Map<String, Integer> availableByItem) {
-        if (stage == null || stage.materials().isEmpty()) {
-            return List.of();
-        }
-        List<AttemptMaterial> requiredMaterials = new ArrayList<>();
-        for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
-            if (material == null || Texts.isBlank(material.item())) {
-                continue;
-            }
-            int available = availableByItem.getOrDefault(Texts.lower(material.item()), 0);
-            int requiredAmount = resolveRequiredGuiAmount(material);
-            requiredMaterials.add(new AttemptMaterial(
-                    material.item(),
-                    requiredAmount,
-                    available,
-                    false,
-                    material.protection(),
-                    material.temperBoost(),
-                    resolveTotalConsumeAmount(material, available)
-            ));
-        }
-        return List.copyOf(requiredMaterials);
-    }
-
-    private List<AttemptMaterial> buildGuiMaterials(List<ItemStack> inputs,
-            List<String> matchedTokens,
-            Map<String, StrengthenRecipe.StarStageMaterial> materialsByItem,
-            Map<String, Integer> remainingConsumes) {
-        List<AttemptMaterial> optionalMaterials = new ArrayList<>();
+    private List<InputState> createInputStates(List<ItemStack> inputs) {
+        List<InputState> states = new ArrayList<>();
         for (int index = 0; index < inputs.size(); index++) {
-            ItemStack input = inputs.get(index);
-            if (input == null || input.getType().isAir()) {
-                optionalMaterials.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
-                continue;
-            }
-            String token = index < matchedTokens.size() ? matchedTokens.get(index) : "";
-            StrengthenRecipe.StarStageMaterial matched = materialsByItem.get(token);
-            if (matched == null) {
-                optionalMaterials.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
-                continue;
-            }
-            int available = input.getAmount();
-            int consumed = Math.min(available, Math.max(0, remainingConsumes.getOrDefault(token, 0)));
-            if (consumed > 0) {
-                remainingConsumes.put(token, Math.max(0, remainingConsumes.get(token) - consumed));
-            }
-            optionalMaterials.add(new AttemptMaterial(
-                    matched.item(),
-                    matched.amount(),
-                    available,
-                    matched.optional(),
-                    matched.protection(),
-                    matched.temperBoost(),
-                    consumed
-            ));
+            ItemStack stack = inputs.get(index);
+            ItemSourceRef source = stack == null || stack.getType().isAir() ? null : recipeResolver.resolveBaseSource(stack);
+            states.add(new InputState(index, stack, source, Texts.toStringSafe(ItemSourceUtil.toShorthand(source))));
         }
-        return List.copyOf(optionalMaterials);
+        return List.copyOf(states);
     }
 
-    private List<AttemptMaterial> buildEmptyOptionalMaterials(AttemptContext context) {
-        List<ItemStack> inputs = context == null ? List.of() : context.materialInputs();
-        List<AttemptMaterial> result = new ArrayList<>();
-        for (int index = 0; index < inputs.size(); index++) {
-            result.add(new AttemptMaterial("", 0, 0, true, false, 0, 0));
+    private List<DefinitionAllocation> toAllocations(MaterialIdentityPlanner.Plan plan,
+            Map<Integer, StrengthenRecipe.StarStageMaterial> materialByOrder,
+            Map<Integer, InputState> inputByIndex) {
+        Map<Integer, List<InputAllocation>> entriesByOrder = new LinkedHashMap<>();
+        Map<Integer, Integer> assignedByOrder = new LinkedHashMap<>();
+        for (MaterialIdentityPlanner.Allocation allocation : plan.allocations()) {
+            InputState input = inputByIndex.get(allocation.inputIndex());
+            if (input == null) {
+                continue;
+            }
+            entriesByOrder.computeIfAbsent(allocation.definitionOrder(), ignored -> new ArrayList<>())
+                    .add(new InputAllocation(input, allocation.assigned(), allocation.consumed()));
+            assignedByOrder.merge(allocation.definitionOrder(), allocation.assigned(), Integer::sum);
+        }
+        List<DefinitionAllocation> result = new ArrayList<>();
+        for (Map.Entry<Integer, StrengthenRecipe.StarStageMaterial> entry : materialByOrder.entrySet()) {
+            result.add(new DefinitionAllocation(entry.getKey(), entry.getValue(),
+                    assignedByOrder.getOrDefault(entry.getKey(), 0),
+                    List.copyOf(entriesByOrder.getOrDefault(entry.getKey(), List.of()))));
         }
         return List.copyOf(result);
     }
 
-    private int resolveTotalConsumeAmount(StrengthenRecipe.StarStageMaterial material, int available) {
-        if (material == null || available <= 0) {
-            return 0;
-        }
-        if (material.protection()) {
-            return 1;
-        }
-        if (material.amount() > 0) {
-            return Math.min(material.amount(), available);
-        }
-        return available;
-    }
-
-    private int resolveRequiredGuiAmount(StrengthenRecipe.StarStageMaterial material) {
-        if (material == null) {
-            return 1;
-        }
-        return material.amount() < 0 ? 1 : Math.max(1, material.amount());
-    }
-
-    private String resolveItemToken(ItemStack itemStack) {
-        ItemSourceRef source = recipeResolver.resolveBaseSource(itemStack);
-        return source == null ? "" : ItemSourceUtil.toShorthand(source);
-    }
-
-    private boolean satisfiesTargetAwareRule(String recipeId,
+    private boolean matches(StrengthenRecipe.StarStageMaterial material,
+            String recipeId,
             int targetStar,
-            String itemToken,
             ItemStack candidate,
-            @Nullable ItemStack targetItem,
+            @Nullable ItemSourceRef candidateSource,
+            @Nullable ItemStack target,
             @Nullable ItemSourceRef targetSource,
             @Nullable Player player,
             String branchPath) {
-        if (plugin == null || Texts.isBlank(recipeId) || plugin.recipeLoader() == null) {
-            return true;
-        }
-        StarStageMaterialRule rule = plugin.recipeLoader().materialRule(recipeId, targetStar, itemToken, branchPath);
-        if (!rule.constrains()) {
-            return true;
-        }
         try {
             VariableContext variables = EnhancementMaterialVariables.enrich(
-                    VariableContext.builder(player).build(), candidate, targetItem, targetStar, null, null);
+                    VariableContext.builder(player).build(), candidate, target, targetStar, null, null);
+            StarStageMaterialRule rule = materialRule(recipeId, targetStar, material, branchPath);
             if (!satisfiesCompare(rule.targetCompare(), variables)) {
                 return false;
             }
-            Matcher matcher = rule.matcher();
-            if (matcher == null) {
-                return true;
+            MatchContext context = new MatchContext(candidate, candidateSource, player, target, targetSource, variables);
+            List<ItemSourceRef> sources = new ArrayList<>();
+            for (String source : material.itemSources()) {
+                ItemSourceRef parsed = ItemSourceUtil.parse(source);
+                if (parsed != null) {
+                    sources.add(parsed);
+                }
             }
-            MatchContext matchContext = new MatchContext(candidate,
-                    recipeResolver.resolveBaseSource(candidate), player, targetItem, targetSource, variables);
-            return matcher.test(matchContext);
+            Matcher matcher = material.matcherConfig() == null ? rule.matcher() : Matcher.fromConfig(material.matcherConfig());
+            ItemRequirement requirement = new ItemRequirement(sources, matcher, material.materialId());
+            return requirement.test(context);
         } catch (RuntimeException | LinkageError exception) {
             warnRuleFailure(exception);
             return false;
         }
+    }
+
+    private StarStageMaterialRule materialRule(String recipeId,
+            int targetStar,
+            StrengthenRecipe.StarStageMaterial material,
+            String branchPath) {
+        if (plugin == null || Texts.isBlank(recipeId) || plugin.recipeLoader() == null) {
+            return StarStageMaterialRule.inert();
+        }
+        return plugin.recipeLoader().materialRule(recipeId, targetStar, material.materialId(), branchPath);
+    }
+
+    private List<AttemptMaterial> requiredMaterials(StrengthenRecipe.StarStage stage,
+            List<DefinitionAllocation> allocations,
+            int pendingIndex,
+            @Nullable StrengthenRecipe.StarStageMaterial pending,
+            int pendingRequired) {
+        Map<Integer, DefinitionAllocation> byIndex = new LinkedHashMap<>();
+        for (DefinitionAllocation allocation : allocations) {
+            byIndex.put(allocation.definitionIndex(), allocation);
+        }
+        List<AttemptMaterial> result = new ArrayList<>();
+        for (int index = 0; index < stage.materials().size(); index++) {
+            StrengthenRecipe.StarStageMaterial material = index == pendingIndex ? pending : stage.materials().get(index);
+            if (material == null || Texts.isBlank(material.materialId()) || material.optional()) {
+                continue;
+            }
+            DefinitionAllocation allocation = byIndex.get(index);
+            int required = index == pendingIndex ? pendingRequired : requiredAmount(material);
+            int available = allocation == null ? 0 : allocation.assigned();
+            result.add(new AttemptMaterial(material.item(), required, available, material.optional(), material.protection(),
+                    material.temperBoost(), allocation == null ? 0 : allocation.consumed(), material.materialId(),
+                    material.countKey(), -1, String.join(",", material.itemSources())));
+        }
+        return List.copyOf(result);
+    }
+
+    private List<AttemptMaterial> inputMaterials(List<InputState> inputs,
+            List<MaterialIdentityPlanner.Definition> definitions,
+            MaterialIdentityPlanner.Plan plan) {
+        List<MaterialAttemptProjection.Input> projectionInputs = inputs.stream()
+                .map(input -> new MaterialAttemptProjection.Input(input.index(),
+                        input.stack() == null ? 0 : input.stack().getAmount(),
+                        input.auditSourceToken(), input.auditSourceToken()))
+                .toList();
+        return MaterialAttemptProjection.project(definitions, projectionInputs, plan);
+    }
+
+    private static int requiredAmount(StrengthenRecipe.StarStageMaterial material) {
+        return material == null ? 1 : material.amount() < 0 ? 1 : Math.max(1, material.amount());
     }
 
     private static boolean satisfiesCompare(TargetCompareEnum compare, VariableContext variables) {
@@ -271,7 +273,7 @@ final class MaterialPlanResolver {
 
     private void warnRuleFailure(Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning("星级材料目标感知规则判定失败，视为不匹配: "
+            plugin.getLogger().warning("星级材料规则判定失败，视为不匹配: "
                     + String.valueOf(throwable.getMessage()));
         }
     }
@@ -281,6 +283,27 @@ final class MaterialPlanResolver {
             List<AttemptMaterial> optionalMaterials,
             boolean protectionApplied,
             int appliedTemperBonus) {
+    }
 
+    private record InputState(int index,
+            @Nullable ItemStack stack,
+            @Nullable ItemSourceRef source,
+            String auditSourceToken) {
+    }
+
+    private record InputAllocation(InputState input, int assigned, int consumed) {
+    }
+
+    private record DefinitionAllocation(int definitionIndex,
+            StrengthenRecipe.StarStageMaterial material,
+            int assigned,
+            List<InputAllocation> entries) {
+        private int consumed() {
+            int total = 0;
+            for (InputAllocation entry : entries) {
+                total += entry.consumed();
+            }
+            return total;
+        }
     }
 }

@@ -5,8 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
 public record LevelTypeConfig(String id,
         boolean enabled,
@@ -149,17 +151,54 @@ public record LevelTypeConfig(String id,
                 return defaults();
             }
             List<ItemReward> items = new ArrayList<>();
+            int index = 0;
             for (Map<?, ?> entry : section.getMapList("items")) {
-                items.add(ItemReward.parse(entry));
+                items.add(ItemReward.parse(entry, index));
+                index++;
             }
             return new Rewards(items);
         }
     }
 
-    public record ItemReward(String levels, List<String> itemSources, int amount) {
+    public record ItemReward(String levels, String itemSource, int amount) {
 
-        static ItemReward parse(Map<?, ?> values) {
-            return new ItemReward(string(values, "levels", "*"), stringList(values.get("item_sources")), (int) Math.max(1, Math.round(number(values, "amount", 1D))));
+        static ItemReward parse(Map<?, ?> values, int index) {
+            String path = "upgrade.rewards.items[" + index + "]";
+            if (values == null) {
+                throw new IllegalArgumentException(path + ": output entry must be a mapping");
+            }
+            if (values.containsKey("item_source") && values.containsKey("item_sources")) {
+                throw new IllegalArgumentException(path + ": item_source and item_sources cannot both be declared");
+            }
+            if (values.containsKey("matcher")) {
+                throw new IllegalArgumentException(path + ".matcher: matcher is not allowed on output nodes");
+            }
+            String source;
+            if (values.containsKey("item_source")) {
+                Object raw = values.get("item_source");
+                if (raw instanceof Iterable<?> && !(raw instanceof String)) {
+                    throw new IllegalArgumentException(path + ".item_source: canonical item_source must be a single source");
+                }
+                source = string(values, "item_source", "");
+            } else if (values.containsKey("item_sources")) {
+                List<String> legacy = stringList(values.get("item_sources"));
+                if (legacy.size() != 1) {
+                    throw new IllegalArgumentException(path + ".item_sources: legacy item_sources must contain exactly one source");
+                }
+                source = legacy.getFirst();
+            } else {
+                throw new IllegalArgumentException(path + ".item_source: output must declare item_source");
+            }
+            ItemSourceRef parsed = ItemSourceUtil.parse(source);
+            if (parsed == null) {
+                throw new IllegalArgumentException(path + ".item_source: invalid item source");
+            }
+            return new ItemReward(string(values, "levels", "*"), ItemSourceUtil.toShorthand(parsed),
+                    (int) Math.max(1, Math.round(number(values, "amount", 1D))));
+        }
+
+        public List<String> itemSources() {
+            return itemSource.isBlank() ? List.of() : List.of(itemSource);
         }
     }
 

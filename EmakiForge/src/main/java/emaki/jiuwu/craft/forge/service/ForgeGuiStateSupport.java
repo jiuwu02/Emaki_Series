@@ -153,13 +153,13 @@ final class ForgeGuiStateSupport {
             }
             optionalLimit = Math.max(optionalLimit, recipe.optionalMaterialLimit());
             for (ForgeMaterial material : recipe.requiredMaterials()) {
-                if (material != null && !requiredIds.contains(material.key())) {
-                    requiredIds.add(material.key());
+                if (material != null && !requiredIds.contains(material.materialId())) {
+                    requiredIds.add(material.materialId());
                 }
             }
             for (ForgeMaterial material : recipe.optionalMaterials()) {
-                if (material != null && !optionalIds.contains(material.key())) {
-                    optionalIds.add(material.key());
+                if (material != null && !optionalIds.contains(material.materialId())) {
+                    optionalIds.add(material.materialId());
                 }
             }
         }
@@ -177,11 +177,10 @@ final class ForgeGuiStateSupport {
             }
             ForgeMaterial material = recipe.findMaterialMatching(context);
             if (material != null) {
-                return material.key();
+                return material.materialId();
             }
         }
-        ForgeMaterial material = findMaterialBySource(state, source);
-        return material == null ? "" : material.key();
+        return "";
     }
 
     public boolean acceptsBlueprint(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {

@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 
 public final class LevelConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
@@ -30,6 +31,10 @@ public final class LevelConfigPrecheckContributor extends AbstractModuleConfigPr
         checkDirectory(new File(plugin.getDataFolder(), "types"), "types", issues);
         checkDirectory(new File(plugin.getDataFolder(), "sources"), "sources", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateFile(module(),
+                new File(plugin.getDataFolder(), "requirements.yml"), "requirements.yml"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "sources"), "sources"));
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

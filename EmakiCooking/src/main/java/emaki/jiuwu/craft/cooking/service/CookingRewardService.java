@@ -14,8 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
-
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
@@ -37,7 +36,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 
 public final class CookingRewardService {
 
-    private final JavaPlugin plugin;
+    private final EmakiCookingPlugin plugin;
     @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
@@ -45,10 +44,10 @@ public final class CookingRewardService {
     private final EmakiItemAssemblyService itemAssemblyService;
     private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
-    private final CookingLayerSnapshotBuilder snapshotBuilder = new CookingLayerSnapshotBuilder();
+    private final CookingLayerSnapshotBuilder snapshotBuilder;
     private CookingRecipeService recipeService;
 
-    public CookingRewardService(JavaPlugin plugin,
+    public CookingRewardService(EmakiCookingPlugin plugin,
             MessageService messageService,
             ItemSourceService itemSourceService,
             ActionLineRunner actionLines,
@@ -56,6 +55,7 @@ public final class CookingRewardService {
             EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.snapshotBuilder = new CookingLayerSnapshotBuilder(plugin);
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
         this.actionLines = actionLines;
@@ -358,9 +358,8 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return null;
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         if (source == null) {
-            plugin.getLogger().warning("[CookingReward] Failed to parse item_sources from output: " + output.get("item_sources"));
             return null;
         }
         int amount = resolveAmount(output);
@@ -567,7 +566,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

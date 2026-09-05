@@ -56,7 +56,8 @@ public final class MaterialAllocator {
     private static List<MaterialRequest> scale(List<MaterialRequest> requests, int batch) {
         List<MaterialRequest> scaled = new ArrayList<>(requests.size());
         for (MaterialRequest request : requests) {
-            scaled.add(new MaterialRequest(request.matcher(), request.quantity() * batch));
+            scaled.add(new MaterialRequest(request.requirement(), request.quantity() * batch,
+                    request.materialId(), request.requirementId(), request.countKey(), request.slotId(), request.auditId()));
         }
         return scaled;
     }
@@ -105,7 +106,7 @@ public final class MaterialAllocator {
                 if (requests.get(requestIndex).quantity() <= 0) {
                     continue;
                 }
-                if (testMatcher(requests.get(requestIndex).matcher(), context)) {
+                if (testRequirement(requests.get(requestIndex).requirement(), context)) {
                     capacity[stackNode(stackIndex)][requestNode(stackCount, requestIndex)] = stack.getAmount();
                 }
             }
@@ -136,7 +137,9 @@ public final class MaterialAllocator {
             for (int requestIndex = 0; requestIndex < requestCount; requestIndex++) {
                 int amount = flow[stackNode(stackIndex)][requestNode(stackCount, requestIndex)];
                 if (amount > 0) {
-                    assignments.add(new MaterialAllocation.Assignment(requestIndex, stacks.get(stackIndex), amount));
+                    MaterialRequest request = requests.get(requestIndex);
+                    assignments.add(new MaterialAllocation.Assignment(requestIndex, stacks.get(stackIndex), amount,
+                            request.materialId(), request.requirementId(), request.countKey(), request.slotId(), request.auditId()));
                 }
             }
         }
@@ -148,17 +151,19 @@ public final class MaterialAllocator {
             int allocated = flow[requestNode(stackCount, requestIndex)][sink];
             int requestQuantity = requests.get(requestIndex).quantity();
             if (allocated < requestQuantity) {
-                shortages.add(new MaterialAllocation.Shortage(requestIndex, requestQuantity, allocated));
+                MaterialRequest request = requests.get(requestIndex);
+                shortages.add(new MaterialAllocation.Shortage(requestIndex, requestQuantity, allocated,
+                        request.materialId(), request.requirementId(), request.countKey(), request.slotId(), request.auditId()));
             }
         }
         return MaterialAllocation.failure(assignments, shortages);
     }
 
-    private static boolean testMatcher(Matcher matcher, MatchContext context) {
+    private static boolean testRequirement(ItemRequirement requirement, MatchContext context) {
         try {
-            return matcher.test(context);
+            return requirement.test(context);
         } catch (RuntimeException exception) {
-            ComponentMatcherSupport.LOGGER.warning("Material allocation matcher threw and is treated as no match: "
+            ComponentMatcherSupport.LOGGER.warning("Material allocation requirement threw and is treated as no match: "
                     + exception.getClass().getSimpleName());
             return false;
         }

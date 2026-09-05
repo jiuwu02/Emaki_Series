@@ -4,6 +4,7 @@
 # 配方 ID 取自 id，与文件名无关。
 # ============================================================
 
+schema_version: 2
 id: "example_recipe"
 
 display_name: "<gold>物理武器强化</gold>"
@@ -60,16 +61,12 @@ success_rates:
 # ============================================================
 # 匹配规则
 # ============================================================
-# matcher 使用 CoreLib 统一匹配器；当前 all_of 要求物品源与组件条件同时成立。
+# matcher 只表达组件、PDC、Lore 等非物品源条件；物品源条件写在下方 source_patterns。
+# ⚠ matcher 内禁止写物品源条件。
 matcher:
-  type: all_of
-  matchers:
-    - type: item_source
-      sources:
-        - emakiitem-example_item
-    - type: component
-      component: custom_name
-      operator: exists
+  type: component
+  component: custom_name
+  operator: exists
 
 # ============================================================
 # 三个顶层匹配字段（与 matcher 取 AND，都成立才命中）
@@ -78,9 +75,13 @@ matcher:
 #   slot_groups     粗粒度槽位组/装备类型组（weapon/armor/offhand/generic），
 #                   不是 main_hand/helmet 这类具体装备槽位
 #   stats_any       只要拥有其中任一属性即满足（读 EmakiAttribute 属性）
-#   source_patterns 对物品源简写做正则（忽略大小写，部分匹配即算命中）
+#   source_patterns 对物品源简写做正则（忽略大小写，部分匹配即算命中）。
+#                   要精确绑定单一物品源就加锚点，如 "^emakiitem-example_item$"。
 slot_groups:
   - "weapon"
+
+source_patterns:
+  - "^emakiitem-example_item$"
 
 
 # ============================================================
@@ -138,9 +139,11 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 2
-      # item_sources 先选择材料令牌，matcher 再复核实际物品；两者都必须成立。
+      # item_sources 与 matcher 统一经 ItemRequirement 判定；来源和组件条件都必须成立。
       # 星级区间由 min_target_star/max_target_star 独立控制；optional 不阻断强化。
-      - item_sources:
+      - material_id: "flame_gold_nugget"
+        count_key: "flame_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: 1
         optional: true
@@ -211,7 +214,9 @@ stars:
       # amount: -1 表示不消耗，仅检测是否持有
       # optional: true 表示此材料为可选（不放也能强化）
       # protection: true 表示放入后可提供保护效果（失败不降星）
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -254,7 +259,9 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 6
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -282,7 +289,9 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 8
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -306,7 +315,9 @@ stars:
       - item_sources:
           - "minecraft-gunpowder"
         amount: 10
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -340,7 +351,9 @@ stars:
       - item_sources:
           - "minecraft-paper"
         amount: 2
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -371,7 +384,9 @@ stars:
       - item_sources:
           - "minecraft-paper"
         amount: 2
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -405,7 +420,9 @@ stars:
       - item_sources:
           - "minecraft-echo_shard"
         amount: 2
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -436,7 +453,9 @@ stars:
       - item_sources:
           - "minecraft-echo_shard"
         amount: 3
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true
@@ -475,7 +494,9 @@ stars:
       - item_sources:
           - "minecraft-echo_shard"
         amount: 4
-      - item_sources:
+      - material_id: "protection_gold_nugget"
+        count_key: "protection_gold_nugget"
+        item_sources:
           - "minecraft-gold_nugget"
         amount: -1
         optional: true

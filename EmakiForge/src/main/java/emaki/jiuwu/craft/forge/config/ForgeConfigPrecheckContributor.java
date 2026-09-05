@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 
 public final class ForgeConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
@@ -29,6 +30,8 @@ public final class ForgeConfigPrecheckContributor extends AbstractModuleConfigPr
         checkDirectory(new File(plugin.getDataFolder(), "recipes"), "recipes", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "recipes"), "recipes"));
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

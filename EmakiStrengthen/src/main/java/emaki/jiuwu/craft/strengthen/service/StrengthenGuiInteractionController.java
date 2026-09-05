@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -294,13 +295,15 @@ final class StrengthenGuiInteractionController {
         if (state == null || preview == null) {
             return;
         }
+        Map<Integer, Integer> consumedByInput = new LinkedHashMap<>();
+        for (AttemptMaterial material : preview.optionalMaterials()) {
+            if (material != null && material.inputIndex() >= 0 && material.consumedAmount() > 0) {
+                consumedByInput.merge(material.inputIndex(), material.consumedAmount(), Integer::sum);
+            }
+        }
         for (int index = 0; index < state.materialInputs().size(); index++) {
             ItemStack itemStack = state.materialInput(index);
-            AttemptMaterial material = index < preview.optionalMaterials().size()
-                    ? preview.optionalMaterials().get(index)
-                    : null;
-            int consumeAmount = material == null ? 0 : material.consumedAmount();
-            returnRemaining(player, itemStack, consumeAmount);
+            returnRemaining(player, itemStack, consumedByInput.getOrDefault(index, 0));
             state.setMaterialInput(index, null);
         }
     }

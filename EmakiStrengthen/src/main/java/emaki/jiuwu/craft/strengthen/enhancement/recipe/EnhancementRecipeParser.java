@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
+import emaki.jiuwu.craft.strengthen.enhancement.cost.EnhancementMaterialSchema;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityCounterConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityDecayConfig;
@@ -36,6 +37,10 @@ public final class EnhancementRecipeParser {
             return null;
         }
 
+        int schemaVersion = section.getInt("schema_version", EnhancementMaterialSchema.LEGACY_VERSION);
+        if (!EnhancementMaterialSchema.supported(schemaVersion)) {
+            return null;
+        }
         String id = section.getString("id");
         if (Texts.isBlank(id)) {
             return null;

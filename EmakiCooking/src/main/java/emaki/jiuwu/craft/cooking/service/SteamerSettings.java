@@ -73,8 +73,13 @@ final class SteamerSettings {
         List<CookingSettingsService.SteamerMoistureRule> result = new ArrayList<>();
         for (Map<?, ?> entry : configuration.get().getMapList("stations.steamer.moisture_rules")) {
             Map<String, Object> normalized = MapYamlSection.normalizeMap(entry);
-            ItemSourceRef input = ItemSourceUtil.parse(normalized.get("input_item_sources"));
-            Matcher inputMatcher = CookingMatchers.parse(normalized, "input_matcher");
+            boolean nestedInput = normalized.get("input") instanceof Map<?, ?>;
+            Map<String, Object> inputNode = nestedInput
+                    ? MapYamlSection.normalizeMap((Map<?, ?>) normalized.get("input"))
+                    : normalized;
+            ItemSourceRef input = ItemSourceUtil.parse(
+                    inputNode.get(nestedInput ? "item_sources" : "input_item_sources"));
+            Matcher inputMatcher = CookingMatchers.parse(inputNode, nestedInput ? "matcher" : "input_matcher");
             if (input == null && inputMatcher == null) {
                 continue;
             }

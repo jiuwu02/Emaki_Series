@@ -1,0 +1,10 @@
+stations:
+  blacksmith:
+    - recipe: iron_sword
+      batch: 1
+      state: waiting
+      duration_ms: 5000
+      consumed:
+        - source: minecraft-iron_ingot
+          amount: 3
+          position: 0

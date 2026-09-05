@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 
 final class JuicerSettings {
 
@@ -24,8 +24,12 @@ final class JuicerSettings {
         return configuration.get().getBoolean("stations.juicer.require_container", true);
     }
 
-    Matcher containerMatcher() {
-        return CookingMatchers.parse(configuration.get(), "stations.juicer.container_matcher");
+    ItemRequirement containerRequirement() {
+        return CookingMatchers.requirementWithLegacyFallback(
+                configuration.get().getSection("stations.juicer"),
+                "container",
+                "container_item_sources",
+                "container_matcher");
     }
 
     int maxFluidMl() {

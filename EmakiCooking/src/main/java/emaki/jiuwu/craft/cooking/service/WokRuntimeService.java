@@ -765,10 +765,10 @@ public final class WokRuntimeService {
             return configured;
         }
         if (Texts.isNotBlank(settingsService.wokInvalidResultSource())) {
-            return Map.of("item_sources", List.of(settingsService.wokInvalidResultSource()), "amount", 1);
+            return Map.of("item_source", settingsService.wokInvalidResultSource(), "amount", 1);
         }
         if (Texts.isNotBlank(settingsService.wokFailureOutputSource())) {
-            return Map.of("item_sources", List.of(settingsService.wokFailureOutputSource()), "amount", 1);
+            return Map.of("item_source", settingsService.wokFailureOutputSource(), "amount", 1);
         }
         return Map.of();
     }
@@ -1013,7 +1013,7 @@ public final class WokRuntimeService {
         if (source == null) {
             return false;
         }
-        return CookingMatchers.accepts(settingsService.wokSpatulaMatcher(), itemStack, source, null);
+        return CookingMatchers.accepts(settingsService.wokSpatulaRequirement(), itemStack, source, null);
     }
 
     private boolean isPlainBowl(ItemStack itemStack) {

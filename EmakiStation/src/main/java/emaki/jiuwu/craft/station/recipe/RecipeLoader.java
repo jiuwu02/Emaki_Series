@@ -11,6 +11,7 @@ import java.util.Set;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
@@ -139,10 +140,25 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
 
     private List<MaterialRequirement> parseRequirements(File file, String recipeId, YamlSection configuration) {
         List<MaterialRequirement> parsed = new ArrayList<>();
-        for (Map<?, ?> raw : configuration.getMapList("materials")) {
+        Set<String> identities = new LinkedHashSet<>();
+        List<?> rawMaterials = configuration.getMapList("materials");
+        for (int index = 0; index < rawMaterials.size(); index++) {
+            Map<?, ?> raw = (Map<?, ?>) rawMaterials.get(index);
             YamlSection entry = section(raw);
             if (entry == null) {
                 continue;
+            }
+            List<String> canonicalTokens = entry.getStringList("item_sources");
+            boolean canonicalDeclared = entry.get("item_sources") != null;
+            String legacyToken = entry.getString("item_source");
+            if (canonicalDeclared && legacyToken != null && !legacyToken.isBlank()) {
+                issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId,
+                        "file", fileName(file)));
+                return List.of();
+            }
+            if (legacyToken != null && !legacyToken.isBlank()) {
+                issue("station.recipe_legacy_item_source", Map.of("recipe", recipeId,
+                        "file", fileName(file)));
             }
             List<ItemSourceRef> sources = parseSources(file, recipeId, entry);
             YamlSection matcherSection = entry.getSection("matcher");
@@ -156,7 +172,34 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                         "amount", String.valueOf(amount)));
                 continue;
             }
-            parsed.add(new MaterialRequirement(sources, amount,
+            String materialId = normalizeId(entry.getString("material_id"));
+            String requirementId = normalizeId(entry.getString("requirement_id"));
+            String countKey = normalizeId(entry.getString("count_key"));
+            boolean materialIdDeclared = materialId != null;
+            boolean requirementIdDeclared = requirementId != null;
+            boolean countKeyDeclared = countKey != null;
+            if (!materialIdDeclared || !requirementIdDeclared || !countKeyDeclared) {
+                issue("station.recipe_derived_material_identity", Map.of("recipe", recipeId,
+                        "file", fileName(file), "index", String.valueOf(index + 1)));
+            }
+            if (materialId == null) {
+                materialId = recipeId + ".material." + index;
+            }
+            if (requirementId == null) {
+                requirementId = materialId;
+            }
+            if (countKey == null) {
+                countKey = materialId;
+            }
+            if (identities.contains(materialId) || identities.contains(requirementId)) {
+                issue("station.recipe_duplicate_material_identity", Map.of("recipe", recipeId,
+                        "identity", identities.contains(materialId) ? materialId : requirementId,
+                        "file", fileName(file)));
+                return List.of();
+            }
+            identities.add(materialId);
+            identities.add(requirementId);
+            parsed.add(new MaterialRequirement(materialId, requirementId, countKey, sources, amount,
                     entry.getBoolean("consume", Boolean.TRUE), matcher));
         }
         return parsed;
@@ -167,14 +210,15 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             return List.of();
         }
         List<RecipeOutput> parsed = new ArrayList<>();
-        for (Map<?, ?> raw : result.getMapList("outputs")) {
-            YamlSection entry = section(raw);
+        List<Map<?, ?>> rawOutputs = result.getMapList("outputs");
+        for (int index = 0; index < rawOutputs.size(); index++) {
+            YamlSection entry = section(rawOutputs.get(index));
             if (entry == null) {
-                continue;
+                return List.of();
             }
-            List<ItemSourceRef> sources = parseSources(file, recipeId, entry);
+            List<ItemSourceRef> sources = parseOutputSources(file, recipeId, entry, index);
             if (sources.isEmpty()) {
-                continue;
+                return List.of();
             }
             long amount = readLong(entry.get("amount"), 1L);
             if (amount <= 0L) {
@@ -185,6 +229,57 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             parsed.add(new RecipeOutput(sources.getFirst(), amount));
         }
         return parsed;
+    }
+
+    private List<ItemSourceRef> parseOutputSources(File file, String recipeId, YamlSection entry, int index) {
+        boolean canonical = entry.contains("item_source");
+        boolean legacy = entry.contains("item_sources");
+        String path = "result.outputs[" + index + "]";
+        if (entry.contains("matcher")) {
+            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                    "source", path + ".matcher is not allowed on output nodes", "file", fileName(file)));
+            return List.of();
+        }
+        if (canonical && legacy) {
+            issue("station.recipe_source_field_conflict", Map.of("recipe", recipeId,
+                    "file", fileName(file), "path", path));
+            return List.of();
+        }
+        if (canonical) {
+            Object raw = entry.get("item_source");
+            if (raw instanceof Iterable<?> && !(raw instanceof String)) {
+                issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                        "source", path + ".item_source must be a single value", "file", fileName(file)));
+                return List.of();
+            }
+            ItemSourceRef ref = ItemSourceUtil.parse(raw);
+            if (ref == null) {
+                issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                        "source", path + ".item_source", "file", fileName(file)));
+                return List.of();
+            }
+            return List.of(ref);
+        }
+        if (!legacy) {
+            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                    "source", path + ".item_source is required", "file", fileName(file)));
+            return List.of();
+        }
+        List<Object> values = ConfigNodes.asObjectList(entry.get("item_sources"));
+        if (values.size() != 1) {
+            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                    "source", path + ".item_sources must contain exactly one value", "file", fileName(file)));
+            return List.of();
+        }
+        ItemSourceRef ref = ItemSourceUtil.parse(values.getFirst());
+        if (ref == null) {
+            issue("station.recipe_bad_source", Map.of("recipe", recipeId,
+                    "source", path + ".item_sources[0]", "file", fileName(file)));
+            return List.of();
+        }
+        issue("station.recipe_legacy_item_source", Map.of("recipe", recipeId,
+                "file", fileName(file), "path", path + ".item_sources"));
+        return List.of(ref);
     }
 
     private List<ItemSourceRef> parseSources(File file, String recipeId, YamlSection entry) {

@@ -41,12 +41,64 @@ public record MaterialAllocation(boolean satisfied,
         return consumed;
     }
 
-    public record Assignment(int requirementIndex, @NotNull ItemStack stack, int amount) {
+    public record Assignment(int requirementIndex,
+            @NotNull ItemStack stack,
+            int amount,
+            @NotNull String materialId,
+            @NotNull String requirementId,
+            @NotNull String countKey,
+            @NotNull String slotId,
+            @NotNull String auditId) {
+        public Assignment {
+            amount = Math.max(0, amount);
+            materialId = normalize(materialId);
+            requirementId = normalize(requirementId);
+            countKey = normalize(countKey);
+            slotId = normalize(slotId);
+            auditId = normalize(auditId);
+        }
+
+        public Assignment(int requirementIndex, @NotNull ItemStack stack, int amount) {
+            this(requirementIndex, stack, amount, "", "", "", "", "");
+        }
+
+        public @NotNull String identity() {
+            return materialId.isBlank() ? requirementId : materialId;
+        }
     }
 
-    public record Shortage(int requirementIndex, int required, int allocated) {
+    public record Shortage(int requirementIndex,
+            int required,
+            int allocated,
+            @NotNull String materialId,
+            @NotNull String requirementId,
+            @NotNull String countKey,
+            @NotNull String slotId,
+            @NotNull String auditId) {
+        public Shortage {
+            required = Math.max(0, required);
+            allocated = Math.max(0, allocated);
+            materialId = normalize(materialId);
+            requirementId = normalize(requirementId);
+            countKey = normalize(countKey);
+            slotId = normalize(slotId);
+            auditId = normalize(auditId);
+        }
+
+        public Shortage(int requirementIndex, int required, int allocated) {
+            this(requirementIndex, required, allocated, "", "", "", "", "");
+        }
+
+        public @NotNull String identity() {
+            return materialId.isBlank() ? requirementId : materialId;
+        }
+
         public int missing() {
             return Math.max(0, required - allocated);
         }
+    }
+
+    private static String normalize(String value) {
+        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
     }
 }

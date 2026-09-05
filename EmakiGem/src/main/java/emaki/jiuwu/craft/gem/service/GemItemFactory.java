@@ -38,10 +38,10 @@ public final class GemItemFactory {
     }
 
     public ItemStack createGemItem(GemDefinition definition, int level, int amount) {
-        if (definition == null || definition.itemSource() == null) {
+        if (definition == null || definition.baseItemSource() == null) {
             return null;
         }
-        ItemStack itemStack = createBaseItem(definition.itemSource(), amount);
+        ItemStack itemStack = createBaseItem(definition.baseItemSource(), amount);
         if (itemStack == null) {
             return null;
         }
@@ -169,7 +169,7 @@ public final class GemItemFactory {
         if (Texts.isNotBlank(configuredDisplayName)) {
             return configuredDisplayName;
         }
-        ItemStack previewItem = createBaseItem(definition.itemSource(), 1);
+        ItemStack previewItem = createBaseItem(definition.baseItemSource(), 1);
         if (previewItem != null) {
             String effectiveName = ItemTextBridge.effectiveNameText(previewItem);
             if (Texts.isNotBlank(effectiveName)) {

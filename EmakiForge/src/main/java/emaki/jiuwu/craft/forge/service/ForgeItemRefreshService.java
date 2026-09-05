@@ -28,7 +28,9 @@ import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
@@ -301,13 +303,20 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             );
             return null;
         }
-        List<ForgeMaterialContribution> materials = resolveAuditMaterials(recipeId, audit.get("materials"), snapshotIdentity(audit));
-        if (materials == null) {
+        ResolvedAuditMaterials resolvedMaterials = resolveAuditMaterials(
+                recipe,
+                audit.get("materials"),
+                snapshotIdentity(audit)
+        );
+        if (resolvedMaterials == null) {
             return null;
         }
+        List<ForgeMaterialContribution> materials = resolvedMaterials.materials();
         String signature = snapshotBuilder.buildMaterialsSignature(materials);
         String oldSignature = Texts.toStringSafe(audit.get("materials_signature"));
-        boolean shouldRefresh = Texts.isBlank(oldSignature) || !oldSignature.equals(signature);
+        boolean shouldRefresh = resolvedMaterials.requiresIdentityMigration()
+                || Texts.isBlank(oldSignature)
+                || !oldSignature.equals(signature);
         if (!shouldRefresh) {
             return new RefreshPlan(false, recipe, materials, storedTier, storedTier.multiplier(), readForgedAt(audit), signature);
         }
@@ -319,47 +328,70 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         return new RefreshPlan(true, recipe, materials, refreshedTier, refreshedTier.multiplier(), readForgedAt(audit), signature);
     }
 
-    private List<ForgeMaterialContribution> resolveAuditMaterials(String recipeId, Object rawMaterials, String snapshotId) {
+    private ResolvedAuditMaterials resolveAuditMaterials(Recipe recipe, Object rawMaterials, String snapshotId) {
+        if (recipe == null) {
+            return null;
+        }
         List<ForgeMaterialContribution> result = new ArrayList<>();
+        boolean requiresIdentityMigration = false;
         int fallbackSequence = 0;
         for (Object rawEntry : ConfigNodes.asObjectList(rawMaterials)) {
             Map<String, Object> entry = ConfigNodes.entries(rawEntry);
-            String materialItem = ConfigNodes.string(entry, "material_item", null);
-            if (Texts.isBlank(materialItem)) {
-                warnOnce(
-                        "invalid_material_entry|" + recipeId + "|" + snapshotId + "|" + fallbackSequence,
-                        "console.forge_refresh_invalid_audit",
-                        Map.of("reason", "missing material_item")
-                );
-                return null;
-            }
-            Recipe recipe = plugin.recipeLoader().all().get(recipeId);
-            ForgeMaterial material = recipe == null ? null : recipe.findMaterialByItem(materialItem);
+            ForgeAuditIdentityResolver.Resolution<ForgeMaterial> resolution = ForgeAuditIdentityResolver.resolve(
+                    entry,
+                    recipe::findMaterialByAuditId,
+                    recipe::findMaterialByIdentity,
+                    recipe::findMaterialByCountKey,
+                    recipe::findMaterialByItem);
+            ForgeMaterial material = resolution.value();
             if (material == null) {
-                warnOnce(
-                        "missing_material|" + recipeId + "|" + materialItem + "|" + snapshotId,
-                        "console.forge_refresh_missing_material",
-                        Map.of("recipe", recipeId, "material", materialItem)
-                );
+                String lookupIdentity = resolution.lookupIdentity();
+                if (Texts.isBlank(lookupIdentity)) {
+                    warnOnce(
+                            "invalid_material_entry|" + recipe.id() + "|" + snapshotId + "|" + fallbackSequence,
+                            "console.forge_refresh_invalid_audit",
+                            Map.of("reason", "missing material identity")
+                    );
+                } else {
+                    warnOnce(
+                            "missing_material|" + recipe.id() + "|" + lookupIdentity + "|" + snapshotId,
+                            "console.forge_refresh_missing_material",
+                            Map.of("recipe", recipe.id(), "material", lookupIdentity)
+                    );
+                }
                 return null;
             }
-            int amount = Numbers.tryParseInt(entry.get("amount"), 0);
-            if (amount <= 0) {
+            requiresIdentityMigration |= resolution.requiresMigration();
+            int amount = resolution.fields().contributionAmount();
+            int amountConsumed = resolution.fields().amountConsumed();
+            if (amount <= 0 || amountConsumed <= 0) {
                 fallbackSequence++;
                 continue;
             }
+            int slot = Numbers.tryParseInt(entry.get("slot"), -1);
             int sequence = Numbers.tryParseInt(entry.get("sequence"), fallbackSequence);
             result.add(new ForgeMaterialContribution(
                     material,
                     amount,
-                    Numbers.tryParseInt(entry.get("slot"), -1),
+                    amountConsumed,
+                    slot,
                     ConfigNodes.string(entry, "category", ""),
                     sequence,
-                    material.source()
+                    resolveMatchedSource(entry, material),
+                    List.of(Map.of("slot", slot, "amount", amountConsumed))
             ));
             fallbackSequence = Math.max(fallbackSequence + 1, sequence + 1);
         }
-        return result;
+        return new ResolvedAuditMaterials(result, requiresIdentityMigration);
+    }
+
+    private ItemSourceRef resolveMatchedSource(Map<String, Object> entry, ForgeMaterial material) {
+        String raw = ConfigNodes.string(entry, "matched_source", ConfigNodes.string(entry, "source", ""));
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
+        if (source != null) {
+            return source;
+        }
+        return material == null ? null : material.source();
     }
 
     private long readForgedAt(Map<String, Object> audit) {
@@ -596,6 +628,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     private record StateLoss(boolean detected, List<String> missingPdc, List<String> missingOperations) {
+    }
+
+    private record ResolvedAuditMaterials(List<ForgeMaterialContribution> materials,
+                                          boolean requiresIdentityMigration) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,

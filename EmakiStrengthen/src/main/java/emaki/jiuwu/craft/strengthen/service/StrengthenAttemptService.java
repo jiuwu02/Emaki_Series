@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -725,16 +726,32 @@ public final class StrengthenAttemptService {
     }
 
     private String buildMaterialsSignature(AttemptPreview preview) {
-        List<Object> signatureData = new ArrayList<>();
-        if (preview != null && preview.optionalMaterials() != null) {
-            for (AttemptMaterial material : preview.optionalMaterials()) {
-                if (material == null || Texts.isBlank(material.item()) || material.consumedAmount() <= 0) {
+        return SignatureUtil.stableSignature(materialSignatureRows(
+                preview == null ? List.of() : preview.optionalMaterials()));
+    }
+
+    static List<Object> materialSignatureRows(List<AttemptMaterial> materials) {
+        Map<String, Integer> amountsByIdentity = new TreeMap<>();
+        Map<String, MaterialSignatureEntry> identities = new TreeMap<>();
+        if (materials != null) {
+            for (AttemptMaterial material : materials) {
+                if (material == null || material.consumedAmount() <= 0) {
                     continue;
                 }
-                signatureData.add(Map.of("item", material.item(), "amount", material.consumedAmount()));
+                MaterialSignatureEntry identity = new MaterialSignatureEntry(
+                        material.materialId(), material.countKey(), 0);
+                String key = identity.materialId() + "\u0000" + identity.countKey();
+                identities.putIfAbsent(key, identity);
+                amountsByIdentity.merge(key, material.consumedAmount(), Integer::sum);
             }
         }
-        return SignatureUtil.stableSignature(signatureData);
+        List<Object> signatureData = new ArrayList<>();
+        for (Map.Entry<String, MaterialSignatureEntry> entry : identities.entrySet()) {
+            MaterialSignatureEntry identity = entry.getValue();
+            signatureData.add(new MaterialSignatureEntry(identity.materialId(), identity.countKey(),
+                    amountsByIdentity.getOrDefault(entry.getKey(), 0)).row());
+        }
+        return List.copyOf(signatureData);
     }
 
     private Map<String, Object> replacements(AttemptPreview preview, int star) {

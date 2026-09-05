@@ -60,36 +60,36 @@ cost:
 #   has_key / has_value
 #   size
 materials:
-  # 第 1 条：matcher 与 item_sources 并存。
-  # 两者都写时，【判定完全由 matcher 决定，item_sources 不参与判定】，
-  # 但 item_sources 仍负责两件事：给界面提供图标与物品名，以及决定界面
-  # "拥有量"按哪些物品源统计（此时统计口径可能宽于 matcher 的实际判定）。
-  # 所以这里的 item_sources 写的是 matcher 内部同一个物品源，保持一致。
-  - item_sources:
+  # 第 1 条：item_sources 与 matcher 并存。
+  # 两者是同级判定条件，按 AND 同时成立才算命中。
+  # item_sources 还额外负责：给界面提供图标与物品名，以及决定仓库按哪些物品源检索。
+  # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+  - material_id: refined_iron
+    requirement_id: refined_iron_input
+    count_key: refined_iron
+    item_sources:
       - "minecraft-iron_ingot"
     amount: 2
     consume: true
     matcher:
-      type: all_of
-      matchers:
-        - type: item_source
-          sources:
-            - minecraft-iron_ingot
-        - type: component
-          component: custom_name
-          operator: contains
-          value: "精铁"
+      type: component
+      component: custom_name
+      operator: contains
+      value: "精铁"
 
-  # 第 2 条：只写 matcher，不写 item_sources。
-  # ⚠ 这样的材料【只能从背包供料】，仓库检索会直接跳过它：仓库要逐个物品源去查
-  #   库存，而这里没有可枚举的物品源，只有一个谓词。插件在加载时也会就此告警一次
-  #   （lang 里的 storage_unreachable_material），看到该提示即为此原因，不是配置错。
-  #   若这味材料需要走仓库供料，就得补上 item_sources。
-  # 同样因为没有可枚举的物品身份，界面拿不到图标，
+  # 第 2 条：只写 matcher，不写 item_sources（即不限物品源，只看组件条件）。
+  # ⚠ 凡声明了 matcher 的材料都【只能从背包供料】，仓库检索会跳过它：仓库只按物品源
+  #   统计库存，看不到真实物品的组件，无法证明组件条件成立。插件在加载时会就此告警
+  #   一次（lang 里的 storage_unreachable_material），看到该提示即为此原因，不是配置错。
+  #   需要走仓库供料的材料请只写 item_sources、不写 matcher。
+  # 本条还因为没有可枚举的物品身份，界面拿不到图标，
   # 会显示成屏障占位 + gui/station_preview.yml 里 texts.recipe.material_matcher 的文案
   # （默认"自定义条件"）。可以改那个键来自定义显示。
   # at_least + required_count: 2 的含义是"下面三条里至少满足两条"。
-  - amount: 1
+  - material_id: epic_blade
+    requirement_id: epic_blade_input
+    count_key: epic_blade
+    amount: 1
     consume: true
     matcher:
       type: at_least
@@ -112,26 +112,23 @@ materials:
   # 第 3 条：none_of —— 用来表达"不能带某个组件"。
   # consume: false 表示只校验持有、不扣除。
   # 这里的含义是"必须持有一个未被标记为无法破坏的铁镐"。
-  - item_sources:
+  - material_id: plain_iron_pickaxe
+    requirement_id: plain_iron_pickaxe_input
+    count_key: plain_iron_pickaxe
+    item_sources:
       - "minecraft-iron_pickaxe"
     amount: 1
     consume: false
     matcher:
-      type: all_of
+      type: none_of
       matchers:
-        - type: item_source
-          sources:
-            - minecraft-iron_pickaxe
-        - type: none_of
-          matchers:
-            - type: component
-              component: unbreakable
-              operator: exists
+        - type: component
+          component: unbreakable
+          operator: exists
 
 result:
   outputs:
-    - item_sources:
-        - "minecraft-iron_block"
+    - item_source: "minecraft-iron_block"
       amount: 1
 
 condition:

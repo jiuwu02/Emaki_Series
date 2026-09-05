@@ -11,6 +11,7 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
@@ -146,7 +147,7 @@ public final class GemItemMatcher {
                 continue;
             }
             if (matchesSlotGroups(definition, itemStack.getType())
-                    && satisfiesMatcher(definition.matcher(), itemStack, identified)) {
+                    && satisfiesRequirement(definition.recognition(), itemStack, identified)) {
                 return definition;
             }
         }
@@ -161,6 +162,19 @@ public final class GemItemMatcher {
             return matcher.test(MatchContext.of(itemStack, identified, null));
         } catch (RuntimeException | LinkageError failure) {
             plugin.getLogger().warning("Gem matcher evaluation failed, treating the item as unmatched: "
+                    + failure.getMessage());
+            return false;
+        }
+    }
+
+    private boolean satisfiesRequirement(ItemRequirement requirement, ItemStack itemStack, ItemSourceRef identified) {
+        if (requirement == null || requirement.empty()) {
+            return false;
+        }
+        try {
+            return requirement.test(itemStack, identified, null);
+        } catch (RuntimeException | LinkageError failure) {
+            plugin.getLogger().warning("Gem recognition evaluation failed, treating the item as unmatched: "
                     + failure.getMessage());
             return false;
         }
@@ -213,7 +227,7 @@ public final class GemItemMatcher {
     }
 
     private boolean acceptsOpenerItem(SocketOpenerConfig config, ItemStack itemStack, ItemSourceRef identified) {
-        return config.matcher() != null && satisfiesMatcher(config.matcher(), itemStack, identified);
+        return satisfiesRequirement(config.recognition(), itemStack, identified);
     }
 
     private GemDefinition matchGemDefinitionBySource(ItemStack itemStack) {
@@ -226,6 +240,6 @@ public final class GemItemMatcher {
     }
 
     private boolean acceptsGemItem(GemDefinition definition, ItemStack itemStack, ItemSourceRef identified) {
-        return definition.matcher() != null && satisfiesMatcher(definition.matcher(), itemStack, identified);
+        return satisfiesRequirement(definition.recognition(), itemStack, identified);
     }
 }

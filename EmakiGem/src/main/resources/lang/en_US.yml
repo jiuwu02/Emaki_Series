@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.0"
+version: "2.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -71,6 +71,7 @@ loader:
   duplicate_id: "<red>%type% file %file% has duplicate ID: %id%</red>"
   load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
   invalid_config: "<red>%type% file %file% has invalid config, skipped loading.</red>"
+  gem_legacy_item_sources: "<yellow>Gem file %file% uses deprecated top-level item_sources as its construction base; use base_item_source instead: %id%</yellow>"
   gem_missing_item_source: "<red>Gem file %file% has missing or invalid
     item_sources, loading rejected: %id%, value: %item_sources%</red>"
   gem_relationship_self_reference: "<red>Gem file %file% references itself in required_gems or conflicting_gems; loading rejected: %id%</red>"

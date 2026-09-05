@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 public final class ItemConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
@@ -30,6 +31,10 @@ public final class ItemConfigPrecheckContributor extends AbstractModuleConfigPre
         checkDirectory(new File(plugin.getDataFolder(), "items"), "items", issues);
         checkDirectory(new File(plugin.getDataFolder(), "sets"), "sets", issues);
         checkDirectory(new File(plugin.getDataFolder(), "gui"), "gui", issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "items"), "items"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "sets"), "sets"));
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

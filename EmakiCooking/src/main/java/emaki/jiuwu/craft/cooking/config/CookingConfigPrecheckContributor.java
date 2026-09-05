@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
@@ -59,6 +60,10 @@ public final class CookingConfigPrecheckContributor extends AbstractModuleConfig
         addLoaderIssues("recipes/oven", plugin.ovenRecipeLoader().issues(), issues);
         addLoaderIssues("recipes/juicer", plugin.juicerRecipeLoader().issues(), issues);
         addLoaderIssues("recipes/fermentation_barrel", plugin.fermentationBarrelRecipeLoader().issues(), issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateFile(module(),
+                new File(plugin.getDataFolder(), "config.yml"), "config.yml"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "recipes"), "recipes"));
         boolean blockingIssue = issues.stream().anyMatch(issue -> issue.severity().blocking());
         if (!blockingIssue) {
             addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);

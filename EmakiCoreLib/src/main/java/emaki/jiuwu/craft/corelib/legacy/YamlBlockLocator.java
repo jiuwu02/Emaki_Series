@@ -99,9 +99,31 @@ public final class YamlBlockLocator {
         return List.copyOf(matches);
     }
 
+    public static boolean hasSiblingAtKeyColumn(@NotNull List<String> lines,
+            @NotNull Hit legacy,
+            @NotNull String key) {
+        for (int index = legacy.startLine() + 1; index < lines.size(); index++) {
+            String line = lines.get(index);
+            if (skippable(line)) {
+                continue;
+            }
+            int indent = indentOf(line);
+            if (indent < legacy.keyColumn()) {
+                return false;
+            }
+            if (indent == legacy.keyColumn() && key.equals(mappingKey(line, indent))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private static @Nullable Hit siblingIn(List<String> lines, Region region, String matcherKey, Hit legacy) {
         for (Hit candidate : findKeys(lines, region, matcherKey)) {
-            if (candidate.keyColumn() == legacy.keyColumn() && !candidate.inline()) {
+            if (candidate.keyColumn() == legacy.keyColumn()
+                    || ("item_source".equals(matcherKey)
+                            && candidate.keyColumn() > legacy.keyColumn()
+                            && candidate.startLine() < legacy.endLine())) {
                 return candidate;
             }
         }

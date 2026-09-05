@@ -12,6 +12,8 @@ import emaki.jiuwu.craft.station.api.model.QueueEntryView;
 
 public final class QueueEntry {
 
+    private final int schemaVersion;
+    private final String recipeIdentity;
     private final String recipeId;
     private final long batch;
     private final MaterialChannel channel;
@@ -37,6 +39,25 @@ public final class QueueEntry {
             long lastTickMs,
             String costProviderId,
             long costAmount) {
+        this(2, recipeId, recipeId, batch, channel, durationMillis, consumedMaterials, state,
+                startedAtMs, accumulatedMs, lastTickMs, costProviderId, costAmount);
+    }
+
+    public QueueEntry(int schemaVersion,
+            String recipeIdentity,
+            String recipeId,
+            long batch,
+            MaterialChannel channel,
+            long durationMillis,
+            List<ConsumedMaterial> consumedMaterials,
+            QueueEntryState state,
+            long startedAtMs,
+            long accumulatedMs,
+            long lastTickMs,
+            String costProviderId,
+            long costAmount) {
+        this.schemaVersion = Math.max(1, schemaVersion);
+        this.recipeIdentity = recipeIdentity == null || recipeIdentity.isBlank() ? recipeId : recipeIdentity;
         this.recipeId = recipeId;
         this.batch = Math.max(1L, batch);
         this.channel = channel == null ? MaterialChannel.BACKPACK : channel;
@@ -52,6 +73,14 @@ public final class QueueEntry {
         long charged = Math.max(0L, costAmount);
         this.costProviderId = provider.isEmpty() || charged == 0L ? "" : provider;
         this.costAmount = this.costProviderId.isEmpty() ? 0L : charged;
+    }
+
+    public int schemaVersion() {
+        return schemaVersion;
+    }
+
+    public String recipeIdentity() {
+        return recipeIdentity;
     }
 
     public String recipeId() {
@@ -159,6 +188,8 @@ public final class QueueEntry {
 
     public QueueEntryView toView(int index, ProgressMode mode, long now) {
         return new QueueEntryView(index,
+                schemaVersion,
+                recipeIdentity,
                 recipeId,
                 batch,
                 state,

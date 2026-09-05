@@ -3,7 +3,7 @@ package emaki.jiuwu.craft.cooking.service;
 import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 
 final class ChoppingBoardSettings {
 
@@ -25,8 +25,12 @@ final class ChoppingBoardSettings {
         return Math.max(0L, configuration.get().getInt("stations.chopping_board.interaction_delay_ms", 1000));
     }
 
-    Matcher toolMatcher() {
-        return CookingMatchers.parse(configuration.get(), "stations.chopping_board.tool_matcher");
+    ItemRequirement toolRequirement() {
+        return CookingMatchers.requirementWithLegacyFallback(
+                configuration.get().getSection("stations.chopping_board"),
+                "tool",
+                "tool_item_sources",
+                "tool_matcher");
     }
 
     boolean cutDamageEnabled() {

@@ -6,11 +6,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
@@ -19,7 +20,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import org.bukkit.entity.Player;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.NamespacedKey;
@@ -32,7 +33,6 @@ public final class CookingRecipeService {
 
     private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
-    private final Map<RecipeDocument, ItemSourceRef> parsedSourceCache = new ConcurrentHashMap<>();
 
     public CookingRecipeService(EmakiCookingPlugin plugin, CookingSettingsService settingsService) {
         this.plugin = plugin;
@@ -214,8 +214,10 @@ public final class CookingRecipeService {
         return null;
     }
 
-    public Matcher juicerContainerMatcher(RecipeDocument recipe) {
-        return recipe == null ? null : CookingMatchers.parse(recipe.configuration(), "container.matcher");
+    public ItemRequirement juicerContainerRequirement(RecipeDocument recipe) {
+        return recipe == null
+                ? new ItemRequirement(List.of(), null, "")
+                : CookingMatchers.requirement(recipe.configuration(), "container.item_sources", "container.matcher");
     }
 
     public Collection<RecipeDocument> fermentationBarrelRecipes() {
@@ -257,7 +259,41 @@ public final class CookingRecipeService {
     }
 
     public List<Map<String, Object>> fermentationInputs(RecipeDocument recipe) {
-        return recipe == null ? List.of() : mapList(recipe.configuration().getMapList("inputs"));
+        if (recipe == null) {
+            return List.of();
+        }
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<String, Object> raw : mapList(recipe.configuration().getMapList("inputs"))) {
+            Map<String, Object> input = new LinkedHashMap<>(raw);
+            input.put("slot_id", Texts.toStringSafe(input.get("slot_id")).trim().toLowerCase(java.util.Locale.ROOT));
+            input.put("count_key", Texts.toStringSafe(input.get("count_key")).trim().toLowerCase(java.util.Locale.ROOT));
+            input.put("amount", Math.max(1, Numbers.tryParseInt(input.get("amount"), 1)));
+            result.add(Map.copyOf(input));
+        }
+        return List.copyOf(result);
+    }
+
+    public List<CookingInputIngredient> fermentationInputIngredients(RecipeDocument recipe) {
+        List<CookingInputIngredient> result = new ArrayList<>();
+        for (Map<String, Object> input : fermentationInputs(recipe)) {
+            List<String> sources = new ArrayList<>();
+            for (Object source : ConfigNodes.asObjectList(input.get("item_sources"))) {
+                String value = Texts.toStringSafe(source);
+                if (Texts.isNotBlank(value)) {
+                    sources.add(value);
+                }
+            }
+            Map<String, Object> matcher = input.get("matcher") instanceof Map<?, ?> map
+                    ? MapYamlSection.normalizeMap(map) : Map.of();
+            result.add(new CookingInputIngredient(
+                    sources.isEmpty() ? "" : sources.get(0),
+                    Numbers.tryParseInt(input.get("amount"), 1),
+                    Texts.toStringSafe(input.get("slot_id")),
+                    Texts.toStringSafe(input.get("count_key")),
+                    sources,
+                    matcher));
+        }
+        return List.copyOf(result);
     }
 
     public List<Map<String, Object>> wokIngredients(RecipeDocument recipe) {
@@ -464,35 +500,20 @@ public final class CookingRecipeService {
             if (recipe == null) {
                 continue;
             }
-            ItemSourceRef configured = parsedSourceCache.computeIfAbsent(recipe,
-                    r -> ItemSourceUtil.parse(r.configuration().get("input.item_sources")));
-            Matcher inputMatcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
-            if (configured == null && inputMatcher == null) {
-                continue;
-            }
-            if (configured != null && !ItemSourceUtil.matches(configured, expected)) {
+            YamlSection input = recipe.configuration().getSection("input");
+            ItemRequirement requirement = CookingMatchers.requirement(input, "item_sources", "matcher");
+            if (requirement.empty() || !requirement.matchesSource(expected)) {
                 continue;
             }
             if (!canUseRecipe(recipe, player)) {
                 continue;
             }
-            if (!matchesInputMatcher(recipe, itemStack, expected, player)) {
+            if (itemStack != null && !itemStack.getType().isAir() && !requirement.test(itemStack, expected, player)) {
                 continue;
             }
             return recipe;
         }
         return null;
-    }
-
-    private boolean matchesInputMatcher(RecipeDocument recipe, ItemStack itemStack, ItemSourceRef source, Player player) {
-        Matcher matcher = CookingMatchers.parse(recipe.configuration(), "input.matcher");
-        if (matcher == null) {
-            return true;
-        }
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return ItemSourceUtil.parse(recipe.configuration().get("input.item_sources")) != null;
-        }
-        return CookingMatchers.test(matcher, itemStack, source, player);
     }
 
     private boolean matchesWokIngredientPrefix(RecipeDocument recipe, List<WokIngredientInput> actualIngredients, Player player) {
@@ -506,16 +527,13 @@ public final class CookingRecipeService {
                 return false;
             }
             Map<String, Object> expected = expectedIngredients.get(index);
-            ItemSourceRef expectedSource = ItemSourceUtil.parse(firstSourceShorthand(expected.get("item_sources")));
+            ItemRequirement requirement = CookingMatchers.requirement(expected, "item_sources", "matcher");
             int expectedAmount = Math.max(1, Numbers.tryParseInt(expected.get("amount"), 1));
-            if (expectedSource == null && CookingMatchers.parse(expected, "matcher") == null) {
+            if (requirement.empty() || !requirement.matchesSource(ItemSourceUtil.parse(actual.source()))) {
                 return false;
             }
-            if (expectedSource != null
-                    && !ItemSourceUtil.matches(expectedSource, ItemSourceUtil.parse(actual.source()))) {
-                return false;
-            }
-            if (!matchesIngredientMatcher(expected, actual, player)) {
+            if (actual.itemStack() != null && !actual.itemStack().getType().isAir()
+                    && !requirement.test(actual.itemStack(), ItemSourceUtil.parse(actual.source()), player)) {
                 return false;
             }
             if (actual.amount() > expectedAmount) {
@@ -528,26 +546,7 @@ public final class CookingRecipeService {
         return true;
     }
 
-    private boolean matchesIngredientMatcher(Map<String, Object> expected, WokIngredientInput actual, Player player) {
-        Matcher matcher = CookingMatchers.parse(expected, "matcher");
-        if (matcher == null) {
-            return true;
-        }
-        ItemStack itemStack = actual.itemStack();
-        if (itemStack == null || itemStack.getType().isAir()) {
-            return ItemSourceUtil.parse(firstSourceShorthand(expected.get("item_sources"))) != null;
-        }
-        return CookingMatchers.test(matcher, itemStack, ItemSourceUtil.parse(actual.source()), player);
-    }
-
-    private String firstSourceShorthand(Object raw) {
-        ItemSourceRef source = ItemSourceUtil.parse(raw);
-        String shorthand = ItemSourceUtil.toShorthand(source);
-        return shorthand == null ? "" : shorthand;
-    }
-
     public void clearCaches() {
-        parsedSourceCache.clear();
     }
 
     public boolean satisfiesPreviousStep(RecipeDocument recipe, ItemStack itemStack) {

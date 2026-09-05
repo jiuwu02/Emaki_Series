@@ -21,43 +21,39 @@ forge_capacity: 35
 # ============================================================
 # 锻造前必须拥有的物品（不消耗，仅检测持有）。
 # 用于实现"需要先获得配方图纸"的玩法。
-# 判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该条目永不命中。
-# item_sources 已经不参与判定，它在这里只剩一个职责——充当该条目的计数键。
-# 因此推荐两者并写：matcher 负责"算不算这本图纸"，item_sources 负责"按哪个键计数"。
-# 只写 matcher 时计数键改由 matcher 内容派生（哈希形态），
-# 修改 matcher 内容会让派生键随之改变。
+# 判定由两个同级字段共同决定，两者是 AND 关系：
+#   item_sources: 允许的物品源。省略表示不限来源。
+#   matcher:      组件、PDC、Lore 等非物品源条件。省略表示不加额外条件。
+# 两者都省略时该条目永不命中。
+# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+# 可选的 id 字段决定计数身份：不写时按 item_sources 派生（稳定），
+# 纯 matcher 条目则退化为按 matcher 内容派生的哈希键——改动 matcher 内容会让键漂移，
+# 所以纯 matcher 条目建议显式写 id。
 # ⚠ 写法差异（易错点）：
 #   物品源简写用连字符：  "minecraft-enchanted_book"
 #   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
 # ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
 #   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
-# ⚠ 不要为同一种图纸写两个条目：两个条目的计数键不同，会被当成两种图纸，
-#   要求玩家同时持有。要把多种可接受形态写进同一个 matcher 的 any_of 里，
-#   就像下面这样。
+# 同一种图纸的多种可接受形态，写成多个 id 相同的条目：计数按 id 聚合，
+# 玩家持有任一形态都算满足，不会被当成两种图纸要求同时持有。
 blueprint_requirements:
-  # item_sources 在这里仍然保留：它不参与判定，只作为该条目的计数键。
-  # 判定全部交给 matcher，用 any_of 接受两种图纸形态，其中第二种再用 all_of 追加组件条件：
-  #   ① 普通附魔书
-  #   ② 带 custom_model_data 标记的知识书（"官方发放的配方图纸"）
-  - item_sources:
-      - "minecraft-enchanted_book"
+  # 同一逻辑需求"配方图纸"的两种可接受形态，用相同 id 聚合计数：
+  #   ① 带 custom_model_data 标记的知识书（"官方发放的配方图纸"），窄条件写在前
+  #   ② 普通附魔书
+  - id: blueprint_accepted
+    item_sources:
+      - "minecraft-knowledge_book"
+    amount: 1
     matcher:
-      type: any_of
-      matchers:
-        - type: item_source
-          sources:
-            - minecraft-enchanted_book
-        - type: all_of
-          matchers:
-            - type: item_source
-              sources:
-                - "minecraft-knowledge_book"
-            - type: component
-              component: custom_model_data
-              path: "floats[0]"
-              operator: "=="
-              value: 1.0
+      type: component
+      component: custom_model_data
+      path: "floats[0]"
+      operator: "=="
+      value: 1.0
 
+  - id: blueprint_accepted
+    item_sources:
+      - "minecraft-enchanted_book"
     amount: 1
 
 # ============================================================
@@ -76,13 +72,16 @@ blueprint_requirements:
 #   - type: "name_action"     → 修改物品名称
 #   - type: "lore_action"     → 修改物品 Lore
 #   - type: "capacity_bonus"  → 扩展锻造容量（特殊类型）
-# 材料判定完全由 matcher 决定：matcher 是判定位的必填项，缺失该材料永不命中。
-# item_sources 已经不参与判定，它在这里只剩一个职责——充当该材料的计数键，
-# 同时作为写入成品 PDC 的锻造审计标识。所以下面每条材料都两者并写：
-# matcher 负责"这枚算不算这味材料"，item_sources 负责"按哪个键计数与留痕"。
-# 只写 matcher 不写 item_sources 也合法，此时计数键由 matcher 内容派生
-# （GUI 里显示为该派生键）。⚠ 该派生键随 matcher 内容变化，改动 matcher 会让
-# 已锻造物品的审计记录失配，刷新时该材料会被判定为缺失。
+# 材料判定由两个同级字段共同决定，两者是 AND 关系：
+#   item_sources: 允许的物品源。省略表示不限来源。
+#   matcher:      组件、PDC、Lore 等非物品源条件。省略表示不加额外条件。
+# 两者都省略时该材料永不命中。
+# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+# 三类身份职责分离：
+#   material_id: 选择、GUI 与 lookup 的稳定身份。
+#   count_key:   数量聚合与消费身份；不同 material_id 可以共享同一 count_key。
+#   audit_id:    成品审计与刷新身份。
+# 未声明时按 material_id、item_sources 或 matcher 摘要兼容派生；生产配置建议显式声明三者。
 # ⚠ 写法差异（易错点）：
 #   物品源简写用连字符：  "minecraft-iron_ingot"
 #   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
@@ -90,12 +89,11 @@ blueprint_requirements:
 #   遮蔽后声明的窄条件。窄条件请写在前面。
 materials:
   # ---- 基础材料：铁锭（提供物理属性）----
-  - item_sources:
+  - material_id: iron_base
+    count_key: iron_base
+    audit_id: iron_base
+    item_sources:
       - "minecraft-iron_ingot"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-iron_ingot
     amount: 3
     capacity_cost: 5
     effects:
@@ -116,12 +114,11 @@ materials:
               - "<gray>生命值: <green>+%max_health%"
 
   # ---- 基础材料：烈焰粉（提供火焰属性 + 技能 + 名称修改）----
-  - item_sources:
+  - material_id: blaze_core
+    count_key: blaze_core
+    audit_id: blaze_core
+    item_sources:
       - "minecraft-blaze_powder"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-blaze_powder
     amount: 1
     capacity_cost: 10
     effects:
@@ -152,12 +149,11 @@ materials:
               - "<yellow>暴击率: +%critical_chance%%"
 
   # ---- 可选材料：火焰弹（额外火焰属性）----
-  - item_sources:
+  - material_id: fire_charge_additive
+    count_key: fire_charge_additive
+    audit_id: fire_charge_additive
+    item_sources:
       - "minecraft-fire_charge"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-fire_charge
     amount: 1
     optional: true
     capacity_cost: 12
@@ -178,12 +174,11 @@ materials:
               - "<yellow>暴击率: +%critical_chance%%"
 
   # ---- 可选材料：羽毛（移动速度）----
-  - item_sources:
+  - material_id: feather_additive
+    count_key: feather_additive
+    audit_id: feather_additive
+    item_sources:
       - "minecraft-feather"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-feather
     amount: 1
     optional: true
     capacity_cost: 8
@@ -198,12 +193,11 @@ materials:
           dodge_chance: 2.0
 
   # ---- 可选材料：回响碎片（魔法穿透）----
-  - item_sources:
+  - material_id: echo_additive
+    count_key: echo_additive
+    audit_id: echo_additive
+    item_sources:
       - "minecraft-echo_shard"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-echo_shard
     amount: 1
     optional: true
     capacity_cost: 15
@@ -218,12 +212,11 @@ materials:
           spell_crit_rate: 3.0
 
   # ---- 可选材料：下界之星（扩展容量，不占用容量）----
-  - item_sources:
+  - material_id: capacity_star
+    count_key: capacity_star
+    audit_id: capacity_star
+    item_sources:
       - "minecraft-nether_star"
-    matcher:
-      type: item_source
-      sources:
-        - minecraft-nether_star
     amount: 1
     optional: true
     capacity_cost: 0
@@ -233,10 +226,13 @@ materials:
         value: 20
 
   # ---- matcher 示例①：任何"锋利 III 以上"的附魔物品 ----
-  # 不限定物品源，只看组件取值：enchantments 组件下 minecraft:sharpness 的等级。
+  # 不限定物品源（不写 item_sources），只看组件取值：enchantments 组件下 minecraft:sharpness 的等级。
   # path 写附魔的资源 ID（冒号形式）；operator 支持 >= > <= < == != 等。
-  # 这类材料没有 item_sources，计数键由 matcher 内容派生。
-  - matcher:
+  # 这类材料显式写 material_id 固定身份，避免键随 matcher 内容漂移导致成品审计失配。
+  - material_id: inherited_sharpness_source
+    count_key: inherited_sharpness_source
+    audit_id: inherited_sharpness_source
+    matcher:
       type: component
       component: enchantments
       path: "minecraft:sharpness"
@@ -262,7 +258,10 @@ materials:
   #   rarity      → 枚举值，用 == 比较
   #   custom_name → 文本组件，用 contains 做子串匹配
   #   unbreakable → 单元组件（无值），只支持 exists / absent
-  - matcher:
+  - material_id: masterwork_source
+    count_key: masterwork_source
+    audit_id: masterwork_source
+    matcher:
       type: at_least
       required_count: 2
       matchers:
@@ -292,21 +291,21 @@ materials:
           - action: "append_suffix"
             value: "<light_purple> [名匠]"
 
-  # ---- matcher 示例③：物品源 + 组件条件同时成立 ----
-  # all_of 把"物品必须是某个源"和"组件取值必须匹配"绑在一起，
+  # ---- 示例③：物品源 + 组件条件同时成立 ----
+  # 顶层 item_sources 限定来源、matcher 追加组件条件，两者按 AND 同时成立才命中，
   # 用于把一类物品收窄为"官方发放的那一批"。
-  # 注意两种写法的分隔符差异：sources 用连字符，component/path 用冒号。
-  - matcher:
-      type: all_of
-      matchers:
-        - type: item_source
-          sources:
-            - minecraft-amethyst_shard
-        - type: component
-          component: custom_model_data
-          path: "floats[0]"
-          operator: "=="
-          value: 1.0
+  # 注意两种写法的分隔符差异：item_sources 用连字符，component/path 用冒号。
+  - material_id: marked_amethyst
+    count_key: marked_amethyst
+    audit_id: marked_amethyst
+    item_sources:
+      - minecraft-amethyst_shard
+    matcher:
+      type: component
+      component: custom_model_data
+      path: "floats[0]"
+      operator: "=="
+      value: 1.0
     amount: 1
     optional: true
     capacity_cost: 4
@@ -348,8 +347,7 @@ quality:
 result:
   success:
     outputs:
-      - item_sources:
-          - "minecraft-diamond_sword"
+      - item_source: "minecraft-iron_block"
         amount: 1
     name_actions:
       - action: "replace"

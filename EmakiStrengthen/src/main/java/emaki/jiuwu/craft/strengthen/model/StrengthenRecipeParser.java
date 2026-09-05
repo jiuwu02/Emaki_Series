@@ -41,6 +41,11 @@ public final class StrengthenRecipeParser {
         if (section == null) {
             return null;
         }
+        int schemaVersion = section.getInt("schema_version", StrengthenMaterialSchema.LEGACY_VERSION);
+        if (schemaVersion < StrengthenMaterialSchema.LEGACY_VERSION
+                || schemaVersion > StrengthenMaterialSchema.CANONICAL_VERSION) {
+            return null;
+        }
         String id = section.getString("id");
         if (Texts.isBlank(id)) {
             return null;
@@ -267,12 +272,33 @@ public final class StrengthenRecipeParser {
             if (rawMaterials == null) {
                 continue;
             }
-            for (Map<?, ?> rawEntry : rawMaterials) {
+            Map<String, Integer> legacyTokenCounts = new LinkedHashMap<>();
+            for (int index = 0; index < rawMaterials.size(); index++) {
+                Map<String, Object> canonical = StrengthenMaterialSchema.canonicalize(
+                        stringKeyMap(rawMaterials.get(index)), index);
+                String token = parseMaterialItem(canonical);
+                if (Texts.isNotBlank(token)) {
+                    legacyTokenCounts.merge(Texts.lower(token), 1, Integer::sum);
+                }
+            }
+            for (int index = 0; index < rawMaterials.size(); index++) {
+                Map<String, Object> rawEntry = StrengthenMaterialSchema.canonicalize(
+                        stringKeyMap(rawMaterials.get(index)), index);
+                if (rawEntry.isEmpty()) {
+                    continue;
+                }
                 StarStageMaterialRule rule = StarStageMaterialRule.fromRawEntry(rawEntry);
                 if (!rule.constrains()) {
                     continue;
                 }
-                rules.put(StarStageMaterialRule.key(branchPath, targetStar, parseMaterialItem(rawEntry)), rule);
+                String materialId = parseMaterialId(rawEntry, index);
+                rules.put(StarStageMaterialRule.key(branchPath, targetStar, materialId), rule);
+                String legacyToken = parseMaterialItem(rawEntry);
+                if (Texts.isNotBlank(legacyToken)
+                        && legacyTokenCounts.getOrDefault(Texts.lower(legacyToken), 0) == 1
+                        && !Texts.lower(legacyToken).equals(materialId)) {
+                    rules.put(StarStageMaterialRule.key(branchPath, targetStar, legacyToken), rule);
+                }
             }
         }
     }
@@ -282,16 +308,32 @@ public final class StrengthenRecipeParser {
             return List.of();
         }
         List<StarStageMaterial> result = new ArrayList<>();
-        for (Map<?, ?> rawEntry : rawEntries) {
+        for (int index = 0; index < rawEntries.size(); index++) {
+            Map<?, ?> rawEntry = rawEntries.get(index);
             if (rawEntry == null) {
                 continue;
             }
+            Map<String, Object> canonical = StrengthenMaterialSchema.canonicalize(stringKeyMap(rawEntry), index);
+            if (canonical.isEmpty()) {
+                throw new IllegalArgumentException("materials[" + index
+                        + "] declares multiple item_sources without material_id, id, or count_key");
+            }
+            List<String> sources = parseMaterialSources(canonical);
+            String item = sources.isEmpty() ? parseMaterialItem(canonical) : sources.getFirst();
+            String materialId = parseMaterialId(canonical, index);
+            String countKey = parseMaterialCountKey(canonical, materialId);
             result.add(new StarStageMaterial(
-                    parseMaterialItem(rawEntry),
-                    Numbers.tryParseInt(ConfigNodes.get(rawEntry, "amount"), 1),
-                    ConfigNodes.bool(rawEntry, "optional", false),
-                    ConfigNodes.bool(rawEntry, "protection", false),
-                    Numbers.tryParseInt(ConfigNodes.get(rawEntry, "temper_boost"), 0)
+                    item,
+                    Numbers.tryParseInt(ConfigNodes.get(canonical, "amount"), 1),
+                    ConfigNodes.bool(canonical, "optional", false),
+                    ConfigNodes.bool(canonical, "protection", false),
+                    Numbers.tryParseInt(ConfigNodes.get(canonical, "temper_boost"), 0),
+                    materialId,
+                    countKey,
+                    sources,
+                    ConfigNodes.toPlainData(ConfigNodes.get(canonical, "matcher")),
+                    !stringKeyMap(rawEntry).containsKey("material_id")
+                            && stringKeyMap(rawEntry).containsKey("item")
             ));
         }
         return List.copyOf(result);
@@ -333,10 +375,59 @@ public final class StrengthenRecipeParser {
         actions.add(plain);
     }
 
+    private static Map<String, Object> stringKeyMap(Map<?, ?> raw) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        for (Map.Entry<?, ?> entry : raw.entrySet()) {
+            if (entry.getKey() != null) {
+                result.put(String.valueOf(entry.getKey()), entry.getValue());
+            }
+        }
+        return result;
+    }
+
     static String parseMaterialItem(Object rawEntry) {
-        ItemSourceRef source = ItemSourceUtil.parse(ConfigNodes.get(rawEntry, "item_sources"));
+        ItemSourceRef source = ItemSourceUtil.parse(rawEntry);
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
+    }
+
+    static List<String> parseMaterialSources(Object rawEntry) {
+        LinkedHashSet<String> sources = new LinkedHashSet<>();
+        Object rawSources = ConfigNodes.get(rawEntry, "item_sources");
+        if (rawSources == null) {
+            rawSources = ConfigNodes.get(rawEntry, "item");
+        }
+        for (Object rawSource : ConfigNodes.asObjectList(rawSources)) {
+            String shorthand = ItemSourceUtil.toShorthand(ItemSourceUtil.parse(rawSource));
+            if (Texts.isNotBlank(shorthand)) {
+                sources.add(shorthand);
+            }
+        }
+        if (sources.isEmpty()) {
+            String shorthand = parseMaterialItem(rawEntry);
+            if (Texts.isNotBlank(shorthand)) {
+                sources.add(shorthand);
+            }
+        }
+        return List.copyOf(sources);
+    }
+
+    static String parseMaterialId(Object rawEntry, int index) {
+        return parseMaterialIdentity(rawEntry, index).materialId();
+    }
+
+    static String parseMaterialCountKey(Object rawEntry, String materialId) {
+        StageMaterialIdentity identity = StageMaterialIdentity.resolve(materialId, "",
+                ConfigNodes.string(rawEntry, "count_key", ""), parseMaterialSources(rawEntry), 0);
+        return identity.countKey();
+    }
+
+    static StageMaterialIdentity parseMaterialIdentity(Object rawEntry, int index) {
+        return StageMaterialIdentity.resolve(
+                ConfigNodes.string(rawEntry, "material_id", ""),
+                ConfigNodes.string(rawEntry, "id", ""),
+                ConfigNodes.string(rawEntry, "count_key", ""),
+                parseMaterialSources(rawEntry), index);
     }
 
     static List<String> parseSkillEffects(List<Map<?, ?>> rawEffects) {

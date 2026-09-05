@@ -23,8 +23,7 @@ upgrade:
   rewards:
     items:
       - levels: "*"
-        item_sources:
-          - "minecraft-experience_bottle"
+        item_source: "minecraft-experience_bottle"
         amount: 1
   actions:
     success:

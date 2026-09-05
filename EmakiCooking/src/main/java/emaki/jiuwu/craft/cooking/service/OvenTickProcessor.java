@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -23,6 +24,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class OvenTickProcessor {
 
+    private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
@@ -30,11 +32,13 @@ final class OvenTickProcessor {
     private final OvenStateCodec codec;
     private CookingCompletionCoordinator completionCoordinator;
 
-    OvenTickProcessor(CookingSettingsService settingsService,
+    OvenTickProcessor(EmakiCookingPlugin plugin,
+            CookingSettingsService settingsService,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             OvenStateCodec codec) {
+        this.plugin = plugin;
         this.settingsService = settingsService;
         this.recipeService = recipeService;
         this.rewardService = rewardService;
@@ -234,7 +238,7 @@ final class OvenTickProcessor {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

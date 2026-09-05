@@ -1,0 +1,9 @@
+station_type: fermentation_barrel
+fermentation_barrel:
+  active_recipe_id: apple_cider
+gui_slots:
+  - index: 10
+    source: minecraft-apple
+    amount: 3
+    item:
+      type: APPLE

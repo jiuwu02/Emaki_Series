@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -17,7 +17,7 @@ public final class GemItemDefinition {
 
     private final String id;
     private final List<String> slotGroups;
-    private final Matcher matcher;
+    private final ItemRequirement recognition;
     private final List<SocketSlot> slots;
     private final Set<Integer> defaultOpenSlots;
     private final Set<String> allowedGemTypes;
@@ -28,7 +28,7 @@ public final class GemItemDefinition {
 
     public GemItemDefinition(String id,
             List<String> slotGroups,
-            Matcher matcher,
+            ItemRequirement recognition,
             List<SocketSlot> slots,
             Set<Integer> defaultOpenSlots,
             Set<String> allowedGemTypes,
@@ -38,7 +38,7 @@ public final class GemItemDefinition {
             GuiSettings guiSettings) {
         this.id = Texts.lower(id);
         this.slotGroups = slotGroups == null ? List.of() : List.copyOf(slotGroups);
-        this.matcher = matcher;
+        this.recognition = recognition;
         this.slots = slots == null ? List.of() : slots.stream()
                 .filter(slot -> slot != null && slot.index() >= 0)
                 .sorted(Comparator.comparingInt(SocketSlot::index))
@@ -59,8 +59,8 @@ public final class GemItemDefinition {
         return slotGroups;
     }
 
-    public Matcher matcher() {
-        return matcher;
+    public ItemRequirement recognition() {
+        return recognition;
     }
 
     public List<SocketSlot> slots() {
@@ -129,7 +129,7 @@ public final class GemItemDefinition {
                 .filter(Texts::isNotBlank)
                 .map(Texts::lower)
                 .toList();
-        YamlSection matcherSection = section.getSection("matcher");
+        ItemRequirement recognition = ItemRequirement.fromConfig(section);
         List<SocketSlot> slots = parseSlots(section);
         YamlSection gui = section.getSection("gui");
         Set<String> allowedGemTypes = new LinkedHashSet<>();
@@ -148,7 +148,7 @@ public final class GemItemDefinition {
         return new GemItemDefinition(
                 id,
                 slotGroups,
-                matcherSection == null ? null : Matcher.fromConfig(matcherSection),
+                recognition,
                 slots,
                 defaultOpenSlots,
                 allowedGemTypes,

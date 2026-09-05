@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.gui.StationLayoutValidator;
@@ -49,6 +50,12 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
                 plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         addLoaderIssues("recipes_dismantle",
                 plugin.dismantleRecipeLoader() == null ? null : plugin.dismantleRecipeLoader().issues(), issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(dataFolder, "recipes"), "recipes"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(dataFolder, "recipes_dismantle"), "recipes_dismantle"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(dataFolder, "stations_dismantle"), "stations_dismantle"));
         checkLayouts(issues);
         checkStationLayoutLinks(issues);
         checkDismantleStationLayoutLinks(issues);
@@ -125,7 +132,7 @@ public final class StationConfigPrecheckContributor extends AbstractModuleConfig
             }
             for (int index = 0; index < recipe.requirements().size(); index++) {
                 MaterialRequirement requirement = recipe.requirements().get(index);
-                if (requirement != null && requirement.sources().isEmpty()) {
+                if (requirement != null && (requirement.hasMatcher() || requirement.sources().isEmpty())) {
                     addMessageIssue("recipes/" + recipe.id() + ".yml", WARN,
                             "storage_unreachable_material",
                             Map.of("recipe", recipe.id(), "index", index), issues);

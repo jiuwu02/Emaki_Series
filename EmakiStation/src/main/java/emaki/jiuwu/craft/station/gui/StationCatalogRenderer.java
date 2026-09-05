@@ -138,6 +138,9 @@ public final class StationCatalogRenderer {
             }
             lines.add(guiSupport.text(layoutId, "texts.recipe.cost_keep", "Requires holding %material% x%amount%",
                     Map.of("material", materialNameOf(layoutId, requirement),
+                            "material_id", requirement.materialId(),
+                            "requirement_id", requirement.requirementId(),
+                            "count_key", requirement.countKey(),
                             "amount", AmountDisplay.precise(requirement.amount()))));
         }
         return lines;
@@ -151,6 +154,9 @@ public final class StationCatalogRenderer {
             }
             lines.add(guiSupport.text(layoutId, "texts.recipe.material_line", "%material% x%amount%",
                     Map.of("material", materialNameOf(layoutId, requirement),
+                            "material_id", requirement.materialId(),
+                            "requirement_id", requirement.requirementId(),
+                            "count_key", requirement.countKey(),
                             "amount", AmountDisplay.precise(requirement.amount()),
                             "alternatives", String.valueOf(alternativesOf(requirement)))));
         }

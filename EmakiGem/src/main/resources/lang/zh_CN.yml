@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.0"
+version: "2.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -65,6 +65,7 @@ loader:
   duplicate_id: "<red>%type% 文件 %file% 出现重复 ID: %id%</red>"
   load_failed: "<red>加载 %type% 文件 %file% 失败: %error%</red>"
   invalid_config: "<red>%type% 文件 %file% 配置无效，已跳过加载。</red>"
+  gem_legacy_item_sources: "<yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材，将来请改为 base_item_source: %id%</yellow>"
   gem_missing_item_source: "<red>宝石文件 %file% 的 item_sources 缺失或无效，已拒绝加载: %id%，当前值: %item_sources%</red>"
   gem_relationship_self_reference: "<red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身，已拒绝加载: %id%</red>"
   gem_relationship_conflict: "<red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突，已拒绝加载: %id%</red>"

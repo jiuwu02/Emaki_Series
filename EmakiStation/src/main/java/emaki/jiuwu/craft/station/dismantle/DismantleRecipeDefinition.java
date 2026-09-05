@@ -69,9 +69,9 @@ public record DismantleRecipeDefinition(
         if (context == null) {
             return false;
         }
-        if (matcher != null) {
-            return matcher.test(context);
+        if (!inputSource.equals(context.itemSource())) {
+            return false;
         }
-        return inputSource.equals(context.itemSource());
+        return matcher == null || matcher.test(context);
     }
 }

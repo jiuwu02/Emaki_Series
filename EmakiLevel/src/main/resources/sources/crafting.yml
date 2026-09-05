@@ -12,19 +12,17 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      - matcher:
-          type: item_source
-          sources:
-            - "minecraft-crafting_table"
-            - "minecraft-furnace"
+      - item_sources:
+          - "minecraft-crafting_table"
+          - "minecraft-furnace"
         exp_formula: "5 * %result_amount%"
-      - matcher:
-          type: item_source
-          sources:
-            - "minecraft-diamond_pickaxe"
-            - "minecraft-diamond_sword"
+      - item_sources:
+          - "minecraft-diamond_pickaxe"
+          - "minecraft-diamond_sword"
         exp_formula: "40 * %result_amount%"
-      # matcher 必填，缺失时规则不命中；item_source 匹配物品源，component 匹配组件路径。
+      # 判定由同级 item_sources 与 matcher 共同决定，两者是 AND 关系。
+      # 只写 matcher 表示不限物品源，只看组件条件；两者都不写则该规则作为兜底命中一切。
+      # matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
       # 组件命名空间缺省为 minecraft；operator 支持比较、字符串、regex、键值存在性和 size。
       - matcher:
           type: component

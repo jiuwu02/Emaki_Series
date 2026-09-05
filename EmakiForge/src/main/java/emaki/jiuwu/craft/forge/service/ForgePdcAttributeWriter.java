@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
@@ -69,6 +70,7 @@ final class ForgePdcAttributeWriter {
         }
         observeSkillMutation(itemStack, EquipmentSkillPdcCodec.write(itemStack, skillIds));
         writeForgeVariables(recipe, multiplier, qualityTier, itemStack);
+        writeMaterialAudit(materials, itemStack);
         if (gateway == null || !gateway.available()) {
             return;
         }
@@ -109,6 +111,55 @@ final class ForgePdcAttributeWriter {
         }
 
         pdcService.purgeLegacyKeys(itemStack);
+    }
+
+    private void writeMaterialAudit(List<ForgeMaterialContribution> materials, ItemStack itemStack) {
+        if (pdcService == null || itemStack == null) {
+            return;
+        }
+        PdcPartition partition = pdcService.partition(ForgePdcKeys.FORGE_PARTITION);
+        List<String> materialIds = new ArrayList<>();
+        List<String> countKeys = new ArrayList<>();
+        List<String> auditIds = new ArrayList<>();
+        List<String> matchedSources = new ArrayList<>();
+        List<String> matcherDigests = new ArrayList<>();
+        List<Map<String, Object>> allocations = new ArrayList<>();
+        int consumed = 0;
+        if (materials != null) {
+            for (ForgeMaterialContribution contribution : materials) {
+                if (contribution == null || contribution.material() == null || contribution.amount() <= 0) {
+                    continue;
+                }
+                if (contribution.material().materialIdDeclared()) {
+                    materialIds.add(contribution.material().materialId());
+                }
+                if (contribution.material().countKeyDeclared()) {
+                    countKeys.add(contribution.material().countKey());
+                }
+                if (contribution.material().auditIdDeclared()) {
+                    auditIds.add(contribution.material().auditId());
+                }
+                matchedSources.add(contribution.source() == null ? "" : emaki.jiuwu.craft.corelib.item.ItemSourceUtil.toShorthand(contribution.source()));
+                matcherDigests.add(contribution.material().matcherKey());
+                consumed += contribution.amountConsumed();
+                allocations.add(contribution.toAuditMap());
+            }
+        }
+        writeOrRemove(itemStack, partition, ForgePdcKeys.MATERIAL_ID, materialIds);
+        writeOrRemove(itemStack, partition, ForgePdcKeys.COUNT_KEY, countKeys);
+        writeOrRemove(itemStack, partition, ForgePdcKeys.AUDIT_ID, auditIds);
+        pdcService.set(itemStack, partition, ForgePdcKeys.MATCHED_SOURCE, PersistentDataType.STRING, String.join(",", matchedSources));
+        pdcService.set(itemStack, partition, ForgePdcKeys.AMOUNT_CONSUMED, PersistentDataType.INTEGER, consumed);
+        pdcService.set(itemStack, partition, ForgePdcKeys.MATCHER_DIGEST, PersistentDataType.STRING, String.join(",", matcherDigests));
+        pdcService.set(itemStack, partition, ForgePdcKeys.ALLOCATION, PersistentDataType.STRING, SignatureUtil.stableSignature(allocations));
+    }
+
+    private void writeOrRemove(ItemStack itemStack, PdcPartition partition, String field, List<String> values) {
+        if (values == null || values.isEmpty()) {
+            pdcService.remove(itemStack, partition, field);
+            return;
+        }
+        pdcService.set(itemStack, partition, field, PersistentDataType.STRING, String.join(",", values));
     }
 
     private void observeSkillMutation(ItemStack itemStack, SkillPdcMutation mutation) {

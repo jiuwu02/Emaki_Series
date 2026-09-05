@@ -1,14 +1,21 @@
 package emaki.jiuwu.craft.cooking.service;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -55,6 +62,56 @@ public final class CookingRuntimeUtil {
 
     static int parseInteger(Object raw, int fallback) {
         return Numbers.tryParseInt(raw, fallback);
+    }
+
+    static ItemSourceRef parseOutputSource(Plugin plugin, Map<String, Object> output, String path) {
+        if (output == null || output.isEmpty()) {
+            return null;
+        }
+        boolean canonical = output.containsKey("item_source");
+        boolean legacy = output.containsKey("item_sources");
+        if (canonical && legacy) {
+            warnOutputSchema(plugin, path, "item_source and item_sources cannot both be declared");
+            return null;
+        }
+        if (output.containsKey("matcher")) {
+            warnOutputSchema(plugin, path, "matcher is not allowed on output nodes");
+            return null;
+        }
+        if (canonical) {
+            Object raw = output.get("item_source");
+            if (raw instanceof Collection<?> || raw instanceof Iterable<?>) {
+                warnOutputSchema(plugin, path + ".item_source", "canonical item_source must be a single source");
+                return null;
+            }
+            ItemSourceRef source = ItemSourceUtil.parse(raw);
+            if (source == null) {
+                warnOutputSchema(plugin, path + ".item_source", "item_source is invalid");
+            }
+            return source;
+        }
+        if (!legacy) {
+            warnOutputSchema(plugin, path, "missing item_source");
+            return null;
+        }
+        List<Object> values = ConfigNodes.asObjectList(output.get("item_sources"));
+        if (values.size() != 1) {
+            warnOutputSchema(plugin, path + ".item_sources", "legacy item_sources must contain exactly one source");
+            return null;
+        }
+        ItemSourceRef source = ItemSourceUtil.parse(values.getFirst());
+        if (source == null) {
+            warnOutputSchema(plugin, path + ".item_sources[0]", "legacy item_sources entry is invalid");
+            return null;
+        }
+        warnOutputSchema(plugin, path + ".item_sources", "legacy item_sources is accepted; migrate to item_source");
+        return source;
+    }
+
+    private static void warnOutputSchema(Plugin plugin, String path, String message) {
+        if (plugin != null) {
+            plugin.getLogger().warning("[OutputSchema] " + path + ": " + message);
+        }
     }
 
     static Map<String, Object> buildStateRoot(StationType stationType, StationCoordinates coordinates) {

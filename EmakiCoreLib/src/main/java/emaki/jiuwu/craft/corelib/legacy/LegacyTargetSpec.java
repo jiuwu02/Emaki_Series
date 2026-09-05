@@ -27,7 +27,7 @@ public record LegacyTargetSpec(String directory,
         directory = Texts.toStringSafe(directory);
         path = Texts.toStringSafe(path);
         legacyKey = Texts.toStringSafe(legacyKey);
-        matcherKey = Texts.isBlank(matcherKey) ? "matcher" : Texts.toStringSafe(matcherKey);
+        matcherKey = Texts.isBlank(matcherKey) ? "item_sources" : Texts.toStringSafe(matcherKey);
         semantics = semantics == null ? RuntimeSemantics.OVERRIDE : semantics;
         if (legacyKey.isBlank()) {
             throw new IllegalArgumentException("legacyKey must not be blank");
@@ -37,7 +37,7 @@ public record LegacyTargetSpec(String directory,
     public static @NotNull LegacyTargetSpec replace(@Nullable String directory,
             @NotNull String path,
             @NotNull String legacyKey) {
-        return replace(directory, path, legacyKey, "matcher");
+        return replace(directory, path, legacyKey, "item_sources");
     }
 
     public static @NotNull LegacyTargetSpec replace(@Nullable String directory,

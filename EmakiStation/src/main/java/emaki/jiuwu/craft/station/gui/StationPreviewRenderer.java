@@ -103,6 +103,9 @@ public final class StationPreviewRenderer {
         applyRequiredAmount(icon, required);
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("material", materialNameOf(state, requirement));
+        values.put("material_id", requirement.materialId());
+        values.put("requirement_id", requirement.requirementId());
+        values.put("count_key", requirement.countKey());
         values.put("required", AmountDisplay.compact(required));
         values.put("required_exact", AmountDisplay.precise(required));
         values.put("owned", AmountDisplay.compact(owned));

@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.AbstractModuleConfigPrecheckCon
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckContext;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckResult;
+import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 
 public final class GemConfigPrecheckContributor extends AbstractModuleConfigPrecheckContributor {
@@ -34,6 +35,12 @@ public final class GemConfigPrecheckContributor extends AbstractModuleConfigPrec
         addLoaderIssues("gems", plugin.gemLoader() == null ? null : plugin.gemLoader().issues(), issues);
         addLoaderIssues("items", plugin.gemItemLoader() == null ? null : plugin.gemItemLoader().issues(), issues);
         addLoaderIssues("resonances", plugin.resonanceLoader() == null ? null : plugin.resonanceLoader().issues(), issues);
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "gems"), "gems"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "items"), "items"));
+        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
+                new File(plugin.getDataFolder(), "resonances"), "resonances"));
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }

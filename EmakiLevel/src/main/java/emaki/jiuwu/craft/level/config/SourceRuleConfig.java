@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 
 public record SourceRuleConfig(String id,
         boolean enabled,
@@ -86,7 +86,7 @@ public record SourceRuleConfig(String id,
             Set<String> potionTypes,
             Set<String> mobIds,
             String expFormula,
-            Matcher matcher) {
+            ItemRequirement requirement) {
 
         public Rule {
             entityTypes = normalizeSet(entityTypes);
@@ -105,7 +105,7 @@ public record SourceRuleConfig(String id,
                     normalizedStringSet(map.get("potion_types")),
                     normalizedStringSet(map.get("mob_ids")),
                     string(map.get("exp_formula"), "0"),
-                    map.get("matcher") == null ? null : Matcher.fromConfig(map.get("matcher"))
+                    ItemRequirement.fromConfig(map)
             );
         }
     }

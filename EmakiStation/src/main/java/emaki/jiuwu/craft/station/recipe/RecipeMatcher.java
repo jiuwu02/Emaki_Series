@@ -24,7 +24,7 @@ public final class RecipeMatcher {
     public static boolean supports(RecipeDefinition recipe,
             Map<ItemSourceRef, Long> available,
             long batch) {
-        if (recipe == null || available == null) {
+        if (recipe == null || available == null || matcherDriven(recipe)) {
             return false;
         }
         Map<ItemSourceRef, Long> remaining = new LinkedHashMap<>(available);
@@ -50,7 +50,7 @@ public final class RecipeMatcher {
     }
 
     public static long maxBatch(RecipeDefinition recipe, Map<ItemSourceRef, Long> available) {
-        if (recipe == null || available == null || recipe.requirements().isEmpty()) {
+        if (recipe == null || available == null || recipe.requirements().isEmpty() || matcherDriven(recipe)) {
             return 0L;
         }
         long best = Long.MAX_VALUE;
@@ -115,9 +115,18 @@ public final class RecipeMatcher {
             if (needed > Integer.MAX_VALUE) {
                 return null;
             }
-            requests.add(new MaterialRequest(requirement.effectiveMatcher(), (int) needed));
+            requests.add(new MaterialRequest(requirement.asItemRequirement(), (int) needed));
         }
         return requests;
+    }
+
+    private static boolean matcherDriven(RecipeDefinition recipe) {
+        for (MaterialRequirement requirement : recipe.requirements()) {
+            if (requirement.hasMatcher()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private static long saturatedAdd(long left, long right) {

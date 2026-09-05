@@ -2,7 +2,7 @@
 # 控制工位交互、展示实体、七类工位运行参数与营养系统。
 # 原版物品/方块来源使用 minecraft-iron_axe、mc-iron_axe、v-iron_axe 或 iron_axe；
 # 不使用 minecraft:iron_axe 这种冒号写法。
-version: "4.3.0"
+version: "4.3.1"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -121,10 +121,10 @@ stations:
     space_restriction: false
     # 交互最小间隔，单位毫秒
     interaction_delay_ms: 1000
-    # 识别为厨刀的判定：完全由 tool_matcher 决定，必填，缺失则没有物品能当厨刀
-    tool_matcher:
-      type: item_source
-      sources:
+    # 识别为厨刀的判定：tool 子节点下的 item_sources 与 matcher 取 AND，
+    # 两者都省略则没有物品能当厨刀。⚠ matcher 内禁止写物品源条件。
+    tool:
+      item_sources:
         - minecraft-iron_axe
     cut_damage:
       enabled: true
@@ -162,10 +162,10 @@ stations:
     # 未命中配方或结果无效时的默认产物来源
     invalid_result_item_sources:
       - minecraft-stone
-    # 识别为锅铲的判定：完全由 spatula_matcher 决定，必填，缺失则没有物品能当锅铲
-    spatula_matcher:
-      type: item_source
-      sources:
+    # 识别为锅铲的判定：spatula 子节点下的 item_sources 与 matcher 取 AND，
+    # 两者都省略则没有物品能当锅铲。⚠ matcher 内禁止写物品源条件。
+    spatula:
+      item_sources:
         - minecraft-iron_shovel
     heat_levels:
       - item_sources:
@@ -243,54 +243,45 @@ stations:
     # 加燃料后是否点亮下方热源外观
     ignite_heat_source: true
     # 蒸锅燃料；duration_seconds 为增加的燃烧时间
-    # 每条燃料的判定完全由 matcher 决定，必填，缺失该条燃料永不命中
+    # 每条燃料的判定由同级 item_sources 与 matcher 取 AND，两者都省略则该条永不命中
+    # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources
     # 与烤炉同理：燃料取【首个命中】，窄条目必须写在同物品源的宽条目【之前】。
     fuels:
       # 名字含"油浸"的木棍视为助燃物，燃烧时间显著延长。
-      # 物品源与组件条件用 all_of 绑在一起，两者同时成立才算这条燃料。
+      # item_sources 限定来源、matcher 追加组件条件，两者同时成立才算这条燃料。
       # 原版木棍不带 custom_name，故全新服务器上这一条不命中，
       # 普通木棍仍落到下面的宽条目取 5 秒，默认体验不变。
-      - matcher:
-          type: all_of
-          matchers:
-            - type: item_source
-              sources:
-                - minecraft-stick
-            - type: component
-              component: custom_name
-              operator: contains
-              value: "油浸"
+      - item_sources:
+          - minecraft-stick
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "油浸"
         duration_seconds: 40
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-stick
+      - item_sources:
+          - minecraft-stick
         duration_seconds: 5
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-coal
+      - item_sources:
+          - minecraft-coal
         duration_seconds: 80
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-charcoal
+      - item_sources:
+          - minecraft-charcoal
         duration_seconds: 80
     # 水分输入规则
-    # 投入物的判定完全由 input_matcher 决定，必填，缺失该条规则永不命中
-    # 注意：input_matcher 只管"投入的那一枚"；item_sources 是产出的空容器，
-    #       它不是判定位，仍按物品源构造产物，保持原样即可
+    # 投入物的判定写在 input 子节点下：其 item_sources 与 matcher 取 AND，
+    # 两者都省略则该条规则永不命中。⚠ matcher 内禁止写物品源条件。
+    # 注意：规则根部的 item_sources 是产出的空容器，不是判定位，
+    #       它仍按物品源构造产物，与 input 下的判定字段职责不同
     moisture_rules:
-      - input_matcher:
-          type: item_source
-          sources:
+      - input:
+          item_sources:
             - minecraft-water_bucket
         item_sources:
           - minecraft-bucket
         moisture: 120
-      - input_matcher:
-          type: item_source
-          sources:
+      - input:
+          item_sources:
             - minecraft-potion
         item_sources:
           - minecraft-glass_bottle
@@ -326,42 +317,34 @@ stations:
       max: 80
       decay_per_second: 5
     # 烤炉燃料；一次潜行左键会同时增加燃烧时间和火力
-    # 每条燃料的判定完全由 matcher 决定，必填，缺失该条燃料永不命中
+    # 每条燃料的判定由同级 item_sources 与 matcher 取 AND，两者都省略则该条永不命中
+    # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources
     # 燃料按本列表顺序取【首个命中】，命中即停。因此窄条目必须写在同物品源的
     # 宽条目【之前】，否则会被前面的宽条目先命中而永不生效。
     fuels:
       # 名字含"精炼"的煤炭视为优质燃料，燃烧更久、火力更高。
-      # 物品源与组件条件用 all_of 绑在一起，两者同时成立才算这条燃料。
+      # item_sources 限定来源、matcher 追加组件条件，两者同时成立才算这条燃料。
       # 原版煤炭不带 custom_name，因此在全新服务器上这一条不会命中，
       # 普通煤炭仍按下面的宽条目取 80 秒 / 火力 35，默认体验不变。
-      - matcher:
-          type: all_of
-          matchers:
-            - type: item_source
-              sources:
-                - minecraft-coal
-            - type: component
-              component: custom_name
-              operator: contains
-              value: "精炼"
+      - item_sources:
+          - minecraft-coal
+        matcher:
+          type: component
+          component: custom_name
+          operator: contains
+          value: "精炼"
         duration_seconds: 160
         heat: 50
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-stick
+      - item_sources:
+          - minecraft-stick
         duration_seconds: 5
         heat: 10
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-coal
+      - item_sources:
+          - minecraft-coal
         duration_seconds: 80
         heat: 35
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-charcoal
+      - item_sources:
+          - minecraft-charcoal
         duration_seconds: 80
         heat: 35
     actions:
@@ -385,10 +368,10 @@ stations:
     max_fluid_ml: 1000
     # 默认每次容器盛取需要的流体量，单位 ml
     default_serving_ml: 250
-    # 盛取容器的判定：完全由 container_matcher 决定，必填，缺失则没有物品能当容器
-    container_matcher:
-      type: item_source
-      sources:
+    # 盛取容器的判定：container 子节点下的 item_sources 与 matcher 取 AND，
+    # 两者都省略则没有物品能当容器。⚠ matcher 内禁止写物品源条件。
+    container:
+      item_sources:
         - minecraft-glass_bottle
     actions:
       press:
@@ -438,59 +421,48 @@ nutrition:
   # 玩家营养数据定时保存间隔，单位：秒；0 表示不启用定时保存。
   save_interval_seconds: 300
 
-  # 食物来源：食用命中 matcher 的物品时，应用 nutrition 与 actions。
-  # 每条规则的判定完全由 matcher 决定，必填，缺失该条规则永不命中。
-  # 按物品源判定就写 type: item_source，sources 支持 minecraft、craftengine、
-  # itemsadder、nexo、oraxen、mmoitems、neigeitems 来源。
-  # 要收窄成"名字含【慢炖】的苹果"这类条件，就换成 all_of 组合写法（见第一条注释）。
+  # 食物来源：食用命中判定的物品时，应用 nutrition 与 actions。
+  # 每条规则的判定由同级 item_sources 与 matcher 取 AND，两者都省略则该条永不命中。
+  # item_sources 支持 minecraft、craftengine、itemsadder、nexo、oraxen、
+  # mmoitems、neigeitems 来源。
+  # 要收窄成"名字含【慢炖】的苹果"这类条件，就在 item_sources 之外再写一条组件 matcher。
+  # ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
   food_sources:
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-apple
-          - minecraft-sweet_berries
+    - item_sources:
+        - minecraft-apple
+        - minecraft-sweet_berries
       nutrition:
         fruit: 20
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-golden_apple
-          - minecraft-enchanted_golden_apple
+    - item_sources:
+        - minecraft-golden_apple
+        - minecraft-enchanted_golden_apple
       nutrition:
         fruit: 35
         sugar: 10
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-carrot
-          - minecraft-potato
-          - minecraft-beetroot
+    - item_sources:
+        - minecraft-carrot
+        - minecraft-potato
+        - minecraft-beetroot
       nutrition:
         vegetable: 20
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-cooked_beef
-          - minecraft-cooked_porkchop
-          - minecraft-cooked_chicken
-          - minecraft-cooked_mutton
+    - item_sources:
+        - minecraft-cooked_beef
+        - minecraft-cooked_porkchop
+        - minecraft-cooked_chicken
+        - minecraft-cooked_mutton
       nutrition:
         protein: 25
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-cake
-          - minecraft-cookie
-          - minecraft-pumpkin_pie
+    - item_sources:
+        - minecraft-cake
+        - minecraft-cookie
+        - minecraft-pumpkin_pie
       nutrition:
         sugar: 30
       actions:
         - "play_sound sound=entity.player.burp volume=1.0 pitch=1.0"
-    - matcher:
-        type: item_source
-        sources:
-          - minecraft-bread
-          - minecraft-baked_potato
+    - item_sources:
+        - minecraft-bread
+        - minecraft-baked_potato
       nutrition:
         grain: 25
 

@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProbeState;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
@@ -404,6 +405,14 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             skipped++;
             return null;
         }
+        if (!validateOutputSchema(file, recipeId, configuration)) {
+            skipped++;
+            return null;
+        }
+        if (!validateIdentitySchema(file, recipeId, configuration)) {
+            skipped++;
+            return null;
+        }
         YamlSection effectiveConfiguration = deferRuntimeValidation
                 ? configuration
                 : prioritizeSourceCandidates(configuration);
@@ -484,6 +493,164 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
         }
         return result;
+    }
+
+    private boolean validateOutputSchema(File file, String recipeId, YamlSection configuration) {
+        Object result = ConfigNodes.get(configuration, "result");
+        Object success = ConfigNodes.get(result, "success");
+        List<Object> outputs = ConfigNodes.asObjectList(ConfigNodes.get(success, "outputs"));
+        for (int index = 0; index < outputs.size(); index++) {
+            Object output = outputs.get(index);
+            String path = "result.success.outputs[" + index + "]";
+            boolean canonical = ConfigNodes.contains(output, "item_source");
+            boolean legacy = ConfigNodes.contains(output, "item_sources");
+            if (canonical && legacy) {
+                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "OUTPUT_SOURCE_FIELD_CONFLICT",
+                        "Output cannot declare both item_source and item_sources.", true, null, null);
+                return false;
+            }
+            if (ConfigNodes.contains(output, "matcher")) {
+                recordIssue(file, recipeId, path + ".matcher", IssueSeverity.ERROR, "OUTPUT_MATCHER_FORBIDDEN",
+                        "Output nodes cannot declare matcher.", true, null, null);
+                return false;
+            }
+            if (canonical) {
+                Object raw = ConfigNodes.get(output, "item_source");
+                if (raw instanceof Iterable<?> && !(raw instanceof String)) {
+                    recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_NOT_SINGLE",
+                            "item_source must resolve to one source.", true, null, null);
+                    return false;
+                }
+                if (ItemSourceUtil.parse(raw) == null) {
+                    recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_INVALID",
+                            "item_source is invalid.", true, null, null);
+                    return false;
+                }
+                continue;
+            }
+            if (!legacy) {
+                recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_MISSING",
+                        "Output must declare item_source.", true, null, null);
+                return false;
+            }
+            List<Object> values = ConfigNodes.asObjectList(ConfigNodes.get(output, "item_sources"));
+            if (values.size() != 1 || ItemSourceUtil.parse(values.getFirst()) == null) {
+                recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.ERROR, "OUTPUT_LEGACY_SOURCE_INVALID",
+                        "Legacy item_sources must contain exactly one valid source.", true, null, null);
+                return false;
+            }
+            recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.WARNING, "OUTPUT_LEGACY_SOURCE",
+                    "Legacy item_sources is accepted; migrate to item_source.", false, null, null);
+        }
+        return true;
+    }
+
+    private boolean validateIdentitySchema(File file, String recipeId, YamlSection configuration) {
+        Map<String, String> materialCountKeys = new LinkedHashMap<>();
+        Map<String, String> materialAuditIds = new LinkedHashMap<>();
+        Map<String, String> auditOwners = new LinkedHashMap<>();
+        Map<String, Integer> materialAmounts = new LinkedHashMap<>();
+        Map<String, Boolean> materialOptional = new LinkedHashMap<>();
+        List<Object> materials = ConfigNodes.asObjectList(configuration.get("materials"));
+        for (int index = 0; index < materials.size(); index++) {
+            Object entry = materials.get(index);
+            String path = "materials[" + index + "]";
+            if (!validateDeclaredIdentity(file, recipeId, entry, path, "material_id")
+                    || !validateDeclaredIdentity(file, recipeId, entry, path, "count_key")
+                    || !validateDeclaredIdentity(file, recipeId, entry, path, "audit_id")) {
+                return false;
+            }
+            if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
+                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_MATCH_EMPTY",
+                        "Material must declare item_sources, matcher, or both.", true, null, null);
+                return false;
+            }
+            String materialId = normalizedIdentity(entry, "material_id", "count_key", "audit_id");
+            if (Texts.isBlank(materialId)) {
+                continue;
+            }
+            String countKey = normalizedIdentity(entry, "count_key");
+            String auditId = normalizedIdentity(entry, "audit_id");
+            countKey = Texts.isBlank(countKey) ? materialId : countKey;
+            auditId = Texts.isBlank(auditId) ? materialId : auditId;
+            int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
+            boolean optional = ConfigNodes.bool(entry, "optional", false);
+            if (materialCountKeys.containsKey(materialId)
+                    && (!countKey.equals(materialCountKeys.get(materialId))
+                    || !auditId.equals(materialAuditIds.get(materialId))
+                    || amount != materialAmounts.get(materialId)
+                    || optional != materialOptional.get(materialId))) {
+                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_IDENTITY_CONFLICT",
+                        "All forms of material_id '" + materialId
+                                + "' must use the same count_key, audit_id, amount, and optional flag.",
+                        true, null, null);
+                return false;
+            }
+            String auditOwner = auditOwners.putIfAbsent(auditId, materialId);
+            if (auditOwner != null && !auditOwner.equals(materialId)) {
+                recordIssue(file, recipeId, path + ".audit_id", IssueSeverity.ERROR,
+                        "AUDIT_ID_CONFLICT",
+                        "audit_id '" + auditId + "' is shared by different material_id values.",
+                        true, null, null);
+                return false;
+            }
+            materialCountKeys.putIfAbsent(materialId, countKey);
+            materialAuditIds.putIfAbsent(materialId, auditId);
+            materialAmounts.putIfAbsent(materialId, amount);
+            materialOptional.putIfAbsent(materialId, optional);
+        }
+        Map<String, Integer> blueprintAmounts = new LinkedHashMap<>();
+        List<Object> blueprints = ConfigNodes.asObjectList(configuration.get("blueprint_requirements"));
+        for (int index = 0; index < blueprints.size(); index++) {
+            Object entry = blueprints.get(index);
+            String path = "blueprint_requirements[" + index + "]";
+            if (!validateDeclaredIdentity(file, recipeId, entry, path, "id")
+                    || !validateDeclaredIdentity(file, recipeId, entry, path, "blueprint_id")) {
+                return false;
+            }
+            if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
+                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "BLUEPRINT_MATCH_EMPTY",
+                        "Blueprint requirement must declare item_sources, matcher, or both.",
+                        true, null, null);
+                return false;
+            }
+            String blueprintId = normalizedIdentity(entry, "id", "blueprint_id");
+            if (Texts.isBlank(blueprintId)) {
+                continue;
+            }
+            int amount = Numbers.tryParseInt(ConfigNodes.get(entry, "amount"), 1);
+            Integer existing = blueprintAmounts.putIfAbsent(blueprintId, amount);
+            if (existing != null && existing != amount) {
+                recordIssue(file, recipeId, path, IssueSeverity.ERROR, "BLUEPRINT_IDENTITY_CONFLICT",
+                        "All forms of blueprint id '" + blueprintId + "' must use the same amount.",
+                        true, null, null);
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean validateDeclaredIdentity(File file, String recipeId, Object entry,
+            String path, String key) {
+        if (!ConfigNodes.contains(entry, key)) {
+            return true;
+        }
+        if (Texts.isNotBlank(ConfigNodes.string(entry, key, null))) {
+            return true;
+        }
+        recordIssue(file, recipeId, path + "." + key, IssueSeverity.ERROR, "IDENTITY_BLANK",
+                key + " cannot be blank when declared.", true, null, null);
+        return false;
+    }
+
+    private String normalizedIdentity(Object entry, String... keys) {
+        for (String key : keys) {
+            String value = ConfigNodes.string(entry, key, null);
+            if (Texts.isNotBlank(value)) {
+                return Texts.lower(value.trim());
+            }
+        }
+        return "";
     }
 
     private boolean validateActions(File file, Recipe recipe) {

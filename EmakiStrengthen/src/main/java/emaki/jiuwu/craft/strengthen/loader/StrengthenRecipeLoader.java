@@ -107,13 +107,13 @@ public final class StrengthenRecipeLoader {
         }
     }
 
-    public @NotNull StarStageMaterialRule materialRule(String recipeId, int targetStar, String itemToken) {
-        return materialRule(recipeId, targetStar, itemToken, "");
+    public @NotNull StarStageMaterialRule materialRule(String recipeId, int targetStar, String materialId) {
+        return materialRule(recipeId, targetStar, materialId, "");
     }
 
     public @NotNull StarStageMaterialRule materialRule(String recipeId,
             int targetStar,
-            String itemToken,
+            String materialId,
             String branchPath) {
         synchronized (stateLock) {
             Map<String, StarStageMaterialRule> rules = materialRules.get(Texts.lower(recipeId));
@@ -122,7 +122,7 @@ public final class StrengthenRecipeLoader {
             }
             String path = Texts.toStringSafe(branchPath);
             while (true) {
-                StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(path, targetStar, itemToken));
+                StarStageMaterialRule rule = rules.get(StarStageMaterialRule.key(path, targetStar, materialId));
                 if (rule != null) {
                     return rule;
                 }
@@ -220,10 +220,16 @@ public final class StrengthenRecipeLoader {
                 continue;
             }
             for (StrengthenRecipe.StarStageMaterial material : stage.materials()) {
-                if (material == null || Texts.isBlank(material.item())) {
+                if (material == null || Texts.isBlank(material.materialId())) {
                     continue;
                 }
-                materialCatalog.putIfAbsent(Texts.lower(material.item()), material.item());
+                materialCatalog.putIfAbsent(Texts.lower(material.materialId()), material.materialId());
+                if (Texts.isNotBlank(material.countKey())) {
+                    materialCatalog.putIfAbsent(Texts.lower(material.countKey()), material.countKey());
+                }
+                if (Texts.isNotBlank(material.item())) {
+                    materialCatalog.putIfAbsent(Texts.lower(material.item()), material.materialId());
+                }
             }
         }
     }

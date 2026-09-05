@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.0"
+version: "1.1.2"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -83,6 +83,10 @@ station:
   recipe_no_outputs: "<yellow>配方 %recipe% 没有任何产物，已跳过（%file%）</yellow>"
   recipe_bad_amount: "<yellow>配方 %recipe% 的数量 %amount% 无效，已跳过该条</yellow>"
   recipe_bad_source: "<yellow>配方 %recipe% 的物品源 %source% 无法解析（%file%）</yellow>"
+  recipe_legacy_item_source: "<yellow>配方 %recipe% 使用旧版 item_source，仍会兼容读取；请迁移到 item_sources（%file%）</yellow>"
+  recipe_derived_material_identity: "<yellow>配方 %recipe% 的第 %index% 个材料缺少显式 material_id、requirement_id 或 count_key，当前按索引兼容读取；请补齐稳定身份（%file%）</yellow>"
+  recipe_source_field_conflict: "<red>配方 %recipe% 同时声明 item_source 与 item_sources，已阻塞加载（%file%）</red>"
+  recipe_duplicate_material_identity: "<red>配方 %recipe% 的材料身份 %identity% 重复或冲突，已阻塞加载（%file%）</red>"
   recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
 
   dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id：%file%</yellow>"

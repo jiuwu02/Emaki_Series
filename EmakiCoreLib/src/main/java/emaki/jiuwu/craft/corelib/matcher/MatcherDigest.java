@@ -1,16 +1,19 @@
-package emaki.jiuwu.craft.forge.model;
+package emaki.jiuwu.craft.corelib.matcher;
+
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-final class MatcherIdentity {
+public final class MatcherDigest {
 
-    private static final String PREFIX = "matcher-";
+    public static final String PREFIX = "matcher-";
 
-    private MatcherIdentity() {
+    private MatcherDigest() {
     }
 
-    static String syntheticKey(Object matcherNode) {
+    public static @NotNull String of(@Nullable Object matcherNode) {
         if (matcherNode == null) {
             return "";
         }
@@ -23,5 +26,9 @@ final class MatcherIdentity {
             return "";
         }
         return PREFIX + Integer.toHexString(rendered.hashCode());
+    }
+
+    public static boolean derived(@Nullable String identity) {
+        return Texts.toStringSafe(identity).startsWith(PREFIX);
     }
 }
