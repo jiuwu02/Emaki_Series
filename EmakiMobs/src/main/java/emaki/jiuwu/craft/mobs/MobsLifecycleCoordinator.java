@@ -14,6 +14,9 @@ import emaki.jiuwu.craft.mobs.action.source.AttackerSource;
 import emaki.jiuwu.craft.mobs.action.source.KillerSource;
 import emaki.jiuwu.craft.mobs.action.source.TargetSource;
 import emaki.jiuwu.craft.mobs.action.source.VictimSource;
+import emaki.jiuwu.craft.mobs.action.stage.MobPlayAnimationStage;
+import emaki.jiuwu.craft.mobs.action.stage.MobSetModelStage;
+import emaki.jiuwu.craft.mobs.action.stage.MobStopAnimationStage;
 import emaki.jiuwu.craft.mobs.action.stage.SummonMobStage;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
@@ -30,6 +33,7 @@ import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
@@ -126,8 +130,12 @@ final class MobsLifecycleCoordinator
                 plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
         var mobExtensions = new DefaultMobExtensions(plugin);
         var mobAttributeRegistrar = new MobAttributeRegistrar(plugin, mobIdentifier, mobRegistry::get);
+        var mobModelManager = new MobModelManager(
+                plugin, executionDispatcher, mobRegistry::get, appConfigLoader::current, messageService);
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);
+        mobFactory.setModelManager(mobModelManager);
+        mobTriggerListener.setModelManager(mobModelManager);
 
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, targetSelectorLoader, targetSelectorRegistry,
@@ -139,7 +147,7 @@ final class MobsLifecycleCoordinator
                 naturalSpawnHandler, autonomousSpawnHandler,
                 mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
-                mobAttributeRegistrar, mobExtensions);
+                mobAttributeRegistrar, mobModelManager, mobExtensions);
     }
 
     int reload(EmakiMobsPlugin plugin) {
@@ -175,6 +183,7 @@ final class MobsLifecycleCoordinator
         components.spawnRuleDispatcher().reload(loadedRules);
         components.mobRefreshService().refreshAll();
         components.mobAttributeRegistrar().register();
+        components.mobModelManager().reload();
         components.mobExtensions().notifyReload();
         return components.mobRegistry().get().size();
     }
@@ -221,12 +230,31 @@ final class MobsLifecycleCoordinator
             registered++;
         }
 
+        MobPlayAnimationStage playAnimationStage = new MobPlayAnimationStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", playAnimationStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, playAnimationStage))) {
+            registered++;
+        }
+        MobStopAnimationStage stopAnimationStage = new MobStopAnimationStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", stopAnimationStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, stopAnimationStage))) {
+            registered++;
+        }
+        MobSetModelStage setModelStage = new MobSetModelStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", setModelStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, setModelStage))) {
+            registered++;
+        }
+
         if (!EmakiCoreLibApi.onStageRegistryRebuilt(plugin, () -> registerCustomActions(plugin))) {
             components.messageService().warning("console.custom_action_rebuild_hook_failed");
         }
         components.messageService().info("console.custom_actions_registered", Map.of(
                 "registered", registered,
-                "expected", 5));
+                "expected", 8));
     }
 
     void unregisterCustomActions() {

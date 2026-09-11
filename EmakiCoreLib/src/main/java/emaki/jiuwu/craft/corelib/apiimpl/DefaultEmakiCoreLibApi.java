@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -35,6 +36,10 @@ import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionStatus;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationDefinition;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationListener;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationPlaybackHandle;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
@@ -315,6 +320,78 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             String moduleName,
             ModuleReadinessListener listener) {
         return plugin.moduleReadinessRegistry().addListener(owner, moduleName, listener);
+    }
+
+    @Override
+    public AnimationRegistration registerAnimation(Plugin owner, AnimationDefinition definition) {
+        if (owner == null || definition == null || !definition.valid()) {
+            return AnimationRegistration.unavailable("animation.definition_invalid");
+        }
+        plugin.animationRegistry().register(owner, definition);
+        return new LiveAnimationRegistration(definition.id(),
+                () -> plugin.animationRegistry().revoke(owner, definition.id()));
+    }
+
+    @Override
+    public CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(Plugin owner,
+            Entity entity,
+            String definitionId,
+            CoreActionExecutionContext context) {
+        return plugin.animationPlaybackService().play(owner, entity, definitionId, context);
+    }
+
+    @Override
+    public boolean stopAnimation(Plugin owner, Entity entity, String definitionId) {
+        return plugin.animationPlaybackService().stop(owner, entity, definitionId);
+    }
+
+    @Override
+    public AnimationRegistration addAnimationListener(Plugin owner, AnimationListener listener) {
+        if (owner == null || listener == null) {
+            return AnimationRegistration.unavailable("animation.listener_invalid");
+        }
+        plugin.animationRegistry().addListener(owner, listener);
+        return new LiveAnimationRegistration("", () -> plugin.animationRegistry().removeListener(owner));
+    }
+
+    private static final class LiveAnimationRegistration implements AnimationRegistration {
+
+        private final String definitionId;
+        private final Runnable revoke;
+        private volatile boolean active = true;
+
+        private LiveAnimationRegistration(String definitionId, Runnable revoke) {
+            this.definitionId = definitionId;
+            this.revoke = revoke;
+        }
+
+        @Override
+        public boolean successful() {
+            return true;
+        }
+
+        @Override
+        public String definitionId() {
+            return definitionId;
+        }
+
+        @Override
+        public String reasonKey() {
+            return "";
+        }
+
+        @Override
+        public boolean active() {
+            return active;
+        }
+
+        @Override
+        public void close() {
+            if (active) {
+                active = false;
+                revoke.run();
+            }
+        }
     }
 
     private CompletableFuture<TriggerExecution> executeTriggerLines(Plugin owner,

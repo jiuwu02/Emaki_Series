@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -31,6 +31,9 @@ console:
   custom_actions_registered: "<gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件。</gray>"
   custom_action_registration_failed: "<yellow>注册 CoreLib %kind% <white>%id%</white> 失败：<red>%reason%</red></yellow>"
   custom_action_rebuild_hook_failed: "<yellow>无法安装 CoreLib 动作重建回调；CoreLib 重载后自定义动作可能不可用。</yellow>"
+  model_backend_selected: "<gray>模型后端：<yellow>%backend%</yellow>。</gray>"
+  model_backend_unavailable: "<yellow>配置的模型后端 <white>%backend%</white> 不可用，模型功能已禁用。</yellow>"
+  model_blueprint_missing: "<yellow>生物 %mob_id% 引用的模型蓝图 <white>%blueprint%</white> 不存在，已跳过模型挂载。</yellow>"
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
@@ -52,6 +55,7 @@ console:
       path_not_directory: "指定路径不是目录。"
       directory_not_readable: "目录不可读。"
       mobs_max_health_stacking: "生物 %mob_id% 同时配置了 components.max_health 与 ea_attributes.max_health_vanilla，两者叠加，最终上限为二者之和。"
+      model_api_invalid: "model.api 取值 %api% 无效，应为 auto、model_engine 或 better_model 之一，已回退为 auto。"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"
@@ -72,6 +76,9 @@ loader:
   target_selector_invalid_score: "目标选择器 %selector% 包含无效打分类型 %type%，已跳过"
   target_selector_unknown_table: "目标选择器 %selector% 引用了不存在的装备权重表 %table%，已跳过"
   target_selector_invalid_expression: "目标选择器 %selector% 包含无效表达式 %expression%，已跳过"
+  model_missing_blueprint: "生物 %file% 的 model 节缺少 blueprint，已忽略该模型配置"
+  model_invalid_duration: "生物 %file% 的动画 %animation% 的 duration_ticks 无效（%duration%），已忽略该关键帧时间轴"
+  model_keyframe_missing_tick: "生物 %file% 的动画 %animation% 存在缺少 tick 的关键帧，已跳过该帧"
   type:
     mob: "生物"
     loot_table: "战利品表"

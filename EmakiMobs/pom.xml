@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-mobs</artifactId>
-    <version>1.0.1</version>
+    <version>1.0.2</version>
     <name>EmakiMobs</name>
     <packaging>jar</packaging>
 
@@ -53,6 +53,16 @@
             <groupId>emaki.jiuwu.craft</groupId>
             <artifactId>emaki-item-api</artifactId>
             <version>${emaki.item.api.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.ticxo.modelengine</groupId>
+            <artifactId>ModelEngine</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.github.toxicity188</groupId>
+            <artifactId>bettermodel-bukkit-api</artifactId>
             <scope>provided</scope>
         </dependency>
     </dependencies>

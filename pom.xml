@@ -66,11 +66,11 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.release>25</maven.compiler.release>
-        <emaki.corelib.version>4.8.4</emaki.corelib.version>
+        <emaki.corelib.version>4.8.5</emaki.corelib.version>
         <emaki.attribute.version>4.8.1</emaki.attribute.version>
         <emaki.item.version>2.8.1</emaki.item.version>
         <emaki.skills.version>2.8.1</emaki.skills.version>
-        <emaki.corelib.api.version>4.8.4</emaki.corelib.api.version>
+        <emaki.corelib.api.version>4.8.5</emaki.corelib.api.version>
         <emaki.attribute.api.version>4.8.1</emaki.attribute.api.version>
         <emaki.item.api.version>2.8.1</emaki.item.api.version>
         <emaki.skills.api.version>2.8.1</emaki.skills.api.version>
@@ -85,8 +85,8 @@
         <emaki.station.version>1.1.3</emaki.station.version>
         <emaki.accessory.api.version>1.1.2</emaki.accessory.api.version>
         <emaki.accessory.version>1.1.2</emaki.accessory.version>
-        <emaki.mobs.api.version>1.0.1</emaki.mobs.api.version>
-        <emaki.mobs.version>1.0.1</emaki.mobs.version>
+        <emaki.mobs.api.version>1.0.2</emaki.mobs.api.version>
+        <emaki.mobs.version>1.0.2</emaki.mobs.version>
         <paper.api.version>1.21.8-R0.1-SNAPSHOT</paper.api.version>
         <adventure.version>4.26.1</adventure.version>
         <exp4j.version>0.4.8</exp4j.version>
@@ -113,6 +113,8 @@
         <caffeine.version>3.2.4</caffeine.version>
         <junit.version>5.14.2</junit.version>
         <betterhud.version>2.0.0</betterhud.version>
+        <modelengine.version>R4.1.1</modelengine.version>
+        <bettermodel.version>3.4.1</bettermodel.version>
     </properties>
 
     <dependencyManagement>
@@ -344,6 +346,24 @@
                 <groupId>io.github.toxicity188</groupId>
                 <artifactId>BetterHud-bukkit-api</artifactId>
                 <version>${betterhud.version}</version>
+                <scope>provided</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.ticxo.modelengine</groupId>
+                <artifactId>ModelEngine</artifactId>
+                <version>${modelengine.version}</version>
+                <scope>provided</scope>
+                <exclusions>
+                    <exclusion>
+                        <groupId>*</groupId>
+                        <artifactId>*</artifactId>
+                    </exclusion>
+                </exclusions>
+            </dependency>
+            <dependency>
+                <groupId>io.github.toxicity188</groupId>
+                <artifactId>bettermodel-bukkit-api</artifactId>
+                <version>${bettermodel.version}</version>
                 <scope>provided</scope>
             </dependency>
             <dependency>

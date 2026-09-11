@@ -1,7 +1,7 @@
 # EmakiMobs 主配置
 # 控制自定义生物定义、掉落表、自然生成规则与原版类型覆写。
 
-version: "1.0.1"
+version: "1.0.2"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -11,3 +11,36 @@ release_default_data: true
 
 # 兼容保留项；当前实现不使用该值控制停用排空。
 drain_timeout_seconds: 30
+
+# 实体模型渲染与动画设置。
+model:
+  # 使用的模型后端：auto 自动选择（优先 ModelEngine，其次 BetterModel）、
+  # model_engine 强制 ModelEngine、better_model 强制 BetterModel。
+  # 对应后端插件未安装时模型功能静默降级为无模型模式。
+  api: "auto"
+  # 模型对玩家可见的最大距离（格）。
+  view_distance: 48.0
+  # 距离分级（LOD）边界（格）：near 以内全速渲染；
+  # near 与 mid 之间降低动画刷新率；mid 与 far 之间进一步降频；
+  # far 以外对玩家隐藏模型。
+  lod:
+    near: 16.0
+    mid: 32.0
+    far: 48.0
+  # 移动状态（idle/walk/run）检测周期（tick）。
+  movement_check_interval_ticks: 5
+  # 死亡动画播完后延迟多少 tick 再卸载模型实体。
+  death_detach_delay_ticks: 40
+  # 判定为行走与奔跑的水平速度阈值（格/tick）。
+  walk_speed_threshold: 0.12
+  run_speed_threshold: 0.28
+  # 各标准动作切换时的过渡混合时长（tick）。
+  transitions:
+    idle_fade_ticks: 5
+    walk_fade_ticks: 5
+    run_fade_ticks: 5
+    death_fade_ticks: 0
+    hurt_fade_ticks: 2
+    attack_fade_ticks: 3
+    skill_fade_ticks: 3
+    interact_fade_ticks: 3

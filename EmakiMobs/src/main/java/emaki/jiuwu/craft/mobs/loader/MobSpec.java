@@ -19,6 +19,7 @@ public record MobSpec(
         boolean typeOverride,
         @Nullable ThreatConfig threatConfig,
         @Nullable BossBarConfig bossBarConfig,
+        @Nullable MobModelConfig modelConfig,
         @Nullable String targetSelector,
         TargetLockConfig targetLockConfig
 ) {

@@ -7,6 +7,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
@@ -26,6 +27,10 @@ import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationDefinition;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationListener;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationPlaybackHandle;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
@@ -492,6 +497,91 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Registers one animation definition into EmakiCoreLib's shared animation registry.
+     *
+     * <p>A definition carries timing and keyframes only; rendering the underlying model animation is the
+     * consumer's job through its own model backend bridge, driven by {@link AnimationListener#onPlay}.
+     * Keep the handle and close it on disable. Unlike the action stage table, the animation definition
+     * registry survives an EmakiCoreLib reload, so no rebuild callback is required.</p>
+     *
+     * @param owner      plugin that owns the definition lifecycle
+     * @param definition the animation definition; invalid definitions fail with a stable reason key
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull AnimationRegistration registerAnimation(@Nullable Plugin owner,
+            @Nullable AnimationDefinition definition) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? AnimationRegistration.unavailable("corelib_unavailable")
+                : resolved.registerAnimation(owner, definition);
+    }
+
+    /**
+     * Starts one playback of a registered animation on an entity.
+     *
+     * <p>May be called from any thread. The future completes when the playback has been accepted or
+     * rejected; its completion thread is not guaranteed. Rejections are structured: unknown definition,
+     * owner disabled, or a
+     * {@link emaki.jiuwu.craft.corelib.api.animation.AnimationConflictPolicy#REJECT} conflict. A higher-priority playback
+     * pre-empts the current one; equal priorities follow the definition's conflict policy.</p>
+     *
+     * <p>Keyframe action lines run with {@code context} as their execution input (the playing entity is
+     * added as caster when the context has none). Bukkit access inside keyframes happens on the entity's
+     * owner thread.</p>
+     *
+     * @param owner        plugin that owns the playback lifecycle
+     * @param entity       the entity to animate
+     * @param definitionId registered definition id, matched case-insensitively
+     * @param context      execution context for keyframe action lines; defaults when {@code null}
+     * @return a future carrying the playback handle or a structured failure
+     */
+    public static @NotNull CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(
+            @Nullable Plugin owner,
+            @Nullable Entity entity,
+            @Nullable String definitionId,
+            @Nullable CoreActionExecutionContext context) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(EmakiResult.unavailable())
+                : resolved.playAnimationAsync(owner, entity, definitionId, context);
+    }
+
+    /**
+     * Stops the playback of one definition on one entity, if any.
+     *
+     * @param owner        plugin that owns the playback
+     * @param entity       the animated entity
+     * @param definitionId definition id, matched case-insensitively; {@code null} or blank stops all
+     *                     playbacks owned by {@code owner} on that entity
+     * @return whether a live playback was stopped
+     */
+    public static boolean stopAnimation(@Nullable Plugin owner,
+            @Nullable Entity entity,
+            @Nullable String definitionId) {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.stopAnimation(owner, entity, definitionId);
+    }
+
+    /**
+     * Registers an animation playback listener.
+     *
+     * <p>Callbacks run on the playing entity's owner thread. The same owner replaces its previous
+     * listener; owner disable removes it automatically. Keep and close the handle when the listener is
+     * retired independently.</p>
+     *
+     * @param owner    plugin that owns the listener lifecycle
+     * @param listener the listener
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull AnimationRegistration addAnimationListener(@Nullable Plugin owner,
+            @Nullable AnimationListener listener) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? AnimationRegistration.unavailable("corelib_unavailable")
+                : resolved.addAnimationListener(owner, listener);
+    }
+
+    /**
      * Bridge contract implemented by EmakiCoreLib. Third-party plugins must not implement it.
      */
     @ApiStatus.NonExtendable
@@ -782,5 +872,63 @@ public final class EmakiCoreLibApi {
         ReadinessRegistration addModuleListener(@Nullable Plugin owner,
                 @Nullable String moduleName,
                 @Nullable ModuleReadinessListener listener);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerAnimation(Plugin, AnimationDefinition)}. An older runtime
+         * bridge that predates the animation subsystem returns an inactive handle instead of throwing.
+         *
+         * @param owner      plugin that owns the definition lifecycle
+         * @param definition the animation definition
+         * @return a revocable handle
+         */
+        @NotNull
+        default AnimationRegistration registerAnimation(@Nullable Plugin owner,
+                @Nullable AnimationDefinition definition) {
+            return AnimationRegistration.unavailable("animation.runtime_unsupported");
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#playAnimationAsync(Plugin, Entity, String, CoreActionExecutionContext)}.
+         * An older runtime bridge returns an unavailable future instead of throwing.
+         *
+         * @param owner        plugin that owns the playback lifecycle
+         * @param entity       the entity to animate
+         * @param definitionId registered definition id
+         * @param context      execution context for keyframe action lines
+         * @return a future carrying the playback handle or a structured failure
+         */
+        @NotNull
+        default CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(@Nullable Plugin owner,
+                @Nullable Entity entity,
+                @Nullable String definitionId,
+                @Nullable CoreActionExecutionContext context) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#stopAnimation(Plugin, Entity, String)}. An older runtime bridge
+         * returns {@code false}.
+         *
+         * @param owner        plugin that owns the playback
+         * @param entity       the animated entity
+         * @param definitionId definition id, or blank to stop all of the owner's playbacks on the entity
+         * @return whether a live playback was stopped
+         */
+        default boolean stopAnimation(@Nullable Plugin owner, @Nullable Entity entity, @Nullable String definitionId) {
+            return false;
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#addAnimationListener(Plugin, AnimationListener)}. An older runtime
+         * bridge returns an inactive handle instead of throwing.
+         *
+         * @param owner    plugin that owns the listener lifecycle
+         * @param listener the listener
+         * @return a revocable handle
+         */
+        @NotNull
+        default AnimationRegistration addAnimationListener(@Nullable Plugin owner, @Nullable AnimationListener listener) {
+            return AnimationRegistration.unavailable("animation.runtime_unsupported");
+        }
     }
 }

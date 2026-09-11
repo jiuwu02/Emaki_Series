@@ -102,6 +102,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         lifecycleCoordinator.unregisterCustomActions();
         HandlerList.unregisterAll(this);
+        components.mobModelManager().close();
         components.mobAttributeRegistrar().unregister();
         components.scoreSnapshotService().close();
         components.threatTableManager().close();
@@ -205,6 +206,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         getServer().getPluginManager().registerEvents(components.scoreSnapshotService(), this);
         getServer().getPluginManager().registerEvents(components.threatTableManager(), this);
         getServer().getPluginManager().registerEvents(components.bossBarManager(), this);
+        getServer().getPluginManager().registerEvents(components.mobModelManager(), this);
         getServer().getPluginManager().registerEvents(components.mobExtensions(), this);
     }
 

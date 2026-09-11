@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
 import emaki.jiuwu.craft.mobs.selector.TargetSelectorConfig;
@@ -69,6 +70,7 @@ record MobsRuntimeComponents(
         ThreatTableManager threatTableManager,
         BossBarManager bossBarManager,
         MobAttributeRegistrar mobAttributeRegistrar,
+        MobModelManager mobModelManager,
         DefaultMobExtensions mobExtensions
 ) implements RuntimeComponents {
 

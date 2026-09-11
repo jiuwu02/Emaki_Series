@@ -4,6 +4,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.api.event.EmakiMobSpawnEvent;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -30,6 +31,9 @@ public final class MobFactory {
     @Nullable
     private BossBarManager bossBarManager;
 
+    @Nullable
+    private MobModelManager modelManager;
+
     public MobFactory(Supplier<Map<String, MobSpec>> registry,
                       ComponentMapper componentMapper,
                       MobIdentifier mobIdentifier,
@@ -48,6 +52,10 @@ public final class MobFactory {
 
     public void setBossBarManager(@Nullable BossBarManager bossBarManager) {
         this.bossBarManager = bossBarManager;
+    }
+
+    public void setModelManager(@Nullable MobModelManager modelManager) {
+        this.modelManager = modelManager;
     }
 
     public Optional<LivingEntity> spawn(Location location, String mobId) {
@@ -75,6 +83,7 @@ public final class MobFactory {
         }
         scheduleHealthTopUp(entity, spec);
         if (bossBarManager != null) bossBarManager.registerIfConfigured(entity, mobId);
+        if (modelManager != null) modelManager.attachMob(entity, mobId);
         if (skillExecutor != null) skillExecutor.executeForTrigger(entity, mobId, "on_spawn");
         return Optional.of(entity);
     }

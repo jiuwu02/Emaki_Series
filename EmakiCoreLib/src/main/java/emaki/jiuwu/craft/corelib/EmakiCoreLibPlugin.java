@@ -37,6 +37,8 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.animation.AnimationPlaybackService;
+import emaki.jiuwu.craft.corelib.animation.AnimationRegistry;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
 import emaki.jiuwu.craft.corelib.assembly.OperationTemplateRenderer;
 import emaki.jiuwu.craft.corelib.dialog.DialogApiBridge;
@@ -146,6 +148,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private StageRegistry stageRegistry;
 
     private final TriggerRegistry triggerRegistry = new TriggerRegistry();
+
+    private final AnimationRegistry animationRegistry = new AnimationRegistry();
+    private final AnimationPlaybackService animationPlaybackService =
+            new AnimationPlaybackService(this, animationRegistry);
     private StageDispatcher stageDispatcher;
     private ActionEngine actionEngine;
     private final PipelineBatchRunner pipelineBatchRunner = new PipelineBatchRunner();
@@ -236,6 +242,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         if (pipelineTaskService != null) {
             pipelineTaskService.stopAll();
         }
+        animationPlaybackService.stopAll();
 
         if (stageDispatcher != null) {
             stageDispatcher.close();
@@ -322,6 +329,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                         registry.revokeAll(owner);
                     }
                     triggerRegistry.revokeAll(owner);
+                    animationPlaybackService.revokeOwner(owner);
+                    animationRegistry.revokeAll(owner);
                     stageRebuildListeners.remove(owner);
                 }
             }, this);
@@ -445,6 +454,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 },
                 configModel.pipelineConfig().toLimits()
         );
+        animationPlaybackService.invalidateCompiledFrames();
         replayStageRegistrations();
     }
 
@@ -754,6 +764,14 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public PipelineTaskService pipelineTaskService() {
         return pipelineTaskService;
+    }
+
+    public AnimationRegistry animationRegistry() {
+        return animationRegistry;
+    }
+
+    public AnimationPlaybackService animationPlaybackService() {
+        return animationPlaybackService;
     }
 
     private void buildSequenceRepository() {
