@@ -18,16 +18,21 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 
 public final class RepairItemStage extends BaseStage {
 
-    public RepairItemStage() {
+    private final ActionAuditLogger auditLogger;
+
+    public RepairItemStage(ActionAuditLogger auditLogger) {
         super("repair_item", "item", "Repairs a damageable item in one of the target's slots.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
                         "Inventory slot"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "0",
                         "Damage points to repair, 0 or less repairs fully"));
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -59,6 +64,8 @@ public final class RepairItemStage extends BaseStage {
         damageable.setDamage(after);
         itemStack.setItemMeta(meta);
         slot.set(target.getInventory(), itemStack);
+        auditLogger.logSuccess(id(), target, OperationType.DECREASE, before, after,
+                before - after, context);
         return CoreActionOutcome.success(Map.of(
                 "slot", slot.id(),
                 "damage_before", before,

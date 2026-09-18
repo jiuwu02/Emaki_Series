@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.corelib.action.builtin.stage.DropItemStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.ExplosionStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.ExtinguishStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.FeedStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeFoodStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveExpStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveItemStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.GiveMoneyStage;
@@ -84,6 +85,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
@@ -94,7 +96,7 @@ public final class BuiltinStages {
 
     public static final int GATE_COUNT = 10;
 
-    public static final int ACTION_COUNT = 47;
+    public static final int ACTION_COUNT = 48;
 
     private BuiltinStages() {
     }
@@ -103,6 +105,7 @@ public final class BuiltinStages {
             @Nullable Plugin owner,
             @Nullable ExecutionDispatcher executionDispatcher,
             @Nullable EconomyManager economyManager,
+            @Nullable ActionAuditLogger auditLogger,
             @Nullable ItemSourceService itemSourceService,
             @Nullable CraftEngineBlockBridge craftEngineBlockBridge,
             @Nullable CustomBlockBridge itemsAdderBlockBridge,
@@ -114,9 +117,12 @@ public final class BuiltinStages {
         List<String> failures = new ArrayList<>();
         registerSources(registry, owner, failures);
         registerGates(registry, owner, itemSourceService, failures);
-        registerActions(registry, owner, executionDispatcher, economyManager, itemSourceService,
-                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge,
-                taskService, sequences, failures);
+        ActionAuditLogger effectiveAuditLogger = auditLogger == null
+                ? new ActionAuditLogger(null)
+                : auditLogger;
+        registerActions(registry, owner, executionDispatcher, economyManager, effectiveAuditLogger,
+                itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge,
+                oraxenBlockBridge, taskService, sequences, failures);
         return new Report(List.copyOf(failures));
     }
 
@@ -159,6 +165,7 @@ public final class BuiltinStages {
             Plugin owner,
             ExecutionDispatcher executionDispatcher,
             EconomyManager economyManager,
+            ActionAuditLogger auditLogger,
             ItemSourceService itemSourceService,
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
@@ -167,9 +174,9 @@ public final class BuiltinStages {
             PipelineTaskService taskService,
             StartTaskStage.SequenceSource sequences,
             List<String> failures) {
-        for (CoreActionStage stage : actions(owner, executionDispatcher, economyManager, itemSourceService,
-                craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge,
-                taskService, sequences)) {
+        for (CoreActionStage stage : actions(owner, executionDispatcher, economyManager, auditLogger,
+                itemSourceService, craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge,
+                oraxenBlockBridge, taskService, sequences)) {
             record(failures, stage.id(), registry.registerAction(owner, stage));
         }
     }
@@ -177,6 +184,7 @@ public final class BuiltinStages {
     private static List<CoreActionStage> actions(Plugin owner,
             ExecutionDispatcher executionDispatcher,
             EconomyManager economyManager,
+            ActionAuditLogger auditLogger,
             ItemSourceService itemSourceService,
             CraftEngineBlockBridge craftEngineBlockBridge,
             CustomBlockBridge itemsAdderBlockBridge,
@@ -195,10 +203,11 @@ public final class BuiltinStages {
         stages.add(new BossBarShowStage());
         stages.add(new BossBarHideStage());
 
-        stages.add(new HealStage());
-        stages.add(new DamageStage());
-        stages.add(new SetHealthStage());
-        stages.add(new FeedStage());
+        stages.add(new HealStage(auditLogger));
+        stages.add(new DamageStage(auditLogger));
+        stages.add(new SetHealthStage(auditLogger));
+        stages.add(new FeedStage(auditLogger));
+        stages.add(new TakeFoodStage(auditLogger));
         stages.add(new IgniteStage());
         stages.add(new ExtinguishStage());
         stages.add(new KillEntityStage());
@@ -210,13 +219,13 @@ public final class BuiltinStages {
         stages.add(new ClearPotionEffectsStage());
 
         stages.add(new SendItemStage());
-        stages.add(new GiveItemStage(itemSourceService));
-        stages.add(new SetItemStage(itemSourceService));
-        stages.add(new ClearItemStage(itemSourceService));
-        stages.add(new TakeItemStage(itemSourceService));
-        stages.add(new DropItemStage(itemSourceService));
-        stages.add(new RepairItemStage());
-        stages.add(new DamageItemStage());
+        stages.add(new GiveItemStage(itemSourceService, auditLogger));
+        stages.add(new SetItemStage(itemSourceService, auditLogger));
+        stages.add(new ClearItemStage(itemSourceService, auditLogger));
+        stages.add(new TakeItemStage(itemSourceService, auditLogger));
+        stages.add(new DropItemStage(itemSourceService, auditLogger));
+        stages.add(new RepairItemStage(auditLogger));
+        stages.add(new DamageItemStage(auditLogger));
         stages.add(new PlaceBlockStage(itemSourceService,
                 craftEngineBlockBridge, itemsAdderBlockBridge, nexoBlockBridge, oraxenBlockBridge));
         stages.add(new SetBlockStage());
@@ -226,12 +235,12 @@ public final class BuiltinStages {
         stages.add(new SpawnEntityStage());
 
         stages.add(new TeleportStage());
-        stages.add(new GiveMoneyStage(economyManager));
-        stages.add(new TakeMoneyStage(economyManager));
-        stages.add(new SetMoneyStage(economyManager));
-        stages.add(new GiveExpStage());
-        stages.add(new TakeExpStage());
-        stages.add(new SetExpStage());
+        stages.add(new GiveMoneyStage(economyManager, auditLogger));
+        stages.add(new TakeMoneyStage(economyManager, auditLogger));
+        stages.add(new SetMoneyStage(economyManager, auditLogger));
+        stages.add(new GiveExpStage(auditLogger));
+        stages.add(new TakeExpStage(auditLogger));
+        stages.add(new SetExpStage(auditLogger));
 
         stages.add(new RunCommandAsPlayerStage());
         stages.add(new RunCommandAsOpStage());

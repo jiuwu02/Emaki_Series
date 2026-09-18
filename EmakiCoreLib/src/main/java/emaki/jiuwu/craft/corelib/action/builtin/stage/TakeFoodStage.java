@@ -18,17 +18,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
 import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 
-public final class FeedStage extends BaseStage {
+public final class TakeFoodStage extends BaseStage {
 
     private final ActionAuditLogger auditLogger;
 
-    public FeedStage(ActionAuditLogger auditLogger) {
-        super("feed", "entity", "Restores food and optional saturation on the target.",
+    public TakeFoodStage(ActionAuditLogger auditLogger) {
+        super("take_food", "entity", "Removes food and optional saturation from the target.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "20",
-                        "Food points to restore"),
+                CoreStageParameter.required("amount", CoreStageParameterType.INTEGER, "Food points to remove"),
                 CoreStageParameter.optional("saturation", CoreStageParameterType.DOUBLE, "0",
-                        "Saturation to restore"));
+                        "Saturation to remove"));
         this.auditLogger = auditLogger;
     }
 
@@ -39,23 +38,31 @@ public final class FeedStage extends BaseStage {
         if (target == null) {
             return CoreActionOutcome.skipped("action.stage.common.not_player");
         }
-        int amount = arguments.getInt("amount", 20);
-        if (amount < 0) {
+        int amount = arguments.getInt("amount", 0);
+        if (amount <= 0) {
             Map<String, Object> args = Map.of("amount", amount);
-            auditLogger.logFailure(id(), target, OperationType.INCREASE, amount,
-                    "action.stage.common.invalid_amount", args, context);
+            auditLogger.logFailure(id(), target, OperationType.DECREASE, amount,
+                    "action.stage.common.invalid_positive_amount", args, context);
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
-                    "action.stage.common.invalid_amount", args);
+                    "action.stage.common.invalid_positive_amount", args);
         }
-        float saturation = (float) Math.max(0D, arguments.getDouble("saturation", 0D));
+        double saturationDrain = Math.max(0D, arguments.getDouble("saturation", 0D));
+
         int beforeFood = target.getFoodLevel();
-        float beforeSaturation = target.getSaturation();
-        int afterFood = Math.min(20, beforeFood + amount);
-        target.setFoodLevel(afterFood);
-        if (saturation > 0F) {
-            target.setSaturation(Math.min(20F, beforeSaturation + saturation));
+        if (beforeFood < amount) {
+            Map<String, Object> args = Map.of("required", amount, "current", beforeFood);
+            auditLogger.logFailure(id(), target, OperationType.DECREASE, amount,
+                    "action.stage.food.insufficient", args, context);
+            return CoreActionOutcome.failure(CoreActionFailureKind.REJECTED,
+                    "action.stage.food.insufficient", args);
         }
-        auditLogger.logSuccess(id(), target, OperationType.INCREASE, beforeFood, target.getFoodLevel(),
+        float beforeSaturation = target.getSaturation();
+        target.setFoodLevel(beforeFood - amount);
+        if (saturationDrain > 0D) {
+            float newSat = Math.max(0F, beforeSaturation - (float) saturationDrain);
+            target.setSaturation(newSat);
+        }
+        auditLogger.logSuccess(id(), target, OperationType.DECREASE, beforeFood, target.getFoodLevel(),
                 amount, context);
         return CoreActionOutcome.success(Map.of(
                 "food_before", beforeFood,

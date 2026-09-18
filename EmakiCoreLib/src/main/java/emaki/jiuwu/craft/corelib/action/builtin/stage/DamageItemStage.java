@@ -18,10 +18,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 
 public final class DamageItemStage extends BaseStage {
 
-    public DamageItemStage() {
+    private final ActionAuditLogger auditLogger;
+
+    public DamageItemStage(ActionAuditLogger auditLogger) {
         super("damage_item", "item", "Adds durability damage to an item in one of the target's slots.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
@@ -30,6 +34,7 @@ public final class DamageItemStage extends BaseStage {
                         "Damage points to add"),
                 CoreStageParameter.optional("delete_item", CoreStageParameterType.BOOLEAN, "false",
                         "Remove the item when damage reaches max durability"));
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -56,14 +61,23 @@ public final class DamageItemStage extends BaseStage {
         if (!(meta instanceof Damageable damageable)) {
             return CoreActionOutcome.skipped("action.stage.item.not_damageable");
         }
-        int amount = Math.max(0, arguments.getInt("amount", 1));
-        if (amount <= 0) {
+        int amount = arguments.getInt("amount", 1);
+        if (amount < 0) {
+            Map<String, Object> args = Map.of("amount", amount);
+            auditLogger.logFailure(id(), target, OperationType.INCREASE, amount,
+                    "action.stage.common.invalid_amount", args, context);
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.stage.common.invalid_amount", args);
+        }
+        if (amount == 0) {
             return CoreActionOutcome.skipped("action.stage.item.zero_damage");
         }
         int before = damageable.getDamage();
         int requested = before + amount;
         if (requested >= maxDurability && arguments.getBoolean("delete_item", false)) {
             slot.clear(target.getInventory());
+            auditLogger.logSuccess(id(), target, OperationType.INCREASE, before, maxDurability,
+                    amount, context);
             return CoreActionOutcome.success(Map.of(
                     "slot", slot.id(),
                     "damage_before", before,
@@ -74,6 +88,7 @@ public final class DamageItemStage extends BaseStage {
         damageable.setDamage(after);
         itemStack.setItemMeta(meta);
         slot.set(target.getInventory(), itemStack);
+        auditLogger.logSuccess(id(), target, OperationType.INCREASE, before, after, amount, context);
         return CoreActionOutcome.success(Map.of(
                 "slot", slot.id(),
                 "damage_before", before,

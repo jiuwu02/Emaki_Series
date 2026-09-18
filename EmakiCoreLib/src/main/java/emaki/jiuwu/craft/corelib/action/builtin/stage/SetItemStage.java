@@ -17,13 +17,16 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 public final class SetItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;
+    private final ActionAuditLogger auditLogger;
 
-    public SetItemStage(ItemSourceService itemSourceService) {
+    public SetItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
         super("set_item", "item", "Sets one of the target's inventory slots to an item source.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
@@ -31,6 +34,7 @@ public final class SetItemStage extends BaseStage {
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
         this.itemSourceService = itemSourceService;
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -55,7 +59,14 @@ public final class SetItemStage extends BaseStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
                     "action.stage.item.service_unavailable");
         }
-        int amount = Math.max(1, arguments.getInt("amount", 1));
+        int amount = arguments.getInt("amount", 1);
+        if (amount <= 0) {
+            Map<String, Object> args = Map.of("amount", amount);
+            auditLogger.logFailure(id(), target, OperationType.SET, amount,
+                    "action.stage.common.invalid_positive_amount", args, context);
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.stage.common.invalid_positive_amount", args);
+        }
         ItemStack itemStack = itemSourceService.createItem(source, amount);
         if (itemStack == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
@@ -66,7 +77,10 @@ public final class SetItemStage extends BaseStage {
             return CoreActionOutcome.skipped("action.stage.item.created_air");
         }
         ItemStack replaced = slot.get(target.getInventory());
+        Integer replacedAmount = StageSupport.isEmpty(replaced) ? null : replaced.getAmount();
         slot.set(target.getInventory(), itemStack.clone());
+        auditLogger.logSuccess(id(), target, OperationType.SET, replacedAmount, itemStack.getAmount(),
+                itemStack.getAmount(), context);
         return CoreActionOutcome.success(Map.of(
                 "slot", slot.id(),
                 "item_source", StageSupport.shorthand(source),

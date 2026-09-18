@@ -17,6 +17,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -24,14 +26,16 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class ClearItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;
+    private final ActionAuditLogger auditLogger;
 
-    public ClearItemStage(ItemSourceService itemSourceService) {
+    public ClearItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
         super("clear_item", "item", "Empties one of the target's inventory slots.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("slot", CoreStageParameterType.STRING, "Inventory slot"),
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",
                         "Only clear when the slot holds this source"));
         this.itemSourceService = itemSourceService;
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -62,7 +66,10 @@ public final class ClearItemStage extends BaseStage {
                 return CoreActionOutcome.skipped("action.stage.item.source_mismatch");
             }
         }
+        int clearedAmount = current.getAmount();
         slot.clear(target.getInventory());
+        auditLogger.logSuccess(id(), target, OperationType.DECREASE, clearedAmount, 0,
+                clearedAmount, context);
         return CoreActionOutcome.success(Map.of("slot", slot.id()));
     }
 }

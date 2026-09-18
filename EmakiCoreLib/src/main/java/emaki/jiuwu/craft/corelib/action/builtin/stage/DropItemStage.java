@@ -17,18 +17,22 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 public final class DropItemStage extends BaseStage {
 
     private final ItemSourceService itemSourceService;
+    private final ActionAuditLogger auditLogger;
 
-    public DropItemStage(ItemSourceService itemSourceService) {
+    public DropItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
         super("drop_item", "item", "Drops an item at the target position.",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
         this.itemSourceService = itemSourceService;
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -48,7 +52,14 @@ public final class DropItemStage extends BaseStage {
         if (location == null || location.getWorld() == null) {
             return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
-        int amount = Math.max(1, arguments.getInt("amount", 1));
+        int amount = arguments.getInt("amount", 1);
+        if (amount <= 0) {
+            Map<String, Object> args = Map.of("amount", amount);
+            auditLogger.logFailure(id(), StageSupport.entity(context.currentTarget()), OperationType.INCREASE,
+                    amount, "action.stage.common.invalid_positive_amount", args, context);
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.stage.common.invalid_positive_amount", args);
+        }
         ItemStack itemStack = itemSourceService.createItem(source, amount);
         if (itemStack == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
@@ -59,6 +70,8 @@ public final class DropItemStage extends BaseStage {
             return CoreActionOutcome.skipped("action.stage.item.created_air");
         }
         location.getWorld().dropItem(location, itemStack);
+        auditLogger.logSuccess(id(), StageSupport.entity(context.currentTarget()), OperationType.INCREASE,
+                null, null, itemStack.getAmount(), context);
         return CoreActionOutcome.success(Map.of(
                 "item_source", StageSupport.shorthand(source),
                 "amount", itemStack.getAmount()));

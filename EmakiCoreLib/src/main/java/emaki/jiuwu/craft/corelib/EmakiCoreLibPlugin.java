@@ -62,6 +62,7 @@ import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckService;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -344,6 +345,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 this,
                 executionDispatcher,
                 candidateEconomyManager,
+                new ActionAuditLogger(debugLogger),
                 itemSourceService,
                 craftEngineBlockBridge,
                 itemsAdderBlockBridge,

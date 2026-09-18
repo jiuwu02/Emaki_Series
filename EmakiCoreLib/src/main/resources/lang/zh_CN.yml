@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.5"
+version: "4.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -244,6 +244,8 @@ action:
       not_player: "<gray>[管道] 该段需要玩家目标</gray>"
       not_location: "<gray>[管道] 该段需要位置目标</gray>"
       no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
+      invalid_amount: "<red>[管道] 数值 %amount% 不合法，必须是非负数字</red>"
+      invalid_positive_amount: "<red>[管道] 数值 %amount% 不合法，必须大于 0</red>"
     script:
       eval:
         empty_code: "<gray>[脚本] 脚本代码为空，已跳过</gray>"
@@ -286,6 +288,7 @@ action:
       slot_empty: "<gray>[管道] 该槽位没有物品</gray>"
       source_mismatch: "<gray>[管道] 槽位中的物品与指定来源不匹配</gray>"
       not_enough: "<gray>[管道] 匹配的物品数量不足</gray>"
+      insufficient: "<gray>[管道] 匹配的物品数量不足：需要 %required%，当前只有 %available%</gray>"
       remove_failed: "<red>[管道] 移除匹配物品失败</red>"
       not_damageable: "<gray>[管道] 该物品不支持耐久</gray>"
       no_durability: "<gray>[管道] 该物品没有耐久度</gray>"
@@ -333,11 +336,16 @@ action:
     teleport:
       world_not_found: "<red>[管道] 传送目标世界 %world% 不存在</red>"
       rejected: "<red>[管道] 传送被拒绝</red>"
+    food:
+      insufficient: "<gray>[管道] 食物不足：需要 %required% 点，当前只有 %current% 点</gray>"
+    exp:
+      insufficient: "<gray>[管道] 经验不足：需要 %required%（%mode%），当前只有 %current%</gray>"
     money:
       service_unavailable: "<red>[管道] 经济服务当前不可用</red>"
       provider_unavailable: "<red>[管道] 经济提供者不可用：%error%</red>"
       currency_not_found: "<red>[管道] 货币不存在：%error%</red>"
       insufficient_balance: "<red>[管道] 余额不足：%error%</red>"
+      invalid_amount: "<red>[管道] 经济操作金额 %amount% 不合法：give_money/take_money 必须大于 0，set_money 必须是非负数字</red>"
       invalid_argument: "<red>[管道] 经济操作参数不合法：%error%</red>"
       failed: "<red>[管道] 经济操作失败：%error%</red>"
       no_result: "<red>[管道] 经济操作没有返回结果</red>"
@@ -587,6 +595,9 @@ debug:
     execute_start: "执行 Action | 类型=%type% | 玩家=%player% | 参数=%params%"
     execute_result: "Action 执行完成 | 类型=%type% | 结果=%result%"
     template_resolve: "模板解析 | 模板=%template% | 展开=%expanded%"
+    audit:
+      success: "动作数值审计 | 时间=%timestamp% | 段=%stage% | 操作=%operation% | 目标=%target% | 目标UUID=%target_uuid% | 变更前=%before% | 变更后=%after% | 数值=%amount% | 来源=%source% | 阶段=%phase%"
+      failure: "动作数值审计失败 | 时间=%timestamp% | 段=%stage% | 操作=%operation% | 目标=%target% | 目标UUID=%target_uuid% | 数值=%amount% | 来源=%source% | 阶段=%phase% | 原因=%reason% | 明细=%details%"
   item_source:
     resolve: "解析物品来源 | 输入=%input% | 结果=%result%"
     create: "创建物品 | 来源=%source% | 数量=%amount% | 成功=%success%"

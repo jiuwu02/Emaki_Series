@@ -8,19 +8,25 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger;
+import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 
 public final class DamageStage extends BaseStage {
 
-    public DamageStage() {
+    private final ActionAuditLogger auditLogger;
+
+    public DamageStage(ActionAuditLogger auditLogger) {
         super("damage", "entity", "Lowers the target's health by a flat amount.",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Health to remove"));
+        this.auditLogger = auditLogger;
     }
 
     @Override
@@ -31,8 +37,16 @@ public final class DamageStage extends BaseStage {
             return CoreActionOutcome.skipped("action.stage.common.not_living_entity");
         }
         double amount = arguments.getDouble("amount", 0D);
+        if (!Double.isFinite(amount) || amount < 0D) {
+            Map<String, Object> args = Map.of("amount", amount);
+            auditLogger.logFailure(id(), target, OperationType.DECREASE, amount,
+                    "action.stage.common.invalid_amount", args, context);
+            return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
+                    "action.stage.common.invalid_amount", args);
+        }
         double before = target.getHealth();
         target.setHealth(Math.max(0D, before - amount));
+        auditLogger.logSuccess(id(), target, OperationType.DECREASE, before, target.getHealth(), amount, context);
         return CoreActionOutcome.success(Map.of("health_before", before, "health_after", target.getHealth()));
     }
 }
