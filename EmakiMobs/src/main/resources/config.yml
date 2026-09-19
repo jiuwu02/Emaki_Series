@@ -18,11 +18,18 @@ model:
   # model_engine 强制 ModelEngine、better_model 强制 BetterModel。
   # 对应后端插件未安装时模型功能静默降级为无模型模式。
   api: "auto"
-  # 模型对玩家可见的最大距离（格）。
+  # 模型视距（格）：ModelEngine 在近距/中距用它设置模型可见范围；
+  # BetterModel 不使用该值，是否显示由后端自身的跟踪范围决定。
   view_distance: 48.0
-  # 距离分级（LOD）边界（格）：near 以内全速渲染；
-  # near 与 mid 之间降低动画刷新率；mid 与 far 之间进一步降频；
-  # far 以外对玩家隐藏模型。
+  # 距离分级（LOD）边界（格）。判据是该生物到最近玩家的距离，
+  # 每 movement_check_interval_ticks 评估一次，仅在档位变化时下发给模型后端：
+  #   距离 ≤ near        → NEAR
+  #   near < 距离 ≤ mid  → MID
+  #   距离 > mid         → FAR（mid 与 far 之间同样是 FAR）
+  # 当前两个后端对 NEAR 与 MID 的处理完全相同（正常渲染，没有中间降频）；
+  # FAR 时 ModelEngine 把模型视距设为 0、BetterModel 暂停该模型的 tracker。
+  # far 只用于限定「附近是否有玩家」的搜索半径（far + 8）与远距早退判定，
+  # 不是隐藏分界点；请保持 far ≥ mid，否则 MID 档不可达。
   lod:
     near: 16.0
     mid: 32.0

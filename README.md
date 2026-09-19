@@ -2,26 +2,26 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采用多模块 Maven 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、装备成长、技能、烹饪、制作、图鉴、仓库与自定义生物等 RPG 玩法模块。
 
-当前源码版本线为：`EmakiCoreLib 4.8.1`、`EmakiAttribute 4.8.0`、`EmakiForge 4.8.0`、`EmakiStrengthen 4.8.0`、`EmakiCooking 4.3.0`、`EmakiGem 2.8.0`、`EmakiSkills 2.8.0`、`EmakiItem 2.8.0`、`EmakiLevel 1.6.0`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.0`、`EmakiAccessory 1.1.0`、`EmakiMobs 1.0.0`。
+当前源码版本线为：`EmakiCoreLib 4.8.6`、`EmakiAttribute 4.8.1`、`EmakiForge 4.8.1`、`EmakiStrengthen 4.8.2`、`EmakiCooking 4.3.1`、`EmakiGem 2.8.2`、`EmakiSkills 2.8.1`、`EmakiItem 2.8.1`、`EmakiLevel 1.6.1`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.3`、`EmakiAccessory 1.1.2`、`EmakiMobs 1.0.2`。
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.8.1`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
-| `EmakiAttribute`  | `4.8.0`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
-| `EmakiForge`      | `4.8.0`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
-| `EmakiStrengthen` | `4.8.0`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
-| `EmakiCooking`    | `4.3.0`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
-| `EmakiGem`        | `2.8.0`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
-| `EmakiSkills`     | `2.8.0`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
-| `EmakiItem`       | `2.8.0`  | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与物品状态管理能力          |
-| `EmakiLevel`      | `1.6.0`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
+| `EmakiCoreLib`    | `4.8.6`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
+| `EmakiAttribute`  | `4.8.1`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
+| `EmakiForge`      | `4.8.1`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
+| `EmakiStrengthen` | `4.8.2`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
+| `EmakiCooking`    | `4.3.1`  | 烹饪系统   | 提供多类世界工位运行时、配方判定、输入限制、展示与状态持久化能力                      |
+| `EmakiGem`        | `2.8.2`  | 宝石系统   | 提供装备开孔、宝石镶嵌、取出、升级、装备模板、宝石定义与可选属性系统接入能力          |
+| `EmakiSkills`     | `2.8.1`  | 技能系统   | 提供主动技能槽位、被动触发器、施法模式、冷却与 MythicMobs / Attribute 桥接能力        |
+| `EmakiItem`       | `2.8.1`  | 物品系统   | 提供自定义物品定义、原版组件、修复、自动更新、套装、触发器与物品状态管理能力          |
+| `EmakiLevel`      | `1.6.1`  | 等级系统   | 提供多等级类型、经验来源、升级需求、PDC、占位符与跨模块成长桥接                       |
 | `EmakiCodex`      | `1.1.0`  | 图鉴系统   | 提供图鉴、进度追踪、Gameplay Event 条件、奖励与客户端成就提示桥接                     |
 | `EmakiStorage`    | `1.1.0`  | 仓库系统   | 提供分页 GUI 仓库、单槽大额存量、容量档位与权限、付费解锁与存取事件                   |
-| `EmakiStation`    | `1.1.0`  | 制作工位   | 提供世界制作工位、制作队列与开销、配方与材料清单、装备拆解与产出回收                  |
-| `EmakiAccessory`  | `1.1.0`  | 饰品系统   | 提供饰品部位与槽位展开、饰品套装、唯一性与死亡掉落策略、属性系统接入                  |
-| `EmakiMobs`       | `1.0.0`  | 生物系统   | 提供自定义生物、刷新规则、掉落表、技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiStation`    | `1.1.3`  | 制作工位   | 提供世界制作工位、制作队列与开销、配方与材料清单、装备拆解与产出回收                  |
+| `EmakiAccessory`  | `1.1.2`  | 饰品系统   | 提供饰品部位与槽位展开、饰品套装、唯一性与死亡掉落策略、属性系统接入                  |
+| `EmakiMobs`       | `1.0.2`  | 生物系统   | 提供自定义生物、刷新规则、掉落表、技能行为与 Attribute / Skills / Item 集成            |
 
 除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块。装备技能 PDC 协议不是独立模块，而是 `EmakiSkillsApi` 的 `emaki.jiuwu.craft.skills.api.pdc` 包，由需要它的运行时模块在 shade 时嵌入并 relocate。这些 Api 模块不是服务器插件，不要放入 `plugins/`。
 
@@ -88,13 +88,13 @@ Project/
 ├── EmakiStorage/          # 仓库系统（private-modules profile）
 ├── EmakiStation/          # 制作工位与拆解系统
 ├── EmakiAccessory/        # 饰品系统（private-modules profile）
-├── EmakiMobs/             # 自定义生物系统（private-modules profile）
+├── EmakiMobs/             # 自定义生物系统
 ├── Emaki*Api/             # 各模块编译期 API 契约（不部署到服务器）
 │                          #   装备技能 PDC 协议在 EmakiSkillsApi 的 api.pdc 包内
 └── pom.xml                # Maven 父工程
 ```
 
-`private-modules` profile 在根目录存在 `.key` 文件时按文件自动激活，用于纳入 `EmakiSkills`、`EmakiGem`、`EmakiItem`、`EmakiStorage`、`EmakiAccessory`、`EmakiMobs` 六个模块。`.key` 被 `.gitignore` 忽略且不受 git 跟踪，因此新克隆的仓库默认不存在该文件，此时 Maven 只构建默认的 22 个项目模块而不报错；这是受支持的合法状态，需要私有模块时在仓库根目录创建空文件 `.key` 即可。
+`private-modules` profile 在根目录存在 `.key` 文件时按文件自动激活，用于纳入 `EmakiSkills`、`EmakiGem`、`EmakiItem`、`EmakiStorage`、`EmakiAccessory` 五个模块。`.key` 被 `.gitignore` 忽略且不受 git 跟踪，因此新克隆的仓库默认不存在该文件，此时 Maven 只构建默认的 23 个项目模块而不报错；这是受支持的合法状态，需要私有模块时在仓库根目录创建空文件 `.key` 即可。
 
 ## 默认资源定位
 
@@ -180,7 +180,7 @@ Maven 配置使用以下仓库地址：
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>4.8.1</version>
+  <version>4.8.6</version>
   <scope>provided</scope>
 </dependency>
 ```

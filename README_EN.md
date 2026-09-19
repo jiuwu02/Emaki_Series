@@ -2,26 +2,26 @@
 
 Emaki Series is a multi-module Maven project for Minecraft 1.21.8+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
 
-Current source versions: `EmakiCoreLib 4.8.1`, `EmakiAttribute 4.8.0`, `EmakiForge 4.8.0`, `EmakiStrengthen 4.8.0`, `EmakiCooking 4.3.0`, `EmakiGem 2.8.0`, `EmakiSkills 2.8.0`, `EmakiItem 2.8.0`, `EmakiLevel 1.6.0`, `EmakiCodex 1.1.0`, `EmakiStorage 1.1.0`, `EmakiStation 1.1.0`, `EmakiAccessory 1.1.0`, and `EmakiMobs 1.0.0`.
+Current source versions: `EmakiCoreLib 4.8.6`, `EmakiAttribute 4.8.1`, `EmakiForge 4.8.1`, `EmakiStrengthen 4.8.2`, `EmakiCooking 4.3.1`, `EmakiGem 2.8.2`, `EmakiSkills 2.8.1`, `EmakiItem 2.8.1`, `EmakiLevel 1.6.1`, `EmakiCodex 1.1.0`, `EmakiStorage 1.1.0`, `EmakiStation 1.1.3`, `EmakiAccessory 1.1.2`, and `EmakiMobs 1.0.2`.
 
 ## Modules
 
 | Module            | Version | Role                  | Description                                                                                                               |
 | ----------------- | ------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.8.1`  | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
-| `EmakiAttribute`  | `4.8.0`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
-| `EmakiForge`      | `4.8.0`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
-| `EmakiStrengthen` | `4.8.0`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
-| `EmakiCooking`    | `4.3.0`  | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
-| `EmakiGem`        | `2.8.0`  | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
-| `EmakiSkills`     | `2.8.0`  | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
-| `EmakiItem`       | `2.8.0`  | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and item-state management.       |
-| `EmakiLevel`      | `1.6.0`  | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
+| `EmakiCoreLib`    | `4.8.6`  | Core library          | Shared GUI, actions, item sources, assembly, expressions, YAML, PDC, economy bridges, and runtime services.               |
+| `EmakiAttribute`  | `4.8.1`  | Attributes and combat | RPG attributes, damage types, resources, PDC contributions, conditions, snapshots, and combat feedback.                   |
+| `EmakiForge`      | `4.8.1`  | Forging               | Recipe-driven forging, quality rolls, material contributions, recipe books, editors, output assembly, and attribute PDC.  |
+| `EmakiStrengthen` | `4.8.2`  | Strengthening         | Star levels, success rates, milestones, GUI flows, material consumption, and strengthening-layer refreshes.               |
+| `EmakiCooking`    | `4.3.1`  | Cooking               | World stations, recipe matching, input restrictions, displays, and persistent station state.                              |
+| `EmakiGem`        | `2.8.2`  | Gems                  | Socket opening, inlay, extraction, upgrades, equipment templates, gem definitions, and optional attribute integration.    |
+| `EmakiSkills`     | `2.8.1`  | Skills                | Active slots, passive triggers, cast modes, cooldowns, and MythicMobs / Attribute integration.                            |
+| `EmakiItem`       | `2.8.1`  | Custom items          | Stable item definitions, vanilla components, repair, automatic refresh, sets, triggers, and item-state management.       |
+| `EmakiLevel`      | `1.6.1`  | Progression           | Multiple level types, experience sources, requirements, PDC, placeholders, and cross-module progression bridges.          |
 | `EmakiCodex`      | `1.1.0`  | Collections           | Codex entries, progress tracking, Gameplay Event conditions, rewards, and advancement-toast integration.                  |
 | `EmakiStorage`    | `1.1.0`  | Storage               | Paged GUI warehouse, large per-slot quantities, capacity tiers and permissions, paid unlocks, and storage events.         |
-| `EmakiStation`    | `1.1.0`  | Crafting stations     | World crafting stations, crafting queues and costs, recipes and material lists, plus equipment dismantling and recovery.  |
-| `EmakiAccessory`  | `1.1.0`  | Accessories           | Accessory parts expanded into slots, accessory sets, uniqueness and death-drop policies, and attribute integration.       |
-| `EmakiMobs`       | `1.0.0`  | Custom mobs           | Custom mob definitions, spawn rules, loot tables, skill behavior, and Attribute / Skills / Item integration.              |
+| `EmakiStation`    | `1.1.3`  | Crafting stations     | World crafting stations, crafting queues and costs, recipes and material lists, plus equipment dismantling and recovery.  |
+| `EmakiAccessory`  | `1.1.2`  | Accessories           | Accessory parts expanded into slots, accessory sets, uniqueness and death-drop policies, and attribute integration.       |
+| `EmakiMobs`       | `1.0.2`  | Custom mobs           | Custom mob definitions, spawn rules, loot tables, skill behavior, and Attribute / Skills / Item integration.              |
 
 The repository also contains the compile-time `Emaki*Api` contract modules. The equipment skill PDC contract is not a separate module; it lives in the `emaki.jiuwu.craft.skills.api.pdc` package of `EmakiSkillsApi` and is shaded and relocated by the runtime modules that need it. These Api modules are not server plugins and must not be placed in `plugins/`.
 
@@ -86,13 +86,13 @@ Project/
 ├── EmakiStorage/          # Warehouse system (private-modules profile)
 ├── EmakiStation/          # Crafting stations and dismantling
 ├── EmakiAccessory/        # Accessories (private-modules profile)
-├── EmakiMobs/             # Custom mobs (private-modules profile)
+├── EmakiMobs/             # Custom mobs
 ├── Emaki*Api/             # Compile-time API contracts (never deployed)
 │                          #   Equipment-skill PDC protocol lives in EmakiSkillsApi's api.pdc package
 └── pom.xml                # Maven parent project
 ```
 
-The `private-modules` profile activates automatically when a `.key` file exists in the repository root, adding `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, `EmakiAccessory`, and `EmakiMobs` to the reactor. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; Maven then builds the default 22 project modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
+The `private-modules` profile activates automatically when a `.key` file exists in the repository root, adding `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, and `EmakiAccessory` to the reactor. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; Maven then builds the default 23 project modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
 
 ## Item configuration and migration boundary
 
@@ -154,7 +154,7 @@ For example, to depend on `EmakiCoreLibApi`:
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>4.8.1</version>
+  <version>4.8.6</version>
   <scope>provided</scope>
 </dependency>
 ```
