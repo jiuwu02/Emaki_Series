@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.6"
+version: "4.8.8"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -46,6 +46,11 @@ console:
       template_action_unregistered: "Action is not registered during precheck: %action%"
       template_invalid_syntax: "Invalid action syntax at line %line%: %error%"
       template_missing_reference: "Template references a missing template: %template%"
+      selector_missing_source: "Selector %selector% has no source."
+      selector_recursive_source: "Selector %selector% cannot use select as its own source."
+      selector_unknown_source: "Selector %selector% references source %source%, which is not registered; when another module provides it, check that the module is installed."
+      selector_condition_missing_field: "Condition %type% requires field %field%."
+      selector_condition_invalid_state: "State condition names an unknown state %state%; valid values: %states%"
       loop_template_required: "%action% requires template."
       loop_template_missing: "%action% references a missing template: %template%"
       loop_times_numeric: "%action% requires numeric times."
@@ -111,6 +116,9 @@ action:
       (%requirement%); registration refused</red>"
     key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
       %stage% declares %declared%</red>"
+    condition_reserved: "<red>[Pipeline] The target condition id collides with a built-in condition; registration refused</red>"
+  selector:
+    condition_conflict: "<red>[Pipeline] Selector %selector% writes both %field% and entries under condition; use only one</red>"
   diagnostic:
     at_column: "<gray>(column %column%)</gray>"
     at_file: "<gray>(%file% at %key_path%, line %line% column %column%)</gray>"
@@ -247,10 +255,20 @@ action:
     player_by_name:
       name_required: "<red>[Pipeline] player_by_name requires name</red>"
       not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
+    select:
+      name_required: "<red>[Pipeline] select requires a selector id</red>"
+      unknown_selector: "<red>[Pipeline] select references selector %name%, which is not defined under action.selectors; defined: %selectors%</red>"
+      missing_source: "<red>[Pipeline] Selector %selector% has no source configured</red>"
+      unknown_source: "<red>[Pipeline] Selector %selector% references source %source%, which is not registered</red>"
+      unknown_argument: "<red>[Pipeline] Source %source% referenced by selector %selector% has no argument %argument%</red>"
+      no_match: "<gray>[Pipeline] select found no matching target</gray>"
   gate:
     where:
       condition_required: "<red>[Pipeline] where requires a condition</red>"
       invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
+    filter:
+      condition_required: "<red>[Pipeline] filter requires predicates</red>"
+      invalid_condition: "<red>[Pipeline] The filter predicates %condition% cannot be parsed at %token% (column %position%); available keys: %keys%</red>"
     chance:
       chance_required: "<red>[Pipeline] chance requires a probability</red>"
       invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"

@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.action.builtin.gate.AfterGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.ChanceGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.CreateItemGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.EveryGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.FilterGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.KeepGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.LimitGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.SetGate;
@@ -26,6 +27,7 @@ import emaki.jiuwu.craft.corelib.action.builtin.source.NearbySource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.OffsetSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.OriginSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.PlayerByNameSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.SelectSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.SelfSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.TriggerSource;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarHideStage;
@@ -78,7 +80,9 @@ import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeItemStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeMoneyStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.TeleportStage;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredStage;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.action.select.TargetSelectorServices;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
@@ -92,9 +96,9 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 public final class BuiltinStages {
 
-    public static final int SOURCE_COUNT = 10;
+    public static final int SOURCE_COUNT = 11;
 
-    public static final int GATE_COUNT = 10;
+    public static final int GATE_COUNT = 11;
 
     public static final int ACTION_COUNT = 48;
 
@@ -112,11 +116,12 @@ public final class BuiltinStages {
             @Nullable CustomBlockBridge nexoBlockBridge,
             @Nullable CustomBlockBridge oraxenBlockBridge,
             @Nullable PipelineTaskService taskService,
-            @Nullable StartTaskStage.SequenceSource sequences) {
+            @Nullable StartTaskStage.SequenceSource sequences,
+            @NotNull TargetSelectorServices targetSelectors) {
         Objects.requireNonNull(registry, "registry");
         List<String> failures = new ArrayList<>();
-        registerSources(registry, owner, failures);
-        registerGates(registry, owner, itemSourceService, failures);
+        registerSources(registry, owner, targetSelectors, failures);
+        registerGates(registry, owner, itemSourceService, targetSelectors, failures);
         ActionAuditLogger effectiveAuditLogger = auditLogger == null
                 ? new ActionAuditLogger(null)
                 : auditLogger;
@@ -126,7 +131,10 @@ public final class BuiltinStages {
         return new Report(List.copyOf(failures));
     }
 
-    private static void registerSources(StageRegistry registry, Plugin owner, List<String> failures) {
+    private static void registerSources(StageRegistry registry,
+            Plugin owner,
+            TargetSelectorServices targetSelectors,
+            List<String> failures) {
         for (CoreActionSource source : List.of(
                 new SelfSource(),
                 new InheritedSource(),
@@ -137,17 +145,26 @@ public final class BuiltinStages {
                 new NearbyPlayersSource(),
                 new OffsetSource(),
                 new AtSource(),
-                new PlayerByNameSource())) {
+                new PlayerByNameSource(),
+                new SelectSource(targetSelectors.selectors(), targetSelectors.factsReader(),
+                        targetSelectors.evaluator(), id -> sourceOf(registry, id)))) {
             record(failures, source.id(), registry.registerSource(owner, source));
         }
+    }
+
+    private static CoreActionSource sourceOf(StageRegistry registry, String id) {
+        RegisteredStage entry = registry.sources().lookup(id).entryOrNull();
+        return entry != null && entry.stage() instanceof CoreActionSource source ? source : null;
     }
 
     private static void registerGates(StageRegistry registry,
             Plugin owner,
             ItemSourceService itemSourceService,
+            TargetSelectorServices targetSelectors,
             List<String> failures) {
         for (CoreActionGate gate : List.of(
-                new WhereGate(),
+                new WhereGate(targetSelectors.factsReader()),
+                new FilterGate(targetSelectors.factsReader(), targetSelectors.evaluator()),
                 new ChanceGate(),
                 new LimitGate(),
                 new SortByGate(),

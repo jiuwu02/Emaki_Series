@@ -1,7 +1,7 @@
 # EmakiCoreLib 主配置
 # 为其他 Emaki 模块提供 GUI、展示实体、事件、动作、对话框与语言表能力。
 
-version: "4.8.6"
+version: "4.8.8"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
@@ -94,3 +94,6 @@ action:
     cancel_player_loops_on_quit: true
     cancel_plugin_loops_on_disable: true
   # 命名动作序列通过 run <名称> 调用，可传入 key=value 参数。
+  # 目标选择器：把「用哪个源段选、按什么条件筛、最多要几个」写成一份可复用定义，
+  # 动作行里用 select <选择器 id> 调用；condition 支持类型节点与嵌套组合。
+  # 写法与节点类型见 docs/modules/corelib/actions.md 的「目标选择器」一节。

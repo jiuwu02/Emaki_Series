@@ -4,6 +4,7 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -32,6 +33,7 @@ import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.service.MobTargetIdentityProvider;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
@@ -70,6 +72,8 @@ final class MobsLifecycleCoordinator
             List.of("mobs", "loot_tables", "spawn_rules");
 
     private final List<CoreStageRegistration> customActionRegistrations = new ArrayList<>();
+
+    private CoreTargetRegistration targetIdentityRegistration;
 
     @Override
     public MobsRuntimeComponents initialize(EmakiMobsPlugin plugin) {
@@ -252,9 +256,22 @@ final class MobsLifecycleCoordinator
         if (!EmakiCoreLibApi.onStageRegistryRebuilt(plugin, () -> registerCustomActions(plugin))) {
             components.messageService().warning("console.custom_action_rebuild_hook_failed");
         }
+        registerTargetIdentity(plugin, components);
         components.messageService().info("console.custom_actions_registered", Map.of(
                 "registered", registered,
                 "expected", 8));
+    }
+
+    private void registerTargetIdentity(EmakiMobsPlugin plugin, MobsRuntimeComponents components) {
+        CoreTargetRegistration registration = EmakiCoreLibApi.registerTargetIdentityProvider(plugin,
+                new MobTargetIdentityProvider(plugin));
+        if (!registration.successful()) {
+            components.messageService().warning("console.target_identity_registration_failed", Map.of(
+                    "id", registration.targetId(),
+                    "reason", registration.reasonKey()));
+            return;
+        }
+        targetIdentityRegistration = registration;
     }
 
     void unregisterCustomActions() {
@@ -281,5 +298,9 @@ final class MobsLifecycleCoordinator
             registration.close();
         }
         customActionRegistrations.clear();
+        if (targetIdentityRegistration != null) {
+            targetIdentityRegistration.close();
+            targetIdentityRegistration = null;
+        }
     }
 }

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -31,6 +31,7 @@ console:
   custom_actions_registered: "<gray>已向 CoreLib 注册 <yellow>%registered%</yellow>/<yellow>%expected%</yellow> 个自定义动作组件。</gray>"
   custom_action_registration_failed: "<yellow>注册 CoreLib %kind% <white>%id%</white> 失败：<red>%reason%</red></yellow>"
   custom_action_rebuild_hook_failed: "<yellow>无法安装 CoreLib 动作重建回调；CoreLib 重载后自定义动作可能不可用。</yellow>"
+  target_identity_registration_failed: "<yellow>注册 CoreLib 目标身份提供者 <white>%id%</white> 失败：<red>%reason%</red></yellow>"
   model_backend_selected: "<gray>模型后端：<yellow>%backend%</yellow>。</gray>"
   model_backend_unavailable: "<yellow>配置的模型后端 <white>%backend%</white> 不可用，模型功能已禁用。</yellow>"
   model_blueprint_missing: "<yellow>生物 %mob_id% 引用的模型蓝图 <white>%blueprint%</white> 不存在，已跳过模型挂载。</yellow>"

@@ -7,12 +7,14 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.action.select.SelectorDefinition;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
         boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
+        List<SelectorDefinition> actionSelectors,
         LoopConfig loopConfig,
         PipelineConfig pipelineConfig,
         GuiConfig guiConfig,
@@ -25,7 +27,7 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-                return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
+                return new CoreLibConfig("zh_CN", true, Map.of(), List.of(), LoopConfig.defaults(),
                 PipelineConfig.defaults(), GuiConfig.defaults(),
  GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
@@ -49,6 +51,7 @@ public record CoreLibConfig(
                 language,
                 configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
+                SelectorDefinition.parseAll(actionSection == null ? null : actionSection.getSection("selectors")),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 PipelineConfig.fromConfig(actionSection == null ? null : actionSection.getSection("pipeline")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),

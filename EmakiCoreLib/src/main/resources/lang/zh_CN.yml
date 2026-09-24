@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.6"
+version: "4.8.8"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -46,6 +46,11 @@ console:
       template_action_unregistered: "预检时动作尚未注册：%action%"
       template_invalid_syntax: "第 %line% 行动作语法无效：%error%"
       template_missing_reference: "模板引用了不存在的模板：%template%"
+      selector_missing_source: "选择器 %selector% 缺少 source。"
+      selector_recursive_source: "选择器 %selector% 的 source 不能是 select 自身。"
+      selector_unknown_source: "选择器 %selector% 引用的源段 %source% 当前未注册；若它由其他模块提供，请确认该模块已安装。"
+      selector_condition_missing_field: "条件 %type% 缺少必填字段 %field%。"
+      selector_condition_invalid_state: "状态条件的状态名 %state% 无效，可用值：%states%"
       loop_template_required: "%action% 必须指定 template。"
       loop_template_missing: "%action% 引用了不存在的模板：%template%"
       loop_times_numeric: "%action% 的 times 必须是数字。"
@@ -108,6 +113,9 @@ action:
     undeclared_domain: "<red>[管道] 段 %stage% 未声明线程域，注册被拒绝</red>"
     async_needs_target: "<red>[管道] 段 %stage% 声明异步域但要求目标(%requirement%)，注册被拒绝</red>"
     key_type_conflict: "<red>[管道] 上下文键 %key% 类型冲突：已有 %existing%，%stage% 声明 %declared%</red>"
+    condition_reserved: "<red>[管道] 目标条件 id 与内置条件重名，注册被拒绝</red>"
+  selector:
+    condition_conflict: "<red>[管道] 选择器 %selector% 的 condition 同时写了 %field% 与 entries，二者只能选一</red>"
   diagnostic:
     at_column: "<gray>（第 %column% 列）</gray>"
     at_file: "<gray>（%file% 的 %key_path%，第 %line% 行第 %column% 列）</gray>"
@@ -220,10 +228,20 @@ action:
     player_by_name:
       name_required: "<red>[管道] player_by_name 必须指定 name</red>"
       not_online: "<gray>[管道] player_by_name 指向的玩家不在线</gray>"
+    select:
+      name_required: "<red>[管道] select 必须给出选择器 id</red>"
+      unknown_selector: "<red>[管道] select 引用的选择器 %name% 未在 action.selectors 中定义；已定义：%selectors%</red>"
+      missing_source: "<red>[管道] 选择器 %selector% 没有配置 source</red>"
+      unknown_source: "<red>[管道] 选择器 %selector% 引用的源段 %source% 未注册</red>"
+      unknown_argument: "<red>[管道] 选择器 %selector% 引用的源段 %source% 没有参数 %argument%</red>"
+      no_match: "<gray>[管道] select 未找到符合条件的目标</gray>"
   gate:
     where:
       condition_required: "<red>[管道] where 必须给出条件</red>"
       invalid_condition: "<red>[管道] where 的条件 %condition% 无法求值</red>"
+    filter:
+      condition_required: "<red>[管道] filter 必须给出谓词</red>"
+      invalid_condition: "<red>[管道] filter 的谓词 %condition% 在第 %position% 列的 %token% 处无法解析；可用键：%keys%</red>"
     chance:
       chance_required: "<red>[管道] chance 必须给出概率</red>"
       invalid_chance: "<red>[管道] chance 的概率不合法，应在 0 到 1 之间</red>"

@@ -21,6 +21,9 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRebuildRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
@@ -397,6 +400,48 @@ public final class EmakiCoreLibApi {
         return resolved == null
                 ? CoreStageRebuildRegistration.inactive()
                 : resolved.addStageRegistryRebuildListener(owner, reregister);
+    }
+
+    /**
+     * Registers one typed target condition for use in {@code action.selectors} condition blocks.
+     *
+     * <p>Node types resolve against CoreLib's built-ins first, so a plugin cannot shadow a built-in
+     * name; a duplicate id is rejected with a stable reason key naming the current owner. Keep the
+     * handle and close it on disable. Unlike the action stage table, this registry survives an
+     * EmakiCoreLib reload, so no rebuild callback is required.</p>
+     *
+     * @param owner     plugin that owns the condition lifecycle
+     * @param condition the condition implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreTargetRegistration registerTargetCondition(@Nullable Plugin owner,
+            @Nullable CoreTargetCondition condition) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
+                        "action.register.runtime_unsupported")
+                : resolved.registerTargetCondition(owner, condition);
+    }
+
+    /**
+     * Registers one mob-system identity provider for the shared target selector.
+     *
+     * <p>CoreLib answers {@code mythicmobs} itself; other systems, including the Emaki gameplay modules,
+     * publish their own provider here. The same lifecycle rules as
+     * {@link #registerTargetCondition(Plugin, CoreTargetCondition)} apply: close the handle on disable,
+     * duplicate system ids are rejected, and the registration survives an EmakiCoreLib reload.</p>
+     *
+     * @param owner    plugin that owns the provider lifecycle
+     * @param provider the identity provider
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
+            @Nullable CoreTargetIdentityProvider provider) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
+                        "action.register.runtime_unsupported")
+                : resolved.registerTargetIdentityProvider(owner, provider);
     }
 
     /**
@@ -783,6 +828,38 @@ public final class EmakiCoreLibApi {
         default CoreStageRebuildRegistration addStageRegistryRebuildListener(@Nullable Plugin owner,
                 @Nullable Runnable reregister) {
             return CoreStageRebuildRegistration.inactive();
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerTargetCondition(Plugin, CoreTargetCondition)} by
+         * delegating to the runtime target condition registry. An older runtime bridge that predates the
+         * target selector returns an inactive handle instead of throwing.
+         *
+         * @param owner     plugin that owns the condition lifecycle
+         * @param condition the condition implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        default CoreTargetRegistration registerTargetCondition(@Nullable Plugin owner,
+                @Nullable CoreTargetCondition condition) {
+            return CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
+                    "action.register.runtime_unsupported");
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerTargetIdentityProvider(Plugin, CoreTargetIdentityProvider)}
+         * by delegating to the runtime identity registry. An older runtime bridge returns an inactive
+         * handle instead of throwing.
+         *
+         * @param owner    plugin that owns the provider lifecycle
+         * @param provider the identity provider
+         * @return a revocable handle
+         */
+        @NotNull
+        default CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
+                @Nullable CoreTargetIdentityProvider provider) {
+            return CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
+                    "action.register.runtime_unsupported");
         }
 
         /**

@@ -27,6 +27,9 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRebuildRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
@@ -215,6 +218,16 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public CoreTriggerRegistration registerActionTrigger(Plugin owner, CoreActionTrigger trigger) {
         return plugin.triggerRegistry().register(owner, trigger);
+    }
+
+    @Override
+    public CoreTargetRegistration registerTargetCondition(Plugin owner, CoreTargetCondition condition) {
+        return plugin.targetConditionRegistry().register(owner, condition);
+    }
+
+    @Override
+    public CoreTargetRegistration registerTargetIdentityProvider(Plugin owner, CoreTargetIdentityProvider provider) {
+        return plugin.targetIdentityRegistry().register(owner, provider);
     }
 
     @Override

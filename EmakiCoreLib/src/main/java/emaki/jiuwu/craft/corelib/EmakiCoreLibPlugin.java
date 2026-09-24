@@ -37,6 +37,12 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRebuildListeners;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.TriggerRegistry;
+import emaki.jiuwu.craft.corelib.action.select.ConfiguredSelectorRepository;
+import emaki.jiuwu.craft.corelib.action.select.TargetConditionEvaluator;
+import emaki.jiuwu.craft.corelib.action.select.TargetConditionRegistry;
+import emaki.jiuwu.craft.corelib.action.select.TargetFactsReader;
+import emaki.jiuwu.craft.corelib.action.select.TargetIdentityRegistry;
+import emaki.jiuwu.craft.corelib.action.select.TargetSelectorServices;
 import emaki.jiuwu.craft.corelib.animation.AnimationPlaybackService;
 import emaki.jiuwu.craft.corelib.animation.AnimationRegistry;
 import emaki.jiuwu.craft.corelib.api.dialog.CoreLibDialogs;
@@ -86,6 +92,7 @@ import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.integration.MythicMobBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.MythicTargetIdentityProvider;
 import emaki.jiuwu.craft.corelib.integration.NexoBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
@@ -165,6 +172,10 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     private final ModuleReadinessRegistry moduleReadinessRegistry = new ModuleReadinessRegistry();
 
+    private final TargetConditionRegistry targetConditionRegistry = new TargetConditionRegistry();
+    private final TargetIdentityRegistry targetIdentityRegistry =
+            new TargetIdentityRegistry(this::reportTargetIdentityFailure);
+
     private volatile boolean contentReady;
     private ConfigPrecheckService configPrecheckService;
     private final PdcService pdcService = new PdcService("emaki_corelib");
@@ -208,6 +219,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
+        targetIdentityRegistry.register(this, new MythicTargetIdentityProvider(mythicMobBridge));
         ConsoleOutputs.sendGradientAscii(
                 this,
                 STARTUP_ASCII,
@@ -254,6 +266,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         triggerRegistry.clear();
         stageRebuildListeners.clear();
         capabilityRegistry.clear();
+        targetConditionRegistry.clear();
+        targetIdentityRegistry.clear();
         markModuleAbsent(getName());
         moduleReadinessRegistry.clear();
         BuiltinStages.shutdown();
@@ -332,6 +346,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                     triggerRegistry.revokeAll(owner);
                     animationPlaybackService.revokeOwner(owner);
                     animationRegistry.revokeAll(owner);
+                    targetConditionRegistry.revokeAll(owner);
+                    targetIdentityRegistry.revokeAll(owner);
                     stageRebuildListeners.remove(owner);
                 }
             }, this);
@@ -353,7 +369,11 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
                 oraxenBlockBridge,
                 pipelineTaskService,
 
-                name -> sequenceRepository == null ? null : sequenceRepository.bodyOf(name)
+                name -> sequenceRepository == null ? null : sequenceRepository.bodyOf(name),
+                new TargetSelectorServices(
+                        ConfiguredSelectorRepository.build(candidateConfig.actionSelectors()),
+                        new TargetFactsReader(targetIdentityRegistry),
+                        new TargetConditionEvaluator(targetConditionRegistry, getLogger()::warning))
         );
         configPrecheckService.configure(candidateStageRegistry);
         ConfigPrecheckReport report = configPrecheckService.checkModule(candidateConfig, "corelib");
@@ -730,6 +750,18 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
 
     public ModuleReadinessRegistry moduleReadinessRegistry() {
         return moduleReadinessRegistry;
+    }
+
+    public TargetConditionRegistry targetConditionRegistry() {
+        return targetConditionRegistry;
+    }
+
+    public TargetIdentityRegistry targetIdentityRegistry() {
+        return targetIdentityRegistry;
+    }
+
+    private void reportTargetIdentityFailure(String message) {
+        getLogger().warning(message);
     }
 
     public boolean contentReady() {

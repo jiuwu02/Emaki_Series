@@ -39,6 +39,8 @@ public final class StaticValidator {
 
     public static final String SET_STAGE = "set";
 
+    public static final String SELECT_SOURCE = "select";
+
     public static final String INHERITED_SOURCE = "inherited";
 
     private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
@@ -285,7 +287,7 @@ public final class StaticValidator {
             }
         }
 
-        if (!SET_STAGE.equals(stage.id())) {
+        if (!SET_STAGE.equals(stage.id()) && !SELECT_SOURCE.equals(stage.id())) {
             for (String supplied : arguments.keySet()) {
                 if (!byName.containsKey(supplied)) {
                     diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_argument",

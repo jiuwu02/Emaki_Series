@@ -7,6 +7,8 @@ import java.util.function.Supplier;
 
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.select.SelectorDefinition;
+import emaki.jiuwu.craft.corelib.action.select.SelectorDefinitionValidator;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
@@ -27,10 +29,21 @@ final class CoreLibConfigPrecheckContributor extends AbstractModuleConfigPrechec
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         checkLoopConfig(safeConfig.loopConfig(), issues);
         checkSequences(safeConfig.actionTemplates(), context, issues);
+        checkSelectors(safeConfig.actionSelectors(), context, issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", ConfigPrecheckSeverity.INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
+    }
+
+    private void checkSelectors(List<SelectorDefinition> selectors,
+            ConfigPrecheckContext context,
+            List<ConfigPrecheckIssue> issues) {
+        List<SelectorDefinitionValidator.Finding> findings = SelectorDefinitionValidator.validate(selectors,
+                context::knowsSource);
+        for (SelectorDefinitionValidator.Finding finding : findings) {
+            addMessageIssue(finding.path(), finding.severity(), finding.key(), finding.replacements(), issues);
+        }
     }
 
     private void checkLoopConfig(CoreLibConfig.LoopConfig loop, List<ConfigPrecheckIssue> issues) {
