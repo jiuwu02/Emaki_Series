@@ -2,13 +2,13 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采用多模块 Maven 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、装备成长、技能、烹饪、制作、图鉴、仓库与自定义生物等 RPG 玩法模块。
 
-当前源码版本线为：`EmakiCoreLib 4.8.6`、`EmakiAttribute 4.8.1`、`EmakiForge 4.8.1`、`EmakiStrengthen 4.8.2`、`EmakiCooking 4.3.1`、`EmakiGem 2.8.2`、`EmakiSkills 2.8.1`、`EmakiItem 2.8.1`、`EmakiLevel 1.6.1`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.3`、`EmakiAccessory 1.1.2`、`EmakiMobs 1.0.2`。
+当前源码版本线为：`EmakiCoreLib 4.8.8`、`EmakiAttribute 4.8.1`、`EmakiForge 4.8.1`、`EmakiStrengthen 4.8.2`、`EmakiCooking 4.3.1`、`EmakiGem 2.8.2`、`EmakiSkills 2.8.1`、`EmakiItem 2.8.1`、`EmakiLevel 1.6.1`、`EmakiCodex 1.1.0`、`EmakiStorage 1.1.0`、`EmakiStation 1.1.3`、`EmakiAccessory 1.1.2`、`EmakiMobs 1.0.3`。
 
 ## 模块概览
 
 | 模块              | 当前版本 | 角色       | 说明                                                                                  |
 | ----------------- | -------- | ---------- | ------------------------------------------------------------------------------------- |
-| `EmakiCoreLib`    | `4.8.6`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
+| `EmakiCoreLib`    | `4.8.8`  | 核心基础库 | 提供 GUI、动作系统、物品源桥接、物品装配、表达式、YAML、PDC、经济桥接与共享运行时能力 |
 | `EmakiAttribute`  | `4.8.1`  | 属性系统   | 提供 RPG 属性、三系伤害、资源状态、PDC 属性接入、条件检查、快照调试与战斗反馈能力     |
 | `EmakiForge`      | `4.8.1`  | 锻造系统   | 提供配方驱动锻造、品质随机、材料贡献、图鉴、编辑器、结果组装与 PDC 属性写入能力       |
 | `EmakiStrengthen` | `4.8.2`  | 强化系统   | 提供星级强化、成功率配置、锻印 / 里程碑、强化 GUI、材料消耗与强化层刷新能力           |
@@ -21,7 +21,7 @@ Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采�
 | `EmakiStorage`    | `1.1.0`  | 仓库系统   | 提供分页 GUI 仓库、单槽大额存量、容量档位与权限、付费解锁与存取事件                   |
 | `EmakiStation`    | `1.1.3`  | 制作工位   | 提供世界制作工位、制作队列与开销、配方与材料清单、装备拆解与产出回收                  |
 | `EmakiAccessory`  | `1.1.2`  | 饰品系统   | 提供饰品部位与槽位展开、饰品套装、唯一性与死亡掉落策略、属性系统接入                  |
-| `EmakiMobs`       | `1.0.2`  | 生物系统   | 提供自定义生物、刷新规则、掉落表、技能行为与 Attribute / Skills / Item 集成            |
+| `EmakiMobs`       | `1.0.3`  | 生物系统   | 提供自定义生物、刷新规则、掉落表、技能行为与 Attribute / Skills / Item 集成            |
 
 除上述运行时模块外，仓库还包含各模块对应的 `Emaki*Api` 编译期契约模块。装备技能 PDC 协议不是独立模块，而是 `EmakiSkillsApi` 的 `emaki.jiuwu.craft.skills.api.pdc` 包，由需要它的运行时模块在 shade 时嵌入并 relocate。这些 Api 模块不是服务器插件，不要放入 `plugins/`。
 
@@ -180,7 +180,7 @@ Maven 配置使用以下仓库地址：
 <dependency>
   <groupId>emaki.jiuwu.craft</groupId>
   <artifactId>emaki-corelib-api</artifactId>
-  <version>4.8.6</version>
+  <version>4.8.8</version>
   <scope>provided</scope>
 </dependency>
 ```
