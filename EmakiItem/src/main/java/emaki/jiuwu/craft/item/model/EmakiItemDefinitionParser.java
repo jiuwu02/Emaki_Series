@@ -28,6 +28,16 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class EmakiItemDefinitionParser {
 
+    private static final List<String> RETIRED_TOP_LEVEL_KEYS = List.of(
+            "variables",
+            "ea_attributes",
+            "es_skills",
+            "es_skill_triggers",
+            "skill_triggers",
+            "accessory_slots",
+            "name_actions",
+            "lore_actions");
+
     private final Logger logger;
     private final ConfiguredItemParser configuredItemParser;
 
@@ -53,6 +63,7 @@ public final class EmakiItemDefinitionParser {
             warning("Skipping item definition " + source + ": invalid or missing id.");
             return null;
         }
+        warnRetiredTopLevelFields(root, source);
         ConfiguredItemDefinition itemDefinition;
         try {
             itemDefinition = parseConfiguredItem(root, id);
@@ -61,7 +72,7 @@ public final class EmakiItemDefinitionParser {
             return null;
         }
         List<Map<?, ?>> effects = root.getMapList("effects");
-        Map<String, Object> variables = parseVariables(root, effects);
+        Map<String, Object> variables = parseVariables(effects);
         Map<String, Object> resolvedValidationVariables;
         try {
             resolvedValidationVariables = variables.isEmpty()
@@ -75,26 +86,23 @@ public final class EmakiItemDefinitionParser {
             return null;
         }
 
-        Map<String, Object> attributes = parseAttributes(root, effects);
+        Map<String, Object> attributes = parseAttributes(effects);
         boolean random = containsRandom(itemDefinition.components().values().stream()
                 .filter(patch -> patch.operation() == ItemComponentPatch.Operation.SET)
                 .map(ItemComponentPatch::value)
                 .toList())
-                || containsRandom(root.get("name_actions"))
-                || containsRandom(root.get("lore_actions"))
-                || containsRandom(root.get("variables"))
                 || containsRandom(effects);
         return new EmakiItemDefinition(
                 id,
                 itemDefinition,
-                parseDisplayActions(root, effects, "name_action", "name_actions", "name_action"),
-                parseDisplayActions(root, effects, "lore_action", "lore_actions", "lore_action"),
+                parseDisplayActions(effects, "name_action", "name_actions", "name_action"),
+                parseDisplayActions(effects, "lore_action", "lore_actions", "lore_action"),
                 variables,
                 attributes,
-                parseSkills(root, effects),
-                parseSkillTriggers(root, effects),
+                parseSkills(effects),
+                parseSkillTriggers(effects),
                 parseEquipSlot(root, id, source),
-                parseAccessorySlots(root, effects),
+                parseAccessorySlots(effects),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root),
                 parseActions(root.getSection("actions")),
@@ -306,8 +314,8 @@ public final class EmakiItemDefinitionParser {
         };
     }
 
-    private List<String> parseAccessorySlots(YamlSection root, List<Map<?, ?>> effects) {
-        LinkedHashSet<String> result = new LinkedHashSet<>(normalizeSlotIds(root.get("accessory_slots")));
+    private List<String> parseAccessorySlots(List<Map<?, ?>> effects) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null
                     || !"accessory_slot".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
@@ -432,9 +440,8 @@ public final class EmakiItemDefinitionParser {
         );
     }
 
-    private Map<String, Object> parseVariables(YamlSection root, List<Map<?, ?>> effects) {
+    private Map<String, Object> parseVariables(List<Map<?, ?>> effects) {
         Map<String, Object> result = new LinkedHashMap<>();
-        mergePlainMap(result, root.get("variables"));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"variables".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -444,9 +451,8 @@ public final class EmakiItemDefinitionParser {
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
 
-    private Map<String, Object> parseAttributes(YamlSection root, List<Map<?, ?>> effects) {
+    private Map<String, Object> parseAttributes(List<Map<?, ?>> effects) {
         Map<String, Object> result = new LinkedHashMap<>();
-        mergePlainMap(result, root.get("ea_attributes"));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"ea_attribute".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -456,8 +462,8 @@ public final class EmakiItemDefinitionParser {
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
 
-    private List<String> parseSkills(YamlSection root, List<Map<?, ?>> effects) {
-        LinkedHashSet<String> result = new LinkedHashSet<>(normalizedList(root.get("es_skills")));
+    private List<String> parseSkills(List<Map<?, ?>> effects) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -467,10 +473,8 @@ public final class EmakiItemDefinitionParser {
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }
 
-    private Map<String, String> parseSkillTriggers(YamlSection root, List<Map<?, ?>> effects) {
+    private Map<String, String> parseSkillTriggers(List<Map<?, ?>> effects) {
         Map<String, String> result = new LinkedHashMap<>();
-        mergeSkillTriggers(result, root.get("es_skill_triggers"));
-        mergeSkillTriggers(result, root.get("skill_triggers"));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -494,9 +498,8 @@ public final class EmakiItemDefinitionParser {
         }
     }
 
-    private Object parseDisplayActions(YamlSection root, List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
+    private Object parseDisplayActions(List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
         List<Object> actions = new ArrayList<>();
-        appendDisplayActions(actions, root == null ? null : root.get(topKey));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !effectType.equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -580,6 +583,19 @@ public final class EmakiItemDefinitionParser {
             }
         }
         return false;
+    }
+
+    private void warnRetiredTopLevelFields(YamlSection root, String source) {
+        List<String> present = new ArrayList<>();
+        for (String key : RETIRED_TOP_LEVEL_KEYS) {
+            if (root.get(key) != null) {
+                present.add(key);
+            }
+        }
+        if (!present.isEmpty()) {
+            warning("Item definition " + source + " declares retired top-level field(s) " + String.join(", ", present)
+                    + "; they are ignored, express them as 'effects' entries with the matching type instead.");
+        }
     }
 
     private void warning(String message) {
