@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.item.service;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataContainer;
+import org.bukkit.persistence.PersistentDataType;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -15,6 +17,7 @@ import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.item.ItemPdcKeys;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPayload;
@@ -50,6 +53,7 @@ public final class EmakiItemPdcWriter {
         if (itemMeta != null) {
             Integer updateVersion = definition.updatePolicy().updateEnabled() ? definition.updatePolicy().version() : null;
             identifier.writeIdentity(itemMeta, definition.id(), definition.definitionSignature(), updateVersion);
+            writeAccessorySlots(itemMeta, definition);
             itemStack.setItemMeta(itemMeta);
         }
         String equipSlot = EquipmentSkillPdcCodec.normalizeRequiredSlot(definition.equipSlot());
@@ -162,6 +166,16 @@ public final class EmakiItemPdcWriter {
 
     public void shutdown() {
         attributeGateway.shutdown();
+    }
+
+    private void writeAccessorySlots(ItemMeta itemMeta, EmakiItemDefinition definition) {
+        PersistentDataContainer container = itemMeta.getPersistentDataContainer();
+        List<String> slots = definition.accessorySlots();
+        if (slots.isEmpty()) {
+            container.remove(ItemPdcKeys.ACCESSORY_SLOTS);
+            return;
+        }
+        container.set(ItemPdcKeys.ACCESSORY_SLOTS, PersistentDataType.LIST.strings(), List.copyOf(slots));
     }
 
     private boolean isSetAttributePayloadCurrent(ItemStack itemStack,

@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.api.ItemCatalog;
+import emaki.jiuwu.craft.item.integration.attribute.ItemConditionContributionGate;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
@@ -127,6 +128,40 @@ public final class DefaultItemCatalog implements ItemCatalog {
         try {
             EmakiItemConditionChecker checker = plugin.conditionChecker();
             return EmakiResult.success(checker.passes(player, definition, trigger, itemStack));
+        } catch (RuntimeException exception) {
+            return EmakiResult.internalError("item.condition.internal_error");
+        }
+    }
+
+    @Override
+    public @NotNull EmakiResult<Boolean> conditionSatisfied(@Nullable Player player, @Nullable ItemStack itemStack) {
+        if (player == null) {
+            return EmakiResult.invalidInput("item.condition.player_required");
+        }
+        if (itemStack == null || itemStack.getType().isAir()) {
+            return EmakiResult.invalidInput("item.condition.item_required");
+        }
+        if (!player.isOnline()) {
+            return EmakiResult.targetOffline();
+        }
+        if (plugin.scheduling() == null
+                || plugin.identifier() == null
+                || plugin.itemLoader() == null
+                || plugin.conditionChecker() == null
+                || !plugin.runtimeReady()) {
+            return EmakiResult.unavailable();
+        }
+        if (!plugin.scheduling().ownsEntity(player)) {
+            return EmakiResult.wrongThread();
+        }
+        String id = plugin.identifier().identify(itemStack);
+        EmakiItemDefinition definition = Texts.isBlank(id) ? null : plugin.itemLoader().get(id);
+        if (definition == null) {
+            return EmakiResult.notFound("item.definition.not_found");
+        }
+        try {
+            return EmakiResult.success(plugin.conditionChecker().evaluateSilently(
+                    player, definition, ItemConditionContributionGate.GATE_TRIGGER, itemStack));
         } catch (RuntimeException exception) {
             return EmakiResult.internalError("item.condition.internal_error");
         }

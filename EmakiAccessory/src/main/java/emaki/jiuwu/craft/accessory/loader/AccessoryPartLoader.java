@@ -83,7 +83,8 @@ public final class AccessoryPartLoader {
                     key,
                     resolvedCount,
                     entry.getString("display_name", ""),
-                    entry.getString("icon", "")
+                    entry.getString("icon", ""),
+                    !Boolean.FALSE.equals(entry.getBoolean("durability_deduction", Boolean.TRUE))
             ));
         }
         parts = List.copyOf(parsed);

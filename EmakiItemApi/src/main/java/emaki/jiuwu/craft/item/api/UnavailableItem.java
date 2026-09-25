@@ -64,6 +64,11 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     }
 
     @Override
+    public EmakiResult<Boolean> conditionSatisfied(Player player, ItemStack itemStack) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
     public EmakiResult<ItemStack> create(String id, int amount) {
         return EmakiResult.unavailable();
     }

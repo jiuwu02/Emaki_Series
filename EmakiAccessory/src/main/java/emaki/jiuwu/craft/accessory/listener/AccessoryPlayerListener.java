@@ -7,13 +7,13 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.accessory.EmakiAccessoryPlugin;
-import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 
 public final class AccessoryPlayerListener implements Listener {
 
@@ -34,7 +34,7 @@ public final class AccessoryPlayerListener implements Listener {
                     }
 
                     plugin.executionDispatcher().runEntity(plugin, player,
-                            () -> plugin.refreshContributions(accessories), () -> {
+                            () -> plugin.refreshContributions(playerId), () -> {
 
                             });
                 });
@@ -50,6 +50,14 @@ public final class AccessoryPlayerListener implements Listener {
         plugin.accessoryStore().unloadAsync(playerId);
     }
 
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player) || event.getFinalDamage() <= 0D) {
+            return;
+        }
+        plugin.damageActiveAccessories(player);
+    }
+
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerDeath(PlayerDeathEvent event) {
         if (!plugin.appConfig().dropOnDeath() || event.getKeepInventory()) {
@@ -63,10 +71,7 @@ public final class AccessoryPlayerListener implements Listener {
             return;
         }
         event.getDrops().addAll(dropped.values());
-        PlayerAccessories accessories = plugin.accessoryStore().cached(player.getUniqueId());
-        if (accessories != null) {
-            plugin.refreshContributions(accessories);
-        }
+        plugin.refreshContributions(player.getUniqueId());
         plugin.accessoryStore().saveAsync(player.getUniqueId());
     }
 }

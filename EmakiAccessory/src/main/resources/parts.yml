@@ -3,6 +3,7 @@
 # 部位 ID 仅允许小写字母、数字和下划线，且不能以 _<数字> 结尾；非法 ID 被拒绝。
 # 每个实例都需在 GUI 中以同名 accessory_slot 摆放，否则不可用。
 # 缩减 count 或删除部位会保留数据，并由 orphan_slot 提供一次性取回。
+# durability_deduction 控制该部位是否允许扣除耐久度，默认 true；仅对带耐久上限的物品生效。
 parts:
   necklace:
     count: 1
@@ -23,3 +24,5 @@ parts:
     count: 2
     display_name: "<gold>护符</gold>"
     icon: "LIGHT_GRAY_STAINED_GLASS_PANE"
+    # 需要时可按部位关闭扣除（默认 true），例如让挂件类饰品永不掉耐久：
+    # durability_deduction: false

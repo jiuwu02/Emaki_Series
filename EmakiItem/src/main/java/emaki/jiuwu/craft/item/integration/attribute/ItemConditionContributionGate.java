@@ -13,7 +13,7 @@ public final class ItemConditionContributionGate implements ItemContributionGate
 
     public static final String GATE_ID = "emakiitem_condition";
 
-    private static final String GATE_TRIGGER = "contribution";
+    public static final String GATE_TRIGGER = "contribution";
 
     private final EmakiItemPlugin plugin;
 

@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource.
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
-version: "1.1.2"
+version: "1.1.3"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
@@ -49,6 +49,10 @@ gui:
   click_unsupported: "<red>The accessory window does not support that click</red>"
   transfer_unsupported: "<red>The accessory window does not support that transfer; move items one slot at a time</red>"
   slot_mismatch: "<red>This accessory only fits <white>%required%</white>, not <white>%slot%</white></red>"
+  not_declared: "<red>That item declares no accessory slot and cannot be placed here</red>"
+  invalid_returned: "<red>The item in <white>%slot%</white> is not a valid accessory for that slot and was returned to your inventory</red>"
+  condition_unmet: "<red>Equip conditions are not met: attributes and skills are disabled</red>"
+  durability_broken: "<red>Durability is exhausted: attributes and skills are disabled</red>"
   unique_conflict: "<red>You already have the same accessory in <white>%conflict%</white> on this page</red>"
   page_enable_lore: "<dark_gray>Click to make this page the active one</dark_gray>"
   page_enabled_lore: "<green>This page is active</green>"
@@ -56,6 +60,10 @@ gui:
   page_already_enabled: "<yellow>This page is already the active one</yellow>"
   page_unknown: "<red>No such accessory page: <white>%page%</white></red>"
   page_no_permission: "<red>You do not have permission to use accessory page <white>%page%</white></red>"
+  session_stale: "<red>Your accessory data was reloaded; close and reopen the accessory window</red>"
+
+durability:
+  broken_notify: "<red>The accessory in <white>%slot%</white> ran out of durability; its attributes and skills no longer apply</red>"
 
 command:
   help: |
@@ -120,3 +128,4 @@ accessory:
 debug:
   accessory:
     recompute: "<gray>[DEBUG][Accessory] Player <player> accessory contribution recomputed: <attributes> attribute(s), <skills> skill(s), <sets> set(s)</gray>"
+    inactive_slot: "<gray>[DEBUG][Accessory] Slot <slot> of player <player> contributes nothing: conditions met <condition>, durability intact <durability_intact></gray>"

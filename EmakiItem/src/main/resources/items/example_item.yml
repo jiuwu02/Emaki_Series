@@ -123,6 +123,8 @@ update:
 #   - type: "ea_attribute"   → EmakiAttribute PDC 属性（写入物品 PDC）
 #   - type: "es_skill"       → EmakiSkills 技能附加（装备时获得技能）
 #     es_skill_triggers        → 可选，写入 skill_id: trigger_id 的装备强制触发器，不占用玩家技能槽
+#   - type: "accessory_slot" → 声明该物品可放入的饰品槽（写入物品 PDC），供 EmakiAccessory 过滤
+#     accessory_slots          → 槽位列表，写部位 id（如 ring）表示该部位任意一格，写槽位实例 id（如 ring_2）表示指定那一格
 effects:
   - type: "variables"
     variables:
@@ -138,6 +140,9 @@ effects:
       - "flame_dash"
     es_skill_triggers:
       fireball: "right_click"
+  - type: "accessory_slot"
+    accessory_slots:
+      - "ring"
 
 # ============================================================
 # 套装归属

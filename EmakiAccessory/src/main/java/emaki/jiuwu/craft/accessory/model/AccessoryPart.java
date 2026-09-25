@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-public record AccessoryPart(String partId, int count, String displayName, String icon) {
+public record AccessoryPart(String partId, int count, String displayName, String icon, boolean durabilityDeduction) {
 
     public static final Pattern PART_ID_PATTERN = Pattern.compile("^[a-z0-9_]+$");
 

@@ -1,7 +1,7 @@
 # EmakiAccessory 简体中文语言资源。
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
-version: "1.1.2"
+version: "1.1.3"
 
 console:
   plugin_starting: "<gray>正在启动 EmakiAccessory...</gray>"
@@ -49,6 +49,10 @@ gui:
   click_unsupported: "<red>饰品栏不支持这种点击方式</red>"
   transfer_unsupported: "<red>饰品栏不支持这种搬运方式，请逐格放取</red>"
   slot_mismatch: "<red>这件饰品只能戴在 <white>%required%</white>，放不进 <white>%slot%</white></red>"
+  not_declared: "<red>这件物品没有声明任何饰品槽，无法放入饰品栏</red>"
+  invalid_returned: "<red><white>%slot%</white> 里的物品不是本槽位的有效饰品，已退回你的背包</red>"
+  condition_unmet: "<red>装备条件未满足：属性与技能已失效</red>"
+  durability_broken: "<red>耐久已耗尽：属性与技能已失效</red>"
   unique_conflict: "<red>你已经在同一页的 <white>%conflict%</white> 戴了同一件饰品</red>"
   page_enable_lore: "<dark_gray>点击将本页设为生效页</dark_gray>"
   page_enabled_lore: "<green>本页正在生效</green>"
@@ -56,6 +60,10 @@ gui:
   page_already_enabled: "<yellow>本页已经是生效页了</yellow>"
   page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
   page_no_permission: "<red>你没有权限使用饰品页 <white>%page%</white></red>"
+  session_stale: "<red>饰品数据已重新加载，请关闭并重新打开饰品栏</red>"
+
+durability:
+  broken_notify: "<red><white>%slot%</white> 的饰品耐久已耗尽，属性与技能不再生效</red>"
 
 command:
   help: |
@@ -120,3 +128,4 @@ accessory:
 debug:
   accessory:
     recompute: "<gray>[DEBUG][Accessory] 玩家 <player> 饰品贡献重算完成：属性 <attributes> 项，技能 <skills> 项，套装 <sets> 组</gray>"
+    inactive_slot: "<gray>[DEBUG][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献：条件满足 <condition>，耐久完好 <durability_intact></gray>"

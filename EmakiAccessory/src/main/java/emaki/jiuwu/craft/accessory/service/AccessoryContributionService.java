@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.accessory.service;
 
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -71,10 +72,19 @@ public final class AccessoryContributionService {
         Map<String, Double> attributes = new LinkedHashMap<>();
         Map<String, String> skills = new LinkedHashMap<>();
         String activePage = effectivePage(accessories);
+        Player owner = Bukkit.getPlayer(accessories.playerId());
+        Set<String> inactiveSlots = new LinkedHashSet<>();
 
         for (String slotInstanceId : pageRegistry.slotsOf(activePage)) {
             ItemStack item = accessories.itemAt(activePage, slotInstanceId);
             if (item == null || item.getType().isAir()) {
+                continue;
+            }
+            boolean conditionsMet = AccessoryEffectGate.conditionsMet(owner, item);
+            boolean durabilityIntact = AccessoryEffectGate.durabilityIntact(item);
+            if (!conditionsMet || !durabilityIntact) {
+                inactiveSlots.add(slotInstanceId);
+                debugInactiveSlot(accessories.playerId(), slotInstanceId, conditionsMet, durabilityIntact);
                 continue;
             }
             collectAttributes(accessories.playerId(), slotInstanceId, item, attributes);
@@ -83,7 +93,7 @@ public final class AccessoryContributionService {
 
         Map<String, Integer> setPieces = setService == null
                 ? Map.of()
-                : setService.countPieces(accessories, activePage, pageRegistry);
+                : setService.countPieces(accessories, activePage, pageRegistry, inactiveSlots);
         if (setService != null) {
             setService.applyBonuses(setPieces, attributes, skills);
         }
@@ -100,6 +110,21 @@ public final class AccessoryContributionService {
                     "sets", String.valueOf(setPieces.size())));
         }
         return snapshot;
+    }
+
+    private void debugInactiveSlot(UUID playerId,
+            String slotInstanceId,
+            boolean conditionsMet,
+            boolean durabilityIntact) {
+        DebugLogger dl = debugLoggerSupplier == null ? null : debugLoggerSupplier.get();
+        if (dl == null) {
+            return;
+        }
+        dl.log("accessory", playerId, "accessory.inactive_slot", Map.of(
+                "player", playerId.toString(),
+                "slot", slotInstanceId,
+                "condition", String.valueOf(conditionsMet),
+                "durability_intact", String.valueOf(durabilityIntact)));
     }
 
     public String effectivePage(PlayerAccessories accessories) {

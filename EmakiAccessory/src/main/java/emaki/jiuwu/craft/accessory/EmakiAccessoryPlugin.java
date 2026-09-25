@@ -9,6 +9,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
@@ -31,11 +32,13 @@ import emaki.jiuwu.craft.accessory.model.AccessoryContributionSnapshot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.accessory.service.AccessoryAdminService;
 import emaki.jiuwu.craft.accessory.service.AccessoryContributionService;
+import emaki.jiuwu.craft.accessory.service.AccessoryDurabilityService;
 import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryPartRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryRetrievalService;
 import emaki.jiuwu.craft.accessory.service.AccessorySetService;
 import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
+import emaki.jiuwu.craft.accessory.service.AccessoryValidationService;
 import emaki.jiuwu.craft.accessory.service.AccessoryWriteSessionRegistry;
 import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
@@ -281,21 +284,26 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         if (player == null || components == null) {
             return false;
         }
-        PlayerAccessories accessories = components.accessoryStore().cached(player.getUniqueId());
-        if (accessories == null) {
+        UUID targetId = player.getUniqueId();
+        if (components.accessoryStore().cached(targetId) == null) {
             components.messageService().send(player, "general.data_loading");
             return false;
         }
-        return open(player, accessories, pageId);
+        return open(player, targetId, pageId);
     }
 
-    public boolean open(Player viewer, PlayerAccessories accessories, String pageId) {
-        if (viewer == null || accessories == null || components == null) {
+    public boolean open(Player viewer, UUID targetId, String pageId) {
+        if (viewer == null || targetId == null || components == null) {
+            return false;
+        }
+        PlayerAccessories view = components.accessoryStore().cached(targetId);
+        if (view == null) {
+            components.messageService().send(viewer, "general.data_loading");
             return false;
         }
         AccessoryPageRegistry pages = pageRegistry();
         String requested = Texts.isBlank(pageId)
-                ? pages.resolveEnabledPage(accessories.enabledPage())
+                ? pages.resolveEnabledPage(view.enabledPage())
                 : Texts.normalizeId(pageId);
         if (!pages.hasPage(requested)) {
             components.messageService().send(viewer, "command.page_unknown",
@@ -309,28 +317,94 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
         }
         AccessoryGuiHandler handler = new AccessoryGuiHandler(
                 this, components.accessoryGuiService(), components.uniqueService(),
-                accessories, requested);
+                targetId, components.accessoryStore().currentGeneration(targetId), requested);
 
-        components.writeSessions().acquire(accessories.playerId(), viewer.getUniqueId());
+        components.writeSessions().acquire(targetId, viewer.getUniqueId());
         return components.accessoryGuiService().open(viewer, handler) != null;
     }
 
-    public int retrievePage(Player owner, PlayerAccessories accessories, String pageId) {
-        if (owner == null || accessories == null || components == null) {
+    public int retrievePage(Player owner, UUID targetId, String pageId) {
+        if (owner == null || targetId == null || components == null) {
             return 0;
         }
-        int retrieved = AccessoryRetrievalService.retrievePage(owner, accessories, pageId);
-        if (retrieved > 0) {
-            refreshContributions(accessories);
-            components.accessoryStore().saveAsync(accessories.playerId());
-        }
-        return retrieved;
+        Integer retrieved = mutateSession(targetId, components.accessoryStore().currentGeneration(targetId),
+                accessories -> {
+                    int count = AccessoryRetrievalService.retrievePage(owner, accessories, pageId);
+                    recomputeContributions(accessories);
+                    return count;
+                });
+        return retrieved == null ? 0 : retrieved;
     }
 
-    public void refreshContributions(PlayerAccessories accessories) {
-        if (accessories == null || components == null) {
+    public PlayerAccessories view(UUID targetId) {
+        return components == null || targetId == null
+                ? null
+                : components.accessoryStore().cached(targetId);
+    }
+
+    public boolean edit(UUID targetId, long expectedGeneration, Consumer<PlayerAccessories> mutation) {
+        if (mutation == null) {
+            return false;
+        }
+        Boolean applied = mutateSession(targetId, expectedGeneration, accessories -> {
+            mutation.accept(accessories);
+            recomputeContributions(accessories);
+            return Boolean.TRUE;
+        });
+        return Boolean.TRUE.equals(applied);
+    }
+
+    public boolean refreshContributions(UUID targetId) {
+        if (components == null || targetId == null) {
+            return false;
+        }
+        Boolean applied = mutateSession(targetId, components.accessoryStore().currentGeneration(targetId),
+                accessories -> {
+                    recomputeContributions(accessories);
+                    return Boolean.TRUE;
+                });
+        return Boolean.TRUE.equals(applied);
+    }
+
+    public void damageActiveAccessories(Player player) {
+        if (components == null || player == null || !appConfig().durability().enabled()) {
             return;
         }
+        UUID targetId = player.getUniqueId();
+        List<String> broken = components.accessoryStore().mutate(targetId,
+                components.accessoryStore().currentGeneration(targetId),
+                accessories -> {
+                    String activePage = components.contributionService().effectivePage(accessories);
+                    if (Texts.isBlank(activePage)) {
+                        return List.<String>of();
+                    }
+                    return AccessoryDurabilityService.deduct(accessories, pageRegistry(), partRegistry(),
+                            activePage, appConfig().durability().damagePerHit());
+                });
+        if (broken == null || broken.isEmpty()) {
+            return;
+        }
+        refreshContributions(targetId);
+        for (String slotInstanceId : broken) {
+            components.messageService().send(player, "durability.broken_notify",
+                    Map.of("slot", slotInstanceId));
+        }
+    }
+
+    private <R> R mutateSession(UUID targetId,
+            long expectedGeneration,
+            Function<PlayerAccessories, R> mutation) {
+        if (components == null || targetId == null || mutation == null) {
+            return null;
+        }
+        R result = components.accessoryStore().mutate(targetId, expectedGeneration, mutation);
+        if (result != null) {
+            components.accessoryStore().saveAsync(targetId);
+        }
+        return result;
+    }
+
+    private void recomputeContributions(PlayerAccessories accessories) {
         AccessoryContributionSnapshot snapshot = components.contributionService().recompute(accessories);
         Player target = getServer().getPlayer(accessories.playerId());
         if (target != null) {
@@ -368,26 +442,17 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     }
 
     @Override
-    public void onEnabledPageChanged(Player viewer, PlayerAccessories accessories) {
-        if (components == null || accessories == null) {
-            return;
-        }
-        refreshContributions(accessories);
-        components.accessoryStore().saveAsync(accessories.playerId());
-    }
-
-    @Override
-    public void onPageSwitchRequested(Player viewer, PlayerAccessories accessories, String pageId) {
-        if (viewer == null || accessories == null || components == null) {
+    public void onPageSwitchRequested(Player viewer, UUID targetId, String pageId) {
+        if (viewer == null || targetId == null || components == null) {
             return;
         }
         markPageSwitching(viewer);
         viewer.closeInventory();
         components.executionDispatcher().runEntityLater(this, viewer, () -> {
-            if (!open(viewer, accessories, pageId)) {
-                onWindowClosed(viewer, accessories);
+            if (!open(viewer, targetId, pageId)) {
+                onWindowClosed(viewer, targetId);
             }
-        }, () -> onWindowClosed(viewer, accessories), 1L);
+        }, () -> onWindowClosed(viewer, targetId), 1L);
     }
 
     private void markPageSwitching(Player viewer) {
@@ -398,36 +463,41 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     }
 
     @Override
-    public boolean canWrite(Player viewer, PlayerAccessories accessories) {
-        if (viewer == null || accessories == null || components == null) {
+    public boolean canWrite(Player viewer, UUID targetId) {
+        if (viewer == null || targetId == null || components == null) {
             return false;
         }
-        boolean ownWindow = viewer.getUniqueId().equals(accessories.playerId());
+        boolean ownWindow = viewer.getUniqueId().equals(targetId);
         if (!ownWindow && !viewer.hasPermission(AccessoryCommandRouter.PERMISSION_EDIT_OTHERS)) {
             return false;
         }
 
-        return components.writeSessions().holdsLease(accessories.playerId(), viewer.getUniqueId());
+        return components.writeSessions().holdsLease(targetId, viewer.getUniqueId());
     }
 
     @Override
-    public void onContentsChanged(Player viewer, PlayerAccessories accessories) {
-        if (components == null || accessories == null) {
-            return;
-        }
-        refreshContributions(accessories);
-        components.accessoryStore().saveAsync(accessories.playerId());
-    }
-
-    @Override
-    public void onWindowClosed(Player viewer, PlayerAccessories accessories) {
-        if (components == null || accessories == null) {
+    public void onWindowClosed(Player viewer, UUID targetId) {
+        if (components == null || targetId == null) {
             return;
         }
         if (viewer != null) {
-            components.writeSessions().release(accessories.playerId(), viewer.getUniqueId());
+            components.writeSessions().release(targetId, viewer.getUniqueId());
+            if (viewer.getUniqueId().equals(targetId)) {
+                mutateSession(targetId, components.accessoryStore().currentGeneration(targetId),
+                        accessories -> returnInvalidAccessories(viewer, accessories));
+            }
         }
-        components.accessoryStore().saveAsync(accessories.playerId());
+        components.accessoryStore().saveAsync(targetId);
+    }
+
+    private int returnInvalidAccessories(Player owner, PlayerAccessories accessories) {
+        int returned = AccessoryValidationService.returnInvalidFor(
+                owner, accessories, pageRegistry(), slotSources(),
+                slot -> components.messageService().send(owner, "gui.invalid_returned", Map.of("slot", slot)));
+        if (returned > 0) {
+            recomputeContributions(accessories);
+        }
+        return returned;
     }
 
     @Override

@@ -2,7 +2,6 @@ package emaki.jiuwu.craft.accessory.service;
 
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -14,14 +13,14 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
-import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
-import emaki.jiuwu.craft.attribute.api.model.PdcAttributePayload;
-import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AccessorySlotDeclarations {
+
+    public static final NamespacedKey ITEM_ACCESSORY_SLOTS_KEY =
+            new NamespacedKey("emakiitem", "accessory_slots");
 
     private AccessorySlotDeclarations() {
     }
@@ -31,8 +30,7 @@ public final class AccessorySlotDeclarations {
         if (item == null || item.getType().isAir()) {
             return Set.of();
         }
-        collectAttributePayloads(item, declared);
-        collectSkillPayload(item, declared);
+        collectItemDeclaration(item, declared);
         if (config != null) {
             collectPdc(item, config, declared);
             collectLore(item, config, declared);
@@ -54,28 +52,26 @@ public final class AccessorySlotDeclarations {
 
     public static String describe(Set<String> declared) {
         if (declared == null || declared.isEmpty()) {
-            return EquipmentSlotMatcher.SLOT_ALL;
+            return "";
         }
         return String.join(", ", declared);
     }
 
-    private static void collectAttributePayloads(ItemStack item, Set<String> declared) {
-        if (!EmakiAttributeApi.status().usable()) {
+    private static void collectItemDeclaration(ItemStack item, Set<String> declared) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
             return;
         }
-        Map<String, PdcAttributePayload> payloads = EmakiAttributeApi.extensions().pdc().readAll(item);
-        for (PdcAttributePayload payload : payloads.values()) {
-            if (payload == null) {
-                continue;
-            }
-            addNormalized(payload.meta().get(EquipmentSlotMatcher.ACTIVE_SLOT_META_KEY), declared);
+        PersistentDataContainer container = meta.getPersistentDataContainer();
+        if (!container.has(ITEM_ACCESSORY_SLOTS_KEY, PersistentDataType.LIST.strings())) {
+            return;
         }
-    }
-
-    private static void collectSkillPayload(ItemStack item, Set<String> declared) {
-        AccessorySkillPayloadCodec.Payload payload = AccessorySkillPayloadCodec.read(item);
-        if (payload.present()) {
-            addNormalized(payload.activeSlot(), declared);
+        List<String> listed = container.get(ITEM_ACCESSORY_SLOTS_KEY, PersistentDataType.LIST.strings());
+        if (listed == null) {
+            return;
+        }
+        for (String value : listed) {
+            addNormalized(value, declared);
         }
     }
 

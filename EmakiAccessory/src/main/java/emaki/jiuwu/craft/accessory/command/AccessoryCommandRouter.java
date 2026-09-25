@@ -186,7 +186,7 @@ public final class AccessoryCommandRouter {
         }
         plugin.executionDispatcher().runEntity(plugin, player, () -> {
             try {
-                int retrieved = plugin.retrievePage(player, accessories, pageId);
+                int retrieved = plugin.retrievePage(player, playerId, pageId);
                 if (retrieved == 0) {
                     message(player, "command.retrieve_empty", Map.of("page", pageId));
                     return;
@@ -302,9 +302,8 @@ public final class AccessoryCommandRouter {
             message(sender, "command.unknown_player", Map.of("player", args[2]));
             return true;
         }
-        PlayerAccessories cached = plugin.accessoryStore().cached(targetId);
-        if (cached != null) {
-            openFor(viewer, cached, writable);
+        if (plugin.accessoryStore().cached(targetId) != null) {
+            openFor(viewer, targetId, writable);
             return true;
         }
 
@@ -318,26 +317,26 @@ public final class AccessoryCommandRouter {
                 return;
             }
             plugin.executionDispatcher().runEntity(plugin, viewer,
-                    () -> openFor(viewer, accessories, false), () -> {
+                    () -> openFor(viewer, targetId, false), () -> {
 
                     });
         });
         return true;
     }
 
-    private void openFor(Player viewer, PlayerAccessories accessories, boolean writable) {
+    private void openFor(Player viewer, UUID targetId, boolean writable) {
         plugin.executionDispatcher().runEntity(plugin, viewer, () -> {
             if (writable) {
-                UUID currentWriter = plugin.writeSessions().currentWriter(accessories.playerId());
+                UUID currentWriter = plugin.writeSessions().currentWriter(targetId);
                 if (currentWriter != null && !currentWriter.equals(viewer.getUniqueId())) {
                     message(viewer, "command.admin_target_busy");
                     return;
                 }
             } else {
 
-                plugin.writeSessions().release(accessories.playerId(), viewer.getUniqueId());
+                plugin.writeSessions().release(targetId, viewer.getUniqueId());
             }
-            if (!plugin.open(viewer, accessories, "")) {
+            if (!plugin.open(viewer, targetId, "")) {
                 message(viewer, "command.open_failed");
             }
         }, () -> {
@@ -369,11 +368,10 @@ public final class AccessoryCommandRouter {
             message(sender, "command.admin_clear_failed", Map.of("player", args[2]));
             return true;
         }
-        PlayerAccessories accessories = plugin.accessoryStore().cached(targetId);
         Player target = Bukkit.getPlayer(targetId);
-        if (accessories != null && target != null) {
+        if (target != null) {
             plugin.executionDispatcher().runEntity(plugin, target,
-                    () -> plugin.refreshContributions(accessories), () -> {
+                    () -> plugin.refreshContributions(targetId), () -> {
 
                     });
         }

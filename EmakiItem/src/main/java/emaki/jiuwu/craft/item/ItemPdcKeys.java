@@ -9,6 +9,9 @@ public final class ItemPdcKeys {
     public static final NamespacedKey PROJECTILE_SOURCE_ITEM =
             new NamespacedKey("emakiitem", "projectile_source_item");
 
+    public static final NamespacedKey ACCESSORY_SLOTS =
+            new NamespacedKey("emakiitem", "accessory_slots");
+
     public static final String ASSEMBLY_PARTITION = "item";
 
     public static final String ASSEMBLY_FIELD_SCHEMA_VERSION = "schema_version";

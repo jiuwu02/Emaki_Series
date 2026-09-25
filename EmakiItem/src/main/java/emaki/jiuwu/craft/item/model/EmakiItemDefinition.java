@@ -34,6 +34,7 @@ public final class EmakiItemDefinition {
     private final List<String> skills;
     private final Map<String, String> skillTriggers;
     private final String equipSlot;
+    private final List<String> accessorySlots;
     private final ItemSetMembership setMembership;
     private final ItemConditions conditions;
     private final Map<String, List<String>> actions;
@@ -55,6 +56,7 @@ public final class EmakiItemDefinition {
             List<String> skills,
             Map<String, String> skillTriggers,
             String equipSlot,
+            List<String> accessorySlots,
             ItemSetMembership setMembership,
             ItemConditions conditions,
             Map<String, List<String>> actions,
@@ -77,6 +79,7 @@ public final class EmakiItemDefinition {
                 skills,
                 skillTriggers,
                 equipSlot,
+                accessorySlots,
                 setMembership,
                 conditions,
                 actions,
@@ -96,6 +99,7 @@ public final class EmakiItemDefinition {
             List<String> skills,
             Map<String, String> skillTriggers,
             String equipSlot,
+            List<String> accessorySlots,
             ItemSetMembership setMembership,
             ItemConditions conditions,
             Map<String, List<String>> actions,
@@ -117,6 +121,7 @@ public final class EmakiItemDefinition {
                 skills,
                 skillTriggers,
                 equipSlot,
+                accessorySlots,
                 setMembership,
                 conditions,
                 actions,
@@ -141,6 +146,7 @@ public final class EmakiItemDefinition {
             List<String> skills,
             Map<String, String> skillTriggers,
             String equipSlot,
+            List<String> accessorySlots,
             ItemSetMembership setMembership,
             ItemConditions conditions,
             Map<String, List<String>> actions,
@@ -164,6 +170,7 @@ public final class EmakiItemDefinition {
         this.skills = skills == null ? List.of() : List.copyOf(skills);
         this.skillTriggers = skillTriggers == null ? Map.of() : Map.copyOf(skillTriggers);
         this.equipSlot = EquipmentSlotMatcher.normalizeRequired(equipSlot);
+        this.accessorySlots = accessorySlots == null ? List.of() : List.copyOf(accessorySlots);
         this.setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         this.conditions = conditions == null ? ItemConditions.empty() : conditions;
         this.actions = actions == null ? Map.of() : copyActions(actions);
@@ -229,6 +236,10 @@ public final class EmakiItemDefinition {
         return equipSlot;
     }
 
+    public List<String> accessorySlots() {
+        return accessorySlots;
+    }
+
     public ItemSetMembership setMembership() {
         return setMembership;
     }
@@ -268,6 +279,7 @@ public final class EmakiItemDefinition {
         signatureData.put("es_skills", skills);
         signatureData.put("es_skill_triggers", skillTriggers);
         signatureData.put("equip_slot", equipSlot);
+        signatureData.put("accessory_slots", accessorySlots);
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);
         signatureData.put("actions", actions);
@@ -324,6 +336,7 @@ public final class EmakiItemDefinition {
                 && skills.equals(definition.skills)
                 && skillTriggers.equals(definition.skillTriggers)
                 && equipSlot.equals(definition.equipSlot)
+                && accessorySlots.equals(definition.accessorySlots)
                 && setMembership.equals(definition.setMembership)
                 && conditions.equals(definition.conditions)
                 && actions.equals(definition.actions)
@@ -334,8 +347,8 @@ public final class EmakiItemDefinition {
     @Override
     public int hashCode() {
         return Objects.hash(id, itemDefinition, material, displayName, itemName, lore, nameActions, loreActions,
-                variables, components, attributes, skills, skillTriggers, equipSlot, setMembership, conditions,
-                actions, updatePolicy, repair, amount, hasRandomElements);
+                variables, components, attributes, skills, skillTriggers, equipSlot, accessorySlots, setMembership,
+                conditions, actions, updatePolicy, repair, amount, hasRandomElements);
     }
 
     @Override
@@ -353,6 +366,7 @@ public final class EmakiItemDefinition {
                 + ", skills=" + skills
                 + ", skillTriggers=" + skillTriggers
                 + ", equipSlot=" + equipSlot
+                + ", accessorySlots=" + accessorySlots
                 + ", setMembership=" + setMembership
                 + ", conditions=" + conditions
                 + ", actions=" + actions

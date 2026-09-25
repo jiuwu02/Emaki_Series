@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -34,7 +35,8 @@ public final class AccessorySetService {
 
     public Map<String, Integer> countPieces(PlayerAccessories accessories,
             String pageId,
-            AccessoryPageRegistry pageRegistry) {
+            AccessoryPageRegistry pageRegistry,
+            Set<String> excludedSlots) {
         Map<String, AccessorySetDefinition> active = definitions;
         if (accessories == null || pageRegistry == null || active.isEmpty()
                 || !EmakiItemApi.status().usable()) {
@@ -42,6 +44,9 @@ public final class AccessorySetService {
         }
         Map<String, Integer> counts = new LinkedHashMap<>();
         for (String slotInstanceId : pageRegistry.slotsOf(pageId)) {
+            if (excludedSlots != null && excludedSlots.contains(slotInstanceId)) {
+                continue;
+            }
             ItemStack item = accessories.itemAt(pageId, slotInstanceId);
             if (item == null || item.getType().isAir()) {
                 continue;

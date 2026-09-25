@@ -94,6 +94,7 @@ public final class EmakiItemDefinitionParser {
                 parseSkills(root, effects),
                 parseSkillTriggers(root, effects),
                 parseEquipSlot(root, id, source),
+                parseAccessorySlots(root, effects),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root),
                 parseActions(root.getSection("actions")),
@@ -303,6 +304,29 @@ public final class EmakiItemDefinitionParser {
                 EquipmentSlotMatcher.SLOT_BOOTS -> true;
             default -> false;
         };
+    }
+
+    private List<String> parseAccessorySlots(YamlSection root, List<Map<?, ?>> effects) {
+        LinkedHashSet<String> result = new LinkedHashSet<>(normalizeSlotIds(root.get("accessory_slots")));
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null
+                    || !"accessory_slot".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            result.addAll(normalizeSlotIds(ConfigNodes.get(effect, "accessory_slots")));
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
+    }
+
+    private List<String> normalizeSlotIds(Object raw) {
+        List<String> result = new ArrayList<>();
+        for (String entry : Texts.asStringList(raw)) {
+            String normalized = Texts.normalizeId(entry);
+            if (Texts.isNotBlank(normalized) && !result.contains(normalized)) {
+                result.add(normalized);
+            }
+        }
+        return result;
     }
 
     private ItemSetMembership parseSetMembership(YamlSection section) {

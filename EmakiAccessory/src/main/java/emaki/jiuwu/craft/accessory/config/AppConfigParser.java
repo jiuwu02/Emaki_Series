@@ -25,7 +25,19 @@ public final class AppConfigParser {
                 section.getBoolean("unique", defaults.unique()),
                 section.getInt("persistence.autosave_seconds", defaults.autosaveSeconds()),
                 section.getInt("persistence.drain_timeout_seconds", defaults.drainTimeoutSeconds()),
-                parseSlotSources(section.getSection("slot_sources"))
+                parseSlotSources(section.getSection("slot_sources")),
+                parseDurability(section.getSection("durability"))
+        );
+    }
+
+    private static DurabilityConfig parseDurability(YamlSection section) {
+        DurabilityConfig defaults = DurabilityConfig.defaults();
+        if (section == null) {
+            return defaults;
+        }
+        return new DurabilityConfig(
+                section.getBoolean("enabled", defaults.enabled()),
+                section.getInt("damage_per_hit", defaults.damagePerHit())
         );
     }
 

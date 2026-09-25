@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -13,6 +14,7 @@ import emaki.jiuwu.craft.accessory.model.AccessoryPage;
 import emaki.jiuwu.craft.accessory.model.AccessoryPart;
 import emaki.jiuwu.craft.accessory.model.AccessorySlot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
+import emaki.jiuwu.craft.accessory.service.AccessoryEffectGate;
 import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.accessory.service.AccessoryPartRegistry;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
@@ -252,7 +254,7 @@ public final class AccessoryGuiService {
         if (handler == null) {
             return null;
         }
-        PlayerAccessories accessories = handler.accessories();
+        PlayerAccessories accessories = handler.view();
         String pageId = handler.pageId();
         String type = Texts.normalizeId(slot.definition().type());
         if (TYPE_ORPHAN_SLOT.equals(type)) {
@@ -277,9 +279,49 @@ public final class AccessoryGuiService {
         }
         ItemStack stored = accessories == null ? null : accessories.itemAt(pageId, slotInstanceId);
         if (stored != null && !stored.getType().isAir()) {
-            return stored.clone();
+            return decorateStored(handler, stored);
         }
         return renderPlaceholder(slot.definition(), configured);
+    }
+
+    private ItemStack decorateStored(AccessoryGuiHandler handler, ItemStack stored) {
+        Player owner = ownerOf(handler);
+        List<String> markers = new ArrayList<>();
+        if (!AccessoryEffectGate.conditionsMet(owner, stored)) {
+            addMarker(markers, "gui.condition_unmet", Map.of());
+        }
+        if (!AccessoryEffectGate.durabilityIntact(stored)) {
+            addMarker(markers, "gui.durability_broken", Map.of());
+        }
+        ItemStack projection = stored.clone();
+        if (markers.isEmpty()) {
+            return projection;
+        }
+        ItemMeta meta = projection.getItemMeta();
+        if (meta == null) {
+            return projection;
+        }
+        List<String> lore = new ArrayList<>(ItemTextBridge.loreLines(meta));
+        lore.addAll(markers);
+        ItemTextBridge.setLoreLines(meta, lore);
+        projection.setItemMeta(meta);
+        return projection;
+    }
+
+    private Player ownerOf(AccessoryGuiHandler handler) {
+        return handler == null || handler.targetId() == null
+                ? null
+                : Bukkit.getPlayer(handler.targetId());
+    }
+
+    private void addMarker(List<String> markers, String key, Map<String, ?> replacements) {
+        if (messageService == null) {
+            return;
+        }
+        String rendered = messageService.message(key, replacements);
+        if (Texts.isNotBlank(rendered)) {
+            markers.add(rendered);
+        }
     }
 
     private ItemStack renderPlaceholder(GuiSlot definition, AccessorySlot configured) {

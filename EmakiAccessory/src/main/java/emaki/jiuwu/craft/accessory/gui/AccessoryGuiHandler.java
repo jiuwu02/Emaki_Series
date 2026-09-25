@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.accessory.gui;
 
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -30,17 +32,17 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
 
         AccessoryPageRegistry pageRegistry();
 
-        boolean canWrite(Player viewer, PlayerAccessories accessories);
+        PlayerAccessories view(UUID targetId);
+
+        boolean edit(UUID targetId, long expectedGeneration, Consumer<PlayerAccessories> mutation);
+
+        boolean canWrite(Player viewer, UUID targetId);
 
         boolean canUsePage(Player viewer, String pageId);
 
-        void onContentsChanged(Player viewer, PlayerAccessories accessories);
+        void onWindowClosed(Player viewer, UUID targetId);
 
-        void onWindowClosed(Player viewer, PlayerAccessories accessories);
-
-        void onEnabledPageChanged(Player viewer, PlayerAccessories accessories);
-
-        void onPageSwitchRequested(Player viewer, PlayerAccessories accessories, String pageId);
+        void onPageSwitchRequested(Player viewer, UUID targetId, String pageId);
 
         void reject(Player viewer, String messageKey, Map<String, ?> replacements);
     }
@@ -48,7 +50,8 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
     private final Callbacks callbacks;
     private final AccessoryGuiService guiService;
     private final AccessoryUniqueService uniqueService;
-    private final PlayerAccessories accessories;
+    private final UUID targetId;
+    private final long generation;
     private final String pageId;
     private boolean closed;
     private boolean switchingPage;
@@ -56,12 +59,14 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
     public AccessoryGuiHandler(Callbacks callbacks,
             AccessoryGuiService guiService,
             AccessoryUniqueService uniqueService,
-            PlayerAccessories accessories,
+            UUID targetId,
+            long generation,
             String pageId) {
         this.callbacks = callbacks;
         this.guiService = guiService;
         this.uniqueService = uniqueService;
-        this.accessories = accessories;
+        this.targetId = targetId;
+        this.generation = generation;
         this.pageId = Texts.normalizeId(pageId);
     }
 
@@ -69,8 +74,12 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
         return callbacks.plugin();
     }
 
-    public PlayerAccessories accessories() {
-        return accessories;
+    public UUID targetId() {
+        return targetId;
+    }
+
+    public PlayerAccessories view() {
+        return callbacks.view(targetId);
     }
 
     public String pageId() {
@@ -123,7 +132,7 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
         if (switchingPage) {
             return;
         }
-        callbacks.onWindowClosed(session == null ? null : session.viewer(), accessories);
+        callbacks.onWindowClosed(session == null ? null : session.viewer(), targetId);
     }
 
     private void handleAccessoryClick(GuiSession session,
@@ -139,28 +148,34 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
         }
         ItemStack cursor = click.cursorItem();
         boolean cursorEmpty = cursor == null || cursor.getType().isAir();
-        ItemStack stored = accessories.itemAt(pageId, slotInstanceId);
+        ItemStack stored = storedItem(slotInstanceId);
         boolean slotEmpty = stored == null || stored.getType().isAir();
 
         if (cursorEmpty && slotEmpty) {
             return;
         }
-        if (!callbacks.canWrite(viewer, accessories)) {
+        if (!callbacks.canWrite(viewer, targetId)) {
             callbacks.reject(viewer, "gui.read_only", Map.of());
             return;
         }
         if (cursorEmpty) {
-            ItemStack removed = accessories.remove(pageId, slotInstanceId);
-            click.setCursor(removed);
-            commit(session, viewer);
+            if (!edit(accessories -> accessories.remove(pageId, slotInstanceId))) {
+                stale(viewer);
+                return;
+            }
+            click.setCursor(stored);
+            commit(session);
             return;
         }
         if (!accepts(viewer, slotInstanceId, cursor)) {
             return;
         }
-        ItemStack previous = accessories.put(pageId, slotInstanceId, cursor);
-        click.setCursor(previous);
-        commit(session, viewer);
+        if (!edit(accessories -> accessories.put(pageId, slotInstanceId, cursor))) {
+            stale(viewer);
+            return;
+        }
+        click.setCursor(stored);
+        commit(session);
     }
 
     private void handleOrphanClick(GuiSession session,
@@ -172,30 +187,39 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
             callbacks.reject(viewer, "gui.orphan_read_only", Map.of());
             return;
         }
-        String key = guiService.orphanKeyAt(accessories, pageId, slot.inventorySlot());
+        String key = guiService.orphanKeyAt(view(), pageId, slot.inventorySlot());
         if (Texts.isBlank(key)) {
             return;
         }
-        if (!callbacks.canWrite(viewer, accessories)) {
+        if (!callbacks.canWrite(viewer, targetId)) {
             callbacks.reject(viewer, "gui.read_only", Map.of());
             return;
         }
-        ItemStack removed = accessories.remove(pageId, key);
+        PlayerAccessories view = view();
+        ItemStack removed = view == null ? null : view.itemAt(pageId, key);
+        if (!edit(accessories -> accessories.remove(pageId, key))) {
+            stale(viewer);
+            return;
+        }
         click.setCursor(removed);
-        commit(session, viewer);
+        commit(session);
     }
 
     private void handleEnableClick(GuiSession session, Player viewer) {
-        if (!callbacks.canWrite(viewer, accessories)) {
+        if (!callbacks.canWrite(viewer, targetId)) {
             callbacks.reject(viewer, "gui.read_only", Map.of());
             return;
         }
-        if (Texts.normalizeId(accessories.enabledPage()).equals(pageId)) {
+        PlayerAccessories view = view();
+        String enabled = view == null ? "" : Texts.normalizeId(view.enabledPage());
+        if (enabled.equals(pageId)) {
             callbacks.reject(viewer, "gui.page_already_enabled", Map.of("page", pageId));
             return;
         }
-        accessories.enabledPage(pageId);
-        callbacks.onEnabledPageChanged(viewer, accessories);
+        if (!edit(accessories -> accessories.enabledPage(pageId))) {
+            stale(viewer);
+            return;
+        }
         guiService.refresh(session);
     }
 
@@ -212,11 +236,15 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
             callbacks.reject(viewer, "gui.page_no_permission", Map.of("page", target));
             return;
         }
-        callbacks.onPageSwitchRequested(viewer, accessories, target);
+        callbacks.onPageSwitchRequested(viewer, targetId, target);
     }
 
     private boolean accepts(Player viewer, String slotInstanceId, ItemStack candidate) {
         Set<String> declared = AccessorySlotDeclarations.read(candidate, callbacks.slotSources());
+        if (declared.isEmpty()) {
+            callbacks.reject(viewer, "gui.not_declared", Map.of());
+            return false;
+        }
         if (!AccessorySlotDeclarations.matchesAny(slotInstanceId, declared)) {
             callbacks.reject(viewer, "gui.slot_mismatch", Map.of(
                     "slot", slotInstanceId,
@@ -224,7 +252,7 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
             ));
             return false;
         }
-        String conflict = uniqueService.findConflict(accessories, pageId, candidate, slotInstanceId);
+        String conflict = uniqueService.findConflict(view(), pageId, candidate, slotInstanceId);
         if (Texts.isNotBlank(conflict)) {
             callbacks.reject(viewer, "gui.unique_conflict", Map.of(
                     "slot", slotInstanceId,
@@ -235,8 +263,20 @@ public final class AccessoryGuiHandler implements GuiSessionHandler {
         return true;
     }
 
-    private void commit(GuiSession session, Player viewer) {
-        callbacks.onContentsChanged(viewer, accessories);
+    private ItemStack storedItem(String slotInstanceId) {
+        PlayerAccessories view = view();
+        return view == null ? null : view.itemAt(pageId, slotInstanceId);
+    }
+
+    private boolean edit(Consumer<PlayerAccessories> mutation) {
+        return callbacks.edit(targetId, generation, mutation);
+    }
+
+    private void stale(Player viewer) {
+        callbacks.reject(viewer, "gui.session_stale", Map.of());
+    }
+
+    private void commit(GuiSession session) {
         guiService.refresh(session);
     }
 
