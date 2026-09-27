@@ -102,7 +102,7 @@ public final class EmakiItemFactory {
             return CreateResult.created(null);
         }
 
-        int resolved = amount > 0 ? amount : definition.amount();
+        int resolved = Math.max(1, amount);
         itemStack.setAmount(Math.max(1, Math.min(resolved, itemStack.getMaxStackSize())));
         return fireCreateEvent(definition.id(), itemStack.getAmount(), itemStack);
     }

@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 
@@ -25,6 +26,14 @@ import emaki.jiuwu.craft.item.model.ItemSetPieceDefinition;
 import emaki.jiuwu.craft.item.model.ItemSetThreshold;
 
 public final class EmakiItemSetLoader {
+
+    private static final List<String> RETIRED_THRESHOLD_KEYS = List.of(
+            "ea_attributes",
+            "es_skills",
+            "name_actions",
+            "lore_actions",
+            "name_action",
+            "lore_action");
 
     private final JavaPlugin plugin;
     private final Supplier<AppConfig> configSupplier;
@@ -108,7 +117,7 @@ public final class EmakiItemSetLoader {
                 id,
                 root.getString("display_name", id),
                 parsePieces(root.get("pieces")),
-                parseThresholds(root.getSection("thresholds")),
+                parseThresholds(root.getSection("thresholds"), source),
                 parseLore(root.getSection("lore"))
         );
     }
@@ -148,7 +157,7 @@ public final class EmakiItemSetLoader {
         }
     }
 
-    private List<ItemSetThreshold> parseThresholds(YamlSection section) {
+    private List<ItemSetThreshold> parseThresholds(YamlSection section, String source) {
         if (section == null) {
             return List.of();
         }
@@ -159,45 +168,71 @@ public final class EmakiItemSetLoader {
             if (required <= 0 || threshold == null) {
                 continue;
             }
+            warnRetiredThresholdFields(threshold, source, required);
             List<Map<?, ?>> effects = threshold.getMapList("effects");
             result.add(new ItemSetThreshold(
                     required,
                     normalizedList(threshold.get("lore")),
-                    thresholdAttributes(threshold, effects),
-                    thresholdSkills(threshold, effects),
-                    thresholdActions(threshold, effects, "name_action", "name_actions", "name_action"),
-                    thresholdActions(threshold, effects, "lore_action", "lore_actions", "lore_action"),
+                    thresholdAttributes(effects),
+                    thresholdSkills(effects),
+                    thresholdActions(effects, "name_action", "name_actions", "name_action"),
+                    thresholdActions(effects, "lore_action", "lore_actions", "lore_action"),
                     List.of()
             ));
         }
         return result;
     }
 
-    private Map<String, Double> thresholdAttributes(YamlSection threshold, List<Map<?, ?>> effects) {
-        Map<String, Double> result = new LinkedHashMap<>(toDoubleMap(threshold.get("ea_attributes")));
+    private void warnRetiredThresholdFields(YamlSection threshold, String source, int required) {
+        Set<String> present = new LinkedHashSet<>();
+        for (String key : RETIRED_THRESHOLD_KEYS) {
+            if (threshold.get(key) != null) {
+                present.add(key);
+            }
+        }
+        for (Map<?, ?> effect : threshold.getMapList("effects")) {
+            if (effect == null) {
+                continue;
+            }
+            String type = Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type")));
+            if ("ea_attribute".equals(type) && ConfigNodes.get(effect, "attributes") != null) {
+                present.add("effects.attributes");
+            }
+            if ("es_skill".equals(type) && ConfigNodes.get(effect, "es_skill") != null) {
+                present.add("effects.es_skill");
+            }
+        }
+        if (!present.isEmpty()) {
+            plugin.getLogger().warning("Set definition " + source + " threshold " + required
+                    + " declares retired field(s) " + String.join(", ", present)
+                    + "; they are ignored, express them as 'effects' entries.");
+        }
+    }
+
+    private Map<String, Double> thresholdAttributes(List<Map<?, ?>> effects) {
+        Map<String, Double> result = new LinkedHashMap<>();
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"ea_attribute".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
             }
-            result.putAll(toDoubleMap(firstNonNull(ConfigNodes.get(effect, "ea_attributes"), ConfigNodes.get(effect, "attributes"))));
+            result.putAll(toDoubleMap(ConfigNodes.get(effect, "ea_attributes")));
         }
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
 
-    private List<String> thresholdSkills(YamlSection threshold, List<Map<?, ?>> effects) {
-        LinkedHashSet<String> result = new LinkedHashSet<>(normalizedList(threshold.get("es_skills")));
+    private List<String> thresholdSkills(List<Map<?, ?>> effects) {
+        LinkedHashSet<String> result = new LinkedHashSet<>();
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
             }
-            result.addAll(normalizedList(firstNonNull(ConfigNodes.get(effect, "es_skills"), ConfigNodes.get(effect, "es_skill"))));
+            result.addAll(normalizedList(ConfigNodes.get(effect, "es_skills")));
         }
         return result.isEmpty() ? List.of() : List.copyOf(result);
     }
 
-    private Object thresholdActions(YamlSection threshold, List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
+    private Object thresholdActions(List<Map<?, ?>> effects, String effectType, String topKey, String effectKey) {
         List<Object> actions = new ArrayList<>();
-        appendActions(actions, threshold.get(topKey));
         for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
             if (effect == null || !effectType.equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
                 continue;
@@ -222,15 +257,6 @@ public final class EmakiItemSetLoader {
             return;
         }
         actions.add(plain);
-    }
-
-    private Object firstNonNull(Object... values) {
-        for (Object value : values) {
-            if (value != null) {
-                return value;
-            }
-        }
-        return null;
     }
 
     private ItemSetLoreConfig parseLore(YamlSection section) {

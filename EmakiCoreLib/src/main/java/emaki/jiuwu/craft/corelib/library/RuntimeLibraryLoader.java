@@ -73,7 +73,7 @@ public final class RuntimeLibraryLoader {
         return List.copyOf(prepared);
     }
 
-    private static final String GRAALVM_VERSION = "25.2.4";
+    private static final String GRAALVM_VERSION = "25.4.4.1.1";
 
     private List<RuntimeLibrary> libraries() {
         return List.of(
@@ -95,7 +95,7 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
                 RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.0")),
 
                 RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
                 RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),

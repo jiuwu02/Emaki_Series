@@ -6,6 +6,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -28,6 +29,8 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class EmakiItemDefinitionParser {
 
+    private static final int DEFAULT_AMOUNT = 1;
+
     private static final List<String> RETIRED_TOP_LEVEL_KEYS = List.of(
             "variables",
             "ea_attributes",
@@ -36,7 +39,16 @@ public final class EmakiItemDefinitionParser {
             "skill_triggers",
             "accessory_slots",
             "name_actions",
-            "lore_actions");
+            "lore_actions",
+            "source",
+            "amount",
+            "components",
+            "material",
+            "display_name",
+            "item_name",
+            "lore");
+
+    private static final List<String> RETIRED_REPAIR_MATERIAL_KEYS = List.of("item_source", "item");
 
     private final Logger logger;
     private final ConfiguredItemParser configuredItemParser;
@@ -63,7 +75,7 @@ public final class EmakiItemDefinitionParser {
             warning("Skipping item definition " + source + ": invalid or missing id.");
             return null;
         }
-        warnRetiredTopLevelFields(root, source);
+        warnRetiredFields(root, source);
         ConfiguredItemDefinition itemDefinition;
         try {
             itemDefinition = parseConfiguredItem(root, id);
@@ -115,24 +127,13 @@ public final class EmakiItemDefinitionParser {
     private ConfiguredItemDefinition parseConfiguredItem(YamlSection root, String itemId) {
         Object nestedItem = root.get("item");
         boolean hasNestedItem = nestedItem instanceof Map<?, ?> || nestedItem instanceof YamlSection || nestedItem instanceof String;
-        Object configuredNode = hasNestedItem ? nestedItem : root;
-        ConfiguredItemDefinition shared = configuredItemParser.parse(configuredNode);
-        String itemSource = shared.source();
-        if (Texts.isBlank(itemSource) && hasNestedItem && root.get("source") != null) {
-            itemSource = configuredItemParser.parse(Map.of("source", root.get("source"))).source();
+        if (!hasNestedItem) {
+            throw new IllegalArgumentException("missing an 'item' section; the base item must be declared under 'item'.");
         }
-        int amount = hasNestedItem && ConfigNodes.contains(configuredNode, "amount")
-                ? shared.amount()
-                : Math.max(1, root.getInt("amount", shared.amount()));
-
-        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
-        patches.putAll(shared.components());
-        patches.putAll(parseComponents(ConfigNodes.section(configuredNode, "components"), itemId).toComponentPatches());
-
-        if (hasNestedItem) {
-            parseComponents(root.getSection("components"), itemId).toComponentPatches().forEach(patches::putIfAbsent);
-        }
-        return new ConfiguredItemDefinition(itemSource, amount, patches);
+        ConfiguredItemDefinition shared = configuredItemParser.parse(nestedItem);
+        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>(shared.components());
+        patches.putAll(parseComponents(ConfigNodes.section(nestedItem, "components"), itemId).toComponentPatches());
+        return new ConfiguredItemDefinition(shared.source(), DEFAULT_AMOUNT, patches);
     }
 
     private boolean validateConfiguredItem(ConfiguredItemDefinition definition,
@@ -384,15 +385,8 @@ public final class EmakiItemDefinitionParser {
     }
 
     private List<ItemSourceRef> parseRepairItemSources(Map<?, ?> entry) {
-        Object rawSources = ConfigNodes.get(entry, "item_sources");
-        if (rawSources == null) {
-            rawSources = ConfigNodes.get(entry, "item_source");
-        }
-        if (rawSources == null) {
-            rawSources = ConfigNodes.get(entry, "item");
-        }
         List<ItemSourceRef> result = new ArrayList<>();
-        for (Object rawSource : ConfigNodes.asObjectList(rawSources)) {
+        for (Object rawSource : ConfigNodes.asObjectList(ConfigNodes.get(entry, "item_sources"))) {
             ItemSourceRef source = ItemSourceUtil.parse(rawSource);
             if (source != null) {
                 result.add(source);
@@ -480,7 +474,6 @@ public final class EmakiItemDefinitionParser {
                 continue;
             }
             mergeSkillTriggers(result, ConfigNodes.get(effect, "es_skill_triggers"));
-            mergeSkillTriggers(result, ConfigNodes.get(effect, "skill_triggers"));
         }
         return result.isEmpty() ? Map.of() : Map.copyOf(result);
     }
@@ -585,16 +578,42 @@ public final class EmakiItemDefinitionParser {
         return false;
     }
 
-    private void warnRetiredTopLevelFields(YamlSection root, String source) {
-        List<String> present = new ArrayList<>();
+    private void warnRetiredFields(YamlSection root, String source) {
+        Set<String> present = new LinkedHashSet<>();
         for (String key : RETIRED_TOP_LEVEL_KEYS) {
             if (root.get(key) != null) {
                 present.add(key);
             }
         }
+        YamlSection item = root.getSection("item");
+        if (item != null && item.get("amount") != null) {
+            present.add("item.amount");
+        }
+        for (Map<?, ?> effect : root.getMapList("effects")) {
+            if (effect == null || !"es_skill".equals(Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type"))))) {
+                continue;
+            }
+            if (ConfigNodes.get(effect, "skill_triggers") != null) {
+                present.add("effects.skill_triggers");
+            }
+        }
+        YamlSection repair = root.getSection("repair");
+        if (repair != null) {
+            for (Map<?, ?> material : repair.getMapList("materials")) {
+                if (material == null) {
+                    continue;
+                }
+                for (String key : RETIRED_REPAIR_MATERIAL_KEYS) {
+                    if (ConfigNodes.get(material, key) != null) {
+                        present.add("repair.materials." + key);
+                    }
+                }
+            }
+        }
         if (!present.isEmpty()) {
-            warning("Item definition " + source + " declares retired top-level field(s) " + String.join(", ", present)
-                    + "; they are ignored, express them as 'effects' entries with the matching type instead.");
+            warning("Item definition " + source + " declares retired field(s) " + String.join(", ", present)
+                    + "; they are ignored. Declare the base item as 'item.source' + 'item.components', express effects"
+                    + " as 'effects' entries, and pass the stack size to the give command.");
         }
     }
 

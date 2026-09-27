@@ -40,55 +40,7 @@ public final class EmakiItemDefinition {
     private final Map<String, List<String>> actions;
     private final ItemUpdatePolicy updatePolicy;
     private final RepairConfig repair;
-    private final int amount;
     private final boolean hasRandomElements;
-
-    public EmakiItemDefinition(String id,
-            Material material,
-            Object displayName,
-            String itemName,
-            Object lore,
-            Object nameActions,
-            Object loreActions,
-            Map<String, Object> variables,
-            ItemComponentsConfig components,
-            Map<String, Object> attributes,
-            List<String> skills,
-            Map<String, String> skillTriggers,
-            String equipSlot,
-            List<String> accessorySlots,
-            ItemSetMembership setMembership,
-            ItemConditions conditions,
-            Map<String, List<String>> actions,
-            ItemUpdatePolicy updatePolicy,
-            RepairConfig repair,
-            int amount,
-            boolean hasRandomElements) {
-        this(
-                id,
-                composeItemDefinition(id, material, displayName, itemName, lore, components, amount),
-                material,
-                ConfigNodes.toPlainData(displayName),
-                itemName == null ? "" : itemName,
-                ConfigNodes.toPlainData(lore),
-                components == null ? ItemComponentsConfig.empty() : components,
-                nameActions,
-                loreActions,
-                variables,
-                attributes,
-                skills,
-                skillTriggers,
-                equipSlot,
-                accessorySlots,
-                setMembership,
-                conditions,
-                actions,
-                updatePolicy,
-                repair,
-                amount,
-                hasRandomElements
-        );
-    }
 
     public EmakiItemDefinition(String id,
             ConfiguredItemDefinition itemDefinition,
@@ -127,7 +79,6 @@ public final class EmakiItemDefinition {
                 actions,
                 updatePolicy,
                 repair,
-                itemDefinition == null ? 1 : itemDefinition.amount(),
                 hasRandomElements
         );
     }
@@ -152,11 +103,10 @@ public final class EmakiItemDefinition {
             Map<String, List<String>> actions,
             ItemUpdatePolicy updatePolicy,
             RepairConfig repair,
-            int amount,
             boolean hasRandomElements) {
         this.id = id == null ? "" : id;
         this.itemDefinition = itemDefinition == null
-                ? new ConfiguredItemDefinition(null, Math.max(1, amount), Map.of())
+                ? new ConfiguredItemDefinition(null, 1, Map.of())
                 : itemDefinition;
         this.material = material;
         this.displayName = ConfigNodes.toPlainData(displayName);
@@ -176,7 +126,6 @@ public final class EmakiItemDefinition {
         this.actions = actions == null ? Map.of() : copyActions(actions);
         this.updatePolicy = updatePolicy == null ? ItemUpdatePolicy.defaults() : updatePolicy;
         this.repair = repair == null ? RepairConfig.disabled() : repair;
-        this.amount = Math.max(1, amount);
         this.hasRandomElements = hasRandomElements;
     }
 
@@ -260,10 +209,6 @@ public final class EmakiItemDefinition {
         return repair;
     }
 
-    public int amount() {
-        return amount;
-    }
-
     public boolean hasRandomElements() {
         return hasRandomElements;
     }
@@ -300,7 +245,6 @@ public final class EmakiItemDefinition {
         });
         Map<String, Object> snapshot = new LinkedHashMap<>();
         snapshot.put("source", Texts.toStringSafe(itemDefinition.source()));
-        snapshot.put("amount", itemDefinition.amount());
         snapshot.put("components", Collections.unmodifiableMap(componentSnapshot));
         return Collections.unmodifiableMap(snapshot);
     }
@@ -320,8 +264,7 @@ public final class EmakiItemDefinition {
         if (!(other instanceof EmakiItemDefinition definition)) {
             return false;
         }
-        return amount == definition.amount
-                && hasRandomElements == definition.hasRandomElements
+        return hasRandomElements == definition.hasRandomElements
                 && id.equals(definition.id)
                 && itemDefinition.equals(definition.itemDefinition)
                 && material == definition.material
@@ -348,7 +291,7 @@ public final class EmakiItemDefinition {
     public int hashCode() {
         return Objects.hash(id, itemDefinition, material, displayName, itemName, lore, nameActions, loreActions,
                 variables, components, attributes, skills, skillTriggers, equipSlot, accessorySlots, setMembership,
-                conditions, actions, updatePolicy, repair, amount, hasRandomElements);
+                conditions, actions, updatePolicy, repair, hasRandomElements);
     }
 
     @Override
@@ -372,32 +315,7 @@ public final class EmakiItemDefinition {
                 + ", actions=" + actions
                 + ", updatePolicy=" + updatePolicy
                 + ", repair=" + repair
-                + ", amount=" + amount
                 + ", hasRandomElements=" + hasRandomElements + "]";
-    }
-
-    private static ConfiguredItemDefinition composeItemDefinition(String id,
-            Material material,
-            Object displayName,
-            String itemName,
-            Object lore,
-            ItemComponentsConfig components,
-            int amount) {
-        Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
-        if (components != null) {
-            patches.putAll(components.toComponentPatches(id));
-        }
-        if (displayName != null) {
-            patches.put("minecraft:custom_name", ItemComponentPatch.set(ConfigNodes.toPlainData(displayName)));
-        }
-        if (Texts.isNotBlank(itemName)) {
-            patches.put("minecraft:item_name", ItemComponentPatch.set(itemName));
-        }
-        if (lore != null) {
-            patches.put("minecraft:lore", ItemComponentPatch.set(ConfigNodes.toPlainData(lore)));
-        }
-        String source = material == null ? null : "minecraft-" + material.name().toLowerCase(Locale.ROOT);
-        return new ConfiguredItemDefinition(source, Math.max(1, amount), patches);
     }
 
     private static Material projectMaterial(ConfiguredItemDefinition definition) {
