@@ -35,6 +35,7 @@ public final class EmakiItemDefinition {
     private final Map<String, String> skillTriggers;
     private final String equipSlot;
     private final List<String> accessorySlots;
+    private final List<Map<String, Object>> customEffects;
     private final ItemSetMembership setMembership;
     private final ItemConditions conditions;
     private final Map<String, List<String>> actions;
@@ -52,6 +53,7 @@ public final class EmakiItemDefinition {
             Map<String, String> skillTriggers,
             String equipSlot,
             List<String> accessorySlots,
+            List<Map<String, Object>> customEffects,
             ItemSetMembership setMembership,
             ItemConditions conditions,
             Map<String, List<String>> actions,
@@ -74,6 +76,7 @@ public final class EmakiItemDefinition {
                 skillTriggers,
                 equipSlot,
                 accessorySlots,
+                customEffects,
                 setMembership,
                 conditions,
                 actions,
@@ -98,6 +101,7 @@ public final class EmakiItemDefinition {
             Map<String, String> skillTriggers,
             String equipSlot,
             List<String> accessorySlots,
+            List<Map<String, Object>> customEffects,
             ItemSetMembership setMembership,
             ItemConditions conditions,
             Map<String, List<String>> actions,
@@ -121,6 +125,7 @@ public final class EmakiItemDefinition {
         this.skillTriggers = skillTriggers == null ? Map.of() : Map.copyOf(skillTriggers);
         this.equipSlot = EquipmentSlotMatcher.normalizeRequired(equipSlot);
         this.accessorySlots = accessorySlots == null ? List.of() : List.copyOf(accessorySlots);
+        this.customEffects = customEffects == null ? List.of() : List.copyOf(customEffects);
         this.setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
         this.conditions = conditions == null ? ItemConditions.empty() : conditions;
         this.actions = actions == null ? Map.of() : copyActions(actions);
@@ -189,6 +194,10 @@ public final class EmakiItemDefinition {
         return accessorySlots;
     }
 
+    public List<Map<String, Object>> customEffects() {
+        return customEffects;
+    }
+
     public ItemSetMembership setMembership() {
         return setMembership;
     }
@@ -225,6 +234,9 @@ public final class EmakiItemDefinition {
         signatureData.put("es_skill_triggers", skillTriggers);
         signatureData.put("equip_slot", equipSlot);
         signatureData.put("accessory_slots", accessorySlots);
+        if (!customEffects.isEmpty()) {
+            signatureData.put("custom_effects", customEffects);
+        }
         signatureData.put("set", Map.of("id", setMembership.setId(), "piece", setMembership.pieceId()));
         signatureData.put("conditions", conditions);
         signatureData.put("actions", actions);
@@ -280,6 +292,7 @@ public final class EmakiItemDefinition {
                 && skillTriggers.equals(definition.skillTriggers)
                 && equipSlot.equals(definition.equipSlot)
                 && accessorySlots.equals(definition.accessorySlots)
+                && customEffects.equals(definition.customEffects)
                 && setMembership.equals(definition.setMembership)
                 && conditions.equals(definition.conditions)
                 && actions.equals(definition.actions)
@@ -290,8 +303,8 @@ public final class EmakiItemDefinition {
     @Override
     public int hashCode() {
         return Objects.hash(id, itemDefinition, material, displayName, itemName, lore, nameActions, loreActions,
-                variables, components, attributes, skills, skillTriggers, equipSlot, accessorySlots, setMembership,
-                conditions, actions, updatePolicy, repair, hasRandomElements);
+                variables, components, attributes, skills, skillTriggers, equipSlot, accessorySlots, customEffects,
+                setMembership, conditions, actions, updatePolicy, repair, hasRandomElements);
     }
 
     @Override
@@ -310,6 +323,7 @@ public final class EmakiItemDefinition {
                 + ", skillTriggers=" + skillTriggers
                 + ", equipSlot=" + equipSlot
                 + ", accessorySlots=" + accessorySlots
+                + ", customEffects=" + customEffects
                 + ", setMembership=" + setMembership
                 + ", conditions=" + conditions
                 + ", actions=" + actions

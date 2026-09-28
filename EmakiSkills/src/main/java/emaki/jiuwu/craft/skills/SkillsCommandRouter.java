@@ -54,6 +54,10 @@ final class SkillsCommandRouter implements TabExecutor {
             case "castmode" -> handleCastMode(sender, args);
             case "upgrade" -> handleUpgrade(sender, args);
             case "level" -> handleLevel(sender, args);
+            case "grant" -> handleGrantRevoke(sender, args, true);
+            case "revoke" -> handleGrantRevoke(sender, args, false);
+            case "list" -> handleList(sender, args);
+            case "reset" -> handleReset(sender, args);
             case "debug" -> handleDebug(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "clearslot" -> handleClearSlot(sender, args);
@@ -69,8 +73,8 @@ final class SkillsCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "castmode", "upgrade", "level",
-                    "debug", "inspect", "clearslot", "resync")) {
+            for (String sub : List.of("help", "gui", "reload", "castmode", "upgrade", "level", "grant", "revoke",
+                    "list", "reset", "debug", "inspect", "clearslot", "resync")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -91,7 +95,8 @@ final class SkillsCommandRouter implements TabExecutor {
                 }
                 case "upgrade" -> completeUpgradeableSkills(sender, result, args[1]);
                 case "level" -> result.addAll(CommandTabHelper.completeLiterals(args[1], "get", "set", "add"));
-                case "inspect", "resync" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
+                case "grant", "revoke", "list", "reset", "inspect", "resync" ->
+                        result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 case "clearslot" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
                 default -> {
                 }
@@ -108,6 +113,8 @@ final class SkillsCommandRouter implements TabExecutor {
                 }
             } else if ("level".equalsIgnoreCase(args[0])) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[2]));
+            } else if ("grant".equalsIgnoreCase(args[0]) || "revoke".equalsIgnoreCase(args[0])) {
+                completeSkillIds(result, args[2]);
             }
             return result;
         }
@@ -230,6 +237,134 @@ final class SkillsCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleGrantRevoke(CommandSender sender, String[] args, boolean grant) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        String skillId = Texts.normalizeId(args[2]);
+        SkillDefinition definition = plugin.skillRegistryService().getDefinition(skillId);
+        if (definition == null) {
+            plugin.messageService().send(sender, "skill.not_found", Map.of("skill_id", skillId));
+            return true;
+        }
+        callForPlayer(target, () -> {
+            boolean changed = grant
+                    ? plugin.manualSkillSourceService().learn(target, definition.id())
+                    : plugin.manualSkillSourceService().forget(target, definition.id());
+            if (changed) {
+                plugin.playerSkillDataStore().save(target);
+            }
+            return changed;
+        }).whenComplete((changed, throwable) -> runForSender(sender, () -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Skill grant/revoke failed: " + throwable.getMessage());
+                plugin.messageService().send(sender, "general.invalid_args");
+                return;
+            }
+            if (changed == null) {
+                plugin.messageService().send(sender, "general.player_not_found");
+                return;
+            }
+            String messageKey = grant
+                    ? (changed ? "command.grant.success" : "command.grant.failed")
+                    : (changed ? "command.revoke.success" : "command.revoke.failed");
+            plugin.messageService().send(sender, messageKey, Map.<String, Object>of(
+                    "player", target.getName(),
+                    "skill", definition.displayName(),
+                    "skill_id", definition.id()
+            ));
+        }));
+        return true;
+    }
+
+    private boolean handleList(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        PlayerSkillProfile profile = plugin.playerSkillDataStore().get(target);
+        plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                "command.list.header", Map.of("player", target.getName())));
+        if (profile == null) {
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.empty"));
+            return true;
+        }
+        List<String> learned = profile.manualSkillIds().stream().sorted().toList();
+        if (learned.isEmpty()) {
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.empty"));
+        } else {
+            for (String skillId : learned) {
+                plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                        "command.list.learned", Map.of("skill_id", skillId)));
+            }
+        }
+        for (int i = 0; i < profile.bindings().size(); i++) {
+            SkillSlotBinding binding = profile.getBinding(i);
+            if (binding == null || binding.isEmpty()) {
+                continue;
+            }
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.list.slot", Map.of(
+                    "slot", String.valueOf(i),
+                    "skill_id", binding.skillId() == null ? "-" : binding.skillId(),
+                    "trigger_id", binding.triggerId() == null ? "-" : binding.triggerId()
+            )));
+        }
+        return true;
+    }
+
+    private boolean handleReset(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "general.invalid_args");
+            return true;
+        }
+        Player target = Bukkit.getPlayerExact(args[1]);
+        if (target == null) {
+            plugin.messageService().send(sender, "general.player_not_found");
+            return true;
+        }
+        callForPlayer(target, () -> {
+            int removed = plugin.manualSkillSourceService().forgetAll(target);
+            if (removed > 0) {
+                plugin.playerSkillDataStore().save(target);
+            }
+            return removed;
+        }).whenComplete((removed, throwable) -> runForSender(sender, () -> {
+            if (throwable != null) {
+                plugin.getLogger().warning("Skill reset failed: " + throwable.getMessage());
+                plugin.messageService().send(sender, "general.invalid_args");
+                return;
+            }
+            if (removed == null) {
+                plugin.messageService().send(sender, "general.player_not_found");
+                return;
+            }
+            plugin.messageService().send(sender, "command.reset.success", Map.<String, Object>of(
+                    "player", target.getName(),
+                    "count", removed
+            ));
+        }));
+        return true;
+    }
+
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -246,7 +381,7 @@ final class SkillsCommandRouter implements TabExecutor {
             long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
-                    "skills", plugin.skillDefinitionLoader().all().size(),
+                    "skills", plugin.skillRegistryService().allDefinitions().size(),
                     "resources", plugin.localResourceDefinitionLoader().all().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
@@ -476,6 +611,10 @@ final class SkillsCommandRouter implements TabExecutor {
         commands.put("castmode <on|off|toggle>", "command.help.desc.castmode");
         commands.put("upgrade <skill>", "command.help.desc.upgrade");
         commands.put("level get|set|add <player> <skill> [value]", "command.help.desc.level");
+        commands.put("grant <player> <skill>", "command.help.desc.grant");
+        commands.put("revoke <player> <skill>", "command.help.desc.revoke");
+        commands.put("list [player]", "command.help.desc.list");
+        commands.put("reset <player>", "command.help.desc.reset");
         commands.put("debug <status|player|module|all> [...]", "command.help.desc.debug");
         commands.put("inspect [player]", "command.help.desc.inspect");
         commands.put("clearslot <player> <slot>", "command.help.desc.clearslot");

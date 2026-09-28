@@ -10,6 +10,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.item.api.effect.ItemEffectRegistration;
+import emaki.jiuwu.craft.item.api.effect.ItemEffectType;
 import emaki.jiuwu.craft.item.api.model.ItemRefreshSummary;
 import emaki.jiuwu.craft.item.api.model.MigrationOutcome;
 import emaki.jiuwu.craft.item.api.model.MigrationPreview;
@@ -151,6 +153,16 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
 
     @Override
     public void unregisterLayerPreviews(Plugin owner) {
+        // No registrations exist in the unavailable implementation.
+    }
+
+    @Override
+    public ItemEffectRegistration registerEffectType(Plugin owner, ItemEffectType type) {
+        return ItemEffectRegistration.noop();
+    }
+
+    @Override
+    public void unregisterEffectTypes(Plugin owner) {
         // No registrations exist in the unavailable implementation.
     }
 

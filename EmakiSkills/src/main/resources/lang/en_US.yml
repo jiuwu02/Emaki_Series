@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.1"
+version: "2.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -232,6 +232,10 @@ command:
       castmode: "Toggle cast mode"
       upgrade: "Upgrade unlocked skill"
       level: "Manage player skill levels"
+      grant: "Grant a skill to a player"
+      revoke: "Revoke a granted skill from a player"
+      list: "View a player's learned and equipped skills"
+      reset: "Clear a player's manually learned skills"
       debug: "Manage debug tracking"
       inspect: "View player skill slot status"
       clearslot: "Clear skill binding from slot"
@@ -248,6 +252,19 @@ command:
     failed: "<red>Failed to clear skill slot.</red>"
   resync:
     success: "<green>Player skill pool re-synced.</green>"
+  grant:
+    success: "<green>Granted skill <white>%skill%</white> to <aqua>%player%</aqua>.</green>"
+    failed: "<yellow>Player <aqua>%player%</aqua> already has skill <white>%skill%</white>.</yellow>"
+  revoke:
+    success: "<green>Revoked skill <white>%skill%</white> from <aqua>%player%</aqua>.</green>"
+    failed: "<yellow>Player <aqua>%player%</aqua> does not have skill <white>%skill%</white>.</yellow>"
+  list:
+    header: "<gray>===== Player <aqua>%player%</aqua> Skill List =====</gray>"
+    learned: "<gray>Learned: <white>%skill_id%</white></gray>"
+    empty: "<gray>This player has no learned skills.</gray>"
+    slot: "<gray>Slot %slot%: <white>%skill_id%</white> -> <white>%trigger_id%</white></gray>"
+  reset:
+    success: "<green>Cleared <gold>%count%</gold> learned skills from <aqua>%player%</aqua> (slot bindings are unaffected).</green>"
   level:
     get: "<gray>Player <aqua>%player%</aqua>'s <white>%skill%</white> level is
       <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>.\

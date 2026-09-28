@@ -59,6 +59,7 @@ import emaki.jiuwu.craft.item.loader.ItemPackLoader;
 import emaki.jiuwu.craft.item.papi.ItemPlaceholderExpansion;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
+import emaki.jiuwu.craft.item.service.EmakiItemEffectRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
@@ -129,6 +130,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private EmakiItemIdResolver idResolver;
     private EmakiItemMigrationService migrationService;
     private EmakiItemLayerPreviewRegistry layerPreviewRegistry;
+    private EmakiItemEffectRegistry effectRegistry;
     private EmakiItemIdentifier identifier;
     private EmakiItemPdcWriter pdcWriter;
     private EmakiItemFactory itemFactory;
@@ -399,6 +401,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         idResolver = components.idResolver();
         migrationService = components.migrationService();
         layerPreviewRegistry = components.layerPreviewRegistry();
+        effectRegistry = components.effectRegistry();
         identifier = components.identifier();
         pdcWriter = components.pdcWriter();
         itemFactory = components.itemFactory();
@@ -440,6 +443,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(layerPreviewRegistry, this);
+        getServer().getPluginManager().registerEvents(effectRegistry, this);
         getServer().getPluginManager().registerEvents(new ItemTriggerListener(this), this);
         getServer().getPluginManager().registerEvents(
                 new ItemUpdateListener(this, scheduling),
@@ -525,6 +529,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public EmakiItemLayerPreviewRegistry layerPreviewRegistry() {
         return layerPreviewRegistry;
+    }
+
+    public EmakiItemEffectRegistry effectRegistry() {
+        return effectRegistry;
     }
 
     public EmakiItemIdentifier identifier() {

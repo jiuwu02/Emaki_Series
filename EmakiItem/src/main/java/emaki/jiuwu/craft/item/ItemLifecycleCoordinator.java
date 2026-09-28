@@ -41,6 +41,8 @@ import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.loader.ItemPackLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
+import emaki.jiuwu.craft.item.service.EmakiItemEffectApplier;
+import emaki.jiuwu.craft.item.service.EmakiItemEffectRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
@@ -126,6 +128,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         EmakiItemMigrationService migrationService = new EmakiItemMigrationService(plugin);
         EmakiItemLayerPreviewRegistry layerPreviewRegistry = new EmakiItemLayerPreviewRegistry();
         EmakiItemLayerPreviewService layerPreviewService = new EmakiItemLayerPreviewService(plugin, layerPreviewRegistry);
+        EmakiItemEffectRegistry effectRegistry = new EmakiItemEffectRegistry(() -> {
+            EmakiItemFactory current = plugin.itemFactory();
+            if (current != null) {
+                current.clearCache();
+            }
+        });
+        EmakiItemEffectApplier effectApplier = new EmakiItemEffectApplier(effectRegistry, plugin.getLogger());
         PdcService pdcService = new PdcService("emaki", "pdc", plugin.debugLogger());
         EmakiItemIdentifier identifier = new EmakiItemIdentifier(pdcService);
         ItemAttributeBridge pdcAttributeGateway = new ItemAttributeBridgeHolder(plugin.getLogger());
@@ -140,7 +149,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 idResolver,
                 pdcWriter,
                 scheduling,
-                plugin.debugLogger()
+                plugin.debugLogger(),
+                effectApplier
         );
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
@@ -205,6 +215,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 migrationService,
                 layerPreviewRegistry,
                 layerPreviewService,
+                effectRegistry,
                 identifier,
                 pdcWriter,
                 itemFactory,
@@ -437,6 +448,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         closeItemSourceResolver();
         if (plugin.layerPreviewRegistry() != null) {
             plugin.layerPreviewRegistry().close();
+        }
+        if (plugin.effectRegistry() != null) {
+            plugin.effectRegistry().close();
         }
         if (plugin.pdcWriter() != null) {
             plugin.pdcWriter().shutdown();

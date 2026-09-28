@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
+import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
@@ -100,16 +101,26 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 }
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
-        EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(
+        ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry = new ExternalSkillDefinitionRegistry(() -> {
+            SkillPipelineRuntime runtime = plugin.skillPipelineRuntime();
+            if (runtime != null) {
+                runtime.invalidateAll();
+            }
+        });
+        SkillRegistryService skillRegistryService = new SkillRegistryService(
                 plugin,
                 () -> skillDefinitionLoader.all(),
+                externalSkillDefinitionRegistry
+        );
+        EquipmentSkillCollector equipmentSkillCollector = new EquipmentSkillCollector(
+                plugin,
+                skillRegistryService::allDefinitions,
                 plugin::appConfig,
                 plugin::eaBridge
         );
         SkillSourceRegistry skillSourceRegistry = new SkillSourceRegistry();
         TriggerRegistry triggerRegistry = new TriggerRegistry();
         TriggerConflictResolver triggerConflictResolver = new TriggerConflictResolver();
-        SkillRegistryService skillRegistryService = new SkillRegistryService(plugin, () -> skillDefinitionLoader.all());
         AsyncYamlFiles asyncYamlFiles = coreLibPlugin.asyncYamlFiles(plugin);
         PlayerSkillDataStore playerSkillDataStore = new PlayerSkillDataStore(
                 plugin,
@@ -170,7 +181,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 castModeService,
                 plugin::appConfig,
                 triggerRegistry,
-                () -> skillDefinitionLoader.all(),
+                skillRegistryService::allDefinitions,
                 messageService,
                 scheduling
         );
@@ -192,6 +203,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 guiService,
                 equipmentSkillCollector,
                 skillSourceRegistry,
+                externalSkillDefinitionRegistry,
                 triggerRegistry,
                 triggerConflictResolver,
                 skillRegistryService,
@@ -245,7 +257,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         forEachOnlinePlayer(plugin, plugin.playerSkillStateService()::validateBindings).join();
         plugin.actionBarService().startRefreshTask();
         plugin.messageService().info("console.skills_loaded", Map.of(
-                "skills", String.valueOf(plugin.skillDefinitionLoader().all().size()),
+                "skills", String.valueOf(plugin.skillRegistryService().allDefinitions().size()),
                 "triggers", String.valueOf(plugin.triggerRegistry().all().size())
         ));
     }
@@ -366,6 +378,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         if (plugin.skillSourceRegistry() != null) {
             plugin.skillSourceRegistry().close();
+        }
+        if (plugin.externalSkillDefinitionRegistry() != null) {
+            plugin.externalSkillDefinitionRegistry().close();
         }
         if (plugin.skillPipelineRuntime() != null) {
             plugin.skillPipelineRuntime().invalidateAll();
@@ -578,7 +593,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             ));
         }
 
-        for (var skill : plugin.skillDefinitionLoader().all().values()) {
+        for (var skill : plugin.skillRegistryService().allDefinitions().values()) {
             if (!skill.cronExpression().isBlank()) {
                 registry.register(new TriggerDefinition(
                         "cron_" + skill.id(),
@@ -593,7 +608,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         if (plugin.passiveTriggerSource() != null) {
             plugin.passiveTriggerSource().reloadCronTasks(
-                    plugin, plugin.skillDefinitionLoader().all().values());
+                    plugin, plugin.skillRegistryService().allDefinitions().values());
         }
     }
 

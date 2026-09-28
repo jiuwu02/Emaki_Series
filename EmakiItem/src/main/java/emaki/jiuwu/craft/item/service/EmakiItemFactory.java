@@ -51,6 +51,7 @@ public final class EmakiItemFactory {
     private final EmakiItemPdcWriter pdcWriter;
     private final EmakiScheduling scheduling;
     private final ItemOperationLedger itemOperationLedger;
+    private final EmakiItemEffectApplier effectApplier;
     private final ConcurrentHashMap<String, ItemStack> prototypeCache = new ConcurrentHashMap<>();
 
     public EmakiItemFactory(EmakiItemLoader loader, EmakiItemIdResolver idResolver, EmakiItemPdcWriter pdcWriter) {
@@ -69,11 +70,21 @@ public final class EmakiItemFactory {
             EmakiItemPdcWriter pdcWriter,
             EmakiScheduling scheduling,
             DebugLogger debugLogger) {
+        this(loader, idResolver, pdcWriter, scheduling, debugLogger, null);
+    }
+
+    public EmakiItemFactory(EmakiItemLoader loader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemPdcWriter pdcWriter,
+            EmakiScheduling scheduling,
+            DebugLogger debugLogger,
+            EmakiItemEffectApplier effectApplier) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
         this.scheduling = scheduling;
         this.itemOperationLedger = new ItemOperationLedger(debugLogger);
+        this.effectApplier = effectApplier;
     }
 
     public ItemStack create(String id, int amount) {
@@ -156,8 +167,10 @@ public final class EmakiItemFactory {
         if (itemStack == null || definition == null) {
             return null;
         }
-        pdcWriter.write(itemStack, definition, variables == null ? Map.of() : variables);
-        applyDisplayActions(itemStack, definition, variables == null ? Map.of() : variables);
+        Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        pdcWriter.write(itemStack, definition, safeVariables);
+        applyCustomEffects(itemStack, definition, safeVariables);
+        applyDisplayActions(itemStack, definition, safeVariables);
         return itemStack;
     }
 
@@ -173,6 +186,7 @@ public final class EmakiItemFactory {
         }
         Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
         pdcWriter.write(itemStack, definition, safeVariables);
+        applyCustomEffects(itemStack, definition, safeVariables);
 
         ItemOperationLedger.UpdateResult discarded = itemOperationLedger.discardNamespaces(
                 itemStack, currentReadResult, OWNED_DISPLAY_NAMESPACES);
@@ -193,6 +207,14 @@ public final class EmakiItemFactory {
                 safeVariables
         );
         return new FinishedBuild(applied.success(), itemStack, applied.readResult());
+    }
+
+    private void applyCustomEffects(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            Map<String, Object> variables) {
+        if (effectApplier != null) {
+            effectApplier.apply(itemStack, definition, variables);
+        }
     }
 
     private void applyDisplayActions(ItemStack itemStack,

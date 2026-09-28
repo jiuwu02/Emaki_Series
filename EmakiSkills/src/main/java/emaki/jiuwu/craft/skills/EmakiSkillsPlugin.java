@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
+import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
@@ -102,6 +103,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private GuiService guiService;
     private EquipmentSkillCollector equipmentSkillCollector;
     private SkillSourceRegistry skillSourceRegistry;
+    private ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry;
     private TriggerRegistry triggerRegistry;
     private TriggerConflictResolver triggerConflictResolver;
     private SkillRegistryService skillRegistryService;
@@ -246,6 +248,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         guiService = components.guiService();
         equipmentSkillCollector = components.equipmentSkillCollector();
         skillSourceRegistry = components.skillSourceRegistry();
+        externalSkillDefinitionRegistry = components.externalSkillDefinitionRegistry();
         triggerRegistry = components.triggerRegistry();
         triggerConflictResolver = components.triggerConflictResolver();
         skillRegistryService = components.skillRegistryService();
@@ -281,6 +284,9 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         if (skillSourceRegistry != null) {
             getServer().getPluginManager().registerEvents(skillSourceRegistry, this);
         }
+        if (externalSkillDefinitionRegistry != null) {
+            getServer().getPluginManager().registerEvents(externalSkillDefinitionRegistry, this);
+        }
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
         }
@@ -297,7 +303,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
                 triggerRegistry, playerSkillStateService, castAttemptService);
         passiveTriggerSource = new PassiveTriggerSource(this::appConfig);
         passiveTriggerSource.register(this, passiveTriggerDispatcher, scheduling);
-        passiveTriggerSource.reloadCronTasks(this, skillDefinitionLoader.all().values());
+        passiveTriggerSource.reloadCronTasks(this, skillRegistryService.allDefinitions().values());
 
         getServer().getPluginManager().registerEvents(
                 new CastModeKeyListener(castModeService, actionBarService, messageService, this::appConfig),
@@ -378,6 +384,10 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public SkillSourceRegistry skillSourceRegistry() {
         return skillSourceRegistry;
+    }
+
+    public ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry() {
+        return externalSkillDefinitionRegistry;
     }
 
     public TriggerRegistry triggerRegistry() {

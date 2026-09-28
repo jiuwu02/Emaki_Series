@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
 import emaki.jiuwu.craft.skills.mythic.MythicSkillCastService;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
+import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 import emaki.jiuwu.craft.skills.service.ActionBarService;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
@@ -48,6 +49,7 @@ record SkillsRuntimeComponents(
         GuiService guiService,
         EquipmentSkillCollector equipmentSkillCollector,
         SkillSourceRegistry skillSourceRegistry,
+        ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry,
         TriggerRegistry triggerRegistry,
         TriggerConflictResolver triggerConflictResolver,
         SkillRegistryService skillRegistryService,
@@ -84,6 +86,7 @@ record SkillsRuntimeComponents(
                 RuntimeComponents.component(GuiService.class, guiService),
                 RuntimeComponents.component(EquipmentSkillCollector.class, equipmentSkillCollector),
                 RuntimeComponents.component(SkillSourceRegistry.class, skillSourceRegistry),
+                RuntimeComponents.component(ExternalSkillDefinitionRegistry.class, externalSkillDefinitionRegistry),
                 RuntimeComponents.component(TriggerRegistry.class, triggerRegistry),
                 RuntimeComponents.component(TriggerConflictResolver.class, triggerConflictResolver),
                 RuntimeComponents.component(SkillRegistryService.class, skillRegistryService),

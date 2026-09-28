@@ -29,10 +29,10 @@ public final class DefaultSkillCatalog implements SkillCatalog {
 
     @Override
     public @NotNull List<SkillDefinitionView> skills() {
-        if (!plugin.isEnabled() || plugin.skillDefinitionLoader() == null) {
+        if (!plugin.isEnabled() || plugin.skillRegistryService() == null) {
             return List.of();
         }
-        return plugin.skillDefinitionLoader().all().values().stream()
+        return plugin.skillRegistryService().allDefinitions().values().stream()
                 .map(DefaultSkillCatalog::toView)
                 .sorted(Comparator.comparing(SkillDefinitionView::id))
                 .toList();

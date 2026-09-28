@@ -56,4 +56,11 @@ final class UnavailableSkills implements SkillCatalog, SkillOperations, SkillExt
     @Override public SkillSourceRegistration registerSkillSource(Plugin owner, SkillSourceProvider provider) {
         return SkillSourceRegistration.noop();
     }
+
+    @Override public SkillDefinitionRegistration registerSkillDefinition(Plugin owner, ExternalSkillDefinition definition) {
+        return SkillDefinitionRegistration.noop();
+    }
+
+    @Override public void unregisterSkillDefinitions(Plugin owner) {
+    }
 }

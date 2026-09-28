@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.item.model;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -30,6 +31,14 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 public final class EmakiItemDefinitionParser {
 
     private static final int DEFAULT_AMOUNT = 1;
+
+    public static final Set<String> BUILT_IN_EFFECT_TYPES = Set.of(
+            "variables",
+            "ea_attribute",
+            "es_skill",
+            "accessory_slot",
+            "name_action",
+            "lore_action");
 
     private static final List<String> RETIRED_TOP_LEVEL_KEYS = List.of(
             "variables",
@@ -115,6 +124,7 @@ public final class EmakiItemDefinitionParser {
                 parseSkillTriggers(effects),
                 parseEquipSlot(root, id, source),
                 parseAccessorySlots(effects),
+                parseCustomEffects(effects),
                 parseSetMembership(root.getSection("set")),
                 parseConditions(root),
                 parseActions(root.getSection("actions")),
@@ -336,6 +346,30 @@ public final class EmakiItemDefinitionParser {
             }
         }
         return result;
+    }
+
+    private List<Map<String, Object>> parseCustomEffects(List<Map<?, ?>> effects) {
+        List<Map<String, Object>> result = new ArrayList<>();
+        for (Map<?, ?> effect : effects == null ? List.<Map<?, ?>>of() : effects) {
+            if (effect == null) {
+                continue;
+            }
+            String type = Texts.normalizeId(Texts.toStringSafe(ConfigNodes.get(effect, "type")));
+            if (Texts.isBlank(type) || BUILT_IN_EFFECT_TYPES.contains(type)) {
+                continue;
+            }
+            Object plain = ConfigNodes.toPlainData(effect);
+            if (plain instanceof Map<?, ?> map) {
+                Map<String, Object> entry = new LinkedHashMap<>();
+                map.forEach((key, value) -> {
+                    if (key != null) {
+                        entry.put(String.valueOf(key), value);
+                    }
+                });
+                result.add(Collections.unmodifiableMap(entry));
+            }
+        }
+        return result.isEmpty() ? List.of() : List.copyOf(result);
     }
 
     private ItemSetMembership parseSetMembership(YamlSection section) {

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.1"
+version: "2.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -226,6 +226,10 @@ command:
       castmode: "切换施法模式"
       upgrade: "升级已解锁技能"
       level: "管理玩家技能等级"
+      grant: "为玩家授予技能"
+      revoke: "收回玩家已授予的技能"
+      list: "查看玩家已学习与已装配的技能"
+      reset: "清空玩家手动学习的技能"
       debug: "管理 Debug 追踪"
       inspect: "查看玩家技能槽位状态"
       clearslot: "清除指定槽位的技能绑定"
@@ -242,6 +246,19 @@ command:
     failed: "<red>清除技能槽失败。</red>"
   resync:
     success: "<green>已重新同步玩家技能池。</green>"
+  grant:
+    success: "<green>已为玩家 <aqua>%player%</aqua> 授予技能 <white>%skill%</white>。</green>"
+    failed: "<yellow>玩家 <aqua>%player%</aqua> 已拥有技能 <white>%skill%</white>。</yellow>"
+  revoke:
+    success: "<green>已收回玩家 <aqua>%player%</aqua> 的技能 <white>%skill%</white>。</green>"
+    failed: "<yellow>玩家 <aqua>%player%</aqua> 未拥有技能 <white>%skill%</white>。</yellow>"
+  list:
+    header: "<gray>===== 玩家 <aqua>%player%</aqua> 技能列表 =====</gray>"
+    learned: "<gray>已学习: <white>%skill_id%</white></gray>"
+    empty: "<gray>该玩家没有已学习的技能。</gray>"
+    slot: "<gray>槽位 %slot%: <white>%skill_id%</white> -> <white>%trigger_id%</white></gray>"
+  reset:
+    success: "<green>已清空玩家 <aqua>%player%</aqua> 的 <gold>%count%</gold> 个已学习技能（技能槽位绑定未受影响）。</green>"
   level:
     get: "<gray>玩家 <aqua>%player%</aqua> 的 <white>%skill%</white> 等级为
       <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>。\

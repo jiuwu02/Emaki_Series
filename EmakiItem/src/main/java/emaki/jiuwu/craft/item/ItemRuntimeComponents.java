@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
 import emaki.jiuwu.craft.item.loader.ItemPackLoader;
 import emaki.jiuwu.craft.item.service.EmakiItemActionService;
 import emaki.jiuwu.craft.item.service.EmakiItemConditionChecker;
+import emaki.jiuwu.craft.item.service.EmakiItemEffectRegistry;
 import emaki.jiuwu.craft.item.service.EmakiItemFactory;
 import emaki.jiuwu.craft.item.service.EmakiItemIdentifier;
 import emaki.jiuwu.craft.item.service.EmakiItemIdResolver;
@@ -53,6 +54,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         EmakiItemMigrationService migrationService,
         EmakiItemLayerPreviewRegistry layerPreviewRegistry,
         EmakiItemLayerPreviewService layerPreviewService,
+        EmakiItemEffectRegistry effectRegistry,
         EmakiItemIdentifier identifier,
         EmakiItemPdcWriter pdcWriter,
         EmakiItemFactory itemFactory,
@@ -90,6 +92,7 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(EmakiItemMigrationService.class, migrationService),
                 RuntimeComponents.component(EmakiItemLayerPreviewRegistry.class, layerPreviewRegistry),
                 RuntimeComponents.component(EmakiItemLayerPreviewService.class, layerPreviewService),
+                RuntimeComponents.component(EmakiItemEffectRegistry.class, effectRegistry),
                 RuntimeComponents.component(EmakiItemIdentifier.class, identifier),
                 RuntimeComponents.component(EmakiItemPdcWriter.class, pdcWriter),
                 RuntimeComponents.component(EmakiItemFactory.class, itemFactory),

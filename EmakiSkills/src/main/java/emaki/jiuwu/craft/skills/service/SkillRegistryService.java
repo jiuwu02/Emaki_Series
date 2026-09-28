@@ -15,22 +15,34 @@ import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.provider.EquipmentSkillCollector;
+import emaki.jiuwu.craft.skills.provider.ExternalSkillDefinitionRegistry;
 import emaki.jiuwu.craft.skills.provider.SkillSourceRegistry;
 
 public final class SkillRegistryService {
 
     private final JavaPlugin plugin;
     private final Supplier<Map<String, SkillDefinition>> definitionsSupplier;
+    private final ExternalSkillDefinitionRegistry externalDefinitions;
 
     public SkillRegistryService(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> definitionsSupplier) {
+        this(plugin, definitionsSupplier, null);
+    }
+
+    public SkillRegistryService(JavaPlugin plugin,
+            Supplier<Map<String, SkillDefinition>> definitionsSupplier,
+            ExternalSkillDefinitionRegistry externalDefinitions) {
         this.plugin = plugin;
         this.definitionsSupplier = definitionsSupplier;
+        this.externalDefinitions = externalDefinitions;
     }
 
     public Map<String, SkillDefinition> allDefinitions() {
         Map<String, SkillDefinition> defs = definitionsSupplier.get();
-        return defs == null ? Map.of() : defs;
+        if (externalDefinitions == null) {
+            return defs == null ? Map.of() : defs;
+        }
+        return externalDefinitions.overlay(defs);
     }
 
     public SkillDefinition getDefinition(String skillId) {
