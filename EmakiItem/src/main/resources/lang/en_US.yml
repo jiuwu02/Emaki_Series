@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.4"
+version: "2.8.5"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -57,6 +57,12 @@ console:
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops registered</gray>"
   item_state_unknown_sound: "<yellow>Unresolvable item_state threshold sound: <white>%sound%</white></yellow>"
+  scripts:
+    engine_unavailable: "<yellow>GraalJS runtime unavailable, script extension disabled; other features are unaffected.</yellow>"
+    disabled: "<gray>Script extension is disabled in the config, no scripts were loaded.</gray>"
+    loaded: "<gray>Script loading finished: <yellow>%loaded%</yellow> file(s), <yellow>%errors%</yellow> error(s).</gray>"
+    file_error: "<red>Script failed to load: <white>%file%</white> -> %error%</red>"
+    register_error: "<red>Script effect type registration failed: <white>%id%</white> -> %error%</red>"
 command:
   help:
     header: "<gold>EmakiItem Commands</gold>"

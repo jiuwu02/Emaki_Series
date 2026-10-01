@@ -30,11 +30,13 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.config.ScriptSettings;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemStateConfigParser;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
 import emaki.jiuwu.craft.item.model.ProficiencyGuardConfig;
 import emaki.jiuwu.craft.item.model.SetBonusConfig;
+import emaki.jiuwu.craft.item.script.ItemScriptBridge;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
@@ -75,7 +77,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             "gui/repair_gui.yml",
             "gui/pack_browser_gui.yml",
             "gui/item_browser_gui.yml",
-            "id_aliases.yml");
+            "id_aliases.yml",
+            "scripts/items/example_effect.js");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");
 
     private ItemSourceRegistration itemSourceResolverRegistration;
@@ -297,6 +300,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         }
         plugin.itemFactory().clearCache();
         plugin.setService().clearAllCachedState();
+        reloadScriptBridge(plugin);
         if (plugin.messageService() != null && reloadAllowed(allowed)) {
             plugin.messageService().info("console.items_loaded", Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", Map.of("count", loadedSets));
@@ -388,6 +392,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 }
                 plugin.itemFactory().clearCache();
                 plugin.setService().clearAllCachedState();
+                reloadScriptBridge(plugin);
                 if (plugin.messageService() != null && reloadAllowed(allowed)) {
                     plugin.messageService().info("console.items_loaded", Map.of("count", plugin.itemLoader().all().size()));
                     plugin.messageService().info("console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
@@ -402,6 +407,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     private boolean reloadAllowed(BooleanSupplier allowed) {
         return allowed == null || allowed.getAsBoolean();
+    }
+
+    private void reloadScriptBridge(EmakiItemPlugin plugin) {
+        ItemScriptBridge bridge = plugin.scriptBridge();
+        if (bridge != null) {
+            bridge.reload();
+        }
     }
 
     private void closeRepairInventories(EmakiItemPlugin plugin) {
@@ -449,6 +461,9 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.layerPreviewRegistry() != null) {
             plugin.layerPreviewRegistry().close();
         }
+        if (plugin.scriptBridge() != null) {
+            plugin.scriptBridge().close();
+        }
         if (plugin.effectRegistry() != null) {
             plugin.effectRegistry().close();
         }
@@ -478,7 +493,20 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 configuration.getBoolean("mythicmobs.drops.enabled", true),
                 mythicDropNames,
                 ItemStateConfigParser.parse(configuration.getSection("item_state")),
-                ProficiencyGuardConfig.parse(configuration.getSection("proficiency_guard"))
+                ProficiencyGuardConfig.parse(configuration.getSection("proficiency_guard")),
+                parseScriptSettings(configuration.getSection("scripts"))
+        );
+    }
+
+    private ScriptSettings parseScriptSettings(YamlSection section) {
+        if (section == null || section.isEmpty()) {
+            return ScriptSettings.defaults();
+        }
+        Integer timeoutMs = section.getInt("timeout_ms", 5000);
+        return new ScriptSettings(
+                section.getBoolean("enabled", true),
+                timeoutMs == null ? 5000L : timeoutMs.longValue(),
+                section.getBoolean("debug", false)
         );
     }
 

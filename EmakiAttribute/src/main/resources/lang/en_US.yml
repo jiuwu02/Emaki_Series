@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.1"
+version: "4.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -85,6 +85,18 @@ loader:
   parent_child_bonus_unknown: "<red>Parent attribute %parent% references unknown child attribute: %child%</red>"
   parent_child_bonus_parent_target: "<red>Parent attribute %parent% child_bonuses cannot target another parent attribute: %child%</red>"
   damage_type_parent_attribute_forbidden: "<red>Damage type stages cannot directly reference parent attribute: %attribute%</red>"
+
+script:
+  engine_unavailable: "<yellow>[Script] GraalJS engine unavailable, script attributes skipped: %reason%</yellow>"
+  disabled: "<gray>[Script] Script attribute support is disabled (scripts.enabled = false).</gray>"
+  loaded: "<gray>[Script] Script attributes loaded: %loaded% succeeded, %skipped% skipped.</gray>"
+  file_error: "<red>[Script] Script %file% failed to load: %error%</red>"
+  register_error: "<red>[Script] Attribute registration skipped: %error%</red>"
+  register_override: "<yellow>[Script] Script attribute %id% overrides a registered attribute with the same id.</yellow>"
+  payload_missing_id: "<gray>%file% is missing the required id field.</gray>"
+  payload_invalid_enum: "<gray>%file% field %field% has invalid enum value: %value%.</gray>"
+  payload_invalid_number: "<gray>%file% field %field% is not a valid number: %value%.</gray>"
+  payload_invalid_list: "<gray>%file% field %field% must be a list of strings.</gray>"
 
 label:
   attribute: "Attribute"

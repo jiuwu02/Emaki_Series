@@ -34,7 +34,8 @@ public record AttributeConfig(String language,
         ShieldConfig shield,
         DamageIndicatorConfig damageIndicator,
         List<DamageCauseRule> allowedDamageCauses,
-        List<ScalingCurveConfig> scalingCurves) {
+        List<ScalingCurveConfig> scalingCurves,
+        ScriptsConfig scripts) {
 
     private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
 
@@ -66,7 +67,8 @@ public record AttributeConfig(String language,
                 ShieldConfig.defaults(),
                 DamageIndicatorConfig.defaults(),
                 List.of(),
-                List.of()
+                List.of(),
+                ScriptsConfig.defaults()
         );
     }
 
@@ -150,7 +152,8 @@ public record AttributeConfig(String language,
                 ShieldConfig.fromConfig(configuration.getSection("shield")),
                 DamageIndicatorConfig.fromConfig(configuration.getSection("damage_indicator")),
                 List.copyOf(causes),
-                List.copyOf(curves)
+                List.copyOf(curves),
+                ScriptsConfig.fromConfig(configuration.getSection("scripts"))
         );
     }
 

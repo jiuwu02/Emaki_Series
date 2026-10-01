@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.9"
+version: "4.8.10"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -92,6 +92,12 @@ console:
       ecoitems: "插件已启用，但物品注册表尚未就绪，请等待其加载完成。"
       default: "外部物品注册尚未完成，请等待依赖插件完成加载。"
     incompatible_detail: "%library% 已检测到，但当前 API 结构与 CoreLib 适配器不兼容。"
+  scripts:
+    engine_unavailable: "<red>脚本扩展不可用，已跳过脚本加载：%reason%</red>"
+    disabled: "<gray>脚本扩展已在配置中禁用，本次未加载任何脚本。</gray>"
+    loaded: "<gray>脚本加载完成：<green>%loaded%</green> 个文件成功，<yellow>%skipped%</yellow> 个跳过。</gray>"
+    file_error: "<red>脚本文件加载失败：<yellow>%file%</yellow> -> %error%</red>"
+    register_error: "<red>脚本注册被拒绝：%error%</red>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"

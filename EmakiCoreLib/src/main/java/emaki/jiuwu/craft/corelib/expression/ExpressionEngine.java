@@ -65,7 +65,95 @@ public final class ExpressionEngine {
         }
     };
 
+    private static final Map<String, Function> DYNAMIC_FUNCTIONS = new LinkedHashMap<>();
+    private static final Object DYNAMIC_FUNCTIONS_LOCK = new Object();
+
     private ExpressionEngine() {
+    }
+
+    public static boolean isBuiltinFunctionName(String name) {
+        if (Texts.isBlank(name)) {
+            return false;
+        }
+        String lowered = Texts.lower(name);
+        for (Function function : CUSTOM_FUNCTIONS) {
+            if (lowered.equals(function.getName())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static boolean registerDynamicFunction(String name, Function function) {
+        if (Texts.isBlank(name) || function == null || isBuiltinFunctionName(name)) {
+            return false;
+        }
+        boolean registered;
+        synchronized (DYNAMIC_FUNCTIONS_LOCK) {
+            registered = DYNAMIC_FUNCTIONS.putIfAbsent(name, function) == null;
+        }
+        if (registered) {
+            clearGlobalCache();
+            clearThreadLocalCache();
+        }
+        return registered;
+    }
+
+    public static boolean unregisterDynamicFunction(String name) {
+        if (Texts.isBlank(name)) {
+            return false;
+        }
+        boolean removed;
+        synchronized (DYNAMIC_FUNCTIONS_LOCK) {
+            removed = DYNAMIC_FUNCTIONS.remove(name) != null;
+        }
+        if (removed) {
+            clearGlobalCache();
+            clearThreadLocalCache();
+        }
+        return removed;
+    }
+
+    private static List<Function> dynamicFunctionSnapshot() {
+        synchronized (DYNAMIC_FUNCTIONS_LOCK) {
+            return DYNAMIC_FUNCTIONS.isEmpty() ? List.of() : List.copyOf(DYNAMIC_FUNCTIONS.values());
+        }
+    }
+
+    private static Function[] mergedFunctions() {
+        List<Function> dynamic = dynamicFunctionSnapshot();
+        if (dynamic.isEmpty()) {
+            return CUSTOM_FUNCTIONS;
+        }
+        List<Function> merged = new ArrayList<>(List.of(CUSTOM_FUNCTIONS));
+        merged.addAll(dynamic);
+        return merged.toArray(new Function[0]);
+    }
+
+    static boolean isNumericOnlyExpression(String expression) {
+        if (Texts.isBlank(expression)) {
+            return false;
+        }
+        List<String> dynamicNames;
+        synchronized (DYNAMIC_FUNCTIONS_LOCK) {
+            dynamicNames = DYNAMIC_FUNCTIONS.isEmpty() ? List.of() : List.copyOf(DYNAMIC_FUNCTIONS.keySet());
+        }
+        if (dynamicNames.isEmpty()) {
+            return isPureNumericExpression(expression);
+        }
+        String lowered = Texts.lower(expression);
+        for (String name : dynamicNames) {
+            lowered = lowered.replace(Texts.lower(name), "");
+        }
+        lowered = lowered
+                .replace("ceil", "")
+                .replace("floor", "")
+                .replace("round", "")
+                .replace("log10", "")
+                .replace("min", "")
+                .replace("max", "")
+                .replace("pow", "");
+        return ExpressionRules.isNumericOnlyLowered(lowered);
     }
 
     public static double evaluate(String expression) {
@@ -356,13 +444,13 @@ public final class ExpressionEngine {
             return NumericEvaluationResult.failure("Prepared numeric expression contains unsupported characters: "
                     + abbreviate(prepared));
         }
-        if (!isPureNumericExpression(prepared)) {
+        if (!isNumericOnlyExpression(prepared)) {
             return NumericEvaluationResult.failure("Prepared expression is not numeric-only after variable resolution: "
                     + abbreviate(prepared));
         }
         try {
             Expression compiled = ExpressionCache.getOrCompile(prepared,
-                    expr -> new ExpressionBuilder(expr).functions(CUSTOM_FUNCTIONS).build());
+                    expr -> new ExpressionBuilder(expr).functions(mergedFunctions()).build());
             double result = compiled.evaluate();
             if (Double.isNaN(result) || Double.isInfinite(result)) {
                 return NumericEvaluationResult.failure("Numeric expression produced a non-finite result: "

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.4"
+version: "2.8.5"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -57,6 +57,12 @@ console:
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
   item_state_unknown_sound: "<yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
+  scripts:
+    engine_unavailable: "<yellow>GraalJS 运行库不可用，脚本扩展已禁用，其余功能不受影响。</yellow>"
+    disabled: "<gray>脚本扩展已在配置中关闭，本次不加载脚本。</gray>"
+    loaded: "<gray>脚本加载完成: <yellow>%loaded%</yellow> 个文件，<yellow>%errors%</yellow> 个错误。</gray>"
+    file_error: "<red>脚本加载失败: <white>%file%</white> -> %error%</red>"
+    register_error: "<red>脚本效果类型注册失败: <white>%id%</white> -> %error%</red>"
 command:
   help:
     header: "<gold>EmakiItem 命令</gold>"

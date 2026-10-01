@@ -12,7 +12,7 @@
     </parent>
 
     <artifactId>emaki-corelib</artifactId>
-    <version>4.8.9</version>
+    <version>4.8.10</version>
     <name>EmakiCoreLib</name>
     <packaging>jar</packaging>
 
@@ -50,6 +50,24 @@
             <artifactId>truffle-api</artifactId>
             <version>25.4.4.1.1</version>
             <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.truffle</groupId>
+            <artifactId>truffle-runtime</artifactId>
+            <version>25.4.4.1.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.regex</groupId>
+            <artifactId>regex</artifactId>
+            <version>25.4.4.1.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.shadowed</groupId>
+            <artifactId>icu4j</artifactId>
+            <version>25.4.4.1.1</version>
+            <scope>test</scope>
         </dependency>
         <dependency>
             <groupId>org.bstats</groupId>

@@ -22,6 +22,7 @@ public final class AppConfig extends BaseAppConfig {
     private final PassiveTriggerSettings passiveTriggerSettings;
     private final ScriptEngineSettings scriptEngine;
     private final TriggerSettings triggerSettings;
+    private final ScriptSettings scripts;
 
     public AppConfig(String language,
             String configVersion,
@@ -36,7 +37,8 @@ public final class AppConfig extends BaseAppConfig {
             Map<String, TriggerConfig> passiveTriggers,
             PassiveTriggerSettings passiveTriggerSettings,
             ScriptEngineSettings scriptEngine,
-            TriggerSettings triggerSettings) {
+            TriggerSettings triggerSettings,
+            ScriptSettings scripts) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.defaultSlotCount = Math.max(1, defaultSlotCount);
@@ -52,6 +54,7 @@ public final class AppConfig extends BaseAppConfig {
                 : passiveTriggerSettings;
         this.scriptEngine = scriptEngine == null ? ScriptEngineSettings.defaults() : scriptEngine;
         this.triggerSettings = triggerSettings == null ? TriggerSettings.defaults() : triggerSettings;
+        this.scripts = scripts == null ? ScriptSettings.defaults() : scripts;
     }
 
     public static AppConfig defaults() {
@@ -69,7 +72,8 @@ public final class AppConfig extends BaseAppConfig {
                 Map.of(),
                 PassiveTriggerSettings.defaults(),
                 ScriptEngineSettings.defaults(),
-                TriggerSettings.defaults()
+                TriggerSettings.defaults(),
+                ScriptSettings.defaults()
         );
     }
 
@@ -119,6 +123,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public TriggerSettings triggerSettings() {
         return triggerSettings;
+    }
+
+    public ScriptSettings scripts() {
+        return scripts;
     }
 
     public record SkillSourceSettings(boolean readLoreSkills,
@@ -200,6 +208,21 @@ public final class AppConfig extends BaseAppConfig {
 
         public static PassiveTriggerSettings defaults() {
             return new PassiveTriggerSettings(20L, 60L);
+        }
+    }
+
+    public record ScriptSettings(boolean enabled, long timeoutMs, boolean debug) {
+
+        private static final long DEFAULT_TIMEOUT_MS = 5000L;
+
+        public ScriptSettings {
+            if (timeoutMs <= 0L) {
+                timeoutMs = DEFAULT_TIMEOUT_MS;
+            }
+        }
+
+        public static ScriptSettings defaults() {
+            return new ScriptSettings(true, DEFAULT_TIMEOUT_MS, false);
         }
     }
 

@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
@@ -86,6 +87,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
     private ItemContributionGateRegistry itemContributionGateRegistry;
+    private AttributeScriptBridge attributeScriptBridge;
     private AttributeSlotRegistry attributeSlotRegistry;
     private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
@@ -122,6 +124,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                 STARTUP_ASCII_END_COLOR
         );
         reloadPluginState(true);
+        attributeScriptBridge.loadFromConfig();
         ensureMmoItemsBridge();
         ensureBetterHudBridge();
         lifecycleCoordinator.registerCommand(this);
@@ -297,6 +300,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         itemContributionGateRegistry = components.itemContributionGateRegistry();
+        attributeScriptBridge = components.attributeScriptBridge();
         attributeSlotRegistry = components.attributeSlotRegistry();
         contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
@@ -390,6 +394,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
 
     public ItemContributionGateRegistry itemContributionGateRegistry() {
         return itemContributionGateRegistry;
+    }
+
+    public AttributeScriptBridge attributeScriptBridge() {
+        return attributeScriptBridge;
     }
 
     public AttributeSlotRegistry attributeSlotRegistry() {

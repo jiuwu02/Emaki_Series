@@ -50,8 +50,9 @@ import emaki.jiuwu.craft.skills.apiimpl.DefaultEmakiSkillsApi;
 
 import emaki.jiuwu.craft.skills.service.SkillRegistryService;
 import emaki.jiuwu.craft.skills.service.SkillUpgradeService;
-import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillPipelineRuntime;
+import emaki.jiuwu.craft.skills.script.SkillScriptBridge;
+import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.DefaultTriggerDispatcher;
 import emaki.jiuwu.craft.skills.trigger.DropTriggerSource;
@@ -125,6 +126,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     private PassiveTriggerDispatcher passiveTriggerDispatcher;
     private PassiveTriggerSource passiveTriggerSource;
     private SkillsStageRegistrar stageRegistrar;
+    private SkillScriptBridge skillScriptBridge;
     private final EmakiSkillsApi.Bridge skillsApiBridge =
             new DefaultEmakiSkillsApi(this);
 
@@ -149,6 +151,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
         messageService.info("console.plugin_starting");
         bootstrapService.bootstrap();
         reloadPluginState(false);
+        ensureScriptBridge();
         registerCommandHandler();
         registerEventHandlers();
         registerActionStages();
@@ -460,6 +463,24 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
 
     public PassiveTriggerSource passiveTriggerSource() {
         return passiveTriggerSource;
+    }
+
+    public SkillScriptBridge skillScriptBridge() {
+        return skillScriptBridge;
+    }
+
+    private void ensureScriptBridge() {
+        if (skillScriptBridge != null) {
+            skillScriptBridge.close();
+        }
+        skillScriptBridge = new SkillScriptBridge(this);
+        skillScriptBridge.loadFromConfig();
+    }
+
+    public void reloadScriptBridge() {
+        if (skillScriptBridge != null) {
+            skillScriptBridge.reload();
+        }
     }
 
     public SkillsPlaceholderExpansion placeholderExpansion() {

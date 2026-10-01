@@ -70,6 +70,7 @@ import emaki.jiuwu.craft.item.service.EmakiItemPdcWriter;
 import emaki.jiuwu.craft.item.service.EmakiItemSetService;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 import emaki.jiuwu.craft.item.service.EmakiItemUpdateService;
+import emaki.jiuwu.craft.item.script.ItemScriptBridge;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
 import emaki.jiuwu.craft.item.service.ItemComponentPlaceholderResolver;
 import emaki.jiuwu.craft.item.service.ItemRefreshMetrics;
@@ -145,6 +146,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private ItemComponentPlaceholderResolver componentPlaceholderResolver;
     private ItemSourceService itemSourceService;
     private ItemAttributeBridge pdcAttributeGateway;
+    private ItemScriptBridge scriptBridge;
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
     private ItemBrowserGuiService browserGuiService;
@@ -174,6 +176,8 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerActions();
         registerCommandHandler();
         registerEventHandlers();
+        scriptBridge = new ItemScriptBridge(this);
+        scriptBridge.loadFromConfig();
         itemContributionGateLifecycle.initialize();
         registerMythicDrops();
         ensurePlaceholderExpansion();
@@ -593,6 +597,10 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public ItemAttributeBridge pdcAttributeGateway() {
         return pdcAttributeGateway;
+    }
+
+    public ItemScriptBridge scriptBridge() {
+        return scriptBridge;
     }
 
     public ItemRepairService repairService() {

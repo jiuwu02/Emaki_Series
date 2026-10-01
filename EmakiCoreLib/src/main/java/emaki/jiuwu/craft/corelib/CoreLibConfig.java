@@ -23,7 +23,8 @@ public record CoreLibConfig(
         MiniMessageConfig miniMessageConfig,
         DialogConfig dialogConfig,
         DisplayConfig displayConfig,
-        VanillaLanguageConfig vanillaLanguageConfig
+        VanillaLanguageConfig vanillaLanguageConfig,
+        ScriptsConfig scriptsConfig
 ) {
 
     public static CoreLibConfig defaults() {
@@ -31,7 +32,7 @@ public record CoreLibConfig(
                 PipelineConfig.defaults(), GuiConfig.defaults(),
  GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
-                VanillaLanguageConfig.defaults());
+                VanillaLanguageConfig.defaults(), ScriptsConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -60,8 +61,32 @@ public record CoreLibConfig(
                 MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
                 DialogConfig.fromConfig(configuration.getSection("dialog")),
                 DisplayConfig.fromConfig(configuration.getSection("display")),
-                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language"))
+                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language")),
+                ScriptsConfig.fromConfig(configuration.getSection("scripts"))
         );
+    }
+
+    public record ScriptsConfig(boolean enabled, long timeoutMs, boolean debug) {
+
+        public static ScriptsConfig defaults() {
+            return new ScriptsConfig(true, 5000L, false);
+        }
+
+        public static ScriptsConfig fromConfig(YamlSection section) {
+            ScriptsConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            Boolean enabled = section.getBoolean("enabled", defaults.enabled());
+            Integer timeout = section.getInt("timeout_ms", (int) defaults.timeoutMs());
+            Boolean debug = section.getBoolean("debug", defaults.debug());
+            long resolvedTimeout = timeout == null || timeout <= 0 ? defaults.timeoutMs() : timeout.longValue();
+            return new ScriptsConfig(
+                    enabled == null ? defaults.enabled() : enabled,
+                    resolvedTimeout,
+                    debug == null ? defaults.debug() : debug
+            );
+        }
     }
 
     public record VanillaLanguageConfig(boolean enabled, String locale) {

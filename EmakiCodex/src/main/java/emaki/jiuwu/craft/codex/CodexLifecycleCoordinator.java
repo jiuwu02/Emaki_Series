@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
+import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -159,6 +160,10 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         } else {
             plugin.advancementRegistrar().unregisterConfigured();
         }
+
+        if (plugin.scriptBridge() != null) {
+            plugin.scriptBridge().reload();
+        }
     }
 
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
@@ -194,6 +199,9 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();
             plugin.advancementRegistrar().shutdown(removeConfigured);
         }
+        if (plugin.scriptBridge() != null) {
+            plugin.scriptBridge().close();
+        }
         if (plugin.advancementTriggerRegistry() != null) {
             plugin.advancementTriggerRegistry().close();
         }
@@ -207,6 +215,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             return AppConfig.defaults();
         }
         YamlSection advancement = configuration.getSection("advancement");
+        YamlSection scripts = configuration.getSection("scripts");
 
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
@@ -217,7 +226,16 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancement == null || legacyAwareBool(advancement, "remove_on_disable", "remove-on-disable", true),
                 advancement == null || legacyAwareBool(advancement, "packet_coordinates", "packet-coordinates", true),
                 advancement == null || legacyAwareBool(advancement, "triggers_enabled", "triggers-enabled", true),
-                bool(configuration, "op_bypass", false));
+                bool(configuration, "op_bypass", false),
+                new ScriptHostSettings(
+                        scripts == null || bool(scripts, "enabled", true),
+                        scripts == null ? 5000L : scriptTimeoutMs(scripts),
+                        scripts != null && bool(scripts, "debug", false)));
+    }
+
+    private long scriptTimeoutMs(YamlSection scripts) {
+        Integer value = scripts.getInt("timeout_ms", 5000);
+        return value == null ? 5000L : value;
     }
 
     private boolean bool(YamlSection section, String path, boolean fallback) {

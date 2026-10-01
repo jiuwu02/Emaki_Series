@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.codex.config;
 
 import emaki.jiuwu.craft.corelib.config.BaseAppConfig;
+import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 
 public final class AppConfig extends BaseAppConfig {
 
@@ -16,6 +17,8 @@ public final class AppConfig extends BaseAppConfig {
 
     private final boolean opBypass;
 
+    private final ScriptHostSettings scripts;
+
     public AppConfig(String language,
             String configVersion,
             boolean releaseDefaultData,
@@ -24,7 +27,8 @@ public final class AppConfig extends BaseAppConfig {
             boolean removeOnDisable,
             boolean packetCoordinates,
             boolean advancementTriggersEnabled,
-            boolean opBypass) {
+            boolean opBypass,
+            ScriptHostSettings scripts) {
         super(language, configVersion, CURRENT_VERSION);
         this.releaseDefaultData = releaseDefaultData;
         this.advancementEnabled = advancementEnabled;
@@ -33,6 +37,7 @@ public final class AppConfig extends BaseAppConfig {
         this.packetCoordinates = packetCoordinates;
         this.advancementTriggersEnabled = advancementTriggersEnabled;
         this.opBypass = opBypass;
+        this.scripts = scripts;
     }
 
     public static AppConfig defaults() {
@@ -45,7 +50,8 @@ public final class AppConfig extends BaseAppConfig {
                 true,
                 true,
                 true,
-                false
+                false,
+                ScriptHostSettings.defaults()
         );
     }
 
@@ -75,5 +81,9 @@ public final class AppConfig extends BaseAppConfig {
 
     public boolean opBypass() {
         return opBypass;
+    }
+
+    public ScriptHostSettings scripts() {
+        return scripts;
     }
 }

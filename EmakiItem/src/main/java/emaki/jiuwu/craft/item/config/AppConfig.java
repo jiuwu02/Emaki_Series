@@ -20,6 +20,7 @@ public final class AppConfig extends BaseAppConfig {
     private final List<String> mythicDropNames;
     private final ItemStateConfig itemState;
     private final ProficiencyGuardConfig proficiencyGuard;
+    private final ScriptSettings scripts;
 
     public AppConfig(String language,
             String configVersion,
@@ -27,7 +28,7 @@ public final class AppConfig extends BaseAppConfig {
             SetBonusConfig setBonus) {
         this(language, configVersion, releaseDefaultData, ItemDirectoryConfig.defaults(), setBonus,
                 true, true, DEFAULT_MYTHIC_DROP_NAMES,
-                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults());
+                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults(), ScriptSettings.defaults());
     }
 
     public AppConfig(String language,
@@ -40,7 +41,7 @@ public final class AppConfig extends BaseAppConfig {
             List<String> mythicDropNames) {
         this(language, configVersion, releaseDefaultData, directories, setBonus,
                 mythicEnabled, mythicDropsEnabled, mythicDropNames,
-                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults());
+                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults(), ScriptSettings.defaults());
     }
 
     public AppConfig(String language,
@@ -53,6 +54,22 @@ public final class AppConfig extends BaseAppConfig {
             List<String> mythicDropNames,
             ItemStateConfig itemState,
             ProficiencyGuardConfig proficiencyGuard) {
+        this(language, configVersion, releaseDefaultData, directories, setBonus,
+                mythicEnabled, mythicDropsEnabled, mythicDropNames,
+                itemState, proficiencyGuard, ScriptSettings.defaults());
+    }
+
+    public AppConfig(String language,
+            String configVersion,
+            boolean releaseDefaultData,
+            ItemDirectoryConfig directories,
+            SetBonusConfig setBonus,
+            boolean mythicEnabled,
+            boolean mythicDropsEnabled,
+            List<String> mythicDropNames,
+            ItemStateConfig itemState,
+            ProficiencyGuardConfig proficiencyGuard,
+            ScriptSettings scripts) {
         super(language, configVersion, "2.6.7");
         this.releaseDefaultData = releaseDefaultData;
         this.directories = directories == null ? ItemDirectoryConfig.defaults() : directories;
@@ -66,12 +83,13 @@ public final class AppConfig extends BaseAppConfig {
         this.proficiencyGuard = proficiencyGuard == null
                 ? ProficiencyGuardConfig.defaults()
                 : proficiencyGuard;
+        this.scripts = scripts == null ? ScriptSettings.defaults() : scripts;
     }
 
     public static AppConfig defaults() {
         return new AppConfig("zh_CN", "2.6.7", true, ItemDirectoryConfig.defaults(), SetBonusConfig.defaults(),
                 true, true, DEFAULT_MYTHIC_DROP_NAMES,
-                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults());
+                ItemStateConfig.defaults(), ProficiencyGuardConfig.defaults(), ScriptSettings.defaults());
     }
 
     public ItemStateConfig itemState() {
@@ -80,6 +98,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public ProficiencyGuardConfig proficiencyGuard() {
         return proficiencyGuard;
+    }
+
+    public ScriptSettings scripts() {
+        return scripts;
     }
 
     public static List<String> defaultMythicDropNames() {

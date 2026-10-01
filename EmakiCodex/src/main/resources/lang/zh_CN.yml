@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.0"
+version: "1.1.1"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -120,6 +120,18 @@ console:
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"
   advancement_packet_absent: "未检测到 PacketEvents，成就 x/y 坐标不生效，节点位置由客户端自动排布。"
+  script_engine_unavailable: "未检测到 GraalJS 运行库，图鉴脚本扩展不可用，插件其余功能不受影响。"
+  script_disabled: "图鉴脚本扩展已在 config.yml 中关闭（scripts.enabled=false）。"
+  script_loaded: "图鉴脚本加载完成：成功 %loaded% 个文件，失败 %skipped% 个。"
+  script_file_error: "脚本文件 %file% 加载失败：%reason%"
+  script_release_failed: "释放示例触发器脚本失败：%reason%"
+  script_register_invalid_payload: "脚本触发器注册失败：payload 必须是对象。"
+  script_register_id_blank: "脚本触发器注册失败：id 必须是非空字符串。"
+  script_register_advancements_missing: "脚本触发器 %id% 注册失败：advancements 必须是可执行函数。"
+  script_register_priority_invalid: "脚本触发器 %id% 注册失败：priority 必须是整数。"
+  script_register_failed: "脚本触发器 %id% 注册失败：%reason%"
+  script_callback_failed: "脚本触发器 %id% 执行失败：%reason%"
+  script_callback_invalid_element: "脚本触发器 %id% 返回了 %count% 个非字符串元素，已跳过。"
   config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
   config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"

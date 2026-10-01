@@ -51,6 +51,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
@@ -106,6 +107,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
                 new ContributionProviderRegistrationRegistry(attributeService);
+        AttributeScriptBridge attributeScriptBridge = new AttributeScriptBridge(plugin, attributeRegistry, messageService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
                 scheduling,
@@ -146,6 +148,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 itemContributionGateRegistry,
                 attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
+                attributeScriptBridge,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
@@ -211,6 +214,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
         if (plugin.attributeService() != null) {
             plugin.attributeService().refreshCaches();
+        }
+        if (plugin.attributeScriptBridge() != null) {
+            plugin.attributeScriptBridge().reload();
         }
         plugin.ensureMythicBridge();
         if (plugin.mythicBridge() != null) {
@@ -326,6 +332,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
             }
+            if (plugin.attributeScriptBridge() != null) {
+                plugin.attributeScriptBridge().reload();
+            }
             plugin.ensureMythicBridge();
             if (plugin.mythicBridge() != null) {
                 plugin.mythicBridge().resyncActiveMobs();
@@ -363,6 +372,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     public void shutdown(EmakiAttributePlugin plugin, TaskToken currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.attributeScriptBridge() != null) {
+            plugin.attributeScriptBridge().close();
+        }
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
         }

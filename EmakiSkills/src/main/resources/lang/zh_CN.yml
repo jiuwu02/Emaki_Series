@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.2"
+version: "2.8.3"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -83,6 +83,13 @@ console:
   trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>，已被其他插件（如 WorldGuard、领地保护）取消的事件仍会触发技能。该开关仅保留一个次版本周期，下一个主版本将移除，请尽快关闭并改用默认行为。</gray>"
   skills_loaded: "<gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  scripts:
+    disabled: "JS 技能脚本扩展未启用（scripts.enabled: false），不扫描不加载脚本。"
+    engine_unavailable: "<yellow>未检测到 GraalJS 运行库，JS 技能脚本扩展不可用，其余功能不受影响。</yellow>"
+    loaded: "<gray>JS 技能脚本加载完成：<yellow>%files%</yellow> 个文件成功，<yellow>%errors%</yellow> 个错误</gray>"
+    file_error: "<red>JS 技能脚本 <yellow>%file%</yellow> 加载失败: %error%</red>"
+    register_error: "<red>JS 技能注册失败 [<yellow>%id%</yellow>]: %error%</red>"
+    example_release_failed: "释放 JS 技能示例脚本失败: %path% (%error%)"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"

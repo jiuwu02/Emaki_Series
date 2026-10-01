@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.2"
+version: "2.8.3"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -85,6 +85,13 @@ console:
   trigger_legacy_cancelled_dispatch_deprecated: "<yellow>[Deprecated]</yellow> <gray>Trigger source <yellow>%source%</yellow> is running with the compatibility switch <white>trigger_settings.legacy_dispatch_cancelled_events</white>, so events already cancelled by another plugin (WorldGuard, land-claim protection, ...) still trigger skills. This switch is kept for one minor cycle only and will be removed in the next major release; please turn it off and adopt the default behaviour.</gray>"
   skills_loaded: "<gray>Loaded <yellow>%skills%</yellow> skill(s), <yellow>%triggers%</yellow> trigger(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  scripts:
+    disabled: "JS skill script extension disabled (scripts.enabled: false); no scripts are scanned or loaded."
+    engine_unavailable: "<yellow>GraalJS runtime not detected; JS skill script extension is unavailable. Other features are unaffected.</yellow>"
+    loaded: "<gray>JS skill scripts loaded: <yellow>%files%</yellow> file(s) succeeded, <yellow>%errors%</yellow> error(s)</gray>"
+    file_error: "<red>Failed to load JS skill script <yellow>%file%</yellow>: %error%</red>"
+    register_error: "<red>Failed to register JS skill [<yellow>%id%</yellow>]: %error%</red>"
+    example_release_failed: "Failed to release example skill script: %path% (%error%)"
 
 loader:
   lang_directory_create_failed: "Unable to create language directory: %path%"

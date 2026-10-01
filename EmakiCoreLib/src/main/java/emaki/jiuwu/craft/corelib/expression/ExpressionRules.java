@@ -35,6 +35,10 @@ final class ExpressionRules {
                 .replace("min", "")
                 .replace("max", "")
                 .replace("pow", "");
+        return isNumericOnlyLowered(lowered);
+    }
+
+    static boolean isNumericOnlyLowered(String lowered) {
         return !NON_NUMERIC_EXPRESSION_PATTERN.matcher(lowered).find();
     }
 }

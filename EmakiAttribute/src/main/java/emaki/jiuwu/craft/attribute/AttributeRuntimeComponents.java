@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
@@ -41,6 +42,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
         ItemContributionGateRegistry itemContributionGateRegistry,
         AttributeSlotRegistry attributeSlotRegistry,
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry,
+        AttributeScriptBridge attributeScriptBridge,
         LanguageLoader languageLoader,
         MessageService messageService,
         EmakiAttributeApi.Bridge emakiAttributeBridge,
@@ -69,6 +71,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(ItemContributionGateRegistry.class, itemContributionGateRegistry),
                 RuntimeComponents.component(AttributeSlotRegistry.class, attributeSlotRegistry),
                 RuntimeComponents.component(ContributionProviderRegistrationRegistry.class, contributionProviderRegistrationRegistry),
+                RuntimeComponents.component(AttributeScriptBridge.class, attributeScriptBridge),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(EmakiAttributeApi.Bridge.class, emakiAttributeBridge),

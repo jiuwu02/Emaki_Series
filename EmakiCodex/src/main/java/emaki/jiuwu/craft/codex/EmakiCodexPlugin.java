@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.config.CodexConfigPrecheckContributor;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
+import emaki.jiuwu.craft.codex.script.TriggerScriptBridge;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
@@ -88,6 +89,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private CodexProviderRegistrar codexProviderRegistrar;
     private CodexEntryService codexEntryService;
     private CodexGuiService codexGuiService;
+    private TriggerScriptBridge scriptBridge;
 
     private AdvancementListener advancementListener;
     private CodexGameplaySubscriber gameplaySubscriber;
@@ -207,6 +209,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         registerServices(components);
+        scriptBridge = new TriggerScriptBridge(this);
     }
 
     private void registerActions() {
@@ -334,5 +337,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public CodexGuiService codexGuiService() {
         return codexGuiService;
+    }
+
+    public TriggerScriptBridge scriptBridge() {
+        return scriptBridge;
     }
 }

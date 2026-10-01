@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.1"
+version: "4.8.2"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -82,6 +82,18 @@ loader:
   parent_child_bonus_unknown: "<red>父级属性 %parent% 指向了不存在的子属性: %child%</red>"
   parent_child_bonus_parent_target: "<red>父级属性 %parent% 的 child_bonuses 不能指向另一个父级属性: %child%</red>"
   damage_type_parent_attribute_forbidden: "<red>伤害类型阶段不能直接引用父级属性: %attribute%</red>"
+
+script:
+  engine_unavailable: "<yellow>[脚本扩展] GraalJS 引擎不可用，脚本属性加载已跳过: %reason%</yellow>"
+  disabled: "<gray>[脚本扩展] 脚本属性支持已关闭 (scripts.enabled = false)。</gray>"
+  loaded: "<gray>[脚本扩展] 脚本属性加载完成: 成功 %loaded% 个，跳过 %skipped% 个。</gray>"
+  file_error: "<red>[脚本扩展] 脚本 %file% 加载失败: %error%</red>"
+  register_error: "<red>[脚本扩展] 属性注册被跳过: %error%</red>"
+  register_override: "<yellow>[脚本扩展] 脚本属性 %id% 覆盖了已注册的同名属性。</yellow>"
+  payload_missing_id: "<gray>%file% 缺少必填的 id 字段。</gray>"
+  payload_invalid_enum: "<gray>%file% 的字段 %field% 枚举值无效: %value%。</gray>"
+  payload_invalid_number: "<gray>%file% 的字段 %field% 不是有效数字: %value%。</gray>"
+  payload_invalid_list: "<gray>%file% 的字段 %field% 必须为字符串列表。</gray>"
 
 label:
   attribute: "属性"

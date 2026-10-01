@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.0"
+version: "1.1.1"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -120,6 +120,18 @@ console:
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."
   advancement_packet_absent: "PacketEvents not detected; advancement x/y coordinates are ignored and the client auto-lays-out nodes."
+  script_engine_unavailable: "GraalJS runtime not detected; the codex script extension is unavailable and the rest of the plugin is unaffected."
+  script_disabled: "The codex script extension is disabled in config.yml (scripts.enabled=false)."
+  script_loaded: "Codex scripts loaded: %loaded% file(s) succeeded, %skipped% failed."
+  script_file_error: "Script file %file% failed to load: %reason%"
+  script_release_failed: "Failed to release the example trigger script: %reason%"
+  script_register_invalid_payload: "Script trigger registration failed: payload must be an object."
+  script_register_id_blank: "Script trigger registration failed: id must be a non-blank string."
+  script_register_advancements_missing: "Script trigger %id% registration failed: advancements must be an executable function."
+  script_register_priority_invalid: "Script trigger %id% registration failed: priority must be an integer."
+  script_register_failed: "Script trigger %id% registration failed: %reason%"
+  script_callback_failed: "Script trigger %id% execution failed: %reason%"
+  script_callback_invalid_element: "Script trigger %id% returned %count% non-string element(s); skipped."
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> hint(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"

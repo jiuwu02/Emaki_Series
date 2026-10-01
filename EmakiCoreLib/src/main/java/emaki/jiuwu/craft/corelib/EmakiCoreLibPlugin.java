@@ -61,6 +61,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry;
 import emaki.jiuwu.craft.corelib.gui.GuiClickThrottle;
 import emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend;
 import emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller;
+import emaki.jiuwu.craft.corelib.script.bridge.CoreLibScriptsCoordinator;
 import emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 
@@ -198,6 +199,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
     private DebugLogger debugLogger;
     private CoreLibCommandRouter commandRouter;
     private DefaultEmakiCoreLibApi coreLibApiBridge;
+    private CoreLibScriptsCoordinator scriptsCoordinator;
     private DialogService dialogService;
     private CoreLibDialogs dialogApiBridge;
     private TextDisplayService textDisplayService;
@@ -256,6 +258,8 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
             pipelineTaskService.stopAll();
         }
         animationPlaybackService.stopAll();
+
+        closeScriptsSafely();
 
         if (stageDispatcher != null) {
             stageDispatcher.close();
@@ -420,6 +424,7 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         contentReady = true;
 
         markModuleReady(getName());
+        loadScriptsSafely();
         return true;
     }
 
@@ -487,6 +492,42 @@ public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesP
         int replayed = stageRebuildListeners.notifyRebuilt(failure -> getLogger().warning(
                 "Stage re-registration failed for " + failure.owner() + ": " + failure.error()));
         getLogger().info("Replayed pipeline stage registrations for " + replayed + " plugin(s).");
+    }
+
+    private void loadScriptsSafely() {
+        try {
+            if (scriptsCoordinator == null) {
+                scriptsCoordinator = new CoreLibScriptsCoordinator(this);
+            }
+            scriptsCoordinator.loadFromConfig();
+        } catch (Throwable throwable) {
+            scriptsCoordinator = null;
+            warnScriptsUnavailable(throwable);
+        }
+    }
+
+    private void closeScriptsSafely() {
+        CoreLibScriptsCoordinator coordinator = scriptsCoordinator;
+        scriptsCoordinator = null;
+        if (coordinator == null) {
+            return;
+        }
+        try {
+            coordinator.close();
+        } catch (Throwable throwable) {
+            warnScriptsUnavailable(throwable);
+        }
+    }
+
+    private void warnScriptsUnavailable(Throwable throwable) {
+        String reason = throwable.getMessage();
+        String detail = throwable.getClass().getSimpleName()
+                + (reason == null || reason.isBlank() ? "" : (": " + reason));
+        if (messageService != null) {
+            messageService.warning("console.scripts.engine_unavailable", Map.of("reason", detail));
+            return;
+        }
+        getLogger().warning("Script extensions unavailable: " + throwable);
     }
 
     private void logPrecheckReport(ConfigPrecheckReport report) {

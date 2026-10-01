@@ -255,6 +255,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         loadTriggersIntoRegistry(plugin);
         plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
         forEachOnlinePlayer(plugin, plugin.playerSkillStateService()::validateBindings).join();
+        plugin.reloadScriptBridge();
         plugin.actionBarService().startRefreshTask();
         plugin.messageService().info("console.skills_loaded", Map.of(
                 "skills", String.valueOf(plugin.skillRegistryService().allDefinitions().size()),
@@ -308,6 +309,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                         try {
                             plugin.languageLoader().setLanguage(plugin.appConfig().language());
                             plugin.skillPipelineRuntime().invalidateAll();
+                            plugin.reloadScriptBridge();
                             loadTriggersIntoRegistry(plugin);
                             plugin.triggerConflictResolver().buildFromDefinitions(plugin.triggerRegistry().all());
                             applyFuture.complete(null);
@@ -375,6 +377,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         }
         if (plugin.skillsGuiService() != null) {
             plugin.skillsGuiService().clearAllSessions();
+        }
+        if (plugin.skillScriptBridge() != null) {
+            plugin.skillScriptBridge().close();
         }
         if (plugin.skillSourceRegistry() != null) {
             plugin.skillSourceRegistry().close();
@@ -466,6 +471,16 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         AppConfig.ScriptEngineSettings scriptEngine = parseScriptEngineSettings(
                 configuration.getSection("script_engine"), defaults.scriptEngine());
 
+        YamlSection scriptsSection = configuration.getSection("scripts");
+        AppConfig.ScriptSettings scripts = scriptsSection == null
+                ? defaults.scripts()
+                : new AppConfig.ScriptSettings(
+                        boolValue(scriptsSection.getBoolean("enabled"), defaults.scripts().enabled()),
+                        scriptsSection.getInt("timeout_ms",
+                                (int) defaults.scripts().timeoutMs()),
+                        boolValue(scriptsSection.getBoolean("debug"), defaults.scripts().debug())
+                );
+
         return new AppConfig(
                 configuration.getString("language", defaults.language()),
                 configuration.getString("version", defaults.configVersion()),
@@ -480,7 +495,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 passiveTriggers,
                 passiveTriggerSettings,
                 scriptEngine,
-                triggerSettings
+                triggerSettings,
+                scripts
         );
     }
 

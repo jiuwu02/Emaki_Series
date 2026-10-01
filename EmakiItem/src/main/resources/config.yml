@@ -2,7 +2,7 @@
 # 控制物品/套装数据扫描、套装刷新与 MythicMobs 集成。
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "2.8.4"
+version: "2.8.5"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -112,6 +112,21 @@ proficiency_guard:
     - "damage_dealt"
     - "kill_entity"
     - "kill_player"
+
+# 脚本扩展设置。
+# scripts/ 目录下的 JS 文件可注册自定义物品效果类型（items 绑定），
+# 注册后的效果类型可在物品定义的 effects 列表中按 type 引用。
+# 注意：脚本默认全开放，具备与服务器同级权限，只应加载自己审查过的脚本。
+scripts:
+  # 是否启用脚本扩展。关闭后不扫描不加载脚本，已注册的脚本效果随之注销。
+  enabled: true
+
+  # 单次脚本求值或回调的超时（毫秒）。超时中断该次调用，超时后脚本宿主继续可用。
+  # 非正数回退默认值 5000。
+  timeout_ms: 5000
+
+  # 调试模式。开启后脚本内的 logger 输出更详细。
+  debug: false
 
 # MythicMobs 集成设置。
 # 未安装 MythicMobs 时自动跳过，不影响其他功能。

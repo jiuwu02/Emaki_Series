@@ -12,14 +12,25 @@
     </parent>
 
     <artifactId>emaki-codex</artifactId>
-    <version>1.1.0</version>
+    <version>1.1.1</version>
     <name>EmakiCodex</name>
     <packaging>jar</packaging>
 
     <dependencies>
         <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>25.4.4.1.1</version>
             <scope>provided</scope>
         </dependency>
         <dependency>
