@@ -17,6 +17,8 @@ tags:
 
 permission: ""
 
+# 本示例不写 cost 节，即免费分解。收费写法见 example_dismantle_recipe.yml。
+
 # 输入物品来源条件；简写用【连字符】。
 # 该条件与下面的 matcher 同时生效。
 item_sources:

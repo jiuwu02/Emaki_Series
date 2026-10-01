@@ -2,28 +2,40 @@ package emaki.jiuwu.craft.station.dismantle;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
+import emaki.jiuwu.craft.corelib.api.action.ActionResult;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.station.api.model.OutputRouting;
 import emaki.jiuwu.craft.station.api.model.PendingOutput;
+import emaki.jiuwu.craft.station.gui.AmountDisplay;
 import emaki.jiuwu.craft.station.gui.StationSlotType;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
+import emaki.jiuwu.craft.station.recipe.RecipeCost;
 
 public final class DismantleGuiInteractionController {
 
     private final DismantleService dismantleService;
     private final OutputDelivery outputDelivery;
+    private final EconomyManager economyManager;
+    private final MessageService messageService;
 
     public DismantleGuiInteractionController(DismantleService dismantleService,
-            OutputDelivery outputDelivery) {
+            OutputDelivery outputDelivery,
+            EconomyManager economyManager,
+            MessageService messageService) {
         this.dismantleService = dismantleService;
         this.outputDelivery = outputDelivery;
+        this.economyManager = economyManager;
+        this.messageService = messageService;
     }
 
     public void onClick(DismantleViewState state,
@@ -60,17 +72,54 @@ public final class DismantleGuiInteractionController {
         if (recipe == null) {
             return;
         }
-
-        boolean consumed = consumeInput(state, recipe);
-        if (!consumed) {
+        Player player = state.viewer();
+        if (recipe.hasPermission() && !player.hasPermission(recipe.permission())) {
+            messageService.send(player, "station.dismantle_no_permission");
+            return;
+        }
+        if (!affordable(player, recipe.cost())) {
+            RecipeCost cost = recipe.cost();
+            double balance = economyManager == null ? 0.0D
+                    : economyManager.getBalance(player, cost.providerId(), "");
+            messageService.send(player, "station.dismantle_insufficient_currency", Map.of(
+                    "amount", AmountDisplay.precise(cost.amount()),
+                    "balance", AmountDisplay.precise((long) balance)));
+            return;
+        }
+        ConsumedInput consumed = consumeInput(state, recipe);
+        if (consumed == null) {
 
             state.selectedRecipe(null);
+            redrawFn.run();
+            return;
+        }
+        if (recipe.cost().charges() && !withdraw(player, recipe.cost())) {
+            restoreInput(player, consumed);
             redrawFn.run();
             return;
         }
         List<DismantleOutput> outputs = dismantleService.roll(recipe);
         state.rolledOutputs(outputs);
         redrawFn.run();
+    }
+
+    private boolean affordable(Player player, RecipeCost cost) {
+        if (!cost.charges()) {
+            return true;
+        }
+        if (economyManager == null) {
+            return false;
+        }
+        return economyManager.getBalance(player, cost.providerId(), "") >= (double) cost.amount();
+    }
+
+    private boolean withdraw(Player player, RecipeCost cost) {
+        ActionResult removal = economyManager.remove(player, cost.providerId(), "", (double) cost.amount());
+        if (removal != null && removal.success()) {
+            return true;
+        }
+        messageService.send(player, "station.dismantle_charge_failed");
+        return false;
     }
 
     private void claimOutputs(DismantleViewState state, Runnable redrawFn) {
@@ -96,7 +145,7 @@ public final class DismantleGuiInteractionController {
                 });
     }
 
-    private boolean consumeInput(DismantleViewState state, DismantleRecipeDefinition recipe) {
+    private ConsumedInput consumeInput(DismantleViewState state, DismantleRecipeDefinition recipe) {
         Player player = state.viewer();
         PlayerInventory inv = player.getInventory();
         for (int i = 0; i < inv.getSize(); i++) {
@@ -107,14 +156,19 @@ public final class DismantleGuiInteractionController {
             if (!dismantleService.accepts(recipe, item, player)) {
                 continue;
             }
+            ItemStack snapshot = item.clone();
             if (item.getAmount() > 1) {
                 item.setAmount(item.getAmount() - 1);
             } else {
                 inv.setItem(i, null);
             }
-            return true;
+            return new ConsumedInput(i, snapshot);
         }
-        return false;
+        return null;
+    }
+
+    private void restoreInput(Player player, ConsumedInput consumed) {
+        player.getInventory().setItem(consumed.slot(), consumed.snapshot());
     }
 
     private void movePage(DismantleViewState state, int delta, Runnable redrawFn) {
@@ -134,5 +188,8 @@ public final class DismantleGuiInteractionController {
         state.outputPage(state.outputPage() + delta,
                 GuiPagination.totalPages(listSize, pageSize));
         redrawFn.run();
+    }
+
+    private record ConsumedInput(int slot, ItemStack snapshot) {
     }
 }

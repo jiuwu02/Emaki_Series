@@ -162,6 +162,7 @@ final class StationLifecycleCoordinator
                 purchaseService,
                 craftService,
                 coreLibPlugin.economyManager(),
+                plugin.messageService(),
                 StationLifecycleCoordinator::resolvePlaceholders,
                 guiSupport,
                 dismantleService,

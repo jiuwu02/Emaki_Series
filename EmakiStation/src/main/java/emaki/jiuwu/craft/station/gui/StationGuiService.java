@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiClickContext;
 import emaki.jiuwu.craft.corelib.gui.GuiClickType;
 import emaki.jiuwu.craft.corelib.gui.GuiCloseContext;
 import emaki.jiuwu.craft.corelib.gui.GuiDragContext;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.gui.GuiOpenRequest;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -70,6 +71,7 @@ public final class StationGuiService {
     private final StationQueueUnlockService purchaseService;
     private final StationCraftService craftService;
     private final EconomyManager economyManager;
+    private final MessageService messageService;
     private final BiFunction<Player, String, String> placeholders;
     private final StationCatalogRenderer catalogRenderer;
     private final StationPreviewRenderer previewRenderer;
@@ -96,6 +98,7 @@ public final class StationGuiService {
             StationQueueUnlockService purchaseService,
             StationCraftService craftService,
             EconomyManager economyManager,
+            MessageService messageService,
             BiFunction<Player, String, String> placeholders,
             ConfiguredGuiSupport guiSupport,
             DismantleService dismantleService,
@@ -113,6 +116,7 @@ public final class StationGuiService {
         this.purchaseService = purchaseService;
         this.craftService = craftService;
         this.economyManager = economyManager;
+        this.messageService = messageService;
         this.itemSourceService = itemSourceService;
         this.placeholders = placeholders == null ? (player, text) -> text : placeholders;
         this.catalogRenderer = new StationCatalogRenderer(itemSourceService,
@@ -124,9 +128,9 @@ public final class StationGuiService {
         this.dismantleService = dismantleService;
         this.dismantleRegistrySupplier = dismantleRegistrySupplier;
         this.dismantleRenderer = new DismantleGuiRenderer(itemSourceService,
-                () -> guiService.configuredItemService(), guiSupport);
+                () -> guiService.configuredItemService(), guiSupport, economyManager);
         this.dismantleController = new DismantleGuiInteractionController(dismantleService,
-                new OutputDelivery(itemSourceService, storageChannel));
+                new OutputDelivery(itemSourceService, storageChannel), economyManager, messageService);
     }
 
     public EmakiResult<Unit> open(Player player, String stationId) {

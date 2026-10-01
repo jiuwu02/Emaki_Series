@@ -6,6 +6,7 @@
 #   dismantle_input        - 展示配方所需物品（当前选中配方的输入图标）
 #   dismantle_item_display - 同 dismantle_input，别名
 #   dismantle_rolls_display- 显示投掷次数范围（%rolls_min% / %rolls_max%）
+#   dismantle_cost         - 显示货币成本与玩家余额（免费配方显示免费图标）
 #   dismantle_output_list  - 分解产物列表（多格分页，含 pool_entry / rolled_output 虚拟物品）
 #   dismantle_confirm      - 确认执行分解 / 领取已投掷产物
 #   prev_page / next_page / page_info - 分页控件（产物列表翻页）
@@ -47,6 +48,15 @@ slots:
         lore:
           - "<gray>最少: <yellow>%rolls_min%</yellow></gray>"
           - "<gray>最多: <yellow>%rolls_max%</yellow></gray>"
+
+  dismantle_cost:
+    slots:
+      - 21
+    type: "dismantle_cost"
+    item:
+      source: "gold_ingot"
+      components:
+        custom_name: "<gold>货币成本</gold>"
 
   dismantle_confirm:
     slots:
@@ -168,3 +178,23 @@ virtual_items:
           - "<gray>配方: <white>%recipe_name%</white></gray>"
           - "<gray>产物共 <yellow>%output_count%</yellow> 项</gray>"
           - "<dark_gray>点击领取全部</dark_gray>"
+
+  # 货币成本槽位——收费配方（%recipe%/%recipe_name%/%cost_exact%/%currency%/%balance%）
+  dismantle_cost:
+    item:
+      components:
+        custom_name: "<gold>货币成本</gold>"
+        lore:
+          - "<gray>需要: <yellow>%cost_exact%</yellow> <dark_gray>(%currency%)</dark_gray></gray>"
+          - "<gray>余额: <yellow>%balance%</yellow></gray>"
+          - "<dark_gray>确认分解时扣除</dark_gray>"
+
+  # 货币成本槽位——免费配方（%recipe%/%recipe_name%）
+  dismantle_cost_free:
+    item:
+      source: "lime_stained_glass_pane"
+      components:
+        custom_name: "<green>免费分解</green>"
+        lore:
+          - "<gray>配方: <white>%recipe_name%</white></gray>"
+          - "<dark_gray>该配方不收取货币</dark_gray>"

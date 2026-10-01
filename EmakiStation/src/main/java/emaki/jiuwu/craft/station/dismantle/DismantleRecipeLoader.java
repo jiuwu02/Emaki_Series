@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.station.recipe.RecipeCost;
 
 public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRecipeDefinition> {
 
@@ -74,7 +75,38 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
                 rolls,
                 pool,
                 configuration.getString("permission", ""),
-                ConditionBlock.fromRoot(configuration, true, false));
+                ConditionBlock.fromRoot(configuration, true, false),
+                parseCost(file, id, configuration));
+    }
+
+    private RecipeCost parseCost(File file, String recipeId, YamlSection configuration) {
+        YamlSection cost = configuration.getSection("cost");
+        if (cost == null) {
+            return RecipeCost.none();
+        }
+        YamlSection currency = cost.getSection("currency");
+        if (currency == null) {
+            issue("station.dismantle_recipe_cost_missing_currency",
+                    Map.of("recipe", recipeId, "file", fileName(file)));
+            return RecipeCost.none();
+        }
+        String type = currency.getString("type", "");
+        long amount = readLong(currency.get("amount"), 0L);
+        if (type.isBlank() && amount <= 0L) {
+            return RecipeCost.none();
+        }
+        if (amount <= 0L) {
+            issue("station.dismantle_recipe_bad_cost_amount",
+                    Map.of("recipe", recipeId, "amount", String.valueOf(amount)));
+            return RecipeCost.none();
+        }
+        RecipeCost parsed = RecipeCost.fromToken(type, amount);
+        if (parsed == null) {
+            issue("station.dismantle_recipe_bad_currency",
+                    Map.of("recipe", recipeId, "type", type));
+            return RecipeCost.none();
+        }
+        return parsed;
     }
 
     private ItemRequirement parseInputRequirement(File file, String recipeId, YamlSection configuration) {
@@ -195,6 +227,20 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
         if (raw instanceof String s && !s.isBlank()) {
             try {
                 return Double.parseDouble(s.trim());
+            } catch (NumberFormatException ignored) {
+
+            }
+        }
+        return fallback;
+    }
+
+    private static long readLong(Object raw, long fallback) {
+        if (raw instanceof Number n) {
+            return n.longValue();
+        }
+        if (raw instanceof String s && !s.isBlank()) {
+            try {
+                return Long.parseLong(s.trim());
             } catch (NumberFormatException ignored) {
 
             }

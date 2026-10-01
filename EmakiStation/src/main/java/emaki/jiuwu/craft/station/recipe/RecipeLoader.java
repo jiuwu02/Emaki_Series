@@ -86,18 +86,20 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
                 actions == null ? List.of() : actions.getStringList("pre"),
                 actions == null ? List.of() : actions.getStringList("success"),
                 actions == null ? List.of() : actions.getStringList("failure"),
-                parseCost(id, configuration),
+                parseCost(file, id, configuration),
                 configuration.getBoolean("visible", Boolean.TRUE),
                 ConditionBlock.fromConfig(configuration.getSection("display_condition"), true, false));
     }
 
-    private RecipeCost parseCost(String recipeId, YamlSection configuration) {
+    private RecipeCost parseCost(File file, String recipeId, YamlSection configuration) {
         YamlSection cost = configuration.getSection("cost");
         if (cost == null) {
             return RecipeCost.none();
         }
         YamlSection currency = cost.getSection("currency");
         if (currency == null) {
+            issue("station.recipe_cost_missing_currency",
+                    Map.of("recipe", recipeId, "file", fileName(file)));
             return RecipeCost.none();
         }
         String type = currency.getString("type", "");

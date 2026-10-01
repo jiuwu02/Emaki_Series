@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.station.recipe.RecipeCost;
 
 public record DismantleRecipeDefinition(
         String id,
@@ -18,7 +19,8 @@ public record DismantleRecipeDefinition(
         RollsRange rolls,
         List<DismantlePoolEntry> pool,
         String permission,
-        ConditionBlock condition) {
+        ConditionBlock condition,
+        RecipeCost cost) {
 
     public DismantleRecipeDefinition {
         if (id == null) {
@@ -39,6 +41,7 @@ public record DismantleRecipeDefinition(
         pool = List.copyOf(pool);
         permission = permission == null ? "" : permission;
         condition = condition == null ? ConditionBlock.empty() : condition;
+        cost = cost == null ? RecipeCost.none() : cost;
     }
 
     public DismantleRecipeDefinition(String id,
@@ -50,7 +53,8 @@ public record DismantleRecipeDefinition(
             List<DismantlePoolEntry> pool,
             String permission,
             ConditionBlock condition) {
-        this(id, displayName, stationId, tags, sourceRequirement(inputSource), rolls, pool, permission, condition);
+        this(id, displayName, stationId, tags, sourceRequirement(inputSource), rolls, pool,
+                permission, condition, RecipeCost.none());
     }
 
     public DismantleRecipeDefinition(String id,
@@ -63,7 +67,8 @@ public record DismantleRecipeDefinition(
             String permission,
             ConditionBlock condition,
             Matcher matcher) {
-        this(id, displayName, stationId, tags, requirement(inputSource, matcher), rolls, pool, permission, condition);
+        this(id, displayName, stationId, tags, requirement(inputSource, matcher), rolls, pool,
+                permission, condition, RecipeCost.none());
     }
 
     public ItemSourceRef inputSource() {

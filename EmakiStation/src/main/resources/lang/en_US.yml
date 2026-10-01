@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.3"
+version: "1.1.4"
 
 console:
   plugin_starting: "Starting EmakiStation..."
@@ -88,12 +88,16 @@ station:
   recipe_source_field_conflict: "<red>Recipe %recipe% declares both item_source and item_sources, so loading is blocked (%file%)</red>"
   recipe_duplicate_material_identity: "<red>Recipe %recipe% repeats or conflicts on material identity %identity%, so loading is blocked (%file%)</red>"
   recipe_many_materials: "<yellow>Recipe %recipe% has %count% material types, above the warning threshold %limit%</yellow>"
+  recipe_cost_missing_currency: "<yellow>Recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount (%file%)</yellow>"
   dismantle_recipe_missing_id: "<yellow>Dismantle recipe file is missing its id: %file%</yellow>"
   dismantle_recipe_no_input: "<yellow>Dismantle recipe %recipe% has neither item_sources nor matcher, skipped (%file%)</yellow>"
   dismantle_recipe_bad_input: "<yellow>Dismantle recipe %recipe% has an unresolvable input item source %source% (%file%)</yellow>"
   dismantle_recipe_legacy_input_source: "<yellow>Dismantle recipe %recipe% uses legacy input_source; it remains readable but should migrate to item_sources (%file%)</yellow>"
   dismantle_recipe_bad_source: "<yellow>Dismantle recipe %recipe% has an unresolvable pool item source %source% (%file%)</yellow>"
   dismantle_recipe_empty_pool: "<yellow>Dismantle recipe %recipe% has no usable pool entries, skipped (%file%)</yellow>"
+  dismantle_recipe_cost_missing_currency: "<yellow>Dismantle recipe %recipe% has a cost section without a currency subsection, treating it as free; the correct form is cost.currency.type / amount (%file%)</yellow>"
+  dismantle_recipe_bad_cost_amount: "<yellow>Dismantle recipe %recipe% has an invalid cost amount %amount%, treating it as free</yellow>"
+  dismantle_recipe_bad_currency: "<yellow>Dismantle recipe %recipe% has an unknown currency type %type%, treating it as free (supported: vault / excellent)</yellow>"
 
   unknown_station: "That station does not exist"
   unknown_recipe: "That recipe does not exist"
@@ -129,6 +133,9 @@ station:
   api_backpack_unsupported: "The API does not support the backpack channel; materials must be placed by the player"
   no_recipe_selected: "No dismantle recipe selected"
   dismantle_no_matching_item: "The placed item does not match any dismantle recipe"
+  dismantle_no_permission: "<red>You do not have permission to use this dismantle recipe</red>"
+  dismantle_insufficient_currency: "<red>Not enough money: this dismantle costs <yellow>%amount%</yellow>, your balance is <yellow>%balance%</yellow></red>"
+  dismantle_charge_failed: "<red>The money withdrawal failed and the item has been returned, please try again later</red>"
 
 precheck:
   passed: "Configuration check passed"

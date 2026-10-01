@@ -30,6 +30,8 @@ public final class StationSlotType {
 
     public static final String DISMANTLE_ROLLS_DISPLAY = "dismantle_rolls_display";
 
+    public static final String DISMANTLE_COST = "dismantle_cost";
+
     public static final String QUEUE_VIEW = "queue_view";
 
     public static final String CLAIM_ALL = "claim_all";
@@ -64,7 +66,7 @@ public final class StationSlotType {
             QUEUE_PURCHASE, CAPACITY_DISPLAY);
 
     private static final Set<String> DISMANTLE_ONLY = Set.of(DISMANTLE_INPUT, DISMANTLE_CONFIRM,
-            DISMANTLE_OUTPUT_LIST, DISMANTLE_ITEM_DISPLAY, DISMANTLE_ROLLS_DISPLAY);
+            DISMANTLE_OUTPUT_LIST, DISMANTLE_ITEM_DISPLAY, DISMANTLE_ROLLS_DISPLAY, DISMANTLE_COST);
 
     private StationSlotType() {
     }

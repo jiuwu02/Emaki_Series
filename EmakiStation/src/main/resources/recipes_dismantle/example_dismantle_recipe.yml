@@ -14,6 +14,16 @@ tags:
 # 使用该配方需要的权限，留空表示不限制。
 permission: ""
 
+# 分解费用（可选）。点击确认分解时从玩家货币中扣除，余额不足则拒绝分解。
+# 结构与普通配方的 cost 一致：type 支持 vault（Vault）与 excellent（ExcellentEconomy）。
+# 整节删除或注释掉 cost 即为免费分解。
+# 注意必须写成嵌套的 cost.currency 形态——把 type/amount 直接写在 cost 下
+# 会被判定为缺少 currency 子节并在加载时告警，配方按免费处理。
+cost:
+  currency:
+    type: "vault"
+    amount: 100
+
 # 输入物品来源条件。格式与普通配方的 item_source 一致，用【连字符】：
 #   minecraft-iron_block、emakiitem-example_sword
 item_sources:

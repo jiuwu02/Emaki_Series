@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiPagination;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -19,19 +20,23 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.station.gui.AmountDisplay;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationSlotType;
+import emaki.jiuwu.craft.station.recipe.RecipeCost;
 
 public final class DismantleGuiRenderer {
 
     private final ItemSourceService itemSourceService;
     private final Supplier<ConfiguredItemService> itemServiceSupplier;
     private final ConfiguredGuiSupport guiSupport;
+    private final EconomyManager economyManager;
 
     public DismantleGuiRenderer(ItemSourceService itemSourceService,
             Supplier<ConfiguredItemService> itemServiceSupplier,
-            ConfiguredGuiSupport guiSupport) {
+            ConfiguredGuiSupport guiSupport,
+            EconomyManager economyManager) {
         this.itemSourceService = itemSourceService;
         this.itemServiceSupplier = itemServiceSupplier;
         this.guiSupport = guiSupport;
+        this.economyManager = economyManager;
     }
 
     public ItemStack render(DismantleViewState state, GuiTemplate.ResolvedSlot resolvedSlot) {
@@ -48,6 +53,7 @@ public final class DismantleGuiRenderer {
             case StationSlotType.DISMANTLE_INPUT, StationSlotType.DISMANTLE_ITEM_DISPLAY ->
                     renderInput(state, recipe, slot);
             case StationSlotType.DISMANTLE_ROLLS_DISPLAY -> renderRolls(state, recipe, slot);
+            case StationSlotType.DISMANTLE_COST -> renderCost(state, recipe, slot);
             case StationSlotType.DISMANTLE_OUTPUT_LIST -> renderOutputEntry(state, recipe, slot, resolvedSlot);
             case StationSlotType.DISMANTLE_CONFIRM -> renderConfirm(state, recipe, slot);
             case StationSlotType.PAGE_INFO, StationSlotType.PREV_PAGE, StationSlotType.NEXT_PAGE ->
@@ -93,6 +99,30 @@ public final class DismantleGuiRenderer {
         values.put("rolls_max", String.valueOf(recipe.rolls().max()));
         values.put("recipe_name", recipe.displayName());
         return GuiItemBuilder.build(slot.itemDefinition(), values, itemServiceSupplier.get());
+    }
+
+    private ItemStack renderCost(DismantleViewState state,
+            DismantleRecipeDefinition recipe,
+            GuiSlot slot) {
+        if (recipe == null) {
+            return null;
+        }
+        RecipeCost cost = recipe.cost();
+        Map<String, Object> values = new LinkedHashMap<>();
+        values.put("recipe", recipe.id());
+        values.put("recipe_name", recipe.displayName());
+        if (!cost.charges()) {
+            return guiSupport.build(layoutId(state), "virtual_items.dismantle_cost_free", values,
+                    slot.itemDefinition());
+        }
+        double balance = economyManager == null ? 0.0D
+                : economyManager.getBalance(state.viewer(), cost.providerId(), "");
+        values.put("cost_exact", AmountDisplay.precise(cost.amount()));
+        values.put("currency", cost.providerId());
+        values.put("balance", AmountDisplay.precise((long) balance));
+        values.put("affordable", balance >= (double) cost.amount() ? "true" : "false");
+        return guiSupport.build(layoutId(state), "virtual_items.dismantle_cost", values,
+                slot.itemDefinition());
     }
 
     private ItemStack renderOutputEntry(DismantleViewState state,

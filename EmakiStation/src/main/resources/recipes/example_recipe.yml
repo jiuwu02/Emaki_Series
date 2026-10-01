@@ -21,13 +21,16 @@ visible: true
 # 单次合成耗时（秒）。填 0 或省略表示立即完成，不进队列。
 duration_seconds: 30
 
-# 每次合成额外收取的货币，按倍率乘算。省略或 amount 为 0 表示不收费。
+# 每次合成额外收取的货币，按倍率乘算。省略或注释掉整个 cost 节表示不收费。
+# 货币类型与金额必须写在嵌套的 cost.currency 子节下：
 #   type: vault | excellent
 # 余额在扣材料之前先校验，扣款在扣材料之后执行；扣款失败会把材料原额退回。
 # 取消队列条目时按工作站的 cancel_refund_rate 折算退还。
+# 注意：把 type/amount 直接写在 cost 下（不嵌套 currency）会在加载时告警，配方按免费处理。
 cost:
-  type: "vault"
-  amount: 0
+  currency:
+    type: "vault"
+    amount: 25
 
 # 材料需求。
 # item_sources 是"任意其一"集合，数量按集合内总数计算：

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.3"
+version: "1.1.4"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -88,6 +88,7 @@ station:
   recipe_source_field_conflict: "<red>配方 %recipe% 同时声明 item_source 与 item_sources，已阻塞加载（%file%）</red>"
   recipe_duplicate_material_identity: "<red>配方 %recipe% 的材料身份 %identity% 重复或冲突，已阻塞加载（%file%）</red>"
   recipe_many_materials: "<yellow>配方 %recipe% 有 %count% 种材料，超过警告阈值 %limit%</yellow>"
+  recipe_cost_missing_currency: "<yellow>配方 %recipe% 的 cost 节缺少 currency 子节，该配方按免费处理；正确写法为 cost.currency.type / amount（%file%）</yellow>"
 
   dismantle_recipe_missing_id: "<yellow>分解配方文件缺少 id：%file%</yellow>"
   dismantle_recipe_no_input: "<yellow>分解配方 %recipe% 缺少 item_sources 或 matcher，已跳过（%file%）</yellow>"
@@ -95,6 +96,9 @@ station:
   dismantle_recipe_legacy_input_source: "<yellow>分解配方 %recipe% 使用旧版 input_source，仍会兼容读取；请迁移到 item_sources（%file%）</yellow>"
   dismantle_recipe_bad_source: "<yellow>分解配方 %recipe% 的 pool 物品源 %source% 无法解析（%file%）</yellow>"
   dismantle_recipe_empty_pool: "<yellow>分解配方 %recipe% 的 pool 为空或全部无效，已跳过（%file%）</yellow>"
+  dismantle_recipe_cost_missing_currency: "<yellow>分解配方 %recipe% 的 cost 节缺少 currency 子节，该配方按免费处理；正确写法为 cost.currency.type / amount（%file%）</yellow>"
+  dismantle_recipe_bad_cost_amount: "<yellow>分解配方 %recipe% 的费用金额 %amount% 无效，该配方按免费处理</yellow>"
+  dismantle_recipe_bad_currency: "<yellow>分解配方 %recipe% 的货币类型 %type% 未知，该配方按免费处理（支持 vault / excellent）</yellow>"
 
   unknown_station: "工作站不存在"
   unknown_recipe: "配方不存在"
@@ -130,6 +134,9 @@ station:
   api_backpack_unsupported: "API 不支持背包通道，材料只能由玩家在界面中放入"
   no_recipe_selected: "没有选中的分解配方"
   dismantle_no_matching_item: "放入的物品没有匹配的分解配方"
+  dismantle_no_permission: "<red>你没有使用该分解配方的权限</red>"
+  dismantle_insufficient_currency: "<red>货币不足：本次分解需要 <yellow>%amount%</yellow>，当前余额 <yellow>%balance%</yellow></red>"
+  dismantle_charge_failed: "<red>货币扣除失败，已归还分解物品，请稍后重试</red>"
 
 precheck:
   passed: "配置检查通过"
