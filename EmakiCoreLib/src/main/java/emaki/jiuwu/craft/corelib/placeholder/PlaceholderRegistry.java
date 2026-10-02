@@ -36,13 +36,17 @@ public final class PlaceholderRegistry {
     }
 
     public String resolve(ActionContext context, String text) {
+        return resolve(context, Map.of(), text);
+    }
+
+    public String resolve(ActionContext context, Map<String, ?> extraVariables, String text) {
         if (text == null || text.isEmpty() || !containsPlaceholderMarker(text)) {
             return text;
         }
         DebugLogger debugLogger = debugLogger();
         String resolved = PlaceholderRenderer.renderInternal(
                 text,
-                PlaceholderRenderer.contextVariables(context),
+                PlaceholderRenderer.mergeContextVariables(context, extraVariables),
                 debugLogger,
                 context == null ? null : context.player(),
                 "action_context"

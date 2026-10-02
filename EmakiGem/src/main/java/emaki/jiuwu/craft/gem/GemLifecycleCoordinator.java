@@ -143,7 +143,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 stateService,
                 economyService,
                 actionCoordinator,
-                scheduling
+                scheduling,
+                coreLibPlugin.placeholderRegistry()
         );
         GemExtractService extractService = new GemExtractService(
                 plugin,
@@ -152,7 +153,8 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 stateService,
                 economyService,
                 actionCoordinator,
-                scheduling
+                scheduling,
+                coreLibPlugin.placeholderRegistry()
         );
         GemGuiService gemGuiService = new GemGuiService(plugin, guiService, scheduling);
         return new GemRuntimeComponents(

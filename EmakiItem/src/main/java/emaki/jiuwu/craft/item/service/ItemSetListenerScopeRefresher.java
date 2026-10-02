@@ -22,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
@@ -615,6 +616,7 @@ final class ItemSetListenerScopeRefresher {
         boolean contributionChanged = false;
         LinkedHashSet<String> missingDefinitions = new LinkedHashSet<>();
         LinkedHashSet<String> missingSetIds = new LinkedHashSet<>();
+        ActionContext context = player == null ? null : ActionContext.create(player, "item.set", true);
         for (SlotPlan plan : plans == null ? List.<SlotPlan>of() : plans) {
             SlotFacts facts = plan.facts();
             if (plan.action() == ItemSetRefreshPlanner.SlotAction.NO_OP) {
@@ -645,7 +647,8 @@ final class ItemSetListenerScopeRefresher {
                         facts.definition(),
                         facts.membership(),
                         compiledState.state(),
-                        target
+                        target,
+                        context
                 );
                 if (before.current()) {
                     continue;
@@ -659,7 +662,8 @@ final class ItemSetListenerScopeRefresher {
                         before,
                         facts.ledgerRead(),
                         facts.ledgerFacts(),
-                        facts.identity()
+                        facts.identity(),
+                        context
                 );
                 operation = "apply";
             } else {

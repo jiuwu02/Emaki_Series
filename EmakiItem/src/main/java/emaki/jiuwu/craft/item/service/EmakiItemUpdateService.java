@@ -15,6 +15,7 @@ import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
@@ -27,6 +28,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -77,13 +79,24 @@ public final class EmakiItemUpdateService {
             PdcAttributeGatewayAdapter attributeGateway,
             EmakiItemAssemblyService assemblyService,
             DebugLogger debugLogger) {
+        this(itemLoader, idResolver, itemFactory, identifier, attributeGateway, assemblyService, debugLogger, null);
+    }
+
+    public EmakiItemUpdateService(EmakiItemLoader itemLoader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemFactory itemFactory,
+            EmakiItemIdentifier identifier,
+            PdcAttributeGatewayAdapter attributeGateway,
+            EmakiItemAssemblyService assemblyService,
+            DebugLogger debugLogger,
+            PlaceholderRegistry placeholderRegistry) {
         this.itemLoader = itemLoader;
         this.idResolver = idResolver;
         this.itemFactory = itemFactory;
         this.identifier = identifier;
         this.attributeGateway = attributeGateway;
         this.assemblyService = assemblyService;
-        this.operationLedger = new ItemOperationLedger(debugLogger);
+        this.operationLedger = new ItemOperationLedger(debugLogger, placeholderRegistry);
         this.pdcService = new PdcService("emaki", "pdc", debugLogger);
         this.itemPartition = pdcService.partition("item");
     }
@@ -116,6 +129,14 @@ public final class EmakiItemUpdateService {
             List<String> triggers,
             EmakiItemLoader.Snapshot definitions,
             ItemOperationLedger.ReadResult suppliedReadResult) {
+        return updateIfNeeded(original, triggers, definitions, suppliedReadResult, null);
+    }
+
+    private UpdateOutcome updateIfNeeded(ItemStack original,
+            List<String> triggers,
+            EmakiItemLoader.Snapshot definitions,
+            ItemOperationLedger.ReadResult suppliedReadResult,
+            ActionContext context) {
         if (original == null || original.getType().isAir()) {
             return UpdateOutcome.ignored(original);
         }
@@ -133,7 +154,7 @@ public final class EmakiItemUpdateService {
         EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
         if (alias != null) {
             String effectiveTrigger = triggers.isEmpty() ? "" : triggers.getFirst();
-            return new UpdateOutcome(migrateAlias(original, id, alias, definitions, readResult), effectiveTrigger, true, true);
+            return new UpdateOutcome(migrateAlias(original, id, alias, definitions, readResult, context), effectiveTrigger, true, true);
         }
         EmakiItemDefinition definition = definitions.get(id);
         if (definition == null && idResolver != null) {
@@ -151,7 +172,7 @@ public final class EmakiItemUpdateService {
             return new UpdateOutcome(original, effectiveTrigger, true, true);
         }
         return new UpdateOutcome(
-                rebuild(original, definition, updateConfig, definition.id(), readResult),
+                rebuild(original, definition, updateConfig, definition.id(), readResult, context),
                 effectiveTrigger,
                 true,
                 true
@@ -178,7 +199,7 @@ public final class EmakiItemUpdateService {
         }
         EmakiItemAlias alias = idResolver == null ? null : idResolver.aliasFor(id);
         if (alias != null) {
-            return migrateAlias(original, id, alias, itemLoader.snapshot(), readResult);
+            return migrateAlias(original, id, alias, itemLoader.snapshot(), readResult, null);
         }
         EmakiItemDefinition definition = idResolver == null ? itemLoader.get(id) : idResolver.resolveDefinition(id);
         if (definition == null) {
@@ -186,7 +207,7 @@ public final class EmakiItemUpdateService {
         }
         ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
         return updateConfig.enabled()
-                ? rebuild(original, definition, updateConfig, definition.id(), readResult)
+                ? rebuild(original, definition, updateConfig, definition.id(), readResult, null)
                 : original;
     }
 
@@ -226,6 +247,7 @@ public final class EmakiItemUpdateService {
                     requestedFullReasons, false, true, 0, 0, 0, 0, 0, 0, "", System.nanoTime() - started);
         }
         List<String> orderedTriggers = orderedTriggers(triggers);
+        ActionContext context = player == null ? null : ActionContext.create(player, "item.update", true);
         PlayerInventory inventory = player.getInventory();
         ItemRefreshBatch refreshBatch = sharedBatch != null && sharedBatch.matches(inventory)
                 ? sharedBatch
@@ -252,7 +274,7 @@ public final class EmakiItemUpdateService {
             }
             scanned++;
             SlotUpdateResult slotResult = updateInventorySlot(
-                    inventory, slot, orderedTriggers, definitions, refreshBatch);
+                    inventory, slot, orderedTriggers, definitions, refreshBatch, context);
             changed += slotResult.changed();
             conflicts += slotResult.conflict() ? 1 : 0;
             cacheValid &= slotResult.cacheValid();
@@ -282,13 +304,14 @@ public final class EmakiItemUpdateService {
             int slot,
             List<String> triggers,
             EmakiItemLoader.Snapshot definitions,
-            ItemRefreshBatch refreshBatch) {
+            ItemRefreshBatch refreshBatch,
+            ActionContext context) {
         ItemRefreshBatch.SlotSnapshot slotSnapshot = refreshBatch.capture(slot);
         ItemStack snapshot = slotSnapshot == null ? null : slotSnapshot.expected();
         ItemOperationLedger.ReadResult readResult = slotSnapshot == null
                 ? ItemOperationLedger.ReadResult.absent()
                 : slotSnapshot.ledgerRead();
-        UpdateOutcome outcome = updateIfNeeded(snapshot, triggers, definitions, readResult);
+        UpdateOutcome outcome = updateIfNeeded(snapshot, triggers, definitions, readResult, context);
         ItemStack updated = outcome.itemStack();
         if (sameItem(snapshot, updated)) {
             return new SlotUpdateResult(0, false, outcome.considered(), outcome.cacheValid(),
@@ -316,7 +339,8 @@ public final class EmakiItemUpdateService {
             String currentId,
             EmakiItemAlias alias,
             EmakiItemLoader.Snapshot definitions,
-            ItemOperationLedger.ReadResult readResult) {
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext context) {
         if (alias == null) {
             return original;
         }
@@ -332,7 +356,7 @@ public final class EmakiItemUpdateService {
         ItemUpdateConfig updateConfig = definition.updatePolicy().resolve();
         String identityId = migratePdc ? definition.id() : currentId;
         if (rewriteDisplay) {
-            return rebuild(original, definition, updateConfig, identityId, readResult);
+            return rebuild(original, definition, updateConfig, identityId, readResult, context);
         }
         ItemStack migrated = original.clone();
         writeIdentity(migrated, definition, identityId);
@@ -343,11 +367,12 @@ public final class EmakiItemUpdateService {
             EmakiItemDefinition definition,
             ItemUpdateConfig updateConfig,
             String identityId,
-            ItemOperationLedger.ReadResult readResult) {
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext context) {
         ItemStateSnapshot preservedState = statePreservation == null
                 ? null
                 : statePreservation.capture(original);
-        ItemStack rebuilt = rebuildStack(original, definition, updateConfig, identityId, readResult);
+        ItemStack rebuilt = rebuildStack(original, definition, updateConfig, identityId, readResult, context);
         if (statePreservation != null && rebuilt != null && rebuilt != original) {
             statePreservation.reapply(rebuilt, preservedState, "rebuild");
         }
@@ -358,19 +383,20 @@ public final class EmakiItemUpdateService {
             EmakiItemDefinition definition,
             ItemUpdateConfig updateConfig,
             String identityId,
-            ItemOperationLedger.ReadResult readResult) {
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext context) {
         int amount = updateConfig.preserveAmount() ? original.getAmount() : 1;
         int oldDamage = readDamage(original);
         EmakiItemFactory.PreparedBuild prepared = itemFactory.prepareBuild(definition);
         if (prepared == null) {
             return original;
         }
-        MergeResult merged = mergeAssemblyAndLedger(original, prepared, amount, readResult);
+        MergeResult merged = mergeAssemblyAndLedger(original, prepared, amount, readResult, context);
         if (merged == null || merged.itemStack() == null) {
             return original;
         }
         EmakiItemFactory.FinishedBuild finished = itemFactory.finishBuild(
-                merged.itemStack(), definition, prepared.variables(), merged.readResult());
+                merged.itemStack(), definition, prepared.variables(), merged.readResult(), context);
         if (!finished.success() || finished.itemStack() == null) {
             return original;
         }
@@ -391,7 +417,8 @@ public final class EmakiItemUpdateService {
     private MergeResult mergeAssemblyAndLedger(ItemStack original,
             EmakiItemFactory.PreparedBuild prepared,
             int amount,
-            ItemOperationLedger.ReadResult readResult) {
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext context) {
         if (readResult == null || readResult.corrupt()) {
             return null;
         }
@@ -418,7 +445,8 @@ public final class EmakiItemUpdateService {
         ItemSourceRef source = ItemSourceUtil.parse(prepared.itemDefinition().source());
         ItemStack assembled = assemblyService.preview(
                 new EmakiItemAssemblyRequest(source, amount, assemblyState, List.of()),
-                assemblyRevert.readResult()
+                assemblyRevert.readResult(),
+                context
         );
         if (assembled == null) {
             copyPersistentData(original, rebuiltBase, false);

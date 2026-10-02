@@ -84,7 +84,7 @@ public final class StrengthenTransferService {
             return TransferResult.failure("strengthen.transfer.branch_selection_required");
         }
 
-        ItemStack result = attemptService.applyAdminState(target, transferredStar, 0, targetState.recipeId());
+        ItemStack result = attemptService.applyAdminState(player, target, transferredStar, 0, targetState.recipeId());
         if (result == null) {
             return TransferResult.failure("strengthen.transfer.rebuild_failed");
         }

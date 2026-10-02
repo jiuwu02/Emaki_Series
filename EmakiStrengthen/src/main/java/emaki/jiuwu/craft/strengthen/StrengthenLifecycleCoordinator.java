@@ -123,7 +123,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 snapshotBuilder,
                 actionCoordinator,
                 coreLibPlugin.itemAssemblyService(),
-                threadOwnership
+                threadOwnership,
+                coreLibPlugin.placeholderRegistry()
         );
         StrengthenTransferService transferService = new StrengthenTransferService(plugin, attemptService);
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);

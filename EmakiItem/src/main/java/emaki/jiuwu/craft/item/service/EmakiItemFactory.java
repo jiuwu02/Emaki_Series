@@ -9,6 +9,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildResult;
@@ -18,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.event.EmakiItemCreateEvent;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
@@ -79,11 +81,21 @@ public final class EmakiItemFactory {
             EmakiScheduling scheduling,
             DebugLogger debugLogger,
             EmakiItemEffectApplier effectApplier) {
+        this(loader, idResolver, pdcWriter, scheduling, debugLogger, effectApplier, null);
+    }
+
+    public EmakiItemFactory(EmakiItemLoader loader,
+            EmakiItemIdResolver idResolver,
+            EmakiItemPdcWriter pdcWriter,
+            EmakiScheduling scheduling,
+            DebugLogger debugLogger,
+            EmakiItemEffectApplier effectApplier,
+            PlaceholderRegistry placeholderRegistry) {
         this.loader = loader;
         this.idResolver = idResolver;
         this.pdcWriter = pdcWriter;
         this.scheduling = scheduling;
-        this.itemOperationLedger = new ItemOperationLedger(debugLogger);
+        this.itemOperationLedger = new ItemOperationLedger(debugLogger, placeholderRegistry);
         this.effectApplier = effectApplier;
     }
 
@@ -178,6 +190,14 @@ public final class EmakiItemFactory {
             EmakiItemDefinition definition,
             Map<String, Object> variables,
             ItemOperationLedger.ReadResult readResult) {
+        return finishBuild(itemStack, definition, variables, readResult, null);
+    }
+
+    FinishedBuild finishBuild(ItemStack itemStack,
+            EmakiItemDefinition definition,
+            Map<String, Object> variables,
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext context) {
         ItemOperationLedger.ReadResult currentReadResult = readResult == null
                 ? ItemOperationLedger.ReadResult.corrupt(List.of())
                 : readResult;
@@ -197,15 +217,26 @@ public final class EmakiItemFactory {
         if (!hasActions(definition.nameActions()) && !hasActions(definition.loreActions())) {
             return new FinishedBuild(true, itemStack, currentReadResult);
         }
-        ItemOperationLedger.UpdateResult applied = itemOperationLedger.apply(
-                itemStack,
-                currentReadResult,
-                "emakiitem:item_display:" + definition.id(),
-                DISPLAY_OPERATION_NAMESPACE,
-                definition.nameActions(),
-                definition.loreActions(),
-                safeVariables
-        );
+        ItemOperationLedger.UpdateResult applied = context == null
+                ? itemOperationLedger.apply(
+                        itemStack,
+                        currentReadResult,
+                        "emakiitem:item_display:" + definition.id(),
+                        DISPLAY_OPERATION_NAMESPACE,
+                        definition.nameActions(),
+                        definition.loreActions(),
+                        safeVariables
+                )
+                : itemOperationLedger.apply(
+                        context,
+                        itemStack,
+                        currentReadResult,
+                        "emakiitem:item_display:" + definition.id(),
+                        DISPLAY_OPERATION_NAMESPACE,
+                        definition.nameActions(),
+                        definition.loreActions(),
+                        safeVariables
+                );
         return new FinishedBuild(applied.success(), itemStack, applied.readResult());
     }
 

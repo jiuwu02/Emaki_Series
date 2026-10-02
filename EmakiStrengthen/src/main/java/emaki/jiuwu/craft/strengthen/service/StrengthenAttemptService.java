@@ -17,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -32,6 +33,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -78,7 +80,8 @@ public final class StrengthenAttemptService {
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator,
             EmakiItemAssemblyService itemAssemblyService,
-            ThreadOwnership threadOwnership) {
+            ThreadOwnership threadOwnership,
+            PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
         this.materialPlanResolver = new MaterialPlanResolver(recipeResolver, plugin);
@@ -89,7 +92,7 @@ public final class StrengthenAttemptService {
         this.itemAssemblyService = itemAssemblyService;
         this.threadOwnership = threadOwnership;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
     }
 
     public boolean canStrengthen(ItemStack itemStack) {
@@ -305,7 +308,8 @@ public final class StrengthenAttemptService {
                 currentState.branchPath()
         );
 
-        ItemStack rebuilt = rebuildWithState(context.targetItem(), updated, buildMaterialsSignature(preview));
+        ItemStack rebuilt = rebuildWithState(context.targetItem(), updated, buildMaterialsSignature(preview),
+                player == null ? null : ActionContext.create(player, "attempt", true));
         if (rebuilt == null) {
             return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview,
                     replacements(preview, resultStar), operationId));
@@ -423,6 +427,10 @@ public final class StrengthenAttemptService {
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
+        return rebuild(null, itemStack);
+    }
+
+    public ItemStack rebuild(Player player, ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;
         }
@@ -431,10 +439,15 @@ public final class StrengthenAttemptService {
         if (!state.hasLayer() || Texts.isBlank(state.recipeId())) {
             return itemStack;
         }
-        return rebuildWithState(itemStack, state, resolvedState.stored().materialsSignature());
+        return rebuildWithState(itemStack, state, resolvedState.stored().materialsSignature(),
+                player == null ? null : ActionContext.create(player, "rebuild", true));
     }
 
     public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
+        return applyAdminState(null, itemStack, star, temper, recipeId);
+    }
+
+    public ItemStack applyAdminState(Player player, ItemStack itemStack, Integer star, Integer temper, String recipeId) {
         StrengthenState current = readState(itemStack);
         if (Texts.isBlank(current.baseSource())) {
             return null;
@@ -459,10 +472,16 @@ public final class StrengthenAttemptService {
                 System.currentTimeMillis(),
                 current.branchPath()
         );
-        return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
+        return rebuildWithState(itemStack, updated,
+                readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature(),
+                player == null ? null : ActionContext.create(player, "admin", true));
     }
 
     public BranchSelection selectBranch(ItemStack itemStack, String childId) {
+        return selectBranch(null, itemStack, childId);
+    }
+
+    public BranchSelection selectBranch(Player player, ItemStack itemStack, String childId) {
         StrengthenState current = readState(itemStack);
         if (!current.eligible()) {
             return BranchSelection.failure(Texts.isBlank(current.eligibleReason())
@@ -514,7 +533,8 @@ public final class StrengthenAttemptService {
         );
         ItemStack rebuilt = rebuildWithState(itemStack, updated,
                 readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()),
-                        current.baseSourceSignature()).materialsSignature());
+                        current.baseSourceSignature()).materialsSignature(),
+                player == null ? null : ActionContext.create(player, "branch", true));
         if (rebuilt == null) {
             return BranchSelection.failure("strengthen.branch.apply_failed");
         }
@@ -678,7 +698,8 @@ public final class StrengthenAttemptService {
         return flags;
     }
 
-    private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature) {
+    private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature,
+            ActionContext actionContext) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
@@ -700,12 +721,13 @@ public final class StrengthenAttemptService {
             rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
             pdcAttributeWriter.preserveOtherAttributePayloads(itemStack, rebuilt);
             pdcAttributeWriter.applyPdcAttributes(rebuilt, recipe, state);
-            applyStrengthenOperations(rebuilt, recipe, state);
+            applyStrengthenOperations(rebuilt, recipe, state, actionContext);
         }
         return rebuilt;
     }
 
-    private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
+    private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state,
+            ActionContext actionContext) {
         Object nameActions = recipe.cumulativeNameActions(state.currentStar(), state.branchPath());
         Object loreActions = recipe.cumulativeLoreActions(state.currentStar(), state.branchPath());
         if ((nameActions instanceof List<?> nameList && nameList.isEmpty())
@@ -722,7 +744,7 @@ public final class StrengthenAttemptService {
         variables.put("temper", state.temperLevel());
         variables.put("max_temper", recipe.limits().maxTemper());
         operationLedger.revertAll(itemStack, OPERATION_NAMESPACE);
-        operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
+        operationLedger.apply(actionContext, itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
     }
 
     private String buildMaterialsSignature(AttemptPreview preview) {

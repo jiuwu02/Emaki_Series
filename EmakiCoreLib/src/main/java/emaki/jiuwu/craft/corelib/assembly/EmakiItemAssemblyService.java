@@ -19,6 +19,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -28,6 +29,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
@@ -69,11 +71,19 @@ public final class EmakiItemAssemblyService {
             EmakiItemLayerCodecRegistry codecRegistry,
             ItemSourceService itemSourceService,
             DebugLogger debugLogger) {
+        this(namespaceRegistry, codecRegistry, itemSourceService, debugLogger, null);
+    }
+
+    public EmakiItemAssemblyService(EmakiNamespaceRegistry namespaceRegistry,
+            EmakiItemLayerCodecRegistry codecRegistry,
+            ItemSourceService itemSourceService,
+            DebugLogger debugLogger,
+            PlaceholderRegistry placeholderRegistry) {
         this.namespaceRegistry = Objects.requireNonNull(namespaceRegistry, "namespaceRegistry");
         this.itemSourceService = Objects.requireNonNull(itemSourceService, "itemSourceService");
         this.dataManager = new AssemblyDataManager(namespaceRegistry, codecRegistry, debugLogger);
         this.itemRenderService = new ItemRenderService(namespaceRegistry);
-        this.operationLedger = new ItemOperationLedger(debugLogger);
+        this.operationLedger = new ItemOperationLedger(debugLogger, placeholderRegistry);
     }
 
     public void configureAsync(AsyncTaskScheduler asyncTaskScheduler,
@@ -84,21 +94,39 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request) {
-        return preview(request, "direct", null);
+        return preview(request, (ActionContext) null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request, ActionContext actionContext) {
+        return preview(request, "direct", null, actionContext);
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request, String debugTarget, DebugLogger debugLogger) {
-        return preview(request, debugTarget, debugLogger, null);
+        return preview(request, debugTarget, debugLogger, (ActionContext) null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request,
+            String debugTarget,
+            DebugLogger debugLogger,
+            ActionContext actionContext) {
+        return preview(request, debugTarget, debugLogger, null, actionContext);
     }
 
     public ItemStack preview(EmakiItemAssemblyRequest request, ItemOperationLedger.ReadResult readResult) {
-        return preview(request, "direct", null, readResult);
+        return preview(request, readResult, null);
+    }
+
+    public ItemStack preview(EmakiItemAssemblyRequest request,
+            ItemOperationLedger.ReadResult readResult,
+            ActionContext actionContext) {
+        return preview(request, "direct", null, readResult, actionContext);
     }
 
     private ItemStack preview(EmakiItemAssemblyRequest request,
                               String debugTarget,
                               DebugLogger debugLogger,
-                              ItemOperationLedger.ReadResult suppliedReadResult) {
+                              ItemOperationLedger.ReadResult suppliedReadResult,
+                              ActionContext actionContext) {
         return measure("assembly-preview", () -> {
             ItemStack existingItem = request == null ? null : request.existingItem();
             ItemOperationLedger.ReadResult readResult = existingItem == null
@@ -187,15 +215,19 @@ public final class EmakiItemAssemblyService {
     }
 
     public CompletableFuture<ItemStack> previewAsync(EmakiItemAssemblyRequest request) {
+        return previewAsync(request, null);
+    }
+
+    public CompletableFuture<ItemStack> previewAsync(EmakiItemAssemblyRequest request, ActionContext actionContext) {
         AsyncConfig config = asyncConfig;
         if (config.scheduler() == null) {
-            return CompletableFuture.completedFuture(preview(request));
+            return CompletableFuture.completedFuture(preview(request, actionContext));
         }
         CompletableFuture<ItemStack> rendered = config.scheduler().supplyAsync(
                 "assembly-preview",
                 AsyncTaskScheduler.TaskPriority.NORMAL,
                 10_000L,
-                () -> preview(request));
+                () -> preview(request, actionContext));
         if (config.executionDispatcher() == null || config.executionOwner() == null) {
             return rendered.thenApply(itemStack -> itemStack == null ? null : itemStack.clone());
         }
@@ -205,17 +237,25 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
+        return rebuild(itemStack, null);
+    }
+
+    public ItemStack rebuild(ItemStack itemStack, ActionContext actionContext) {
         if (!isEmakiItem(itemStack)) {
             return itemStack == null ? null : itemStack.clone();
         }
-        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of()));
+        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of()), actionContext);
     }
 
     public ItemStack give(Player player, EmakiItemAssemblyRequest request) {
+        return give(player, request, null);
+    }
+
+    public ItemStack give(Player player, EmakiItemAssemblyRequest request, ActionContext actionContext) {
         EmakiItemAssemblyRequest effectiveRequest = request == null
                 ? null
                 : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
-        ItemStack itemStack = preview(effectiveRequest);
+        ItemStack itemStack = preview(effectiveRequest, actionContext);
         if (player == null || itemStack == null) {
             return itemStack;
         }
@@ -224,10 +264,17 @@ public final class EmakiItemAssemblyService {
     }
 
     public CompletableFuture<ItemStack> giveAsync(Player player, EmakiItemAssemblyRequest request) {
+        return giveAsync(player, request, null);
+    }
+
+    public CompletableFuture<ItemStack> giveAsync(Player player,
+            EmakiItemAssemblyRequest request,
+            ActionContext actionContext) {
         EmakiItemAssemblyRequest effectiveRequest = request == null
                 ? null
                 : request.withFeedbackPlayerId(player == null ? null : player.getUniqueId());
-        return previewAsync(effectiveRequest).thenCompose(itemStack -> deliverToPlayerAsync(player, itemStack));
+        return previewAsync(effectiveRequest, actionContext)
+                .thenCompose(itemStack -> deliverToPlayerAsync(player, itemStack));
     }
 
     public boolean isEmakiItem(ItemStack itemStack) {
@@ -255,17 +302,26 @@ public final class EmakiItemAssemblyService {
     }
 
     public ItemStack removeLayer(ItemStack itemStack, String namespaceId) {
+        return removeLayer(itemStack, namespaceId, null);
+    }
+
+    public ItemStack removeLayer(ItemStack itemStack, String namespaceId, ActionContext actionContext) {
         if (itemStack == null || !isEmakiItem(itemStack)) {
             return itemStack == null ? null : itemStack.clone();
         }
-        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), List.of(namespaceId)));
+        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), List.of(namespaceId)),
+                actionContext);
     }
 
     public ItemStack removeLayers(ItemStack itemStack, List<String> namespaceIds) {
+        return removeLayers(itemStack, namespaceIds, null);
+    }
+
+    public ItemStack removeLayers(ItemStack itemStack, List<String> namespaceIds, ActionContext actionContext) {
         if (itemStack == null || !isEmakiItem(itemStack)) {
             return itemStack == null ? null : itemStack.clone();
         }
-        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), namespaceIds));
+        return preview(new EmakiItemAssemblyRequest(null, 0, itemStack, List.of(), namespaceIds), actionContext);
     }
 
     public void clearPreviewCache() {

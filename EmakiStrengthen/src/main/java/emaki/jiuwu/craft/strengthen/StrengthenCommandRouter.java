@@ -451,6 +451,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             return true;
         }
         ItemStack rebuilt = plugin.attemptService().applyAdminState(
+                player,
                 player.getInventory().getItemInMainHand(),
                 star,
                 null,
@@ -476,7 +477,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         }
         ItemStack held = player.getInventory().getItemInMainHand();
         StrengthenAttemptService.BranchSelection selection =
-                plugin.attemptService().selectBranch(held, args.length >= 2 ? args[1] : "");
+                plugin.attemptService().selectBranch(player, held, args.length >= 2 ? args[1] : "");
         switch (selection.outcome()) {
             case FAILED -> plugin.messageService().send(sender, selection.errorKey());
             case PENDING_CHOICE -> sendBranchOptions(sender, selection, "command.branch.options");
@@ -535,7 +536,8 @@ final class StrengthenCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "general.no_permission");
             return true;
         }
-        ItemStack rebuilt = plugin.attemptService().applyAdminState(player.getInventory().getItemInMainHand(), null, 0, null);
+        ItemStack rebuilt = plugin.attemptService().applyAdminState(player,
+                player.getInventory().getItemInMainHand(), null, 0, null);
         if (rebuilt == null) {
             plugin.messageService().send(sender, "command.admin_state_failed");
             return true;

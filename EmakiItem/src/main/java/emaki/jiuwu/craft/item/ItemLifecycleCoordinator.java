@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.item.integration.ItemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -147,13 +148,15 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 pdcAttributeGateway,
                 plugin.debugLogger()
         );
+        PlaceholderRegistry placeholderRegistry = coreLibPlugin.placeholderRegistry();
         EmakiItemFactory itemFactory = new EmakiItemFactory(
                 itemLoader,
                 idResolver,
                 pdcWriter,
                 scheduling,
                 plugin.debugLogger(),
-                effectApplier
+                effectApplier,
+                placeholderRegistry
         );
         EmakiItemUpdateService updateService = new EmakiItemUpdateService(
                 itemLoader,
@@ -162,7 +165,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 identifier,
                 pdcAttributeGateway::copyPayloads,
                 coreLibPlugin.itemAssemblyService(),
-                plugin.debugLogger()
+                plugin.debugLogger(),
+                placeholderRegistry
         );
         EmakiItemStateService stateService = new EmakiItemStateService(
                 () -> plugin.appConfig().itemState(),
@@ -187,7 +191,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 plugin::appConfig,
                 plugin::debugLogger,
                 plugin.getLogger(),
-                scheduling
+                scheduling,
+                placeholderRegistry
         );
         ItemComponentInspector componentInspector = new ItemComponentInspector();
         ItemComponentPlaceholderResolver componentPlaceholderResolver = new ItemComponentPlaceholderResolver(componentInspector);

@@ -11,6 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -25,9 +26,9 @@ final class ItemOperationExecutor {
     private final LoreOperationRegistry loreOperations;
     private final NameOperationRegistry nameOperations;
 
-    public ItemOperationExecutor(ItemOperationLedger ledger) {
+    public ItemOperationExecutor(ItemOperationLedger ledger, PlaceholderRegistry placeholderRegistry) {
         this.ledger = ledger;
-        this.templateRenderer = new OperationTemplateRenderer();
+        this.templateRenderer = new OperationTemplateRenderer(placeholderRegistry);
         this.loreOperations = new LoreOperationRegistry(templateRenderer);
         this.nameOperations = new NameOperationRegistry(templateRenderer);
     }

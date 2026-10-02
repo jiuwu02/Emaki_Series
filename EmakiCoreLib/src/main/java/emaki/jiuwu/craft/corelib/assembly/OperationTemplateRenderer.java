@@ -13,11 +13,22 @@ import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class OperationTemplateRenderer {
 
     private static final Map<String, Pattern> REGEX_CACHE = new ConcurrentHashMap<>();
+
+    private final PlaceholderRegistry placeholderRegistry;
+
+    public OperationTemplateRenderer() {
+        this(null);
+    }
+
+    public OperationTemplateRenderer(PlaceholderRegistry placeholderRegistry) {
+        this.placeholderRegistry = placeholderRegistry;
+    }
 
     public List<Map<String, Object>> normalizeOperations(Object raw) {
         List<Map<String, Object>> normalized = new ArrayList<>();
@@ -100,6 +111,12 @@ public final class OperationTemplateRenderer {
             DebugLogger debugLogger,
             String source) {
         Map<String, Object> safeVariables = variables == null ? Map.of() : variables;
+        if (placeholderRegistry != null) {
+            if (template instanceof String text) {
+                return placeholderRegistry.resolve(context, safeVariables, text);
+            }
+            return placeholderRegistry.resolve(context, Map.of(), ExpressionEngine.evaluateStringConfig(template, safeVariables));
+        }
         String rendered = template instanceof String text
                 ? PlaceholderRenderer.renderInternal(text, safeVariables, debugLogger, context == null ? null : context.player(), source)
                 : ExpressionEngine.evaluateStringConfig(template, safeVariables);
@@ -140,7 +157,7 @@ public final class OperationTemplateRenderer {
                     continue;
                 }
                 for (String line : ExpressionEngine.evaluateStringLinesConfig(entry, safeVariables)) {
-                    result.add(PlaceholderRenderer.renderPapi(context == null ? null : context.player(), line, debugLogger, source));
+                    result.add(renderTail(context, line, debugLogger, source));
                 }
             }
             return result;
@@ -151,9 +168,17 @@ public final class OperationTemplateRenderer {
         }
         List<String> result = new ArrayList<>(lines.size());
         for (String line : lines) {
-            result.add(PlaceholderRenderer.renderPapi(context == null ? null : context.player(), line, debugLogger, source));
+            result.add(renderTail(context, line, debugLogger, source));
         }
         return result;
+    }
+
+    // 表达式产生的行尾段：registry 存在时交由 resolver 链 + PAPI，否则保持旧 renderPapi 直连
+    private String renderTail(ActionContext context, String line, DebugLogger debugLogger, String source) {
+        if (placeholderRegistry != null) {
+            return placeholderRegistry.resolve(context, Map.of(), line);
+        }
+        return PlaceholderRenderer.renderPapi(context == null ? null : context.player(), line, debugLogger, source);
     }
 
     public static String replaceRegex(String text,

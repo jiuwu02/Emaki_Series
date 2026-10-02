@@ -136,12 +136,14 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 coreLibPlugin.itemAssemblyService(),
                 plugin.actionLines(),
                 executionDispatcher,
-                threadOwnership
+                threadOwnership,
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeItemRefreshService itemRefreshService = new ForgeItemRefreshService(
                 plugin,
                 coreLibPlugin.itemAssemblyService(),
-                executionDispatcher
+                executionDispatcher,
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);

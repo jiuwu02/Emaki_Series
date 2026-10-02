@@ -120,7 +120,7 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
             return CoreActionOutcome.skipped("action.stage.strengthen.empty_hand");
         }
         StrengthenState before = plugin.attemptService().readState(original);
-        ItemStack updated = apply(original, before, arguments);
+        ItemStack updated = apply(target, original, before, arguments);
         if (updated == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.stage.strengthen.rebuild_failed");
@@ -133,16 +133,16 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
                 "has_layer", after.hasLayer()));
     }
 
-    private ItemStack apply(ItemStack original, StrengthenState before, CoreResolvedArguments arguments) {
+    private ItemStack apply(Player target, ItemStack original, StrengthenState before, CoreResolvedArguments arguments) {
         return switch (operation) {
-            case RERENDER -> plugin.attemptService().rebuild(original);
-            case SET_STAR -> plugin.attemptService().applyAdminState(original,
+            case RERENDER -> plugin.attemptService().rebuild(target, original);
+            case SET_STAR -> plugin.attemptService().applyAdminState(target, original,
                     arguments.getInt("star", before.currentStar()), null, null);
-            case ADD_STAR -> plugin.attemptService().applyAdminState(original,
+            case ADD_STAR -> plugin.attemptService().applyAdminState(target, original,
                     before.currentStar() + arguments.getInt("amount", 0), null, null);
-            case REMOVE_STAR -> plugin.attemptService().applyAdminState(original,
+            case REMOVE_STAR -> plugin.attemptService().applyAdminState(target, original,
                     Math.max(0, before.currentStar() - Math.max(0, arguments.getInt("amount", 1))), null, null);
-            case RESET_STAR -> plugin.attemptService().applyAdminState(original, 0, null, null);
+            case RESET_STAR -> plugin.attemptService().applyAdminState(target, original, 0, null, null);
             case CLEAR_LAYER -> plugin.attemptService().clearStrengthenLayer(original);
         };
     }

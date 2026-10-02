@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -47,20 +48,28 @@ public final class ItemOperationLedger {
     private final ItemLoreReconciler loreReconciler = new ItemLoreReconciler();
 
     public ItemOperationLedger() {
-        this((Supplier<DebugLogger>) null);
+        this((Supplier<DebugLogger>) null, null);
     }
 
     public ItemOperationLedger(DebugLogger debugLogger) {
-        this(() -> debugLogger);
+        this(() -> debugLogger, null);
     }
 
     public ItemOperationLedger(Supplier<DebugLogger> debugLoggerSupplier) {
+        this(debugLoggerSupplier, null);
+    }
+
+    public ItemOperationLedger(DebugLogger debugLogger, PlaceholderRegistry placeholderRegistry) {
+        this(() -> debugLogger, placeholderRegistry);
+    }
+
+    public ItemOperationLedger(Supplier<DebugLogger> debugLoggerSupplier, PlaceholderRegistry placeholderRegistry) {
         this.debugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         this.pdc = new PdcService("emaki", "pdc", this.debugLoggerSupplier.get());
         this.partition = pdc.partition("item");
         this.operationsKey = partition.key(FIELD);
         this.presentationSnapshotKey = partition.key(PRESENTATION_SNAPSHOT_FIELD);
-        this.executor = new ItemOperationExecutor(this);
+        this.executor = new ItemOperationExecutor(this, placeholderRegistry);
         this.reverter = new ItemOperationReverter(this);
         this.replayer = new ItemOperationReplayer();
     }

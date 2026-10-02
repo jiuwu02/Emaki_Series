@@ -10,6 +10,7 @@ import java.util.Set;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
@@ -299,6 +300,14 @@ final class ItemSetPresentationCalculator {
                             EmakiItemDefinition definition,
                             ItemSetMembership membership,
                             EquippedSetState state) {
+        return renderSetItem(itemStack, definition, membership, state, null);
+    }
+
+    ItemStack renderSetItem(ItemStack itemStack,
+                            EmakiItemDefinition definition,
+                            ItemSetMembership membership,
+                            EquippedSetState state,
+                            ActionContext context) {
         if (itemStack == null || definition == null || state == null || state.definition() == null) {
             return itemStack;
         }
@@ -308,9 +317,9 @@ final class ItemSetPresentationCalculator {
         ItemOperationLedger.ReadResult ledgerRead = itemOperationLedger.read(itemStack);
         LedgerFacts ledgerFacts = LedgerFacts.from(ledgerRead);
         SetPresentationInspection inspection = inspectSetPresentation(
-                itemStack, ledgerRead, identity, ledgerFacts, definition, membership, state, target);
+                itemStack, ledgerRead, identity, ledgerFacts, definition, membership, state, target, context);
         return renderSetItem(
-                itemStack, definition, membership, state, target, inspection, ledgerRead, ledgerFacts, identity).itemStack();
+                itemStack, definition, membership, state, target, inspection, ledgerRead, ledgerFacts, identity, context).itemStack();
     }
 
     SetItemMutation renderSetItem(ItemStack itemStack,
@@ -322,6 +331,20 @@ final class ItemSetPresentationCalculator {
                                   ItemOperationLedger.ReadResult ledgerRead,
                                   LedgerFacts ledgerFacts,
                                   EmakiItemIdentifier.Snapshot identity) {
+        return renderSetItem(itemStack, definition, membership, state, target, inspection,
+                ledgerRead, ledgerFacts, identity, null);
+    }
+
+    SetItemMutation renderSetItem(ItemStack itemStack,
+                                  EmakiItemDefinition definition,
+                                  ItemSetMembership membership,
+                                  EquippedSetState state,
+                                  SetPresentationTarget target,
+                                  SetPresentationInspection inspection,
+                                  ItemOperationLedger.ReadResult ledgerRead,
+                                  LedgerFacts ledgerFacts,
+                                  EmakiItemIdentifier.Snapshot identity,
+                                  ActionContext context) {
         if (inspection.current()) {
             return SetItemMutation.success(itemStack, ledgerRead);
         }
@@ -363,6 +386,7 @@ final class ItemSetPresentationCalculator {
         List<String> staticBlock = staticLoreBlock(loreLines(itemStack), target.setLore());
         if (!staticBlock.isEmpty()) {
             ItemOperationLedger.UpdateResult staticApply = itemOperationLedger.apply(
+                    context,
                     itemStack,
                     currentReadResult,
                     staticLoreOperationId(setId),
@@ -378,6 +402,7 @@ final class ItemSetPresentationCalculator {
         }
         if (target.expectsThresholdOperation()) {
             ItemOperationLedger.UpdateResult thresholdApply = itemOperationLedger.apply(
+                    context,
                     itemStack,
                     currentReadResult,
                     thresholdOperationId(setId),
@@ -441,10 +466,23 @@ final class ItemSetPresentationCalculator {
                                                      ItemSetMembership membership,
                                                      EquippedSetState state,
                                                      SetPresentationTarget target) {
+        return inspectSetPresentation(itemStack, ledgerRead, identity, ledgerFacts, definition,
+                membership, state, target, null);
+    }
+
+    SetPresentationInspection inspectSetPresentation(ItemStack itemStack,
+                                                     ItemOperationLedger.ReadResult ledgerRead,
+                                                     EmakiItemIdentifier.Snapshot identity,
+                                                     LedgerFacts ledgerFacts,
+                                                     EmakiItemDefinition definition,
+                                                     ItemSetMembership membership,
+                                                     EquippedSetState state,
+                                                     SetPresentationTarget target,
+                                                     ActionContext context) {
         String setId = membership.setId();
         boolean staticOperationPresent = ledgerFacts.hasOperation(staticLoreOperationId(setId));
         boolean thresholdOperationPresent = ledgerFacts.hasOperation(thresholdOperationId(setId));
-        ExpectedPresentationEntries expected = expectedPresentationEntries(itemStack, ledgerRead, setId, target);
+        ExpectedPresentationEntries expected = expectedPresentationEntries(itemStack, ledgerRead, setId, target, context);
         int expectedOperationCount = (expected.staticEntry() == null ? 0 : 1)
                 + (expected.thresholdEntry() == null ? 0 : 1);
         boolean operationsCurrent = expected.success()
@@ -478,7 +516,8 @@ final class ItemSetPresentationCalculator {
     private ExpectedPresentationEntries expectedPresentationEntries(ItemStack itemStack,
                                                                      ItemOperationLedger.ReadResult ledgerRead,
                                                                      String setId,
-                                                                     SetPresentationTarget target) {
+                                                                     SetPresentationTarget target,
+                                                                     ActionContext context) {
         if (itemStack == null || ledgerRead == null || ledgerRead.corrupt()) {
             return ExpectedPresentationEntries.failure();
         }
@@ -494,6 +533,7 @@ final class ItemSetPresentationCalculator {
         List<String> staticBlock = staticLoreBlock(loreLines(projection), target.setLore());
         if (!staticBlock.isEmpty()) {
             ItemOperationLedger.UpdateResult staticApply = itemOperationLedger.apply(
+                    context,
                     projection,
                     currentReadResult,
                     staticLoreOperationId(setId),
@@ -512,6 +552,7 @@ final class ItemSetPresentationCalculator {
         ItemOperationEntry thresholdEntry = null;
         if (target.expectsThresholdOperation()) {
             ItemOperationLedger.UpdateResult thresholdApply = itemOperationLedger.apply(
+                    context,
                     projection,
                     currentReadResult,
                     thresholdOperationId(setId),

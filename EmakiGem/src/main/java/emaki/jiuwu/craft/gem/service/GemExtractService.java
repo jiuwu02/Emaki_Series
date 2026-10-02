@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.api.event.GemExtractCompletedEvent;
@@ -58,7 +59,8 @@ public final class GemExtractService {
             GemStateService stateService,
             GemEconomyService economyService,
             GemActionCoordinator actionCoordinator,
-            EmakiScheduling scheduling) {
+            EmakiScheduling scheduling,
+            PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.scheduling = scheduling;
         this.itemMatcher = itemMatcher;
@@ -66,7 +68,7 @@ public final class GemExtractService {
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
         this.operationJournal = GemOperationJournal.forPlugin(plugin, scheduling);
     }
 

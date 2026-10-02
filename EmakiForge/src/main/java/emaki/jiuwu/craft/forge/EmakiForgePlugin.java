@@ -556,12 +556,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 coreLibPlugin.itemAssemblyService(),
                 actionLines(),
                 previousComponents.executionDispatcher(),
-                previousComponents.threadOwnership()
+                previousComponents.threadOwnership(),
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeItemRefreshService nextItemRefreshService = new ForgeItemRefreshService(
                 this,
                 coreLibPlugin.itemAssemblyService(),
-                previousComponents.executionDispatcher()
+                previousComponents.executionDispatcher(),
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeGuiService nextForgeGuiService = new ForgeGuiService(
                 this,

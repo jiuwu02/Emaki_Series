@@ -119,7 +119,7 @@ public final class ForgeRefreshStage implements CoreActionStage {
         if (original == null || original.getType().isAir()) {
             return CoreActionOutcome.skipped("action.stage.forge.empty_hand");
         }
-        ItemStack refreshed = refreshService.refreshItem(original);
+        ItemStack refreshed = refreshService.refreshItem(target, original);
         boolean changed = refreshed != original;
         if (changed) {
             target.getInventory().setItemInMainHand(refreshed);

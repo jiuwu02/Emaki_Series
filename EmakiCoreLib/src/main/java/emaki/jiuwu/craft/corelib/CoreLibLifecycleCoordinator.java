@@ -76,7 +76,8 @@ final class CoreLibLifecycleCoordinator
                 plugin.namespaceRegistry(),
                 plugin.itemLayerCodecRegistry,
                 itemSourceService,
-                debugLogger
+                debugLogger,
+                plugin.placeholderRegistry()
         );
         itemAssemblyService.configureAsync(
                 asyncTaskScheduler, plugin.executionDispatcher(), plugin, performanceMonitor);

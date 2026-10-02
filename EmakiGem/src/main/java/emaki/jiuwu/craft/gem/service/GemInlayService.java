@@ -15,11 +15,13 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -98,14 +100,15 @@ public final class GemInlayService {
             GemStateService stateService,
             GemEconomyService economyService,
             GemActionCoordinator actionCoordinator,
-            EmakiScheduling scheduling) {
+            EmakiScheduling scheduling,
+            PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.scheduling = scheduling;
         this.itemMatcher = itemMatcher;
         this.stateService = stateService;
         this.economyService = economyService;
         this.actionCoordinator = actionCoordinator;
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
         this.operationJournal = GemOperationJournal.forPlugin(plugin, scheduling);
     }
 
@@ -118,6 +121,7 @@ public final class GemInlayService {
         if (actor == null) {
             return new InlayResult(Result.failure("general.player_not_found", Map.of()), equipment);
         }
+        ActionContext context = ActionContext.create(actor, "gem_inlay", true);
         GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
         if (itemDefinition == null) {
             return new InlayResult(Result.failure("gem.error.invalid_equipment", Map.of("player", actor.getName())), equipment);
@@ -243,7 +247,7 @@ public final class GemInlayService {
             return new InlayResult(Result.failure("command.inlay.apply_failed", Map.of("player", actor.getName())),
                     equipment, operationId);
         }
-        applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders);
+        applyGemOperations(rebuilt, gemDefinition, instance, slotIndex, placeholders, context);
         Runnable completedEvent = () -> fireInlayCompleted(operationId, actor, true, rebuilt, true, slotIndex,
                 gemDefinition.id(), instance.level(), "");
         return new InlayResult(Result.success("command.inlay.success", placeholders), rebuilt, operationId,
@@ -286,6 +290,7 @@ public final class GemInlayService {
             return new ExtractDirectResult(
                     GemExtractService.Result.failure("general.player_not_found", Map.of()), equipment, null);
         }
+        ActionContext context = ActionContext.create(actor, "gem_extract", true);
         GemItemDefinition itemDefinition = stateService.resolveItemDefinition(equipment);
         if (itemDefinition == null) {
             return new ExtractDirectResult(
@@ -344,7 +349,7 @@ public final class GemInlayService {
                     GemExtractService.Result.failure("command.extract.apply_failed", Map.of("player", actor.getName())),
                     equipment, null, operationId);
         }
-        revertGemOperations(rebuilt, slotIndex);
+        revertGemOperations(rebuilt, slotIndex, context);
         ItemStack returned = createReturnedGem(gemDefinition, instance);
         Map<String, Object> placeholders = new LinkedHashMap<>();
         placeholders.put("player", actor.getName());
@@ -503,19 +508,19 @@ public final class GemInlayService {
         return Map.copyOf(variables);
     }
 
-    private void applyGemOperations(ItemStack itemStack, GemDefinition gemDefinition, GemItemInstance instance, int slotIndex, Map<String, Object> placeholders) {
+    private void applyGemOperations(ItemStack itemStack, GemDefinition gemDefinition, GemItemInstance instance, int slotIndex, Map<String, Object> placeholders, ActionContext context) {
         Object nameActions = gemDefinition.nameActionsForLevel(instance.level());
         Object loreActions = gemDefinition.loreActionsForLevel(instance.level());
         if (nameActions != null || loreActions != null) {
             String operationId = OPERATION_NAMESPACE + ":slot_" + slotIndex;
             Map<String, Object> variables = new LinkedHashMap<>(placeholders);
             variables.putAll(plugin.itemFactory().gemPlaceholders(gemDefinition, instance.level(), null));
-            operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
+            operationLedger.apply(context, itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
         }
-        applyResonanceOperations(itemStack);
+        applyResonanceOperations(itemStack, context);
     }
 
-    private void applyResonanceOperations(ItemStack itemStack) {
+    private void applyResonanceOperations(ItemStack itemStack, ActionContext context) {
         GemResonanceService resonanceService = plugin.resonanceService();
         if (resonanceService == null) {
             return;
@@ -551,14 +556,14 @@ public final class GemInlayService {
                 continue;
             }
             String resOperationId = OPERATION_NAMESPACE + ".resonance:" + resonance.id();
-            operationLedger.apply(itemStack, resOperationId, OPERATION_NAMESPACE + ".resonance", resNameActions, resLoreActions, Map.of());
+            operationLedger.apply(context, itemStack, resOperationId, OPERATION_NAMESPACE + ".resonance", resNameActions, resLoreActions, Map.of());
         }
     }
 
-    private void revertGemOperations(ItemStack itemStack, int slotIndex) {
+    private void revertGemOperations(ItemStack itemStack, int slotIndex, ActionContext context) {
         String operationId = OPERATION_NAMESPACE + ":slot_" + slotIndex;
         operationLedger.revert(itemStack, operationId);
-        applyResonanceOperations(itemStack);
+        applyResonanceOperations(itemStack, context);
     }
 
     private boolean evaluateConditions(Player player) {

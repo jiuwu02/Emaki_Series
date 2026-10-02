@@ -21,6 +21,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -33,6 +34,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -53,13 +55,14 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin,
                                    EmakiItemAssemblyService itemAssemblyService,
-                                   ExecutionDispatcher executionDispatcher) {
+                                   ExecutionDispatcher executionDispatcher,
+                                   PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.executionDispatcher = executionDispatcher;
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
     }
 
     public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
@@ -170,6 +173,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         return refreshItem(null, "direct", itemStack);
     }
 
+    public ItemStack refreshItem(Player player, ItemStack itemStack) {
+        return refreshItem(player, "held", itemStack);
+    }
+
     private ItemStack refreshItem(Player player, String target, ItemStack itemStack) {
         return refreshItem(player, target, itemStack, false);
     }
@@ -182,6 +189,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemAssemblyService == null) {
             return itemStack;
         }
+        ActionContext context = player == null ? null : ActionContext.create(player, "forge.refresh", true);
         debugForgeRefresh(player, target, "input", plan, itemStack);
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(
                 plan.recipe(),
@@ -223,7 +231,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
-        applyRefreshOperations(rebuilt, plan);
+        applyRefreshOperations(rebuilt, plan, context);
         debugForgeRefresh(player, target, "output", plan, rebuilt);
         return rebuilt;
     }
@@ -540,7 +548,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         plugin.messageService().warning(messageKey, replacements);
     }
 
-    private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan) {
+    private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan, ActionContext context) {
         if (plan == null || plan.recipe() == null) {
             return;
         }
@@ -592,7 +600,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         String operationId = "forge:" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
         Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
-        operationLedger.apply(itemStack, operationId, "forge",
+        operationLedger.apply(context, itemStack, operationId, "forge",
                 allNameActions.isEmpty() ? null : nameActionsToApply,
                 allLoreActions.isEmpty() ? null : loreActionsToApply,
                 variables);

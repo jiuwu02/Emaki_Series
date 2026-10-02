@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -76,7 +77,8 @@ public final class ForgeService {
                         EmakiItemAssemblyService itemAssemblyService,
                         ActionLineRunner actionLines,
                         ExecutionDispatcher executionDispatcher,
-                        ThreadOwnership threadOwnership) {
+                        ThreadOwnership threadOwnership,
+                        PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.masteryService = new ForgeMasteryService(plugin == null ? null : plugin.playerDataStore());
@@ -138,7 +140,7 @@ public final class ForgeService {
                 plugin,
                 layerSnapshotBuilder,
                 pdcAttributeWriter,
-                new ItemOperationLedger(plugin::debugLogger)
+                new ItemOperationLedger(plugin::debugLogger, placeholderRegistry)
         );
         this.recipeMatchingService = new RecipeMatchingService(
                 this::candidateRecipes,

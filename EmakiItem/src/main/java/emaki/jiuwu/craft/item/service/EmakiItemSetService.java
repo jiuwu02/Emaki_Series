@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
@@ -79,7 +80,22 @@ public final class EmakiItemSetService {
                                Logger logger,
                                EmakiScheduling scheduling) {
         this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
-                debugLoggerSupplier, logger, null, scheduling);
+                debugLoggerSupplier, logger, null, scheduling, null);
+    }
+
+    public EmakiItemSetService(EmakiItemLoader itemLoader,
+                               EmakiItemSetLoader setLoader,
+                               EmakiItemFactory itemFactory,
+                               EmakiItemIdentifier identifier,
+                               EmakiItemPdcWriter pdcWriter,
+                               ItemSetLoreRenderer loreRenderer,
+                               Supplier<AppConfig> configSupplier,
+                               Supplier<DebugLogger> debugLoggerSupplier,
+                               Logger logger,
+                               EmakiScheduling scheduling,
+                               PlaceholderRegistry placeholderRegistry) {
+        this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
+                debugLoggerSupplier, logger, null, scheduling, placeholderRegistry);
     }
 
     EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -91,7 +107,7 @@ public final class EmakiItemSetService {
                         Supplier<AppConfig> configSupplier,
                         ItemOperationLedger itemOperationLedger) {
         this(itemLoader, setLoader, itemFactory, identifier, pdcWriter, loreRenderer, configSupplier,
-                () -> null, null, itemOperationLedger, null);
+                () -> null, null, itemOperationLedger, null, null);
     }
 
     private EmakiItemSetService(EmakiItemLoader itemLoader,
@@ -104,11 +120,12 @@ public final class EmakiItemSetService {
                                 Supplier<DebugLogger> debugLoggerSupplier,
                                 Logger logger,
                                 ItemOperationLedger itemOperationLedger,
-                                EmakiScheduling scheduling) {
+                                EmakiScheduling scheduling,
+                                PlaceholderRegistry placeholderRegistry) {
         this.itemFactory = itemFactory;
         Supplier<DebugLogger> effectiveDebugLoggerSupplier = debugLoggerSupplier == null ? () -> null : debugLoggerSupplier;
         ItemOperationLedger effectiveLedger = itemOperationLedger == null
-                ? new ItemOperationLedger(effectiveDebugLoggerSupplier)
+                ? new ItemOperationLedger(effectiveDebugLoggerSupplier, placeholderRegistry)
                 : itemOperationLedger;
         this.calculator = new ItemSetPresentationCalculator(identifier, pdcWriter, loreRenderer, effectiveLedger);
         this.refresher = new ItemSetListenerScopeRefresher(
