@@ -8,7 +8,6 @@ import java.util.Map;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import net.kyori.adventure.text.Component;
 
@@ -275,7 +274,7 @@ final class DamageMessageDispatcher {
             return "";
         }
         MythicMobBridge.MythicMobSnapshot snapshot =
-                JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).mythicMobBridge().snapshot(entity);
+                EmakiCoreLibPlugin.lookup().mythicMobBridge().snapshot(entity);
         return snapshot == null ? "" : MiniMessages.legacyAmpersandToMiniMessage(snapshot.displayName());
     }
 }

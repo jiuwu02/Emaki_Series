@@ -7,7 +7,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -86,7 +85,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
@@ -336,7 +335,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return CompletableFuture.completedFuture(null);
         }
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, allowed);
             return CompletableFuture.completedFuture(null);
@@ -467,7 +466,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             plugin.messageService().info("console.plugin_stopping");
         }
         closeRepairInventories(plugin);
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }

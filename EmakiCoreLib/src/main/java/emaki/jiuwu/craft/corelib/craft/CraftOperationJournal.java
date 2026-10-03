@@ -391,7 +391,7 @@ public final class CraftOperationJournal<R> {
                 return asyncYamlFiles;
             }
             try {
-                EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+                EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
                 this.fileScope = coreLib.asyncFileScope(ownerPlugin);
                 this.asyncYamlFiles = new AsyncYamlFiles(fileScope);
             } catch (RuntimeException | LinkageError failure) {
@@ -411,7 +411,7 @@ public final class CraftOperationJournal<R> {
 
     private AsyncTaskScheduler resolveAsyncTaskScheduler() {
         try {
-            return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+            return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         } catch (RuntimeException | LinkageError failure) {
             if (!asyncSchedulerUnavailableLogged) {
                 asyncSchedulerUnavailableLogged = true;

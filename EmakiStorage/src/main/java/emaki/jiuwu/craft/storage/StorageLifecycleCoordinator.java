@@ -59,7 +59,7 @@ final class StorageLifecycleCoordinator
 
     @Override
     public StorageRuntimeComponents initialize(EmakiStoragePlugin plugin) {
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults,

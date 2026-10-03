@@ -55,7 +55,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     @Override
     public CodexRuntimeComponents initialize(EmakiCodexPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults, this::parseAppConfig);

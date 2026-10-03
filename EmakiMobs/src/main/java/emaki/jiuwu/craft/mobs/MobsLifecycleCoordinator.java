@@ -51,7 +51,6 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +76,7 @@ final class MobsLifecycleCoordinator
 
     @Override
     public MobsRuntimeComponents initialize(EmakiMobsPlugin plugin) {
-        var coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        var coreLibPlugin = EmakiCoreLibPlugin.lookup();
         var appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();

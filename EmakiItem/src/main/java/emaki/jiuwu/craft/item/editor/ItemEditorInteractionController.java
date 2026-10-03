@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.item.editor;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -276,68 +275,14 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                 });
     }
 
-    private static final Set<String> ACTION_CONTROL_KEYWORDS = Set.of("if", "else", "run", "weight", "every", "after", "limit", "keep", "sort_by", "stop", "chance", "set", "create_item", "filter", "where", "select");
+    private static final ActionLineValidator ACTION_VALIDATOR = ActionLineValidator.coreLib();
 
     private static boolean isActionList(String listPath) {
         return listPath != null && listPath.contains("actions");
     }
 
     private String precheckActionLine(String listPath, String text) {
-        if (!isActionList(listPath)) {
-            return null;
-        }
-        String trimmed = text == null ? "" : text.trim();
-        if (trimmed.isEmpty()) {
-            return "editor.action.empty";
-        }
-        for (String segment : trimmed.split("\\|")) {
-            String[] tokens = segment.trim().split("\\s+");
-            String token = tokens[0].toLowerCase(java.util.Locale.ROOT);
-            if (token.isEmpty()) {
-                return "editor.action.empty_segment";
-            }
-            if (ACTION_CONTROL_KEYWORDS.contains(token)) {
-                continue;
-            }
-            java.util.Optional<emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor> descriptor =
-                    emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.actionStage(token);
-            if (descriptor.isEmpty()) {
-                return "editor.action.unknown_stage";
-            }
-            String problem = checkParameters(descriptor.get(), tokens);
-            if (problem != null) {
-                return problem;
-            }
-        }
-        return null;
-    }
-
-    private static String checkParameters(
-            emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor descriptor,
-            String[] tokens) {
-        java.util.Set<String> provided = new java.util.HashSet<>();
-        java.util.Set<String> declared = new java.util.HashSet<>();
-        for (emaki.jiuwu.craft.corelib.api.action.CoreStageParameter parameter : descriptor.parameters()) {
-            declared.add(parameter.name().toLowerCase(java.util.Locale.ROOT));
-        }
-        for (int index = 1; index < tokens.length; index++) {
-            int separator = tokens[index].indexOf('=');
-            if (separator <= 0) {
-                continue;
-            }
-            String name = tokens[index].substring(0, separator).trim().toLowerCase(java.util.Locale.ROOT);
-            if (!declared.contains(name)) {
-                return "editor.action.unknown_argument";
-            }
-            provided.add(name);
-        }
-        for (emaki.jiuwu.craft.corelib.api.action.CoreStageParameter parameter : descriptor.parameters()) {
-            String name = parameter.name().toLowerCase(java.util.Locale.ROOT);
-            if (parameter.required() && !parameter.positional() && !provided.contains(name)) {
-                return "editor.action.missing_argument";
-            }
-        }
-        return null;
+        return isActionList(listPath) ? ACTION_VALIDATOR.validate(text) : null;
     }
 
     private void applyEntry(ItemEditorSession session, int index, List<String> keyHint) {
@@ -544,8 +489,12 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
     }
 
     private List<String> collectReferences(String itemId) {
+        return collectReferences(plugin.getDataFolder(), itemId);
+    }
+
+    static List<String> collectReferences(java.io.File dataFolder, String itemId) {
         List<String> found = new ArrayList<>();
-        java.io.File setsDirectory = new java.io.File(plugin.getDataFolder(), "sets");
+        java.io.File setsDirectory = new java.io.File(dataFolder, "sets");
         java.io.File[] setFiles = setsDirectory.listFiles(
                 (directory, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
         if (setFiles != null) {
@@ -566,7 +515,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                 }
             }
         }
-        java.io.File aliasFile = new java.io.File(plugin.getDataFolder(), "id_aliases.yml");
+        java.io.File aliasFile = new java.io.File(dataFolder, "id_aliases.yml");
         if (aliasFile.isFile()) {
             try {
                 Map<String, Object> root = emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.load(aliasFile).asMap();

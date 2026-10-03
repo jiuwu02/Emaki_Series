@@ -14,7 +14,6 @@ import java.util.function.Function;
 import org.bukkit.entity.Player;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.accessory.api.EmakiAccessoryApi;
 import emaki.jiuwu.craft.accessory.apiimpl.ServiceBackedAccessoryBridge;
@@ -60,7 +59,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
-public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
+public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider, AccessoryGuiHandler.Callbacks {
 
     private static final String MODULE = "accessory";
@@ -193,7 +192,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiAccessory readiness publication skipped: " + exception);
         }
@@ -273,7 +272,7 @@ public final class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public boolean isShutdownStarted() {

@@ -8,7 +8,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -51,7 +50,7 @@ import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
 
-public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
+public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
 
     private static final String MODULE = "station";
@@ -230,7 +229,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiStation readiness publication skipped: " + exception);
         }
@@ -330,7 +329,7 @@ public final class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public boolean isShutdownStarted() {

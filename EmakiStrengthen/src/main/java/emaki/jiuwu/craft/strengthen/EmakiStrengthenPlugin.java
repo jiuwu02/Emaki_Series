@@ -9,7 +9,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -58,7 +57,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
-public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc", "pity");
@@ -143,7 +142,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerEventHandlers();
         itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -222,7 +221,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiStrengthen readiness publication skipped: " + exception);
         }
@@ -367,7 +366,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

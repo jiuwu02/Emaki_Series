@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
@@ -51,7 +50,7 @@ final class AccessoryLifecycleCoordinator
 
     @Override
     public AccessoryRuntimeComponents initialize(EmakiAccessoryPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults, AppConfigParser::parse);

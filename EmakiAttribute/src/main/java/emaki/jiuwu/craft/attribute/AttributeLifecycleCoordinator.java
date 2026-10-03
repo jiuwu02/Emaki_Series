@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -68,7 +67,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
@@ -233,7 +232,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
 

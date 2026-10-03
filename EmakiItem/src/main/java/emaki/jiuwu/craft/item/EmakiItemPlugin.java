@@ -12,7 +12,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -81,7 +80,7 @@ import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
 import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
 
-public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiitem";
     private static final Set<String> DEBUG_MODULES =
@@ -184,7 +183,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         itemContributionGateLifecycle.initialize();
         registerMythicDrops();
         ensurePlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -643,7 +642,7 @@ public final class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

@@ -105,7 +105,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
         reloadsAccepted.set(true);
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         registerAssemblyLayer(coreLibPlugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,

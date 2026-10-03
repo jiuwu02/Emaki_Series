@@ -7,7 +7,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -57,7 +56,7 @@ import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 import emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi;
 
-public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakigem";
 
@@ -330,7 +329,7 @@ public final class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

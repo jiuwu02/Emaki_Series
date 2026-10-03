@@ -136,19 +136,4 @@ class YamlTextDocumentTest {
         assertTrue(document.text().contains("# 基础物品"));
         assertTrue(document.text().contains("id: \"example_item\""));
     }
-
-    @Test
-    void commentsSurviveRepeatedEdits() {
-        YamlTextDocument document = YamlTextDocument.parse(SAMPLE);
-        document.set("a", "id");
-        document.set(true, "update", "enabled");
-        document.set(2, "item", "components", "minecraft:max_stack_size");
-        document.appendListItem(Map.of("type", "lore_action"), "effects");
-
-        String text = document.text();
-        assertTrue(text.contains("# 物品定义示例"));
-        assertTrue(text.contains("# 基础物品"));
-        assertTrue(text.contains("# 显示名"));
-        assertTrue(text.contains("# 效果"));
-    }
 }

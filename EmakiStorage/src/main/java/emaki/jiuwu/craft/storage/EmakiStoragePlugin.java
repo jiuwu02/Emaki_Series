@@ -17,7 +17,6 @@ import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
@@ -232,7 +231,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiStorage readiness publication skipped: " + exception);
         }
@@ -352,7 +351,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ExecutionDispatcher executionDispatcher() {

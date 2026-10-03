@@ -11,7 +11,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.service.DamageIndicatorService;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -55,7 +54,7 @@ import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 
-public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
+public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
@@ -309,7 +308,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         damageIndicatorService = new DamageIndicatorService(
                 () -> {
                     EmakiCoreLibPlugin coreLib =
-                            getPlugin(EmakiCoreLibPlugin.class);
+                            EmakiCoreLibPlugin.lookup();
                     return coreLib == null ? null : coreLib.textDisplayService();
                 },
                 () -> configModel() == null ? null : configModel().damageIndicator(),
@@ -461,7 +460,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     private void registerCoreLibActions() {

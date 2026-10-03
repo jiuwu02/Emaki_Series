@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.codex.action.CodexStageRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
@@ -272,7 +271,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

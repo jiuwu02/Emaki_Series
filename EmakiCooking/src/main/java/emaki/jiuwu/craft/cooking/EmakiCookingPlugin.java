@@ -10,7 +10,6 @@ import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -75,7 +74,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 
-public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "ecooking";
 
@@ -171,7 +170,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerActions();
         registerPublicApiService();
         registerPlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -180,7 +179,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         publicApiReady = false;
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("cooking");
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
@@ -283,7 +282,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("EmakiCooking readiness publication skipped: " + exception);
         }
@@ -557,7 +556,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

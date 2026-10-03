@@ -61,7 +61,7 @@ import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
 
-public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
+public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -152,7 +152,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLib = EmakiCoreLibPlugin.lookup();
         scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();

@@ -27,7 +27,6 @@ import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.selector.TargetSelectorLoader;
 import org.bukkit.event.HandlerList;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.List;
 import java.util.Map;
@@ -35,7 +34,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
-public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
+public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
     private static final String MODULE = "mobs";
     private static final String ROOT_COMMAND = "emakimobs";
@@ -72,7 +71,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
-        debugLogger().setFallbackLoader(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).languageLoader());
+        debugLogger().setFallbackLoader(EmakiCoreLibPlugin.lookup().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         ConfigPrecheckLifecycleSupport.register(new MobsConfigPrecheckContributor(this));
@@ -83,7 +82,7 @@ public final class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerCommandHandler();
         registerListeners();
         installPublicApi();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         components.messageService().info("console.plugin_started");
     }
 

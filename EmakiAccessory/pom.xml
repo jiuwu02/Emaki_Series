@@ -61,6 +61,55 @@
             <version>${emaki.item.api.version}</version>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-attribute</artifactId>
+            <version>${emaki.attribute.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-skills</artifactId>
+            <version>${emaki.skills.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-item</artifactId>
+            <version>${emaki.item.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.dejvokep</groupId>
+            <artifactId>boosted-yaml</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>me.clip</groupId>
+            <artifactId>placeholderapi</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.graalvm.polyglot</groupId>
+            <artifactId>polyglot</artifactId>
+            <version>25.4.4.1.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockbukkit.mockbukkit</groupId>
+            <artifactId>mockbukkit-v1.21</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

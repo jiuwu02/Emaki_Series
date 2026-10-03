@@ -67,7 +67,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
         registerAssemblyLayer(coreLibPlugin);
@@ -226,7 +226,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         CompletableFuture<Void> rerollsClosed = plugin.rerollSessionService() == null
                 ? CompletableFuture.completedFuture(null)
                 : plugin.rerollSessionService().clearAllAsync(GemRerollSessionService.TerminationReason.RELOAD);
@@ -322,7 +322,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public void shutdown(EmakiGemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         coreLibPlugin.namespaceRegistry().unregister("gem");
         if (plugin.rerollSessionService() != null) {
             plugin.rerollSessionService().clearAll(GemRerollSessionService.TerminationReason.DISABLE);

@@ -6,7 +6,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -79,7 +78,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     @Override
     public CookingRuntimeComponents initialize(EmakiCookingPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         EmakiScheduling taskScheduler = EmakiCoreLibApi.scheduling();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
@@ -315,7 +314,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<Void, Void>(
                 "cooking",
                 "config-load",
@@ -331,9 +330,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
                     plugin.nutritionTypeLoader().load();
-                    ConfigPrecheckReport report = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class)
+                    ConfigPrecheckReport report = EmakiCoreLibPlugin.lookup()
                             .configPrecheckService()
-                            .checkModule(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configModel(), "cooking");
+                            .checkModule(EmakiCoreLibPlugin.lookup().configModel(), "cooking");
                     if (!report.success()) {
                         throw new IllegalStateException("Cooking precheck failed: "
                                 + String.join("; ", report.formatLines(plugin.messageService(), "cooking")));

@@ -75,11 +75,13 @@
         <emaki.item.api.version>2.8.7</emaki.item.api.version>
         <emaki.skills.api.version>2.8.3</emaki.skills.api.version>
         <emaki.forge.api.version>4.8.2</emaki.forge.api.version>
+        <emaki.strengthen.version>4.8.3</emaki.strengthen.version>
         <emaki.strengthen.api.version>4.8.3</emaki.strengthen.api.version>
         <emaki.cooking.api.version>4.3.1</emaki.cooking.api.version>
         <emaki.gem.api.version>2.8.3</emaki.gem.api.version>
         <emaki.level.api.version>1.6.1</emaki.level.api.version>
         <emaki.codex.api.version>1.1.1</emaki.codex.api.version>
+        <emaki.storage.version>1.1.0</emaki.storage.version>
         <emaki.storage.api.version>1.1.0</emaki.storage.api.version>
         <emaki.station.api.version>1.1.4</emaki.station.api.version>
         <emaki.station.version>1.1.4</emaki.station.version>
@@ -112,6 +114,8 @@
         <bstats.version>3.2.1</bstats.version>
         <caffeine.version>3.3.0</caffeine.version>
         <junit.version>6.1.3</junit.version>
+        <mockbukkit.version>4.93.0</mockbukkit.version>
+        <mockito.version>5.20.0</mockito.version>
         <betterhud.version>2.0.0</betterhud.version>
         <modelengine.version>R4.2.0</modelengine.version>
         <bettermodel.version>3.5.0</bettermodel.version>
@@ -372,6 +376,18 @@
                 <version>${junit.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockbukkit.mockbukkit</groupId>
+                <artifactId>mockbukkit-v1.21</artifactId>
+                <version>${mockbukkit.version}</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.mockito</groupId>
+                <artifactId>mockito-core</artifactId>
+                <version>${mockito.version}</version>
+                <scope>test</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

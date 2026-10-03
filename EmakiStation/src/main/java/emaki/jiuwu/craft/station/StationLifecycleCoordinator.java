@@ -5,7 +5,6 @@ import java.util.List;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -68,7 +67,7 @@ final class StationLifecycleCoordinator
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();

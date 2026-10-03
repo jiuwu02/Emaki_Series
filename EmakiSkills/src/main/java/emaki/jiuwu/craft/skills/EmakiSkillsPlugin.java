@@ -6,7 +6,6 @@ import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
@@ -68,7 +67,7 @@ import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
 
 import org.bukkit.Bukkit;
 
-public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakiskills";
 
@@ -374,7 +373,7 @@ public final class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<App
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {

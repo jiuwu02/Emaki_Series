@@ -123,7 +123,17 @@ import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
-public final class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
+public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
+
+    private static final String PLUGIN_NAME = "EmakiCoreLib";
+
+    public static EmakiCoreLibPlugin lookup() {
+        org.bukkit.plugin.Plugin plugin = org.bukkit.Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+        if (plugin instanceof EmakiCoreLibPlugin coreLib) {
+            return coreLib;
+        }
+        throw new IllegalStateException("Plugin " + PLUGIN_NAME + " is not loaded");
+    }
 
     private static final String STARTUP_ASCII = """
  ______  __    __  ______  __  __   __  ______  ______  ______  ______  __      __  ______

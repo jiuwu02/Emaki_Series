@@ -221,7 +221,7 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     private AsyncTaskScheduler resolveScheduler() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
     }
 
     private YamlSection cloneConfiguration(YamlSection configuration) {

@@ -10,7 +10,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
@@ -68,7 +67,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
@@ -238,7 +237,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
@@ -315,7 +314,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.pityStateStore() != null) {
             plugin.pityStateStore().saveToDisk();
         }
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();

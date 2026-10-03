@@ -74,6 +74,27 @@
             <artifactId>adventure-text-serializer-json</artifactId>
             <scope>provided</scope>
         </dependency>
+        <dependency>
+            <groupId>emaki.jiuwu.craft</groupId>
+            <artifactId>emaki-attribute</artifactId>
+            <version>${emaki.attribute.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>dev.dejvokep</groupId>
+            <artifactId>boosted-yaml</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockbukkit.mockbukkit</groupId>
+            <artifactId>mockbukkit-v1.21</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

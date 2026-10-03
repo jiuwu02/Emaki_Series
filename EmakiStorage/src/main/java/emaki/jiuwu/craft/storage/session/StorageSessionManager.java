@@ -8,7 +8,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
@@ -326,8 +325,8 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
     }
 
     private DialogService dialogService() {
-        var coreLib = JavaPlugin
-                .getPlugin(EmakiCoreLibPlugin.class);
+        var coreLib = EmakiCoreLibPlugin
+                .lookup();
         return coreLib == null ? null : coreLib.dialogService();
     }
 

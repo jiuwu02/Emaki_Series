@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
@@ -49,7 +48,7 @@ public final class ConfigCommitGate {
         if (Texts.isBlank(moduleId)) {
             return new Result(false, moduleId, List.of("config commit gate received a blank module id"));
         }
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
         if (coreLib == null || coreLib.configPrecheckService() == null) {
 
             return new Result(false, moduleId, List.of("config precheck service is unavailable"));

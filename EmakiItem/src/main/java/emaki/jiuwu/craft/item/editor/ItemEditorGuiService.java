@@ -164,7 +164,7 @@ public final class ItemEditorGuiService {
         }
     }
 
-    private static String skeleton(String itemId) {
+    static String skeleton(String itemId) {
         return """
                 id: "%s"
 
