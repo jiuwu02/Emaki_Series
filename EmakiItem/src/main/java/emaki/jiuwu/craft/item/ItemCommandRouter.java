@@ -28,6 +28,7 @@ final class ItemCommandRouter implements TabExecutor {
     private static final String PERMISSION_USE = "emakiitem.use";
     private static final String PERMISSION_GIVE = "emakiitem.give";
     private static final String PERMISSION_BROWSE = "emakiitem.browse";
+    private static final String PERMISSION_EDIT = "emakiitem.edit";
     static final String PERMISSION_INSPECT = "emakiitem.inspect";
     private static final String PERMISSION_RELOAD = "emakiitem.reload";
     private static final String PERMISSION_UPDATE = "emakiitem.update";
@@ -62,6 +63,7 @@ final class ItemCommandRouter implements TabExecutor {
             }
             case "list" -> handleList(sender, args);
             case "browse" -> handleBrowse(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "give" -> handleGive(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "components", "component" -> componentsCommand.handleComponents(sender, args);
@@ -83,7 +85,7 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "browse", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
+            for (String sub : List.of("help", "list", "browse", "edit", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -221,6 +223,30 @@ final class ItemCommandRouter implements TabExecutor {
         int page = Math.max(1, Numbers.tryParseInt(args.length >= 2 ? args[1] : null, 1));
         if (!plugin.browserGuiService().openPackBrowser(player, page - 1)) {
             plugin.messageService().send(sender, "browser.gui_open_failed");
+        }
+        return true;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "editor.command.usage");
+            return true;
+        }
+        String itemId = Texts.normalizeId(args[1]);
+        if (plugin.itemLoader().get(itemId) == null) {
+            plugin.messageService().send(sender, "editor.command.unknown_item", Map.of("id", itemId));
+            return true;
+        }
+        if (plugin.editorGuiService().open(player, itemId, plugin.itemLoader().packId(itemId), 0) == null) {
+            plugin.messageService().send(sender, "editor.open_failed", Map.of("id", itemId));
         }
         return true;
     }
@@ -481,6 +507,7 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("list [page]", plugin.messageService().message("command.help.desc.list"));
         lines.put("browse [page]", plugin.messageService().message("command.help.desc.browse"));
+        lines.put("edit <itemId>", plugin.messageService().message("command.help.desc.edit"));
         lines.put("give <player> <id> [amount]", plugin.messageService().message("command.help.desc.give"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("components [yaml] [player] [component_id]", plugin.messageService().message("command.help.desc.components"));

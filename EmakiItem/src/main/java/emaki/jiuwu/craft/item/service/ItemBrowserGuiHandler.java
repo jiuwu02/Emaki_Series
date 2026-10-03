@@ -35,6 +35,8 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
                 enterPack(session, player, slot.slotIndex());
             case ItemBrowserGuiService.TYPE_ITEM_ENTRY ->
                 takeItem(session, click, player, slot.slotIndex());
+            case "new_item" ->
+                newItem(session, player);
             case "back" ->
                 returnToPackBrowser(player);
             case "page_prev" ->
@@ -82,8 +84,43 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         });
     }
 
+    private void openEditor(GuiSession session, Player player, int slotIndex) {
+        if (!player.hasPermission("emakiitem.edit")) {
+            return;
+        }
+        String itemId = browserService.itemIdAt(session, slotIndex);
+        if (itemId == null) {
+            return;
+        }
+        String packId = currentPackId(session);
+        int page = currentPage(session);
+        player.closeInventory();
+        plugin.scheduling().runForEntity(plugin, player, () -> {
+            if (plugin.editorGuiService().open(player, itemId, packId, page) == null) {
+                plugin.messageService().send(player, "editor.open_failed", Map.of("id", itemId));
+            }
+        }, () -> {
+        });
+    }
+
+    private void newItem(GuiSession session, Player player) {
+        if (!player.hasPermission("emakiitem.edit")) {
+            return;
+        }
+        String packId = currentPackId(session);
+        int page = currentPage(session);
+        player.closeInventory();
+        plugin.scheduling().runForEntity(plugin, player, () ->
+                plugin.editorGuiService().input().promptChat(player,
+                        plugin.messageService().message("editor.create.prompt"),
+                        rawId -> plugin.editorGuiService().createAndOpen(player, packId, page, rawId)),
+                () -> {
+                });
+    }
+
     private void takeItem(GuiSession session, GuiClickContext click, Player player, int slotIndex) {
         if (click.isRightClick()) {
+            openEditor(session, player, slotIndex);
             return;
         }
         if (!click.isLeftClick()) {

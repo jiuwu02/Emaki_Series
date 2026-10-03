@@ -1,0 +1,212 @@
+# ============================================================
+# EmakiItem GUI 配置 - 物品编辑页（主菜单）
+# ============================================================
+# 物品包内容菜单中右键物品条目后进入的编辑主菜单。
+# 提供获取物品 / 删除物品 / 返回三个必备操作，以及各功能子菜单入口。
+# 预览槽实时重建当前编辑草稿的物品外观。
+# ============================================================
+id: "item_editor_gui"
+
+gui_type: CHEST
+title: "<dark_gray>物品编辑</dark_gray>"
+
+rows: 6
+
+slots:
+  preview:
+    type: "preview"
+    slots:
+      - 4
+
+  back:
+    type: "back"
+    slots:
+      - 0
+    item:
+      source: "minecraft-oak_door"
+      components:
+        custom_name: "<yellow>返回物品包内容</yellow>"
+        lore:
+          - "<dark_gray>点击回到物品包内容菜单</dark_gray>"
+
+  close:
+    type: "close"
+    slots:
+      - 8
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<dark_gray>关闭编辑界面</dark_gray>"
+
+  menu_basic:
+    type: "menu_basic"
+    slots:
+      - 19
+    item:
+      source: "minecraft:stone"
+      components:
+        custom_name: "<gold>基础物品</gold>"
+        lore:
+          - "<gray>物品来源与生效槽位</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_components:
+    type: "menu_components"
+    slots:
+      - 20
+    item:
+      source: "minecraft:name_tag"
+      components:
+        custom_name: "<gold>原版组件</gold>"
+        lore:
+          - "<gray>物品名称 / Lore / 附魔 / 属性等</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_effects:
+    type: "menu_effects"
+    slots:
+      - 21
+    item:
+      source: "minecraft:nether_star"
+      components:
+        custom_name: "<gold>物品效果</gold>"
+        lore:
+          - "<gray>变量 / 属性 / 技能 / 饰品槽 / 展示动作</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_set:
+    type: "menu_set"
+    slots:
+      - 22
+    item:
+      source: "minecraft:iron_chestplate"
+      components:
+        custom_name: "<gold>套装设置</gold>"
+        lore:
+          - "<gray>套装归属与套装定义</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_condition:
+    type: "menu_condition"
+    slots:
+      - 23
+    item:
+      source: "minecraft:comparator"
+      components:
+        custom_name: "<gold>装备条件</gold>"
+        lore:
+          - "<gray>条件表达式与满足 / 不满足行为</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_repair:
+    type: "menu_repair"
+    slots:
+      - 29
+    item:
+      source: "minecraft:anvil"
+      components:
+        custom_name: "<gold>修复配置</gold>"
+        lore:
+          - "<gray>修复材料 / 经济修复 / 损坏外观</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_update:
+    type: "menu_update"
+    slots:
+      - 30
+    item:
+      source: "minecraft:clock"
+      components:
+        custom_name: "<gold>更新策略</gold>"
+        lore:
+          - "<gray>配置变更后是否自动更新既有物品</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  menu_actions:
+    type: "menu_actions"
+    slots:
+      - 31
+    item:
+      source: "minecraft:redstone"
+      components:
+        custom_name: "<gold>触发动作</gold>"
+        lore:
+          - "<gray>各触发器执行的动作行</gray>"
+          - "<dark_gray>点击编辑</dark_gray>"
+
+  get_item:
+    type: "get_item"
+    slots:
+      - 47
+    item:
+      source: "minecraft:chest"
+      components:
+        custom_name: "<green>获取物品</green>"
+        lore:
+          - "<gray>把当前编辑的物品发到背包</gray>"
+          - "<dark_gray>点击获取</dark_gray>"
+
+  delete_item:
+    type: "delete_item"
+    slots:
+      - 49
+    item:
+      source: "minecraft:lava_bucket"
+      components:
+        custom_name: "<red>删除物品</red>"
+        lore:
+          - "<gray>物理删除该物品的定义文件</gray>"
+          - "<red>需要点击两次确认</red>"
+
+  border:
+    type: "filler"
+    slots:
+      - 1
+      - 2
+      - 3
+      - 5
+      - 6
+      - 7
+      - 9
+      - 10
+      - 11
+      - 12
+      - 13
+      - 14
+      - 15
+      - 16
+      - 17
+      - 18
+      - 24
+      - 25
+      - 26
+      - 27
+      - 28
+      - 32
+      - 33
+      - 34
+      - 35
+      - 36
+      - 37
+      - 38
+      - 39
+      - 40
+      - 41
+      - 42
+      - 43
+      - 44
+      - 45
+      - 46
+      - 48
+      - 50
+      - 51
+      - 52
+      - 53
+    item:
+      source: "minecraft-gray_stained_glass_pane"
+      components:
+        custom_name: "<gray>"
+        tooltip_display:
+          hide_tooltip: true

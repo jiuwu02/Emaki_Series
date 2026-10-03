@@ -24,6 +24,7 @@ public final class EmakiItemLoader {
     private final EmakiItemDefinitionParser parser;
     private final Supplier<AppConfig> configSupplier;
     private volatile Snapshot snapshot = new Snapshot(0L, Map.of(), Map.of());
+    private volatile Map<String, File> files = Map.of();
 
     public EmakiItemLoader(JavaPlugin plugin) {
         this(plugin, null);
@@ -49,6 +50,7 @@ public final class EmakiItemLoader {
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
         Map<String, String> packs = new LinkedHashMap<>();
+        Map<String, File> located = new LinkedHashMap<>();
         File[] files = files(directory);
         for (File file : files) {
             try {
@@ -62,6 +64,7 @@ public final class EmakiItemLoader {
                 }
                 loaded.put(definition.id(), definition);
                 packs.put(definition.id(), packIdOf(file, directory));
+                located.put(definition.id(), file);
             } catch (RuntimeException exception) {
                 plugin.getLogger().warning("Could not load EmakiItem definition " + file.getPath()
                         + ": " + Texts.toStringSafe(exception.getMessage()));
@@ -70,6 +73,7 @@ public final class EmakiItemLoader {
         if (!allowed(allowed)) {
             return snapshot.definitions().size();
         }
+        this.files = located;
         install(loaded, packs);
         return loaded.size();
     }
@@ -92,6 +96,14 @@ public final class EmakiItemLoader {
 
     public Map<String, String> packIds() {
         return snapshot.packIds();
+    }
+
+    public File fileOf(String id) {
+        return files.get(Texts.normalizeId(id));
+    }
+
+    public File rootDirectory() {
+        return plugin.getDataFolder().toPath().resolve("items").toFile();
     }
 
     public Snapshot snapshot() {

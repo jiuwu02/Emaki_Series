@@ -1,21 +1,20 @@
 # ============================================================
-# EmakiItem GUI 配置 - 包内物品列表（二级界面）
+# EmakiItem GUI 配置 - 编辑器通用子菜单页
 # ============================================================
-# 从 pack_browser_gui.yml 点击包图标后进入的第二级界面，
-# 列出该包内的全部物品，左键取出一件到背包。
-# 图标由物品定义本身渲染，槽位的 lore 在其之上追加提示。
+# 所有物品编辑子菜单共用此模板：字段按当前菜单渲染进 field_entry 网格，
+# 每个子菜单都必须提供「返回上一级」与「返回主页」两个导航按钮。
+# 标题随当前子菜单动态替换。
 # ============================================================
-id: "item_browser_gui"
+id: "item_editor_page_gui"
 
 gui_type: CHEST
-title: "<dark_gray>物品浏览</dark_gray>"
+title: "<dark_gray>物品编辑</dark_gray>"
 
 rows: 6
 
 slots:
-  # 物品图标区域，按 ID 字典序填充，超出则分页
-  item_entry:
-    type: "item_entry"
+  field_entry:
+    type: "field_entry"
     slots:
       - 10
       - 11
@@ -39,16 +38,50 @@ slots:
       - 33
       - 34
 
-  back:
-    type: "back"
+  back_parent:
+    type: "back_parent"
     slots:
       - 0
     item:
       source: "minecraft-oak_door"
       components:
-        custom_name: "<yellow>返回物品包列表</yellow>"
+        custom_name: "<yellow>返回上一级</yellow>"
         lore:
-          - "<dark_gray>点击返回一级界面</dark_gray>"
+          - "<dark_gray>回到上一级菜单</dark_gray>"
+
+  back_home:
+    type: "back_home"
+    slots:
+      - 1
+    item:
+      source: "minecraft:ender_pearl"
+      components:
+        custom_name: "<yellow>返回主页</yellow>"
+        lore:
+          - "<dark_gray>回到物品编辑页</dark_gray>"
+
+  close:
+    type: "close"
+    slots:
+      - 8
+    item:
+      source: "minecraft-barrier"
+      components:
+        custom_name: "<red>关闭</red>"
+        lore:
+          - "<dark_gray>关闭编辑界面</dark_gray>"
+
+  confirm:
+    type: "confirm"
+    slots:
+      - 47
+    item:
+      source: "minecraft:lime_dye"
+      components:
+        custom_name: "<green>添加</green>"
+        lore:
+          - "<gray>向当前列表新增一项</gray>"
+          - "<dark_gray>点击添加</dark_gray>"
 
   page_prev:
     type: "page_prev"
@@ -70,8 +103,8 @@ slots:
       components:
         custom_name: "<gray>第 <white>%current_page%</white>/<white>%total_pages%</white> 页</gray>"
         lore:
-          - "<dark_gray>物品包: %pack_name%</dark_gray>"
-          - "<dark_gray>物品总数: %item_count%</dark_gray>"
+          - "<dark_gray>%menu_title%</dark_gray>"
+          - "<dark_gray>条目数: %entry_count%</dark_gray>"
 
   page_next:
     type: "page_next"
@@ -84,34 +117,9 @@ slots:
         lore:
           - "<dark_gray>点击翻到下一页</dark_gray>"
 
-  close:
-    type: "close"
-    slots:
-      - 8
-    item:
-      source: "minecraft-barrier"
-      components:
-        custom_name: "<red>关闭</red>"
-        lore:
-          - "<dark_gray>关闭浏览界面</dark_gray>"
-
-  new_item:
-    type: "new_item"
-    slots:
-      - 47
-    item:
-      source: "minecraft:lime_dye"
-      components:
-        custom_name: "<green>新建物品</green>"
-        lore:
-          - "<gray>在当前物品包下创建新物品</gray>"
-          - "<gray>默认物品类型: 石头</gray>"
-          - "<dark_gray>点击创建</dark_gray>"
-
   border:
     type: "filler"
     slots:
-      - 1
       - 2
       - 3
       - 4

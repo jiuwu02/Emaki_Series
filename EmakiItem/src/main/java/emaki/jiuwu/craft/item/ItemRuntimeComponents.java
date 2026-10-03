@@ -72,7 +72,10 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         PdcService pdcService,
         ItemRepairService repairService,
         ItemRepairGuiService repairGuiService,
-        ItemBrowserGuiService browserGuiService) implements RuntimeComponents {
+        ItemBrowserGuiService browserGuiService,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        emaki.jiuwu.craft.item.editor.ItemEditService itemEditService,
+        emaki.jiuwu.craft.item.editor.ItemEditorGuiService editorGuiService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

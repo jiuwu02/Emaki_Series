@@ -12,7 +12,6 @@
 # 两者的并集即 `ItemComponentCapability` 面向消费方暴露的能力。
 
 components:
-
   # ============================================================
   # 通用组件（任意物品材料均适用）
   # ============================================================
@@ -124,7 +123,7 @@ components:
   # 材料专属组件 —— 玩家头颅 / 生物头颅
   # ============================================================
   - id: minecraft:profile
-    format: "profile map {name?: text, id?: uuid, properties?: [{name: \"textures\", value: base64, signature?: base64}]}; 皮肤取 name 为 textures 的属性值"
+    format: 'profile map {name?: text, id?: uuid, properties?: [{name: "textures", value: base64, signature?: base64}]}; 皮肤取 name 为 textures 的属性值'
     scope: material
     applies_to:
       - minecraft:player_head
