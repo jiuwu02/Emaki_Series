@@ -57,6 +57,30 @@ public final class ItemEditorSession {
         return document.view();
     }
 
+    private ItemDefinitionDocument setDocument;
+
+    public ItemDefinitionDocument setDocument() {
+        return setDocument;
+    }
+
+    public void setSetDocument(ItemDefinitionDocument setDocument) {
+        this.setDocument = setDocument;
+    }
+
+    public boolean isSetMenu(String menuId) {
+        return ItemEditorMenus.SET_LIST.equals(menuId)
+                || ItemEditorMenus.SET_EDITOR.equals(menuId)
+                || ItemEditorMenus.SET_THRESHOLD.equals(menuId);
+    }
+
+    public YamlTextDocument draftFor(String menuId) {
+        return isSetMenu(menuId) && setDocument != null ? setDocument.view() : document.view();
+    }
+
+    public ItemDefinitionDocument documentFor(String menuId) {
+        return isSetMenu(menuId) && setDocument != null ? setDocument : document;
+    }
+
     public String currentMenu() {
         return currentMenu;
     }

@@ -245,6 +245,15 @@ editor:
     set_id: "套装 ID"
     set_piece: "套装部件"
     manage_sets: "管理套装定义"
+    set_display_name: "套装显示名"
+    set_pieces: "部件定义"
+    set_thresholds: "件数阈值定义"
+    set_lore_header: "Lore 模板: 标题"
+    set_lore_equipped: "Lore 模板: 已装备"
+    set_lore_missing: "Lore 模板: 未装备"
+    set_lore_active: "Lore 模板: 激活阈值"
+    set_lore_inactive: "Lore 模板: 未激活阈值"
+    set_lore_separator: "Lore 模板: 分隔符"
     condition_type: "条件组合方式"
     condition_required_count: "需要满足的最少条件数"
     condition_invalid: "解析失败视为不满足"
@@ -275,9 +284,22 @@ editor:
     skin: "<yellow>请在聊天栏输入玩家名 / 皮肤纹理 URL / 纹理 base64，输入 cancel 取消</yellow>"
   skin:
     invalid: "<red>皮肤输入无效，请给出玩家名、纹理 URL 或纹理 base64</red>"
+  set:
+    missing: "<red>找不到套装定义 %id%</red>"
+  action:
+    empty: "<red>动作行不能为空</red>"
+    empty_segment: "<red>动作行存在空的管道段</red>"
+    unknown_stage: "<red>动作行包含未知的动作段 ID</red>"
   get_item:
     success: "<green>已获得物品 %id%</green>"
   delete:
+    title: "确认删除物品 %id%"
+    body: "确定要删除此物品吗？"
+    body_irreversible: "<red>此操作不可撤销</red>；已发放到玩家背包的物品不会被回收。"
+    confirm_button: "确认删除"
+    cancel_button: "取消"
+    cancelled: "<gray>已取消删除，物品数据保留</gray>"
+    references: "<yellow>以下配置仍在引用该物品: %refs%</yellow>"
     confirm: "<red>再次点击「删除物品」以确认删除</red>"
     success: "<green>已删除物品 %id%</green>"
     failed: "<red>删除失败，详见控制台</red>"

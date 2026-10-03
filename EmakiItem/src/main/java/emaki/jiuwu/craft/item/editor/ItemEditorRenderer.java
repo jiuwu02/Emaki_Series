@@ -67,19 +67,27 @@ public final class ItemEditorRenderer {
     }
 
     public List<ItemEditorField> fields(ItemEditorSession session, String menuId) {
+        if (ItemEditorMenus.SET_LIST.equals(menuId)) {
+            List<ItemEditorField> fields = new ArrayList<>();
+            for (String setId : setIds()) {
+                fields.add(new ItemEditorField("set_" + setId, ItemEditorField.Kind.COMMAND,
+                        setId, setId, List.of(), -1, true));
+            }
+            return fields;
+        }
         String listPath = session.context("list_path");
         if (listPath == null || listPath.isBlank()) {
             List<ItemEditorFieldSpec> specs = ItemEditorMenus.specs(menuId);
             List<ItemEditorField> fields = new ArrayList<>(specs.size());
             for (ItemEditorFieldSpec spec : specs) {
-                fields.add(toField(session, spec));
+                fields.add(toField(session, menuId, spec));
             }
             if (ItemEditorMenus.COMPONENTS.equals(menuId)) {
                 fields.addAll(adaptiveComponents(session));
             }
             return fields;
         }
-        List<Object> items = session.draft().sequence(listPath.split("\\."));
+        List<Object> items = session.draftFor(menuId).sequence(listPath.split("\\."));
         List<ItemEditorField> fields = new ArrayList<>(items.size());
         for (int index = 0; index < items.size(); index++) {
             fields.add(new ItemEditorField(
@@ -173,18 +181,40 @@ public final class ItemEditorRenderer {
         return text.length() > 40 ? text.substring(0, 40) + "..." : text;
     }
 
-    private static ItemEditorField toField(ItemEditorSession session, ItemEditorFieldSpec spec) {
+    private static ItemEditorField toField(ItemEditorSession session, String menuId, ItemEditorFieldSpec spec) {
         if (spec.kind() == ItemEditorField.Kind.NAVIGATE || spec.kind() == ItemEditorField.Kind.LIST) {
             return new ItemEditorField(spec.id(), spec.kind(), spec.labelKey(), "", List.of(), -1, true);
         }
-        Object value = session.draft().value(spec.path());
+        Object value = session.draftFor(menuId).value(spec.path());
         return new ItemEditorField(
                 spec.id(),
                 spec.kind(),
                 spec.labelKey(),
-                Texts.toStringSafe(value),
+                describe(value),
                 spec.options(),
                 -1,
                 true);
+    }
+
+    private java.util.List<String> setIds() {
+        java.util.List<String> ids = new ArrayList<>();
+        java.io.File directory = new java.io.File(plugin.getDataFolder(), "sets");
+        java.io.File[] files = directory.listFiles(
+                (dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
+        if (files == null) {
+            return ids;
+        }
+        java.util.Arrays.sort(files);
+        for (java.io.File file : files) {
+            try {
+                Object rawId = emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.load(file).asMap().get("id");
+                String id = Texts.normalizeId(Texts.toStringSafe(rawId));
+                if (!id.isEmpty()) {
+                    ids.add(id);
+                }
+            } catch (RuntimeException ignored) {
+            }
+        }
+        return ids;
     }
 }

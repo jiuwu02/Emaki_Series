@@ -158,7 +158,8 @@ slots:
         custom_name: "<red>删除物品</red>"
         lore:
           - "<gray>物理删除该物品的定义文件</gray>"
-          - "<red>需要点击两次确认</red>"
+          - "<yellow>点击后弹出确认对话框</yellow>"
+          - "<red>此操作不可撤销</red>"
 
   border:
     type: "filler"

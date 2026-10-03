@@ -84,6 +84,7 @@ public final class ItemEditorMenus {
             case BASIC -> basic();
             case UPDATE -> update();
             case SET -> set();
+            case SET_EDITOR -> setEditor();
             case CONDITION -> condition();
             case REPAIR -> repair();
             case REPAIR_ECONOMY -> repairEconomy();
@@ -146,6 +147,25 @@ public final class ItemEditorMenus {
             specs.add(ItemEditorFieldSpec.toggle("trigger_" + trigger, "editor.field.trigger." + trigger,
                     "update", "triggers", trigger));
         }
+        return specs;
+    }
+
+    private static List<ItemEditorFieldSpec> setEditor() {
+        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+        specs.add(ItemEditorFieldSpec.text("set_display_name", "editor.field.set_display_name", "display_name"));
+        specs.add(ItemEditorFieldSpec.text("set_pieces", "editor.field.set_pieces", "pieces"));
+        specs.add(ItemEditorFieldSpec.text("set_thresholds", "editor.field.set_thresholds", "thresholds"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_header", "editor.field.set_lore_header", "lore", "header"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_equipped", "editor.field.set_lore_equipped",
+                "lore", "equipped_format"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_missing", "editor.field.set_lore_missing",
+                "lore", "missing_format"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_active", "editor.field.set_lore_active",
+                "lore", "active_threshold_format"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_inactive", "editor.field.set_lore_inactive",
+                "lore", "inactive_threshold_format"));
+        specs.add(ItemEditorFieldSpec.text("set_lore_separator", "editor.field.set_lore_separator",
+                "lore", "separator"));
         return specs;
     }
 

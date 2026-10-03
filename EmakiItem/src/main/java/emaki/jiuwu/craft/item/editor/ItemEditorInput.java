@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.editor;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -54,6 +55,49 @@ public final class ItemEditorInput {
                 callback.accept(result.text() == null ? "" : result.text());
             }
         }));
+    }
+
+    public boolean confirm(Player player,
+            String title,
+            List<String> bodyLines,
+            String confirmLabel,
+            String cancelLabel,
+            String confirmButtonId,
+            String cancelButtonId,
+            Consumer<String> buttonCallback) {
+        try {
+            DialogService dialog = plugin.coreLib().dialogService();
+            if (dialog == null || !dialog.enabled()) {
+                return false;
+            }
+            List<DialogDefinition.Body> body = new ArrayList<>();
+            for (String line : bodyLines) {
+                if (line != null && !line.isBlank()) {
+                    body.add(new DialogDefinition.Body(line, null, 0));
+                }
+            }
+            DialogDefinition definition = new DialogDefinition(
+                    DIALOG_ID,
+                    DialogDefinition.Type.CONFIRMATION,
+                    title,
+                    null,
+                    true,
+                    false,
+                    DialogDefinition.AfterAction.CLOSE,
+                    body,
+                    List.of(),
+                    List.of(
+                            new DialogDefinition.Button(confirmLabel, null, 0,
+                                    new DialogDefinition.Action(DialogDefinition.ActionType.NONE, confirmButtonId)),
+                            new DialogDefinition.Button(cancelLabel, null, 0,
+                                    new DialogDefinition.Action(DialogDefinition.ActionType.NONE, cancelButtonId))),
+                    null,
+                    2);
+            return dialog.show(player, definition, (viewer, submission) ->
+                    buttonCallback.accept(submission.buttonId() == null ? cancelButtonId : submission.buttonId()));
+        } catch (RuntimeException | LinkageError failure) {
+            return false;
+        }
     }
 
     private boolean tryDialog(Player player, String title, String label, String initialValue, Consumer<String> callback) {

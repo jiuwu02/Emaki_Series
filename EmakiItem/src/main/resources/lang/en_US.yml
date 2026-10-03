@@ -245,6 +245,15 @@ editor:
     set_id: "Set ID"
     set_piece: "Set Piece"
     manage_sets: "Manage Set Definitions"
+    set_display_name: "Set Display Name"
+    set_pieces: "Piece Definitions"
+    set_thresholds: "Threshold Definitions"
+    set_lore_header: "Lore Template: Header"
+    set_lore_equipped: "Lore Template: Equipped"
+    set_lore_missing: "Lore Template: Missing"
+    set_lore_active: "Lore Template: Active Threshold"
+    set_lore_inactive: "Lore Template: Inactive Threshold"
+    set_lore_separator: "Lore Template: Separator"
     condition_type: "Condition Combination"
     condition_required_count: "Required Condition Count"
     condition_invalid: "Invalid Expression Fails"
@@ -275,9 +284,22 @@ editor:
     skin: "<yellow>Type a player name, skin texture URL, or texture base64 in chat, or type cancel to abort</yellow>"
   skin:
     invalid: "<red>Invalid skin input, provide a player name, texture URL, or texture base64</red>"
+  set:
+    missing: "<red>Set definition %id% not found</red>"
+  action:
+    empty: "<red>Action line must not be empty</red>"
+    empty_segment: "<red>Action line has an empty pipeline segment</red>"
+    unknown_stage: "<red>Action line contains an unknown stage id</red>"
   get_item:
     success: "<green>Received item %id%</green>"
   delete:
+    title: "Confirm deletion of %id%"
+    body: "Are you sure you want to delete this item?"
+    body_irreversible: "<red>This cannot be undone.</red> Items already given to players are not reclaimed."
+    confirm_button: "Delete"
+    cancel_button: "Cancel"
+    cancelled: "<gray>Deletion cancelled, item data kept</gray>"
+    references: "<yellow>These configs still reference this item: %refs%</yellow>"
     confirm: "<red>Click \"Delete Item\" again to confirm</red>"
     success: "<green>Deleted item %id%</green>"
     failed: "<red>Delete failed, see console</red>"

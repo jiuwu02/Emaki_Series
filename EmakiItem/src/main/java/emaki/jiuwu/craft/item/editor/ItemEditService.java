@@ -48,7 +48,11 @@ public final class ItemEditService {
     }
 
     public ItemDefinitionDocument.SaveResult mutate(Player player, Consumer<YamlTextDocument> mutation) {
-        ItemDefinitionDocument document = session(player);
+        return mutate(session(player), mutation);
+    }
+
+    public ItemDefinitionDocument.SaveResult mutate(ItemDefinitionDocument document,
+            Consumer<YamlTextDocument> mutation) {
         if (document == null) {
             return new ItemDefinitionDocument.SaveResult(ItemDefinitionDocument.SaveStatus.VALIDATION_FAILED,
                     0L, "no_edit_session");
@@ -58,6 +62,20 @@ public final class ItemEditService {
             scheduleReload();
         }
         return result;
+    }
+
+    public ItemDefinitionDocument openSet(java.nio.file.Path file) throws IOException {
+        return ItemDefinitionDocument.open(plugin.getLogger(), file, ItemEditService::validateSet);
+    }
+
+    private static String validateSet(YamlTextDocument candidate, String itemId, java.nio.file.Path source) {
+        Object rawId = candidate.value("id");
+        if (rawId == null || emaki.jiuwu.craft.corelib.api.text.Texts.isBlank(
+                emaki.jiuwu.craft.corelib.api.text.Texts.toStringSafe(rawId))) {
+            return "definition_parse_failed";
+        }
+        return itemId.equals(emaki.jiuwu.craft.corelib.api.text.Texts.normalizeId(
+                emaki.jiuwu.craft.corelib.api.text.Texts.toStringSafe(rawId))) ? null : "id_changed";
     }
 
     public Path backupRoot() {
