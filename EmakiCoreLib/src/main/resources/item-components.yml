@@ -1,6 +1,21 @@
 # Paper 物品组件目录。
-# CoreLib 的 MinecraftItemComponentCatalog 从这里读取可识别的组件 ID 与值格式；资源缺失或解析失败时会回退到内置目录。
+# CoreLib 的 MinecraftItemComponentCatalog 从这里读取可识别的组件 ID、值格式与适用材料；资源缺失或解析失败时会回退到内置目录。
+#
+# 字段说明：
+#   id          组件 ID；省略命名空间时默认 minecraft:
+#   format      值格式说明，供 GUI 编辑器提示与文档展示使用
+#   non_valued  无值组件（只可 set/unset/reset，不写值）
+#   scope       universal = 任意物品材料都可生效；material = 仅对 applies_to 列出的材料有意义
+#   applies_to  适用材料 ID 列表（仅 scope: material 需要），GUI 编辑器据此自适应加载专属编辑入口
+#
+# 说明：本目录是元数据与识别面，运行期是否真正支持由 Paper 组件注册表决定；
+# 两者的并集即 `ItemComponentCapability` 面向消费方暴露的能力。
+
 components:
+
+  # ============================================================
+  # 通用组件（任意物品材料均适用）
+  # ============================================================
   - id: minecraft:max_stack_size
     format: integer 1..99
   - id: minecraft:max_damage
@@ -43,6 +58,8 @@ components:
     format: item stack map
   - id: minecraft:use_cooldown
     format: vanilla cooldown map
+  - id: minecraft:use_effects
+    format: vanilla use effects map
   - id: minecraft:damage_resistant
     format: damage type tag map
   - id: minecraft:tool
@@ -70,16 +87,6 @@ components:
     format: vanilla blocking properties map
   - id: minecraft:stored_enchantments
     format: vanilla enchantment component map
-  - id: minecraft:dyed_color
-    format: RGB integer or color map
-  - id: minecraft:potion_contents
-    format: vanilla potion contents map
-  - id: minecraft:charged_projectiles
-    format: item stack list
-  - id: minecraft:bundle_contents
-    format: item stack list
-  - id: minecraft:trim
-    format: trim material/pattern map
   - id: minecraft:custom_data
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:entity_data
@@ -88,112 +95,14 @@ components:
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:block_state
     format: block state property map
+  - id: minecraft:block_data
+    format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:break_sound
     format: sound resource id
-  - id: minecraft:map_color
-    format: vanilla component value
-  - id: minecraft:map_id
-    format: vanilla component value
-  - id: minecraft:map_decorations
-    format: vanilla component value
-  - id: minecraft:map_post_processing
-    format: vanilla component value
-  - id: minecraft:potion_duration_scale
-    format: vanilla component value
-  - id: minecraft:suspicious_stew_effects
-    format: vanilla component value
-  - id: minecraft:writable_book_content
-    format: vanilla component value
-  - id: minecraft:written_book_content
-    format: vanilla component value
-  - id: minecraft:instrument
-    format: vanilla component value
-  - id: minecraft:provides_trim_material
-    format: vanilla component value
-  - id: minecraft:ominous_bottle_amplifier
-    format: vanilla component value
-  - id: minecraft:jukebox_playable
-    format: vanilla component value
-  - id: minecraft:provides_banner_patterns
-    format: vanilla component value
-  - id: minecraft:recipes
-    format: vanilla component value
-  - id: minecraft:lodestone_tracker
-    format: vanilla component value
-  - id: minecraft:firework_explosion
-    format: vanilla component value
-  - id: minecraft:fireworks
-    format: vanilla component value
-  - id: minecraft:profile
-    format: vanilla component value
-  - id: minecraft:note_block_sound
-    format: vanilla component value
-  - id: minecraft:banner_patterns
-    format: vanilla component value
-  - id: minecraft:base_color
-    format: vanilla component value
-  - id: minecraft:pot_decorations
-    format: vanilla component value
-  - id: minecraft:container
-    format: vanilla component value
-  - id: minecraft:block_data
-    format: vanilla component value
-  - id: minecraft:container_loot
-    format: vanilla component value
-  - id: minecraft:villager_variant
-    format: vanilla component value
-  - id: minecraft:wolf_variant
-    format: vanilla component value
-  - id: minecraft:wolf_sound_variant
-    format: vanilla component value
-  - id: minecraft:wolf_collar
-    format: vanilla component value
-  - id: minecraft:fox_variant
-    format: vanilla component value
-  - id: minecraft:salmon_size
-    format: vanilla component value
-  - id: minecraft:parrot_variant
-    format: vanilla component value
-  - id: minecraft:tropical_fish_pattern
-    format: vanilla component value
-  - id: minecraft:tropical_fish_base_color
-    format: vanilla component value
-  - id: minecraft:tropical_fish_pattern_color
-    format: vanilla component value
-  - id: minecraft:mooshroom_variant
-    format: vanilla component value
-  - id: minecraft:rabbit_variant
-    format: vanilla component value
-  - id: minecraft:pig_variant
-    format: vanilla component value
-  - id: minecraft:cow_variant
-    format: vanilla component value
-  - id: minecraft:chicken_variant
-    format: vanilla component value
-  - id: minecraft:frog_variant
-    format: vanilla component value
-  - id: minecraft:horse_variant
-    format: vanilla component value
-  - id: minecraft:painting_variant
-    format: vanilla component value
-  - id: minecraft:llama_variant
-    format: vanilla component value
-  - id: minecraft:axolotl_variant
-    format: vanilla component value
-  - id: minecraft:cat_variant
-    format: vanilla component value
-  - id: minecraft:cat_collar
-    format: vanilla component value
-  - id: minecraft:sheep_color
-    format: vanilla component value
-  - id: minecraft:shulker_color
-    format: vanilla component value
-  - id: minecraft:use_effects
-    format: vanilla use effects map
-  - id: minecraft:minimum_attack_charge
-    format: floating-point number
   - id: minecraft:damage_type
     format: damage type resource id
+  - id: minecraft:minimum_attack_charge
+    format: floating-point number
   - id: minecraft:piercing_weapon
     format: vanilla piercing weapon map
   - id: minecraft:kinetic_weapon
@@ -202,5 +111,461 @@ components:
     format: vanilla attack range map
   - id: minecraft:swing_animation
     format: vanilla swing animation map
+  - id: minecraft:recipes
+    format: recipe resource id list
+  - id: minecraft:lock
+    format: "lock predicate string or item predicate map"
+  - id: minecraft:provides_trim_material
+    format: trim material resource id
+  - id: minecraft:provides_banner_patterns
+    format: banner pattern holder map
+
+  # ============================================================
+  # 材料专属组件 —— 玩家头颅 / 生物头颅
+  # ============================================================
+  - id: minecraft:profile
+    format: "profile map {name?: text, id?: uuid, properties?: [{name: \"textures\", value: base64, signature?: base64}]}; 皮肤取 name 为 textures 的属性值"
+    scope: material
+    applies_to:
+      - minecraft:player_head
+      - minecraft:player_wall_head
+  - id: minecraft:note_block_sound
+    format: note block sound resource id
+    scope: material
+    applies_to:
+      - minecraft:player_head
+      - minecraft:player_wall_head
+      - minecraft:skeleton_skull
+      - minecraft:skeleton_wall_skull
+      - minecraft:wither_skeleton_skull
+      - minecraft:wither_skeleton_wall_skull
+      - minecraft:zombie_head
+      - minecraft:zombie_wall_head
+      - minecraft:creeper_head
+      - minecraft:creeper_wall_head
+      - minecraft:dragon_head
+      - minecraft:dragon_wall_head
+      - minecraft:piglin_head
+      - minecraft:piglin_wall_head
+
+  # ============================================================
+  # 材料专属组件 —— 药水 / 涂药箭 / 迷之炖菜
+  # ============================================================
+  - id: minecraft:potion_contents
+    format: "potion contents map {potion?: resource id, custom_effects?: effect list, custom_color?: RGB integer}"
+    scope: material
+    applies_to:
+      - minecraft:potion
+      - minecraft:splash_potion
+      - minecraft:lingering_potion
+      - minecraft:tipped_arrow
+  - id: minecraft:potion_duration_scale
+    format: floating-point number
+    scope: material
+    applies_to:
+      - minecraft:potion
+      - minecraft:splash_potion
+      - minecraft:lingering_potion
+      - minecraft:tipped_arrow
+  - id: minecraft:suspicious_stew_effects
+    format: "stew effect list {id, duration?, amplifier?}"
+    scope: material
+    applies_to:
+      - minecraft:suspicious_stew
+
+  # ============================================================
+  # 材料专属组件 —— 旗帜 / 潜影盒
+  # ============================================================
+  - id: minecraft:banner_patterns
+    format: "banner pattern list {pattern, color}"
+    scope: material
+    applies_to:
+      - minecraft:white_banner
+      - minecraft:orange_banner
+      - minecraft:magenta_banner
+      - minecraft:light_blue_banner
+      - minecraft:yellow_banner
+      - minecraft:lime_banner
+      - minecraft:pink_banner
+      - minecraft:gray_banner
+      - minecraft:light_gray_banner
+      - minecraft:cyan_banner
+      - minecraft:purple_banner
+      - minecraft:blue_banner
+      - minecraft:brown_banner
+      - minecraft:green_banner
+      - minecraft:red_banner
+      - minecraft:black_banner
+  - id: minecraft:base_color
+    format: dye color id (white, orange, ..., black)
+    scope: material
+    applies_to:
+      - minecraft:white_banner
+      - minecraft:orange_banner
+      - minecraft:magenta_banner
+      - minecraft:light_blue_banner
+      - minecraft:yellow_banner
+      - minecraft:lime_banner
+      - minecraft:pink_banner
+      - minecraft:gray_banner
+      - minecraft:light_gray_banner
+      - minecraft:cyan_banner
+      - minecraft:purple_banner
+      - minecraft:blue_banner
+      - minecraft:brown_banner
+      - minecraft:green_banner
+      - minecraft:red_banner
+      - minecraft:black_banner
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+  - id: minecraft:container
+    format: "container entry list {slot?, item}"
+    scope: material
+    applies_to:
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+  - id: minecraft:container_loot
+    format: "loot table map {loot_table, seed?, table?}"
+    scope: material
+    applies_to:
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+
+  # ============================================================
+  # 材料专属组件 —— 蜂巢
+  # ============================================================
+  - id: minecraft:bees
+    format: "bee entry list {entity_data, ticks_in_hive?, min_ticks_in_hive?}"
+    scope: material
+    applies_to:
+      - minecraft:bee_nest
+      - minecraft:beehive
+
+  # ============================================================
+  # 材料专属组件 —— 皮革染色 / 盔甲纹饰
+  # ============================================================
+  - id: minecraft:dyed_color
+    format: "RGB integer or color map {rgb, show_in_tooltip?}"
+    scope: material
+    applies_to:
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:leather_horse_armor
+  - id: minecraft:trim
+    format: "trim map {material, pattern, show_in_tooltip?}"
+    scope: material
+    applies_to:
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+
+  # ============================================================
+  # 材料专属组件 —— 烟花 / 弩 / 捆绑包
+  # ============================================================
+  - id: minecraft:fireworks
+    format: "fireworks map {flight_duration?, explosions?}"
+    scope: material
+    applies_to:
+      - minecraft:firework_rocket
+  - id: minecraft:firework_explosion
+    format: "explosion map {shape, colors?, fade_colors?, has_trail?, has_flicker?}"
+    scope: material
+    applies_to:
+      - minecraft:firework_rocket
+      - minecraft:firework_star
+  - id: minecraft:charged_projectiles
+    format: item stack list
+    scope: material
+    applies_to:
+      - minecraft:crossbow
+  - id: minecraft:bundle_contents
+    format: item stack list
+    scope: material
+    applies_to:
+      - minecraft:bundle
+
+  # ============================================================
+  # 材料专属组件 —— 书 / 号角 / 地图 / 指南针 / 唱片
+  # ============================================================
+  - id: minecraft:written_book_content
+    format: "written book map {title, author?, pages?, generation?, resolved?}"
+    scope: material
+    applies_to:
+      - minecraft:written_book
+  - id: minecraft:writable_book_content
+    format: "writable book map {pages?}"
+    scope: material
+    applies_to:
+      - minecraft:writable_book
+  - id: minecraft:instrument
+    format: "instrument map {instrument, use_duration?, range?}"
+    scope: material
+    applies_to:
+      - minecraft:goat_horn
+  - id: minecraft:map_id
+    format: integer map id
+    scope: material
+    applies_to:
+      - minecraft:map
+      - minecraft:filled_map
+  - id: minecraft:map_decorations
+    format: "decoration map {id: {type, x, z, rotation?, tracked?, display_name?}}"
+    scope: material
+    applies_to:
+      - minecraft:map
+      - minecraft:filled_map
+  - id: minecraft:map_post_processing
+    format: "scale or lock"
+    scope: material
+    applies_to:
+      - minecraft:map
+      - minecraft:filled_map
+  - id: minecraft:map_color
+    format: RGB integer
+    scope: material
+    applies_to:
+      - minecraft:map
+      - minecraft:filled_map
+  - id: minecraft:lodestone_tracker
+    format: "tracker map {target?, locked?}"
+    scope: material
+    applies_to:
+      - minecraft:compass
+      - minecraft:recovery_compass
+  - id: minecraft:jukebox_playable
+    format: "jukebox playable map {song, show_in_tooltip?}"
+    scope: material
+    applies_to:
+      - minecraft:music_disc_13
+      - minecraft:music_disc_cat
+      - minecraft:music_disc_blocks
+      - minecraft:music_disc_chirp
+      - minecraft:music_disc_far
+      - minecraft:music_disc_mall
+      - minecraft:music_disc_mellohi
+      - minecraft:music_disc_stal
+      - minecraft:music_disc_strad
+      - minecraft:music_disc_ward
+      - minecraft:music_disc_11
+      - minecraft:music_disc_wait
+      - minecraft:music_disc_otherside
+      - minecraft:music_disc_pigstep
+      - minecraft:music_disc_5
+      - minecraft:music_disc_relic
+      - minecraft:music_disc_creator
+      - minecraft:music_disc_creator_music_box
+      - minecraft:music_disc_precipice
+      - minecraft:music_disc_tears
+
+  # ============================================================
+  # 材料专属组件 —— 不祥之瓶 / 装饰陶罐
+  # ============================================================
+  - id: minecraft:ominous_bottle_amplifier
+    format: integer 0..4
+    scope: material
+    applies_to:
+      - minecraft:ominous_bottle
+  - id: minecraft:pot_decorations
+    format: "sherds list {front?, left?, right?, back?}"
+    scope: material
+    applies_to:
+      - minecraft:decorated_pot
+
+  # ============================================================
+  # 材料专属组件 —— 生成蛋 / 画（实体变体与外观）
+  # ============================================================
+  - id: minecraft:painting_variant
+    format: "painting variant map {asset_id, width?, height?, title?, author?}"
+    scope: material
+    applies_to:
+      - minecraft:painting
+  - id: minecraft:villager_variant
+    format: villager variant resource id
+    scope: material
+    applies_to:
+      - minecraft:villager_spawn_egg
+  - id: minecraft:wolf_variant
+    format: wolf variant resource id
+    scope: material
+    applies_to:
+      - minecraft:wolf_spawn_egg
+  - id: minecraft:wolf_sound_variant
+    format: wolf sound variant resource id
+    scope: material
+    applies_to:
+      - minecraft:wolf_spawn_egg
+  - id: minecraft:wolf_collar
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:wolf_spawn_egg
+  - id: minecraft:fox_variant
+    format: fox variant resource id
+    scope: material
+    applies_to:
+      - minecraft:fox_spawn_egg
+  - id: minecraft:salmon_size
+    format: integer
+    scope: material
+    applies_to:
+      - minecraft:salmon_spawn_egg
+  - id: minecraft:parrot_variant
+    format: parrot variant resource id
+    scope: material
+    applies_to:
+      - minecraft:parrot_spawn_egg
+  - id: minecraft:tropical_fish_pattern
+    format: tropical fish pattern resource id
+    scope: material
+    applies_to:
+      - minecraft:tropical_fish_spawn_egg
+  - id: minecraft:tropical_fish_base_color
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:tropical_fish_spawn_egg
+  - id: minecraft:tropical_fish_pattern_color
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:tropical_fish_spawn_egg
+  - id: minecraft:mooshroom_variant
+    format: mooshroom variant resource id
+    scope: material
+    applies_to:
+      - minecraft:mooshroom_spawn_egg
+  - id: minecraft:rabbit_variant
+    format: rabbit variant resource id
+    scope: material
+    applies_to:
+      - minecraft:rabbit_spawn_egg
+  - id: minecraft:pig_variant
+    format: pig variant resource id
+    scope: material
+    applies_to:
+      - minecraft:pig_spawn_egg
+  - id: minecraft:cow_variant
+    format: cow variant resource id
+    scope: material
+    applies_to:
+      - minecraft:cow_spawn_egg
+  - id: minecraft:chicken_variant
+    format: chicken variant resource id
+    scope: material
+    applies_to:
+      - minecraft:chicken_spawn_egg
+  - id: minecraft:frog_variant
+    format: frog variant resource id
+    scope: material
+    applies_to:
+      - minecraft:frog_spawn_egg
+  - id: minecraft:horse_variant
+    format: integer horse variant id
+    scope: material
+    applies_to:
+      - minecraft:horse_spawn_egg
+  - id: minecraft:llama_variant
+    format: llama variant resource id
+    scope: material
+    applies_to:
+      - minecraft:llama_spawn_egg
+  - id: minecraft:axolotl_variant
+    format: axolotl variant resource id
+    scope: material
+    applies_to:
+      - minecraft:axolotl_spawn_egg
+  - id: minecraft:cat_variant
+    format: cat variant resource id
+    scope: material
+    applies_to:
+      - minecraft:cat_spawn_egg
+  - id: minecraft:cat_collar
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:cat_spawn_egg
+  - id: minecraft:sheep_color
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:sheep_spawn_egg
+  - id: minecraft:shulker_color
+    format: dye color id
+    scope: material
+    applies_to:
+      - minecraft:shulker_spawn_egg
   - id: minecraft:zombie_nautilus_variant
-    format: vanilla component value
+    format: zombie nautilus variant resource id
+    scope: material
+    applies_to:
+      - minecraft:zombie_nautilus_spawn_egg

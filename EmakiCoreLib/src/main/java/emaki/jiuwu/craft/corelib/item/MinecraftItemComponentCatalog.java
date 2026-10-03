@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.item;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -14,10 +15,39 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public final class MinecraftItemComponentCatalog {
 
+    public enum Scope {
+        UNIVERSAL,
+        MATERIAL
+    }
+
     public record Entry(String componentId,
             String valueFormat,
-            boolean nonValued) {
+            boolean nonValued,
+            Scope scope,
+            List<String> appliesTo) {
+
+        public Entry {
+            scope = scope == null ? Scope.UNIVERSAL : scope;
+            appliesTo = appliesTo == null ? List.of() : List.copyOf(appliesTo);
+        }
+
+        public Entry(String componentId, String valueFormat, boolean nonValued) {
+            this(componentId, valueFormat, nonValued, Scope.UNIVERSAL, List.of());
+        }
+
+        public boolean materialScoped() {
+            return scope == Scope.MATERIAL;
+        }
+
+        public boolean appliesTo(String materialId) {
+            if (appliesTo.isEmpty()) {
+                return true;
+            }
+            return appliesTo.contains(normalizeMaterialId(materialId));
+        }
     }
+
+    private static final String MATERIAL_NAMESPACE = "minecraft:";
 
     private final Map<String, Entry> entries;
 
@@ -31,6 +61,53 @@ public final class MinecraftItemComponentCatalog {
 
     public Entry entry(String componentId) {
         return entries.get(componentId);
+    }
+
+    public List<Entry> universalEntries() {
+        List<Entry> result = new ArrayList<>();
+        for (Entry entry : entries.values()) {
+            if (!entry.materialScoped()) {
+                result.add(entry);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public List<Entry> materialScopedEntries() {
+        List<Entry> result = new ArrayList<>();
+        for (Entry entry : entries.values()) {
+            if (entry.materialScoped()) {
+                result.add(entry);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public List<Entry> specializedFor(String materialId) {
+        String normalized = normalizeMaterialId(materialId);
+        List<Entry> result = new ArrayList<>();
+        for (Entry entry : entries.values()) {
+            if (entry.materialScoped() && entry.appliesTo(normalized)) {
+                result.add(entry);
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    public boolean isApplicable(String componentId, String materialId) {
+        Entry entry = entry(componentId);
+        return entry != null && entry.appliesTo(materialId);
+    }
+
+    static String normalizeMaterialId(String materialId) {
+        if (materialId == null) {
+            return "";
+        }
+        String trimmed = Texts.lower(materialId).trim();
+        if (trimmed.isEmpty()) {
+            return "";
+        }
+        return trimmed.contains(":") ? trimmed : MATERIAL_NAMESPACE + trimmed;
     }
 
     private Map<String, Entry> createEntries() {
@@ -108,14 +185,18 @@ public final class MinecraftItemComponentCatalog {
                 }
                 String normalizedId = componentId.contains(":")
                         ? Texts.lower(componentId).trim()
-                        : "minecraft:" + Texts.lower(componentId).trim();
+                        : MATERIAL_NAMESPACE + Texts.lower(componentId).trim();
                 if (result.containsKey(normalizedId)) {
                     throw new IllegalArgumentException("Duplicate item component catalog id: " + normalizedId);
                 }
+                String scopeToken = Texts.lower(ConfigNodes.string(raw, "scope", "universal")).trim();
+                Scope scope = "material".equals(scopeToken) ? Scope.MATERIAL : Scope.UNIVERSAL;
                 result.put(normalizedId, new Entry(
                         normalizedId,
                         ConfigNodes.string(raw, "format", "vanilla component value"),
-                        ConfigNodes.bool(raw, "non_valued", false)
+                        ConfigNodes.bool(raw, "non_valued", false),
+                        scope,
+                        readMaterialIds(raw)
                 ));
             }
             return Collections.unmodifiableMap(result);
@@ -124,13 +205,28 @@ public final class MinecraftItemComponentCatalog {
         }
     }
 
+    private List<String> readMaterialIds(Object raw) {
+        List<Object> configured = ConfigNodes.asObjectList(ConfigNodes.get(raw, "applies_to"));
+        if (configured.isEmpty()) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>(configured.size());
+        for (Object element : configured) {
+            String materialId = normalizeMaterialId(Texts.toStringSafe(element));
+            if (!materialId.isEmpty() && !result.contains(materialId)) {
+                result.add(materialId);
+            }
+        }
+        return result;
+    }
+
     private void add(Map<String, Entry> entries, String id, String format) {
-        String namespacedId = "minecraft:" + id;
+        String namespacedId = MATERIAL_NAMESPACE + id;
         entries.put(namespacedId, new Entry(namespacedId, format, false));
     }
 
     private void addUnit(Map<String, Entry> entries, String id) {
-        String namespacedId = "minecraft:" + id;
+        String namespacedId = MATERIAL_NAMESPACE + id;
         entries.put(namespacedId, new Entry(namespacedId, "unit: true, null, or empty map", true));
     }
 }
