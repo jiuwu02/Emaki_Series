@@ -37,19 +37,23 @@ public final class ItemEditorInput {
 
     public Channel promptText(Player player,
             String title,
+            String hint,
             String label,
             String initialValue,
             String chatPrompt,
             Consumer<String> callback) {
-        if (tryDialog(player, title, label, initialValue, callback)) {
+        if (tryDialog(player, title, hint, label, initialValue, callback)) {
             return Channel.DIALOG;
         }
-        promptChat(player, chatPrompt, callback);
+        promptChat(player, hint, chatPrompt, callback);
         return Channel.CHAT;
     }
 
-    public void promptChat(Player player, String chatPrompt, Consumer<String> callback) {
+    public void promptChat(Player player, String hint, String chatPrompt, Consumer<String> callback) {
         plugin.messageService().send(player, chatPrompt);
+        if (hint != null && !hint.isBlank()) {
+            plugin.messageService().send(player, hint);
+        }
         chatInput.await(new ChatInputRequest(plugin, player, TIMEOUT_SECONDS, CANCEL_KEYWORDS, result -> {
             if (result.status() == ChatInputResult.Status.SUBMITTED) {
                 callback.accept(result.text() == null ? "" : result.text());
@@ -100,16 +104,17 @@ public final class ItemEditorInput {
         }
     }
 
-    private boolean tryDialog(Player player, String title, String label, String initialValue, Consumer<String> callback) {
+    private boolean tryDialog(Player player, String title, String hint, String label, String initialValue, Consumer<String> callback) {
         try {
             DialogService dialog = plugin.coreLib().dialogService();
             if (dialog == null || !dialog.enabled()) {
                 return false;
             }
+            List<String> bodyLines = hint == null || hint.isBlank() ? List.of() : List.of(hint);
             DialogDefinition definition = Dialogs.textPrompt(
                     DIALOG_ID,
                     title,
-                    List.of(),
+                    bodyLines,
                     INPUT_KEY,
                     label,
                     initialValue,

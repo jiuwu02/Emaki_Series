@@ -77,7 +77,7 @@ public final class ItemEditorRenderer {
         }
         String listPath = session.context("list_path");
         if (listPath == null || listPath.isBlank()) {
-            List<ItemEditorFieldSpec> specs = ItemEditorMenus.specs(menuId);
+            List<ItemEditorFieldSpec> specs = ItemEditorMenus.specs(menuId, session);
             List<ItemEditorField> fields = new ArrayList<>(specs.size());
             for (ItemEditorFieldSpec spec : specs) {
                 fields.add(toField(session, menuId, spec));
@@ -87,7 +87,27 @@ public final class ItemEditorRenderer {
             }
             return fields;
         }
-        List<Object> items = session.draftFor(menuId).sequence(listPath.split("\\."));
+        Object target = session.draftFor(menuId).value(listPath.split("\\."));
+        if (target instanceof Map<?, ?> map) {
+            List<ItemEditorField> fields = new ArrayList<>(map.size());
+            int position = 0;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                fields.add(new ItemEditorField(
+                        "entry_" + position,
+                        ItemEditorField.Kind.COMMAND,
+                        "editor.field.entry",
+                        Texts.toStringSafe(entry.getKey()) + " -> " + describe(entry.getValue()),
+                        List.of(Texts.toStringSafe(entry.getKey())),
+                        position,
+                        true));
+                position++;
+            }
+            return fields;
+        }
+        List<Object> items = new ArrayList<>();
+        if (target instanceof List<?> list) {
+            items.addAll(list);
+        }
         List<ItemEditorField> fields = new ArrayList<>(items.size());
         for (int index = 0; index < items.size(); index++) {
             fields.add(new ItemEditorField(
@@ -117,6 +137,11 @@ public final class ItemEditorRenderer {
         }
         if (ItemEditorGuiService.TYPE_PREVIEW.equals(type)) {
             return renderPreview(session, slot);
+        }
+        if (ItemEditorGuiService.TYPE_FILE_PATH.equals(type)) {
+            return GuiItemBuilder.build(slot.itemDefinition(),
+                    Map.of("file_path", String.valueOf(session.document().path())),
+                    plugin.coreLib().configuredItemService());
         }
         return buildStatic(slot);
     }

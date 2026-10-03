@@ -19,6 +19,8 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 public final class ItemEditorInteractionController implements GuiSessionHandler {
 
     private static final String CONTEXT_LIST_PATH = "list_path";
+    private static final String CONTEXT_ENTRY_TARGET = "entry_target";
+    private static final String CONTEXT_ENTRY_INDEX = "entry_index";
     private static final String CONTEXT_DELETE_STAMP = "delete_stamp";
     private static final String BUTTON_DELETE_CONFIRM = "confirm_delete";
     private static final String BUTTON_DELETE_CANCEL = "cancel_delete";
@@ -47,7 +49,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         }
         String type = Texts.lower(slot.definition().type());
         switch (type) {
-            case ItemEditorGuiService.TYPE_FIELD_ENTRY -> handleField(session, slot.slotIndex());
+            case ItemEditorGuiService.TYPE_FIELD_ENTRY -> handleField(session, slot.slotIndex(), context);
             case ItemEditorGuiService.TYPE_BACK_PARENT -> guiService.goBack(session);
             case ItemEditorGuiService.TYPE_BACK_HOME -> guiService.goHome(session);
             case ItemEditorGuiService.TYPE_BACK -> guiService.returnToBrowser(session);
@@ -69,7 +71,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         }
     }
 
-    private void handleField(ItemEditorSession session, int slotIndex) {
+    private void handleField(ItemEditorSession session, int slotIndex, GuiClickContext click) {
         List<ItemEditorField> fields = renderer().fields(session, session.currentMenu());
         int index = session.page() * 21 + slotIndex;
         if (index < 0 || index >= fields.size()) {
@@ -91,7 +93,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             promptComponent(session, field.id().substring("component_".length()));
             return;
         }
-        ItemEditorFieldSpec spec = spec(field.id());
+        ItemEditorFieldSpec spec = spec(session, field.id());
         switch (field.kind()) {
             case TOGGLE -> applyToggle(session, spec);
             case CYCLE -> applyCycle(session, spec);
@@ -99,9 +101,16 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             case NAVIGATE -> guiService.openMenu(session, spec.targetMenu());
             case LIST -> {
                 session.putContext(CONTEXT_LIST_PATH, spec.listPath());
-                guiService.openMenu(session, spec.targetMenu());
+                session.putContext(CONTEXT_ENTRY_TARGET, spec.targetMenu());
+                guiService.openMenu(session, ItemEditorMenus.LIST_ENTRIES);
             }
-            case COMMAND -> applyEntry(session, index);
+            case COMMAND -> {
+                if (click != null && click.isShiftClick()) {
+                    deleteEntry(session, index, field.options());
+                } else {
+                    applyEntry(session, index, field.options());
+                }
+            }
         }
     }
 
@@ -109,6 +118,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         input().promptText(
                 session.player(),
                 plugin.messageService().message("editor.field.skin_edit"),
+                plugin.messageService().message("editor.hint.skin"),
                 plugin.messageService().message("editor.field.skin_edit"),
                 ItemEditorRenderer.skinSummary(session),
                 plugin.messageService().message("editor.prompt.skin"),
@@ -144,6 +154,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         input().promptText(
                 session.player(),
                 componentId,
+                componentHint(componentId),
                 componentId,
                 Texts.toStringSafe(current),
                 plugin.messageService().message("editor.prompt.chat", Map.of("label", componentId)),
@@ -164,6 +175,48 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         } catch (RuntimeException failure) {
             return trimmed;
         }
+    }
+
+    private static final emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog CATALOG =
+            new emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog();
+
+    private String fieldHint(ItemEditorFieldSpec spec) {
+        if (spec == null || spec.path().length != 3
+                || !"item".equals(spec.path()[0]) || !"components".equals(spec.path()[1])) {
+            return null;
+        }
+        return componentHint(spec.path()[2]);
+    }
+
+    private String componentHint(String componentId) {
+        emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry = CATALOG.entry(componentId);
+        return entry == null
+                ? null
+                : plugin.messageService().message("editor.hint.format", Map.of("format", entry.valueFormat()));
+    }
+
+    private String actionHint(String current) {
+        String[] tokens = Texts.toStringSafe(current).trim().split("\\s+");
+        if (tokens.length == 0 || tokens[0].isBlank()) {
+            return plugin.messageService().message("editor.hint.action_generic");
+        }
+        java.util.Optional<emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor> descriptor =
+                emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.actionStage(tokens[0].toLowerCase(java.util.Locale.ROOT));
+        if (descriptor.isEmpty()) {
+            return plugin.messageService().message("editor.hint.action_generic");
+        }
+        StringBuilder builder = new StringBuilder();
+        for (emaki.jiuwu.craft.corelib.api.action.CoreStageParameter parameter : descriptor.get().parameters()) {
+            if (builder.length() > 0) {
+                builder.append(", ");
+            }
+            builder.append(parameter.name());
+            if (parameter.required() && !parameter.positional()) {
+                builder.append("*");
+            }
+        }
+        return plugin.messageService().message("editor.hint.action_parameters",
+                Map.of("stage", descriptor.get().id(), "params", builder.toString()));
     }
 
     private YamlTextDocument draft(ItemEditorSession session) {
@@ -212,6 +265,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         input().promptText(
                 session.player(),
                 plugin.messageService().message(spec.labelKey()),
+                fieldHint(spec),
                 plugin.messageService().message(spec.labelKey()),
                 current,
                 plugin.messageService().message("editor.prompt.chat", Map.of("label", spec.labelKey())),
@@ -237,30 +291,76 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return "editor.action.empty";
         }
         for (String segment : trimmed.split("\\|")) {
-            String token = segment.trim().split("\\s+")[0].toLowerCase(java.util.Locale.ROOT);
+            String[] tokens = segment.trim().split("\\s+");
+            String token = tokens[0].toLowerCase(java.util.Locale.ROOT);
             if (token.isEmpty()) {
                 return "editor.action.empty_segment";
             }
             if (ACTION_CONTROL_KEYWORDS.contains(token)) {
                 continue;
             }
-            if (emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.actionStage(token).isEmpty()) {
+            java.util.Optional<emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor> descriptor =
+                    emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.actionStage(token);
+            if (descriptor.isEmpty()) {
                 return "editor.action.unknown_stage";
+            }
+            String problem = checkParameters(descriptor.get(), tokens);
+            if (problem != null) {
+                return problem;
             }
         }
         return null;
     }
 
-    private void applyEntry(ItemEditorSession session, int index) {
+    private static String checkParameters(
+            emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor descriptor,
+            String[] tokens) {
+        java.util.Set<String> provided = new java.util.HashSet<>();
+        java.util.Set<String> declared = new java.util.HashSet<>();
+        for (emaki.jiuwu.craft.corelib.api.action.CoreStageParameter parameter : descriptor.parameters()) {
+            declared.add(parameter.name().toLowerCase(java.util.Locale.ROOT));
+        }
+        for (int index = 1; index < tokens.length; index++) {
+            int separator = tokens[index].indexOf('=');
+            if (separator <= 0) {
+                continue;
+            }
+            String name = tokens[index].substring(0, separator).trim().toLowerCase(java.util.Locale.ROOT);
+            if (!declared.contains(name)) {
+                return "editor.action.unknown_argument";
+            }
+            provided.add(name);
+        }
+        for (emaki.jiuwu.craft.corelib.api.action.CoreStageParameter parameter : descriptor.parameters()) {
+            String name = parameter.name().toLowerCase(java.util.Locale.ROOT);
+            if (parameter.required() && !parameter.positional() && !provided.contains(name)) {
+                return "editor.action.missing_argument";
+            }
+        }
+        return null;
+    }
+
+    private void applyEntry(ItemEditorSession session, int index, List<String> keyHint) {
         String listPath = session.context(CONTEXT_LIST_PATH);
         if (listPath == null) {
             return;
         }
+        String target = session.context(CONTEXT_ENTRY_TARGET);
+        if (target != null && !ItemEditorMenus.LIST_ENTRIES.equals(target) && keyHint.isEmpty()) {
+            session.putContext(CONTEXT_ENTRY_INDEX, Integer.toString(index));
+            guiService.openMenu(session, target);
+            return;
+        }
+        String mapKey = keyHint.isEmpty() ? null : keyHint.get(0);
+        Object current = mapKey == null
+                ? draft(session).sequence(split(listPath)).get(index)
+                : mapValue(draft(session), listPath, mapKey);
         input().promptText(
                 session.player(),
                 plugin.messageService().message("editor.field.entry"),
+                isActionList(listPath) ? actionHint(Texts.toStringSafe(current)) : null,
                 plugin.messageService().message("editor.field.entry"),
-                Texts.toStringSafe(draft(session).sequence(split(listPath)).get(index)),
+                Texts.toStringSafe(current),
                 plugin.messageService().message("editor.prompt.chat", Map.of("label", "editor.field.entry")),
                 text -> {
                     String problem = precheckActionLine(listPath, text);
@@ -269,9 +369,43 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                         feedback(session.player(), false);
                         return;
                     }
-                    mutate(session, candidate -> candidate.setListItem(text, index, split(listPath)));
+                    Object value = mapKey == null ? text : parseYamlValue(text);
+                    mutate(session, candidate -> {
+                        if (mapKey == null) {
+                            candidate.setListItem(value, index, split(listPath));
+                        } else {
+                            candidate.set(value, appendKey(split(listPath), mapKey));
+                        }
+                    });
                     guiService.refresh(session);
                 });
+    }
+
+    private void deleteEntry(ItemEditorSession session, int index, List<String> keyHint) {
+        String listPath = session.context(CONTEXT_LIST_PATH);
+        if (listPath == null) {
+            return;
+        }
+        String mapKey = keyHint.isEmpty() ? null : keyHint.get(0);
+        mutate(session, candidate -> {
+            if (mapKey == null) {
+                candidate.removeListItem(index, split(listPath));
+            } else {
+                candidate.remove(appendKey(split(listPath), mapKey));
+            }
+        });
+        guiService.refresh(session);
+    }
+
+    private static Object mapValue(YamlTextDocument draft, String listPath, String key) {
+        Object target = draft.value(split(listPath));
+        return target instanceof Map<?, ?> map ? map.get(key) : null;
+    }
+
+    private static String[] appendKey(String[] path, String key) {
+        String[] result = java.util.Arrays.copyOf(path, path.length + 1);
+        result[path.length] = key;
+        return result;
     }
 
     private void handleAdd(ItemEditorSession session) {
@@ -279,12 +413,15 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         if (listPath == null) {
             return;
         }
+        boolean mapTarget = draft(session).value(split(listPath)) instanceof Map<?, ?>;
+        String promptKey = mapTarget ? "editor.prompt.map_entry" : "editor.prompt.chat";
         input().promptText(
                 session.player(),
                 plugin.messageService().message("editor.field.entry"),
+                isActionList(listPath) ? actionHint("") : null,
                 plugin.messageService().message("editor.field.entry"),
                 "",
-                plugin.messageService().message("editor.prompt.chat", Map.of("label", "editor.field.entry")),
+                plugin.messageService().message(promptKey, Map.of("label", "editor.field.entry")),
                 text -> {
                     String problem = precheckActionLine(listPath, text);
                     if (problem != null) {
@@ -292,11 +429,34 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                         feedback(session.player(), false);
                         return;
                     }
-                    if (!Texts.isBlank(text)) {
+                    if (Texts.isBlank(text)) {
+                        return;
+                    }
+                    if (mapTarget) {
+                        String[] pair = splitKeyValue(text);
+                        if (pair == null) {
+                            plugin.messageService().send(session.player(), "editor.map.bad_entry");
+                            feedback(session.player(), false);
+                            return;
+                        }
+                        mutate(session, candidate -> candidate.set(parseYamlValue(pair[1]),
+                                appendKey(split(listPath), pair[0])));
+                    } else {
                         mutate(session, candidate -> candidate.appendListItem(text, split(listPath)));
                     }
                     guiService.refresh(session);
                 });
+    }
+
+    private static String[] splitKeyValue(String text) {
+        int separator = text.indexOf('=');
+        if (separator <= 0 || separator >= text.length() - 1) {
+            separator = text.indexOf(':');
+        }
+        if (separator <= 0 || separator >= text.length() - 1) {
+            return null;
+        }
+        return new String[]{ text.substring(0, separator).trim(), text.substring(separator + 1).trim() };
     }
 
     private void handleGetItem(ItemEditorSession session) {
@@ -458,14 +618,10 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         return guiService.input();
     }
 
-    private static ItemEditorFieldSpec spec(String fieldId) {
-        for (String menu : List.of(ItemEditorMenus.BASIC, ItemEditorMenus.UPDATE, ItemEditorMenus.SET,
-                ItemEditorMenus.CONDITION, ItemEditorMenus.REPAIR, ItemEditorMenus.REPAIR_ECONOMY,
-                ItemEditorMenus.COMPONENTS, ItemEditorMenus.EFFECTS, ItemEditorMenus.ACTIONS)) {
-            for (ItemEditorFieldSpec candidate : ItemEditorMenus.specs(menu)) {
-                if (candidate.id().equals(fieldId)) {
-                    return candidate;
-                }
+    private ItemEditorFieldSpec spec(ItemEditorSession session, String fieldId) {
+        for (ItemEditorFieldSpec candidate : ItemEditorMenus.specs(session.currentMenu(), session)) {
+            if (candidate.id().equals(fieldId)) {
+                return candidate;
             }
         }
         return null;

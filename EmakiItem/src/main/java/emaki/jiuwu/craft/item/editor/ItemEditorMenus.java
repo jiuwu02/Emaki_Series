@@ -25,6 +25,7 @@ public final class ItemEditorMenus {
     public static final String UPDATE = "update";
     public static final String ACTIONS = "actions";
     public static final String ACTION_LINES = "action_lines";
+    public static final String LIST_ENTRIES = "list_entries";
 
     public static final String TEMPLATE_HOME = "item_editor_gui";
     public static final String TEMPLATE_PAGE = "item_editor_page_gui";
@@ -79,12 +80,15 @@ public final class ItemEditorMenus {
         return meta != null && meta.paginated();
     }
 
-    public static List<ItemEditorFieldSpec> specs(String menuId) {
+    public static List<ItemEditorFieldSpec> specs(String menuId, ItemEditorSession session) {
         return switch (menuId) {
             case BASIC -> basic();
             case UPDATE -> update();
             case SET -> set();
             case SET_EDITOR -> setEditor();
+            case EFFECT_EDIT -> effectEdit(entryIndex(session));
+            case REPAIR_MATERIALS -> repairMaterial(entryIndex(session));
+            case CONDITION_ENTRIES -> conditionEntry(entryIndex(session));
             case CONDITION -> condition();
             case REPAIR -> repair();
             case REPAIR_ECONOMY -> repairEconomy();
@@ -93,6 +97,50 @@ public final class ItemEditorMenus {
             case ACTIONS -> actions();
             default -> List.of();
         };
+    }
+
+    private static int entryIndex(ItemEditorSession session) {
+        try {
+            return Math.max(0, Integer.parseInt(session.context("entry_index")));
+        } catch (RuntimeException failure) {
+            return 0;
+        }
+    }
+
+    public static List<ItemEditorFieldSpec> repairMaterial(int index) {
+        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+        String prefix = "repair.materials." + index + ".";
+        specs.add(ItemEditorFieldSpec.number("mat_amount", "editor.field.mat_amount", prefix + "amount"));
+        specs.add(ItemEditorFieldSpec.text("mat_restore", "editor.field.mat_restore", prefix + "restore"));
+        specs.add(ItemEditorFieldSpec.list("mat_item_sources", "editor.field.mat_item_sources", LIST_ENTRIES,
+                prefix + "item_sources"));
+        specs.add(ItemEditorFieldSpec.cycle("mat_matcher_type", "editor.field.mat_matcher_type",
+                List.of("component", "flag", "enchantment", "item", "potion", "regex"),
+                prefix + "matcher", "type"));
+        specs.add(ItemEditorFieldSpec.text("mat_matcher_component", "editor.field.mat_matcher_component",
+                prefix + "matcher", "component"));
+        specs.add(ItemEditorFieldSpec.cycle("mat_matcher_operator", "editor.field.mat_matcher_operator",
+                List.of("equals", "not_equals", "greater", "greater_or_equal", "less", "less_or_equal",
+                        "contains", "starts_with", "ends_with", "regex", "has_key", "has_value", "size",
+                        "exists", "absent"),
+                prefix + "matcher", "operator"));
+        specs.add(ItemEditorFieldSpec.text("mat_matcher_value", "editor.field.mat_matcher_value",
+                prefix + "matcher", "value"));
+        return specs;
+    }
+
+    public static List<ItemEditorFieldSpec> conditionEntry(int index) {
+        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+        String prefix = "condition.entries." + index + ".";
+        specs.add(ItemEditorFieldSpec.cycle("cond_type", "editor.field.cond_type",
+                List.of("expression", "group"), prefix + "type"));
+        specs.add(ItemEditorFieldSpec.text("cond_expression", "editor.field.cond_expression",
+                prefix + "expression"));
+        specs.add(ItemEditorFieldSpec.number("cond_required_count", "editor.field.cond_required_count",
+                prefix + "required_count"));
+        specs.add(ItemEditorFieldSpec.list("cond_nested", "editor.field.cond_nested", LIST_ENTRIES,
+                prefix + "entries"));
+        return specs;
     }
 
     public static List<String> listOrder(String menuId) {
@@ -123,6 +171,7 @@ public final class ItemEditorMenus {
         menus.put(UPDATE, new MenuMeta("editor.menu.update", HOME, TEMPLATE_PAGE, false));
         menus.put(ACTIONS, new MenuMeta("editor.menu.actions", HOME, TEMPLATE_PAGE, true));
         menus.put(ACTION_LINES, new MenuMeta("editor.menu.action_lines", ACTIONS, TEMPLATE_PAGE, true));
+        menus.put(LIST_ENTRIES, new MenuMeta("editor.menu.list_entries", HOME, TEMPLATE_PAGE, true));
         return menus;
     }
 
@@ -228,8 +277,42 @@ public final class ItemEditorMenus {
 
     private static List<ItemEditorFieldSpec> components() {
         List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.list("components_list", "editor.field.components_list",
-                COMPONENT_VALUE, "item.components"));
+        String[] base = new String[]{ "item", "components" };
+        specs.add(ItemEditorFieldSpec.text("comp_custom_name", "editor.field.comp.custom_name",
+                "item", "components", "minecraft:custom_name"));
+        specs.add(ItemEditorFieldSpec.text("comp_item_name", "editor.field.comp.item_name",
+                "item", "components", "minecraft:item_name"));
+        specs.add(ItemEditorFieldSpec.list("comp_lore", "editor.field.comp.lore", LIST_ENTRIES,
+                "item.components.lore"));
+        specs.add(ItemEditorFieldSpec.number("comp_max_stack_size", "editor.field.comp.max_stack_size",
+                "item", "components", "minecraft:max_stack_size"));
+        specs.add(ItemEditorFieldSpec.number("comp_max_damage", "editor.field.comp.max_damage",
+                "item", "components", "minecraft:max_damage"));
+        specs.add(ItemEditorFieldSpec.number("comp_damage", "editor.field.comp.damage",
+                "item", "components", "minecraft:damage"));
+        specs.add(ItemEditorFieldSpec.number("comp_enchantable", "editor.field.comp.enchantable",
+                "item", "components", "minecraft:enchantable"));
+        specs.add(ItemEditorFieldSpec.toggle("comp_unbreakable", "editor.field.comp.unbreakable",
+                "item", "components", "minecraft:unbreakable"));
+        specs.add(ItemEditorFieldSpec.toggle("comp_enchantment_glint", "editor.field.comp.enchantment_glint",
+                "item", "components", "minecraft:enchantment_glint_override"));
+        specs.add(ItemEditorFieldSpec.cycle("comp_rarity", "editor.field.comp.rarity",
+                List.of("common", "uncommon", "rare", "epic"),
+                "item", "components", "minecraft:rarity"));
+        specs.add(ItemEditorFieldSpec.text("comp_item_model", "editor.field.comp.item_model",
+                "item", "components", "minecraft:item_model"));
+        specs.add(ItemEditorFieldSpec.text("comp_tooltip_style", "editor.field.comp.tooltip_style",
+                "item", "components", "minecraft:tooltip_style"));
+        specs.add(ItemEditorFieldSpec.list("comp_enchantments", "editor.field.comp.enchantments", LIST_ENTRIES,
+                "item.components.minecraft:enchantments"));
+        specs.add(ItemEditorFieldSpec.list("comp_attribute_modifiers", "editor.field.comp.attribute_modifiers",
+                LIST_ENTRIES, "item.components.minecraft:attribute_modifiers"));
+        specs.add(ItemEditorFieldSpec.list("comp_custom_model_data", "editor.field.comp.custom_model_data",
+                LIST_ENTRIES, "item.components.minecraft:custom_model_data"));
+        specs.add(ItemEditorFieldSpec.list("comp_unset", "editor.field.comp.unset", LIST_ENTRIES,
+                "item.components.$unset"));
+        specs.add(ItemEditorFieldSpec.list("comp_reset", "editor.field.comp.reset", LIST_ENTRIES,
+                "item.components.$reset"));
         return specs;
     }
 
@@ -239,9 +322,31 @@ public final class ItemEditorMenus {
         return specs;
     }
 
+    public static List<ItemEditorFieldSpec> effectEdit(int index) {
+        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+        String prefix = "effects." + index + ".";
+        specs.add(ItemEditorFieldSpec.cycle("effect_type", "editor.field.effect_type", EFFECT_TYPES,
+                "effects", Integer.toString(index), "type"));
+        specs.add(ItemEditorFieldSpec.list("effect_variables", "editor.field.effect_variables", LIST_ENTRIES,
+                prefix + "variables"));
+        specs.add(ItemEditorFieldSpec.list("effect_attributes", "editor.field.effect_attributes", LIST_ENTRIES,
+                prefix + "ea_attributes"));
+        specs.add(ItemEditorFieldSpec.list("effect_skills", "editor.field.effect_skills", LIST_ENTRIES,
+                prefix + "es_skills"));
+        specs.add(ItemEditorFieldSpec.list("effect_skill_triggers", "editor.field.effect_skill_triggers",
+                LIST_ENTRIES, prefix + "es_skill_triggers"));
+        specs.add(ItemEditorFieldSpec.list("effect_accessory_slots", "editor.field.effect_accessory_slots",
+                LIST_ENTRIES, prefix + "accessory_slots"));
+        specs.add(ItemEditorFieldSpec.list("effect_name_actions", "editor.field.effect_name_actions",
+                LIST_ENTRIES, prefix + "name_actions"));
+        specs.add(ItemEditorFieldSpec.list("effect_lore_actions", "editor.field.effect_lore_actions",
+                LIST_ENTRIES, prefix + "lore_actions"));
+        return specs;
+    }
+
     private static List<ItemEditorFieldSpec> actions() {
         List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.list("actions_list", "editor.field.actions_list", ACTION_LINES, "actions"));
+        specs.add(ItemEditorFieldSpec.list("actions_list", "editor.field.actions_list", LIST_ENTRIES, "actions"));
         return specs;
     }
 }

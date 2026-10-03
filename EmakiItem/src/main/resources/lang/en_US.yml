@@ -215,6 +215,7 @@ editor:
     update: "Update Policy"
     actions: "Trigger Actions"
     action_lines: "Action Lines"
+    list_entries: "Entry Editor"
   field:
     entry: "Entry"
     value: "Current: <white>%value%</white>"
@@ -274,14 +275,54 @@ editor:
     repair_currencies: "Currency Settings"
     components_list: "Configured Components"
     skin_edit: "Head Skin"
+    comp:
+      custom_name: "Custom Name"
+      item_name: "Item Name"
+      lore: "Lore Lines"
+      max_stack_size: "Max Stack Size"
+      max_damage: "Max Damage"
+      damage: "Current Damage"
+      enchantable: "Enchantable Value"
+      unbreakable: "Unbreakable"
+      enchantment_glint: "Enchantment Glint Override"
+      rarity: "Rarity"
+      item_model: "Item Model"
+      tooltip_style: "Tooltip Style"
+      enchantments: "Enchantments"
+      attribute_modifiers: "Attribute Modifiers"
+      custom_model_data: "Custom Model Data"
+      unset: "Unset Components ($unset)"
+      reset: "Reset Components ($reset)"
+    effect_type: "Effect Type"
+    effect_variables: "Variables Map"
+    effect_attributes: "Attributes Map"
+    effect_skills: "Skill List"
+    effect_skill_triggers: "Skill Triggers Map"
+    effect_accessory_slots: "Accessory Slots"
+    effect_name_actions: "Name Display Actions"
+    effect_lore_actions: "Lore Display Actions"
+    mat_amount: "Amount Consumed"
+    mat_restore: "Durability Restored"
+    mat_item_sources: "Material Sources"
+    mat_matcher_type: "Matcher Type"
+    mat_matcher_component: "Matcher Component"
+    mat_matcher_operator: "Matcher Operator"
+    mat_matcher_value: "Matcher Value"
+    cond_type: "Entry Type"
+    cond_expression: "Condition Expression"
+    cond_required_count: "Required Nested Count"
+    cond_nested: "Nested Entries"
     effects_list: "Effect List"
     actions_list: "Trigger List"
   saved: "<green>Saved and applied</green>"
   save_failed: "<red>Save failed: %reason%</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
     skin: "<yellow>Type a player name, skin texture URL, or texture base64 in chat, or type cancel to abort</yellow>"
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
+  map:
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   skin:
     invalid: "<red>Invalid skin input, provide a player name, texture URL, or texture base64</red>"
   set:
@@ -290,6 +331,14 @@ editor:
     empty: "<red>Action line must not be empty</red>"
     empty_segment: "<red>Action line has an empty pipeline segment</red>"
     unknown_stage: "<red>Action line contains an unknown stage id</red>"
+    unknown_argument: "<red>Action line contains an undeclared argument name</red>"
+    missing_argument: "<red>Action line is missing a required argument</red>"
+  hint:
+    format: "<gray>Value format: %format%</gray>"
+    action_generic: "<gray>Action syntax: stage [arg=value ...], join stages with |</gray>"
+    action_parameters: "<gray>Stage %stage% parameters: %params% (* = required)</gray>"
+    skin: "<gray>Any of these works: player name / skin texture URL / texture base64</gray>"
+    new_item_id: "<gray>ID allows lowercase letters, digits and underscore only, e.g. my_sword</gray>"
   get_item:
     success: "<green>Received item %id%</green>"
   delete:
@@ -300,7 +349,7 @@ editor:
     cancel_button: "Cancel"
     cancelled: "<gray>Deletion cancelled, item data kept</gray>"
     references: "<yellow>These configs still reference this item: %refs%</yellow>"
-    confirm: "<red>Click \"Delete Item\" again to confirm</red>"
+    confirm: '<red>Click "Delete Item" again to confirm</red>'
     success: "<green>Deleted item %id%</green>"
     failed: "<red>Delete failed, see console</red>"
   create:

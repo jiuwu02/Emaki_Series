@@ -63,7 +63,7 @@ public final class YamlTextDocument {
     }
 
     public boolean has(String... path) {
-        return nodes.containsKey(pathList(path));
+        return nodes.containsKey(pathList(path)) || value(path) != null;
     }
 
     public List<Object> sequence(String... path) {
@@ -78,6 +78,26 @@ public final class YamlTextDocument {
 
     public void set(Object value, String... path) {
         requirePath(path);
+        for (int split = path.length - 2; split >= 0; split--) {
+            if (!isIndex(path[split + 1])) {
+                continue;
+            }
+            String[] listPath = new String[split + 1];
+            System.arraycopy(path, 0, listPath, 0, split + 1);
+            if (!(value(listPath) instanceof List<?>)) {
+                continue;
+            }
+            int index = Integer.parseInt(path[split + 1]);
+            String[] keyPath = new String[path.length - split - 2];
+            System.arraycopy(path, split + 2, keyPath, 0, keyPath.length);
+            List<Object> items = sequence(listPath);
+            if (index < 0 || index >= items.size()) {
+                throw new IndexOutOfBoundsException("Sequence item index out of range: " + index);
+            }
+            Object updated = keyPath.length == 0 ? value : deepPut(items.get(index), keyPath, value);
+            setListItem(updated, index, listPath);
+            return;
+        }
         List<String> lookup = pathList(path);
         Node node = nodes.get(lookup);
         if (node != null) {
@@ -89,6 +109,18 @@ public final class YamlTextDocument {
     }
 
     public void remove(String... path) {
+        for (int split = path.length - 2; split >= 0; split--) {
+            if (!isIndex(path[split + 1])) {
+                continue;
+            }
+            String[] listPath = new String[split + 1];
+            System.arraycopy(path, 0, listPath, 0, split + 1);
+            if (!(value(listPath) instanceof List<?>)) {
+                continue;
+            }
+            removeListItem(Integer.parseInt(path[split + 1]), listPath);
+            return;
+        }
         Node node = nodes.get(pathList(path));
         if (node == null) {
             return;
@@ -462,10 +494,29 @@ public final class YamlTextDocument {
         if (index >= path.length) {
             return current;
         }
+        if (current instanceof List<?> list) {
+            if (!isIndex(path[index])) {
+                return null;
+            }
+            int position = Integer.parseInt(path[index]);
+            return descend(position >= 0 && position < list.size() ? list.get(position) : null, path, index + 1);
+        }
         if (!(current instanceof Map<?, ?> map)) {
             return null;
         }
         return descend(map.get(path[index]), path, index + 1);
+    }
+
+    private static boolean isIndex(String segment) {
+        if (segment == null || segment.isEmpty()) {
+            return false;
+        }
+        for (int i = 0; i < segment.length(); i++) {
+            if (!Character.isDigit(segment.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private static List<String> pathList(String[] path) {

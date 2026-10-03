@@ -22,6 +22,7 @@ public final class ItemEditorGuiService {
     public static final String KEY_ENTRY_COUNT = "entry_count";
     public static final String TYPE_FIELD_ENTRY = "field_entry";
     public static final String TYPE_PREVIEW = "preview";
+    public static final String TYPE_FILE_PATH = "file_path";
     public static final String TYPE_BACK_PARENT = "back_parent";
     public static final String TYPE_BACK_HOME = "back_home";
     public static final String TYPE_CONFIRM = "confirm";

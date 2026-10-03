@@ -161,6 +161,19 @@ slots:
           - "<yellow>点击后弹出确认对话框</yellow>"
           - "<red>此操作不可撤销</red>"
 
+  file_path:
+    type: "file_path"
+    slots:
+      - 51
+    item:
+      source: "minecraft:written_book"
+      components:
+        custom_name: "<gray>定义文件</gray>"
+        lore:
+          - "<dark_gray>%file_path%</dark_gray>"
+          - "<dark_gray>如需全权手改可直接打开该文件</dark_gray>"
+          - "<dark_gray>本编辑器写盘会保留原有注释与排版</dark_gray>"
+
   border:
     type: "filler"
     slots:
@@ -202,7 +215,6 @@ slots:
       - 46
       - 48
       - 50
-      - 51
       - 52
       - 53
     item:

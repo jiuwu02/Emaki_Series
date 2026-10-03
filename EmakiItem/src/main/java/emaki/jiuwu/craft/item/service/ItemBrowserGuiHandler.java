@@ -112,6 +112,7 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         player.closeInventory();
         plugin.scheduling().runForEntity(plugin, player, () ->
                 plugin.editorGuiService().input().promptChat(player,
+                        plugin.messageService().message("editor.hint.new_item_id"),
                         plugin.messageService().message("editor.create.prompt"),
                         rawId -> plugin.editorGuiService().createAndOpen(player, packId, page, rawId)),
                 () -> {
