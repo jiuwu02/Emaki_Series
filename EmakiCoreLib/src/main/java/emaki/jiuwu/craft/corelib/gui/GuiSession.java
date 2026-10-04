@@ -55,7 +55,7 @@ public final class GuiSession implements InventoryHolder {
         if (replacements != null) {
             this.replacements.putAll(replacements);
         }
-        this.titleComponent = MiniMessages.parse(resolveTitle(template, this.replacements));
+        this.titleComponent = MiniMessages.parse(resolveTitleString(template, this.replacements));
         this.plainTitle = MiniMessages.plain(this.titleComponent);
         this.inventory = createInventory(template, this.titleComponent);
     }
@@ -97,7 +97,7 @@ public final class GuiSession implements InventoryHolder {
         };
     }
 
-    private static String resolveTitle(GuiTemplate template, Map<String, ?> replacements) {
+    static String resolveTitleString(GuiTemplate template, Map<String, ?> replacements) {
         if (template == null) {
             return "";
         }

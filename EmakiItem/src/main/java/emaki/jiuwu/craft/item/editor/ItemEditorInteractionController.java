@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 public final class ItemEditorInteractionController implements GuiSessionHandler {
 
     private static final String CONTEXT_LIST_PATH = "list_path";
+    private static final String CONTEXT_LIST_LABEL = "list_label";
     private static final String CONTEXT_ENTRY_TARGET = "entry_target";
     private static final String CONTEXT_ENTRY_INDEX = "entry_index";
     private static final String CONTEXT_DELETE_STAMP = "delete_stamp";
@@ -61,7 +62,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             case ItemEditorGuiService.TYPE_BACK_HOME -> guiService.goHome(session);
             case ItemEditorGuiService.TYPE_BACK -> guiService.returnToBrowser(session);
             case ItemEditorGuiService.TYPE_CLOSE -> context.viewer().closeInventory();
-            case ItemEditorGuiService.TYPE_CONFIRM -> handleAdd(session);
+            case ItemEditorGuiService.TYPE_CONFIRM -> handleConfirm(session);
             case ItemEditorGuiService.TYPE_PAGE_PREV -> turnPage(session, -1);
             case ItemEditorGuiService.TYPE_PAGE_NEXT -> turnPage(session, 1);
             case ItemEditorGuiService.TYPE_GET_ITEM -> handleGetItem(session);
@@ -96,13 +97,8 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             handleSkinEdit(session);
             return;
         }
-        if (field.id().startsWith("component_")) {
-            String componentId = field.id().substring("component_".length());
-            if (click != null && click.isRightClick()) {
-                resetPath(session, "item", "components", componentId);
-                return;
-            }
-            promptComponent(session, componentId);
+        if (field.id().startsWith(ItemEditorRenderer.COMPONENT_FIELD_PREFIX)) {
+            handleComponentField(session, field, click);
             return;
         }
         ItemEditorFieldSpec spec = spec(session, field.id());
@@ -179,9 +175,59 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         return emaki.jiuwu.craft.corelib.item.ProfileComponentSupport.profileWithPlayerName(trimmed);
     }
 
-    private void promptComponent(ItemEditorSession session, String componentId) {
-        Object current = session.draft().valueLenient("item", "components", componentId);
-        String label = componentDisplayName(componentId);
+    private void handleComponentField(ItemEditorSession session, ItemEditorField field, GuiClickContext click) {
+        String componentId = field.id().substring(ItemEditorRenderer.COMPONENT_FIELD_PREFIX.length());
+        String[] path = { "item", "components", componentId };
+        boolean reset = click != null && click.isRightClick();
+        switch (field.kind()) {
+            case TOGGLE -> {
+                if (reset) {
+                    resetPath(session, path);
+                    return;
+                }
+                Object current = draft(session).valueLenient(path);
+                String[] resolved = draft(session).resolvePath(path);
+                mutate(session, candidate -> {
+                    if (isTruthy(current)) {
+                        candidate.remove(resolved);
+                    } else {
+                        candidate.set(Boolean.TRUE, resolved);
+                    }
+                });
+                guiService.refresh(session);
+            }
+            case CYCLE -> {
+                if (reset) {
+                    resetPath(session, path);
+                    return;
+                }
+                if (field.options().isEmpty()) {
+                    return;
+                }
+                String current = Texts.toStringSafe(draft(session).valueLenient(path));
+                int position = field.options().indexOf(current);
+                String next = field.options().get((position + 1) % field.options().size());
+                String[] resolved = draft(session).resolvePath(path);
+                mutate(session, candidate -> candidate.set(next, resolved));
+                guiService.refresh(session);
+            }
+            case NUMBER, TEXT -> {
+                if (reset) {
+                    resetPath(session, path);
+                    return;
+                }
+                promptComponentValue(session, field, componentId, path);
+            }
+            case LIST -> handleComponentList(session, field, path, click);
+            default -> {
+            }
+        }
+    }
+
+    private void promptComponentValue(ItemEditorSession session, ItemEditorField field, String componentId,
+            String[] path) {
+        Object current = draft(session).valueLenient(path);
+        String label = field.displayName() != null ? field.displayName() : componentId;
         String hint = composeHint(componentHint(componentId), ItemEditorRenderer.describeValue(current));
         input().promptText(
                 session.player(),
@@ -194,15 +240,70 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                     if (text == null || text.isBlank()) {
                         return;
                     }
-                    String[] path = session.draft().resolvePath("item", "components", componentId);
-                    mutate(session, candidate -> candidate.set(parseYamlValue(text), path));
+                    Object value = field.kind() == ItemEditorField.Kind.NUMBER
+                            ? parseNumber(text)
+                            : parseYamlValue(text);
+                    String[] resolved = draft(session).resolvePath(path);
+                    mutate(session, candidate -> candidate.set(value, resolved));
                     guiService.refresh(session);
                 });
     }
 
-    private String componentDisplayName(String componentId) {
-        String shortId = componentId.startsWith("minecraft:") ? componentId.substring("minecraft:".length()) : componentId;
-        return plugin.messageService().messageOrFallback("editor.field.comp." + shortId, shortId);
+    private void handleComponentList(ItemEditorSession session, ItemEditorField field, String[] path,
+            GuiClickContext click) {
+        String listPath = String.join(".", path);
+        Object value = draft(session).valueLenient(path);
+        if (click != null && click.isRightClick()) {
+            if (value instanceof Map<?, ?> || click.isShiftClick()) {
+                resetPath(session, path);
+            } else {
+                removeLastListLine(session, listPath);
+            }
+            return;
+        }
+        if (!(value instanceof Map<?, ?>)) {
+            String label = field.displayName() != null ? field.displayName() : listPath;
+            promptAppendLine(session, label, listPath);
+            return;
+        }
+        session.putContext(CONTEXT_LIST_PATH, listPath);
+        session.putContext(CONTEXT_LIST_LABEL, field.displayName());
+        session.putContext(CONTEXT_ENTRY_TARGET, ItemEditorMenus.LIST_ENTRIES);
+        guiService.openMenu(session, ItemEditorMenus.LIST_ENTRIES);
+    }
+
+    private static boolean isTruthy(Object value) {
+        if (value instanceof Boolean bool) {
+            return bool;
+        }
+        String text = Texts.toStringSafe(value).trim();
+        return "true".equalsIgnoreCase(text) || "yes".equalsIgnoreCase(text);
+    }
+
+    private void handleConfirm(ItemEditorSession session) {
+        if (ItemEditorMenus.COMPONENTS.equals(session.currentMenu())) {
+            promptComponentSearch(session);
+        } else if (ItemEditorMenus.LIST_ENTRIES.equals(session.currentMenu())) {
+            handleAdd(session);
+        }
+    }
+
+    private void promptComponentSearch(ItemEditorSession session) {
+        String current = Texts.toStringSafe(session.context(ItemEditorRenderer.CONTEXT_COMPONENT_FILTER)).trim();
+        String label = plugin.messageService().message("editor.field.component_search");
+        input().promptText(
+                session.player(),
+                label,
+                plugin.messageService().message("editor.hint.component_search"),
+                label,
+                current,
+                plugin.messageService().message("editor.prompt.chat", Map.of("label", label)),
+                text -> {
+                    session.putContext(ItemEditorRenderer.CONTEXT_COMPONENT_FILTER,
+                            text == null || text.isBlank() ? null : text.trim());
+                    session.setPage(0);
+                    guiService.refresh(session);
+                });
     }
 
     private static Object parseYamlValue(String text) {
@@ -231,9 +332,13 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
 
     private String componentHint(String componentId) {
         emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry = CATALOG.entry(componentId);
-        return entry == null
-                ? null
-                : plugin.messageService().message("editor.hint.format", Map.of("format", entry.valueFormat()));
+        if (entry == null) {
+            return null;
+        }
+        String description = entry.descriptionText();
+        return description.isBlank()
+                ? plugin.messageService().message("editor.hint.format", Map.of("format", entry.valueFormat()))
+                : description;
     }
 
     private String actionHint(String current) {
@@ -353,7 +458,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return;
         }
         if (!(value instanceof Map<?, ?>) && !(click != null && click.isShiftClick())) {
-            promptAppendLine(session, spec, listPath);
+            promptAppendLine(session, plugin.messageService().message(spec.labelKey()), listPath);
             return;
         }
         session.putContext(CONTEXT_LIST_PATH, listPath);
@@ -361,8 +466,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         guiService.openMenu(session, ItemEditorMenus.LIST_ENTRIES);
     }
 
-    private void promptAppendLine(ItemEditorSession session, ItemEditorFieldSpec spec, String listPath) {
-        String label = plugin.messageService().message(spec.labelKey());
+    private void promptAppendLine(ItemEditorSession session, String label, String listPath) {
         String[] path = draft(session).resolvePath(split(listPath));
         input().promptText(
                 session.player(),
@@ -463,6 +567,10 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
     }
 
     private String listFieldLabel(ItemEditorSession session, String listPath) {
+        String custom = session.context(CONTEXT_LIST_LABEL);
+        if (custom != null && !custom.isBlank()) {
+            return custom;
+        }
         for (ItemEditorFieldSpec spec : ItemEditorMenus.specs(session.currentMenu(), session)) {
             if (listPath.equals(spec.listPath())) {
                 return plugin.messageService().message(spec.labelKey());

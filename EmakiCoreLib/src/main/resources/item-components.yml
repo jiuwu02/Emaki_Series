@@ -3,6 +3,11 @@
 #
 # 字段说明：
 #   id          组件 ID；省略命名空间时默认 minecraft:
+#   name        组件显示名；供 GUI 物品编辑器展示，支持 MiniMessage 字符串
+#   description 组件详细说明；作为 GUI 悬浮说明（lore）展示，中文 MiniMessage 字符串，
+#               支持用 MiniMessage 的 <newline> 标记换行以实现多行说明
+#   icon        组件 GUI 图标所用的物品来源；格式为 minecraft-<material>，其中 <material>
+#               必须是真实存在的 Bukkit 材料名（小写），如 minecraft-cooked_beef、minecraft-potion
 #   format      值格式说明，供 GUI 编辑器提示与文档展示使用
 #   non_valued  无值组件（只可 set/unset/reset，不写值）
 #   scope       universal = 任意物品材料都可生效；material = 仅对 applies_to 列出的材料有意义
@@ -13,122 +18,282 @@
 
 components:
   # ============================================================
-  # 通用组件（任意物品材料均适用）
+  # 通用组件（scope 省略 = universal，任意物品材料均适用）
   # ============================================================
   - id: minecraft:max_stack_size
+    name: 最大堆叠数
+    description: "设置单个槽位可堆叠的最大数量。<newline><gray>取值 1~99，需与材料自身堆叠上限协调。</gray>"
+    icon: minecraft-bundle
     format: integer 1..99
   - id: minecraft:max_damage
+    name: 最大耐久
+    description: "定义物品可承受的最大耐久值。<newline><gray>决定耐久条上限，须为正整数。</gray>"
+    icon: minecraft-anvil
     format: positive integer
   - id: minecraft:damage
+    name: 当前耐久损耗
+    description: "设置物品当前已损耗的耐久值。<newline><gray>0 表示满耐久，不得为负。</gray>"
+    icon: minecraft-iron_sword
     format: non-negative integer
   - id: minecraft:unbreakable
+    name: 无法破坏
+    description: "使物品不消耗耐久、永不损坏。<newline><gray>无值组件，只可设置或移除。</gray>"
+    icon: minecraft-netherite_ingot
     format: "unit: true, null, or empty map"
     non_valued: true
   - id: minecraft:custom_name
+    name: 自定义名称
+    description: "以斜体样式显示的物品名称。<newline><gray>支持 MiniMessage 或原版文本组件。</gray>"
+    icon: minecraft-name_tag
     format: MiniMessage string or vanilla text component map/list
   - id: minecraft:item_name
+    name: 物品名称
+    description: "不带斜体的物品显示名称。<newline><gray>支持 MiniMessage 或原版文本组件。</gray>"
+    icon: minecraft-paper
     format: MiniMessage string or vanilla text component map/list
   - id: minecraft:lore
+    name: 物品描述
+    description: "在名称下方追加的说明文本。<newline><gray>支持多行 MiniMessage 或文本组件列表。</gray>"
+    icon: minecraft-book
     format: MiniMessage string/list or vanilla text component list
   - id: minecraft:rarity
+    name: 稀有度
+    description: "设置物品的稀有度颜色与提示。<newline><gray>可选 common/uncommon/rare/epic。</gray>"
+    icon: minecraft-diamond
     format: common, uncommon, rare, or epic
   - id: minecraft:enchantments
+    name: 附魔
+    description: "为物品附加附魔及等级。<newline><gray>以附魔资源 ID 到等级映射表示。</gray>"
+    icon: minecraft-enchanted_book
     format: direct enchantment resource id to level map
   - id: minecraft:can_place_on
+    name: 可放置于
+    description: "限定物品可放置方块的冒险谓词。<newline><gray>使用原版冒险模式谓词映射。</gray>"
+    icon: minecraft-grass_block
     format: vanilla adventure predicate map
   - id: minecraft:can_break
+    name: 可破坏
+    description: "限定物品可破坏方块的冒险谓词。<newline><gray>使用原版冒险模式谓词映射。</gray>"
+    icon: minecraft-iron_pickaxe
     format: vanilla adventure predicate map
   - id: minecraft:attribute_modifiers
+    name: 属性修饰符
+    description: "为持有者附加属性加成。<newline><gray>使用直接属性修饰符列表。</gray>"
+    icon: minecraft-iron_chestplate
     format: direct attribute modifier list
   - id: minecraft:custom_model_data
+    name: 自定义模型数据
+    description: "供资源包识别并替换模型。<newline><gray>可包含浮点、标志、字符串与颜色。</gray>"
+    icon: minecraft-item_frame
     format: map containing floats/flags/strings/colors
   - id: minecraft:repair_cost
+    name: 修理花费
+    description: "设置铁砧修理所需的经验等级。<newline><gray>取值非负整数。</gray>"
+    icon: minecraft-anvil
     format: non-negative integer
   - id: minecraft:enchantment_glint_override
+    name: 附魔光效覆盖
+    description: "强制显示或隐藏附魔光效。<newline><gray>布尔值，独立于实际附魔。</gray>"
+    icon: minecraft-glow_ink_sac
     format: boolean
   - id: minecraft:intangible_projectile
+    name: 无形投掷物
+    description: "隐藏投掷物实体本身的外观。<newline><gray>无值组件，只可设置或移除。</gray>"
+    icon: minecraft-arrow
     format: "unit: true, null, or empty map"
     non_valued: true
   - id: minecraft:food
+    name: 食物属性
+    description: "定义物品作为食物的回复与效果。<newline><gray>使用原版食物属性映射。</gray>"
+    icon: minecraft-cooked_beef
     format: vanilla food properties map
   - id: minecraft:consumable
+    name: 可消耗
+    description: "定义使用动画、音效与耗时。<newline><gray>使用原版可消耗属性映射。</gray>"
+    icon: minecraft-potion
     format: vanilla consumable map
   - id: minecraft:use_remainder
+    name: 使用后余留物
+    description: "物品使用后返回的剩余物品。<newline><gray>以物品堆映射表示。</gray>"
+    icon: minecraft-bowl
     format: item stack map
   - id: minecraft:use_cooldown
+    name: 使用冷却
+    description: "设置使用后进入冷却的时长。<newline><gray>使用原版冷却映射。</gray>"
+    icon: minecraft-clock
     format: vanilla cooldown map
   - id: minecraft:use_effects
+    name: 使用效果
+    description: "定义使用物品时的即时效果。<newline><gray>使用原版使用效果映射。</gray>"
+    icon: minecraft-golden_apple
     format: vanilla use effects map
   - id: minecraft:damage_resistant
+    name: 伤害抗性
+    description: "声明物品可免疫的伤害类型标签。<newline><gray>以伤害类型标签映射表示。</gray>"
+    icon: minecraft-shield
     format: damage type tag map
   - id: minecraft:tool
+    name: 工具属性
+    description: "定义挖掘速度、耐久与破坏规则。<newline><gray>使用原版工具规则映射。</gray>"
+    icon: minecraft-iron_pickaxe
     format: vanilla tool rules map
   - id: minecraft:weapon
+    name: 武器属性
+    description: "定义武器伤害与耐久消耗规则。<newline><gray>使用原版武器属性映射。</gray>"
+    icon: minecraft-iron_sword
     format: vanilla weapon properties map
   - id: minecraft:enchantable
+    name: 可附魔值
+    description: "设置物品在附魔台的附魔能力。<newline><gray>使用含正整数值的映射。</gray>"
+    icon: minecraft-enchanting_table
     format: map containing positive integer value
   - id: minecraft:equippable
+    name: 可装备
+    description: "定义物品作为装备的槽位与行为。<newline><gray>使用原版可装备映射。</gray>"
+    icon: minecraft-iron_chestplate
     format: vanilla equippable map
   - id: minecraft:repairable
+    name: 可修理
+    description: "声明可用于修理的材料或标签。<newline><gray>以修理物品或标签映射表示。</gray>"
+    icon: minecraft-anvil
     format: repair item/tag map
   - id: minecraft:glider
+    name: 滑翔
+    description: "使物品具备鞘翅式滑翔能力。<newline><gray>无值组件，只可设置或移除。</gray>"
+    icon: minecraft-elytra
     format: "unit: true, null, or empty map"
     non_valued: true
   - id: minecraft:item_model
+    name: 物品模型
+    description: "覆盖物品使用的模型资源 ID。<newline><gray>使用命名空间资源 ID。</gray>"
+    icon: minecraft-armor_stand
     format: namespaced resource id
   - id: minecraft:tooltip_style
+    name: 提示样式
+    description: "切换物品提示框的配色样式。<newline><gray>使用命名空间资源 ID。</gray>"
+    icon: minecraft-oak_sign
     format: namespaced resource id
   - id: minecraft:tooltip_display
+    name: 提示显示
+    description: "控制提示框隐藏项或整体隐藏。<newline><gray>可含 hide_tooltip 与 hidden_components。</gray>"
+    icon: minecraft-book
     format: map containing hide_tooltip/hidden_components
   - id: minecraft:death_protection
+    name: 死亡保护
+    description: "死亡时触发保护、免除掉落。<newline><gray>使用原版死亡保护映射。</gray>"
+    icon: minecraft-totem_of_undying
     format: vanilla death protection map
   - id: minecraft:blocks_attacks
+    name: 格挡攻击
+    description: "定义物品的格挡减伤与角度。<newline><gray>使用原版格挡属性映射。</gray>"
+    icon: minecraft-shield
     format: vanilla blocking properties map
   - id: minecraft:stored_enchantments
+    name: 收纳附魔
+    description: "存放于附魔书上的附魔数据。<newline><gray>使用附魔组件映射。</gray>"
+    icon: minecraft-bookshelf
     format: vanilla enchantment component map
   - id: minecraft:custom_data
+    name: 自定义数据
+    description: "附加任意自定义 NBT 数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-command_block
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:entity_data
+    name: 实体数据
+    description: "为生成物实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-spawner
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:block_entity_data
+    name: 方块实体数据
+    description: "为方块实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-chest
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:block_state
+    name: 方块状态
+    description: "设置生成方块的属性状态。<newline><gray>使用方块状态属性映射。</gray>"
+    icon: minecraft-grass_block
     format: block state property map
   - id: minecraft:block_data
+    name: 方块数据
+    description: "为方块写入额外 NBT 数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-command_block
     format: "plain map or {$snbt: raw SNBT}"
   - id: minecraft:break_sound
+    name: 破坏音效
+    description: "定义方块被破坏时播放的音效。<newline><gray>使用音效资源 ID。</gray>"
+    icon: minecraft-bell
     format: sound resource id
   - id: minecraft:damage_type
+    name: 伤害类型
+    description: "指定攻击造成的伤害类型。<newline><gray>使用伤害类型资源 ID。</gray>"
+    icon: minecraft-iron_sword
     format: damage type resource id
   - id: minecraft:minimum_attack_charge
+    name: 最低攻击蓄力
+    description: "设置造成完整伤害所需蓄力比例。<newline><gray>浮点数，默认 1.0。</gray>"
+    icon: minecraft-wooden_sword
     format: floating-point number
   - id: minecraft:piercing_weapon
+    name: 穿刺武器
+    description: "定义穿刺武器的击中与冷却规则。<newline><gray>使用原版穿刺武器映射。</gray>"
+    icon: minecraft-trident
     format: vanilla piercing weapon map
   - id: minecraft:kinetic_weapon
+    name: 动能武器
+    description: "定义动能武器的伤害累积规则。<newline><gray>使用原版动能武器映射。</gray>"
+    icon: minecraft-mace
     format: vanilla kinetic weapon map
   - id: minecraft:attack_range
+    name: 攻击距离
+    description: "设置近战或远程的攻击射程。<newline><gray>使用原版攻击距离映射。</gray>"
+    icon: minecraft-arrow
     format: vanilla attack range map
   - id: minecraft:swing_animation
+    name: 挥击动画
+    description: "定义近战挥击的动画类型与时长。<newline><gray>使用原版挥击动画映射。</gray>"
+    icon: minecraft-stick
     format: vanilla swing animation map
   - id: minecraft:recipes
+    name: 配方书
+    description: "解锁物品对应的合成配方。<newline><gray>以配方资源 ID 列表表示。</gray>"
+    icon: minecraft-crafting_table
     format: recipe resource id list
   - id: minecraft:lock
+    name: 锁
+    description: "限制容器或方块需钥匙才能打开。<newline><gray>使用锁谓词字符串或物品谓词映射。</gray>"
+    icon: minecraft-tripwire_hook
     format: "lock predicate string or item predicate map"
   - id: minecraft:provides_trim_material
+    name: 提供纹饰材料
+    description: "使盔甲纹饰获得对应材质。<newline><gray>使用纹饰材料资源 ID。</gray>"
+    icon: minecraft-smithing_table
     format: trim material resource id
   - id: minecraft:provides_banner_patterns
+    name: 提供旗帜图案
+    description: "使物品可提供指定旗帜图案。<newline><gray>使用旗帜图案持有者映射。</gray>"
+    icon: minecraft-white_banner
     format: banner pattern holder map
 
   # ============================================================
-  # 材料专属组件 —— 玩家头颅 / 生物头颅
+  # 材料专属组件（scope: material + applies_to，仅对特定材料有意义）
   # ============================================================
+
+  # ------------------------------------------------------------
+  # 材料专属组件 —— 玩家头颅 / 生物头颅
+  # ------------------------------------------------------------
   - id: minecraft:profile
+    name: 玩家头颅皮肤
+    description: "定义玩家头颅的拥有者与皮肤。<newline><gray>皮肤取 textures 属性值，可为名称或 UUID。</gray>"
+    icon: minecraft-player_head
     format: 'profile map {name?: text, id?: uuid, properties?: [{name: "textures", value: base64, signature?: base64}]}; 皮肤取 name 为 textures 的属性值'
     scope: material
     applies_to:
       - minecraft:player_head
       - minecraft:player_wall_head
   - id: minecraft:note_block_sound
+    name: 头颅音符盒音效
+    description: "定义头颅放在音符盒上发出的音效。<newline><gray>使用音符盒音效资源 ID。</gray>"
+    icon: minecraft-note_block
     format: note block sound resource id
     scope: material
     applies_to:
@@ -147,10 +312,13 @@ components:
       - minecraft:piglin_head
       - minecraft:piglin_wall_head
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 药水 / 涂药箭 / 迷之炖菜
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:potion_contents
+    name: 药水内容
+    description: "定义药水效果、颜色与基础药水。<newline><gray>可含 custom_effects 与 custom_color。</gray>"
+    icon: minecraft-potion
     format: "potion contents map {potion?: resource id, custom_effects?: effect list, custom_color?: RGB integer}"
     scope: material
     applies_to:
@@ -159,6 +327,9 @@ components:
       - minecraft:lingering_potion
       - minecraft:tipped_arrow
   - id: minecraft:potion_duration_scale
+    name: 药水时长倍率
+    description: "缩放药水效果的持续时间。<newline><gray>浮点数，仅对药水类物品生效。</gray>"
+    icon: minecraft-potion
     format: floating-point number
     scope: material
     applies_to:
@@ -167,15 +338,21 @@ components:
       - minecraft:lingering_potion
       - minecraft:tipped_arrow
   - id: minecraft:suspicious_stew_effects
+    name: 迷之炖菜效果
+    description: "定义迷之炖菜附带的状态效果。<newline><gray>以效果列表表示，可含时长与等级。</gray>"
+    icon: minecraft-suspicious_stew
     format: "stew effect list {id, duration?, amplifier?}"
     scope: material
     applies_to:
       - minecraft:suspicious_stew
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 旗帜 / 潜影盒
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:banner_patterns
+    name: 旗帜图案
+    description: "定义旗帜上叠加的图案与颜色。<newline><gray>以图案、颜色列表表示。</gray>"
+    icon: minecraft-white_banner
     format: "banner pattern list {pattern, color}"
     scope: material
     applies_to:
@@ -196,6 +373,9 @@ components:
       - minecraft:red_banner
       - minecraft:black_banner
   - id: minecraft:base_color
+    name: 基础颜色
+    description: "设置旗帜或潜影盒的底色。<newline><gray>取值 white、orange 等染料颜色 ID。</gray>"
+    icon: minecraft-white_dye
     format: dye color id (white, orange, ..., black)
     scope: material
     applies_to:
@@ -233,6 +413,9 @@ components:
       - minecraft:red_shulker_box
       - minecraft:black_shulker_box
   - id: minecraft:container
+    name: 容器内容
+    description: "预填充潜影盒等容器的物品。<newline><gray>以槽位、物品条目列表表示。</gray>"
+    icon: minecraft-shulker_box
     format: "container entry list {slot?, item}"
     scope: material
     applies_to:
@@ -254,6 +437,9 @@ components:
       - minecraft:red_shulker_box
       - minecraft:black_shulker_box
   - id: minecraft:container_loot
+    name: 容器战利品
+    description: "使容器内容由战利品表生成。<newline><gray>以战利品表、种子映射表示。</gray>"
+    icon: minecraft-chest
     format: "loot table map {loot_table, seed?, table?}"
     scope: material
     applies_to:
@@ -275,20 +461,26 @@ components:
       - minecraft:red_shulker_box
       - minecraft:black_shulker_box
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 蜂巢
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:bees
+    name: 蜂巢蜜蜂
+    description: "定义蜂巢内留存的蜜蜂实体。<newline><gray>以含实体数据与计时器的条目列表表示。</gray>"
+    icon: minecraft-bee_nest
     format: "bee entry list {entity_data, ticks_in_hive?, min_ticks_in_hive?}"
     scope: material
     applies_to:
       - minecraft:bee_nest
       - minecraft:beehive
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 皮革染色 / 盔甲纹饰
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:dyed_color
+    name: 染色
+    description: "为皮革类物品设置染色颜色。<newline><gray>使用 RGB 整数或颜色映射。</gray>"
+    icon: minecraft-leather_chestplate
     format: "RGB integer or color map {rgb, show_in_tooltip?}"
     scope: material
     applies_to:
@@ -298,6 +490,9 @@ components:
       - minecraft:leather_boots
       - minecraft:leather_horse_armor
   - id: minecraft:trim
+    name: 盔甲纹饰
+    description: "为盔甲附加纹饰材质与图案。<newline><gray>以材质、图案映射表示。</gray>"
+    icon: minecraft-smithing_table
     format: "trim map {material, pattern, show_in_tooltip?}"
     scope: material
     applies_to:
@@ -328,80 +523,119 @@ components:
       - minecraft:turtle_helmet
       - minecraft:wolf_armor
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 烟花 / 弩 / 捆绑包
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:fireworks
+    name: 烟花
+    description: "定义烟花火箭的飞行与爆炸。<newline><gray>可含飞行时长与爆炸列表。</gray>"
+    icon: minecraft-firework_rocket
     format: "fireworks map {flight_duration?, explosions?}"
     scope: material
     applies_to:
       - minecraft:firework_rocket
   - id: minecraft:firework_explosion
+    name: 烟花爆炸
+    description: "定义单次烟花爆炸的形状与颜色。<newline><gray>可含形状、颜色与拖尾闪烁。</gray>"
+    icon: minecraft-firework_star
     format: "explosion map {shape, colors?, fade_colors?, has_trail?, has_flicker?}"
     scope: material
     applies_to:
       - minecraft:firework_rocket
       - minecraft:firework_star
   - id: minecraft:charged_projectiles
+    name: 装填弹射物
+    description: "定义弩已装填的弹射物列表。<newline><gray>以物品堆列表表示。</gray>"
+    icon: minecraft-crossbow
     format: item stack list
     scope: material
     applies_to:
       - minecraft:crossbow
   - id: minecraft:bundle_contents
+    name: 收纳袋内容
+    description: "定义收纳袋内折叠存放的物品。<newline><gray>以物品堆列表表示。</gray>"
+    icon: minecraft-bundle
     format: item stack list
     scope: material
     applies_to:
       - minecraft:bundle
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 书 / 号角 / 地图 / 指南针 / 唱片
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:written_book_content
+    name: 成书内容
+    description: "定义成书的标题、作者与页面。<newline><gray>可含世代与解析状态。</gray>"
+    icon: minecraft-written_book
     format: "written book map {title, author?, pages?, generation?, resolved?}"
     scope: material
     applies_to:
       - minecraft:written_book
   - id: minecraft:writable_book_content
+    name: 书与笔内容
+    description: "定义书与笔中已写入的页面。<newline><gray>以页面字符串列表表示。</gray>"
+    icon: minecraft-writable_book
     format: "writable book map {pages?}"
     scope: material
     applies_to:
       - minecraft:writable_book
   - id: minecraft:instrument
+    name: 乐器
+    description: "定义山羊角吹奏的乐器与音域。<newline><gray>以乐器、时长与范围映射表示。</gray>"
+    icon: minecraft-goat_horn
     format: "instrument map {instrument, use_duration?, range?}"
     scope: material
     applies_to:
       - minecraft:goat_horn
   - id: minecraft:map_id
+    name: 地图编号
+    description: "设置地图对应的存档编号。<newline><gray>整数地图 ID。</gray>"
+    icon: minecraft-filled_map
     format: integer map id
     scope: material
     applies_to:
       - minecraft:map
       - minecraft:filled_map
   - id: minecraft:map_decorations
+    name: 地图标记
+    description: "定义地图上显示的装饰标记。<newline><gray>以标记 ID 到属性映射表示。</gray>"
+    icon: minecraft-filled_map
     format: "decoration map {id: {type, x, z, rotation?, tracked?, display_name?}}"
     scope: material
     applies_to:
       - minecraft:map
       - minecraft:filled_map
   - id: minecraft:map_post_processing
+    name: 地图后处理
+    description: "设置地图的缩放或锁定状态。<newline><gray>取值 scale 或 lock。</gray>"
+    icon: minecraft-filled_map
     format: "scale or lock"
     scope: material
     applies_to:
       - minecraft:map
       - minecraft:filled_map
   - id: minecraft:map_color
+    name: 地图颜色
+    description: "为地图叠加一层颜色滤镜。<newline><gray>RGB 整数。</gray>"
+    icon: minecraft-filled_map
     format: RGB integer
     scope: material
     applies_to:
       - minecraft:map
       - minecraft:filled_map
   - id: minecraft:lodestone_tracker
+    name: 磁石追踪
+    description: "绑定指南针指向的磁石与锁定。<newline><gray>可含目标与锁定标志。</gray>"
+    icon: minecraft-compass
     format: "tracker map {target?, locked?}"
     scope: material
     applies_to:
       - minecraft:compass
       - minecraft:recovery_compass
   - id: minecraft:jukebox_playable
+    name: 唱片播放
+    description: "定义唱片在唱片机播放的曲目。<newline><gray>以曲目、提示开关映射表示。</gray>"
+    icon: minecraft-jukebox
     format: "jukebox playable map {song, show_in_tooltip?}"
     scope: material
     applies_to:
@@ -426,144 +660,225 @@ components:
       - minecraft:music_disc_precipice
       - minecraft:music_disc_tears
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 不祥之瓶 / 装饰陶罐
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:ominous_bottle_amplifier
+    name: 不祥之瓶等级
+    description: "设置不祥之瓶的凶兆等级。<newline><gray>取值 0~4。</gray>"
+    icon: minecraft-ominous_bottle
     format: integer 0..4
     scope: material
     applies_to:
       - minecraft:ominous_bottle
   - id: minecraft:pot_decorations
+    name: 陶罐纹饰
+    description: "定义装饰陶罐四面陶片。<newline><gray>可含前、左、右、后四向纹饰。</gray>"
+    icon: minecraft-decorated_pot
     format: "sherds list {front?, left?, right?, back?}"
     scope: material
     applies_to:
       - minecraft:decorated_pot
 
-  # ============================================================
+  # ------------------------------------------------------------
   # 材料专属组件 —— 生成蛋 / 画（实体变体与外观）
-  # ============================================================
+  # ------------------------------------------------------------
   - id: minecraft:painting_variant
+    name: 画变体
+    description: "定义画作的图案、尺寸与作者。<newline><gray>以资源 ID、宽高与标题映射表示。</gray>"
+    icon: minecraft-painting
     format: "painting variant map {asset_id, width?, height?, title?, author?}"
     scope: material
     applies_to:
       - minecraft:painting
   - id: minecraft:villager_variant
+    name: 村民变体
+    description: "设置刷怪蛋生成村民的变体。<newline><gray>使用村民变体资源 ID。</gray>"
+    icon: minecraft-villager_spawn_egg
     format: villager variant resource id
     scope: material
     applies_to:
       - minecraft:villager_spawn_egg
   - id: minecraft:wolf_variant
+    name: 狼变体
+    description: "设置狼刷怪蛋生成狼的变体。<newline><gray>使用狼变体资源 ID。</gray>"
+    icon: minecraft-wolf_spawn_egg
     format: wolf variant resource id
     scope: material
     applies_to:
       - minecraft:wolf_spawn_egg
   - id: minecraft:wolf_sound_variant
+    name: 狼音效变体
+    description: "设置狼的音效变体。<newline><gray>使用狼音效变体资源 ID。</gray>"
+    icon: minecraft-wolf_spawn_egg
     format: wolf sound variant resource id
     scope: material
     applies_to:
       - minecraft:wolf_spawn_egg
   - id: minecraft:wolf_collar
+    name: 狼项圈颜色
+    description: "设置狼项圈的染色颜色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-white_dye
     format: dye color id
     scope: material
     applies_to:
       - minecraft:wolf_spawn_egg
   - id: minecraft:fox_variant
+    name: 狐狸变体
+    description: "设置狐狸刷怪蛋生成狐狸的变体。<newline><gray>使用狐狸变体资源 ID。</gray>"
+    icon: minecraft-fox_spawn_egg
     format: fox variant resource id
     scope: material
     applies_to:
       - minecraft:fox_spawn_egg
   - id: minecraft:salmon_size
+    name: 鲑鱼体型
+    description: "设置鲑鱼刷怪蛋生成鲑鱼的体型。<newline><gray>整数。</gray>"
+    icon: minecraft-salmon_spawn_egg
     format: integer
     scope: material
     applies_to:
       - minecraft:salmon_spawn_egg
   - id: minecraft:parrot_variant
+    name: 鹦鹉变体
+    description: "设置鹦鹉刷怪蛋生成鹦鹉的变体。<newline><gray>使用鹦鹉变体资源 ID。</gray>"
+    icon: minecraft-parrot_spawn_egg
     format: parrot variant resource id
     scope: material
     applies_to:
       - minecraft:parrot_spawn_egg
   - id: minecraft:tropical_fish_pattern
+    name: 热带鱼花纹
+    description: "设置热带鱼的身体花纹。<newline><gray>使用花纹资源 ID。</gray>"
+    icon: minecraft-tropical_fish_spawn_egg
     format: tropical fish pattern resource id
     scope: material
     applies_to:
       - minecraft:tropical_fish_spawn_egg
   - id: minecraft:tropical_fish_base_color
+    name: 热带鱼基色
+    description: "设置热带鱼身体的基础颜色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-tropical_fish_spawn_egg
     format: dye color id
     scope: material
     applies_to:
       - minecraft:tropical_fish_spawn_egg
   - id: minecraft:tropical_fish_pattern_color
+    name: 热带鱼花纹色
+    description: "设置热带鱼花纹的颜色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-tropical_fish_spawn_egg
     format: dye color id
     scope: material
     applies_to:
       - minecraft:tropical_fish_spawn_egg
   - id: minecraft:mooshroom_variant
+    name: 蘑菇牛变体
+    description: "设置蘑菇牛刷怪蛋生成的变体。<newline><gray>使用蘑菇牛变体资源 ID。</gray>"
+    icon: minecraft-mooshroom_spawn_egg
     format: mooshroom variant resource id
     scope: material
     applies_to:
       - minecraft:mooshroom_spawn_egg
   - id: minecraft:rabbit_variant
+    name: 兔子变体
+    description: "设置兔子刷怪蛋生成兔子的变体。<newline><gray>使用兔子变体资源 ID。</gray>"
+    icon: minecraft-rabbit_spawn_egg
     format: rabbit variant resource id
     scope: material
     applies_to:
       - minecraft:rabbit_spawn_egg
   - id: minecraft:pig_variant
+    name: 猪变体
+    description: "设置猪刷怪蛋生成猪的变体。<newline><gray>使用猪变体资源 ID。</gray>"
+    icon: minecraft-pig_spawn_egg
     format: pig variant resource id
     scope: material
     applies_to:
       - minecraft:pig_spawn_egg
   - id: minecraft:cow_variant
+    name: 牛变体
+    description: "设置牛刷怪蛋生成牛的变体。<newline><gray>使用牛变体资源 ID。</gray>"
+    icon: minecraft-cow_spawn_egg
     format: cow variant resource id
     scope: material
     applies_to:
       - minecraft:cow_spawn_egg
   - id: minecraft:chicken_variant
+    name: 鸡变体
+    description: "设置鸡刷怪蛋生成鸡的变体。<newline><gray>使用鸡变体资源 ID。</gray>"
+    icon: minecraft-chicken_spawn_egg
     format: chicken variant resource id
     scope: material
     applies_to:
       - minecraft:chicken_spawn_egg
   - id: minecraft:frog_variant
+    name: 青蛙变体
+    description: "设置青蛙刷怪蛋生成青蛙的变体。<newline><gray>使用青蛙变体资源 ID。</gray>"
+    icon: minecraft-frog_spawn_egg
     format: frog variant resource id
     scope: material
     applies_to:
       - minecraft:frog_spawn_egg
   - id: minecraft:horse_variant
+    name: 马变体
+    description: "设置马刷怪蛋生成马的变体。<newline><gray>整数变体 ID。</gray>"
+    icon: minecraft-horse_spawn_egg
     format: integer horse variant id
     scope: material
     applies_to:
       - minecraft:horse_spawn_egg
   - id: minecraft:llama_variant
+    name: 羊驼变体
+    description: "设置羊驼刷怪蛋生成羊驼的变体。<newline><gray>使用羊驼变体资源 ID。</gray>"
+    icon: minecraft-llama_spawn_egg
     format: llama variant resource id
     scope: material
     applies_to:
       - minecraft:llama_spawn_egg
   - id: minecraft:axolotl_variant
+    name: 美西螈变体
+    description: "设置美西螈刷怪蛋生成的变体。<newline><gray>使用美西螈变体资源 ID。</gray>"
+    icon: minecraft-axolotl_spawn_egg
     format: axolotl variant resource id
     scope: material
     applies_to:
       - minecraft:axolotl_spawn_egg
   - id: minecraft:cat_variant
+    name: 猫变体
+    description: "设置猫刷怪蛋生成猫的变体。<newline><gray>使用猫变体资源 ID。</gray>"
+    icon: minecraft-cat_spawn_egg
     format: cat variant resource id
     scope: material
     applies_to:
       - minecraft:cat_spawn_egg
   - id: minecraft:cat_collar
+    name: 猫项圈颜色
+    description: "设置猫项圈的染色颜色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-white_dye
     format: dye color id
     scope: material
     applies_to:
       - minecraft:cat_spawn_egg
   - id: minecraft:sheep_color
+    name: 羊毛颜色
+    description: "设置羊刷怪蛋生成羊的毛色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-sheep_spawn_egg
     format: dye color id
     scope: material
     applies_to:
       - minecraft:sheep_spawn_egg
   - id: minecraft:shulker_color
+    name: 潜影贝颜色
+    description: "设置潜影贝刷怪蛋生成的颜色。<newline><gray>使用染料颜色 ID。</gray>"
+    icon: minecraft-shulker_spawn_egg
     format: dye color id
     scope: material
     applies_to:
       - minecraft:shulker_spawn_egg
   - id: minecraft:zombie_nautilus_variant
+    name: 僵尸鹦鹉螺变体
+    description: "设置僵尸鹦鹉螺刷怪蛋的变体。<newline><gray>使用僵尸鹦鹉螺变体资源 ID。</gray>"
+    icon: minecraft-nautilus_shell
     format: zombie nautilus variant resource id
     scope: material
     applies_to:

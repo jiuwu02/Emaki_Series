@@ -21,24 +21,92 @@ public final class ItemEditorRenderer {
 
     public static final String SKIN_FIELD_ID = "skin_edit";
 
+    public static final String COMPONENT_FIELD_PREFIX = "component_";
+    public static final String CONTEXT_COMPONENT_FILTER = "component_filter";
+
+    private static final List<String> RARITY_OPTIONS = List.of("common", "uncommon", "rare", "epic");
+    private static final java.util.Set<String> LIST_COMPONENTS = java.util.Set.of(
+            "minecraft:lore",
+            "minecraft:enchantments",
+            "minecraft:attribute_modifiers",
+            "minecraft:custom_model_data",
+            "minecraft:stored_enchantments",
+            "minecraft:banner_patterns",
+            "minecraft:recipes",
+            "minecraft:charged_projectiles",
+            "minecraft:bundle_contents",
+            "minecraft:container",
+            "minecraft:bees",
+            "minecraft:pot_decorations");
+
     public ItemEditorRenderer(EmakiItemPlugin plugin) {
         this.plugin = plugin;
     }
 
-    private List<ItemEditorField> adaptiveComponents(ItemEditorSession session) {
-        String material = materialOf(session);
+    /**
+     * 统一的组件列表：通用组件在前、当前材料专属组件在后，严格区分两组；
+     * 名称 / 描述 / 图标全部取自 CoreLib 组件目录，EmakiItem 侧不再维护组件 i18n 与图标。
+     */
+    private List<ItemEditorField> componentFields(ItemEditorSession session) {
+        List<emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry> entries = new ArrayList<>();
+        entries.addAll(CATALOG.universalEntries());
+        entries.addAll(CATALOG.specializedFor(materialOf(session)));
+        String filter = Texts.lower(Texts.toStringSafe(session.context(CONTEXT_COMPONENT_FILTER))).trim();
         List<ItemEditorField> fields = new ArrayList<>();
-        for (emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry : CATALOG.specializedFor(material)) {
-            if (emaki.jiuwu.craft.corelib.item.ProfileComponentSupport.PROFILE_COMPONENT_ID
-                    .equals(entry.componentId())) {
-                fields.add(new ItemEditorField(SKIN_FIELD_ID, ItemEditorField.Kind.COMMAND,
-                        "editor.field.skin_edit", skinSummary(session), List.of(), -1, true));
+        for (emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry : entries) {
+            if (!filter.isEmpty() && !matchesFilter(entry, filter)) {
                 continue;
             }
-            fields.add(new ItemEditorField("component_" + entry.componentId(), ItemEditorField.Kind.TEXT,
-                    entry.componentId(), entry.valueFormat(), List.of(), -1, true));
+            String componentId = entry.componentId();
+            if (emaki.jiuwu.craft.corelib.item.ProfileComponentSupport.PROFILE_COMPONENT_ID.equals(componentId)) {
+                fields.add(new ItemEditorField(SKIN_FIELD_ID, ItemEditorField.Kind.COMMAND, null,
+                        plugin.messageService().message("editor.field.skin_edit"),
+                        plugin.messageService().messageOrFallback("editor.field.skin_edit_desc", null),
+                        entry.iconSource(), skinSummary(session), List.of(), -1, true));
+                continue;
+            }
+            ItemEditorField.Kind kind = editorKind(entry);
+            Object current = session.draft().valueLenient("item", "components", componentId);
+            fields.add(new ItemEditorField(
+                    COMPONENT_FIELD_PREFIX + componentId,
+                    kind,
+                    null,
+                    entry.displayNameOrId(),
+                    entry.descriptionText(),
+                    entry.iconSource(),
+                    describeValue(current),
+                    kind == ItemEditorField.Kind.CYCLE ? RARITY_OPTIONS : List.of(),
+                    -1,
+                    true));
         }
         return fields;
+    }
+
+    private static boolean matchesFilter(emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry,
+            String filter) {
+        return Texts.lower(entry.componentId()).contains(filter)
+                || Texts.lower(entry.displayNameOrId()).contains(filter);
+    }
+
+    private static ItemEditorField.Kind editorKind(
+            emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry) {
+        if (entry.nonValued()) {
+            return ItemEditorField.Kind.TOGGLE;
+        }
+        if ("minecraft:rarity".equals(entry.componentId())) {
+            return ItemEditorField.Kind.CYCLE;
+        }
+        String format = Texts.lower(entry.valueFormat());
+        if (format.startsWith("boolean")) {
+            return ItemEditorField.Kind.TOGGLE;
+        }
+        if (format.contains("integer") || format.contains("number")) {
+            return ItemEditorField.Kind.NUMBER;
+        }
+        if (LIST_COMPONENTS.contains(entry.componentId())) {
+            return ItemEditorField.Kind.LIST;
+        }
+        return ItemEditorField.Kind.TEXT;
     }
 
     static String materialOf(ItemEditorSession session) {
@@ -74,11 +142,11 @@ public final class ItemEditorRenderer {
             List<ItemEditorField> fields = new ArrayList<>();
             for (String setId : setIds()) {
                 fields.add(new ItemEditorField("set_" + setId, ItemEditorField.Kind.COMMAND,
-                        setId, setId, List.of(), -1, true));
+                        setId, null, null, null, setId, List.of(), -1, true));
             }
             return fields;
         }
-        String listPath = session.context("list_path");
+        String listPath = ItemEditorMenus.LIST_ENTRIES.equals(menuId) ? session.context("list_path") : null;
         if (listPath == null || listPath.isBlank()) {
             List<ItemEditorFieldSpec> specs = ItemEditorMenus.specs(menuId, session);
             List<ItemEditorField> fields = new ArrayList<>(specs.size());
@@ -86,7 +154,7 @@ public final class ItemEditorRenderer {
                 fields.add(toField(session, menuId, spec));
             }
             if (ItemEditorMenus.COMPONENTS.equals(menuId)) {
-                fields.addAll(adaptiveComponents(session));
+                fields.addAll(componentFields(session));
             }
             return fields;
         }
@@ -99,6 +167,9 @@ public final class ItemEditorRenderer {
                         "entry_" + position,
                         ItemEditorField.Kind.COMMAND,
                         "#" + position + " " + describeScalar(entry.getKey()),
+                        null,
+                        null,
+                        null,
                         describeValue(entry.getValue()),
                         List.of(Texts.toStringSafe(entry.getKey())),
                         position,
@@ -117,6 +188,9 @@ public final class ItemEditorRenderer {
                     "entry_" + index,
                     ItemEditorField.Kind.COMMAND,
                     "#" + index,
+                    null,
+                    null,
+                    null,
                     describeValue(items.get(index)),
                     List.of(),
                     index,
@@ -146,18 +220,76 @@ public final class ItemEditorRenderer {
                     Map.of("file_path", String.valueOf(session.document().path())),
                     plugin.coreLib().configuredItemService());
         }
+        if (ItemEditorGuiService.TYPE_PAGE_INFO.equals(type)) {
+            return renderPageInfo(session, menuId, slot);
+        }
+        if (ItemEditorGuiService.TYPE_CONFIRM.equals(type)) {
+            if (ItemEditorMenus.COMPONENTS.equals(menuId)) {
+                return renderComponentSearch(session);
+            }
+            return ItemEditorMenus.LIST_ENTRIES.equals(menuId) ? buildStatic(slot) : filler();
+        }
+        if (ItemEditorGuiService.TYPE_PAGE_PREV.equals(type)) {
+            return session.page() > 0 ? buildStatic(slot) : filler();
+        }
+        if (ItemEditorGuiService.TYPE_PAGE_NEXT.equals(type)) {
+            int pages = Math.max(1, (entryCount(session, menuId) + pageSize() - 1) / pageSize());
+            return session.page() < pages - 1 ? buildStatic(slot) : filler();
+        }
         return buildStatic(slot);
+    }
+
+    private ItemStack renderComponentSearch(ItemEditorSession session) {
+        String filter = Texts.toStringSafe(session.context(CONTEXT_COMPONENT_FILTER)).trim();
+        List<String> lore = new ArrayList<>();
+        lore.add(plugin.messageService().message("editor.field.component_search_desc"));
+        lore.add(plugin.messageService().message("editor.field.component_search_value", Map.of(
+                "filter", filter.isEmpty()
+                        ? plugin.messageService().message("editor.component.search_empty")
+                        : filter)));
+        emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition definition =
+                new emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition("minecraft-compass", 1, Map.of(
+                        "minecraft:custom_name",
+                        emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch.set(
+                                plugin.messageService().message("editor.field.component_search")),
+                        "minecraft:lore",
+                        emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch.set(lore)));
+        return GuiItemBuilder.build(definition, Map.of(), plugin.coreLib().configuredItemService());
+    }
+
+    private ItemStack filler() {
+        emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition definition =
+                new emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition(
+                        "minecraft-gray_stained_glass_pane", 1, Map.of(
+                                "minecraft:tooltip_display",
+                                emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch.set(
+                                        Map.of("hide_tooltip", true))));
+        return GuiItemBuilder.build(definition, Map.of(), plugin.coreLib().configuredItemService());
+    }
+
+    private ItemStack renderPageInfo(ItemEditorSession session, String menuId, GuiSlot slot) {
+        int totalEntries = entryCount(session, menuId);
+        Map<String, Object> replacements = new java.util.LinkedHashMap<>();
+        replacements.put(ItemEditorGuiService.KEY_CURRENT_PAGE, session.page() + 1);
+        replacements.put(ItemEditorGuiService.KEY_TOTAL_PAGES, Math.max(1, (totalEntries + 20) / 21));
+        replacements.put(ItemEditorGuiService.KEY_MENU_TITLE,
+                plugin.messageService().message(ItemEditorMenus.titleKey(menuId)));
+        replacements.put(ItemEditorGuiService.KEY_ENTRY_COUNT, totalEntries);
+        return GuiItemBuilder.build(slot.itemDefinition(), replacements,
+                plugin.coreLib().configuredItemService());
     }
 
     private ItemStack renderField(ItemEditorSession session, String menuId, GuiSlot slot, int slotIndex) {
         List<ItemEditorField> fields = fields(session, menuId);
         int index = session.page() * pageSize() + slotIndex;
         if (index < 0 || index >= fields.size()) {
-            return buildStatic(slot);
+            return filler();
         }
         ItemEditorField field = fields.get(index);
         List<String> lore = new ArrayList<>();
-        String description = plugin.messageService().messageOrFallback(field.labelKey() + "_desc", null);
+        String description = field.description() != null
+                ? field.description()
+                : plugin.messageService().messageOrFallback(field.labelKey() + "_desc", null);
         if (description != null && !description.isBlank()) {
             lore.add(description);
         }
@@ -165,10 +297,14 @@ public final class ItemEditorRenderer {
         lore.add(field.enabled()
                 ? plugin.messageService().message(fieldHintKey(session, menuId, field))
                 : plugin.messageService().message("editor.field.disabled"));
+        String label = field.displayName() != null
+                ? field.displayName()
+                : plugin.messageService().message(field.labelKey());
+        String icon = field.icon() != null ? field.icon() : fieldIcon(field);
         return GuiItemBuilder.build(
                 slot,
-                fieldIcon(field),
-                plugin.messageService().message(field.labelKey()),
+                icon,
+                label,
                 lore,
                 Map.of(),
                 plugin.coreLib().configuredItemService());
@@ -214,12 +350,6 @@ public final class ItemEditorRenderer {
         String specific = specificIcon(field.id());
         if (specific != null) {
             return specific;
-        }
-        if (field.id().startsWith("component_")) {
-            String componentIcon = componentIcon(field.id().substring("component_".length()));
-            if (componentIcon != null) {
-                return componentIcon;
-            }
         }
         return switch (field.kind()) {
             case TOGGLE -> "minecraft-lever";
@@ -275,23 +405,6 @@ public final class ItemEditorRenderer {
             case "repair_currencies" -> "minecraft-gold_nugget";
             case "mat_matcher_component" -> "minecraft-name_tag";
             case "mat_matcher_operator" -> "minecraft-redstone_torch";
-            case "comp_custom_name" -> "minecraft-name_tag";
-            case "comp_item_name" -> "minecraft-oak_sign";
-            case "comp_lore" -> "minecraft-writable_book";
-            case "comp_max_stack_size" -> "minecraft-bundle";
-            case "comp_max_damage" -> "minecraft-anvil";
-            case "comp_damage" -> "minecraft-stonecutter";
-            case "comp_enchantable" -> "minecraft-enchanting_table";
-            case "comp_unbreakable" -> "minecraft-netherite_ingot";
-            case "comp_enchantment_glint" -> "minecraft-spectral_arrow";
-            case "comp_rarity" -> "minecraft-emerald";
-            case "comp_item_model" -> "minecraft-item_frame";
-            case "comp_tooltip_style" -> "minecraft-oak_hanging_sign";
-            case "comp_enchantments" -> "minecraft-enchanted_book";
-            case "comp_attribute_modifiers" -> "minecraft-iron_axe";
-            case "comp_custom_model_data" -> "minecraft-brush";
-            case "comp_unset" -> "minecraft-structure_void";
-            case "comp_reset" -> "minecraft-milk_bucket";
             case "effects_list", "effect_type" -> "minecraft-nether_star";
             case "effect_variables" -> "minecraft-paper";
             case "effect_attributes" -> "minecraft-iron_axe";
@@ -302,41 +415,6 @@ public final class ItemEditorRenderer {
             case "effect_lore_actions" -> "minecraft-writable_book";
             case "actions_list" -> "minecraft-redstone";
             case ItemEditorRenderer.SKIN_FIELD_ID -> "minecraft-player_head";
-            default -> null;
-        };
-    }
-
-    private static String componentIcon(String componentId) {
-        return switch (componentId) {
-            case "minecraft:food" -> "minecraft-cooked_beef";
-            case "minecraft:consumable" -> "minecraft-golden_apple";
-            case "minecraft:potion_contents" -> "minecraft-potion";
-            case "minecraft:suspicious_stew_contents" -> "minecraft-suspicious_stew";
-            case "minecraft:dyed_color" -> "minecraft-cyan_dye";
-            case "minecraft:trim" -> "minecraft-netherite_upgrade_smithing_template";
-            case "minecraft:profile" -> "minecraft-player_head";
-            case "minecraft:fireworks" -> "minecraft-firework_rocket";
-            case "minecraft:fire_resistant" -> "minecraft-magma_cream";
-            case "minecraft:equippable" -> "minecraft-iron_helmet";
-            case "minecraft:tool", "minecraft:can_break" -> "minecraft-iron_pickaxe";
-            case "minecraft:weapon" -> "minecraft-netherite_sword";
-            case "minecraft:stored_enchantments", "minecraft:enchantable" -> "minecraft-enchanted_book";
-            case "minecraft:repairable" -> "minecraft-iron_ingot";
-            case "minecraft:glider" -> "minecraft-elytra";
-            case "minecraft:blocks_attacks" -> "minecraft-shield";
-            case "minecraft:death_protection" -> "minecraft-totem_of_undying";
-            case "minecraft:use_remainder" -> "minecraft-bucket";
-            case "minecraft:use_cooldown" -> "minecraft-clock";
-            case "minecraft:charged_projectiles" -> "minecraft-crossbow";
-            case "minecraft:bundle_contents" -> "minecraft-bundle";
-            case "minecraft:entity_data" -> "minecraft-zombie_spawn_egg";
-            case "minecraft:block_entity_data" -> "minecraft-chest";
-            case "minecraft:block_state" -> "minecraft-piston";
-            case "minecraft:can_place_on" -> "minecraft-oak_planks";
-            case "minecraft:tooltip_display" -> "minecraft-tinted_glass";
-            case "minecraft:break_sound" -> "minecraft-note_block";
-            case "minecraft:max_stack_size" -> "minecraft-bundle";
-            case "minecraft:repair_cost" -> "minecraft-experience_bottle";
             default -> null;
         };
     }
@@ -378,13 +456,17 @@ public final class ItemEditorRenderer {
     private static ItemEditorField toField(ItemEditorSession session, String menuId, ItemEditorFieldSpec spec) {
         if (spec.kind() == ItemEditorField.Kind.NAVIGATE || spec.kind() == ItemEditorField.Kind.LIST
                 || spec.kind() == ItemEditorField.Kind.COMMAND) {
-            return new ItemEditorField(spec.id(), spec.kind(), spec.labelKey(), "", List.of(), -1, true);
+            return new ItemEditorField(spec.id(), spec.kind(), spec.labelKey(), null, null, null,
+                    "", List.of(), -1, true);
         }
         Object value = session.draftFor(menuId).valueLenient(spec.path());
         return new ItemEditorField(
                 spec.id(),
                 spec.kind(),
                 spec.labelKey(),
+                null,
+                null,
+                null,
                 describeValue(value),
                 spec.options(),
                 -1,

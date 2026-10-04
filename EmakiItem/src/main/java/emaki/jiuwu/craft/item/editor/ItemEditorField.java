@@ -5,6 +5,9 @@ import java.util.List;
 public record ItemEditorField(String id,
         Kind kind,
         String labelKey,
+        String displayName,
+        String description,
+        String icon,
         String valueKey,
         List<String> options,
         int slotIndex,
@@ -25,42 +28,52 @@ public record ItemEditorField(String id,
     }
 
     public static ItemEditorField toggle(String id, String labelKey, boolean value) {
-        return new ItemEditorField(id, Kind.TOGGLE, labelKey, Boolean.toString(value), List.of(), -1, true);
+        return new ItemEditorField(id, Kind.TOGGLE, labelKey, null, null, null,
+                Boolean.toString(value), List.of(), -1, true);
     }
 
     public static ItemEditorField cycle(String id, String labelKey, String current, List<String> options) {
-        return new ItemEditorField(id, Kind.CYCLE, labelKey, current, options, -1, true);
+        return new ItemEditorField(id, Kind.CYCLE, labelKey, null, null, null,
+                current, options, -1, true);
     }
 
     public static ItemEditorField number(String id, String labelKey, String current) {
-        return new ItemEditorField(id, Kind.NUMBER, labelKey, current, List.of(), -1, true);
+        return new ItemEditorField(id, Kind.NUMBER, labelKey, null, null, null,
+                current, List.of(), -1, true);
     }
 
     public static ItemEditorField text(String id, String labelKey, String current) {
-        return new ItemEditorField(id, Kind.TEXT, labelKey, current, List.of(), -1, true);
+        return new ItemEditorField(id, Kind.TEXT, labelKey, null, null, null,
+                current, List.of(), -1, true);
     }
 
     public static ItemEditorField navigate(String id, String labelKey, String current) {
-        return new ItemEditorField(id, Kind.NAVIGATE, labelKey, current, List.of(), -1, true);
+        return new ItemEditorField(id, Kind.NAVIGATE, labelKey, null, null, null,
+                current, List.of(), -1, true);
     }
 
     public static ItemEditorField list(String id, String labelKey, String current) {
-        return new ItemEditorField(id, Kind.LIST, labelKey, current, List.of(), -1, true);
+        return new ItemEditorField(id, Kind.LIST, labelKey, null, null, null,
+                current, List.of(), -1, true);
     }
 
     public static ItemEditorField command(String id, String labelKey, String current) {
-        return new ItemEditorField(id, Kind.COMMAND, labelKey, current, List.of(), -1, true);
+        return new ItemEditorField(id, Kind.COMMAND, labelKey, null, null, null,
+                current, List.of(), -1, true);
     }
 
     public ItemEditorField at(int index) {
-        return new ItemEditorField(id, kind, labelKey, valueKey, options, index, enabled);
+        return new ItemEditorField(id, kind, labelKey, displayName, description, icon,
+                valueKey, options, index, enabled);
     }
 
     public ItemEditorField withValue(String value) {
-        return new ItemEditorField(id, kind, labelKey, value, options, slotIndex, enabled);
+        return new ItemEditorField(id, kind, labelKey, displayName, description, icon,
+                value, options, slotIndex, enabled);
     }
 
     public ItemEditorField disabled() {
-        return new ItemEditorField(id, kind, labelKey, valueKey, options, slotIndex, false);
+        return new ItemEditorField(id, kind, labelKey, displayName, description, icon,
+                valueKey, options, slotIndex, false);
     }
 }

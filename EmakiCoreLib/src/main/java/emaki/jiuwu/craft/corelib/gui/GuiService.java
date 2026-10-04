@@ -23,6 +23,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
@@ -80,7 +81,9 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         boolean sameTemplate = sameSize && request.template().id() != null
                 && request.template().id().equals(previous.template().id());
         boolean switchable = sameSize && !sameTemplate && backend.supportsInPlaceSwitch();
-        if (sameTemplate || switchable) {
+        boolean sameWindow = sameSize && !sameTemplate && !switchable && sameVisibleWindow(previous, request);
+        boolean reusable = sameTemplate || switchable || sameWindow;
+        if (reusable) {
             sessions.remove(viewerId, previous);
             if (switchable) {
                 previous.handler().onClose(previous, new SessionGuiCloseContext(previous));
@@ -89,7 +92,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             close(viewerId);
         }
         GuiSession session = newSession(request);
-        if (sameTemplate) {
+        if (sameTemplate || sameWindow) {
             session.adoptInventory(previous.getInventory());
         }
         sessions.put(viewerId, session);
@@ -181,6 +184,15 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             future.completeExceptionally(throwable);
         }
         return future;
+    }
+
+    private static boolean sameVisibleWindow(GuiSession previous, GuiOpenRequest request) {
+        if (previous == null || previous.plainTitle() == null) {
+            return false;
+        }
+        String requestedTitle = GuiSession.resolveTitleString(request.template(), request.replacements());
+        String requestedPlain = MiniMessages.plain(MiniMessages.parse(requestedTitle));
+        return previous.plainTitle().equals(requestedPlain);
     }
 
     private GuiSession newSession(GuiOpenRequest request) {

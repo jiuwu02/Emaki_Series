@@ -21,6 +21,9 @@ public final class MinecraftItemComponentCatalog {
     }
 
     public record Entry(String componentId,
+            String displayName,
+            String description,
+            String icon,
             String valueFormat,
             boolean nonValued,
             Scope scope,
@@ -32,7 +35,22 @@ public final class MinecraftItemComponentCatalog {
         }
 
         public Entry(String componentId, String valueFormat, boolean nonValued) {
-            this(componentId, valueFormat, nonValued, Scope.UNIVERSAL, List.of());
+            this(componentId, null, null, null, valueFormat, nonValued, Scope.UNIVERSAL, List.of());
+        }
+
+        /** 组件在编辑器中的显示名；缺失时回退为组件 ID。 */
+        public String displayNameOrId() {
+            return Texts.isBlank(displayName) ? componentId : displayName;
+        }
+
+        /** 组件描述（MiniMessage，可含 &lt;newline&gt;）；缺失时返回空串。 */
+        public String descriptionText() {
+            return description == null ? "" : description;
+        }
+
+        /** 组件在编辑器中显示图标所用的物品源；缺失时返回 null。 */
+        public String iconSource() {
+            return Texts.isBlank(icon) ? null : icon;
         }
 
         public boolean materialScoped() {
@@ -193,6 +211,9 @@ public final class MinecraftItemComponentCatalog {
                 Scope scope = "material".equals(scopeToken) ? Scope.MATERIAL : Scope.UNIVERSAL;
                 result.put(normalizedId, new Entry(
                         normalizedId,
+                        ConfigNodes.string(raw, "name", null),
+                        ConfigNodes.string(raw, "description", null),
+                        ConfigNodes.string(raw, "icon", null),
                         ConfigNodes.string(raw, "format", "vanilla component value"),
                         ConfigNodes.bool(raw, "non_valued", false),
                         scope,

@@ -92,7 +92,7 @@ public final class ItemEditorMenus {
             case CONDITION -> condition();
             case REPAIR -> repair();
             case REPAIR_ECONOMY -> repairEconomy();
-            case COMPONENTS -> components();
+            case COMPONENTS -> List.of();
             case EFFECTS -> effects();
             case ACTIONS -> actions();
             default -> List.of();
@@ -272,47 +272,6 @@ public final class ItemEditorMenus {
                 "repair", "economy", "restore"));
         specs.add(ItemEditorFieldSpec.list("repair_currencies", "editor.field.repair_currencies",
                 REPAIR_MATERIALS, "repair.economy.currencies"));
-        return specs;
-    }
-
-    private static List<ItemEditorFieldSpec> components() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        String[] base = new String[]{ "item", "components" };
-        specs.add(ItemEditorFieldSpec.text("comp_custom_name", "editor.field.comp.custom_name",
-                "item", "components", "minecraft:custom_name"));
-        specs.add(ItemEditorFieldSpec.text("comp_item_name", "editor.field.comp.item_name",
-                "item", "components", "minecraft:item_name"));
-        specs.add(ItemEditorFieldSpec.list("comp_lore", "editor.field.comp.lore", LIST_ENTRIES,
-                "item.components.lore"));
-        specs.add(ItemEditorFieldSpec.number("comp_max_stack_size", "editor.field.comp.max_stack_size",
-                "item", "components", "minecraft:max_stack_size"));
-        specs.add(ItemEditorFieldSpec.number("comp_max_damage", "editor.field.comp.max_damage",
-                "item", "components", "minecraft:max_damage"));
-        specs.add(ItemEditorFieldSpec.number("comp_damage", "editor.field.comp.damage",
-                "item", "components", "minecraft:damage"));
-        specs.add(ItemEditorFieldSpec.number("comp_enchantable", "editor.field.comp.enchantable",
-                "item", "components", "minecraft:enchantable"));
-        specs.add(ItemEditorFieldSpec.toggle("comp_unbreakable", "editor.field.comp.unbreakable",
-                "item", "components", "minecraft:unbreakable"));
-        specs.add(ItemEditorFieldSpec.toggle("comp_enchantment_glint", "editor.field.comp.enchantment_glint",
-                "item", "components", "minecraft:enchantment_glint_override"));
-        specs.add(ItemEditorFieldSpec.cycle("comp_rarity", "editor.field.comp.rarity",
-                List.of("common", "uncommon", "rare", "epic"),
-                "item", "components", "minecraft:rarity"));
-        specs.add(ItemEditorFieldSpec.text("comp_item_model", "editor.field.comp.item_model",
-                "item", "components", "minecraft:item_model"));
-        specs.add(ItemEditorFieldSpec.text("comp_tooltip_style", "editor.field.comp.tooltip_style",
-                "item", "components", "minecraft:tooltip_style"));
-        specs.add(ItemEditorFieldSpec.list("comp_enchantments", "editor.field.comp.enchantments", LIST_ENTRIES,
-                "item.components.minecraft:enchantments"));
-        specs.add(ItemEditorFieldSpec.list("comp_attribute_modifiers", "editor.field.comp.attribute_modifiers",
-                LIST_ENTRIES, "item.components.minecraft:attribute_modifiers"));
-        specs.add(ItemEditorFieldSpec.list("comp_custom_model_data", "editor.field.comp.custom_model_data",
-                LIST_ENTRIES, "item.components.minecraft:custom_model_data"));
-        specs.add(ItemEditorFieldSpec.list("comp_unset", "editor.field.comp.unset", LIST_ENTRIES,
-                "item.components.$unset"));
-        specs.add(ItemEditorFieldSpec.list("comp_reset", "editor.field.comp.reset", LIST_ENTRIES,
-                "item.components.$reset"));
         return specs;
     }
 
