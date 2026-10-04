@@ -65,8 +65,12 @@ final class MobsLifecycleCoordinator
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of("target_selectors.yml");
     private static final List<String> DEFAULT_DATA_FILES =
-            List.of("mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
-                    "spawn_rules/overworld_elites.yml");
+            List.of("mobs/zombie.yml", "mobs/jungle_stalker.yml",
+                    "mobs/elite_zombie.yml", "mobs/bone_lord.yml",
+                    "mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
+                    "loot_tables/jungle_stalker.yml", "loot_tables/elite_zombie.yml",
+                    "loot_tables/bone_lord.yml",
+                    "spawn_rules/overworld.yml", "spawn_rules/overworld_elites.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("mobs", "loot_tables", "spawn_rules");
 

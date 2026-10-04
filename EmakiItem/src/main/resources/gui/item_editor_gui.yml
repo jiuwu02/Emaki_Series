@@ -43,7 +43,7 @@ slots:
   menu_basic:
     type: "menu_basic"
     slots:
-      - 19
+      - 20
     item:
       source: "minecraft-stone"
       components:
@@ -55,7 +55,7 @@ slots:
   menu_components:
     type: "menu_components"
     slots:
-      - 20
+      - 21
     item:
       source: "minecraft-name_tag"
       components:
@@ -67,7 +67,7 @@ slots:
   menu_effects:
     type: "menu_effects"
     slots:
-      - 21
+      - 22
     item:
       source: "minecraft-nether_star"
       components:
@@ -79,7 +79,7 @@ slots:
   menu_set:
     type: "menu_set"
     slots:
-      - 22
+      - 23
     item:
       source: "minecraft-iron_chestplate"
       components:
@@ -91,7 +91,7 @@ slots:
   menu_condition:
     type: "menu_condition"
     slots:
-      - 23
+      - 24
     item:
       source: "minecraft-comparator"
       components:
@@ -103,7 +103,7 @@ slots:
   menu_repair:
     type: "menu_repair"
     slots:
-      - 29
+      - 30
     item:
       source: "minecraft-anvil"
       components:
@@ -115,7 +115,7 @@ slots:
   menu_update:
     type: "menu_update"
     slots:
-      - 30
+      - 31
     item:
       source: "minecraft-clock"
       components:
@@ -127,7 +127,7 @@ slots:
   menu_actions:
     type: "menu_actions"
     slots:
-      - 31
+      - 32
     item:
       source: "minecraft-redstone"
       components:
@@ -193,12 +193,12 @@ slots:
       - 16
       - 17
       - 18
-      - 24
+      - 19
       - 25
       - 26
       - 27
       - 28
-      - 32
+      - 29
       - 33
       - 34
       - 35

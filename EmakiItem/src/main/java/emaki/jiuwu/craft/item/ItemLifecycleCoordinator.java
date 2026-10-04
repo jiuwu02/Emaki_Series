@@ -77,6 +77,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             "gui/repair_gui.yml",
             "gui/pack_browser_gui.yml",
             "gui/item_browser_gui.yml",
+            "gui/item_editor_gui.yml",
+            "gui/item_editor_page_gui.yml",
             "id_aliases.yml",
             "scripts/items/example_effect.js");
     private static final List<String> EXTRA_DIRECTORIES = List.of("items", "sets", "gui");

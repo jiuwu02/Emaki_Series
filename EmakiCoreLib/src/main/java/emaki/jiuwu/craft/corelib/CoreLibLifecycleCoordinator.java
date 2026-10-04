@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 import java.util.UUID;
 
@@ -30,6 +32,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 
 final class CoreLibLifecycleCoordinator
@@ -95,6 +98,7 @@ final class CoreLibLifecycleCoordinator
                 "text_backend", textDisplayService.backendName(),
                 "item_backend", itemDisplayService.backendName()
         ));
+        releaseExampleDialogIfNeeded(plugin, config.dialogConfig().directory());
         DialogService dialogService = new DialogService(
                 plugin,
                 new DialogLoader(plugin, config.dialogConfig().directory()),
@@ -128,5 +132,19 @@ final class CoreLibLifecycleCoordinator
                 itemDisplayService,
                 dialogService,
                 gameplayEventPublisher);
+    }
+
+    private static void releaseExampleDialogIfNeeded(EmakiCoreLibPlugin plugin, String directoryName) {
+        Path dialogsDirectory = plugin.getDataFolder().toPath().resolve(directoryName);
+        if (Files.isDirectory(dialogsDirectory)) {
+            return;
+        }
+        try {
+            YamlFiles.copyResourceIfMissing(plugin, "dialogs/example_notice.yml",
+                    dialogsDirectory.resolve("example_notice.yml").toFile());
+        } catch (Exception exception) {
+            plugin.getLogger().warning("Failed to release example dialog dialogs/example_notice.yml: "
+                    + exception.getMessage());
+        }
     }
 }
