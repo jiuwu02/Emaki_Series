@@ -101,13 +101,9 @@ public final class ItemEditorGuiService {
         String packId = session.packId();
         int page = session.returnPage();
         close(session.player());
-        session.player().closeInventory();
-        plugin.scheduling().runForEntity(plugin, session.player(), () -> {
-            if (!plugin.browserGuiService().openItemBrowser(session.player(), packId, page)) {
-                plugin.messageService().send(session.player(), "browser.gui_open_failed");
-            }
-        }, () -> {
-        });
+        if (!plugin.browserGuiService().openItemBrowser(session.player(), packId, page)) {
+            plugin.messageService().send(session.player(), "browser.gui_open_failed");
+        }
     }
 
     public void goBack(ItemEditorSession session) {

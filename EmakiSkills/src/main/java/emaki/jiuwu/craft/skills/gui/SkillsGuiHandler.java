@@ -103,18 +103,13 @@ public final class SkillsGuiHandler implements GuiSessionHandler {
         }
 
         if (click.isShiftClick()) {
-            player.closeInventory();
-            plugin.scheduling().runForEntity(plugin, player, () ->
-                    skillsGuiService.openTriggerSelect(player, slotIndex), () -> { });
+            skillsGuiService.openTriggerSelect(player, slotIndex);
         } else if (click.isRightClick()) {
 
             String skillId = binding.skillId();
-            player.closeInventory();
-            plugin.scheduling().runForEntity(plugin, player, () -> {
-                if (!skillsGuiService.openUpgradeGui(player, skillId)) {
-                    messageService.send(player, "gui.open_failed");
-                }
-            }, () -> { });
+            if (!skillsGuiService.openUpgradeGui(player, skillId)) {
+                messageService.send(player, "gui.open_failed");
+            }
         } else {
             stateService.unequipSkill(player, slotIndex);
             messageService.send(player, "gui.skill_unequipped");

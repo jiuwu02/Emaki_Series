@@ -65,23 +65,15 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
             return;
         }
         String packId = packs.get(index);
-        player.closeInventory();
-        plugin.scheduling().runForEntity(plugin, player, () -> {
-            if (!browserService.openItemBrowser(player, packId, 0)) {
-                plugin.messageService().send(player, "browser.gui_open_failed");
-            }
-        }, () -> {
-        });
+        if (!browserService.openItemBrowser(player, packId, 0)) {
+            plugin.messageService().send(player, "browser.gui_open_failed");
+        }
     }
 
     private void returnToPackBrowser(Player player) {
-        player.closeInventory();
-        plugin.scheduling().runForEntity(plugin, player, () -> {
-            if (!browserService.openPackBrowser(player, 0)) {
-                plugin.messageService().send(player, "browser.gui_open_failed");
-            }
-        }, () -> {
-        });
+        if (!browserService.openPackBrowser(player, 0)) {
+            plugin.messageService().send(player, "browser.gui_open_failed");
+        }
     }
 
     private void openEditor(GuiSession session, Player player, int slotIndex) {
@@ -94,13 +86,9 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         }
         String packId = currentPackId(session);
         int page = currentPage(session);
-        player.closeInventory();
-        plugin.scheduling().runForEntity(plugin, player, () -> {
-            if (plugin.editorGuiService().open(player, itemId, packId, page) == null) {
-                plugin.messageService().send(player, "editor.open_failed", Map.of("id", itemId));
-            }
-        }, () -> {
-        });
+        if (plugin.editorGuiService().open(player, itemId, packId, page) == null) {
+            plugin.messageService().send(player, "editor.open_failed", Map.of("id", itemId));
+        }
     }
 
     private void newItem(GuiSession session, Player player) {
@@ -109,14 +97,10 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         }
         String packId = currentPackId(session);
         int page = currentPage(session);
-        player.closeInventory();
-        plugin.scheduling().runForEntity(plugin, player, () ->
-                plugin.editorGuiService().input().promptChat(player,
-                        plugin.messageService().message("editor.hint.new_item_id"),
-                        plugin.messageService().message("editor.create.prompt"),
-                        rawId -> plugin.editorGuiService().createAndOpen(player, packId, page, rawId)),
-                () -> {
-                });
+        plugin.editorGuiService().input().promptChat(player,
+                plugin.messageService().message("editor.hint.new_item_id"),
+                plugin.messageService().message("editor.create.prompt"),
+                rawId -> plugin.editorGuiService().createAndOpen(player, packId, page, rawId));
     }
 
     private void takeItem(GuiSession session, GuiClickContext click, Player player, int slotIndex) {

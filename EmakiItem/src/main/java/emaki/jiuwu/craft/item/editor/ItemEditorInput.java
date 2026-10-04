@@ -42,9 +42,6 @@ public final class ItemEditorInput {
             String initialValue,
             String chatPrompt,
             Consumer<String> callback) {
-        if (tryDialog(player, title, hint, label, initialValue, callback)) {
-            return Channel.DIALOG;
-        }
         promptChat(player, hint, chatPrompt, callback);
         return Channel.CHAT;
     }
@@ -99,34 +96,6 @@ public final class ItemEditorInput {
                     2);
             return dialog.show(player, definition, (viewer, submission) ->
                     buttonCallback.accept(submission.buttonId() == null ? cancelButtonId : submission.buttonId()));
-        } catch (RuntimeException | LinkageError failure) {
-            return false;
-        }
-    }
-
-    private boolean tryDialog(Player player, String title, String hint, String label, String initialValue, Consumer<String> callback) {
-        try {
-            DialogService dialog = plugin.coreLib().dialogService();
-            if (dialog == null || !dialog.enabled()) {
-                return false;
-            }
-            List<String> bodyLines = hint == null || hint.isBlank() ? List.of() : List.of(hint);
-            DialogDefinition definition = Dialogs.textPrompt(
-                    DIALOG_ID,
-                    title,
-                    bodyLines,
-                    INPUT_KEY,
-                    label,
-                    initialValue,
-                    MAX_LENGTH,
-                    plugin.messageService().message("editor.dialog.confirm"),
-                    plugin.messageService().message("editor.dialog.cancel"));
-            return dialog.show(player, definition, (viewer, submission) -> {
-                if (DIALOG_ID.equals(submission.buttonId())) {
-                    String text = submission.text(INPUT_KEY);
-                    callback.accept(text == null ? "" : text);
-                }
-            });
         } catch (RuntimeException | LinkageError failure) {
             return false;
         }

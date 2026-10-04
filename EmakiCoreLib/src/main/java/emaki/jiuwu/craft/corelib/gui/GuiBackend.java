@@ -18,6 +18,10 @@ public interface GuiBackend {
 
     String name();
 
+    default boolean supportsInPlaceSwitch() {
+        return false;
+    }
+
     default ConfiguredItemService configuredItemService() {
         return null;
     }

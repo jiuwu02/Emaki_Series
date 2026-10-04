@@ -22,6 +22,7 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
+import net.kyori.adventure.text.Component;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -79,6 +80,11 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
+    public boolean supportsInPlaceSwitch() {
+        return true;
+    }
+
+    @Override
     public void open(GuiSession session, Map<Integer, ItemStack> renderedSlots) {
         if (session == null || session.viewer() == null) {
             return;
@@ -87,13 +93,20 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         UUID viewerId = viewer.getUniqueId();
         PacketWindow previous = windows.get(viewerId);
         if (previous != null && previous.topSize == topSize(session)) {
+            boolean titleChanged = previous.titleComponent == null
+                    || !previous.titleComponent.equals(session.titleComponent());
             previous.attach(session);
+            previous.titleComponent = session.titleComponent();
             try {
                 applyTopItems(previous, renderedSlots);
                 if (previous.handlingClick) {
+                    previous.pendingReopen = titleChanged;
                     previous.pendingSync = true;
                     debug(viewer, "common.gui.packet_open_reused_deferred", windowFields(previous));
                     return;
+                }
+                if (titleChanged) {
+                    sendOpenWindow(viewer, previous);
                 }
                 sendWindowItems(viewer, previous);
                 debug(viewer, "common.gui.packet_open_reused", windowFields(previous));
@@ -848,6 +861,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
         private final int windowId;
         private GuiSession session;
+        private Component titleComponent;
         private int topSize;
         private ItemStack[] topItems;
         private ItemStack cursor;
@@ -862,6 +876,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
             this.topSize = topSize;
             this.session = session;
             this.topItems = new ItemStack[topSize];
+            this.titleComponent = session.titleComponent();
         }
 
         int nextStateId() {

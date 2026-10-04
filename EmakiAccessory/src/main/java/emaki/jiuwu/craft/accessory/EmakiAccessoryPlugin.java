@@ -446,12 +446,9 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
             return;
         }
         markPageSwitching(viewer);
-        viewer.closeInventory();
-        components.executionDispatcher().runEntityLater(this, viewer, () -> {
-            if (!open(viewer, targetId, pageId)) {
-                onWindowClosed(viewer, targetId);
-            }
-        }, () -> onWindowClosed(viewer, targetId), 1L);
+        if (!open(viewer, targetId, pageId)) {
+            onWindowClosed(viewer, targetId);
+        }
     }
 
     private void markPageSwitching(Player viewer) {

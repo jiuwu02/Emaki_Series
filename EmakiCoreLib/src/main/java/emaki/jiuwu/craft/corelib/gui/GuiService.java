@@ -74,14 +74,22 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                 "backend", backend.name()
         ));
         GuiSession previous = sessions.get(viewerId);
-        boolean reuse = isReusableWindow(previous, request.template(), backend);
-        if (reuse) {
+        boolean sameSize = previous != null && previous.backend() == backend
+                && previous.template() != null
+                && previous.template().slotCount() == request.template().slotCount();
+        boolean sameTemplate = sameSize && request.template().id() != null
+                && request.template().id().equals(previous.template().id());
+        boolean switchable = sameSize && !sameTemplate && backend.supportsInPlaceSwitch();
+        if (sameTemplate || switchable) {
             sessions.remove(viewerId, previous);
+            if (switchable) {
+                previous.handler().onClose(previous, new SessionGuiCloseContext(previous));
+            }
         } else {
             close(viewerId);
         }
         GuiSession session = newSession(request);
-        if (reuse) {
+        if (sameTemplate) {
             session.adoptInventory(previous.getInventory());
         }
         sessions.put(viewerId, session);
@@ -97,15 +105,6 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             ));
             throw throwable;
         }
-    }
-
-    private boolean isReusableWindow(GuiSession previous, GuiTemplate template, GuiBackend backend) {
-        return previous != null
-                && previous.backend() == backend
-                && previous.template() != null
-                && template.id() != null
-                && template.id().equals(previous.template().id())
-                && previous.template().slotCount() == template.slotCount();
     }
 
     public CompletableFuture<GuiSession> openAsync(GuiOpenRequest request) {
