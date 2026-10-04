@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import net.kyori.adventure.text.Component;
@@ -13,6 +16,12 @@ import net.kyori.adventure.text.Component;
 public final class MinecraftComponentValueCodec {
 
     private static final Logger LOGGER = Logger.getLogger(MinecraftComponentValueCodec.class.getName());
+
+    /**
+     * 单行内的换行标记：MiniMessage 的 {@code <newline>} 标签与真实换行都拆成独立 lore 行，
+     * 避免 {@code <newline>} 在部分运行时不被识别、导致整行 MiniMessage 解析失败而退化为原文。
+     */
+    private static final Pattern NEWLINE_SPLIT = Pattern.compile("<newline>|\\R", Pattern.CASE_INSENSITIVE);
 
     private final AtomicBoolean gsonWarningLogged = new AtomicBoolean();
 
@@ -44,23 +53,35 @@ public final class MinecraftComponentValueCodec {
 
     private String encodeLore(Object value) {
         if (value instanceof String text) {
-            return "[" + serializeComponent(MiniMessages.parse(text)) + "]";
+            return "[" + encodeLoreEntries(List.of(text)) + "]";
         }
         if (value instanceof Collection<?> collection) {
-            StringBuilder builder = new StringBuilder("[");
-            Iterator<?> iterator = collection.iterator();
-            while (iterator.hasNext()) {
-                Object entry = iterator.next();
-                builder.append(entry instanceof String text
-                        ? serializeComponent(MiniMessages.parse(text))
-                        : encodeGeneric(entry));
-                if (iterator.hasNext()) {
-                    builder.append(',');
-                }
-            }
-            return builder.append(']').toString();
+            return "[" + encodeLoreEntries(new ArrayList<>(collection)) + "]";
         }
         return encodeGeneric(value);
+    }
+
+    private String encodeLoreEntries(List<?> entries) {
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (Object entry : entries) {
+            if (entry instanceof String text) {
+                for (String line : NEWLINE_SPLIT.split(text, -1)) {
+                    if (!first) {
+                        builder.append(',');
+                    }
+                    first = false;
+                    builder.append(serializeComponent(MiniMessages.parse(line)));
+                }
+            } else {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append(encodeGeneric(entry));
+            }
+        }
+        return builder.toString();
     }
 
     private String encodeGeneric(Object value) {

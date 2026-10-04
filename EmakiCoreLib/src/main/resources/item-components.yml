@@ -10,7 +10,7 @@
 #               必须是真实存在的 Bukkit 材料名（小写），如 minecraft-cooked_beef、minecraft-potion
 #   format      值格式说明，供 GUI 编辑器提示与文档展示使用
 #   non_valued  无值组件（只可 set/unset/reset，不写值）
-#   scope       universal = 任意物品材料都可生效；material = 仅对 applies_to 列出的材料有意义
+#   scope       universal = 对任意物品材料都能真正生效（省略 scope 即视为 universal）；material = 仅对 applies_to 列出的材料有意义，且 applies_to 不得为空
 #   applies_to  适用材料 ID 列表（仅 scope: material 需要），GUI 编辑器据此自适应加载专属编辑入口
 #
 # 说明：本目录是元数据与识别面，运行期是否真正支持由 Paper 组件注册表决定；
@@ -86,11 +86,6 @@ components:
     description: "供资源包识别并替换模型。<newline><gray>可包含浮点、标志、字符串与颜色。</gray>"
     icon: minecraft-item_frame
     format: map containing floats/flags/strings/colors
-  - id: minecraft:repair_cost
-    name: 修理花费
-    description: "设置铁砧修理所需的经验等级。<newline><gray>取值非负整数。</gray>"
-    icon: minecraft-anvil
-    format: non-negative integer
   - id: minecraft:enchantment_glint_override
     name: 附魔光效覆盖
     description: "强制显示或隐藏附魔光效。<newline><gray>布尔值，独立于实际附魔。</gray>"
@@ -102,67 +97,11 @@ components:
     icon: minecraft-arrow
     format: "unit: true, null, or empty map"
     non_valued: true
-  - id: minecraft:food
-    name: 食物属性
-    description: "定义物品作为食物的回复与效果。<newline><gray>使用原版食物属性映射。</gray>"
-    icon: minecraft-cooked_beef
-    format: vanilla food properties map
-  - id: minecraft:consumable
-    name: 可消耗
-    description: "定义使用动画、音效与耗时。<newline><gray>使用原版可消耗属性映射。</gray>"
-    icon: minecraft-potion
-    format: vanilla consumable map
-  - id: minecraft:use_remainder
-    name: 使用后余留物
-    description: "物品使用后返回的剩余物品。<newline><gray>以物品堆映射表示。</gray>"
-    icon: minecraft-bowl
-    format: item stack map
-  - id: minecraft:use_cooldown
-    name: 使用冷却
-    description: "设置使用后进入冷却的时长。<newline><gray>使用原版冷却映射。</gray>"
-    icon: minecraft-clock
-    format: vanilla cooldown map
   - id: minecraft:use_effects
     name: 使用效果
     description: "定义使用物品时的即时效果。<newline><gray>使用原版使用效果映射。</gray>"
     icon: minecraft-golden_apple
     format: vanilla use effects map
-  - id: minecraft:damage_resistant
-    name: 伤害抗性
-    description: "声明物品可免疫的伤害类型标签。<newline><gray>以伤害类型标签映射表示。</gray>"
-    icon: minecraft-shield
-    format: damage type tag map
-  - id: minecraft:tool
-    name: 工具属性
-    description: "定义挖掘速度、耐久与破坏规则。<newline><gray>使用原版工具规则映射。</gray>"
-    icon: minecraft-iron_pickaxe
-    format: vanilla tool rules map
-  - id: minecraft:weapon
-    name: 武器属性
-    description: "定义武器伤害与耐久消耗规则。<newline><gray>使用原版武器属性映射。</gray>"
-    icon: minecraft-iron_sword
-    format: vanilla weapon properties map
-  - id: minecraft:enchantable
-    name: 可附魔值
-    description: "设置物品在附魔台的附魔能力。<newline><gray>使用含正整数值的映射。</gray>"
-    icon: minecraft-enchanting_table
-    format: map containing positive integer value
-  - id: minecraft:equippable
-    name: 可装备
-    description: "定义物品作为装备的槽位与行为。<newline><gray>使用原版可装备映射。</gray>"
-    icon: minecraft-iron_chestplate
-    format: vanilla equippable map
-  - id: minecraft:repairable
-    name: 可修理
-    description: "声明可用于修理的材料或标签。<newline><gray>以修理物品或标签映射表示。</gray>"
-    icon: minecraft-anvil
-    format: repair item/tag map
-  - id: minecraft:glider
-    name: 滑翔
-    description: "使物品具备鞘翅式滑翔能力。<newline><gray>无值组件，只可设置或移除。</gray>"
-    icon: minecraft-elytra
-    format: "unit: true, null, or empty map"
-    non_valued: true
   - id: minecraft:item_model
     name: 物品模型
     description: "覆盖物品使用的模型资源 ID。<newline><gray>使用命名空间资源 ID。</gray>"
@@ -178,16 +117,6 @@ components:
     description: "控制提示框隐藏项或整体隐藏。<newline><gray>可含 hide_tooltip 与 hidden_components。</gray>"
     icon: minecraft-book
     format: map containing hide_tooltip/hidden_components
-  - id: minecraft:death_protection
-    name: 死亡保护
-    description: "死亡时触发保护、免除掉落。<newline><gray>使用原版死亡保护映射。</gray>"
-    icon: minecraft-totem_of_undying
-    format: vanilla death protection map
-  - id: minecraft:blocks_attacks
-    name: 格挡攻击
-    description: "定义物品的格挡减伤与角度。<newline><gray>使用原版格挡属性映射。</gray>"
-    icon: minecraft-shield
-    format: vanilla blocking properties map
   - id: minecraft:stored_enchantments
     name: 收纳附魔
     description: "存放于附魔书上的附魔数据。<newline><gray>使用附魔组件映射。</gray>"
@@ -198,85 +127,1139 @@ components:
     description: "附加任意自定义 NBT 数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
     icon: minecraft-command_block
     format: "plain map or {$snbt: raw SNBT}"
-  - id: minecraft:entity_data
-    name: 实体数据
-    description: "为生成物实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
-    icon: minecraft-spawner
-    format: "plain map or {$snbt: raw SNBT}"
-  - id: minecraft:block_entity_data
-    name: 方块实体数据
-    description: "为方块实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
-    icon: minecraft-chest
-    format: "plain map or {$snbt: raw SNBT}"
-  - id: minecraft:block_state
-    name: 方块状态
-    description: "设置生成方块的属性状态。<newline><gray>使用方块状态属性映射。</gray>"
-    icon: minecraft-grass_block
-    format: block state property map
-  - id: minecraft:block_data
-    name: 方块数据
-    description: "为方块写入额外 NBT 数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
-    icon: minecraft-command_block
-    format: "plain map or {$snbt: raw SNBT}"
-  - id: minecraft:break_sound
-    name: 破坏音效
-    description: "定义方块被破坏时播放的音效。<newline><gray>使用音效资源 ID。</gray>"
-    icon: minecraft-bell
-    format: sound resource id
-  - id: minecraft:damage_type
-    name: 伤害类型
-    description: "指定攻击造成的伤害类型。<newline><gray>使用伤害类型资源 ID。</gray>"
+
+  # ============================================================
+  # 材料专属组件（scope: material + applies_to，仅对 applies_to 列出的材料有意义）
+  # ============================================================
+
+  # ------------------------------------------------------------
+  # 材料专属组件 —— 食物 / 消耗品
+  # ------------------------------------------------------------
+  - id: minecraft:food
+    name: 食物属性
+    description: "定义物品作为食物的回复与效果。<newline><gray>使用原版食物属性映射。</gray>"
+    icon: minecraft-cooked_beef
+    format: vanilla food properties map
+    scope: material
+    applies_to:
+      - minecraft:apple
+      - minecraft:golden_apple
+      - minecraft:enchanted_golden_apple
+      - minecraft:bread
+      - minecraft:porkchop
+      - minecraft:cooked_porkchop
+      - minecraft:beef
+      - minecraft:cooked_beef
+      - minecraft:chicken
+      - minecraft:cooked_chicken
+      - minecraft:mutton
+      - minecraft:cooked_mutton
+      - minecraft:rabbit
+      - minecraft:cooked_rabbit
+      - minecraft:rabbit_stew
+      - minecraft:cod
+      - minecraft:cooked_cod
+      - minecraft:salmon
+      - minecraft:cooked_salmon
+      - minecraft:tropical_fish
+      - minecraft:pufferfish
+      - minecraft:carrot
+      - minecraft:golden_carrot
+      - minecraft:potato
+      - minecraft:baked_potato
+      - minecraft:poisonous_potato
+      - minecraft:beetroot
+      - minecraft:beetroot_soup
+      - minecraft:melon_slice
+      - minecraft:sweet_berries
+      - minecraft:glow_berries
+      - minecraft:dried_kelp
+      - minecraft:mushroom_stew
+      - minecraft:suspicious_stew
+      - minecraft:cake
+      - minecraft:cookie
+      - minecraft:pumpkin_pie
+      - minecraft:chorus_fruit
+      - minecraft:honey_bottle
+      - minecraft:rotten_flesh
+      - minecraft:spider_eye
+  - id: minecraft:consumable
+    name: 可消耗
+    description: "定义使用动画、音效与耗时。<newline><gray>使用原版可消耗属性映射。</gray>"
+    icon: minecraft-potion
+    format: vanilla consumable map
+    scope: material
+    applies_to:
+      - minecraft:apple
+      - minecraft:golden_apple
+      - minecraft:enchanted_golden_apple
+      - minecraft:bread
+      - minecraft:porkchop
+      - minecraft:cooked_porkchop
+      - minecraft:beef
+      - minecraft:cooked_beef
+      - minecraft:chicken
+      - minecraft:cooked_chicken
+      - minecraft:mutton
+      - minecraft:cooked_mutton
+      - minecraft:rabbit
+      - minecraft:cooked_rabbit
+      - minecraft:rabbit_stew
+      - minecraft:cod
+      - minecraft:cooked_cod
+      - minecraft:salmon
+      - minecraft:cooked_salmon
+      - minecraft:tropical_fish
+      - minecraft:pufferfish
+      - minecraft:carrot
+      - minecraft:golden_carrot
+      - minecraft:potato
+      - minecraft:baked_potato
+      - minecraft:poisonous_potato
+      - minecraft:beetroot
+      - minecraft:beetroot_soup
+      - minecraft:melon_slice
+      - minecraft:sweet_berries
+      - minecraft:glow_berries
+      - minecraft:dried_kelp
+      - minecraft:mushroom_stew
+      - minecraft:suspicious_stew
+      - minecraft:cake
+      - minecraft:cookie
+      - minecraft:pumpkin_pie
+      - minecraft:chorus_fruit
+      - minecraft:honey_bottle
+      - minecraft:rotten_flesh
+      - minecraft:spider_eye
+      - minecraft:potion
+      - minecraft:milk_bucket
+      - minecraft:ominous_bottle
+  - id: minecraft:use_remainder
+    name: 使用后余留物
+    description: "物品使用后返回的剩余物品。<newline><gray>以物品堆映射表示。</gray>"
+    icon: minecraft-bowl
+    format: item stack map
+    scope: material
+    applies_to:
+      - minecraft:mushroom_stew
+      - minecraft:rabbit_stew
+      - minecraft:beetroot_soup
+      - minecraft:suspicious_stew
+      - minecraft:potion
+      - minecraft:honey_bottle
+      - minecraft:milk_bucket
+      - minecraft:ominous_bottle
+  - id: minecraft:use_cooldown
+    name: 使用冷却
+    description: "设置使用后进入冷却的时长。<newline><gray>使用原版冷却映射。</gray>"
+    icon: minecraft-clock
+    format: vanilla cooldown map
+    scope: material
+    applies_to:
+      - minecraft:ender_pearl
+      - minecraft:chorus_fruit
+      - minecraft:goat_horn
+      - minecraft:wind_charge
+
+  # ------------------------------------------------------------
+  # 材料专属组件 —— 装备 / 工具 / 武器 / 战斗
+  # ------------------------------------------------------------
+  - id: minecraft:equippable
+    name: 可装备
+    description: "定义物品作为装备的槽位与行为。<newline><gray>使用原版可装备映射。</gray>"
+    icon: minecraft-iron_chestplate
+    format: vanilla equippable map
+    scope: material
+    applies_to:
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+      - minecraft:elytra
+      - minecraft:leather_horse_armor
+      - minecraft:iron_horse_armor
+      - minecraft:golden_horse_armor
+      - minecraft:diamond_horse_armor
+      - minecraft:saddle
+      - minecraft:player_head
+      - minecraft:skeleton_skull
+      - minecraft:wither_skeleton_skull
+      - minecraft:zombie_head
+      - minecraft:creeper_head
+      - minecraft:dragon_head
+      - minecraft:piglin_head
+      - minecraft:carved_pumpkin
+  - id: minecraft:glider
+    name: 滑翔
+    description: "使物品具备鞘翅式滑翔能力。<newline><gray>无值组件，只可设置或移除。</gray>"
+    icon: minecraft-elytra
+    format: "unit: true, null, or empty map"
+    non_valued: true
+    scope: material
+    applies_to:
+      - minecraft:elytra
+  - id: minecraft:damage_resistant
+    name: 伤害抗性
+    description: "声明物品可免疫的伤害类型标签。<newline><gray>以伤害类型标签映射表示。</gray>"
+    icon: minecraft-shield
+    format: damage type tag map
+    scope: material
+    applies_to:
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+  - id: minecraft:tool
+    name: 工具属性
+    description: "定义挖掘速度、耐久与破坏规则。<newline><gray>使用原版工具规则映射。</gray>"
+    icon: minecraft-iron_pickaxe
+    format: vanilla tool rules map
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+  - id: minecraft:weapon
+    name: 武器属性
+    description: "定义武器伤害与耐久消耗规则。<newline><gray>使用原版武器属性映射。</gray>"
     icon: minecraft-iron_sword
-    format: damage type resource id
+    format: vanilla weapon properties map
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
   - id: minecraft:minimum_attack_charge
     name: 最低攻击蓄力
     description: "设置造成完整伤害所需蓄力比例。<newline><gray>浮点数，默认 1.0。</gray>"
     icon: minecraft-wooden_sword
     format: floating-point number
-  - id: minecraft:piercing_weapon
-    name: 穿刺武器
-    description: "定义穿刺武器的击中与冷却规则。<newline><gray>使用原版穿刺武器映射。</gray>"
-    icon: minecraft-trident
-    format: vanilla piercing weapon map
-  - id: minecraft:kinetic_weapon
-    name: 动能武器
-    description: "定义动能武器的伤害累积规则。<newline><gray>使用原版动能武器映射。</gray>"
-    icon: minecraft-mace
-    format: vanilla kinetic weapon map
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+  - id: minecraft:damage_type
+    name: 伤害类型
+    description: "指定攻击造成的伤害类型。<newline><gray>使用伤害类型资源 ID。</gray>"
+    icon: minecraft-iron_sword
+    format: damage type resource id
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
   - id: minecraft:attack_range
     name: 攻击距离
     description: "设置近战或远程的攻击射程。<newline><gray>使用原版攻击距离映射。</gray>"
     icon: minecraft-arrow
     format: vanilla attack range map
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
   - id: minecraft:swing_animation
     name: 挥击动画
     description: "定义近战挥击的动画类型与时长。<newline><gray>使用原版挥击动画映射。</gray>"
     icon: minecraft-stick
     format: vanilla swing animation map
-  - id: minecraft:recipes
-    name: 配方书
-    description: "解锁物品对应的合成配方。<newline><gray>以配方资源 ID 列表表示。</gray>"
-    icon: minecraft-crafting_table
-    format: recipe resource id list
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+  - id: minecraft:kinetic_weapon
+    name: 动能武器
+    description: "定义动能武器的伤害累积规则。<newline><gray>使用原版动能武器映射。</gray>"
+    icon: minecraft-mace
+    format: vanilla kinetic weapon map
+    scope: material
+    applies_to:
+      - minecraft:mace
+  - id: minecraft:piercing_weapon
+    name: 穿刺武器
+    description: "定义穿刺武器的击中与冷却规则。<newline><gray>使用原版穿刺武器映射。</gray>"
+    icon: minecraft-trident
+    format: vanilla piercing weapon map
+    scope: material
+    applies_to:
+      - minecraft:trident
+  - id: minecraft:blocks_attacks
+    name: 格挡攻击
+    description: "定义物品的格挡减伤与角度。<newline><gray>使用原版格挡属性映射。</gray>"
+    icon: minecraft-shield
+    format: vanilla blocking properties map
+    scope: material
+    applies_to:
+      - minecraft:shield
+  - id: minecraft:death_protection
+    name: 死亡保护
+    description: "死亡时触发保护、免除掉落。<newline><gray>使用原版死亡保护映射。</gray>"
+    icon: minecraft-totem_of_undying
+    format: vanilla death protection map
+    scope: material
+    applies_to:
+      - minecraft:totem_of_undying
+  - id: minecraft:repairable
+    name: 可修理
+    description: "声明可用于修理的材料或标签。<newline><gray>以修理物品或标签映射表示。</gray>"
+    icon: minecraft-anvil
+    format: repair item/tag map
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+      - minecraft:shield
+      - minecraft:elytra
+  - id: minecraft:repair_cost
+    name: 修理花费
+    description: "设置铁砧修理所需的经验等级。<newline><gray>取值非负整数。</gray>"
+    icon: minecraft-anvil
+    format: non-negative integer
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+      - minecraft:shield
+      - minecraft:elytra
+  - id: minecraft:break_sound
+    name: 破坏音效
+    description: "定义方块被破坏时播放的音效。<newline><gray>使用音效资源 ID。</gray>"
+    icon: minecraft-bell
+    format: sound resource id
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+      - minecraft:shield
+      - minecraft:elytra
+  - id: minecraft:enchantable
+    name: 可附魔值
+    description: "设置物品在附魔台的附魔能力。<newline><gray>使用含正整数值的映射。</gray>"
+    icon: minecraft-enchanting_table
+    format: map containing positive integer value
+    scope: material
+    applies_to:
+      - minecraft:wooden_sword
+      - minecraft:stone_sword
+      - minecraft:iron_sword
+      - minecraft:golden_sword
+      - minecraft:diamond_sword
+      - minecraft:netherite_sword
+      - minecraft:wooden_axe
+      - minecraft:stone_axe
+      - minecraft:iron_axe
+      - minecraft:golden_axe
+      - minecraft:diamond_axe
+      - minecraft:netherite_axe
+      - minecraft:wooden_pickaxe
+      - minecraft:stone_pickaxe
+      - minecraft:iron_pickaxe
+      - minecraft:golden_pickaxe
+      - minecraft:diamond_pickaxe
+      - minecraft:netherite_pickaxe
+      - minecraft:wooden_shovel
+      - minecraft:stone_shovel
+      - minecraft:iron_shovel
+      - minecraft:golden_shovel
+      - minecraft:diamond_shovel
+      - minecraft:netherite_shovel
+      - minecraft:wooden_hoe
+      - minecraft:stone_hoe
+      - minecraft:iron_hoe
+      - minecraft:golden_hoe
+      - minecraft:diamond_hoe
+      - minecraft:netherite_hoe
+      - minecraft:mace
+      - minecraft:trident
+      - minecraft:bow
+      - minecraft:crossbow
+      - minecraft:fishing_rod
+      - minecraft:leather_helmet
+      - minecraft:leather_chestplate
+      - minecraft:leather_leggings
+      - minecraft:leather_boots
+      - minecraft:chainmail_helmet
+      - minecraft:chainmail_chestplate
+      - minecraft:chainmail_leggings
+      - minecraft:chainmail_boots
+      - minecraft:iron_helmet
+      - minecraft:iron_chestplate
+      - minecraft:iron_leggings
+      - minecraft:iron_boots
+      - minecraft:golden_helmet
+      - minecraft:golden_chestplate
+      - minecraft:golden_leggings
+      - minecraft:golden_boots
+      - minecraft:diamond_helmet
+      - minecraft:diamond_chestplate
+      - minecraft:diamond_leggings
+      - minecraft:diamond_boots
+      - minecraft:netherite_helmet
+      - minecraft:netherite_chestplate
+      - minecraft:netherite_leggings
+      - minecraft:netherite_boots
+      - minecraft:turtle_helmet
+      - minecraft:wolf_armor
+      - minecraft:shield
+      - minecraft:elytra
+
+  # ------------------------------------------------------------
+  # 材料专属组件 —— 方块 / 容器 / 生成蛋
+  # ------------------------------------------------------------
   - id: minecraft:lock
     name: 锁
     description: "限制容器或方块需钥匙才能打开。<newline><gray>使用锁谓词字符串或物品谓词映射。</gray>"
     icon: minecraft-tripwire_hook
     format: "lock predicate string or item predicate map"
+    scope: material
+    applies_to:
+      - minecraft:chest
+      - minecraft:trapped_chest
+      - minecraft:barrel
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+  - id: minecraft:block_entity_data
+    name: 方块实体数据
+    description: "为方块实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-chest
+    format: "plain map or {$snbt: raw SNBT}"
+    scope: material
+    applies_to:
+      - minecraft:chest
+      - minecraft:trapped_chest
+      - minecraft:ender_chest
+      - minecraft:barrel
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+      - minecraft:furnace
+      - minecraft:blast_furnace
+      - minecraft:smoker
+      - minecraft:hopper
+      - minecraft:dispenser
+      - minecraft:dropper
+      - minecraft:brewing_stand
+      - minecraft:beacon
+      - minecraft:campfire
+      - minecraft:soul_campfire
+      - minecraft:jukebox
+      - minecraft:lectern
+      - minecraft:note_block
+      - minecraft:piston
+      - minecraft:sticky_piston
+      - minecraft:observer
+      - minecraft:command_block
+      - minecraft:chain_command_block
+      - minecraft:repeating_command_block
+      - minecraft:structure_block
+      - minecraft:crafting_table
+      - minecraft:enchanting_table
+      - minecraft:anvil
+      - minecraft:chipped_anvil
+      - minecraft:damaged_anvil
+      - minecraft:smithing_table
+      - minecraft:stonecutter
+      - minecraft:loom
+      - minecraft:cartography_table
+      - minecraft:fletching_table
+      - minecraft:grindstone
+      - minecraft:bell
+  - id: minecraft:block_state
+    name: 方块状态
+    description: "设置生成方块的属性状态。<newline><gray>使用方块状态属性映射。</gray>"
+    icon: minecraft-grass_block
+    format: block state property map
+    scope: material
+    applies_to:
+      - minecraft:chest
+      - minecraft:trapped_chest
+      - minecraft:ender_chest
+      - minecraft:barrel
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+      - minecraft:furnace
+      - minecraft:blast_furnace
+      - minecraft:smoker
+      - minecraft:hopper
+      - minecraft:dispenser
+      - minecraft:dropper
+      - minecraft:brewing_stand
+      - minecraft:beacon
+      - minecraft:campfire
+      - minecraft:soul_campfire
+      - minecraft:jukebox
+      - minecraft:lectern
+      - minecraft:note_block
+      - minecraft:piston
+      - minecraft:sticky_piston
+      - minecraft:observer
+      - minecraft:command_block
+      - minecraft:chain_command_block
+      - minecraft:repeating_command_block
+      - minecraft:structure_block
+      - minecraft:crafting_table
+      - minecraft:enchanting_table
+      - minecraft:anvil
+      - minecraft:chipped_anvil
+      - minecraft:damaged_anvil
+      - minecraft:smithing_table
+      - minecraft:stonecutter
+      - minecraft:loom
+      - minecraft:cartography_table
+      - minecraft:fletching_table
+      - minecraft:grindstone
+      - minecraft:bell
+  - id: minecraft:block_data
+    name: 方块数据
+    description: "为方块写入额外 NBT 数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-command_block
+    format: "plain map or {$snbt: raw SNBT}"
+    scope: material
+    applies_to:
+      - minecraft:chest
+      - minecraft:trapped_chest
+      - minecraft:ender_chest
+      - minecraft:barrel
+      - minecraft:shulker_box
+      - minecraft:white_shulker_box
+      - minecraft:orange_shulker_box
+      - minecraft:magenta_shulker_box
+      - minecraft:light_blue_shulker_box
+      - minecraft:yellow_shulker_box
+      - minecraft:lime_shulker_box
+      - minecraft:pink_shulker_box
+      - minecraft:gray_shulker_box
+      - minecraft:light_gray_shulker_box
+      - minecraft:cyan_shulker_box
+      - minecraft:purple_shulker_box
+      - minecraft:blue_shulker_box
+      - minecraft:brown_shulker_box
+      - minecraft:green_shulker_box
+      - minecraft:red_shulker_box
+      - minecraft:black_shulker_box
+      - minecraft:furnace
+      - minecraft:blast_furnace
+      - minecraft:smoker
+      - minecraft:hopper
+      - minecraft:dispenser
+      - minecraft:dropper
+      - minecraft:brewing_stand
+      - minecraft:beacon
+      - minecraft:campfire
+      - minecraft:soul_campfire
+      - minecraft:jukebox
+      - minecraft:lectern
+      - minecraft:note_block
+      - minecraft:piston
+      - minecraft:sticky_piston
+      - minecraft:observer
+      - minecraft:command_block
+      - minecraft:chain_command_block
+      - minecraft:repeating_command_block
+      - minecraft:structure_block
+      - minecraft:crafting_table
+      - minecraft:enchanting_table
+      - minecraft:anvil
+      - minecraft:chipped_anvil
+      - minecraft:damaged_anvil
+      - minecraft:smithing_table
+      - minecraft:stonecutter
+      - minecraft:loom
+      - minecraft:cartography_table
+      - minecraft:fletching_table
+      - minecraft:grindstone
+      - minecraft:bell
+  - id: minecraft:entity_data
+    name: 实体数据
+    description: "为生成物实体写入初始数据。<newline><gray>可用普通映射或 $snbt 原始 SNBT。</gray>"
+    icon: minecraft-spawner
+    format: "plain map or {$snbt: raw SNBT}"
+    scope: material
+    applies_to:
+      - minecraft:allay_spawn_egg
+      - minecraft:armadillo_spawn_egg
+      - minecraft:axolotl_spawn_egg
+      - minecraft:bat_spawn_egg
+      - minecraft:bee_spawn_egg
+      - minecraft:blaze_spawn_egg
+      - minecraft:bogged_spawn_egg
+      - minecraft:breeze_spawn_egg
+      - minecraft:camel_spawn_egg
+      - minecraft:cat_spawn_egg
+      - minecraft:cave_spider_spawn_egg
+      - minecraft:chicken_spawn_egg
+      - minecraft:cod_spawn_egg
+      - minecraft:cow_spawn_egg
+      - minecraft:creeper_spawn_egg
+      - minecraft:dolphin_spawn_egg
+      - minecraft:donkey_spawn_egg
+      - minecraft:drowned_spawn_egg
+      - minecraft:elder_guardian_spawn_egg
+      - minecraft:ender_dragon_spawn_egg
+      - minecraft:enderman_spawn_egg
+      - minecraft:endermite_spawn_egg
+      - minecraft:evoker_spawn_egg
+      - minecraft:fox_spawn_egg
+      - minecraft:frog_spawn_egg
+      - minecraft:ghast_spawn_egg
+      - minecraft:glow_squid_spawn_egg
+      - minecraft:goat_spawn_egg
+      - minecraft:guardian_spawn_egg
+      - minecraft:hoglin_spawn_egg
+      - minecraft:horse_spawn_egg
+      - minecraft:husk_spawn_egg
+      - minecraft:iron_golem_spawn_egg
+      - minecraft:llama_spawn_egg
+      - minecraft:magma_cube_spawn_egg
+      - minecraft:mooshroom_spawn_egg
+      - minecraft:mule_spawn_egg
+      - minecraft:ocelot_spawn_egg
+      - minecraft:panda_spawn_egg
+      - minecraft:parrot_spawn_egg
+      - minecraft:phantom_spawn_egg
+      - minecraft:pig_spawn_egg
+      - minecraft:piglin_spawn_egg
+      - minecraft:piglin_brute_spawn_egg
+      - minecraft:pillager_spawn_egg
+      - minecraft:polar_bear_spawn_egg
+      - minecraft:pufferfish_spawn_egg
+      - minecraft:rabbit_spawn_egg
+      - minecraft:ravager_spawn_egg
+      - minecraft:salmon_spawn_egg
+      - minecraft:sheep_spawn_egg
+      - minecraft:shulker_spawn_egg
+      - minecraft:silverfish_spawn_egg
+      - minecraft:skeleton_spawn_egg
+      - minecraft:skeleton_horse_spawn_egg
+      - minecraft:slime_spawn_egg
+      - minecraft:sniffer_spawn_egg
+      - minecraft:snow_golem_spawn_egg
+      - minecraft:spider_spawn_egg
+      - minecraft:squid_spawn_egg
+      - minecraft:stray_spawn_egg
+      - minecraft:strider_spawn_egg
+      - minecraft:tadpole_spawn_egg
+      - minecraft:trader_llama_spawn_egg
+      - minecraft:tropical_fish_spawn_egg
+      - minecraft:turtle_spawn_egg
+      - minecraft:vex_spawn_egg
+      - minecraft:villager_spawn_egg
+      - minecraft:vindicator_spawn_egg
+      - minecraft:wandering_trader_spawn_egg
+      - minecraft:warden_spawn_egg
+      - minecraft:witch_spawn_egg
+      - minecraft:wither_spawn_egg
+      - minecraft:wither_skeleton_spawn_egg
+      - minecraft:wolf_spawn_egg
+      - minecraft:zoglin_spawn_egg
+      - minecraft:zombie_spawn_egg
+      - minecraft:zombie_horse_spawn_egg
+      - minecraft:zombie_villager_spawn_egg
+      - minecraft:zombified_piglin_spawn_egg
+
+  # ------------------------------------------------------------
+  # 材料专属组件 —— 纹饰材料 / 旗帜图案 / 配方书
+  # ------------------------------------------------------------
   - id: minecraft:provides_trim_material
     name: 提供纹饰材料
     description: "使盔甲纹饰获得对应材质。<newline><gray>使用纹饰材料资源 ID。</gray>"
     icon: minecraft-smithing_table
     format: trim material resource id
+    scope: material
+    applies_to:
+      - minecraft:quartz
+      - minecraft:iron_ingot
+      - minecraft:gold_ingot
+      - minecraft:diamond
+      - minecraft:emerald
+      - minecraft:netherite_ingot
+      - minecraft:redstone
+      - minecraft:copper_ingot
+      - minecraft:lapis_lazuli
+      - minecraft:amethyst_shard
+      - minecraft:resin_brick
   - id: minecraft:provides_banner_patterns
     name: 提供旗帜图案
     description: "使物品可提供指定旗帜图案。<newline><gray>使用旗帜图案持有者映射。</gray>"
     icon: minecraft-white_banner
     format: banner pattern holder map
-
-  # ============================================================
-  # 材料专属组件（scope: material + applies_to，仅对特定材料有意义）
-  # ============================================================
+    scope: material
+    applies_to:
+      - minecraft:creeper_banner_pattern
+      - minecraft:skull_banner_pattern
+      - minecraft:flower_banner_pattern
+      - minecraft:mojang_banner_pattern
+      - minecraft:globe_banner_pattern
+      - minecraft:piglin_banner_pattern
+      - minecraft:flow_banner_pattern
+      - minecraft:guster_banner_pattern
+  - id: minecraft:recipes
+    name: 配方书
+    description: "解锁物品对应的合成配方。<newline><gray>以配方资源 ID 列表表示。</gray>"
+    icon: minecraft-crafting_table
+    format: recipe resource id list
+    scope: material
+    applies_to:
+      - minecraft:knowledge_book
 
   # ------------------------------------------------------------
   # 材料专属组件 —— 玩家头颅 / 生物头颅

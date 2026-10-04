@@ -464,7 +464,11 @@ final class GemGuiInteractionController {
                     GemRerollSessionService.TerminationReason.USER_CANCEL);
         }
         state.setMode(mode);
-        renderer.refreshGui(state);
+        plugin.scheduling().runForEntity(plugin, state.player(), () -> {
+            if (!service.reopenGem(state)) {
+                renderer.refreshGui(state);
+            }
+        }, null);
     }
 
     private void returnUpgradeMaterials(GemGuiSession state) {

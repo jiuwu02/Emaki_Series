@@ -46,24 +46,19 @@ final class GemGuiRenderer {
             case "preview_display" -> renderPreviewDisplay(state, slot);
             case "mode_inlay" -> buildModeButton(slot, state.mode() == GemGuiMode.INLAY,
                     text("mode_inlay_title", "Inlay Mode"),
-                    text("mode_inlay_desc", "Hold a gem and click an opened empty slot"),
-                    Material.GREEN_STAINED_GLASS_PANE);
+                    text("mode_inlay_desc", "Hold a gem and click an opened empty slot"));
             case "mode_upgrade" -> buildModeButton(slot, state.mode() == GemGuiMode.UPGRADE,
                     text("mode_upgrade_title", "Upgrade Mode"),
-                    text("mode_upgrade_desc", "Place a gem and recipe materials to upgrade"),
-                    Material.PURPLE_STAINED_GLASS_PANE);
+                    text("mode_upgrade_desc", "Place a gem and recipe materials to upgrade"));
             case "mode_extract" -> buildModeButton(slot, state.mode() == GemGuiMode.EXTRACT,
                     text("mode_extract_title", "Extract Mode"),
-                    text("mode_extract_desc", "Click an inlaid gem slot"),
-                    Material.YELLOW_STAINED_GLASS_PANE);
+                    text("mode_extract_desc", "Click an inlaid gem slot"));
             case "mode_reroll_full" -> buildModeButton(slot, state.mode() == GemGuiMode.REROLL_FULL,
                     text("mode_reroll_full_title", "Reroll Mode"),
-                    text("mode_reroll_full_desc", "Hold the gem in your main hand and reroll every affix"),
-                    Material.MAGENTA_STAINED_GLASS_PANE);
+                    text("mode_reroll_full_desc", "Hold the gem in your main hand and reroll every affix"));
             case "mode_reroll_value" -> buildModeButton(slot, state.mode() == GemGuiMode.REROLL_VALUE,
                     text("mode_reroll_value_title", "Recalibrate Mode"),
-                    text("mode_reroll_value_desc", "Hold the gem in your main hand and recalibrate affix values"),
-                    Material.CYAN_STAINED_GLASS_PANE);
+                    text("mode_reroll_value_desc", "Hold the gem in your main hand and recalibrate affix values"));
             case "confirm" -> renderConfirm(state, slot);
             default -> GuiItemBuilder.build(slot.itemDefinition(), Map.of(),
                     plugin.coreLib().configuredItemService());
@@ -645,20 +640,21 @@ final class GemGuiRenderer {
         return replacements;
     }
 
-    private ItemStack buildModeButton(GuiSlot slot, boolean active, String title, String description, Material material) {
+    private ItemStack buildModeButton(GuiSlot slot, boolean active, String title, String description) {
         List<String> lore = new ArrayList<>();
         lore.add("<gray>" + description + "</gray>");
         String stateText = active
                 ? common("active", "<green>Currently enabled</green>")
                 : common("click_switch", "<dark_gray>Click to switch</dark_gray>");
         lore.add(stateText);
-        String modeTitle = (active ? "<green>" : "<yellow>") + title + (active ? "</green>" : "</yellow>");
+        Material pane = active ? Material.LIME_STAINED_GLASS_PANE : Material.RED_STAINED_GLASS_PANE;
+        String modeTitle = (active ? "<green>" : "<red>") + title + (active ? "</green>" : "</red>");
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("mode_title", modeTitle);
         replacements.put("mode_lines", lore);
         replacements.put("mode", title);
         replacements.put("state", stateText);
-        return buildConfiguredItem(slot, material, modeTitle, lore, replacements);
+        return buildConfiguredItem(slot, pane, modeTitle, lore, replacements);
     }
 
     private ItemStack buildConfiguredItem(GuiSlot slot,
@@ -716,7 +712,7 @@ final class GemGuiRenderer {
         return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>%type%</yellow></gray>");
     }
 
-    private String modeText(GemGuiMode mode) {
+    public String modeText(GemGuiMode mode) {
         return switch (mode) {
             case INLAY -> text("mode_inlay", "Inlay");
             case UPGRADE -> text("mode_upgrade", "Upgrade");

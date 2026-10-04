@@ -105,6 +105,15 @@ public final class GemGuiService {
         return opened;
     }
 
+    /** 以既有会话重开镶嵌界面（先关窗再开，使容器标题里的模式文本随切换刷新）。 */
+    public boolean reopenGem(GemGuiSession state) {
+        if (state == null || state.player() == null) {
+            return false;
+        }
+        guiService.close(state.player().getUniqueId());
+        return openGem(state.player(), state.mode(), state.mutableTargetItem(), state);
+    }
+
     private boolean openGem(Player player, GemGuiMode mode, ItemStack initialTarget) {
         return openGem(player, mode, initialTarget, null);
     }
@@ -122,7 +131,9 @@ public final class GemGuiService {
         GemGuiSession state = existingState == null ? new GemGuiSession(player) : existingState;
         state.setMode(normalizeGemMode(mode));
         state.setTargetItem(initialTarget);
-        GuiSession session = openGui(player, template, (guiSession, slot) -> gemRenderer.renderSlot(state, slot),
+        GuiSession session = openGui(player, template,
+                Map.of("mode", gemRenderer.modeText(state.mode())),
+                (guiSession, slot) -> gemRenderer.renderSlot(state, slot),
                 gemInteractionController.createSessionHandler(state));
         if (session == null) {
             return false;
@@ -145,7 +156,8 @@ public final class GemGuiService {
         }
         GemOpenGuiSession state = existingState == null ? new GemOpenGuiSession(player) : existingState;
         state.setTargetItem(initialTarget);
-        GuiSession session = openGui(player, template, (guiSession, slot) -> openRenderer.renderSlot(state, slot),
+        GuiSession session = openGui(player, template, Map.of(),
+                (guiSession, slot) -> openRenderer.renderSlot(state, slot),
                 openInteractionController.createSessionHandler(state));
         if (session == null) {
             return false;
@@ -158,13 +170,14 @@ public final class GemGuiService {
 
     private GuiSession openGui(Player player,
             GuiTemplate template,
+            Map<String, ?> replacements,
             GuiRenderer renderer,
             GuiSessionHandler handler) {
         return guiService.open(new GuiOpenRequest(
                 plugin,
                 player,
                 template,
-                Map.of(),
+                replacements,
                 renderer,
                 handler
         ));

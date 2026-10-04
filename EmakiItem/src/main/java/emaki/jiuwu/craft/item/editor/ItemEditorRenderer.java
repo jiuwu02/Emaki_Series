@@ -6,7 +6,6 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
-import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -65,7 +64,7 @@ public final class ItemEditorRenderer {
                 fields.add(new ItemEditorField(SKIN_FIELD_ID, ItemEditorField.Kind.COMMAND, null,
                         plugin.messageService().message("editor.field.skin_edit"),
                         plugin.messageService().messageOrFallback("editor.field.skin_edit_desc", null),
-                        entry.iconSource(), List.of(esc(skinSummary(session))), List.of(), -1, true));
+                        entry.iconSource(), List.of(skinSummary(session)), List.of(), -1, true));
                 continue;
             }
             ItemEditorField.Kind kind = editorKind(entry);
@@ -485,14 +484,14 @@ public final class ItemEditorRenderer {
                     String.valueOf(number)));
         }
         if (value instanceof String text) {
-            return List.of(scalarLine("editor.value.text", truncateTo(esc(text), INLINE_LIMIT)));
+            return List.of(scalarLine("editor.value.text", text));
         }
         if (value instanceof List<?> list) {
             List<String> lines = new ArrayList<>();
             lines.add(plugin.messageService().message("editor.value.list_header", Map.of("count", list.size())));
             int limit = Math.min(list.size(), DETAIL_LIMIT);
             for (int index = 0; index < limit; index++) {
-                lines.add("  · " + esc(inline(list.get(index))));
+                lines.add("  · " + truncateTo(inline(list.get(index)), INLINE_LIMIT));
             }
             appendRemaining(lines, list.size() - limit);
             return lines;
@@ -505,13 +504,14 @@ public final class ItemEditorRenderer {
                 if (shown >= DETAIL_LIMIT) {
                     break;
                 }
-                lines.add("  · " + esc(inline(entry.getKey())) + " = " + esc(inline(entry.getValue())));
+                lines.add("  · " + truncateTo(inline(entry.getKey()), INLINE_LIMIT)
+                        + " = " + truncateTo(inline(entry.getValue()), INLINE_LIMIT));
                 shown++;
             }
             appendRemaining(lines, map.size() - shown);
             return lines;
         }
-        return List.of(scalarLine("editor.value.text", truncateTo(esc(String.valueOf(value)), INLINE_LIMIT)));
+        return List.of(scalarLine("editor.value.text", String.valueOf(value)));
     }
 
     private String scalarLine(String typeKey, String value) {
@@ -569,10 +569,6 @@ public final class ItemEditorRenderer {
             return builder.append('}').toString();
         }
         return String.valueOf(value);
-    }
-
-    private static String esc(String text) {
-        return MiniMessages.escape(text);
     }
 
     private static String truncateTo(String text, int limit) {

@@ -372,8 +372,10 @@ editor:
     effects_list_desc: "<dark_gray>Effect entries carried by this item</dark_gray>"
     actions_list: "Trigger List"
     actions_list_desc: "<dark_gray>Trigger to action-line mapping</dark_gray>"
-  saved: "<green>Staged. Run <yellow>/ei reload</yellow> to write files and apply</green>"
-  save_failed: "<red>Change rejected: %reason%</red>"
+  modified: "<green>Successfully modified %item%</green>"
+  reset_ok: "<green>Successfully reset %item%</green>"
+  modify_failed: "<red>Failed to modify %item% (%reason%)</red>"
+  modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details.</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   dialog:
     confirm: "Confirm"

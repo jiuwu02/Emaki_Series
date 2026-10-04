@@ -5,7 +5,7 @@
 # ============================================================
 id: "gem/default"
 gui_type: CHEST
-title: "<dark_gray>宝石工坊 - 装备宝石界面</dark_gray>"
+title: "<dark_gray>宝石工坊 - %mode%</dark_gray>"
 rows: 5
 slots:
   top_frame:
@@ -152,7 +152,6 @@ slots:
       - 39
     type: "mode_inlay"
     item:
-      source: "green_stained_glass_pane"
       components:
         custom_name: "%mode_title%"
         lore:
@@ -163,7 +162,6 @@ slots:
       - 42
     type: "mode_upgrade"
     item:
-      source: "purple_stained_glass_pane"
       components:
         custom_name: "%mode_title%"
         lore:
@@ -174,7 +172,6 @@ slots:
       - 40
     type: "mode_extract"
     item:
-      source: "yellow_stained_glass_pane"
       components:
         custom_name: "%mode_title%"
         lore:
@@ -185,7 +182,6 @@ slots:
       - 43
     type: "mode_reroll_full"
     item:
-      source: "magenta_stained_glass_pane"
       components:
         custom_name: "%mode_title%"
         lore:
@@ -196,7 +192,6 @@ slots:
       - 44
     type: "mode_reroll_value"
     item:
-      source: "cyan_stained_glass_pane"
       components:
         custom_name: "%mode_title%"
         lore:

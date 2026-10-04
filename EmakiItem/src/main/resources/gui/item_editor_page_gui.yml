@@ -4,13 +4,14 @@
 # 所有物品编辑子菜单共用此模板：字段按当前菜单渲染进 field_entry 网格，
 # 每个子菜单都必须提供「返回上一级」与「返回主页」两个导航按钮。
 # 标题随当前子菜单动态替换。
+# 5 行布局：0 导航/关闭 / 1-3 字段网格 / 4 添加与翻页，无整行空行。
 # ============================================================
 id: "item_editor_page_gui"
 
 gui_type: CHEST
 title: "<dark_gray>物品编辑</dark_gray>"
 
-rows: 6
+rows: 5
 
 slots:
   preview:
@@ -79,7 +80,7 @@ slots:
   confirm:
     type: "confirm"
     slots:
-      - 47
+      - 36
     item:
       source: "minecraft-lime_dye"
       components:
@@ -91,7 +92,7 @@ slots:
   page_prev:
     type: "page_prev"
     slots:
-      - 45
+      - 38
     item:
       source: "minecraft-arrow"
       components:
@@ -102,7 +103,7 @@ slots:
   page_info:
     type: "page_info"
     slots:
-      - 49
+      - 40
     item:
       source: "minecraft-book"
       components:
@@ -114,7 +115,7 @@ slots:
   page_next:
     type: "page_next"
     slots:
-      - 53
+      - 42
     item:
       source: "minecraft-arrow"
       components:
@@ -136,20 +137,11 @@ slots:
       - 26
       - 27
       - 35
-      - 36
       - 37
-      - 38
       - 39
-      - 40
       - 41
-      - 42
       - 43
       - 44
-      - 46
-      - 48
-      - 50
-      - 51
-      - 52
     item:
       source: "minecraft-gray_stained_glass_pane"
       components:

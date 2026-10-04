@@ -372,8 +372,10 @@ editor:
     effects_list_desc: "<dark_gray>该物品携带的效果条目列表</dark_gray>"
     actions_list: "触发器列表"
     actions_list_desc: "<dark_gray>触发器与动作行的映射列表</dark_gray>"
-  saved: "<green>已暂存，执行 <yellow>/ei reload</yellow> 后写入文件并生效</green>"
-  save_failed: "<red>修改未被接受: %reason%</red>"
+  modified: "<green>成功修改了 %item%</green>"
+  reset_ok: "<green>成功重置了 %item%</green>"
+  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
+  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   dialog:
     confirm: "确认"

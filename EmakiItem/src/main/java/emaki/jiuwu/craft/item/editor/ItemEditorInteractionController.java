@@ -105,21 +105,21 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         switch (field.kind()) {
             case TOGGLE -> {
                 if (spec != null && click != null && click.isRightClick()) {
-                    resetPath(session, spec.path());
+                    resetPath(session, specLabel(spec), spec.path());
                 } else {
                     applyToggle(session, spec);
                 }
             }
             case CYCLE -> {
                 if (spec != null && click != null && click.isRightClick()) {
-                    resetPath(session, spec.path());
+                    resetPath(session, specLabel(spec), spec.path());
                 } else {
                     applyCycle(session, spec);
                 }
             }
             case NUMBER, TEXT -> {
                 if (spec != null && click != null && click.isRightClick()) {
-                    resetPath(session, spec.path());
+                    resetPath(session, specLabel(spec), spec.path());
                 } else {
                     applyPrompt(session, spec);
                 }
@@ -155,8 +155,9 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                         feedback(session.player(), false);
                         return;
                     }
-                    mutate(session, candidate -> candidate.set(profile, "item", "components",
-                            emaki.jiuwu.craft.corelib.item.ProfileComponentSupport.PROFILE_COMPONENT_ID));
+                    mutate(session, plugin.messageService().message("editor.field.skin_edit"), false,
+                            candidate -> candidate.set(profile, "item", "components",
+                                    emaki.jiuwu.craft.corelib.item.ProfileComponentSupport.PROFILE_COMPONENT_ID));
                     guiService.refresh(session);
                 });
     }
@@ -178,16 +179,17 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
     private void handleComponentField(ItemEditorSession session, ItemEditorField field, GuiClickContext click) {
         String componentId = field.id().substring(ItemEditorRenderer.COMPONENT_FIELD_PREFIX.length());
         String[] path = { "item", "components", ItemEditorRenderer.componentDraftKey(componentId) };
+        String label = componentLabel(field, componentId);
         boolean reset = click != null && click.isRightClick();
         switch (field.kind()) {
             case TOGGLE -> {
                 if (reset) {
-                    resetPath(session, path);
+                    resetPath(session, label, path);
                     return;
                 }
                 Object current = draft(session).valueLenient(path);
                 String[] resolved = draft(session).resolvePath(path);
-                mutate(session, candidate -> {
+                mutate(session, label, false, candidate -> {
                     if (isTruthy(current)) {
                         candidate.remove(resolved);
                     } else {
@@ -198,7 +200,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             }
             case CYCLE -> {
                 if (reset) {
-                    resetPath(session, path);
+                    resetPath(session, label, path);
                     return;
                 }
                 if (field.options().isEmpty()) {
@@ -208,12 +210,12 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                 int position = field.options().indexOf(current);
                 String next = field.options().get((position + 1) % field.options().size());
                 String[] resolved = draft(session).resolvePath(path);
-                mutate(session, candidate -> candidate.set(next, resolved));
+                mutate(session, label, false, candidate -> candidate.set(next, resolved));
                 guiService.refresh(session);
             }
             case NUMBER, TEXT -> {
                 if (reset) {
-                    resetPath(session, path);
+                    resetPath(session, label, path);
                     return;
                 }
                 promptComponentValue(session, field, componentId, path);
@@ -224,10 +226,14 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         }
     }
 
+    private String componentLabel(ItemEditorField field, String componentId) {
+        return field.displayName() != null ? field.displayName() : componentId;
+    }
+
     private void promptComponentValue(ItemEditorSession session, ItemEditorField field, String componentId,
             String[] path) {
         Object current = draft(session).valueLenient(path);
-        String label = field.displayName() != null ? field.displayName() : componentId;
+        String label = componentLabel(field, componentId);
         String hint = composeHint(componentHint(componentId), ItemEditorRenderer.describeValue(current));
         input().promptText(
                 session.player(),
@@ -244,7 +250,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                             ? parseNumber(text)
                             : parseYamlValue(text);
                     String[] resolved = draft(session).resolvePath(path);
-                    mutate(session, candidate -> candidate.set(value, resolved));
+                    mutate(session, label, false, candidate -> candidate.set(value, resolved));
                     guiService.refresh(session);
                 });
     }
@@ -252,17 +258,17 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
     private void handleComponentList(ItemEditorSession session, ItemEditorField field, String[] path,
             GuiClickContext click) {
         String listPath = String.join(".", path);
+        String label = componentLabel(field, listPath);
         Object value = draft(session).valueLenient(path);
         if (click != null && click.isRightClick()) {
             if (value instanceof Map<?, ?> || click.isShiftClick()) {
-                resetPath(session, path);
+                resetPath(session, label, path);
             } else {
-                removeLastListLine(session, listPath);
+                removeLastListLine(session, label, listPath);
             }
             return;
         }
         if (!(value instanceof Map<?, ?>)) {
-            String label = field.displayName() != null ? field.displayName() : listPath;
             promptAppendLine(session, label, listPath);
             return;
         }
@@ -391,7 +397,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         }
         boolean current = Boolean.parseBoolean(Texts.toStringSafe(draft(session).valueLenient(spec.path())));
         String[] path = draft(session).resolvePath(spec.path());
-        mutate(session, candidate -> candidate.set(!current, path));
+        mutate(session, specLabel(spec), false, candidate -> candidate.set(!current, path));
         guiService.refresh(session);
     }
 
@@ -403,7 +409,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         int position = spec.options().indexOf(current);
         String next = spec.options().get((position + 1) % spec.options().size());
         String[] path = draft(session).resolvePath(spec.path());
-        mutate(session, candidate -> candidate.set(next, path));
+        mutate(session, specLabel(spec), false, candidate -> candidate.set(next, path));
         guiService.refresh(session);
     }
 
@@ -427,9 +433,13 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                     }
                     Object value = spec.kind() == ItemEditorField.Kind.NUMBER ? parseNumber(text) : text;
                     String[] path = draft(session).resolvePath(spec.path());
-                    mutate(session, candidate -> candidate.set(value, path));
+                    mutate(session, label, false, candidate -> candidate.set(value, path));
                     guiService.refresh(session);
                 });
+    }
+
+    private String specLabel(ItemEditorFieldSpec spec) {
+        return spec == null ? "?" : plugin.messageService().message(spec.labelKey());
     }
 
     private String composeHint(String formatHint, String currentValue) {
@@ -448,17 +458,18 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return;
         }
         String listPath = spec.listPath();
+        String label = specLabel(spec);
         Object value = draft(session).valueLenient(split(listPath));
         if (click != null && click.isRightClick()) {
             if (value instanceof Map<?, ?> || click.isShiftClick()) {
-                resetPath(session, split(listPath));
+                resetPath(session, label, split(listPath));
             } else {
-                removeLastListLine(session, listPath);
+                removeLastListLine(session, label, listPath);
             }
             return;
         }
         if (!(value instanceof Map<?, ?>) && !(click != null && click.isShiftClick())) {
-            promptAppendLine(session, plugin.messageService().message(spec.labelKey()), listPath);
+            promptAppendLine(session, label, listPath);
             return;
         }
         session.putContext(CONTEXT_LIST_PATH, listPath);
@@ -485,12 +496,12 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                     if (Texts.isBlank(text)) {
                         return;
                     }
-                    mutate(session, candidate -> candidate.appendListItem(text, path));
+                    mutate(session, label, false, candidate -> candidate.appendListItem(text, path));
                     guiService.refresh(session);
                 });
     }
 
-    private void removeLastListLine(ItemEditorSession session, String listPath) {
+    private void removeLastListLine(ItemEditorSession session, String label, String listPath) {
         String[] path = draft(session).resolvePath(split(listPath));
         List<Object> items = draft(session).sequence(path);
         if (items.isEmpty()) {
@@ -498,18 +509,18 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             feedback(session.player(), false);
             return;
         }
-        mutate(session, candidate -> candidate.removeListItem(items.size() - 1, path));
+        mutate(session, label, false, candidate -> candidate.removeListItem(items.size() - 1, path));
         guiService.refresh(session);
     }
 
-    private void resetPath(ItemEditorSession session, String... path) {
+    private void resetPath(ItemEditorSession session, String label, String... path) {
         String[] resolved = draft(session).resolvePath(path);
         if (draft(session).valueLenient(path) == null) {
             plugin.messageService().send(session.player(), "editor.field.reset_empty");
             feedback(session.player(), false);
             return;
         }
-        mutate(session, candidate -> candidate.remove(resolved));
+        mutate(session, label, true, candidate -> candidate.remove(resolved));
         guiService.refresh(session);
     }
 
@@ -555,7 +566,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                         return;
                     }
                     Object value = mapKey == null ? text : parseYamlValue(text);
-                    mutate(session, candidate -> {
+                    mutate(session, label, false, candidate -> {
                         if (mapKey == null) {
                             candidate.setListItem(value, index, path);
                         } else {
@@ -585,7 +596,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return;
         }
         String mapKey = keyHint.isEmpty() ? null : keyHint.get(0);
-        mutate(session, candidate -> {
+        mutate(session, listFieldLabel(session, listPath), false, candidate -> {
             String[] resolved = candidate.resolvePath(split(listPath));
             if (mapKey == null) {
                 candidate.removeListItem(index, resolved);
@@ -639,10 +650,10 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                             feedback(session.player(), false);
                             return;
                         }
-                        mutate(session, candidate -> candidate.set(parseYamlValue(pair[1]),
+                        mutate(session, label, false, candidate -> candidate.set(parseYamlValue(pair[1]),
                                 appendKey(candidate.resolvePath(split(listPath)), pair[0])));
                     } else {
-                        mutate(session, candidate -> candidate.appendListItem(text,
+                        mutate(session, label, false, candidate -> candidate.appendListItem(text,
                                 candidate.resolvePath(split(listPath))));
                     }
                     guiService.refresh(session);
@@ -797,16 +808,26 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         guiService.refresh(session);
     }
 
-    private void mutate(ItemEditorSession session, java.util.function.Consumer<YamlTextDocument> mutation) {
+    private void mutate(ItemEditorSession session, String label, boolean reset,
+            java.util.function.Consumer<YamlTextDocument> mutation) {
         ItemDefinitionDocument.SaveResult result = editService.mutate(session.documentFor(session.currentMenu()), mutation);
+        String item = feedbackLabel(label);
         if (result.saved()) {
-            plugin.messageService().send(session.player(), "editor.saved");
+            plugin.messageService().send(session.player(),
+                    reset ? "editor.reset_ok" : "editor.modified", Map.of("item", item));
             feedback(session.player(), true);
         } else {
-            plugin.messageService().send(session.player(), "editor.save_failed",
-                    Map.of("reason", Texts.toStringSafe(result.detail())));
+            String detail = Texts.toStringSafe(result.detail());
+            plugin.messageService().send(session.player(),
+                    "definition_parse_failed".equals(detail) ? "editor.modify_failed_parse" : "editor.modify_failed",
+                    Map.of("item", item, "reason", detail));
             feedback(session.player(), false);
         }
+    }
+
+    private static String feedbackLabel(String label) {
+        String plain = Texts.stripMiniTags(label);
+        return plain.isBlank() ? "?" : plain;
     }
 
     private void feedback(Player player, boolean success) {
