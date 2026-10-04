@@ -29,17 +29,19 @@ forge_capacity: 35
 # 可选的 id 字段决定计数身份：不写时按 item_sources 派生（稳定），
 # 纯 matcher 条目则退化为按 matcher 内容派生的哈希键——改动 matcher 内容会让键漂移，
 # 所以纯 matcher 条目建议显式写 id。
+# ⚠ id 在本配方的 blueprint_requirements 内必须唯一：两个条目使用相同 id 会被预检
+#   判为重复身份并拒绝加载。同一图纸的多种可接受形态请写成多个【不同 id】的条目。
 # ⚠ 写法差异（易错点）：
 #   物品源简写用连字符：  "minecraft-enchanted_book"
 #   组件 ID / path 里的资源 ID 用冒号： "minecraft:sharpness"
 # ⚠ 判定顺序：同一物品按条目声明顺序取第一个匹配者，先声明的宽条件会
 #   遮蔽后声明的窄条件。若要两条并存，务必把窄条件写在前面。
-# 同一种图纸的多种可接受形态，写成多个 id 相同的条目：计数按 id 聚合，
-# 玩家持有任一形态都算满足，不会被当成两种图纸要求同时持有。
+# 同一种图纸的多种可接受形态，写成多个不同 id 的条目：每个 id 独立计数，
+# 玩家只需满足其中一种形态对应的蓝图条目。
 blueprint_requirements:
-  # 同一逻辑需求"配方图纸"的两种可接受形态，用相同 id 聚合计数：
-  #   ① 带 custom_model_data 标记的知识书（"官方发放的配方图纸"），窄条件写在前
-  #   ② 普通附魔书
+  # "配方图纸"的两种可接受形态（窄条件写在前，宽条件写在后）：
+  #   ① id=blueprint_accepted：带 custom_model_data 标记的知识书（"官方发放的配方图纸"）
+  #   ② id=blueprint_accepted_plain：普通附魔书
   - id: blueprint_accepted
     item_sources:
       - "minecraft-knowledge_book"
@@ -51,7 +53,7 @@ blueprint_requirements:
       operator: "=="
       value: 1.0
 
-  - id: blueprint_accepted
+  - id: blueprint_accepted_plain
     item_sources:
       - "minecraft-enchanted_book"
     amount: 1

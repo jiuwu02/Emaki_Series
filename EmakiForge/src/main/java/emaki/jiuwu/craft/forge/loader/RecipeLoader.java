@@ -714,8 +714,14 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         Object success = ConfigNodes.get(configuration.get("result"), "success");
         List<Object> outputs = ConfigNodes.asObjectList(ConfigNodes.get(success, "outputs"));
         for (int index = 0; index < outputs.size(); index++) {
-            validateAlternativeGroup(file, recipe.id(), "result.success.outputs[" + index + "].item_sources",
-                    ConfigNodes.get(outputs.get(index), "item_sources"), true, outputSourceTypes);
+            Object output = outputs.get(index);
+            boolean singular = ConfigNodes.contains(output, "item_source");
+            String sourcePath = "result.success.outputs[" + index + "].item_source";
+            validateAlternativeGroup(file, recipe.id(), sourcePath,
+                    singular
+                            ? List.of(ConfigNodes.get(output, "item_source"))
+                            : ConfigNodes.get(output, "item_sources"),
+                    true, outputSourceTypes);
         }
     }
 

@@ -7,7 +7,7 @@
 id: "example_pack_item"
 
 item:
-  source: "minecraft-iron_sword"
+  item_source: "minecraft-iron_sword"
   components:
     custom_name: "<aqua>示例包之刃</aqua>"
     lore:

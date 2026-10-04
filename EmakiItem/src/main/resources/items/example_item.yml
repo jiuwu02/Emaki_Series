@@ -13,8 +13,8 @@ id: "example_item"
 # item 只描述基础来源与 Minecraft 原版组件；堆叠数量由 /ei give 的 amount 参数决定。
 # equip_slot、effects、set、condition、repair、update、actions 等 EmakiItem 业务字段保持在根级。
 item:
-  # CoreLib ItemSource shorthand；原版物品推荐显式使用 minecraft- 前缀。
-  source: "minecraft-diamond_sword"
+  # CoreLib ItemSource 简写；原版物品推荐显式使用 minecraft- 前缀。
+  item_source: "minecraft-diamond_sword"
   components:
     # 组件 ID 省略命名空间时默认使用 minecraft:；显式命名空间保持不变。
     # 文本组件可直接使用 MiniMessage 字符串。

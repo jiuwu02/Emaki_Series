@@ -8,9 +8,11 @@ import emaki.jiuwu.craft.corelib.legacy.LegacyTargetSpec;
 
 public final class GemLegacyTargets {
 
-    private static final List<LegacyTargetSpec> SPECS = List.of(
-            LegacyTargetSpec.replace("config.yml", "socket_openers.*", "item_sources"),
-            LegacyTargetSpec.replace("gems", "", "item_sources").retainingLegacyKey());
+    // socket_openers.* 与宝石识别条件中的 item_sources 是现行规范键，不参与旧格式扫描；
+    // 宝石构造源的旧 item_sources 写法由 GemLoader 的 legacy 回退读取并以
+    // loader.gem_legacy_item_sources 提示服主，转换器无法输出规范的 base_item_source 标量，
+    // 故不再保留会产生重复块的转换规格。
+    private static final List<LegacyTargetSpec> SPECS = List.of();
 
     private GemLegacyTargets() {
     }

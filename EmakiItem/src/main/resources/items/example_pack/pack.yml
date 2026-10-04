@@ -12,7 +12,7 @@
 # 一级 GUI 中显示的包名；留空则回退为目录名
 display_name: "<gold>示例物品包</gold>"
 
-# CoreLib ItemSource shorthand，与物品定义的 item.source 同语法
+# CoreLib ItemSource shorthand，与物品定义的 item.item_source 同语法
 icon: "minecraft-chest"
 
 # 包图标的 lore；%count% 为该包物品数量，%pack% 为包 ID

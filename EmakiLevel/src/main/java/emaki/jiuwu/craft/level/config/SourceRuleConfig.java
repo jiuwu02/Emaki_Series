@@ -105,8 +105,23 @@ public record SourceRuleConfig(String id,
                     normalizedStringSet(map.get("potion_types")),
                     normalizedStringSet(map.get("mob_ids")),
                     string(map.get("exp_formula"), "0"),
-                    ItemRequirement.fromConfig(map)
+                    declaresItemCondition(map)
+                            ? ItemRequirement.fromConfig(map)
+                            // 来源规则允许无物品条件（按 entity/block 等维度判定），
+                            // 此时按空需求处理，不触发“未声明 item_sources/matcher”的预检拒绝。
+                            : ItemRequirement.fromConfig(null)
             );
+        }
+
+        private static boolean declaresItemCondition(Map<?, ?> map) {
+            for (String key : List.of("item_sources", "item_source", "sources", "source",
+                    "matcher", "matchers", "item_matcher", "input_matcher",
+                    "material_matcher", "tool_matcher", "container_matcher")) {
+                if (map.containsKey(key)) {
+                    return true;
+                }
+            }
+            return false;
         }
     }
 

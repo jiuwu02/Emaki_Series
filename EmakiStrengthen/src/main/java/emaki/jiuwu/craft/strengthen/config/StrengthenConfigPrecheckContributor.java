@@ -47,10 +47,9 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         addLoaderIssues("enhancement_recipes",
                 plugin.enhancementRecipeLoader() == null ? null : plugin.enhancementRecipeLoader().issues(), issues);
-        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
-                new File(plugin.getDataFolder(), "recipes"), "recipes"));
-        issues.addAll(ItemRequirementSchemaValidator.validateDirectory(module(),
-                new File(plugin.getDataFolder(), "enhancement_recipes"), "enhancement_recipes"));
+        // recipes/ 与 enhancement_recipes/ 不做通用物品需求文档扫描：
+        // 星级材料的 amount 支持负数语义（仅检测不消耗），enhancement 材料槽用 quantity、
+        // costs 为经济配置，通用扫描会全部误判；两目录的真实问题由各自 loader 的 issues 上报。
         checkEnhancementVariableContract(issues);
         checkForgeVariableKeys(issues);
         checkEnhancementRecipeContracts(issues);
@@ -106,9 +105,12 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
                         + " declares both 'required' and 'optional'; 'optional' wins and 'required' is ignored",
                         issues);
             }
-            if (rawValue(raw, "matcher") == null) {
+            if (rawValue(raw, "matcher") == null && rawValue(raw, "item_sources") == null) {
+                // 只写 item_sources 的材料槽是合法形态；只有判定条件整体为空时，
+                // 该槽位才会对任意物品放行，此时才值得提示。
                 addIssue("enhancement_recipes", WARN, slotLabel
-                        + " declares no matcher, so every supplied item satisfies this slot", issues);
+                        + " declares no matcher and no item_sources, so every supplied item satisfies this slot",
+                        issues);
             }
         }
         List<MaterialSlotConfig> slots = loaded.value().materials();

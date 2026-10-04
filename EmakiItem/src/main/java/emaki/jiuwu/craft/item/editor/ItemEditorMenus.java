@@ -178,7 +178,7 @@ public final class ItemEditorMenus {
     private static List<ItemEditorFieldSpec> basic() {
         List<ItemEditorFieldSpec> specs = new ArrayList<>();
         specs.add(ItemEditorFieldSpec.cycle("equip_slot", "editor.field.equip_slot", EQUIP_SLOTS, "equip_slot"));
-        specs.add(ItemEditorFieldSpec.text("item_source", "editor.field.item_source", "item", "source"));
+        specs.add(ItemEditorFieldSpec.text("item_source", "editor.field.item_source", "item", "item_source"));
         return specs;
     }
 

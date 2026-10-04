@@ -42,7 +42,10 @@ public final class ItemEditorRenderer {
     }
 
     static String materialOf(ItemEditorSession session) {
-        Object source = session.draft().value("item", "source");
+        Object source = session.draft().value("item", "item_source");
+        if (source == null) {
+            source = session.draft().value("item", "source");
+        }
         String raw = Texts.toStringSafe(source).trim();
         if (raw.isEmpty()) {
             return "";

@@ -36,7 +36,7 @@ public final class ConfiguredItemParser {
             throw new IllegalArgumentException("Configured item must be a YAML section, plain map, or source string.");
         }
 
-        String source = normalizeSource(ConfigNodes.get(raw, "source"));
+        String source = normalizeSource(firstPresent(raw, "item_source", "source"));
         int amount = Math.max(1, Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1));
         Map<String, ItemComponentPatch> patches = parseComponents(ConfigNodes.get(raw, "components"));
         return new ConfiguredItemDefinition(source, amount, patches);
@@ -75,6 +75,12 @@ public final class ConfiguredItemParser {
                     ? ItemComponentPatch.unset()
                     : ItemComponentPatch.reset());
         }
+    }
+
+    private static Object firstPresent(Object raw, String preferredKey, String fallbackKey) {
+        return ConfigNodes.contains(raw, preferredKey)
+                ? ConfigNodes.get(raw, preferredKey)
+                : ConfigNodes.get(raw, fallbackKey);
     }
 
     private String normalizeSource(Object raw) {
