@@ -54,7 +54,7 @@ slots:
     slots:
       - 1
     item:
-      source: "minecraft:ender_pearl"
+      source: "minecraft-ender_pearl"
       components:
         custom_name: "<yellow>返回主页</yellow>"
         lore:
@@ -76,7 +76,7 @@ slots:
     slots:
       - 47
     item:
-      source: "minecraft:lime_dye"
+      source: "minecraft-lime_dye"
       components:
         custom_name: "<green>添加</green>"
         lore:

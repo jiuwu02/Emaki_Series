@@ -100,7 +100,7 @@ slots:
     slots:
       - 47
     item:
-      source: "minecraft:lime_dye"
+      source: "minecraft-lime_dye"
       components:
         custom_name: "<green>新建物品</green>"
         lore:

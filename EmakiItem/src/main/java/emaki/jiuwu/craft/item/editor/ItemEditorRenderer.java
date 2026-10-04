@@ -156,15 +156,20 @@ public final class ItemEditorRenderer {
             return buildStatic(slot);
         }
         ItemEditorField field = fields.get(index);
+        List<String> lore = new ArrayList<>();
+        String description = plugin.messageService().messageOrFallback(field.labelKey() + "_desc", null);
+        if (description != null && !description.isBlank()) {
+            lore.add(description);
+        }
+        lore.add(plugin.messageService().message("editor.field.value", Map.of("value", field.valueKey())));
+        lore.add(field.enabled()
+                ? plugin.messageService().message("editor.field.hint." + field.kind().name().toLowerCase())
+                : plugin.messageService().message("editor.field.disabled"));
         return GuiItemBuilder.build(
                 slot,
                 fieldIcon(field),
                 plugin.messageService().message(field.labelKey()),
-                List.of(
-                        plugin.messageService().message("editor.field.value", Map.of("value", field.valueKey())),
-                        field.enabled()
-                                ? plugin.messageService().message("editor.field.hint." + field.kind().name().toLowerCase())
-                                : plugin.messageService().message("editor.field.disabled")),
+                lore,
                 Map.of(),
                 plugin.coreLib().configuredItemService());
     }
@@ -190,14 +195,133 @@ public final class ItemEditorRenderer {
     }
 
     private static String fieldIcon(ItemEditorField field) {
+        String specific = specificIcon(field.id());
+        if (specific != null) {
+            return specific;
+        }
+        if (field.id().startsWith("component_")) {
+            String componentIcon = componentIcon(field.id().substring("component_".length()));
+            if (componentIcon != null) {
+                return componentIcon;
+            }
+        }
         return switch (field.kind()) {
-            case TOGGLE -> "minecraft:lever";
-            case CYCLE -> "minecraft:comparator";
-            case NUMBER -> "minecraft:clock";
-            case TEXT -> "minecraft:book";
-            case NAVIGATE -> "minecraft:oak_door";
-            case LIST -> "minecraft:chest";
-            case COMMAND -> "minecraft:paper";
+            case TOGGLE -> "minecraft-lever";
+            case CYCLE -> "minecraft-comparator";
+            case NUMBER -> "minecraft-clock";
+            case TEXT -> "minecraft-book";
+            case NAVIGATE -> "minecraft-oak_door";
+            case LIST -> "minecraft-chest";
+            case COMMAND -> "minecraft-paper";
+        };
+    }
+
+    private static String specificIcon(String fieldId) {
+        return switch (fieldId) {
+            case "equip_slot" -> "minecraft-armor_stand";
+            case "item_source" -> "minecraft-grass_block";
+            case "update_enabled" -> "minecraft-redstone_torch";
+            case "preserve_amount" -> "minecraft-bundle";
+            case "preserve_damage" -> "minecraft-anvil";
+            case "preserve_unknown" -> "minecraft-shulker_box";
+            case "trigger_join" -> "minecraft-oak_door";
+            case "trigger_held_change" -> "minecraft-iron_sword";
+            case "trigger_inventory_click" -> "minecraft-chest";
+            case "trigger_inventory_drag" -> "minecraft-rail";
+            case "trigger_pickup" -> "minecraft-hopper";
+            case "trigger_interact" -> "minecraft-lever";
+            case "trigger_command" -> "minecraft-command_block";
+            case "set_id", "set_display_name" -> "minecraft-name_tag";
+            case "set_piece", "set_pieces", "set_lore_equipped" -> "minecraft-iron_chestplate";
+            case "manage_sets" -> "minecraft-bookshelf";
+            case "set_thresholds" -> "minecraft-ladder";
+            case "set_lore_header" -> "minecraft-writable_book";
+            case "set_lore_missing" -> "minecraft-gray_dye";
+            case "set_lore_active" -> "minecraft-lime_dye";
+            case "set_lore_inactive" -> "minecraft-light_gray_dye";
+            case "set_lore_separator" -> "minecraft-stick";
+            case "condition_type", "cond_type", "mat_matcher_type" -> "minecraft-comparator";
+            case "condition_required_count", "cond_required_count", "mat_amount" -> "minecraft-clock";
+            case "condition_invalid" -> "minecraft-redstone_torch";
+            case "condition_fail_message" -> "minecraft-oak_sign";
+            case "condition_block_output" -> "minecraft-redstone_block";
+            case "condition_entries", "cond_nested", "mat_item_sources" -> "minecraft-chest";
+            case "condition_pass_actions", "repair_on_repaired" -> "minecraft-lime_dye";
+            case "condition_fail_actions", "repair_on_disabled" -> "minecraft-red_dye";
+            case "cond_expression", "mat_matcher_value" -> "minecraft-book";
+            case "repair_enabled" -> "minecraft-anvil";
+            case "repair_name_prefix" -> "minecraft-name_tag";
+            case "repair_materials" -> "minecraft-iron_ingot";
+            case "repair_economy" -> "minecraft-gold_ingot";
+            case "repair_lore_append" -> "minecraft-writable_book";
+            case "repair_economy_enabled" -> "minecraft-redstone_torch";
+            case "repair_economy_restore", "mat_restore" -> "minecraft-experience_bottle";
+            case "repair_currencies" -> "minecraft-gold_nugget";
+            case "mat_matcher_component" -> "minecraft-name_tag";
+            case "mat_matcher_operator" -> "minecraft-redstone_torch";
+            case "comp_custom_name" -> "minecraft-name_tag";
+            case "comp_item_name" -> "minecraft-oak_sign";
+            case "comp_lore" -> "minecraft-writable_book";
+            case "comp_max_stack_size" -> "minecraft-bundle";
+            case "comp_max_damage" -> "minecraft-anvil";
+            case "comp_damage" -> "minecraft-stonecutter";
+            case "comp_enchantable" -> "minecraft-enchanting_table";
+            case "comp_unbreakable" -> "minecraft-netherite_ingot";
+            case "comp_enchantment_glint" -> "minecraft-spectral_arrow";
+            case "comp_rarity" -> "minecraft-emerald";
+            case "comp_item_model" -> "minecraft-item_frame";
+            case "comp_tooltip_style" -> "minecraft-oak_hanging_sign";
+            case "comp_enchantments" -> "minecraft-enchanted_book";
+            case "comp_attribute_modifiers" -> "minecraft-iron_axe";
+            case "comp_custom_model_data" -> "minecraft-brush";
+            case "comp_unset" -> "minecraft-structure_void";
+            case "comp_reset" -> "minecraft-milk_bucket";
+            case "effects_list", "effect_type" -> "minecraft-nether_star";
+            case "effect_variables" -> "minecraft-paper";
+            case "effect_attributes" -> "minecraft-iron_axe";
+            case "effect_skills" -> "minecraft-blaze_rod";
+            case "effect_skill_triggers" -> "minecraft-tripwire_hook";
+            case "effect_accessory_slots" -> "minecraft-amethyst_shard";
+            case "effect_name_actions" -> "minecraft-name_tag";
+            case "effect_lore_actions" -> "minecraft-writable_book";
+            case "actions_list" -> "minecraft-redstone";
+            case ItemEditorRenderer.SKIN_FIELD_ID -> "minecraft-player_head";
+            default -> null;
+        };
+    }
+
+    private static String componentIcon(String componentId) {
+        return switch (componentId) {
+            case "minecraft:food" -> "minecraft-cooked_beef";
+            case "minecraft:consumable" -> "minecraft-golden_apple";
+            case "minecraft:potion_contents" -> "minecraft-potion";
+            case "minecraft:suspicious_stew_contents" -> "minecraft-suspicious_stew";
+            case "minecraft:dyed_color" -> "minecraft-cyan_dye";
+            case "minecraft:trim" -> "minecraft-netherite_upgrade_smithing_template";
+            case "minecraft:profile" -> "minecraft-player_head";
+            case "minecraft:fireworks" -> "minecraft-firework_rocket";
+            case "minecraft:fire_resistant" -> "minecraft-magma_cream";
+            case "minecraft:equippable" -> "minecraft-iron_helmet";
+            case "minecraft:tool", "minecraft:can_break" -> "minecraft-iron_pickaxe";
+            case "minecraft:weapon" -> "minecraft-netherite_sword";
+            case "minecraft:stored_enchantments", "minecraft:enchantable" -> "minecraft-enchanted_book";
+            case "minecraft:repairable" -> "minecraft-iron_ingot";
+            case "minecraft:glider" -> "minecraft-elytra";
+            case "minecraft:blocks_attacks" -> "minecraft-shield";
+            case "minecraft:death_protection" -> "minecraft-totem_of_undying";
+            case "minecraft:use_remainder" -> "minecraft-bucket";
+            case "minecraft:use_cooldown" -> "minecraft-clock";
+            case "minecraft:charged_projectiles" -> "minecraft-crossbow";
+            case "minecraft:bundle_contents" -> "minecraft-bundle";
+            case "minecraft:entity_data" -> "minecraft-zombie_spawn_egg";
+            case "minecraft:block_entity_data" -> "minecraft-chest";
+            case "minecraft:block_state" -> "minecraft-piston";
+            case "minecraft:can_place_on" -> "minecraft-oak_planks";
+            case "minecraft:tooltip_display" -> "minecraft-tinted_glass";
+            case "minecraft:break_sound" -> "minecraft-note_block";
+            case "minecraft:max_stack_size" -> "minecraft-bundle";
+            case "minecraft:repair_cost" -> "minecraft-experience_bottle";
+            default -> null;
         };
     }
 

@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.item.model.ItemPackDefinition;
+import net.kyori.adventure.text.Component;
 
 public final class ItemBrowserGuiService {
 
@@ -160,10 +161,14 @@ public final class ItemBrowserGuiService {
         replacements.put("pack_name", packDisplayName(packId));
         replacements.put("count", count);
         replacements.put("item_count", count);
-        replacements.put("pack_lore", pack.hasLore()
-                ? pack.lore()
-                : List.of(plugin.messageService().message("browser.pack_lore_fallback", Map.of("count", count)),
-                        plugin.messageService().message("browser.pack_click_hint")));
+        List<Object> lore = new ArrayList<>();
+        if (pack.hasLore()) {
+            lore.addAll(pack.lore());
+        } else {
+            lore.add(plugin.messageService().message("browser.pack_lore_fallback", Map.of("count", count)));
+        }
+        lore.add(plugin.messageService().message("browser.pack_click_hint"));
+        replacements.put("pack_lore", List.copyOf(lore));
         return replacements;
     }
 
@@ -212,7 +217,31 @@ public final class ItemBrowserGuiService {
             return new ItemStack(Material.AIR);
         }
         ItemStack icon = plugin.itemFactory().rebuildBase(definition, 1);
-        return icon == null ? new ItemStack(Material.AIR) : icon;
+        if (icon == null) {
+            return new ItemStack(Material.AIR);
+        }
+        return appendEntryHints(icon, session.viewer());
+    }
+
+    private ItemStack appendEntryHints(ItemStack icon, Player viewer) {
+        List<String> hints = new ArrayList<>();
+        hints.add(plugin.messageService().message("browser.item_hint.take"));
+        hints.add(plugin.messageService().message("browser.item_hint.take_stack"));
+        if (viewer != null && viewer.hasPermission("emakiitem.edit")) {
+            hints.add(plugin.messageService().message("browser.item_hint.edit"));
+        }
+        icon.editMeta(meta -> {
+            List<Component> lore = new ArrayList<>();
+            List<Component> existing = meta.lore();
+            if (existing != null) {
+                lore.addAll(existing);
+            }
+            for (String hint : hints) {
+                lore.add(plugin.messageService().render(hint));
+            }
+            meta.lore(lore);
+        });
+        return icon;
     }
 
     String itemIdAt(GuiSession session, int slotIndex) {
