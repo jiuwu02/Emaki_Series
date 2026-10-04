@@ -415,6 +415,7 @@ editor:
     map_header: "字典（%count% 项）"
     scalar: "%type%: %value%"
     more: "… 其余 %count% 项"
+    version: "<dark_gray>需要版本 %version%</dark_gray>"
   get_item:
     success: "<green>已获得物品 %id%</green>"
   delete:

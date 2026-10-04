@@ -27,7 +27,8 @@ public final class MinecraftItemComponentCatalog {
             String valueFormat,
             boolean nonValued,
             Scope scope,
-            List<String> appliesTo) {
+            List<String> appliesTo,
+            String version) {
 
         public Entry {
             scope = scope == null ? Scope.UNIVERSAL : scope;
@@ -35,7 +36,7 @@ public final class MinecraftItemComponentCatalog {
         }
 
         public Entry(String componentId, String valueFormat, boolean nonValued) {
-            this(componentId, null, null, null, valueFormat, nonValued, Scope.UNIVERSAL, List.of());
+            this(componentId, null, null, null, valueFormat, nonValued, Scope.UNIVERSAL, List.of(), null);
         }
 
         /** 组件在编辑器中的显示名；缺失时回退为组件 ID。 */
@@ -51,6 +52,16 @@ public final class MinecraftItemComponentCatalog {
         /** 组件在编辑器中显示图标所用的物品源；缺失时返回 null。 */
         public String iconSource() {
             return Texts.isBlank(icon) ? null : icon;
+        }
+
+        /** 最低可用版本表达式（如 {@code ">=1.21.11"}）；缺失表示基线版本即可用。 */
+        public String versionRequirement() {
+            return version == null ? "" : version.trim();
+        }
+
+        /** 该组件在给定服务器版本上是否可用。 */
+        public boolean applicableTo(String serverVersion) {
+            return MinecraftServerVersions.satisfies(versionRequirement(), serverVersion);
         }
 
         public boolean materialScoped() {
@@ -217,7 +228,8 @@ public final class MinecraftItemComponentCatalog {
                         ConfigNodes.string(raw, "format", "vanilla component value"),
                         ConfigNodes.bool(raw, "non_valued", false),
                         scope,
-                        readMaterialIds(raw)
+                        readMaterialIds(raw),
+                        ConfigNodes.string(raw, "version", null)
                 ));
             }
             return Collections.unmodifiableMap(result);

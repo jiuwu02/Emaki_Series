@@ -197,11 +197,31 @@ public final class ConfiguredItemService {
             MinecraftItemComponentCatalog.Entry catalogEntry = catalog.entry(entry.getKey());
             boolean nonValued = paperBridge.isNonValued(entry.getKey())
                     || catalogEntry != null && catalogEntry.nonValued();
+            warnUnsupportedVersion(entry.getKey(), catalogEntry);
             builder.append(entry.getKey())
                     .append('=')
                     .append(codec.encode(entry.getKey(), patch.value(), nonValued));
         }
         return first ? materialId : builder.append(']').toString();
+    }
+
+    /** 组件声明的最高版本要求不满足当前服务器版本时告警（同一组件同一服务器版本只提示一次）。 */
+    private void warnUnsupportedVersion(String componentId, MinecraftItemComponentCatalog.Entry catalogEntry) {
+        if (catalogEntry == null || plugin == null) {
+            return;
+        }
+        String requirement = catalogEntry.versionRequirement();
+        if (requirement.isBlank()) {
+            return;
+        }
+        String server = MinecraftServerVersions.currentServerVersion();
+        if (MinecraftServerVersions.satisfies(requirement, server)) {
+            return;
+        }
+        if (loggedIssues.add("component_version:" + componentId + "@" + server)) {
+            plugin.getLogger().warning("Item component " + componentId + " requires Minecraft " + requirement
+                    + " but this server is " + server + "; the component will not take effect.");
+        }
     }
 
     private void diagnoseVanillaPatches(String materialId,

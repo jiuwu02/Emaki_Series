@@ -415,6 +415,7 @@ editor:
     map_header: "Map (%count% entries)"
     scalar: "%type%: %value%"
     more: "… %count% more"
+    version: "<dark_gray>Requires %version%</dark_gray>"
   get_item:
     success: "<green>Received item %id%</green>"
   delete:

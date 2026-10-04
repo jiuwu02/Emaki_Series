@@ -54,8 +54,12 @@ public final class ItemEditorRenderer {
         entries.addAll(CATALOG.universalEntries());
         entries.addAll(CATALOG.specializedFor(materialOf(session)));
         String filter = Texts.lower(Texts.toStringSafe(session.context(CONTEXT_COMPONENT_FILTER))).trim();
+        String serverVersion = serverVersion();
         List<ItemEditorField> fields = new ArrayList<>();
         for (emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry : entries) {
+            if (!entry.applicableTo(serverVersion)) {
+                continue;
+            }
             if (!filter.isEmpty() && !matchesFilter(entry, filter)) {
                 continue;
             }
@@ -74,7 +78,7 @@ public final class ItemEditorRenderer {
                     kind,
                     null,
                     entry.displayNameOrId(),
-                    entry.descriptionText(),
+                    componentDescription(entry),
                     entry.iconSource(),
                     describeValueLines(current),
                     kind == ItemEditorField.Kind.CYCLE ? RARITY_OPTIONS : List.of(),
@@ -82,6 +86,25 @@ public final class ItemEditorRenderer {
                     true));
         }
         return fields;
+    }
+
+    /** 组件描述；若组件有最低版本要求，则在描述后追加版本提示行。 */
+    private String componentDescription(emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry) {
+        String description = entry.descriptionText();
+        String requirement = entry.versionRequirement();
+        if (requirement.isBlank()) {
+            return description;
+        }
+        String note = plugin.messageService().message("editor.value.version", Map.of("version", requirement));
+        return description.isBlank() ? note : description + "<newline>" + note;
+    }
+
+    private String serverVersion() {
+        try {
+            return plugin.getServer() == null ? "" : Texts.toStringSafe(plugin.getServer().getMinecraftVersion());
+        } catch (Throwable unavailable) {
+            return "";
+        }
     }
 
     private static boolean matchesFilter(emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog.Entry entry,
