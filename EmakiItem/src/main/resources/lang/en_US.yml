@@ -405,8 +405,8 @@ editor:
     effects_list_desc: "<dark_gray>Effect entries carried by this item</dark_gray>"
     actions_list: "Trigger List"
     actions_list_desc: "<dark_gray>Trigger to action-line mapping</dark_gray>"
-  saved: "<green>Saved and applied</green>"
-  save_failed: "<red>Save failed: %reason%</red>"
+  saved: "<green>Staged. Run <yellow>/ei reload</yellow> to write files and apply</green>"
+  save_failed: "<red>Change rejected: %reason%</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   dialog:
     confirm: "Confirm"

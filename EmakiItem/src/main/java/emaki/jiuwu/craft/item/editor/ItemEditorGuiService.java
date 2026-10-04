@@ -131,6 +131,7 @@ public final class ItemEditorGuiService {
 
     public void closeAll() {
         sessions.clear();
+        editService.flushAll();
         editService.closeAll();
     }
 

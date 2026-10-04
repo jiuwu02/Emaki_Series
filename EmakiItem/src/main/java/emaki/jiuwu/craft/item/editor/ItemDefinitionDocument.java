@@ -47,6 +47,7 @@ public final class ItemDefinitionDocument {
     private final DraftValidator validator;
     private YamlTextDocument document;
     private long expectedRevision;
+    private boolean dirty;
 
     private ItemDefinitionDocument(Logger logger,
             Path file,
@@ -107,7 +108,7 @@ public final class ItemDefinitionDocument {
         return expectedRevision;
     }
 
-    public SaveResult mutate(Consumer<YamlTextDocument> mutation, Path backupRoot) {
+    public SaveResult mutate(Consumer<YamlTextDocument> mutation) {
         YamlTextDocument candidate = YamlTextDocument.parse(document.text());
         mutation.accept(candidate);
         String problem = validate(candidate);
@@ -118,16 +119,27 @@ public final class ItemDefinitionDocument {
         if (text.getBytes(StandardCharsets.UTF_8).length > MAX_TEXT_BYTES) {
             return new SaveResult(SaveStatus.VALIDATION_FAILED, expectedRevision, "document_too_large");
         }
+        document = candidate;
+        dirty = true;
+        return new SaveResult(SaveStatus.SAVED, expectedRevision, "");
+    }
+
+    public SaveResult flush(Path backupRoot) {
+        if (!dirty) {
+            return new SaveResult(SaveStatus.SAVED, expectedRevision, "");
+        }
         try {
             requireWritable();
             long current = FileRevisions.requireExpected(file, expectedRevision);
-            writeBackup(backupRoot, document.text());
-            writeAtomically(text);
-            if (YamlFiles.load(text) == null) {
+            if (Files.exists(file)) {
+                writeBackup(backupRoot, Files.readString(file, StandardCharsets.UTF_8));
+            }
+            writeAtomically(document.text());
+            if (YamlFiles.load(document.text()) == null) {
                 return new SaveResult(SaveStatus.IO_ERROR, expectedRevision, "post_write_unreadable");
             }
             expectedRevision = FileRevisions.advance(file, current);
-            document = candidate;
+            dirty = false;
             return new SaveResult(SaveStatus.SAVED, expectedRevision, "");
         } catch (FileRevisions.RevisionConflictException conflict) {
             return new SaveResult(SaveStatus.CONFLICT, conflict.currentRevision(), "revision_conflict");
@@ -142,6 +154,7 @@ public final class ItemDefinitionDocument {
             String text = Files.readString(file, StandardCharsets.UTF_8);
             document = YamlTextDocument.parse(text);
             expectedRevision = FileRevisions.revision(file);
+            dirty = false;
         } catch (IOException failure) {
             logger.log(Level.WARNING, "Could not reload EmakiItem definition " + file + ": " + failure, failure);
         }

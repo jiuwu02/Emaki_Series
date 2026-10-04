@@ -173,6 +173,7 @@ slots:
           - "<dark_gray>%file_path%</dark_gray>"
           - "<dark_gray>如需全权手改可直接打开该文件</dark_gray>"
           - "<dark_gray>本编辑器写盘会保留原有注释与排版</dark_gray>"
+          - "<gray>编辑内容先暂存内存，/ei reload 或服务器关闭时写入</gray>"
 
   border:
     type: "filler"

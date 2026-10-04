@@ -217,7 +217,14 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         lifecycleCoordinator.shutdown(this);
     }
 
+    private void persistDeferredEditorEdits() {
+        if (editorGuiService != null) {
+            editorGuiService.editService().flushAll();
+        }
+    }
+
     public void reloadPluginState() {
+        persistDeferredEditorEdits();
         ReloadAttempt attempt = beginReloadAttempt();
         if (attempt == null) {
             return;
@@ -229,6 +236,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
+        persistDeferredEditorEdits();
         ReloadAttempt attempt = beginReloadAttempt();
         if (attempt == null) {
             return CompletableFuture.completedFuture(null);
