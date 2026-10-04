@@ -6,6 +6,7 @@ import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
@@ -25,6 +26,8 @@ public final class ItemEditorRenderer {
     public static final String CONTEXT_COMPONENT_FILTER = "component_filter";
 
     private static final List<String> RARITY_OPTIONS = List.of("common", "uncommon", "rare", "epic");
+    private static final int DETAIL_LIMIT = 8;
+    private static final int INLINE_LIMIT = 80;
     private static final java.util.Set<String> LIST_COMPONENTS = java.util.Set.of(
             "minecraft:lore",
             "minecraft:enchantments",
@@ -62,11 +65,11 @@ public final class ItemEditorRenderer {
                 fields.add(new ItemEditorField(SKIN_FIELD_ID, ItemEditorField.Kind.COMMAND, null,
                         plugin.messageService().message("editor.field.skin_edit"),
                         plugin.messageService().messageOrFallback("editor.field.skin_edit_desc", null),
-                        entry.iconSource(), skinSummary(session), List.of(), -1, true));
+                        entry.iconSource(), List.of(esc(skinSummary(session))), List.of(), -1, true));
                 continue;
             }
             ItemEditorField.Kind kind = editorKind(entry);
-            Object current = session.draft().valueLenient("item", "components", componentId);
+            Object current = session.draft().valueLenient("item", "components", componentDraftKey(componentId));
             fields.add(new ItemEditorField(
                     COMPONENT_FIELD_PREFIX + componentId,
                     kind,
@@ -74,7 +77,7 @@ public final class ItemEditorRenderer {
                     entry.displayNameOrId(),
                     entry.descriptionText(),
                     entry.iconSource(),
-                    describeValue(current),
+                    describeValueLines(current),
                     kind == ItemEditorField.Kind.CYCLE ? RARITY_OPTIONS : List.of(),
                     -1,
                     true));
@@ -86,6 +89,13 @@ public final class ItemEditorRenderer {
             String filter) {
         return Texts.lower(entry.componentId()).contains(filter)
                 || Texts.lower(entry.displayNameOrId()).contains(filter);
+    }
+
+    /** 组件在物品 YAML 中的规范键：minecraft 命名空间省略前缀，与物品配置惯例一致。 */
+    public static String componentDraftKey(String componentId) {
+        return componentId != null && componentId.startsWith("minecraft:")
+                ? componentId.substring("minecraft:".length())
+                : componentId;
     }
 
     private static ItemEditorField.Kind editorKind(
@@ -142,7 +152,7 @@ public final class ItemEditorRenderer {
             List<ItemEditorField> fields = new ArrayList<>();
             for (String setId : setIds()) {
                 fields.add(new ItemEditorField("set_" + setId, ItemEditorField.Kind.COMMAND,
-                        setId, null, null, null, setId, List.of(), -1, true));
+                        setId, null, null, null, List.of(setId), List.of(), -1, true));
             }
             return fields;
         }
@@ -170,7 +180,7 @@ public final class ItemEditorRenderer {
                         null,
                         null,
                         null,
-                        describeValue(entry.getValue()),
+                        List.of(describeValue(entry.getValue())),
                         List.of(Texts.toStringSafe(entry.getKey())),
                         position,
                         true));
@@ -191,7 +201,7 @@ public final class ItemEditorRenderer {
                     null,
                     null,
                     null,
-                    describeValue(items.get(index)),
+                    List.of(describeValue(items.get(index))),
                     List.of(),
                     index,
                     true));
@@ -293,7 +303,11 @@ public final class ItemEditorRenderer {
         if (description != null && !description.isBlank()) {
             lore.add(description);
         }
-        lore.add(plugin.messageService().message("editor.field.value", Map.of("value", field.valueKey())));
+        List<String> valueLines = field.valueLines().isEmpty() ? List.of("-") : field.valueLines();
+        lore.add(plugin.messageService().message("editor.field.value", Map.of("value", valueLines.get(0))));
+        for (int line = 1; line < valueLines.size(); line++) {
+            lore.add(valueLines.get(line));
+        }
         lore.add(field.enabled()
                 ? plugin.messageService().message(fieldHintKey(session, menuId, field))
                 : plugin.messageService().message("editor.field.disabled"));
@@ -317,7 +331,7 @@ public final class ItemEditorRenderer {
         try {
             for (ItemEditorFieldSpec spec : ItemEditorMenus.specs(menuId, session)) {
                 if (spec.id().equals(field.id()) && spec.listPath() != null) {
-                    Object value = session.draftFor(menuId).value(spec.listPath().split("\\."));
+                    Object value = session.draftFor(menuId).valueLenient(spec.listPath().split("\\."));
                     return "editor.field.hint." + (value instanceof Map<?, ?> ? "list_map" : "list_seq");
                 }
             }
@@ -453,11 +467,123 @@ public final class ItemEditorRenderer {
         return text.length() > 60 ? text.substring(0, 60) + "..." : text;
     }
 
-    private static ItemEditorField toField(ItemEditorSession session, String menuId, ItemEditorFieldSpec spec) {
+    /**
+     * 按数据类型生成“当前值”的多行展示：首行为类型与摘要，其后逐条展开列表/字典内容，
+     * 保证 Int、字符串、列表、字典等都能看到类型与具体内容。
+     */
+    private List<String> describeValueLines(Object value) {
+        if (value == null) {
+            return List.of(plugin.messageService().message("editor.value.unset"));
+        }
+        if (value instanceof Boolean bool) {
+            return List.of(scalarLine("editor.value.boolean", bool ? "true" : "false"));
+        }
+        if (value instanceof Number number) {
+            boolean integral = number instanceof Integer || number instanceof Long
+                    || number instanceof Short || number instanceof Byte;
+            return List.of(scalarLine(integral ? "editor.value.integer" : "editor.value.decimal",
+                    String.valueOf(number)));
+        }
+        if (value instanceof String text) {
+            return List.of(scalarLine("editor.value.text", truncateTo(esc(text), INLINE_LIMIT)));
+        }
+        if (value instanceof List<?> list) {
+            List<String> lines = new ArrayList<>();
+            lines.add(plugin.messageService().message("editor.value.list_header", Map.of("count", list.size())));
+            int limit = Math.min(list.size(), DETAIL_LIMIT);
+            for (int index = 0; index < limit; index++) {
+                lines.add("  · " + esc(inline(list.get(index))));
+            }
+            appendRemaining(lines, list.size() - limit);
+            return lines;
+        }
+        if (value instanceof Map<?, ?> map) {
+            List<String> lines = new ArrayList<>();
+            lines.add(plugin.messageService().message("editor.value.map_header", Map.of("count", map.size())));
+            int shown = 0;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (shown >= DETAIL_LIMIT) {
+                    break;
+                }
+                lines.add("  · " + esc(inline(entry.getKey())) + " = " + esc(inline(entry.getValue())));
+                shown++;
+            }
+            appendRemaining(lines, map.size() - shown);
+            return lines;
+        }
+        return List.of(scalarLine("editor.value.text", truncateTo(esc(String.valueOf(value)), INLINE_LIMIT)));
+    }
+
+    private String scalarLine(String typeKey, String value) {
+        return plugin.messageService().message("editor.value.scalar", Map.of(
+                "type", plugin.messageService().message(typeKey),
+                "value", value));
+    }
+
+    private void appendRemaining(List<String> lines, int remaining) {
+        if (remaining > 0) {
+            lines.add("  · " + plugin.messageService().message("editor.value.more", Map.of("count", remaining)));
+        }
+    }
+
+    private static String inline(Object value) {
+        if (value == null) {
+            return "null";
+        }
+        if (value instanceof Boolean bool) {
+            return bool ? "true" : "false";
+        }
+        if (value instanceof String text) {
+            return "\"" + text + "\"";
+        }
+        if (value instanceof Number || value instanceof Character) {
+            return String.valueOf(value);
+        }
+        if (value instanceof List<?> list) {
+            StringBuilder builder = new StringBuilder("[");
+            for (int index = 0; index < list.size() && index < DETAIL_LIMIT; index++) {
+                if (index > 0) {
+                    builder.append(", ");
+                }
+                builder.append(inline(list.get(index)));
+            }
+            if (list.size() > DETAIL_LIMIT) {
+                builder.append(", …");
+            }
+            return builder.append(']').toString();
+        }
+        if (value instanceof Map<?, ?> map) {
+            StringBuilder builder = new StringBuilder("{");
+            int shown = 0;
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (shown >= DETAIL_LIMIT) {
+                    builder.append(", …");
+                    break;
+                }
+                if (shown > 0) {
+                    builder.append(", ");
+                }
+                builder.append(entry.getKey()).append('=').append(inline(entry.getValue()));
+                shown++;
+            }
+            return builder.append('}').toString();
+        }
+        return String.valueOf(value);
+    }
+
+    private static String esc(String text) {
+        return MiniMessages.escape(text);
+    }
+
+    private static String truncateTo(String text, int limit) {
+        return text.length() > limit ? text.substring(0, limit) + "..." : text;
+    }
+
+    private ItemEditorField toField(ItemEditorSession session, String menuId, ItemEditorFieldSpec spec) {
         if (spec.kind() == ItemEditorField.Kind.NAVIGATE || spec.kind() == ItemEditorField.Kind.LIST
                 || spec.kind() == ItemEditorField.Kind.COMMAND) {
             return new ItemEditorField(spec.id(), spec.kind(), spec.labelKey(), null, null, null,
-                    "", List.of(), -1, true);
+                    List.of(""), List.of(), -1, true);
         }
         Object value = session.draftFor(menuId).valueLenient(spec.path());
         return new ItemEditorField(
@@ -467,7 +593,7 @@ public final class ItemEditorRenderer {
                 null,
                 null,
                 null,
-                describeValue(value),
+                describeValueLines(value),
                 spec.options(),
                 -1,
                 true);

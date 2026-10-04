@@ -177,7 +177,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
 
     private void handleComponentField(ItemEditorSession session, ItemEditorField field, GuiClickContext click) {
         String componentId = field.id().substring(ItemEditorRenderer.COMPONENT_FIELD_PREFIX.length());
-        String[] path = { "item", "components", componentId };
+        String[] path = { "item", "components", ItemEditorRenderer.componentDraftKey(componentId) };
         boolean reset = click != null && click.isRightClick();
         switch (field.kind()) {
             case TOGGLE -> {
@@ -586,17 +586,18 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         }
         String mapKey = keyHint.isEmpty() ? null : keyHint.get(0);
         mutate(session, candidate -> {
+            String[] resolved = candidate.resolvePath(split(listPath));
             if (mapKey == null) {
-                candidate.removeListItem(index, split(listPath));
+                candidate.removeListItem(index, resolved);
             } else {
-                candidate.remove(appendKey(split(listPath), mapKey));
+                candidate.remove(appendKey(resolved, mapKey));
             }
         });
         guiService.refresh(session);
     }
 
     private static Object mapValue(YamlTextDocument draft, String listPath, String key) {
-        Object target = draft.value(split(listPath));
+        Object target = draft.valueLenient(split(listPath));
         return target instanceof Map<?, ?> map ? map.get(key) : null;
     }
 
@@ -639,9 +640,10 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                             return;
                         }
                         mutate(session, candidate -> candidate.set(parseYamlValue(pair[1]),
-                                appendKey(split(listPath), pair[0])));
+                                appendKey(candidate.resolvePath(split(listPath)), pair[0])));
                     } else {
-                        mutate(session, candidate -> candidate.appendListItem(text, split(listPath)));
+                        mutate(session, candidate -> candidate.appendListItem(text,
+                                candidate.resolvePath(split(listPath))));
                     }
                     guiService.refresh(session);
                 });

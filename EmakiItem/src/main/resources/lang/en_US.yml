@@ -403,6 +403,16 @@ editor:
     new_item_id: "<gray>ID allows lowercase letters, digits and underscore only, e.g. my_sword</gray>"
   component:
     search_empty: "(no filter)"
+  value:
+    unset: "Not set (empty)"
+    integer: "Integer"
+    decimal: "Decimal"
+    boolean: "Boolean"
+    text: "Text"
+    list_header: "List (%count% items)"
+    map_header: "Map (%count% entries)"
+    scalar: "%type%: %value%"
+    more: "… %count% more"
   get_item:
     success: "<green>Received item %id%</green>"
   delete:
