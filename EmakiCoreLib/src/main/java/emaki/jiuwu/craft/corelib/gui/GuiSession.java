@@ -72,6 +72,10 @@ public final class GuiSession implements InventoryHolder {
         return true;
     }
 
+    void adoptInventory(Inventory existing) {
+        this.inventory = existing;
+    }
+
     private Inventory createInventory(GuiTemplate template, Component titleComponent) {
         InventoryType type = template.inventoryType();
         if (template.isChest()) {

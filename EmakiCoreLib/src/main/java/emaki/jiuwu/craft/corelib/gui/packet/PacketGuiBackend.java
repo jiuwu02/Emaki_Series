@@ -86,6 +86,26 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
         Player viewer = session.viewer();
         UUID viewerId = viewer.getUniqueId();
         PacketWindow previous = windows.get(viewerId);
+        if (previous != null && previous.topSize == topSize(session)) {
+            previous.attach(session);
+            try {
+                applyTopItems(previous, renderedSlots);
+                if (previous.handlingClick) {
+                    previous.pendingSync = true;
+                    debug(viewer, "common.gui.packet_open_reused_deferred", windowFields(previous));
+                    return;
+                }
+                sendWindowItems(viewer, previous);
+                debug(viewer, "common.gui.packet_open_reused", windowFields(previous));
+            } catch (RuntimeException | Error throwable) {
+                debug(viewer, "common.gui.packet_open_failed", GuiDebugSupport.errorFields(
+                        throwable,
+                        windowFields(previous)
+                ));
+                throw throwable;
+            }
+            return;
+        }
         if (previous != null) {
             returnCursor(viewer, previous);
             windows.remove(viewerId, previous);
@@ -827,7 +847,7 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     static final class PacketWindow {
 
         private final int windowId;
-        private final GuiSession session;
+        private GuiSession session;
         private int topSize;
         private ItemStack[] topItems;
         private ItemStack cursor;
@@ -882,6 +902,10 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
 
         GuiSession session() {
             return session;
+        }
+
+        void attach(GuiSession newSession) {
+            this.session = newSession;
         }
     }
 

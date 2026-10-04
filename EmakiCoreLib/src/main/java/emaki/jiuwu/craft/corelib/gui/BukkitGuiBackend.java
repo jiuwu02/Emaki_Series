@@ -12,6 +12,9 @@ public final class BukkitGuiBackend implements GuiBackend {
             return;
         }
         session.applyRenderedSlots(renderedSlots);
+        if (session.viewer().getOpenInventory().getTopInventory() == session.getInventory()) {
+            return;
+        }
         session.viewer().openInventory(session.getInventory());
     }
 

@@ -69,11 +69,21 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
         Player viewer = request.viewer();
         UUID viewerId = viewer.getUniqueId();
+        GuiBackend backend = resolveBackend();
         debug(viewer, "common.gui.sync_open_requested", GuiDebugSupport.replacements(
-                "backend", resolveBackend().name()
+                "backend", backend.name()
         ));
-        close(viewerId);
+        GuiSession previous = sessions.get(viewerId);
+        boolean reuse = isReusableWindow(previous, request.template(), backend);
+        if (reuse) {
+            sessions.remove(viewerId, previous);
+        } else {
+            close(viewerId);
+        }
         GuiSession session = newSession(request);
+        if (reuse) {
+            session.adoptInventory(previous.getInventory());
+        }
         sessions.put(viewerId, session);
         try {
             session.open();
@@ -87,6 +97,15 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             ));
             throw throwable;
         }
+    }
+
+    private boolean isReusableWindow(GuiSession previous, GuiTemplate template, GuiBackend backend) {
+        return previous != null
+                && previous.backend() == backend
+                && previous.template() != null
+                && template.id() != null
+                && template.id().equals(previous.template().id())
+                && previous.template().slotCount() == template.slotCount();
     }
 
     public CompletableFuture<GuiSession> openAsync(GuiOpenRequest request) {
