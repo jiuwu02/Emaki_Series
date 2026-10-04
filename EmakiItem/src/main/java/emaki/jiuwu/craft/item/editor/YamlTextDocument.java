@@ -62,6 +62,44 @@ public final class YamlTextDocument {
         return descend(root, path, 0);
     }
 
+    public Object valueLenient(String... path) {
+        Object direct = value(path);
+        if (direct != null || path.length == 0) {
+            return direct;
+        }
+        String[] alternative = componentKeyVariant(path);
+        return alternative == null ? null : value(alternative);
+    }
+
+    public String[] resolvePath(String... path) {
+        if (value(path) != null || path.length == 0) {
+            return path;
+        }
+        String[] variant = componentKeyVariant(path);
+        return variant != null && value(variant) != null ? variant : path;
+    }
+
+    private String[] componentKeyVariant(String[] path) {
+        String last = path[path.length - 1];
+        if (last.startsWith("minecraft:")) {
+            if (path.length >= 2 && "components".equals(path[path.length - 2])) {
+                String[] result = path.clone();
+                result[result.length - 1] = last.substring("minecraft:".length());
+                return result;
+            }
+            return null;
+        }
+        if (last.contains(":")) {
+            return null;
+        }
+        if (path.length >= 2 && "components".equals(path[path.length - 2])) {
+            String[] result = path.clone();
+            result[result.length - 1] = "minecraft:" + last;
+            return result;
+        }
+        return null;
+    }
+
     public boolean has(String... path) {
         return nodes.containsKey(pathList(path)) || value(path) != null;
     }

@@ -49,6 +49,14 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         String type = Texts.lower(slot.definition().type());
         switch (type) {
             case ItemEditorGuiService.TYPE_FIELD_ENTRY -> handleField(session, slot.slotIndex(), context);
+            case "menu_basic" -> guiService.openMenu(session, ItemEditorMenus.BASIC);
+            case "menu_components" -> guiService.openMenu(session, ItemEditorMenus.COMPONENTS);
+            case "menu_effects" -> guiService.openMenu(session, ItemEditorMenus.EFFECTS);
+            case "menu_set" -> guiService.openMenu(session, ItemEditorMenus.SET);
+            case "menu_condition" -> guiService.openMenu(session, ItemEditorMenus.CONDITION);
+            case "menu_repair" -> guiService.openMenu(session, ItemEditorMenus.REPAIR);
+            case "menu_update" -> guiService.openMenu(session, ItemEditorMenus.UPDATE);
+            case "menu_actions" -> guiService.openMenu(session, ItemEditorMenus.ACTIONS);
             case ItemEditorGuiService.TYPE_BACK_PARENT -> guiService.goBack(session);
             case ItemEditorGuiService.TYPE_BACK_HOME -> guiService.goHome(session);
             case ItemEditorGuiService.TYPE_BACK -> guiService.returnToBrowser(session);
@@ -89,20 +97,43 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return;
         }
         if (field.id().startsWith("component_")) {
-            promptComponent(session, field.id().substring("component_".length()));
+            String componentId = field.id().substring("component_".length());
+            if (click != null && click.isRightClick()) {
+                resetPath(session, "item", "components", componentId);
+                return;
+            }
+            promptComponent(session, componentId);
             return;
         }
         ItemEditorFieldSpec spec = spec(session, field.id());
         switch (field.kind()) {
-            case TOGGLE -> applyToggle(session, spec);
-            case CYCLE -> applyCycle(session, spec);
-            case NUMBER, TEXT -> applyPrompt(session, spec);
-            case NAVIGATE -> guiService.openMenu(session, spec.targetMenu());
-            case LIST -> {
-                session.putContext(CONTEXT_LIST_PATH, spec.listPath());
-                session.putContext(CONTEXT_ENTRY_TARGET, spec.targetMenu());
-                guiService.openMenu(session, ItemEditorMenus.LIST_ENTRIES);
+            case TOGGLE -> {
+                if (spec != null && click != null && click.isRightClick()) {
+                    resetPath(session, spec.path());
+                } else {
+                    applyToggle(session, spec);
+                }
             }
+            case CYCLE -> {
+                if (spec != null && click != null && click.isRightClick()) {
+                    resetPath(session, spec.path());
+                } else {
+                    applyCycle(session, spec);
+                }
+            }
+            case NUMBER, TEXT -> {
+                if (spec != null && click != null && click.isRightClick()) {
+                    resetPath(session, spec.path());
+                } else {
+                    applyPrompt(session, spec);
+                }
+            }
+            case NAVIGATE -> {
+                if (click == null || !click.isRightClick()) {
+                    guiService.openMenu(session, spec.targetMenu());
+                }
+            }
+            case LIST -> handleListField(session, spec, click);
             case COMMAND -> {
                 if (click != null && click.isShiftClick()) {
                     deleteEntry(session, index, field.options());
@@ -149,18 +180,29 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
     }
 
     private void promptComponent(ItemEditorSession session, String componentId) {
-        Object current = session.draft().value("item", "components", componentId);
+        Object current = session.draft().valueLenient("item", "components", componentId);
+        String label = componentDisplayName(componentId);
+        String hint = composeHint(componentHint(componentId), ItemEditorRenderer.describeValue(current));
         input().promptText(
                 session.player(),
-                componentId,
-                componentHint(componentId),
-                componentId,
-                Texts.toStringSafe(current),
-                plugin.messageService().message("editor.prompt.chat", Map.of("label", componentId)),
+                label,
+                hint,
+                label,
+                isEditableScalar(current) ? Texts.toStringSafe(current) : "",
+                plugin.messageService().message("editor.prompt.chat", Map.of("label", label)),
                 text -> {
-                    mutate(session, candidate -> candidate.set(parseYamlValue(text), "item", "components", componentId));
+                    if (text == null || text.isBlank()) {
+                        return;
+                    }
+                    String[] path = session.draft().resolvePath("item", "components", componentId);
+                    mutate(session, candidate -> candidate.set(parseYamlValue(text), path));
                     guiService.refresh(session);
                 });
+    }
+
+    private String componentDisplayName(String componentId) {
+        String shortId = componentId.startsWith("minecraft:") ? componentId.substring("minecraft:".length()) : componentId;
+        return plugin.messageService().messageOrFallback("editor.field.comp." + shortId, shortId);
     }
 
     private static Object parseYamlValue(String text) {
@@ -242,37 +284,129 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         if (spec == null) {
             return;
         }
-        boolean current = Boolean.parseBoolean(Texts.toStringSafe(draft(session).value(spec.path())));
-        mutate(session, candidate -> candidate.set(!current, spec.path()));
+        boolean current = Boolean.parseBoolean(Texts.toStringSafe(draft(session).valueLenient(spec.path())));
+        String[] path = draft(session).resolvePath(spec.path());
+        mutate(session, candidate -> candidate.set(!current, path));
+        guiService.refresh(session);
     }
 
     private void applyCycle(ItemEditorSession session, ItemEditorFieldSpec spec) {
         if (spec == null || spec.options().isEmpty()) {
             return;
         }
-        String current = Texts.toStringSafe(draft(session).value(spec.path()));
+        String current = Texts.toStringSafe(draft(session).valueLenient(spec.path()));
         int position = spec.options().indexOf(current);
         String next = spec.options().get((position + 1) % spec.options().size());
-        mutate(session, candidate -> candidate.set(next, spec.path()));
+        String[] path = draft(session).resolvePath(spec.path());
+        mutate(session, candidate -> candidate.set(next, path));
+        guiService.refresh(session);
     }
 
     private void applyPrompt(ItemEditorSession session, ItemEditorFieldSpec spec) {
         if (spec == null) {
             return;
         }
-        String current = Texts.toStringSafe(draft(session).value(spec.path()));
+        String label = plugin.messageService().message(spec.labelKey());
+        String current = ItemEditorRenderer.describeValue(draft(session).valueLenient(spec.path()));
+        String hint = composeHint(fieldHint(spec), current);
         input().promptText(
                 session.player(),
-                plugin.messageService().message(spec.labelKey()),
-                fieldHint(spec),
-                plugin.messageService().message(spec.labelKey()),
-                current,
-                plugin.messageService().message("editor.prompt.chat", Map.of("label", spec.labelKey())),
+                label,
+                hint,
+                label,
+                isEditableScalar(draft(session).valueLenient(spec.path())) ? current : "",
+                plugin.messageService().message("editor.prompt.chat", Map.of("label", label)),
                 text -> {
+                    if (text == null || text.isBlank()) {
+                        return;
+                    }
                     Object value = spec.kind() == ItemEditorField.Kind.NUMBER ? parseNumber(text) : text;
-                    mutate(session, candidate -> candidate.set(value, spec.path()));
+                    String[] path = draft(session).resolvePath(spec.path());
+                    mutate(session, candidate -> candidate.set(value, path));
                     guiService.refresh(session);
                 });
+    }
+
+    private String composeHint(String formatHint, String currentValue) {
+        if (formatHint == null || formatHint.isBlank()) {
+            return currentValue;
+        }
+        return formatHint + "\n" + currentValue;
+    }
+
+    private boolean isEditableScalar(Object value) {
+        return !(value instanceof Map<?, ?>) && !(value instanceof List<?>);
+    }
+
+    private void handleListField(ItemEditorSession session, ItemEditorFieldSpec spec, GuiClickContext click) {
+        if (spec == null || spec.listPath() == null) {
+            return;
+        }
+        String listPath = spec.listPath();
+        Object value = draft(session).valueLenient(split(listPath));
+        if (click != null && click.isRightClick()) {
+            if (value instanceof Map<?, ?> || click.isShiftClick()) {
+                resetPath(session, split(listPath));
+            } else {
+                removeLastListLine(session, listPath);
+            }
+            return;
+        }
+        if (!(value instanceof Map<?, ?>) && !(click != null && click.isShiftClick())) {
+            promptAppendLine(session, spec, listPath);
+            return;
+        }
+        session.putContext(CONTEXT_LIST_PATH, listPath);
+        session.putContext(CONTEXT_ENTRY_TARGET, spec.targetMenu());
+        guiService.openMenu(session, ItemEditorMenus.LIST_ENTRIES);
+    }
+
+    private void promptAppendLine(ItemEditorSession session, ItemEditorFieldSpec spec, String listPath) {
+        String label = plugin.messageService().message(spec.labelKey());
+        String[] path = draft(session).resolvePath(split(listPath));
+        input().promptText(
+                session.player(),
+                label,
+                isActionList(listPath) ? actionHint("") : null,
+                label,
+                "",
+                plugin.messageService().message("editor.prompt.chat", Map.of("label", label)),
+                text -> {
+                    String problem = precheckActionLine(listPath, text);
+                    if (problem != null) {
+                        plugin.messageService().send(session.player(), problem);
+                        feedback(session.player(), false);
+                        return;
+                    }
+                    if (Texts.isBlank(text)) {
+                        return;
+                    }
+                    mutate(session, candidate -> candidate.appendListItem(text, path));
+                    guiService.refresh(session);
+                });
+    }
+
+    private void removeLastListLine(ItemEditorSession session, String listPath) {
+        String[] path = draft(session).resolvePath(split(listPath));
+        List<Object> items = draft(session).sequence(path);
+        if (items.isEmpty()) {
+            plugin.messageService().send(session.player(), "editor.field.reset_empty");
+            feedback(session.player(), false);
+            return;
+        }
+        mutate(session, candidate -> candidate.removeListItem(items.size() - 1, path));
+        guiService.refresh(session);
+    }
+
+    private void resetPath(ItemEditorSession session, String... path) {
+        String[] resolved = draft(session).resolvePath(path);
+        if (draft(session).valueLenient(path) == null) {
+            plugin.messageService().send(session.player(), "editor.field.reset_empty");
+            feedback(session.player(), false);
+            return;
+        }
+        mutate(session, candidate -> candidate.remove(resolved));
+        guiService.refresh(session);
     }
 
     private static final ActionLineValidator ACTION_VALIDATOR = ActionLineValidator.coreLib();
@@ -297,16 +431,18 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
             return;
         }
         String mapKey = keyHint.isEmpty() ? null : keyHint.get(0);
+        String[] path = draft(session).resolvePath(split(listPath));
         Object current = mapKey == null
-                ? draft(session).sequence(split(listPath)).get(index)
+                ? draft(session).sequence(path).get(index)
                 : mapValue(draft(session), listPath, mapKey);
+        String label = listFieldLabel(session, listPath);
         input().promptText(
                 session.player(),
-                plugin.messageService().message("editor.field.entry"),
+                label,
                 isActionList(listPath) ? actionHint(Texts.toStringSafe(current)) : null,
-                plugin.messageService().message("editor.field.entry"),
+                label,
                 Texts.toStringSafe(current),
-                plugin.messageService().message("editor.prompt.chat", Map.of("label", "editor.field.entry")),
+                plugin.messageService().message("editor.prompt.chat", Map.of("label", label)),
                 text -> {
                     String problem = precheckActionLine(listPath, text);
                     if (problem != null) {
@@ -317,13 +453,22 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                     Object value = mapKey == null ? text : parseYamlValue(text);
                     mutate(session, candidate -> {
                         if (mapKey == null) {
-                            candidate.setListItem(value, index, split(listPath));
+                            candidate.setListItem(value, index, path);
                         } else {
-                            candidate.set(value, appendKey(split(listPath), mapKey));
+                            candidate.set(value, appendKey(path, mapKey));
                         }
                     });
                     guiService.refresh(session);
                 });
+    }
+
+    private String listFieldLabel(ItemEditorSession session, String listPath) {
+        for (ItemEditorFieldSpec spec : ItemEditorMenus.specs(session.currentMenu(), session)) {
+            if (listPath.equals(spec.listPath())) {
+                return plugin.messageService().message(spec.labelKey());
+            }
+        }
+        return plugin.messageService().message("editor.field.entry");
     }
 
     private void deleteEntry(ItemEditorSession session, int index, List<String> keyHint) {
@@ -358,15 +503,16 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         if (listPath == null) {
             return;
         }
-        boolean mapTarget = draft(session).value(split(listPath)) instanceof Map<?, ?>;
+        String label = listFieldLabel(session, listPath);
+        boolean mapTarget = draft(session).valueLenient(split(listPath)) instanceof Map<?, ?>;
         String promptKey = mapTarget ? "editor.prompt.map_entry" : "editor.prompt.chat";
         input().promptText(
                 session.player(),
-                plugin.messageService().message("editor.field.entry"),
+                label,
                 isActionList(listPath) ? actionHint("") : null,
-                plugin.messageService().message("editor.field.entry"),
+                label,
                 "",
-                plugin.messageService().message(promptKey, Map.of("label", "editor.field.entry")),
+                plugin.messageService().message(promptKey, Map.of("label", label)),
                 text -> {
                     String problem = precheckActionLine(listPath, text);
                     if (problem != null) {

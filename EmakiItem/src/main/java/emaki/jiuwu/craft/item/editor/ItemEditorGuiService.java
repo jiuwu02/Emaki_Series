@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.item.EmakiItemPlugin;
 public final class ItemEditorGuiService {
 
     public static final String KEY_CURRENT_PAGE = "current_page";
+    public static final String KEY_TOTAL_PAGES = "total_pages";
     public static final String KEY_MENU_TITLE = "menu_title";
     public static final String KEY_ENTRY_COUNT = "entry_count";
     public static final String TYPE_FIELD_ENTRY = "field_entry";
@@ -228,10 +229,13 @@ public final class ItemEditorGuiService {
             plugin.getLogger().warning("Missing EmakiItem editor GUI template: " + ItemEditorMenus.template(menuId));
             return;
         }
+        String menuTitle = plugin.messageService().message(ItemEditorMenus.titleKey(menuId));
+        int totalEntries = renderer.entryCount(session, menuId);
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put(KEY_CURRENT_PAGE, session.page() + 1);
-        replacements.put(KEY_MENU_TITLE, ItemEditorMenus.titleKey(menuId));
-        replacements.put(KEY_ENTRY_COUNT, renderer.entryCount(session, menuId));
+        replacements.put(KEY_TOTAL_PAGES, Math.max(1, (totalEntries + 20) / 21));
+        replacements.put(KEY_MENU_TITLE, menuTitle);
+        replacements.put(KEY_ENTRY_COUNT, totalEntries);
         GuiService gui = plugin.guiService();
         GuiSession guiSession = gui.open(new GuiOpenRequest(
                 plugin,
@@ -241,7 +245,8 @@ public final class ItemEditorGuiService {
                 (target, slot) -> renderer.render(session, menuId, slot),
                 interactionController));
         if (guiSession != null) {
-            guiSession.putReplacement(KEY_MENU_TITLE, ItemEditorMenus.titleKey(menuId));
+            guiSession.putReplacement(KEY_MENU_TITLE, menuTitle);
+            guiSession.putReplacement(KEY_TOTAL_PAGES, Math.max(1, (totalEntries + 20) / 21));
         }
     }
 }

@@ -16,7 +16,8 @@ public final class Dialogs {
             String inputLabel,
             String initialValue,
             int maxLength,
-            String confirmLabel) {
+            String confirmLabel,
+            String cancelLabel) {
         List<DialogDefinition.Body> body = new ArrayList<>();
         if (bodyLines != null) {
             for (String line : bodyLines) {
@@ -43,9 +44,11 @@ public final class Dialogs {
         );
         DialogDefinition.Button confirm = new DialogDefinition.Button(
                 confirmLabel, null, 0, new DialogDefinition.Action(DialogDefinition.ActionType.NONE, id));
+        DialogDefinition.Button cancel = new DialogDefinition.Button(
+                cancelLabel, null, 0, new DialogDefinition.Action(DialogDefinition.ActionType.NONE, id + ":cancel"));
         return new DialogDefinition(
                 id,
-                DialogDefinition.Type.NOTICE,
+                DialogDefinition.Type.CONFIRMATION,
                 title,
                 null,
                 true,
@@ -53,9 +56,9 @@ public final class Dialogs {
                 DialogDefinition.AfterAction.CLOSE,
                 body,
                 List.of(input),
-                List.of(confirm),
+                List.of(confirm, cancel),
                 null,
-                1
+                2
         );
     }
 }

@@ -90,7 +90,7 @@ public final class ItemEditorRenderer {
             }
             return fields;
         }
-        Object target = session.draftFor(menuId).value(listPath.split("\\."));
+        Object target = session.draftFor(menuId).valueLenient(listPath.split("\\."));
         if (target instanceof Map<?, ?> map) {
             List<ItemEditorField> fields = new ArrayList<>(map.size());
             int position = 0;
@@ -98,8 +98,8 @@ public final class ItemEditorRenderer {
                 fields.add(new ItemEditorField(
                         "entry_" + position,
                         ItemEditorField.Kind.COMMAND,
-                        "editor.field.entry",
-                        Texts.toStringSafe(entry.getKey()) + " -> " + describe(entry.getValue()),
+                        "#" + position + " " + describeScalar(entry.getKey()),
+                        describeValue(entry.getValue()),
                         List.of(Texts.toStringSafe(entry.getKey())),
                         position,
                         true));
@@ -116,8 +116,8 @@ public final class ItemEditorRenderer {
             fields.add(new ItemEditorField(
                     "entry_" + index,
                     ItemEditorField.Kind.COMMAND,
-                    "editor.field.entry",
-                    describe(items.get(index)),
+                    "#" + index,
+                    describeValue(items.get(index)),
                     List.of(),
                     index,
                     true));
@@ -163,7 +163,7 @@ public final class ItemEditorRenderer {
         }
         lore.add(plugin.messageService().message("editor.field.value", Map.of("value", field.valueKey())));
         lore.add(field.enabled()
-                ? plugin.messageService().message("editor.field.hint." + field.kind().name().toLowerCase())
+                ? plugin.messageService().message(fieldHintKey(session, menuId, field))
                 : plugin.messageService().message("editor.field.disabled"));
         return GuiItemBuilder.build(
                 slot,
@@ -172,6 +172,22 @@ public final class ItemEditorRenderer {
                 lore,
                 Map.of(),
                 plugin.coreLib().configuredItemService());
+    }
+
+    private String fieldHintKey(ItemEditorSession session, String menuId, ItemEditorField field) {
+        if (field.kind() != ItemEditorField.Kind.LIST) {
+            return "editor.field.hint." + field.kind().name().toLowerCase();
+        }
+        try {
+            for (ItemEditorFieldSpec spec : ItemEditorMenus.specs(menuId, session)) {
+                if (spec.id().equals(field.id()) && spec.listPath() != null) {
+                    Object value = session.draftFor(menuId).value(spec.listPath().split("\\."));
+                    return "editor.field.hint." + (value instanceof Map<?, ?> ? "list_map" : "list_seq");
+                }
+            }
+        } catch (RuntimeException ignored) {
+        }
+        return "editor.field.hint.list";
     }
 
     private ItemStack renderPreview(ItemEditorSession session, GuiSlot slot) {
@@ -325,24 +341,51 @@ public final class ItemEditorRenderer {
         };
     }
 
-    private static String describe(Object value) {
+    static String describeValue(Object value) {
         if (value == null) {
             return "-";
         }
+        if (value instanceof List<?> list) {
+            if (list.isEmpty()) {
+                return "-";
+            }
+            return truncate(join(list.stream().map(ItemEditorRenderer::describeScalar).toList(), " | "));
+        }
+        if (value instanceof Map<?, ?> map) {
+            if (map.isEmpty()) {
+                return "-";
+            }
+            return truncate(join(map.entrySet().stream()
+                    .map(entry -> describeScalar(entry.getKey()) + "=" + describeScalar(entry.getValue()))
+                    .toList(), " | "));
+        }
+        return truncate(describeScalar(value));
+    }
+
+    private static String join(List<String> parts, String separator) {
+        return String.join(separator, parts);
+    }
+
+    private static String describeScalar(Object value) {
         String text = Texts.toStringSafe(value);
-        return text.length() > 40 ? text.substring(0, 40) + "..." : text;
+        return text.isBlank() ? "-" : text;
+    }
+
+    private static String truncate(String text) {
+        return text.length() > 60 ? text.substring(0, 60) + "..." : text;
     }
 
     private static ItemEditorField toField(ItemEditorSession session, String menuId, ItemEditorFieldSpec spec) {
-        if (spec.kind() == ItemEditorField.Kind.NAVIGATE || spec.kind() == ItemEditorField.Kind.LIST) {
+        if (spec.kind() == ItemEditorField.Kind.NAVIGATE || spec.kind() == ItemEditorField.Kind.LIST
+                || spec.kind() == ItemEditorField.Kind.COMMAND) {
             return new ItemEditorField(spec.id(), spec.kind(), spec.labelKey(), "", List.of(), -1, true);
         }
-        Object value = session.draftFor(menuId).value(spec.path());
+        Object value = session.draftFor(menuId).valueLenient(spec.path());
         return new ItemEditorField(
                 spec.id(),
                 spec.kind(),
                 spec.labelKey(),
-                describe(value),
+                describeValue(value),
                 spec.options(),
                 -1,
                 true);

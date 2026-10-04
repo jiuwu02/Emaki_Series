@@ -223,15 +223,18 @@ editor:
   field:
     entry: "条目"
     entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关</gray>"
-      cycle: "<gray>左键切换到下一个取值</gray>"
-      number: "<gray>左键输入数值</gray>"
-      text: "<gray>左键输入文本</gray>"
+      toggle: "<gray>左键切换 开/关，右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
+      number: "<gray>左键输入数值，右键重置</gray>"
+      text: "<gray>左键输入文本，右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
+      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     equip_slot: "生效槽位"
     equip_slot_desc: "<dark_gray>决定物品在哪些槽位生效，all 表示所有槽位</dark_gray>"
@@ -405,6 +408,9 @@ editor:
   saved: "<green>已保存并生效</green>"
   save_failed: "<red>保存失败: %reason%</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
+  dialog:
+    confirm: "确认"
+    cancel: "取消"
   prompt:
     chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
     skin: "<yellow>请在聊天栏输入玩家名 / 皮肤纹理 URL / 纹理 base64，输入 cancel 取消</yellow>"

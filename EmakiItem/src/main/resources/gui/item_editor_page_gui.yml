@@ -13,6 +13,11 @@ title: "<dark_gray>物品编辑</dark_gray>"
 rows: 6
 
 slots:
+  preview:
+    type: "preview"
+    slots:
+      - 4
+
   field_entry:
     type: "field_entry"
     slots:
@@ -122,7 +127,6 @@ slots:
     slots:
       - 2
       - 3
-      - 4
       - 5
       - 6
       - 7

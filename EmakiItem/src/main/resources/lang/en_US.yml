@@ -223,15 +223,18 @@ editor:
   field:
     entry: "Entry"
     entry_desc: "<dark_gray>Left click to edit, Shift+Left click to remove</dark_gray>"
+    reset_empty: "<yellow>Nothing configured for this field, nothing to reset</yellow>"
     value: "Current: <white>%value%</white>"
     disabled: "<red>This field cannot be edited</red>"
     hint:
-      toggle: "<gray>Left click to toggle</gray>"
-      cycle: "<gray>Left click for next value</gray>"
-      number: "<gray>Left click to enter a number</gray>"
-      text: "<gray>Left click to enter text</gray>"
+      toggle: "<gray>Left click to toggle, right click to reset</gray>"
+      cycle: "<gray>Left click for next value, right click to reset</gray>"
+      number: "<gray>Left click to enter a number, right click to reset</gray>"
+      text: "<gray>Left click to enter text, right click to reset</gray>"
       navigate: "<gray>Left click to open submenu</gray>"
       list: "<gray>Left click to view list</gray>"
+      list_seq: "<gray>Left click to append a line, Shift+Left to edit entries, right click to remove the last line, Shift+Right to clear</gray>"
+      list_map: "<gray>Left click to edit entries, right click to reset this node</gray>"
       command: "<gray>Left click to edit this entry</gray>"
     equip_slot: "Effective Slot"
     equip_slot_desc: "<dark_gray>Which slots the item works in; all covers every slot</dark_gray>"
@@ -405,6 +408,9 @@ editor:
   saved: "<green>Saved and applied</green>"
   save_failed: "<red>Save failed: %reason%</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
+  dialog:
+    confirm: "Confirm"
+    cancel: "Cancel"
   prompt:
     chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
     skin: "<yellow>Type a player name, skin texture URL, or texture base64 in chat, or type cancel to abort</yellow>"

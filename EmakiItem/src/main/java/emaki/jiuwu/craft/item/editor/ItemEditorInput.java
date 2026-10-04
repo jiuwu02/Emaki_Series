@@ -119,10 +119,13 @@ public final class ItemEditorInput {
                     label,
                     initialValue,
                     MAX_LENGTH,
-                    title);
+                    plugin.messageService().message("editor.dialog.confirm"),
+                    plugin.messageService().message("editor.dialog.cancel"));
             return dialog.show(player, definition, (viewer, submission) -> {
-                String text = submission.text(INPUT_KEY);
-                callback.accept(text == null ? "" : text);
+                if (DIALOG_ID.equals(submission.buttonId())) {
+                    String text = submission.text(INPUT_KEY);
+                    callback.accept(text == null ? "" : text);
+                }
             });
         } catch (RuntimeException | LinkageError failure) {
             return false;
