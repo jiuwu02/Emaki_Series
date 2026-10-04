@@ -292,7 +292,7 @@ public final class ItemRepairService {
             success &= InventoryItemUtil.rollbackRemoval(providedMaterials, plans.get(index));
         }
         if (!success && plugin != null) {
-            plugin.getLogger().severe("Failed to fully roll back repair materials.");
+            plugin.getLogger().severe("无法完整回滚修复材料。");
         }
         return success;
     }

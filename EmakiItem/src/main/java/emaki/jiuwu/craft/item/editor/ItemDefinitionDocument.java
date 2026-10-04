@@ -144,7 +144,7 @@ public final class ItemDefinitionDocument {
         } catch (FileRevisions.RevisionConflictException conflict) {
             return new SaveResult(SaveStatus.CONFLICT, conflict.currentRevision(), "revision_conflict");
         } catch (IOException | RuntimeException failure) {
-            logger.log(Level.WARNING, "Could not persist EmakiItem definition " + file + ": " + failure, failure);
+            logger.log(Level.WARNING, "无法持久化 EmakiItem 定义 " + file + ": " + failure, failure);
             return new SaveResult(SaveStatus.IO_ERROR, expectedRevision, Texts.toStringSafe(failure.getMessage()));
         }
     }
@@ -156,7 +156,7 @@ public final class ItemDefinitionDocument {
             expectedRevision = FileRevisions.revision(file);
             dirty = false;
         } catch (IOException failure) {
-            logger.log(Level.WARNING, "Could not reload EmakiItem definition " + file + ": " + failure, failure);
+            logger.log(Level.WARNING, "无法重新加载 EmakiItem 定义 " + file + ": " + failure, failure);
         }
     }
 
@@ -167,7 +167,7 @@ public final class ItemDefinitionDocument {
     private void requireWritable() throws IOException {
         if (Files.exists(file)) {
             if (!Files.isRegularFile(file) || Files.isSymbolicLink(file)) {
-                throw new IOException("Definition path is not a regular file: " + file);
+                throw new IOException("定义路径不是常规文件: " + file);
             }
         } else {
             Files.createDirectories(file.getParent());

@@ -148,12 +148,12 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         components.unlockService().saveAllAsync().whenComplete((ignoredUnlocks, unlockFailure) -> {
             if (unlockFailure != null) {
-                getLogger().warning("Queue unlock flush did not finish cleanly: "
+                getLogger().warning("队列解锁数据刷写未正常完成: "
                         + unlockFailure.getMessage());
             }
             components.queueService().flushAllAsync().whenComplete((ignored, failure) -> {
                 if (failure != null) {
-                    getLogger().warning("Queue flush did not finish cleanly: " + failure.getMessage());
+                    getLogger().warning("队列数据刷写未正常完成: " + failure.getMessage());
                 }
                 registry.set(StationRegistry.empty());
                 dismantleRegistry.set(DismantleStationRegistry.empty());
@@ -231,7 +231,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStation readiness publication skipped: " + exception);
+            getLogger().fine("已跳过 EmakiStation 就绪状态发布: " + exception);
         }
     }
 
@@ -338,7 +338,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void registerCommandHandler() {
         commandRouter = new StationCommandRouter(this);
-        registerCommand(ROOT_COMMAND, "EmakiStation command", List.of("estation", "est"),
+        registerCommand(ROOT_COMMAND, "EmakiStation 命令", List.of("estation", "est"),
                 new StationCommandAdapter(ROOT_COMMAND, "emakistation.use", commandRouter));
     }
 

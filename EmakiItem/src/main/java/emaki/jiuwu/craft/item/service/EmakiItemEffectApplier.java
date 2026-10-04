@@ -62,8 +62,8 @@ public final class EmakiItemEffectApplier {
             effect.clear(context);
             effect.apply(context);
         } catch (RuntimeException | LinkageError exception) {
-            logger.warning("EmakiItem custom effect '" + typeId + "' on item '" + definition.id()
-                    + "' failed: " + exception.getMessage());
+            logger.warning("EmakiItem 自定义效果 '" + typeId + "'（物品 '" + definition.id()
+                    + "'）执行失败: " + exception.getMessage());
         }
     }
 

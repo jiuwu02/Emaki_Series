@@ -158,12 +158,12 @@ public final class GemExtractService {
             return;
         }
         if (!target.isOnline()) {
-            plugin.getLogger().warning("Skipped gem extraction completed event because target is offline: "
+            plugin.getLogger().warning("已跳过宝石取出完成事件，因为目标玩家离线: "
                     + target.getUniqueId());
             return;
         }
         scheduling.runForEntity(plugin, target, eventCall,
-                () -> plugin.getLogger().warning("Skipped gem extraction completed event because scheduling retired: "
+                () -> plugin.getLogger().warning("已跳过宝石取出完成事件，因为目标调度已退役: "
                         + target.getUniqueId()));
     }
 

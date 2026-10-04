@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 public final class OriginSource extends BaseSource {
 
     public OriginSource() {
-        super("origin", "The pipeline origin as a location target.",
+        super("origin", "以管道原点作为位置目标。",
                 CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

@@ -25,7 +25,7 @@ public final class SignatureUtil {
             byte[] hash = digest.digest(Texts.toStringSafe(value).getBytes(StandardCharsets.UTF_8));
             return HexFormat.of().formatHex(hash);
         } catch (Exception exception) {
-            throw new IllegalStateException("Failed to create signature digest", exception);
+            throw new IllegalStateException("创建签名摘要失败", exception);
         }
     }
 

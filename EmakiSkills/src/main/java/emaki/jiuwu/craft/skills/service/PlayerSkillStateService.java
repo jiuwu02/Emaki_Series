@@ -172,7 +172,7 @@ public final class PlayerSkillStateService {
             if (conflictResolver.conflicts(triggerId, binding.triggerId())) {
                 SkillDefinition def = registryService.getDefinition(binding.skillId());
                 String skillName = def != null ? def.displayName() : binding.skillId();
-                return "Slot " + binding.slotIndex() + " (" + skillName + ") uses conflicting trigger";
+                return "槽位 " + binding.slotIndex() + "（" + skillName + "）使用了冲突的触发器";
             }
         }
         return null;

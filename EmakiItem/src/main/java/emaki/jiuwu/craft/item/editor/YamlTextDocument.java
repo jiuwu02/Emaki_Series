@@ -130,7 +130,7 @@ public final class YamlTextDocument {
             System.arraycopy(path, split + 2, keyPath, 0, keyPath.length);
             List<Object> items = sequence(listPath);
             if (index < 0 || index >= items.size()) {
-                throw new IndexOutOfBoundsException("Sequence item index out of range: " + index);
+                throw new IndexOutOfBoundsException("序列项索引越界: " + index);
             }
             Object updated = keyPath.length == 0 ? value : deepPut(items.get(index), keyPath, value);
             setListItem(updated, index, listPath);
@@ -170,7 +170,7 @@ public final class YamlTextDocument {
     public void setListItem(Object value, int index, String... listPath) {
         List<Node> items = sequenceItems.get(pathList(listPath));
         if (items == null || index < 0 || index >= items.size()) {
-            throw new IndexOutOfBoundsException("Sequence item index out of range: " + index);
+            throw new IndexOutOfBoundsException("序列项索引越界: " + index);
         }
         Node item = items.get(index);
         replaceRange(item.start(), item.end(), renderItem(value, item.indent()));
@@ -201,7 +201,7 @@ public final class YamlTextDocument {
         List<String> lookup = pathList(listPath);
         List<Node> items = sequenceItems.get(lookup);
         if (items == null || index < 0 || index >= items.size()) {
-            throw new IndexOutOfBoundsException("Sequence item index out of range: " + index);
+            throw new IndexOutOfBoundsException("序列项索引越界: " + index);
         }
         removeLines(items.get(index).start(), items.get(index).end());
         rebuild();
@@ -219,7 +219,7 @@ public final class YamlTextDocument {
         List<String> lookup = pathList(listPath);
         List<Node> items = sequenceItems.get(lookup);
         if (items == null || from < 0 || from >= items.size() || to < 0 || to >= items.size()) {
-            throw new IndexOutOfBoundsException("Sequence item index out of range: " + from + "/" + to);
+            throw new IndexOutOfBoundsException("序列项索引越界: " + from + "/" + to);
         }
         if (from == to) {
             return;
@@ -579,7 +579,7 @@ public final class YamlTextDocument {
 
     private static void requirePath(String[] path) {
         if (path == null || path.length == 0) {
-            throw new IllegalArgumentException("Path must not be empty");
+            throw new IllegalArgumentException("路径不能为空");
         }
     }
 }

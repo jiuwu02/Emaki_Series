@@ -163,7 +163,7 @@ public final class StrengthenActionCoordinator {
                     "recipe", recipe == null ? "-" : recipe.id(),
                     "phase", phase,
                     "star", star,
-                    "error", String.valueOf(throwable.getMessage())
+                    "error", "动作批次执行未成功"
             ));
             return;
         }
@@ -173,7 +173,7 @@ public final class StrengthenActionCoordinator {
                     "recipe", recipe == null ? "-" : recipe.id(),
                     "phase", phase,
                     "star", star,
-                    "error", "action batch unsuccessful"
+                    "error", "动作批次执行未成功"
             ));
         }
     }
@@ -191,7 +191,7 @@ public final class StrengthenActionCoordinator {
                 "recipe", recipe == null ? "-" : recipe.id(),
                 "phase", phase,
                 "star", "-",
-                "error", throwable == null ? "action batch unsuccessful" : String.valueOf(throwable.getMessage())
+                "error", throwable == null ? "动作批次执行未成功" : String.valueOf(throwable.getMessage())
         ));
     }
 

@@ -33,15 +33,15 @@ public final class StorageStage implements CoreActionStage {
 
     public enum Operation {
 
-        DEPOSIT("storage_deposit", "Stores items into the target's warehouse."),
+        DEPOSIT("storage_deposit", "将物品存入目标仓库。"),
 
-        WITHDRAW("storage_withdraw", "Withdraws items from the target's warehouse."),
+        WITHDRAW("storage_withdraw", "从目标仓库取出物品。"),
 
-        GRANT_SLOT("storage_grant_slot", "Grants or reclaims warehouse slots for the target."),
+        GRANT_SLOT("storage_grant_slot", "为目标授予或回收仓库槽位。"),
 
-        UNLOCK_SLOT("storage_unlock_slot", "Adds purchased warehouse slots without charging the target."),
+        UNLOCK_SLOT("storage_unlock_slot", "为目标增加已购买槽位，不向其收费。"),
 
-        SET_STACK_LIMIT("storage_set_stacklimit", "Sets the target's warehouse stack ceiling.");
+        SET_STACK_LIMIT("storage_set_stacklimit", "设置目标仓库的单槽上限。");
 
         private final String id;
         private final String description;
@@ -83,22 +83,22 @@ public final class StorageStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return switch (operation) {
             case DEPOSIT -> List.of(
-                    CoreStageParameter.required("item", CoreStageParameterType.STRING, "ItemSource token"),
+                    CoreStageParameter.required("item", CoreStageParameterType.STRING, "ItemSource 令牌"),
                     CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1",
-                            "Units to store"));
+                            "存入数量"));
             case WITHDRAW -> List.of(
-                    CoreStageParameter.required("item", CoreStageParameterType.STRING, "ItemSource token"),
+                    CoreStageParameter.required("item", CoreStageParameterType.STRING, "ItemSource 令牌"),
                     CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1",
-                            "Units to withdraw"));
+                            "取出数量"));
             case GRANT_SLOT -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "Slots to grant; negative reclaims"));
+                    CoreStageParameterType.INTEGER, "授予的槽位数；负数为回收"));
             case UNLOCK_SLOT -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "Slots to unlock"));
+                    CoreStageParameterType.INTEGER, "解锁的槽位数"));
             case SET_STACK_LIMIT -> List.of(
                     CoreStageParameter.required("limit", CoreStageParameterType.INTEGER,
-                            "New ceiling; 0 inherits the next level"),
+                            "新的单槽上限；0 表示继承下一层级"),
                     CoreStageParameter.optional("slot", CoreStageParameterType.INTEGER, "-1",
-                            "Logical slot index, -1 for the player default"));
+                            "逻辑槽位索引，-1 表示玩家默认值"));
         };
     }
 

@@ -630,8 +630,8 @@ public final class PlayerDataStore {
 
     private void logLoadFailure(String uuid, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                "[PlayerDataStore] Failed to load player data for " + uuid
-                        + "; this session will remain read-only to protect the existing file",
+                "[PlayerDataStore] 加载玩家数据失败: " + uuid
+                        + "；本次会话将保持只读以保护现有文件",
                 throwable);
     }
 

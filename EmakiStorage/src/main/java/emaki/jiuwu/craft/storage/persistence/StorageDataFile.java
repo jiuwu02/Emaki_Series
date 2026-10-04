@@ -128,7 +128,7 @@ public final class StorageDataFile {
                     int sign = in.read();
                     long magnitude = StorageCodec.readVarLong(in);
                     if (sign < 0) {
-                        throw new IOException("Truncated reservation op sign");
+                        throw new IOException("预留操作符号被截断");
                     }
                     try {
                         ItemStack template = StorageCodec.decodeItem(payload);
@@ -195,8 +195,8 @@ public final class StorageDataFile {
             StorageCodec.readHeader(in);
             long declared = StorageCodec.readVarLong(in);
             if (declared != expected) {
-                throw new IOException("Verification failed: header declares " + declared
-                        + " records but " + expected + " were written");
+                throw new IOException("校验失败：文件头声明 " + declared
+                        + " 条记录，实际写入 " + expected + " 条");
             }
             for (long index = 0; index < declared; index++) {
                 StorageCodec.readItemPayload(in);
@@ -205,8 +205,8 @@ public final class StorageDataFile {
             }
             long declaredHolds = StorageCodec.readVarLong(in);
             if (declaredHolds != expectedHolds) {
-                throw new IOException("Verification failed: header declares " + declaredHolds
-                        + " reservations but " + expectedHolds + " were written");
+                throw new IOException("校验失败：文件头声明 " + declaredHolds
+                        + " 条预留，实际写入 " + expectedHolds + " 条");
             }
             for (long index = 0; index < declaredHolds; index++) {
                 StorageCodec.readUuid(in);
@@ -215,13 +215,13 @@ public final class StorageDataFile {
                 for (long opIndex = 0; opIndex < opCount; opIndex++) {
                     StorageCodec.readItemPayload(in);
                     if (in.read() < 0) {
-                        throw new IOException("Verification failed: truncated reservation op sign");
+                        throw new IOException("校验失败：预留操作符号被截断");
                     }
                     StorageCodec.readVarLong(in);
                 }
             }
             if (in.read() >= 0) {
-                throw new IOException("Verification failed: trailing bytes after " + declared + " records");
+                throw new IOException("校验失败：在 " + declared + " 条记录之后存在多余字节");
             }
         }
     }

@@ -81,7 +81,7 @@ public final class ItemScriptBridge implements AutoCloseable {
             EmakiItemEffectRegistry registry = plugin.effectRegistry();
             if (registration == null || registry == null || registry.find(spec.id()) != type) {
                 plugin.messageService().warning("console.scripts.register_error",
-                        Map.of("id", spec.id(), "error", "registration was rejected"));
+                        Map.of("id", spec.id(), "error", "注册被拒绝"));
                 return;
             }
             registrations.add(registration);

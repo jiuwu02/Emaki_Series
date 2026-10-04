@@ -12,6 +12,6 @@ public final class StrengthenItemLayerPreviewLifecycle
 
     public StrengthenItemLayerPreviewLifecycle(EmakiStrengthenPlugin plugin) {
         super(plugin, EmakiStrengthenPlugin.class, ITEM_PLUGIN_NAME, PROVIDER_CLASS,
-                "EmakiItem strengthen preview integration");
+                "EmakiItem 强化预览集成");
     }
 }

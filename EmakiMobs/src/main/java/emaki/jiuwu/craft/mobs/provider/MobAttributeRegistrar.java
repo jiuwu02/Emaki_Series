@@ -65,11 +65,11 @@ public final class MobAttributeRegistrar {
             if (value instanceof MobOptionalProviderIntegration created) {
                 return created;
             }
-            logger.warning("EmakiAttribute integration has an invalid implementation type");
+            logger.warning("EmakiAttribute 集成实现类型无效");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("EmakiAttribute integration unavailable; continuing without attribute contributions");
+            logger.info("EmakiAttribute 集成不可用，将在不提供属性贡献的情况下继续");
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("EmakiAttribute integration failed: " + exception.getMessage());
+            logger.warning("EmakiAttribute 集成失败: " + exception.getMessage());
         }
         return null;
     }

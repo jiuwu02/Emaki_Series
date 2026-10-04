@@ -97,7 +97,7 @@ public final class PlayerCodexStore {
                     pendingLoads.remove(playerId);
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, new PlayerCodex(playerId));
-                        warn("Failed to load codex progress for " + playerId + ": "
+                        warn("加载玩家 " + playerId + " 的图鉴进度失败："
                                 + Texts.toStringSafe(throwable.getMessage()));
                         future.complete(null);
                         return;
@@ -178,7 +178,7 @@ public final class PlayerCodexStore {
         return asyncYamlFiles.save(file, values)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        warn("Failed to save codex progress for " + ticket.key() + ": "
+                        warn("保存玩家 " + ticket.key() + " 的图鉴进度失败："
                                 + Texts.toStringSafe(throwable.getMessage()));
                         return false;
                     }
@@ -192,7 +192,7 @@ public final class PlayerCodexStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException | RuntimeException exception) {
-            warn("Failed to save codex progress to " + file.getName() + ": "
+            warn("保存图鉴进度到 " + file.getName() + " 失败："
                     + Texts.toStringSafe(exception.getMessage()));
             return false;
         }
@@ -240,7 +240,7 @@ public final class PlayerCodexStore {
         future.whenComplete((ignored, throwable) -> latch.countDown());
         try {
             if (!latch.await(remaining, TimeUnit.NANOSECONDS)) {
-                warn("Codex flush did not finish before the drain deadline");
+                warn("图鉴数据刷新未在排空截止时间前完成");
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

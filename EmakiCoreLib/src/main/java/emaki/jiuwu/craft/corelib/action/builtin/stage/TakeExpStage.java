@@ -12,7 +12,7 @@ import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 public final class TakeExpStage extends ExperienceStage {
 
     public TakeExpStage(ActionAuditLogger auditLogger) {
-        super("take_exp", "Removes experience from the target.", auditLogger, OperationType.DECREASE);
+        super("take_exp", "扣除目标的经验。", auditLogger, OperationType.DECREASE);
     }
 
     @Override

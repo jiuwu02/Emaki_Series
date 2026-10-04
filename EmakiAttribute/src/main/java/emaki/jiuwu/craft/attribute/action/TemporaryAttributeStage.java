@@ -30,11 +30,11 @@ public final class TemporaryAttributeStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_add", "Adds a timed attribute modifier into an effect group on the target."),
+        ADD("attribute_add", "向目标的一个效果组添加限时属性修饰符。"),
 
-        SET("attribute_set", "Sets a timed attribute modifier inside an effect group on the target."),
+        SET("attribute_set", "在目标的一个效果组内设置限时属性修饰符。"),
 
-        REMOVE("attribute_remove", "Removes a whole timed effect group from the target.");
+        REMOVE("attribute_remove", "从目标移除整个限时效果组。");
 
         private final String id;
         private final String description;
@@ -77,17 +77,17 @@ public final class TemporaryAttributeStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         if (operation == Operation.REMOVE) {
             return List.of(CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
-                    "Effect group id to remove, clearing every attribute in that group"));
+                    "要移除的效果组 ID，会清除该组内所有属性"));
         }
         return List.of(
                 CoreStageParameter.required("effect_id", CoreStageParameterType.STRING,
-                        "Effect group id; reusing one id groups several attributes together"),
-                CoreStageParameter.required("attribute", CoreStageParameterType.STRING, "Attribute id"),
-                CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "Modifier value"),
+                        "效果组 ID；复用同一 ID 可将多个属性归入同一组"),
+                CoreStageParameter.required("attribute", CoreStageParameterType.STRING, "属性 ID"),
+                CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "修饰符数值"),
                 CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
-                        "How long the modifier lasts"),
+                        "修饰符持续时间"),
                 CoreStageParameter.optional("stack_mode", CoreStageParameterType.STRING, "",
-                        "How to combine with an existing effect on the same attribute: REPLACE or STACK"));
+                        "与同一属性上已有效果的叠加方式: REPLACE 或 STACK"));
     }
 
     @Override

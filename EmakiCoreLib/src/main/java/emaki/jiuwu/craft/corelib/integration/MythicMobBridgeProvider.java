@@ -51,7 +51,7 @@ public final class MythicMobBridgeProvider implements MythicMobBridge {
             } catch (LinkageError exception) {
                 failed = true;
                 if (owner != null) {
-                    owner.getLogger().warning("Failed to initialize MythicMobs mob API bridge: "
+                    owner.getLogger().warning("初始化 MythicMobs 生物 API 桥接失败: "
                             + Texts.toStringSafe(exception.getMessage()));
                 }
                 return NOOP;

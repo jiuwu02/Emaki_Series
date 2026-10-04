@@ -25,9 +25,9 @@ public final class HealStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public HealStage(ActionAuditLogger auditLogger) {
-        super("heal", "entity", "Restores health on the target.",
+        super("heal", "entity", "恢复目标的生命值。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Health to restore"));
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "要恢复的生命值"));
         this.auditLogger = auditLogger;
     }
 

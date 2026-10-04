@@ -30,7 +30,7 @@ public record LegacyTargetSpec(String directory,
         matcherKey = Texts.isBlank(matcherKey) ? "item_sources" : Texts.toStringSafe(matcherKey);
         semantics = semantics == null ? RuntimeSemantics.OVERRIDE : semantics;
         if (legacyKey.isBlank()) {
-            throw new IllegalArgumentException("legacyKey must not be blank");
+            throw new IllegalArgumentException("legacyKey 不能为空");
         }
     }
 

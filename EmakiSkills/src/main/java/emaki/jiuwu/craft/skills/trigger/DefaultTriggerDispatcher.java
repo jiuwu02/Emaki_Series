@@ -107,7 +107,7 @@ public final class DefaultTriggerDispatcher implements TriggerDispatcher {
                 }
                 future.complete(null);
             }, () -> future.completeExceptionally(new RejectedExecutionException(
-                    "Skills trigger failure reporting retired before execution.")));
+                    "技能触发器失败上报在执行前已退役。")));
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }

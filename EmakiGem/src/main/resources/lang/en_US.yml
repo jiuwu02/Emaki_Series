@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.5"
+version: "2.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -106,6 +106,9 @@ gem:
     status: "<gray>Reroll <yellow>%operation_type%</yellow>: affixes <yellow>%original_count%</yellow> → <green>%candidate_count%</green>, <gold>%expires_in%</gold>s remaining.</gray>"
     usage: "<gray>Usage: /emakigem reroll <full|value|confirm|cancel|status></gray>"
     unavailable: "<red>The reroll service is currently unavailable.</red>"
+  item:
+    # Item: gem item affix lore header
+    affixes_header: "<gray>Affixes</gray>"
 
 command:
   help:
@@ -120,6 +123,8 @@ command:
       gui: "Open the corresponding gem GUI"
       reload: "Reload gem configuration and resources"
       inspect: "View gem status of main hand equipment"
+      # Command: reroll subcommand help description
+      reroll: "Generate or accept a reroll candidate for the held gem"
       clearstate: "Remove gem layer from main hand item"
       convert_legacy: "Convert legacy match blocks in items/ to matcher and top-level fields"
       debug: "Manage debug mode"
@@ -336,6 +341,64 @@ gui_text:
     upgrade_confirm_inactive_lore: "<dark_gray>Place a gem below its maximum level first</dark_gray>"
     pending_inlay_text: "Inlay Gem"
     pending_extract_text: "Extract Gem"
+    # GUI: reroll mode button title
+    mode_reroll_full_title: "Reroll Mode"
+    # GUI: reroll mode button description
+    mode_reroll_full_desc: "Hold the gem in your main hand and reroll every affix"
+    # GUI: recalibrate mode button title
+    mode_reroll_value_title: "Recalibrate Mode"
+    # GUI: recalibrate mode button description
+    mode_reroll_value_desc: "Hold the gem in your main hand and recalibrate affix values"
+    # GUI: reroll target slot name
+    reroll_target_name: "<light_purple>Main-hand Gem</light_purple>"
+    # GUI: reroll target slot lore
+    reroll_target_lore_1: "<gray>Reroll always targets the gem in your main hand</gray>"
+    # GUI: reroll target slot lore
+    reroll_target_lore_2: "<dark_gray>This slot accepts no items</dark_gray>"
+    # GUI: upgrade mode name
+    mode_upgrade: "Upgrade"
+    # GUI: reroll mode name
+    mode_reroll_full: "Reroll"
+    # GUI: recalibrate mode name
+    mode_reroll_value: "Recalibrate"
+    # GUI: reroll info help
+    reroll_full_help: "<gray>Review the reroll candidate, then confirm</gray>"
+    # GUI: recalibrate info help
+    reroll_value_help: "<gray>Review the recalibrated values, then confirm</gray>"
+    # GUI: reroll operation hint
+    reroll_hold_hint: "<gray>Hold the gem in your main hand</gray>"
+    # GUI: reroll operation hint
+    reroll_generate_hint: "<green>Click confirm to generate a candidate</green>"
+    # GUI: reroll candidate state hint
+    reroll_candidate_open: "<green>A candidate is awaiting confirmation</green>"
+    # GUI: reroll candidate remaining time; placeholders: %seconds%
+    reroll_expires_in: "<gray>Expires in: <gold>%seconds%s</gold></gray>"
+    # GUI: reroll operation hint
+    reroll_confirm_hint: "<gray>Click confirm to write it to the gem</gray>"
+    # GUI: reroll operation hint
+    reroll_cancel_hint: "<dark_gray>Switching mode or closing refunds the cost</dark_gray>"
+    # GUI: reroll comparison title
+    reroll_summary_name: "<gold>Reroll Comparison</gold>"
+    # GUI: reroll comparison empty state
+    reroll_summary_empty: "<gray>The candidate comparison appears after generating</gray>"
+    # GUI: reroll original affixes header
+    reroll_original_header: "<gray>Current affixes:</gray>"
+    # GUI: reroll original affix line; placeholders: %affix%
+    reroll_original_line: "<dark_gray>- %affix%</dark_gray>"
+    # GUI: reroll empty affix line
+    reroll_none_line: "<dark_gray>- none</dark_gray>"
+    # GUI: reroll candidate affixes header
+    reroll_candidate_header: "<gray>Candidate affixes:</gray>"
+    # GUI: reroll candidate affix line; placeholders: %affix%
+    reroll_candidate_line: "<green>+ %affix%</green>"
+    # GUI: confirm reroll button name
+    reroll_confirm_name_active: "<green>Confirm Reroll</green>"
+    # GUI: generate reroll candidate button name
+    reroll_generate_name: "<light_purple>Generate Candidate</light_purple>"
+    # GUI: confirm reroll button lore
+    reroll_confirm_active_lore: "<gray>Click to write the candidate to your main-hand gem</gray>"
+    # GUI: generate reroll candidate button lore
+    reroll_generate_lore: "<gray>Click to charge the cost and generate a candidate</gray>"
   open:
     target_empty_name: "<aqua>Place Equipment</aqua>"
     target_empty_lore_1: "<gray>Place equipment that needs socket opening here</gray>"

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.3.2"
+version: "4.3.3"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -25,6 +25,8 @@ command:
       help: "显示帮助信息"
       reload: "重载配置、语言与配方目录"
       inspect: "检查主手物品的 CoreLib 来源标识"
+      # 命令：station 子命令描述
+      station: "重建工位存储索引"
       nutrition: "查询或调整玩家营养值"
       "convert-legacy [confirm]": "把旧 item_sources 识别位合并为 matcher"
       debug: "管理 Debug 模式"
@@ -50,6 +52,21 @@ command:
   inspect:
     header: "<gold>========== 手持物品检查 ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
+    # 玩家：检查方块时 6 格内无目标方块
+    no_target_block: "<gray>6 格内没有目标方块。</gray>"
+    # 玩家：工位方块检查标题
+    block_header: "<gold>工位方块检查</gold>"
+    # 玩家：工位交互被世界黑名单禁用
+    interaction_disabled: "已禁用（世界黑名单）"
+    # 玩家：工位交互已启用
+    interaction_enabled: "已启用"
+  # 玩家：工位索引重建反馈；占位符：%legacy_yaml%、%loaded_pdc%、%total_indexed%
+  station:
+    store_not_ready: "<red>工位状态存储尚未就绪。</red>"
+    reindex_started: "<gray>正在重建工位位置索引...</gray>"
+    reindex_done: "<green>工位索引重建完成：</green> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed%"
+  # 玩家：重载耗时；占位符：%elapsed_ms%
+  reload_elapsed: "<gray>重载耗时: <white>%elapsed_ms%ms</white></gray>"
 
 nutrition:
   disabled: "<yellow>营养系统当前未启用。</yellow>"
@@ -111,6 +128,44 @@ console:
   block_source_bridge_unavailable: "<yellow>方块源不可用: %provider% (%error%)</yellow>"
   nutrition_bridge_ready: "<gray>已接入营养食用源: <aqua>%provider%</aqua></gray>"
   nutrition_bridge_unavailable: "<yellow>营养食用源不可用: %provider% (%error%)</yellow>"
+  # 控制台：工位恢复类型不匹配；占位符：%type%、%coordinate%
+  station_restore_skipped_mismatch: "<gray>工位恢复报告：类型不匹配 type=%type% coordinate=%coordinate%</gray>"
+  # 控制台：工位方块实体丢失已替换；占位符：%type%、%coordinate%
+  station_restore_lost_block_entity: "<gray>工位恢复报告：方块实体丢失已替换 type=%type% coordinate=%coordinate%</gray>"
+  # 控制台：重载进度-加载配置
+  reload_loading_configs: "<gray>正在加载配置...</gray>"
+  # 控制台：重载进度-应用配置
+  reload_applying: "<gray>正在应用配置...</gray>"
+  # 控制台：重载进度-完成
+  reload_complete: "<gray>重载完成。</gray>"
+  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: %error%</yellow>"
+  # 控制台：烹饪完成恢复失败；占位符：%error%
+  completion_recovery_failed: "<yellow>烹饪完成恢复失败: %error%</yellow>"
+  # 控制台：流水线阶段注册失败；占位符：%stage%、%reason%
+  stage_register_failed: "<yellow>注册流水线阶段 '%stage%' 失败: %reason%</yellow>"
+  # 控制台：执行旧版烹饪奖励失败；占位符：%error%
+  reward_legacy_execute_failed: "<yellow>执行旧版烹饪奖励失败: %error%</yellow>"
+  # 控制台：烹饪奖励输出物品无效；占位符：%output%、%recipe%
+  reward_output_invalid: "<yellow>[CookingReward] 输出物品为空或空气。output_map=%output% recipe=%recipe%</yellow>"
+  # 控制台：创建来源物品返回 null；占位符：%source%、%amount%
+  reward_source_create_null: "<yellow>[CookingReward] itemSourceService.createItem 对 source=%source% amount=%amount% 返回 null</yellow>"
+  # 控制台：组装预览与直接创建均返回 null；占位符：%source%、%type%、%id%
+  reward_source_resolve_null: "<yellow>[CookingReward] 组装预览与直接 createItem 对 source=%source% type=%type% id=%id% 均返回 null</yellow>"
+  # 控制台：跳过营养阈值评估；占位符：%player%
+  nutrition_threshold_skipped: "<yellow>EmakiCooking 已跳过 %player% 的营养阈值评估：调用线程不拥有该玩家且无可用执行调度器。</yellow>"
+  # 控制台：营养阈值评估重新路由失败；占位符：%player%
+  nutrition_threshold_reroute_failed: "<yellow>EmakiCooking 重新路由 %player% 的营养阈值评估失败：实体任务调度被拒绝。</yellow>"
+  # 控制台：发酵桶恢复时状态无效；占位符：%coordinate%
+  station_restore_rejected_invalid_fermentation_state: "<gray>工位恢复报告：发酵桶状态无效 coordinate=%coordinate%</gray>"
+  # 控制台：发酵桶恢复时槽位 ID 迁移被拒；占位符：%coordinate%、%recipe%
+  station_restore_rejected_slot_migration: "<gray>工位恢复报告：发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate% recipe=%recipe%</gray>"
+  # 控制台：发酵桶破坏时槽位 ID 迁移被拒；占位符：%coordinate%
+  station_break_rejected_slot_migration: "<gray>工位破坏报告：发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
+  # 控制台：发酵桶交互时槽位 ID 迁移被拒；占位符：%coordinate%
+  station_interaction_rejected_slot_migration: "<gray>工位交互报告：发酵桶槽位 ID 迁移被拒绝 coordinate=%coordinate%</gray>"
+  # 控制台：发酵桶 GUI 身份迁移被拒；占位符：%coordinate%
+  station_gui_rejected_identity_migration: "<gray>工位 GUI 报告：发酵桶身份迁移被拒绝 coordinate=%coordinate%</gray>"
   station_name:
     chopping_board: "砧板"
     wok: "炒锅"

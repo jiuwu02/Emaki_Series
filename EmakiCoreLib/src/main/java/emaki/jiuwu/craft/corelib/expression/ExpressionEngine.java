@@ -417,18 +417,18 @@ public final class ExpressionEngine {
             NumericEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return NumericEvaluationResult.failure("Numeric expression exceeded maximum nested depth "
+            return NumericEvaluationResult.failure("数值表达式超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (Texts.isBlank(expression)) {
-            return NumericEvaluationResult.failure("Numeric expression is blank.");
+            return NumericEvaluationResult.failure("数值表达式为空。");
         }
         if (!validateExpressionLength(expression)) {
-            return NumericEvaluationResult.failure("Numeric expression is longer than "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(expression));
+            return NumericEvaluationResult.failure("数值表达式长度超过 "
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(expression));
         }
         if (containsDangerousChars(expression)) {
-            return NumericEvaluationResult.failure("Numeric expression contains unsupported characters: "
+            return NumericEvaluationResult.failure("数值表达式包含不支持的字符: "
                     + abbreviate(expression));
         }
         NumericPreparation preparation = prepareNumericExpression(expression, scope, depth + 1);
@@ -437,15 +437,15 @@ public final class ExpressionEngine {
         }
         String prepared = preparation.expression();
         if (!validateExpressionLength(prepared)) {
-            return NumericEvaluationResult.failure("Prepared numeric expression is longer than "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
+            return NumericEvaluationResult.failure("预处理后的数值表达式长度超过 "
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(prepared));
         }
         if (containsDangerousChars(prepared)) {
-            return NumericEvaluationResult.failure("Prepared numeric expression contains unsupported characters: "
+            return NumericEvaluationResult.failure("预处理后的数值表达式包含不支持的字符: "
                     + abbreviate(prepared));
         }
         if (!isNumericOnlyExpression(prepared)) {
-            return NumericEvaluationResult.failure("Prepared expression is not numeric-only after variable resolution: "
+            return NumericEvaluationResult.failure("变量解析后预处理表达式不再是纯数值: "
                     + abbreviate(prepared));
         }
         try {
@@ -453,12 +453,12 @@ public final class ExpressionEngine {
                     expr -> new ExpressionBuilder(expr).functions(mergedFunctions()).build());
             double result = compiled.evaluate();
             if (Double.isNaN(result) || Double.isInfinite(result)) {
-                return NumericEvaluationResult.failure("Numeric expression produced a non-finite result: "
+                return NumericEvaluationResult.failure("数值表达式产生了非有限结果: "
                         + abbreviate(prepared));
             }
             return NumericEvaluationResult.success(result);
         } catch (Exception exception) {
-            return NumericEvaluationResult.failure("Numeric expression could not be evaluated: "
+            return NumericEvaluationResult.failure("数值表达式无法求值: "
                     + abbreviate(prepared) + " (" + Texts.toStringSafe(exception.getMessage()) + ")");
         }
     }
@@ -475,7 +475,7 @@ public final class ExpressionEngine {
         while (matcher.find()) {
             String name = matcher.group(1);
             if (!scope.variables().containsKey(name)) {
-                issues.add("Numeric expression variable '{" + name + "}' is missing.");
+                issues.add("数值表达式变量 '{" + name + "}' 缺失。");
                 matcher.appendReplacement(buffer, "0");
                 continue;
             }
@@ -497,16 +497,15 @@ public final class ExpressionEngine {
             NumericEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return NumericEvaluationResult.failure("Numeric expression variable '{" + name
-                    + "}' exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
+            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         Double cached = scope.resolvedVariables().get(name);
         if (cached != null) {
             return NumericEvaluationResult.success(cached);
         }
         if (scope.resolvingVariables().contains(name)) {
-            return NumericEvaluationResult.failure("Numeric expression variable '{" + name
-                    + "}' references itself.");
+            return NumericEvaluationResult.failure("数值表达式变量 '{" + name
+                    + "}' 引用了自身。");
         }
         scope.resolvingVariables().add(name);
         try {
@@ -525,14 +524,13 @@ public final class ExpressionEngine {
             NumericEvaluationScope scope,
             int depth) {
         if (rawValue == null) {
-            return NumericEvaluationResult.failure("Numeric expression variable '{" + name + "}' is null.");
+            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 为 null。");
         }
         if (rawValue instanceof Number number) {
             return NumericEvaluationResult.success(number.doubleValue());
         }
         if (rawValue instanceof Boolean) {
-            return NumericEvaluationResult.failure("Numeric expression variable '{" + name
-                    + "}' is boolean and cannot be used in a numeric expression.");
+            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 是布尔值，不能用于数值表达式。");
         }
         if (rawValue instanceof String text) {
             NumericEvaluationResult result = RandomExpressionEvaluator.evaluateNumericTextDetailed(text, scope, depth + 1, ExpressionRules.MAX_NESTED_DEPTH);
@@ -540,22 +538,22 @@ public final class ExpressionEngine {
                 return result;
             }
             List<String> issues = new ArrayList<>();
-            issues.add("Numeric expression variable '{" + name + "}' must resolve to a number, but got string: "
+            issues.add("数值表达式变量 '{" + name + "}' 必须解析为数字，但得到字符串: "
                     + abbreviate(text));
             issues.addAll(result.issues());
             return NumericEvaluationResult.failure(issues);
         }
         String type = normalizedConfigType(rawValue);
         if (isStringConfigType(type) || isBooleanConfigType(type)) {
-            return NumericEvaluationResult.failure("Numeric expression variable '{" + name + "}' uses "
-                    + type + " config and cannot be used in a numeric expression.");
+            return NumericEvaluationResult.failure("数值表达式变量 '{" + name + "}' 使用了 "
+                    + type + " 配置，不能用于数值表达式。");
         }
         NumericEvaluationResult result = evaluateRandomConfigDetailed(rawValue, scope, depth + 1);
         if (result.success()) {
             return result;
         }
         List<String> issues = new ArrayList<>();
-        issues.add("Numeric expression variable '{" + name + "}' must resolve to a numeric config.");
+        issues.add("数值表达式变量 '{" + name + "}' 必须解析为数值配置。");
         issues.addAll(result.issues());
         return NumericEvaluationResult.failure(issues);
     }
@@ -564,7 +562,7 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Text config exceeded maximum nested depth "
+            return TextEvaluationResult.failure("文本配置超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (config == null) {
@@ -601,7 +599,7 @@ public final class ExpressionEngine {
             if (value != null) {
                 return evaluateStringConfigDetailed(value, scoped, depth + 1);
             }
-            return TextEvaluationResult.failure("Text config does not declare text value or random text lines.");
+            return TextEvaluationResult.failure("文本配置未声明文本值或随机文本行。");
         }
 
         if (isRandomTextConfigType(type)) {
@@ -641,21 +639,21 @@ public final class ExpressionEngine {
                     ? TextEvaluationResult.success(formatTextNumber(result.value()))
                     : TextEvaluationResult.failure(result.issues());
         }
-        return TextEvaluationResult.failure("Unsupported text config type '" + type
-                + "'. Supported text types: string, random_text, random_char, weighted_random_char, conditional_char, boolean.");
+        return TextEvaluationResult.failure("不支持的文本配置类型 '" + type
+                + "'.支持的文本类型: string、random_text、random_char、weighted_random_char、conditional_char、boolean。");
     }
 
     private static TextEvaluationResult evaluateRandomTextLinesDetailed(Object config,
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Random text config exceeded maximum nested depth "
+            return TextEvaluationResult.failure("随机文本配置超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
         List<Object> candidates = randomTextLineCandidates(config);
         if (candidates.isEmpty()) {
-            return TextEvaluationResult.failure("Random text config is missing 'lines' or 'values'.");
+            return TextEvaluationResult.failure("随机文本配置缺少 'lines' 或 'values'。");
         }
 
         TextIntegerResult count = evaluateTextRollCount(config, scoped, depth + 1);
@@ -703,14 +701,14 @@ public final class ExpressionEngine {
             int depth,
             boolean weighted) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Random char config exceeded maximum nested depth "
+            return TextEvaluationResult.failure("随机字符配置超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
         TextCandidates candidates = randomCharCandidates(config, scoped, depth + 1);
         List<String> issues = new ArrayList<>(candidates.issues());
         if (candidates.values().isEmpty()) {
-            issues.add("Random char config has no candidate chars.");
+            issues.add("随机字符配置没有候选字符。");
             return TextEvaluationResult.failure(issues);
         }
 
@@ -736,7 +734,7 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Conditional char config exceeded maximum nested depth "
+            return TextEvaluationResult.failure("条件字符配置超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
@@ -747,17 +745,17 @@ public final class ExpressionEngine {
             for (int index = 0; index < cases.size(); index++) {
                 Object entry = cases.get(index);
                 if (entry == null) {
-                    issues.add("Conditional char case at index " + index + " is empty.");
+                    issues.add("索引 " + index + " 处的条件字符分支为空。");
                     continue;
                 }
                 Object condition = ConfigNodes.get(entry, "condition");
                 if (condition == null) {
-                    issues.add("Conditional char case at index " + index + " is missing condition.");
+                    issues.add("索引 " + index + " 处的条件字符分支缺少 condition。");
                     continue;
                 }
                 TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
                 if (!conditionResult.issues().isEmpty()) {
-                    issues.add("Conditional char case at index " + index + " condition is invalid.");
+                    issues.add("索引 " + index + " 处的条件字符分支的 condition 无效。");
                     issues.addAll(conditionResult.issues());
                     continue;
                 }
@@ -766,7 +764,7 @@ public final class ExpressionEngine {
                 }
                 Object value = ConfigNodes.get(entry, "value");
                 if (value == null) {
-                    issues.add("Conditional char case at index " + index + " is missing value.");
+                    issues.add("索引 " + index + " 处的条件字符分支缺少 value。");
                     return new TextEvaluationResult(false, "", List.of(), issues);
                 }
                 return evaluateConditionalCharValue(value, scoped, depth + 1, issues);
@@ -780,7 +778,7 @@ public final class ExpressionEngine {
 
         Object condition = ConfigNodes.get(config, "condition");
         if (condition == null) {
-            return TextEvaluationResult.failure("Conditional char config is missing 'condition' or 'cases'.");
+            return TextEvaluationResult.failure("条件字符配置缺少 'condition' 或 'cases'。");
         }
         TextBooleanResult conditionResult = evaluateTextBooleanValue(condition, scoped, depth + 1, false);
         issues.addAll(conditionResult.issues());
@@ -788,7 +786,7 @@ public final class ExpressionEngine {
                 ? ConfigNodes.get(config, "true_value")
                 : ConfigNodes.get(config, "false_value");
         if (value == null) {
-            issues.add("Conditional char config is missing "
+            issues.add("条件字符配置缺少 "
                     + (conditionResult.issues().isEmpty() && conditionResult.value() ? "true_value" : "false_value")
                     + ".");
             return new TextEvaluationResult(false, "", List.of(), issues);
@@ -810,7 +808,7 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Text list exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
+            return TextEvaluationResult.failure("文本列表超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         List<String> lines = new ArrayList<>();
         List<String> issues = new ArrayList<>();
@@ -830,31 +828,31 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Text expression exceeded maximum nested depth "
+            return TextEvaluationResult.failure("文本表达式超过最大嵌套深度 "
                     + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (template == null) {
             return TextEvaluationResult.success("");
         }
         if (!validateExpressionLength(template)) {
-            return TextEvaluationResult.failure("Text expression is longer than "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(template));
+            return TextEvaluationResult.failure("文本表达式长度超过 "
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(template));
         }
         if (containsDangerousChars(template)) {
-            return TextEvaluationResult.failure("Text expression contains unsupported characters: "
+            return TextEvaluationResult.failure("文本表达式包含不支持的字符: "
                     + abbreviate(template));
         }
         TextPreparation preparation = prepareTextTemplate(template, scope, depth + 1);
         String prepared = BooleanExpressionEvaluator.unquote(preparation.value());
         if (!validateExpressionLength(prepared)) {
             List<String> issues = new ArrayList<>(preparation.issues());
-            issues.add("Prepared text expression is longer than "
-                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " characters: " + abbreviate(prepared));
+            issues.add("预处理后的文本表达式长度超过 "
+                    + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(prepared));
             return TextEvaluationResult.failure(issues, "", List.of());
         }
         if (containsDangerousChars(prepared)) {
             List<String> issues = new ArrayList<>(preparation.issues());
-            issues.add("Prepared text expression contains unsupported characters: " + abbreviate(prepared));
+            issues.add("预处理后的文本表达式包含不支持的字符: " + abbreviate(prepared));
             return TextEvaluationResult.failure(issues, "", List.of());
         }
         return new TextEvaluationResult(preparation.issues().isEmpty(), prepared, List.of(prepared),
@@ -868,7 +866,7 @@ public final class ExpressionEngine {
         while (matcher.find()) {
             String name = matcher.group(1);
             if (!scope.variables().containsKey(name)) {
-                issues.add("Text expression variable '{" + name + "}' is missing.");
+                issues.add("文本表达式变量 '{" + name + "}' 缺失。");
                 matcher.appendReplacement(buffer, "");
                 continue;
             }
@@ -885,11 +883,10 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (depth > ExpressionRules.MAX_NESTED_DEPTH) {
-            return TextEvaluationResult.failure("Text expression variable '{" + name
-                    + "}' exceeded maximum nested depth " + ExpressionRules.MAX_NESTED_DEPTH + ".");
+            return TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 超过最大嵌套深度 " + ExpressionRules.MAX_NESTED_DEPTH + ".");
         }
         if (scope.resolvingVariables().contains(name)) {
-            return TextEvaluationResult.failure("Text expression variable '{" + name + "}' references itself.");
+            return TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 引用了自身。");
         }
         scope.resolvingVariables().add(name);
         try {
@@ -904,7 +901,7 @@ public final class ExpressionEngine {
             TextEvaluationScope scope,
             int depth) {
         if (rawValue == null) {
-            return TextEvaluationResult.failure("Text expression variable '{" + name + "}' is null.", "", List.of());
+            return TextEvaluationResult.failure("文本表达式变量 '{" + name + "}' 为 null.", "", List.of());
         }
         if (rawValue instanceof Number number) {
             return TextEvaluationResult.success(formatTextNumber(number.doubleValue()));
@@ -924,7 +921,7 @@ public final class ExpressionEngine {
                 return TextEvaluationResult.success(formatTextNumber(result.value()));
             }
             List<String> issues = new ArrayList<>();
-            issues.add("Text expression variable '{" + name + "}' numeric config is invalid.");
+            issues.add("文本表达式变量 '{" + name + "}' 的数值配置无效。");
             issues.addAll(result.issues());
             return TextEvaluationResult.failure(issues, "", List.of());
         }
@@ -954,7 +951,7 @@ public final class ExpressionEngine {
             return new TextIntegerResult(Math.max(0, (int) Math.round(result.value())), List.of());
         }
         List<String> issues = new ArrayList<>();
-        issues.add("Random text roll count must resolve to a number.");
+        issues.add("随机文本掷取次数必须解析为数字。");
         issues.addAll(result.issues());
         return new TextIntegerResult(0, issues);
     }
@@ -985,13 +982,13 @@ public final class ExpressionEngine {
             TextEvaluationScope scoped = textScopeWithConfigVariables(value, scope);
             expression = ConfigNodes.get(value, "value");
             if (expression == null) {
-                return new TextBooleanResult(fallback, List.of("Boolean text config is missing value or expression."));
+                return new TextBooleanResult(fallback, List.of("布尔文本配置缺少 value 或 expression。"));
             }
             scope = scoped;
         }
         Boolean result = evaluateBoolean(Texts.toStringSafe(expression), scope.variables());
         if (result == null) {
-            return new TextBooleanResult(fallback, List.of("Boolean text config could not be evaluated: "
+            return new TextBooleanResult(fallback, List.of("布尔文本配置无法求值: "
                     + abbreviate(expression)));
         }
         return new TextBooleanResult(result, List.of());
@@ -1110,12 +1107,12 @@ public final class ExpressionEngine {
             List<String> issues) {
         Object rawWeights = ConfigNodes.get(config, "weights");
         if (rawWeights == null) {
-            issues.add("Weighted random char config is missing 'weights'.");
+            issues.add("加权随机字符配置缺少 'weights'。");
             return List.of();
         }
         List<Object> weights = ConfigNodes.asObjectList(rawWeights);
         if (weights.size() != candidates.size()) {
-            issues.add("Weighted random char config requires weights count to match chars count.");
+            issues.add("加权随机字符配置要求权重数量与字符数量一致。");
             return List.of();
         }
         List<WeightedChar> result = new ArrayList<>();
@@ -1124,7 +1121,7 @@ public final class ExpressionEngine {
                     NumericEvaluationScope.of(scope.variables()),
                     depth + 1);
             if (!weight.success()) {
-                issues.add("Weighted random char weight at index " + index + " is invalid.");
+                issues.add("索引 " + index + " 处的加权随机字符权重无效。");
                 issues.addAll(weight.issues());
                 continue;
             }
@@ -1133,7 +1130,7 @@ public final class ExpressionEngine {
             }
         }
         if (result.isEmpty()) {
-            issues.add("Weighted random char config has no positive weights.");
+            issues.add("加权随机字符配置没有正权重。");
         }
         return result;
     }
@@ -1275,7 +1272,7 @@ public final class ExpressionEngine {
         public NumericEvaluationResult {
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
             if (!success && issues.isEmpty()) {
-                issues = List.of("Numeric evaluation failed.");
+                issues = List.of("数值求值失败。");
             }
         }
 
@@ -1303,7 +1300,7 @@ public final class ExpressionEngine {
             lines = lines == null || lines.isEmpty() ? List.of() : List.copyOf(lines);
             issues = issues == null || issues.isEmpty() ? List.of() : List.copyOf(issues);
             if (!success && issues.isEmpty()) {
-                issues = List.of("Text evaluation failed.");
+                issues = List.of("文本求值失败。");
             }
         }
 

@@ -42,23 +42,23 @@ public record EnhancementRecipe(
 
     public EnhancementRecipe {
         if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("Recipe id cannot be null or blank");
+            throw new IllegalArgumentException("配方 id 不能为空");
         }
         mode = Texts.normalizeId(mode);
         if (mode.isBlank()) {
-            throw new IllegalArgumentException("Recipe mode cannot be null or blank");
+            throw new IllegalArgumentException("配方 mode 不能为空");
         }
         if (!LEGAL_MODES.contains(mode)) {
             throw new IllegalArgumentException(
-                    "Recipe mode must be one of " + LEGAL_MODES + " but was '" + mode + "'");
+                    "配方 mode 必须是 " + LEGAL_MODES + " 之一，实际为 '" + mode + "'");
         }
         if (target == null) {
-            throw new IllegalArgumentException("Target config cannot be null");
+            throw new IllegalArgumentException("目标配置不能为空");
         }
         materials = materials == null ? List.of() : List.copyOf(materials);
         costs = costs == null ? List.of() : List.copyOf(costs);
         if (chance == null) {
-            throw new IllegalArgumentException("Chance cannot be null");
+            throw new IllegalArgumentException("成功率不能为空");
         }
         actions = actions == null ? Map.of() : Map.copyOf(actions);
         conditions = conditions == null ? ConditionBlock.empty() : conditions;
@@ -127,7 +127,7 @@ public record EnhancementRecipe(
     ) {
         public TargetConfig {
             if (provider == null || provider.isBlank()) {
-                throw new IllegalArgumentException("Target provider cannot be null or blank");
+                throw new IllegalArgumentException("目标 provider 不能为空");
             }
             filter = filter == null ? null : Map.copyOf(filter);
         }
@@ -150,13 +150,13 @@ public record EnhancementRecipe(
     ) {
         public PityConfig {
             if (counter == null) {
-                throw new IllegalArgumentException("Pity counter cannot be null");
+                throw new IllegalArgumentException("保底计数器不能为空");
             }
             if (trigger == null) {
-                throw new IllegalArgumentException("Pity trigger cannot be null");
+                throw new IllegalArgumentException("保底触发器不能为空");
             }
             if (effect == null) {
-                throw new IllegalArgumentException("Pity effect cannot be null");
+                throw new IllegalArgumentException("保底效果不能为空");
             }
             isolate = isolate == null ? List.of() : List.copyOf(isolate);
         }

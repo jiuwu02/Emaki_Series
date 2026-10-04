@@ -169,7 +169,7 @@ final class StorageLifecycleCoordinator
                 plugin.layoutResolver().resolve(plugin.guiTemplateLoader(), config.gui().storageRows());
         plugin.storageGuiService().reconfigure(config, layout);
         for (String issue : plugin.guiTemplateLoader().issues()) {
-            plugin.getLogger().warning("[storage] " + issue);
+            plugin.messageService().warning("console.gui_issue", Map.of("issue", issue));
         }
         plugin.operationLog().purgeExpired();
         return templates;
@@ -363,8 +363,7 @@ final class StorageLifecycleCoordinator
         YamlSection section = YamlFiles.load(plugin.dataPath(fileName).toFile());
         if (section == null || section.isEmpty()) {
             if (reportMissingFile) {
-                plugin.getLogger().warning("[storage] " + fileName
-                        + " is missing or empty; paid expansion is disabled until it is provided.");
+                plugin.messageService().warning("console.cost_file_missing", Map.of("file", fileName));
             }
             return UnlockCostConfig.empty();
         }
@@ -399,13 +398,14 @@ final class StorageLifecycleCoordinator
         String range = ConfigNodes.string(raw, "count_range", null);
         int[] bounds = parseRange(range);
         if (bounds == null) {
-            plugin.getLogger().warning("[storage] Skipping unlock tier with invalid count_range: " + range);
+            plugin.messageService().warning("console.unlock_tier_invalid_range",
+                    Map.of("range", String.valueOf(range)));
             return null;
         }
         UnlockCostConfig.CurrencyCost currency = parseCurrency(ConfigNodes.get(raw, "currency"));
         UnlockCostConfig.ItemCost item = parseItem(ConfigNodes.get(raw, "item"));
         if (currency == null && item == null) {
-            plugin.getLogger().warning("[storage] Skipping unlock tier " + range + " with no price.");
+            plugin.messageService().warning("console.unlock_tier_no_price", Map.of("range", range));
             return null;
         }
         return new UnlockCostConfig.Tier(bounds[0], bounds[1], currency, item);
@@ -422,9 +422,7 @@ final class StorageLifecycleCoordinator
         }
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
-
-            plugin.getLogger().warning("[storage] unlock_costs.yml fallback requires a positive"
-                    + " max_amount guard rail; paid expansion beyond the defined tiers is disabled.");
+            plugin.messageService().warning("console.unlock_fallback_invalid");
             return null;
         }
         return new UnlockCostConfig.Fallback(currency, item, maxAmount);

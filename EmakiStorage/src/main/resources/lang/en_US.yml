@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.0"
+version: "1.1.1"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -173,6 +173,28 @@ console:
   bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
   directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  # Console: capability publication was refused; placeholders: %reason%
+  capability_refused: "[storage] Capability publication was refused: %reason%"
+  # Console: PlaceholderAPI expansion registration was refused
+  papi_registration_refused: "[storage] PlaceholderAPI expansion registration was refused."
+  # Console: PlaceholderAPI expansion unavailable; placeholders: %reason%
+  papi_unavailable: "[storage] PlaceholderAPI expansion unavailable: %reason%"
+  # Console: failed to export storage; placeholders: %player%, %error%
+  export_failed: "[storage] Failed to export storage for %player%: %error%"
+  # Console: GUI template loading issue; placeholders: %issue%
+  gui_issue: "[storage] %issue%"
+  # Console: paid expansion cost file missing; placeholders: %file%
+  cost_file_missing: "[storage] %file% is missing or empty; paid expansion is disabled until it is provided."
+  # Console: unlock tier has invalid count_range; placeholders: %range%
+  unlock_tier_invalid_range: "[storage] Skipping unlock tier with invalid count_range: %range%"
+  # Console: unlock tier has no price; placeholders: %range%
+  unlock_tier_no_price: "[storage] Skipping unlock tier %range% with no price."
+  # Console: unlock fallback lacks a positive max_amount guard rail
+  unlock_fallback_invalid: "[storage] unlock_costs.yml fallback requires a positive max_amount guard rail; paid expansion beyond the defined tiers is disabled."
+  # Console: failed to load storage; placeholders: %player%, %reason%
+  storage_load_failed: "[storage] Failed to load storage for %player%: %reason%"
+  # Console: failed to register pipeline stage; placeholders: %stage%, %reason%
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
   config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
   config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
   config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"

@@ -44,11 +44,11 @@ public final class CronExpression {
 
     public static CronExpression parse(String expression) {
         if (expression == null || expression.isBlank()) {
-            throw new CronParseException("Cron expression must not be null or blank");
+            throw new CronParseException("cron 表达式不能为 null 或空");
         }
         String[] parts = expression.trim().split("\\s+");
         if (parts.length != 6) {
-            throw new CronParseException("Cron expression must have exactly 6 fields, got "
+            throw new CronParseException("cron 表达式必须恰好 6 个字段，实际 "
                     + parts.length + ": '" + expression + "'");
         }
 
@@ -178,7 +178,7 @@ public final class CronExpression {
                 int start = parseRaw(range[0].trim(), names, min, max);
                 int end = parseRaw(range[1].trim(), names, min, max);
                 if (start > end) {
-                    throw new CronParseException("Invalid range '" + part + "' in field: " + field);
+                    throw new CronParseException("区间 '" + part + "' 无效，字段: " + field);
                 }
                 for (int v = start; v <= end; v++) {
                     validateRange(v, min, max, field);
@@ -192,7 +192,7 @@ public final class CronExpression {
         }
 
         if (result.isEmpty()) {
-            throw new CronParseException("Field produced no values: '" + field + "'");
+            throw new CronParseException("字段未产生任何值: '" + field + "'");
         }
         return result;
     }
@@ -209,14 +209,14 @@ public final class CronExpression {
         try {
             return Integer.parseInt(token);
         } catch (NumberFormatException e) {
-            throw new CronParseException("Cannot parse cron token '" + token + "': " + e.getMessage());
+            throw new CronParseException("无法解析 cron 记号 '" + token + "': " + e.getMessage());
         }
     }
 
     private static void validateRange(int value, int min, int max, String field) {
         if (value < min || value > max) {
             throw new CronParseException(
-                    "Value " + value + " out of range [" + min + "," + max + "] in field: " + field);
+                    "值 " + value + " 超出范围 [" + min + "," + max + "]，字段: " + field);
         }
     }
 

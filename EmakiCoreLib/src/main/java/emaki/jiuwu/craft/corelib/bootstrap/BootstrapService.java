@@ -123,7 +123,7 @@ public final class BootstrapService {
         }
         info("console.versioned_file_updated", Map.of(
                 "path", relativePath,
-                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
                 "new_version", versionedFile.updatedVersion()
         ));
     }

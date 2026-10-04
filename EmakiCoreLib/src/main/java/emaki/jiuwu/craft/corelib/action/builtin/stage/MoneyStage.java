@@ -37,10 +37,10 @@ abstract class MoneyStage extends BaseStage {
             boolean allowZero) {
         super(id, "economy", description,
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Amount"),
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "数量"),
                 CoreStageParameter.optional("provider", CoreStageParameterType.STRING, "auto",
-                        "Economy provider id"),
-                CoreStageParameter.optional("currency", CoreStageParameterType.STRING, "", "Currency id"));
+                        "经济提供者 id"),
+                CoreStageParameter.optional("currency", CoreStageParameterType.STRING, "", "货币 id"));
         this.economyManager = economyManager;
         this.auditLogger = auditLogger;
         this.operation = operation;

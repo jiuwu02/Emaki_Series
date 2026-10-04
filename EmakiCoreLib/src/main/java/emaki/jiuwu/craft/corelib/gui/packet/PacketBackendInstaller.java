@@ -19,7 +19,7 @@ public final class PacketBackendInstaller {
             ExecutionDispatcher executionDispatcher) {
         Logger logger = coreLib.getLogger();
         registry.register(BACKEND_NAME, new PacketGuiBackend(coreLib, executionDispatcher));
-        logger.info("Registered the packet GUI backend (PacketEvents detected).");
+        logger.info("已注册 packet GUI 后端（检测到 PacketEvents）。");
         return true;
     }
 }

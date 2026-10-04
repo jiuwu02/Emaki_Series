@@ -318,7 +318,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<Void, Void>(
                 "cooking",
                 "config-load",
-                "Loading configs...",
+                plugin.messageService().message("console.reload_loading_configs"),
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
@@ -334,13 +334,13 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                             .configPrecheckService()
                             .checkModule(EmakiCoreLibPlugin.lookup().configModel(), "cooking");
                     if (!report.success()) {
-                        throw new IllegalStateException("Cooking precheck failed: "
+                        throw new IllegalStateException("Cooking 配置预检失败: "
                                 + String.join("; ", report.formatLines(plugin.messageService(), "cooking")));
                     }
                     return null;
                 },
                 "apply",
-                "Applying configuration...",
+                plugin.messageService().message("console.reload_applying"),
                 _ -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.settingsService().reload();
@@ -354,13 +354,15 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.juicerRuntimeService().reload();
                     plugin.fermentationBarrelRuntimeService().reload();
                     logStationRecipeCounts(plugin);
-                    notifyProgress(progressListener, "Reload complete.");
+                    notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
                     return null;
                 },
                 null,
                 null,
                 null,
-                (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage()),
+                (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                        "stage", stage,
+                        "error", String.valueOf(ex.getMessage()))),
                 progressListener
         ));
     }

@@ -69,33 +69,33 @@ public final class BuiltinTargetConditions {
     private static Map<String, Definition> define() {
         Map<String, Definition> definitions = new LinkedHashMap<>();
         definitions.put("entity_type", new Definition("entity_type",
-                "Entity type is one of the listed vanilla types.", BuiltinTargetConditions::entityType));
+                "实体类型为所列原版类型之一。", BuiltinTargetConditions::entityType));
         definitions.put("player", new Definition("player",
-                "Subject is, or is not, a player.", BuiltinTargetConditions::player));
+                "主体是否为玩家。", BuiltinTargetConditions::player));
         definitions.put("dead", new Definition("dead",
-                "Subject is, or is not, dead.", BuiltinTargetConditions::dead));
+                "主体是否已死亡。", BuiltinTargetConditions::dead));
         definitions.put("world", new Definition("world",
-                "Subject stands in one of the listed worlds.", BuiltinTargetConditions::world));
+                "主体位于所列世界之一。", BuiltinTargetConditions::world));
         definitions.put("health", new Definition("health",
-                "Current health compares against op/value.", BuiltinTargetConditions::health));
+                "当前生命值与 op/value 比较。", BuiltinTargetConditions::health));
         definitions.put("health_percent", new Definition("health_percent",
-                "Health ratio in percent compares against op/value.", BuiltinTargetConditions::healthPercent));
+                "生命值百分比与 op/value 比较。", BuiltinTargetConditions::healthPercent));
         definitions.put("distance", new Definition("distance",
-                "Distance from the pipeline origin compares against op/value.", BuiltinTargetConditions::distance));
+                "到管道原点的距离与 op/value 比较。", BuiltinTargetConditions::distance));
         definitions.put("level", new Definition("level",
-                "Player experience level compares against op/value.", BuiltinTargetConditions::level));
+                "玩家经验等级与 op/value 比较。", BuiltinTargetConditions::level));
         definitions.put("food", new Definition("food",
-                "Player food level compares against op/value.", BuiltinTargetConditions::food));
+                "玩家食物等级与 op/value 比较。", BuiltinTargetConditions::food));
         definitions.put("gamemode", new Definition("gamemode",
-                "Player game mode is one of the listed modes.", BuiltinTargetConditions::gameMode));
+                "玩家游戏模式为所列模式之一。", BuiltinTargetConditions::gameMode));
         definitions.put("permission", new Definition("permission",
-                "Player holds at least one of the listed permission nodes.", BuiltinTargetConditions::permission));
+                "玩家拥有所列权限节点中的至少一个。", BuiltinTargetConditions::permission));
         definitions.put("potion_effect", new Definition("potion_effect",
-                "Subject carries one of the listed effects at or above min_amplifier.", BuiltinTargetConditions::potionEffect));
+                "主体带有所列效果之一，且等级不低于 min_amplifier。", BuiltinTargetConditions::potionEffect));
         definitions.put("scoreboard_tag", new Definition("scoreboard_tag",
-                "Subject carries one of the listed scoreboard tags.", BuiltinTargetConditions::scoreboardTag));
+                "主体带有所列记分板标签之一。", BuiltinTargetConditions::scoreboardTag));
         definitions.put("state", new Definition("state",
-                "Subject state key equals the expected boolean value.", BuiltinTargetConditions::state));
+                "主体状态键等于期望的布尔值。", BuiltinTargetConditions::state));
         return Map.copyOf(definitions);
     }
 

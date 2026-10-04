@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.3"
+version: "4.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
@@ -32,6 +32,11 @@ command:
       "edit recipe <id>": "Edit specified recipe"
       "create recipe [id]": "Create new recipe draft"
       "delete recipe <id>": "Delete specified recipe"
+  debug:
+    # Command: forge runtime status debug output; placeholders: %status%, %generation%, %gui%, %recipes%, %issues%, %source_states%, %reload_candidates%, %reload_installed%, %reload_failed%, %reload_stale%, %gui_stale%, %execution_stale%, %settlement_failures%, %last_ms%
+    runtime: "<gray>EmakiForge runtime status:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"
+    # Command: recipe load report debug output; placeholders: %generation%, %files%, %parsed%, %skipped%, %registered%, %duplicates%, %executable%, %gui_visible%, %issues%, %warnings%, %hash%, %duration_ms%, %source_statuses%
+    recipe_load: "<gray>EmakiForge recipe load:</gray> <white>generation=%generation% files=%files% parsed=%parsed% skipped=%skipped% registered=%registered% duplicates=%duplicates% executable=%executable% gui_visible=%gui_visible% issues=%issues% warnings=%warnings% hash=%hash% duration_ms=%duration_ms% source_statuses=%source_statuses%</white>"
   convert_legacy:
     header: "<gold>========== Legacy item_sources conversion (%mode%, %files% files) ==========</gold>"
     mode:
@@ -141,6 +146,14 @@ console:
     <gray>dependency=%dependency%, context=%context%, source=%source%,
     detail=%detail%</gray></yellow>"
   item_bridge_unavailable: "<yellow>%dependency% API bridge unavailable: <red>%error%</red></yellow>"
+  # Console: item source unavailable; placeholders: %source%, %location%, %provider%, %status%, %detail%
+  item_source_unavailable: "<yellow>Item source unavailable: <gray>source=%source%, location=%location%, provider=%provider%, status=%status%, detail=%detail%</gray></yellow>"
+  # Console: failed to resolve item source; placeholders: %source%, %operation%
+  item_source_resolve_failed: "<yellow>Failed to resolve item source: <gray>source=%source%, operation=%operation%</gray></yellow>"
+  # Console: reload generation failed; placeholders: %generation%, %error%
+  reload_generation_failed: "[Reload] Generation %generation% failed: %error%"
+  # Console: reload rejected; placeholders: %generation%, %summary%
+  reload_rejected: "[Reload] Rejected generation %generation%: %summary%"
   forge_execution_failed: "<yellow>Forge execution failed: recipe
     <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
   forge_phase_execution_failed: "<yellow>Forge phase execution failed: phase

@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 public final class SetExpStage extends ExperienceStage {
 
     public SetExpStage(ActionAuditLogger auditLogger) {
-        super("set_exp", "Sets the target's experience to an absolute value.", auditLogger, OperationType.SET);
+        super("set_exp", "把目标经验设置为绝对值。", auditLogger, OperationType.SET);
     }
 
     @Override

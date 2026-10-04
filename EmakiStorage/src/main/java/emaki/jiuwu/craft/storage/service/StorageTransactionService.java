@@ -687,7 +687,7 @@ public final class StorageTransactionService {
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
             return matcher.test(MatchContext.of(template, actual, null));
         } catch (RuntimeException exception) {
-            LOGGER.warning("[storage] deposit_filter matcher threw and is treated as no match: "
+            LOGGER.warning("[storage] deposit_filter 匹配器抛出异常，已按不匹配处理："
                     + exception.getClass().getSimpleName());
             return false;
         }

@@ -421,12 +421,12 @@ public final class StrengthenEconomyService {
     }
 
     private void logProviderFailure(String phase, String operationId, Throwable throwable) {
-        plugin.getLogger().warning("Strengthen economy boundary failed | operationId=" + safeOperationId(operationId)
-                + " | phase=" + phase + " | error=" + (throwable == null ? "unknown" : throwable.getMessage()));
+        plugin.getLogger().warning("强化经济边界失败 | operationId=" + safeOperationId(operationId)
+                + " | phase=" + phase + " | error=" + (throwable == null ? "未知" : throwable.getMessage()));
     }
 
     private void logCompensationPending(Player player, String operationId, List<AttemptCost> pending) {
-        plugin.getLogger().severe("Strengthen compensation pending | operationId=" + safeOperationId(operationId)
+        plugin.getLogger().severe("强化补偿待处理 | operationId=" + safeOperationId(operationId)
                 + " | player=" + (player == null ? "-" : player.getUniqueId()) + " | costs=" + pending);
     }
 

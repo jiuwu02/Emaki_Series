@@ -47,8 +47,8 @@ public final class DisplayServiceFactory {
         try {
             return new PacketTextDisplayService(owner, safeSettings, dispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            owner.getLogger().warning("[display] Could not start the packet text backend, "
-                    + "falling back to real entities: " + exception.getMessage());
+            owner.getLogger().warning("[display] 无法启动 packet 文本后端，"
+                    + "回退为实体显示: " + exception.getMessage());
             return new BukkitTextDisplayService(owner, dispatcher);
         }
     }
@@ -66,8 +66,8 @@ public final class DisplayServiceFactory {
         try {
             return new PacketItemDisplayService(owner, safeSettings, dispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            owner.getLogger().warning("[display] Could not start the packet item backend, "
-                    + "falling back to real entities: " + exception.getMessage());
+            owner.getLogger().warning("[display] 无法启动 packet 物品后端，"
+                    + "回退为实体显示: " + exception.getMessage());
             return new BukkitItemDisplayService(owner, dispatcher);
         }
     }
@@ -78,8 +78,8 @@ public final class DisplayServiceFactory {
         }
         if (!Bukkit.getPluginManager().isPluginEnabled(PACKET_EVENTS_PLUGIN)) {
             if (BACKEND_PACKET.equals(backend)) {
-                owner.getLogger().warning("[display] The packet backend needs PacketEvents installed, "
-                        + "falling back to real entities.");
+                owner.getLogger().warning("[display] packet 后端需要安装 PacketEvents，"
+                        + "回退为实体显示。");
             }
             return false;
         }

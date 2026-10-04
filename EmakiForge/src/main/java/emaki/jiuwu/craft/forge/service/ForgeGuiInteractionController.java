@@ -258,7 +258,7 @@ final class ForgeGuiInteractionController {
         if (threadOwnership == null || !threadOwnership.isEntityOwned(state.player())) {
             debug(state.player(), "forge.gui.confirm.rejected_player_owner_unavailable", replacements(
                     "recipe", finalRecipe.id()));
-            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "player owner is unavailable"));
+            state.runtimeSnapshot().messageService().send(state.player(), "forge.error.action_failed", Map.of("reason", "玩家所有者不可用"));
             return;
         }
         if (!ensureCurrentGeneration(state)) {
@@ -286,8 +286,8 @@ final class ForgeGuiInteractionController {
                 runTerminalSettlement(
                         state,
                         () -> returnFailedAttempt(state, "forge.error.runtime_unavailable", Map.of(
-                                "reason", "forge completion could not be tracked")),
-                        "forge completion tracking rejection settlement failed");
+                                "reason", "无法跟踪锻造完成")),
+                        "锻造完成跟踪被拒绝后的结算失败");
             }
             state.player().closeInventory();
             return;
@@ -324,7 +324,7 @@ final class ForgeGuiInteractionController {
             Throwable throwable,
             CompletableFuture<Void> ownerCompletion) {
         if (state == null || state.player() == null || executionDispatcher == null) {
-            cleanupRetiredAttempt(state, activeRecipe, result, "completion owner is unavailable");
+            cleanupRetiredAttempt(state, activeRecipe, result, "完成所有者不可用");
             ownerCompletion.complete(null);
             return;
         }
@@ -350,19 +350,19 @@ final class ForgeGuiInteractionController {
                     completion,
                     () -> {
                         cleanupRetiredAttempt(state, activeRecipe, result,
-                                "completion owner retired before execution");
+                                "完成所有者在执行前已退役");
                         ownerCompletion.completeExceptionally(new RejectedExecutionException(
-                                "Forge GUI completion owner retired before execution."));
+                                "Forge GUI 完成所有者在执行前已退役。"));
                     });
             if (scheduled == null) {
                 cleanupRetiredAttempt(state, activeRecipe, result,
-                        "completion scheduling was rejected");
+                        "完成调度被拒绝");
                 ownerCompletion.completeExceptionally(new RejectedExecutionException(
-                        "Forge GUI completion scheduling was rejected."));
+                        "Forge GUI 完成调度被拒绝。"));
             }
         } catch (Throwable schedulingFailure) {
             cleanupRetiredAttempt(state, activeRecipe, result,
-                    "completion scheduling failed: " + Texts.toStringSafe(schedulingFailure.getMessage()));
+                    "完成调度失败: " + Texts.toStringSafe(schedulingFailure.getMessage()));
             ownerCompletion.completeExceptionally(schedulingFailure);
         }
     }
@@ -384,7 +384,7 @@ final class ForgeGuiInteractionController {
                         settleInputs(state, activeRecipe, result);
                     }
                 },
-                "stale forge completion settlement failed");
+                "过期的锻造完成结算失败");
     }
 
     private void cleanupRetiredAttempt(ForgeGuiSession state,
@@ -412,7 +412,7 @@ final class ForgeGuiInteractionController {
                         settleInputs(state, activeRecipe, result);
                     }
                 },
-                "retired forge completion settlement failed");
+                "已退役的锻造完成结算失败");
     }
 
     private void completeForgeAttempt(ForgeGuiSession state,
@@ -434,7 +434,7 @@ final class ForgeGuiInteractionController {
                         "error", String.valueOf(throwable.getMessage())
                 ));
             } catch (Throwable messageFailure) {
-                plugin.getLogger().warning("Forge execution failure logging failed: "
+                plugin.getLogger().warning("锻造执行失败日志记录失败: "
                         + Texts.toStringSafe(messageFailure.getMessage()));
             }
             if (committedDelivery) {
@@ -442,14 +442,14 @@ final class ForgeGuiInteractionController {
                 runTerminalSettlement(
                         state,
                         () -> settleCommittedDelivery(state, activeRecipe),
-                        "committed exceptional forge settlement failed");
+                        "已提交的异常锻造结算失败");
                 return;
             }
             runTerminalSettlement(
                     state,
                     () -> returnFailedAttempt(state, "forge.error.action_failed", Map.of(
                             "reason", Texts.toStringSafe(throwable.getMessage()))),
-                    "exceptional forge input settlement failed");
+                    "异常锻造输入结算失败");
             return;
         }
         if (result == null || !result.success()) {
@@ -462,7 +462,7 @@ final class ForgeGuiInteractionController {
             runTerminalSettlement(
                     state,
                     () -> returnFailedAttempt(state, errorKey, replacements),
-                    "failed forge input settlement failed");
+                    "锻造失败输入结算失败");
             fireForgeCompleted(state.player(), activeRecipe, result, false);
             return;
         }
@@ -475,7 +475,7 @@ final class ForgeGuiInteractionController {
         runTerminalSettlement(
                 state,
                 () -> settleCommittedDelivery(state, activeRecipe),
-                "successful forge settlement failed");
+                "锻造成功结算失败");
         if (Texts.isNotBlank(result.quality())) {
             state.runtimeSnapshot().messageService().send(
                     state.player(),
@@ -619,7 +619,7 @@ final class ForgeGuiInteractionController {
     void settleShutdownSessionOnOwner(ForgeGuiSession state) {
         if (state == null || state.player() == null || threadOwnership == null
                 || !threadOwnership.isEntityOwned(state.player())) {
-            recordSettlementFailure(state, "shutdown settlement did not run on the player owner");
+            recordSettlementFailure(state, "关闭结算未在玩家所有者线程上运行");
             return;
         }
         boolean processing = state.processing();
@@ -634,7 +634,7 @@ final class ForgeGuiInteractionController {
             runTerminalSettlement(
                     state,
                     () -> settleCommittedDelivery(state, state.recipe()),
-                    "shutdown committed delivery settlement failed");
+                    "关闭时已提交发放结算失败");
             return;
         }
         runTerminalSettlement(
@@ -646,7 +646,7 @@ final class ForgeGuiInteractionController {
                     }
                     stateSupport.returnItems(state, cursorItem);
                 },
-                "shutdown input settlement failed");
+                "关闭时输入结算失败");
     }
 
     void handleShutdownClosureFailure(ForgeGuiSession state, String reason) {
@@ -654,7 +654,7 @@ final class ForgeGuiInteractionController {
             return;
         }
         if (state.processing()) {
-            recordSettlementFailure(state, reason + "; tracked processing completion retains settlement ownership");
+            recordSettlementFailure(state, reason + "；被跟踪的处理完成仍保留结算所有权");
             return;
         }
         abandonRetiredSession(state, reason);
@@ -665,8 +665,8 @@ final class ForgeGuiInteractionController {
             return;
         }
         recordSettlementFailure(state, state.processing()
-                ? reason + "; processing completion still owns unresolved settlement"
-                : reason + "; unresolved items remain reserved for an owner-thread retry");
+                ? reason + "；处理完成仍持有未解决结算"
+                : reason + "；未解决物品仍为所有者线程重试保留");
     }
 
     private void runTerminalSettlement(ForgeGuiSession state, Runnable settlement, String failureReason) {
@@ -676,7 +676,7 @@ final class ForgeGuiInteractionController {
                 settlement.run();
             }
             if (state == null || !state.commitSettlement()) {
-                throw new IllegalStateException("Forge settlement reservation could not be committed.");
+                throw new IllegalStateException("无法提交锻造结算预留。");
             }
             committed = true;
         } catch (Throwable throwable) {
@@ -722,7 +722,7 @@ final class ForgeGuiInteractionController {
         String playerId = state == null || state.playerId() == null
                 ? "unknown"
                 : state.playerId().toString();
-        plugin.getLogger().warning("Forge GUI settlement could not run on the player owner: player="
+        plugin.getLogger().warning("Forge GUI 结算无法在玩家所有者线程上运行: player="
                 + playerId + " reason=" + Texts.toStringSafe(reason));
     }
 
@@ -733,7 +733,7 @@ final class ForgeGuiInteractionController {
                     errorKey,
                     replacements == null ? Map.of() : replacements);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("Forge failure message dispatch failed: "
+            plugin.getLogger().warning("锻造失败消息派发失败: "
                     + Texts.toStringSafe(throwable.getMessage()));
         }
         stateSupport.returnItems(state);
@@ -907,7 +907,7 @@ final class ForgeGuiInteractionController {
                             stateSupport.giveBackToPlayer(state.player(), cursorItem);
                         }
                     },
-                    "GUI close input settlement failed");
+                    "GUI 关闭输入结算失败");
         }
     }
 }

@@ -305,7 +305,7 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("gui [inlay|upgrade|open]", ms.message("command.help.desc.gui"));
         lines.put("reload", ms.message("command.help.desc.reload"));
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
-        lines.put("reroll <full|value|confirm|cancel|status>", "Generate or accept a reroll candidate for the held gem");
+        lines.put("reroll <full|value|confirm|cancel|status>", ms.message("command.help.desc.reroll"));
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));
         lines.put("convert-legacy [confirm]", ms.message("command.help.desc.convert_legacy"));
         lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));

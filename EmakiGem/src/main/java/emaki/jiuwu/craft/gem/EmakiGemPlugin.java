@@ -204,7 +204,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiGem readiness publication skipped: " + exception);
+            getLogger().fine("EmakiGem 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -252,7 +252,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakigem command",
+                "EmakiGem 命令",
                 List.of("egem", "eg"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakigem.use", commandRouter, commandRouter)
         );

@@ -95,7 +95,7 @@ public final class TriggerScriptBridge {
             AdvancementTriggerRegistration registration = extensions.registerTrigger(plugin, trigger);
             if (registration == AdvancementTriggerRegistration.noop()) {
                 plugin.messageService().warning("console.script_register_failed",
-                        Map.of("id", id, "reason", "registration rejected"));
+                        Map.of("id", id, "reason", "注册被拒绝"));
                 return;
             }
             registrations.add(registration);
@@ -146,7 +146,7 @@ public final class TriggerScriptBridge {
                 registration.close();
             } catch (RuntimeException | LinkageError exception) {
                 plugin.getLogger().warning(
-                        "Codex script trigger unregister failed: " + TriggerScriptLogic.describe(exception));
+                        "EmakiCodex 脚本触发器注销失败：" + TriggerScriptLogic.describe(exception));
             }
         }
     }
@@ -166,7 +166,7 @@ public final class TriggerScriptBridge {
         try (InputStream resource = plugin.getResource(EXAMPLE_RESOURCE)) {
             if (resource == null) {
                 plugin.messageService().warning("console.script_release_failed",
-                        Map.of("reason", "bundled resource missing"));
+                        Map.of("reason", "内置资源缺失"));
                 return;
             }
             Files.createDirectories(target.getParent());

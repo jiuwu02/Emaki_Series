@@ -53,12 +53,12 @@ public final class ActionStageScriptBinding {
         StageRegistry target = registry.get();
         ActionStagePayload data = parsed.value();
         if (target == null) {
-            errors.accept("actions: '" + data.id() + "' -> stage registry is unavailable");
+            errors.accept("actions: '" + data.id() + "' -> 段注册表不可用");
             return;
         }
         ScriptCallbackRunner resolvedRunner = runner.get();
         if (resolvedRunner == null) {
-            errors.accept("actions: '" + data.id() + "' -> script host is unavailable");
+            errors.accept("actions: '" + data.id() + "' -> 脚本宿主不可用");
             return;
         }
         ScriptActionStage stage = new ScriptActionStage(data.id(), data.description(), data.category(),

@@ -146,7 +146,7 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "Unable to prepare forge assembly request.");
+                    "无法准备锻造组装请求。");
         }
         result.setQuality(forgePlan.quality());
         result.setMultiplier(forgePlan.multiplier());
@@ -155,7 +155,7 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "Unable to create forge result item.");
+                    "无法创建锻造结果物品。");
         }
         if (resultItemPostProcessor != null) {
             resultItemPostProcessor.process(player, recipe, guiItems, forgePlan, resultItem);
@@ -203,7 +203,7 @@ final class ForgeExecutionService {
                 result.setErrorKey("forge.error.action_failed");
                 result.setReplacements(Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
                 return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                        "Unable to reserve forge result delivery.");
+                        "无法预留锻造结果发放。");
             }
         }
         ItemStack resultItem = itemTarget.itemStack();
@@ -215,14 +215,14 @@ final class ForgeExecutionService {
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of("reason", Texts.toStringSafe(throwable.getMessage())));
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "Forge result delivery threw an exception.");
+                    "锻造结果发放抛出异常。");
         }
         if (!delivered) {
             releaseDeliveryReservation(deliveryReserved, deliveryRollback);
             result.setErrorKey("forge.error.item_create");
             result.setReplacements(Map.of());
             return finishFailureAsync(player, recipe, guiItems, result, runtimeGeneration,
-                    "Unable to deliver forge result item.");
+                    "无法发放锻造结果物品。");
         }
         result.setSuccess(true);
         result.setResultItem(resultItem);
@@ -230,7 +230,7 @@ final class ForgeExecutionService {
             try {
                 deliveryCommit.run();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("Forge result delivery commit callback failed: "
+                plugin.getLogger().warning("锻造结果发放提交回调失败: "
                         + Texts.toStringSafe(throwable.getMessage()));
             }
         }
@@ -267,7 +267,7 @@ final class ForgeExecutionService {
                 CompletionStage<ForgeResult> stage = operation.get();
                 if (stage == null) {
                     future.completeExceptionally(new IllegalStateException(
-                            "Forge player-owner operation returned no completion stage."));
+                            "Forge 玩家所有者操作未返回完成阶段。"));
                     return;
                 }
                 stage.whenComplete((value, throwable) -> {
@@ -288,9 +288,9 @@ final class ForgeExecutionService {
         try {
             var scheduled = executionDispatcher.runEntity(plugin, player, task,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Forge player-owner operation retired before execution.")));
+                            "Forge 玩家所有者操作在执行前已退役。")));
             if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException("Forge player-owner scheduling was rejected."));
+                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝。"));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -323,9 +323,9 @@ final class ForgeExecutionService {
         try {
             var scheduled = executionDispatcher.runEntity(plugin, player, task,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Forge player-owner operation retired before execution.")));
+                            "Forge 玩家所有者操作在执行前已退役。")));
             if (scheduled == null) {
-                future.completeExceptionally(new RejectedExecutionException("Forge player-owner scheduling was rejected."));
+                future.completeExceptionally(new RejectedExecutionException("Forge 玩家所有者调度被拒绝。"));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -340,7 +340,7 @@ final class ForgeExecutionService {
         try {
             deliveryRollback.run();
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("Forge result delivery rollback callback failed: "
+            plugin.getLogger().warning("锻造结果发放回滚回调失败: "
                     + Texts.toStringSafe(throwable.getMessage()));
         }
     }
@@ -348,7 +348,7 @@ final class ForgeExecutionService {
     private ForgeResult staleSessionResult() {
         ForgeResult result = new ForgeResult();
         result.setErrorKey(DEFAULT_ACTION_FAILURE_KEY);
-        result.setReplacements(Map.of("reason", "player session is no longer current"));
+        result.setReplacements(Map.of("reason", "玩家会话已不再是最新"));
         return result;
     }
 
@@ -363,7 +363,7 @@ final class ForgeExecutionService {
     private ForgeResult staleRuntimeResult() {
         ForgeResult result = new ForgeResult();
         result.setErrorKey("forge.error.runtime_unavailable");
-        result.setReplacements(Map.of("reason", "runtime generation changed"));
+        result.setReplacements(Map.of("reason", "运行时代次已变化"));
         return result;
     }
 

@@ -55,7 +55,7 @@ public final class EmakiItemAliasLoader {
                     Texts.toStringSafe(data.getOrDefault("expires_after", "never"))
             );
             if (!alias.valid()) {
-                plugin.getLogger().warning("Invalid EmakiItem alias '" + oldId + "' in " + file.getPath() + ", skipped.");
+                plugin.getLogger().warning("无效的 EmakiItem alias '" + oldId + "'（位于 " + file.getPath() + "），已跳过。");
                 continue;
             }
             loaded.put(alias.oldId(), alias);
@@ -115,7 +115,7 @@ public final class EmakiItemAliasLoader {
         try {
             YamlFiles.save(plugin.getDataFolder().toPath().resolve("id_aliases.yml").toFile(), root);
         } catch (IOException e) {
-            plugin.getLogger().warning("Failed to save id_aliases.yml: " + e.getMessage());
+            plugin.getLogger().warning("保存 id_aliases.yml 失败: " + e.getMessage());
         }
     }
 

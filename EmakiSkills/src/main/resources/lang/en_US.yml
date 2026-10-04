@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.3"
+version: "2.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -12,6 +12,10 @@ general:
   unknown_command: "<red>Unknown command, use /eskills help to view help.</red>"
   invalid_args: "<red>Invalid arguments.</red>"
   reloading: "<gray>Reloading configuration...</gray>"
+  # Player: configuration reload failure notice
+  reload_failed: "<red>Configuration reload failed.</red>"
+  # Player: configuration reload elapsed time notice; placeholders: %elapsed%
+  reload_elapsed: "<gray>Reload took: <white>%elapsed%ms</white></gray>"
   reload_success: "<green>Configuration reloaded.</green>"
   reload_summary: "<gray>Skills: %skills% | Resources: %resources% | GUI: %guis%</gray>"
 
@@ -66,6 +70,8 @@ console:
   ea_bridge_read_resource_max_failed: "Failed to read EmakiAttribute resource max value: %resource% (%error%)"
   ea_bridge_consume_failed: "Failed to consume EmakiAttribute resource: %resource% (%error%)"
   ea_bridge_attribute_read_failed: "Failed to read EmakiAttribute attribute: %attribute% (%error%)"
+  # Console: failed to apply EmakiAttribute damage; placeholders: %damage_type%, %error%
+  ea_bridge_apply_damage_failed: "Failed to apply EmakiAttribute damage: %damage_type% (%error%)"
   auraskills_mana_unavailable: "No usable AuraSkills mana API detected; AuraSkills mana costs will block casting."
   auraskills_mana_ready: "AuraSkills mana bridge ready, connection mode: %mode%."
   auraskills_mana_init_failed: "Failed to initialize AuraSkills mana bridge: %error%"
@@ -92,6 +98,39 @@ console:
     file_error: "<red>Failed to load JS skill script <yellow>%file%</yellow>: %error%</red>"
     register_error: "<red>Failed to register JS skill [<yellow>%id%</yellow>]: %error%</red>"
     example_release_failed: "Failed to release example skill script: %path% (%error%)"
+    # Console: JS skill script registration failure reasons (no placeholders)
+    reason:
+      blank_id: "blank or missing id"
+      registry_inactive: "EmakiSkills registry is not active"
+      registration_rejected: "registration was rejected"
+  # Console: granting/revoking a skill via command failed; placeholders: %error%
+  command_grant_revoke_failed: "Skill grant/revoke failed: %error%"
+  # Console: resetting skills via command failed; placeholders: %error%
+  command_reset_failed: "Skill reset failed: %error%"
+  # Console: level command execution failed; placeholders: %error%
+  command_level_failed: "Level command failed: %error%"
+  # Console: scheduling a command response failed; placeholders: %error%
+  command_schedule_failed: "Failed to schedule command response: %error%"
+  # Console: async reload failed; placeholders: %error%
+  reload_async_failed: "[Reload] Async reload failed: %error%"
+  # Console: reload stage failed; placeholders: %stage%, %error%
+  reload_stage_failed: "[Reload] Stage %stage% failed: %error%"
+  # Console: registering a pipeline stage failed; placeholders: %stage%, %reason%
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  # Console: GUI template not found; placeholders: %template%
+  gui_template_not_found: "[SkillsGui] Template '%template%' not found"
+  # Console: a skill's declared upgrade template is missing, falling back; placeholders: %skill%, %template%, %fallback%
+  gui_upgrade_template_missing: "[SkillsGui] Skill '%skill%' declares upgrade template '%template%' which does not exist; falling back to '%fallback%'"
+  # Console: closing skill GUI sessions failed; placeholders: %error%
+  gui_close_failed: "Failed to close skill GUI sessions: %error%"
+  # Console: skill upgrade material requirement threw and counts as zero; placeholders: %error%
+  gui_material_requirement_failed: "Skill upgrade material requirement threw and counts as zero: %error%"
+  # Console: ActionBar refresh failed; placeholders: %player%, %error%
+  actionbar_refresh_failed: "[ActionBar] Failed to refresh for %player%: %error%"
+  # Console: scheduling an ActionBar refresh failed; placeholders: %player%, %error%
+  actionbar_schedule_failed: "[ActionBar] Failed to schedule refresh for %player%: %error%"
+  # Console: a skill failed to cast via trigger; placeholders: %skill%, %trigger%, %kind%, %detail%
+  skill_cast_failed: "Skill '%skill%' failed to cast via trigger '%trigger%': %kind% - %detail%"
 
 loader:
   lang_directory_create_failed: "Unable to create language directory: %path%"
@@ -251,6 +290,8 @@ command:
     header: "<gray>===== Player <aqua>%player%</aqua> Skill Status =====</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
     empty_slot: "[Empty]"
+    # Command: value shown when the player profile is not loaded
+    not_loaded: "Not loaded"
   castmode:
     enabled: "<green>Cast mode enabled.</green>"
     disabled: "<yellow>Cast mode disabled.</yellow>"

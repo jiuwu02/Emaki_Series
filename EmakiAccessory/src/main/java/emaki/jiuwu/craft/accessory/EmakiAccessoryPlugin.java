@@ -154,7 +154,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         PlayerAccessoryStore.FlushResult result = components.accessoryStore()
                 .flushAndSeal(appConfig().drainTimeoutSeconds(), TimeUnit.SECONDS);
         if (!result.clean()) {
-            getLogger().warning("Accessory flush did not finish cleanly: saved=" + result.savedEntries()
+            getLogger().warning("饰品数据写入未正常结束: saved=" + result.savedEntries()
                     + " failed=" + result.failedEntries()
                     + " remainingDirty=" + result.remainingDirtyEntries());
         }
@@ -194,7 +194,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiAccessory readiness publication skipped: " + exception);
+            getLogger().fine("已跳过 EmakiAccessory 就绪状态发布: " + exception);
         }
     }
 
@@ -505,7 +505,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerCommandHandler() {
         commandRouter = new AccessoryCommandRouter(this);
-        registerCommand(ROOT_COMMAND, "EmakiAccessory command", List.of("eaccessory", "eacc"),
+        registerCommand(ROOT_COMMAND, "EmakiAccessory 指令", List.of("eaccessory", "eacc"),
                 new AccessoryCommandAdapter(ROOT_COMMAND, "emakiaccessory.use", commandRouter));
     }
 

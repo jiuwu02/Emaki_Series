@@ -517,7 +517,7 @@ public final class MergedMaterialChannel {
                 future.completeExceptionally(failure);
             }
         }, () -> future.completeExceptionally(
-                new IllegalStateException("player retired before station debit ran")));
+                new IllegalStateException("玩家在站点扣费执行前已退出")));
         return future;
     }
 }

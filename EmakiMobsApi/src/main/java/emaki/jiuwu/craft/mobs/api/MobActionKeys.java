@@ -22,6 +22,6 @@ public final class MobActionKeys {
             CoreActionKey.of("emakimobs:target", LivingEntity.class);
 
     private MobActionKeys() {
-        throw new UnsupportedOperationException("Utility class");
+        throw new UnsupportedOperationException("工具类不能实例化");
     }
 }

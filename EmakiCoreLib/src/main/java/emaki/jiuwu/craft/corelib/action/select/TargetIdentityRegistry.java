@@ -89,7 +89,7 @@ public final class TargetIdentityRegistry {
             return entry.provider().identify(entity);
         } catch (RuntimeException | LinkageError exception) {
             if (failureReporter != null && reportedFailures.add(entry.systemId())) {
-                failureReporter.accept("Target identity provider '" + entry.systemId() + "' failed: "
+                failureReporter.accept("目标身份提供者 '" + entry.systemId() + "' 失败: "
                         + IntegrationFailures.detail(exception));
             }
             return null;

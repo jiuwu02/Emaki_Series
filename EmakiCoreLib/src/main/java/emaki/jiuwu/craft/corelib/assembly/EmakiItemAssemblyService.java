@@ -336,14 +336,14 @@ public final class EmakiItemAssemblyService {
         if (config.executionDispatcher() == null || config.executionOwner() == null) {
             if (config.scheduler() != null) {
                 return CompletableFuture.failedFuture(new RejectedExecutionException(
-                        "Async assembly delivery requires an ExecutionDispatcher and owner."));
+                        "异步物品组装投递需要 ExecutionDispatcher 与所属插件。"));
             }
             deliverToPlayer(player, itemStack);
             return CompletableFuture.completedFuture(itemStack);
         }
         CompletableFuture<ItemStack> future = new CompletableFuture<>();
         Runnable retired = () -> future.completeExceptionally(new RejectedExecutionException(
-                "Assembly delivery target retired before item could be delivered."));
+                "物品组装投递目标在物品送达前已退役。"));
         try {
             if (config.executionDispatcher().runEntity(config.executionOwner(), player, () -> {
                 try {

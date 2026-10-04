@@ -56,10 +56,10 @@ final class GemOpenGuiRenderer {
     private ItemStack renderTargetItem(GemOpenGuiSession state, GuiSlot guiSlot) {
         ItemStack targetItem = state.targetItem();
         if (targetItem == null) {
-            String title = text("target_empty_name", "<aqua>Place Equipment</aqua>");
+            String title = text("target_empty_name", "<aqua>放入装备</aqua>");
             List<String> lore = List.of(
-                    text("target_empty_lore_1", "<gray>Place equipment here</gray>"),
-                    common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
+                    text("target_empty_lore_1", "<gray>将需要开孔的装备放入此槽</gray>"),
+                    common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
             );
             return buildConfiguredItem(guiSlot, Material.LIGHT_BLUE_STAINED_GLASS_PANE, title, lore,
                     linesReplacements("target_title", title, "target_lines", lore));
@@ -78,20 +78,20 @@ final class GemOpenGuiRenderer {
         ItemStack targetItem = state.targetItem();
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
         GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
-        String title = text("info_name", "<gold>Socket Info</gold>");
+        String title = text("info_name", "<gold>开孔信息</gold>");
         List<String> lore = new ArrayList<>();
         if (itemDefinition == null || gemState == null) {
-            lore.add(text("no_target_line_1", "<red>No valid equipment placed</red>"));
-            lore.add(text("no_target_line_2", "<gray>Please place equipment first</gray>"));
+            lore.add(text("no_target_line_1", "<red>尚未放入有效装备</red>"));
+            lore.add(text("no_target_line_2", "<gray>请先放入可开孔装备</gray>"));
             return buildConfiguredItem(guiSlot, Material.BOOK, title, lore, infoReplacements(title, lore));
         }
         int total = itemDefinition.slots().size();
         int opened = gemState.openedSlotIndexes().size();
         int locked = Math.max(0, total - opened);
-        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>Equipment definition: <gold>%item%</gold></gray>"));
-        lore.add(text("opened_count", Map.of("opened", opened, "total", total), "<gray>Opened: <green>%opened%</green>/<yellow>%total%</yellow></gray>"));
-        lore.add(text("locked_count", Map.of("locked", locked), "<gray>Locked: <yellow>%locked%</yellow></gray>"));
-        lore.add(text("info_hint", "<gray>Place an opener, then click a locked slot</gray>"));
+        lore.add(text("equipment_definition", Map.of("item", itemDefinition.id()), "<gray>装备定义: <gold>%item%</gold></gray>"));
+        lore.add(text("opened_count", Map.of("opened", opened, "total", total), "<gray>已开孔: <green>%opened%</green>/<yellow>%total%</yellow></gray>"));
+        lore.add(text("locked_count", Map.of("locked", locked), "<gray>未开孔: <yellow>%locked%</yellow></gray>"));
+        lore.add(text("info_hint", "<gray>先放入开孔器，再点击下方锁定槽位</gray>"));
         Map<String, Object> replacements = infoReplacements(title, lore);
         replacements.put("item", itemDefinition.id());
         replacements.put("opened", opened);
@@ -104,7 +104,7 @@ final class GemOpenGuiRenderer {
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("info_title", title);
         replacements.put("info_lines", lines);
-        replacements.put("item", common("none", "None"));
+        replacements.put("item", common("none", "无"));
         replacements.put("opened", 0);
         replacements.put("total", 0);
         replacements.put("locked", 0);
@@ -114,10 +114,10 @@ final class GemOpenGuiRenderer {
     private ItemStack renderOpenerItem(GemOpenGuiSession state, GuiSlot guiSlot) {
         ItemStack openerItem = state.openerItem();
         if (openerItem == null) {
-            String title = text("opener_empty_name", "<light_purple>Place Socket Opener</light_purple>");
+            String title = text("opener_empty_name", "<light_purple>放入开孔器</light_purple>");
             List<String> lore = List.of(
-                    text("opener_empty_lore_1", "<gray>Place a socket opener here</gray>"),
-                    common("click_take_back", "<gray>Supports placing from cursor and clicking to retrieve</gray>")
+                    text("opener_empty_lore_1", "<gray>将开孔器放入此槽</gray>"),
+                    common("click_take_back", "<gray>支持从光标放入，也可点击取回</gray>")
             );
             return buildConfiguredItem(guiSlot, Material.AMETHYST_SHARD, title, lore,
                     linesReplacements("opener_title", title, "opener_lines", lore));
@@ -133,9 +133,9 @@ final class GemOpenGuiRenderer {
             return hiddenSlot();
         }
         if (itemDefinition == null || gemState == null) {
-            String unusedTitle = text("unused_slot_name", "<dark_gray>Unused Slot</dark_gray>");
+            String unusedTitle = text("unused_slot_name", "<dark_gray>未使用插槽</dark_gray>");
             List<String> unusedLore = List.of(
-                    text("unused_slot_lore", "<dark_gray>This equipment does not have this slot</dark_gray>")
+                    text("unused_slot_lore", "<dark_gray>当前装备没有这个槽位</dark_gray>")
             );
             return buildConfiguredItem(guiSlot, Material.BLACK_STAINED_GLASS_PANE, unusedTitle, unusedLore,
                     slotReplacements(unusedTitle, unusedLore));
@@ -146,11 +146,11 @@ final class GemOpenGuiRenderer {
         boolean hasOpenerItem = plugin.itemMatcher().isOpenerItem(state.mutableOpenerItem());
         SocketOpenerConfig opener = plugin.itemMatcher().matchOpenerForType(state.mutableOpenerItem(), slot.type());
         if (gemState.isOpened(slotIndex)) {
-            String openedState = text("socket_opened", "Opened");
+            String openedState = text("socket_opened", "已开孔");
             String openedTitle = slotTitle(slot, slotIndex, openedState);
             List<String> openedLore = List.of(
-                    text("already_opened_1", "<gray>This slot is already opened</gray>"),
-                    text("already_opened_2", "<dark_gray>Please open a locked slot instead</dark_gray>")
+                    text("already_opened_1", "<gray>该槽位已经开启</gray>"),
+                    text("already_opened_2", "<dark_gray>请在未开孔槽位上执行开孔</dark_gray>")
             );
             Map<String, Object> openedReplacements = slotReplacements(openedTitle, openedLore);
             openedReplacements.put("slot", slotIndex);
@@ -161,18 +161,18 @@ final class GemOpenGuiRenderer {
         }
         List<String> lore = new ArrayList<>();
         lore.add(socketType(slot.displayName()));
-        lore.add(text("not_opened", "<red>Not opened yet</red>"));
+        lore.add(text("not_opened", "<red>当前尚未开孔</red>"));
         if (!hasOpenerItem) {
-            lore.add(text("place_opener", "<gray>Please place a socket opener first</gray>"));
+            lore.add(text("place_opener", "<gray>请先放入开孔器</gray>"));
         } else if (opener == null) {
-            lore.add(text("opener_incompatible", "<red>The current opener cannot open this slot type</red>"));
+            lore.add(text("opener_incompatible", "<red>当前开孔器无法开启此类型槽位</red>"));
         } else {
-            lore.add(text("click_select", "<gray>Click to select this slot for opening</gray>"));
+            lore.add(text("click_select", "<gray>点击可选择该槽位进行开孔</gray>"));
         }
         if (selected) {
-            lore.add(text("selected", "<green>This slot is selected</green>"));
+            lore.add(text("selected", "<green>已选择该槽位</green>"));
         }
-        String lockedState = text("socket_locked", "Locked");
+        String lockedState = text("socket_locked", "锁定");
         String lockedTitle = slotTitle(slot, slotIndex, lockedState);
         Map<String, Object> replacements = slotReplacements(lockedTitle, lore);
         replacements.put("slot", slotIndex);
@@ -186,33 +186,33 @@ final class GemOpenGuiRenderer {
         replacements.put("slot_title", title);
         replacements.put("slot_lines", lines);
         replacements.put("slot", 0);
-        replacements.put("type", common("none", "None"));
-        replacements.put("state", common("none", "None"));
+        replacements.put("type", common("none", "无"));
+        replacements.put("state", common("none", "无"));
         return replacements;
     }
 
     private ItemStack renderPreview(GemOpenGuiSession state, GuiSlot guiSlot) {
-        String title = text("preview_name", "<gold>Opening Preview</gold>");
+        String title = text("preview_name", "<gold>开孔预览</gold>");
         List<String> lore = new ArrayList<>();
         if (state.mutableTargetItem() == null) {
-            lore.add(text("preview_empty", "<gray>Opening preview will be shown here</gray>"));
+            lore.add(text("preview_empty", "<gray>这里会显示待开孔装备与目标槽位预览</gray>"));
             return buildConfiguredItem(guiSlot, Material.WRITABLE_BOOK, title, lore,
                     previewReplacements(title, lore));
         }
         GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(state.mutableTargetItem());
         GemItemDefinition.SocketSlot slot = itemDefinition == null ? null : itemDefinition.slot(state.selectedSlotIndex());
-        String equipment = itemDefinition == null ? common("unrecognized", "Unrecognized") : itemDefinition.id();
-        lore.add(text("preview_equipment", Map.of("item", equipment), "<gray>Equipment: <yellow>%item%</yellow></gray>"));
+        String equipment = itemDefinition == null ? common("unrecognized", "未识别") : itemDefinition.id();
+        lore.add(text("preview_equipment", Map.of("item", equipment), "<gray>装备: <yellow>%item%</yellow></gray>"));
         SocketOpenerConfig opener = slot == null
                 ? plugin.itemMatcher().matchOpenerItem(state.mutableOpenerItem())
                 : plugin.itemMatcher().matchOpenerForType(state.mutableOpenerItem(), slot.type());
         String openerLabel = openerText(state, opener);
         String slotLabel = slot == null
-                ? text("slot_not_selected", "Not selected")
+                ? text("slot_not_selected", "未选择")
                 : "#" + slot.index() + " " + slot.displayName();
-        lore.add(text("preview_opener", Map.of("opener", openerLabel), "<gray>Opener: <yellow>%opener%</yellow></gray>"));
-        lore.add(text("preview_slot", Map.of("slot", slotLabel), "<gray>Target slot: <yellow>%slot%</yellow></gray>"));
-        lore.add(text("preview_hint", "<gray>Confirming will open the selected locked slot once</gray>"));
+        lore.add(text("preview_opener", Map.of("opener", openerLabel), "<gray>开孔器: <yellow>%opener%</yellow></gray>"));
+        lore.add(text("preview_slot", Map.of("slot", slotLabel), "<gray>目标槽位: <yellow>%slot%</yellow></gray>"));
+        lore.add(text("preview_hint", "<gray>确认后会为该锁定槽位执行一次开孔</gray>"));
         Map<String, Object> replacements = previewReplacements(title, lore);
         replacements.put("item", equipment);
         replacements.put("opener", openerLabel);
@@ -224,24 +224,24 @@ final class GemOpenGuiRenderer {
         Map<String, Object> replacements = new LinkedHashMap<>();
         replacements.put("preview_title", title);
         replacements.put("preview_lines", lines);
-        replacements.put("item", common("none", "None"));
-        replacements.put("opener", common("none", "None"));
-        replacements.put("slot", common("none", "None"));
+        replacements.put("item", common("none", "无"));
+        replacements.put("opener", common("none", "无"));
+        replacements.put("slot", common("none", "无"));
         return replacements;
     }
 
     private ItemStack renderConfirm(GemOpenGuiSession state, GuiSlot guiSlot) {
         if (state.mutableTargetItem() == null || state.mutableOpenerItem() == null || state.selectedSlotIndex() < 0) {
-            String inactiveTitle = text("confirm_name_inactive", "<gray>Confirm Opening</gray>");
+            String inactiveTitle = text("confirm_name_inactive", "<gray>确认开孔</gray>");
             List<String> inactiveLore = List.of(
-                    text("confirm_inactive_lore", "<dark_gray>Please place equipment, an opener, and select a locked slot first</dark_gray>")
+                    text("confirm_inactive_lore", "<dark_gray>请先放入装备、开孔器，并选择一个锁定槽位</dark_gray>")
             );
             return buildConfiguredItem(guiSlot, Material.GRAY_STAINED_GLASS_PANE, inactiveTitle, inactiveLore,
                     linesReplacements("confirm_title", inactiveTitle, "confirm_lines", inactiveLore));
         }
-        String title = text("confirm_name_active", "<green>Confirm Opening</green>");
+        String title = text("confirm_name_active", "<green>确认开孔</green>");
         List<String> lore = List.of(
-                text("confirm_active_lore", "<gray>Click to execute current opening operation</gray>")
+                text("confirm_active_lore", "<gray>点击执行当前预览中的开孔操作</gray>")
         );
         return buildConfiguredItem(guiSlot, Material.LIME_STAINED_GLASS_PANE, title, lore,
                 linesReplacements("confirm_title", title, "confirm_lines", lore));
@@ -278,14 +278,14 @@ final class GemOpenGuiRenderer {
     }
 
     private String socketType(String displayName) {
-        return common("socket_type", Map.of("type", displayName), "<gray>Socket type: <yellow>%type%</yellow></gray>");
+        return common("socket_type", Map.of("type", displayName), "<gray>槽位类型: <yellow>%type%</yellow></gray>");
     }
 
     private String openerText(GemOpenGuiSession state, SocketOpenerConfig opener) {
         if (state.mutableOpenerItem() == null) {
-            return text("opener_not_placed", "Not placed");
+            return text("opener_not_placed", "未放入");
         }
-        return opener == null ? text("opener_placed_pending", "Placed, waiting for slot selection") : opener.id();
+        return opener == null ? text("opener_placed_pending", "已放入，待选择槽位") : opener.id();
     }
 
     private String text(String key, String fallback) {

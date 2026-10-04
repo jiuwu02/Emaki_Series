@@ -53,8 +53,8 @@ public final class CodexAttributeProvider implements AttributeContributionProvid
         try {
             return contributionsFor(player);
         } catch (RuntimeException exception) {
-            logger.warning("Codex attribute contribution failed for " + player.getName()
-                    + ": " + Texts.toStringSafe(exception.getMessage()));
+            logger.warning("EmakiCodex 属性加成计算失败：玩家 " + player.getName()
+                    + "，原因：" + Texts.toStringSafe(exception.getMessage()));
             return List.of();
         }
     }

@@ -23,7 +23,7 @@ public final class YamlBlockLocator {
 
         public Region {
             if (end < start) {
-                throw new IllegalArgumentException("end must not precede start: " + start + ".." + end);
+                throw new IllegalArgumentException("end 不能小于 start: " + start + ".." + end);
             }
         }
 

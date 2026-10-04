@@ -496,7 +496,7 @@ final class ItemCommandRouter implements TabExecutor {
             long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of("items", plugin.itemLoader().all().size())));
-            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_elapsed", Map.of("elapsed_ms", elapsedMs)));
         }));
         return true;
     }
@@ -514,8 +514,8 @@ final class ItemCommandRouter implements TabExecutor {
         lines.put("repair", plugin.messageService().message("command.help.desc.repair"));
         lines.put("state query|repair|recompute [player]", plugin.messageService().message("command.help.desc.state"));
         lines.put("update [player]", plugin.messageService().message("command.help.desc.update"));
-        lines.put("alias list|add|remove", "管理物品 ID alias。");
-        lines.put("migrate id|inventory", "预览或执行物品 ID 迁移。");
+        lines.put("alias list|add|remove", plugin.messageService().message("command.help.desc.alias"));
+        lines.put("migrate id|inventory", plugin.messageService().message("command.help.desc.migrate"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(sender,
@@ -530,30 +530,32 @@ final class ItemCommandRouter implements TabExecutor {
         }
         if (args.length >= 2 && "stats".equalsIgnoreCase(args[1])) {
             var snapshot = plugin.refreshMetrics().snapshot();
-            plugin.messageService().sendRaw(sender, "<gray>EmakiItem refresh stats:</gray>"
-                    + " <white>events=" + snapshot.events()
-                    + " skipped=" + snapshot.skippedEvents()
-                    + " batches=" + snapshot.batches()
-                    + " rejected=" + snapshot.rejectedBatches()
-                    + " coalesced=" + snapshot.coalesced()
-                    + " requested_local=" + snapshot.requestedLocal()
-                    + " requested_full=" + snapshot.requestedFull()
-                    + " update_local=" + snapshot.actualUpdateLocal()
-                    + " update_full=" + snapshot.actualUpdateFull()
-                    + " set_local=" + snapshot.actualSetLocal()
-                    + " set_full=" + snapshot.actualSetFull() + "</white>");
-            plugin.messageService().sendRaw(sender, "<gray>Refresh work:</gray>"
-                    + " <white>cache_hits=" + snapshot.cacheHits()
-                    + " cache_invalid=" + snapshot.cacheInvalid()
-                    + " update_scanned=" + snapshot.updateScannedSlots()
-                    + " set_scanned=" + snapshot.setScannedSlots()
-                    + " scanned=" + snapshot.scannedSlots()
-                    + " changed=" + snapshot.changed()
-                    + " conflicts=" + snapshot.conflicts()
-                    + " ledger_decodes=" + snapshot.ledgerDecodes()
-                    + " set_compiles=" + snapshot.setCompiles()
-                    + " elapsed_ms=" + snapshot.elapsedMillis()
-                    + " full_reasons=" + snapshot.fullReasons() + "</white>");
+            Map<String, Object> refreshStats = new LinkedHashMap<>();
+            refreshStats.put("events", snapshot.events());
+            refreshStats.put("skipped", snapshot.skippedEvents());
+            refreshStats.put("batches", snapshot.batches());
+            refreshStats.put("rejected", snapshot.rejectedBatches());
+            refreshStats.put("coalesced", snapshot.coalesced());
+            refreshStats.put("requested_local", snapshot.requestedLocal());
+            refreshStats.put("requested_full", snapshot.requestedFull());
+            refreshStats.put("update_local", snapshot.actualUpdateLocal());
+            refreshStats.put("update_full", snapshot.actualUpdateFull());
+            refreshStats.put("set_local", snapshot.actualSetLocal());
+            refreshStats.put("set_full", snapshot.actualSetFull());
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.stats.refresh", refreshStats));
+            Map<String, Object> refreshWork = new LinkedHashMap<>();
+            refreshWork.put("cache_hits", snapshot.cacheHits());
+            refreshWork.put("cache_invalid", snapshot.cacheInvalid());
+            refreshWork.put("update_scanned", snapshot.updateScannedSlots());
+            refreshWork.put("set_scanned", snapshot.setScannedSlots());
+            refreshWork.put("scanned", snapshot.scannedSlots());
+            refreshWork.put("changed", snapshot.changed());
+            refreshWork.put("conflicts", snapshot.conflicts());
+            refreshWork.put("ledger_decodes", snapshot.ledgerDecodes());
+            refreshWork.put("set_compiles", snapshot.setCompiles());
+            refreshWork.put("elapsed_ms", snapshot.elapsedMillis());
+            refreshWork.put("full_reasons", snapshot.fullReasons());
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.debug.stats.work", refreshWork));
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

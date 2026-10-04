@@ -466,7 +466,7 @@ public final class GemEconomyService {
             }
         }
         if (!remainingCurrencies.isEmpty() || !remainingMaterials.isEmpty()) {
-            logCompensationFailure(player, "persisted refund");
+            logCompensationFailure(player, "持久化退款");
             return RefundResult.incomplete(remainingCurrencies, remainingMaterials);
         }
         return RefundResult.complete();
@@ -663,8 +663,8 @@ public final class GemEconomyService {
 
     private void logCompensationFailure(Player player, String phase) {
         if (plugin != null) {
-            plugin.getLogger().severe("Failed to fully compensate gem costs during " + phase + " for "
-                    + (player == null ? "unknown" : player.getUniqueId()));
+            plugin.getLogger().severe("未能在 " + phase + " 阶段完全补偿宝石费用，玩家 "
+                    + (player == null ? "未知" : player.getUniqueId()));
         }
     }
 

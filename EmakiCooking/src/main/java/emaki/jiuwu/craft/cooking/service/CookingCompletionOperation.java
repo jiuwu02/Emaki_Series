@@ -173,7 +173,7 @@ public record CookingCompletionOperation(
         for (Unit unit : units) {
             if (unit.unitId().equals(replacement.unitId())) {
                 if (replaced) {
-                    throw new IllegalStateException("Duplicate unit id: " + replacement.unitId());
+                    throw new IllegalStateException("重复的单元 ID: " + replacement.unitId());
                 }
                 updated.add(replacement);
                 replaced = true;
@@ -182,7 +182,7 @@ public record CookingCompletionOperation(
             }
         }
         if (!replaced) {
-            throw new IllegalArgumentException("Unknown unit id: " + replacement.unitId());
+            throw new IllegalArgumentException("未知的单元 ID: " + replacement.unitId());
         }
         return List.copyOf(updated);
     }
@@ -194,7 +194,7 @@ public record CookingCompletionOperation(
         List<Unit> copy = List.copyOf(source);
         long distinctIds = copy.stream().map(Unit::unitId).distinct().count();
         if (distinctIds != copy.size()) {
-            throw new IllegalArgumentException("Unit ids must be unique within a unit list");
+            throw new IllegalArgumentException("同一单元列表内的单元 ID 必须唯一");
         }
         return copy;
     }
@@ -207,7 +207,7 @@ public record CookingCompletionOperation(
 
     private static String requireText(String value, String name) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException(name + " must not be blank");
+            throw new IllegalArgumentException(name + " 不能为空");
         }
         return value.trim();
     }
@@ -283,7 +283,7 @@ public record CookingCompletionOperation(
                 return this;
             }
             if (state == UnitState.IN_PROGRESS) {
-                throw new IllegalStateException("Unit is already in progress: " + unitId);
+                throw new IllegalStateException("单元已在进行中: " + unitId);
             }
             return new Unit(unitId, kind, UnitState.IN_PROGRESS, semantics, payload, attempts + 1, "");
         }

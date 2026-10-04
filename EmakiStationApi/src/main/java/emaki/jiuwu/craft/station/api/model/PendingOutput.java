@@ -30,7 +30,7 @@ public record PendingOutput(@NotNull ItemSourceRef source, long amount) {
             throw new NullPointerException("source");
         }
         if (amount <= 0L) {
-            throw new IllegalArgumentException("amount must be positive: " + amount);
+            throw new IllegalArgumentException("amount 必须为正数: " + amount);
         }
     }
 

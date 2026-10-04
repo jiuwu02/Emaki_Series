@@ -29,10 +29,10 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
             try {
                 if (executionDispatcher.runEntity(
                         plugin, player, () -> refreshPlayerInventory(player)) == null) {
-                    plugin.getLogger().warning("Player refresh scheduling was rejected for " + player.getUniqueId());
+                    plugin.getLogger().warning("玩家刷新的调度被拒绝: " + player.getUniqueId());
                 }
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("Failed to schedule player refresh for " + player.getUniqueId()
+                plugin.getLogger().warning("调度玩家刷新失败: " + player.getUniqueId()
                         + ": " + throwable.getMessage());
             }
         }

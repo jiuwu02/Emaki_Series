@@ -57,7 +57,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("Cannot open gem GUI outside player ownership: " + player.getUniqueId());
+            plugin.getLogger().warning("无法在玩家所有权之外打开宝石 GUI: " + player.getUniqueId());
             return false;
         }
         return switch (normalizeMode(mode)) {
@@ -75,7 +75,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("Cannot open socket GUI outside player ownership: " + player.getUniqueId());
+            plugin.getLogger().warning("无法在玩家所有权之外打开开孔 GUI: " + player.getUniqueId());
             return false;
         }
         return openSocket(player, initialTarget, null);
@@ -105,7 +105,6 @@ public final class GemGuiService {
         return opened;
     }
 
-    /** 以既有会话重开镶嵌界面（先关窗再开，使容器标题里的模式文本随切换刷新）。 */
     public boolean reopenGem(GemGuiSession state) {
         if (state == null || state.player() == null) {
             return false;
@@ -224,7 +223,7 @@ public final class GemGuiService {
                             }
                         },
                         () -> closed.completeExceptionally(new IllegalStateException(
-                                "Viewer owner retired before gem session close: " + viewer.getUniqueId()))
+                                "观察者在宝石会话关闭前已退役: " + viewer.getUniqueId()))
                 );
             } catch (Throwable throwable) {
                 closed.completeExceptionally(throwable);
@@ -243,7 +242,7 @@ public final class GemGuiService {
             return;
         }
         if (!scheduling.ownsEntity(player) && player.isOnline()) {
-            plugin.getLogger().warning("Cannot close gem GUI outside player ownership: " + player.getUniqueId());
+            plugin.getLogger().warning("无法在玩家所有权之外关闭宝石 GUI: " + player.getUniqueId());
             return;
         }
         guiService.close(player.getUniqueId());

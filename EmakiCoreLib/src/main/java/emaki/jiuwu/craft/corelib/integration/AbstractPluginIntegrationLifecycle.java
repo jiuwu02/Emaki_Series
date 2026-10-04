@@ -73,7 +73,7 @@ public abstract class AbstractPluginIntegrationLifecycle<P extends JavaPlugin> i
                 registration = closeable;
             }
         } catch (ReflectiveOperationException | LinkageError exception) {
-            plugin.getLogger().warning("Failed to register " + integrationLabel + ": "
+            plugin.getLogger().warning("注册 " + integrationLabel + " 失败: "
                     + IntegrationFailures.detail(exception));
         }
     }
@@ -87,7 +87,7 @@ public abstract class AbstractPluginIntegrationLifecycle<P extends JavaPlugin> i
         try {
             current.close();
         } catch (Exception | LinkageError exception) {
-            plugin.getLogger().warning("Failed to release " + integrationLabel + ": "
+            plugin.getLogger().warning("释放 " + integrationLabel + " 失败: "
                     + IntegrationFailures.detail(exception));
         }
     }

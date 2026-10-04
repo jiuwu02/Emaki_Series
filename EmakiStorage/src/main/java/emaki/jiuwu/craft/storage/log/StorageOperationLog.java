@@ -77,7 +77,7 @@ public final class StorageOperationLog {
             flushPlayer(playerId);
         }).exceptionally(throwable -> {
             gate.set(false);
-            warn("Failed to append storage log for " + playerId, throwable);
+            warn("为玩家 " + playerId + " 追加存储日志失败", throwable);
             return null;
         });
     }
@@ -104,7 +104,7 @@ public final class StorageOperationLog {
                         StandardOpenOption.APPEND);
             }
         } catch (IOException failure) {
-            warn("Failed to write storage log for " + playerId, failure);
+            warn("为玩家 " + playerId + " 写入存储日志失败", failure);
         }
     }
 
@@ -127,7 +127,7 @@ public final class StorageOperationLog {
                 deleted += purgeDirectory(directory, cutoff);
             }
         } catch (IOException failure) {
-            warn("Failed to scan storage log directory", failure);
+            warn("扫描存储日志目录失败", failure);
         }
         return deleted;
     }
@@ -147,14 +147,14 @@ public final class StorageOperationLog {
                 }
             }
         } catch (IOException failure) {
-            warn("Failed to purge storage log directory " + directory.getFileName(), failure);
+            warn("清理存储日志目录 " + directory.getFileName() + " 失败", failure);
             return deleted;
         }
         if (!remaining) {
             try {
                 Files.deleteIfExists(directory);
             } catch (IOException failure) {
-                warn("Failed to remove empty storage log directory " + directory.getFileName(), failure);
+                warn("删除空的存储日志目录 " + directory.getFileName() + " 失败", failure);
             }
         }
         return deleted;

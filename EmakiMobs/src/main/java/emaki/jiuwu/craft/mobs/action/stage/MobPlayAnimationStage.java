@@ -24,9 +24,9 @@ public final class MobPlayAnimationStage extends BaseStage {
     private final MobModelManager modelManager;
 
     public MobPlayAnimationStage(MobIdentifier mobIdentifier, MobModelManager modelManager) {
-        super("mob_play_animation", "emakimobs", "Plays a named animation on the target mob's model.",
+        super("mob_play_animation", "emakimobs", "在目标生物模型上播放指定名称的动画。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("animation", CoreStageParameterType.STRING, "Animation key"));
+                CoreStageParameter.required("animation", CoreStageParameterType.STRING, "动画键名"));
         this.mobIdentifier = mobIdentifier;
         this.modelManager = modelManager;
     }

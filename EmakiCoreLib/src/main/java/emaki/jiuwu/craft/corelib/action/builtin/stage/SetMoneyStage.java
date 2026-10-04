@@ -10,7 +10,7 @@ import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 public final class SetMoneyStage extends MoneyStage {
 
     public SetMoneyStage(EconomyManager economyManager, ActionAuditLogger auditLogger) {
-        super("set_money", "Sets the target's balance to an absolute value.", economyManager,
+        super("set_money", "把目标余额设置为绝对值。", economyManager,
                 auditLogger, OperationType.SET, true);
     }
 

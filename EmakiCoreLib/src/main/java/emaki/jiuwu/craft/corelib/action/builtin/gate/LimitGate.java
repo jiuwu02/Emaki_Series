@@ -17,10 +17,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class LimitGate extends BaseGate {
 
     public LimitGate() {
-        super("limit", "Keeps the first count targets.",
+        super("limit", "保留前 count 个目标。",
                 CoreGateThread.PURE,
                 CoreStageParameter.positional("count", CoreStageParameterType.INTEGER,
-                        "How many targets to keep"));
+                        "保留的目标数量"));
     }
 
     @Override

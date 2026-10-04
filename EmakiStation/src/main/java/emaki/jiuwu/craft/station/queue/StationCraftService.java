@@ -472,7 +472,7 @@ public final class StationCraftService {
                 future.completeExceptionally(failure);
             }
         }, () -> future.completeExceptionally(
-                new IllegalStateException("player retired before station work ran")));
+                new IllegalStateException("玩家在站点作业执行前已退出")));
         return future;
     }
 

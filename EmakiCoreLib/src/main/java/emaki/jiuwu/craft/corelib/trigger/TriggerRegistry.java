@@ -33,7 +33,7 @@ public final class TriggerRegistry {
         if (def != null) {
             return def.displayName();
         }
-        LOGGER.warning("Trigger '" + id + "' is not registered; falling back to [" + id + "]");
+        LOGGER.warning("触发器 '" + id + "' 未注册；回退为 [" + id + "]");
         return "[" + id + "]";
     }
 

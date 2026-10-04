@@ -144,7 +144,7 @@ public final class MythicBridge {
                 metadata.getParameters().putAll(variables);
             } catch (RuntimeException exception) {
                 plugin.getLogger().log(Level.WARNING,
-                        "MythicMobs skill metadata parameters rejected: provider=MythicMobs, parameters="
+                        "MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters="
                                 + variables.keySet()
                                 + ", operation=apply_skill_metadata_parameters, cause=" + exception,
                         exception);
@@ -180,7 +180,7 @@ public final class MythicBridge {
 
     private String errorMessage(Throwable throwable) {
         if (throwable == null) {
-            return "unknown";
+            return "未知";
         }
         String message = throwable.getMessage();
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;

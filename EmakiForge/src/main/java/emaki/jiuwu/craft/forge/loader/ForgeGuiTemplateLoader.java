@@ -77,7 +77,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                     if (document.failure() != null) {
                         onLoadFailure(document.file(), document.failure());
                         recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
-                                "GUI template file load failed: " + failureSummary(document.failure()));
+                                "GUI 模板文件加载失败: " + failureSummary(document.failure()));
                         continue;
                     }
                     try {
@@ -87,20 +87,20 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                         GuiTemplate value = parse(document.file(), configuration);
                         if (value == null) {
                             recordCandidateIssue(document.file(), "GUI_INVALID_CONFIG",
-                                    "GUI template configuration could not be parsed.");
+                                    "无法解析 GUI 模板配置。");
                             continue;
                         }
                         String id = idOf(value);
                         if (Texts.isBlank(id)) {
                             onBlankId(document.file());
                             recordCandidateIssue(document.file(), "GUI_BLANK_ID",
-                                    "GUI template id cannot be blank.");
+                                    "GUI 模板 ID 不能为空。");
                             continue;
                         }
                         if (items.containsKey(id)) {
                             onDuplicateId(document.file(), id);
                             recordCandidateIssue(document.file(), "GUI_DUPLICATE_ID",
-                                    "Duplicate GUI template id '" + id + "'.");
+                                    "重复的 GUI 模板 ID '" + id + "'。");
                             continue;
                         }
                         items.put(id, value);
@@ -112,7 +112,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                     } catch (Exception exception) {
                         onLoadFailure(document.file(), exception);
                         recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
-                                "GUI template file load failed: " + failureSummary(exception));
+                                "GUI 模板文件加载失败: " + failureSummary(exception));
                     }
                 }
             }
@@ -133,7 +133,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                     GuiTemplate template = parsePrioritized(entry.configuration());
                     if (template == null) {
                         recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
-                                "GUI template could not be finalized after source validation.");
+                                "物品来源校验后无法完成 GUI 模板定稿。");
                         continue;
                     }
                     items.put(entry.id(), template);
@@ -141,7 +141,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                             entry.id(), entry.file(), entry.configuration(), template));
                 } catch (RuntimeException | LinkageError failure) {
                     recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
-                            "GUI template finalization failed: " + failureSummary(failure));
+                            "GUI 模板定稿失败: " + failureSummary(failure));
                 }
             }
         }
@@ -153,7 +153,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
 
     private String failureSummary(Throwable throwable) {
         if (throwable == null) {
-            return "unknown failure";
+            return "未知失败";
         }
         String message = Texts.toStringSafe(throwable.getMessage()).trim();
         return message.isEmpty() ? throwable.getClass().getSimpleName() : message;

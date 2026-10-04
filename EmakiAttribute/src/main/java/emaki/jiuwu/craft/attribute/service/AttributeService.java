@@ -269,9 +269,9 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         if (parentAttributeService != null && parentAttributeService.dataStore() != null) {
             ParentAttributeDataStore.DrainReport report = parentAttributeService.dataStore().flushAndSeal();
             if (report.clean()) {
-                plugin.getLogger().info("[Shutdown] Parent attribute data drain: " + report);
+                plugin.getLogger().info("[Shutdown] 父级属性数据排空: " + report);
             } else {
-                plugin.getLogger().warning("[Shutdown] Parent attribute data drain incomplete: " + report);
+                plugin.getLogger().warning("[Shutdown] 父级属性数据排空未完成: " + report);
             }
         }
         temporaryAttributeService.close();

@@ -25,8 +25,8 @@ public final class GemStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("Failed to register pipeline stage '" + operation.id()
-                        + "': " + registration.reasonKey());
+                plugin.getLogger().warning("注册流水线阶段 '" + operation.id()
+                        + "' 失败: " + registration.reasonKey());
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::rebuild);

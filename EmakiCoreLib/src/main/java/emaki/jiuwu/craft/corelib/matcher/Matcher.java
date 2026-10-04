@@ -40,23 +40,23 @@ public sealed interface Matcher permits
         }
         YamlSection section = asSection(config);
         if (section == null) {
-            ComponentMatcherSupport.LOGGER.warning("Matcher config is not a mapping and will never match: "
+            ComponentMatcherSupport.LOGGER.warning("匹配器配置不是映射，永远不会匹配: "
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
         if (containsItemSourceField(section)) {
-            return reject("matcher must not contain item source fields; move them to the sibling '"
-                    + ItemRequirement.KEY_ITEM_SOURCES + "' field, which is evaluated as AND with the matcher");
+            return reject("匹配器不能包含物品来源字段；请将它们移到同级 '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
         }
         String type = Texts.lower(section.getString("type", ""));
         if (type.isEmpty()) {
-            return reject("matcher is missing the required 'type' key; item source conditions now belong to the sibling '"
-                    + ItemRequirement.KEY_ITEM_SOURCES + "' field");
+            return reject("匹配器缺少必需的 'type' 键；物品来源条件现在属于同级 '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段");
         }
         return switch (type) {
             case "item_source", "item_sources", "source", "sources" -> reject(
-                    "matcher no longer accepts item source conditions ('type: " + type + "'); move them to the sibling '"
-                            + ItemRequirement.KEY_ITEM_SOURCES + "' field, which is evaluated as AND with the matcher");
+                    "匹配器不再接受物品来源条件（'type: " + type + "'）；请将它们移到同级 '"
+                            + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
             case "component", "component_match" -> parseComponentMatch(section);
@@ -67,7 +67,7 @@ public sealed interface Matcher permits
             case "none_of", "none", "not" -> parseNone(section);
             case "at_least" -> parseCount(section, CountMode.AT_LEAST);
             case "exactly" -> parseCount(section, CountMode.EXACTLY);
-            default -> reject("unknown matcher type '" + type + "'");
+            default -> reject("未知的匹配器类型 '" + type + "'");
         };
     }
 
@@ -79,7 +79,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("Matcher rejected at load time, it will never match: " + reason + ".");
+        ComponentMatcherSupport.LOGGER.warning("匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
         return new AnyMatcher(List.of());
     }
 
@@ -134,28 +134,28 @@ public sealed interface Matcher permits
     private static @NotNull Matcher parseComponentMatch(@NotNull YamlSection section) {
         String componentId = ItemComponentSnapshot.normalizeComponentId(section.getString("component", ""));
         if (componentId.isEmpty()) {
-            return rejectComponentMatcher("missing 'component' key");
+            return rejectComponentMatcher("缺少 'component' 键");
         }
         Object expected = section.get("value");
         String operator = Texts.lower(section.getString("operator", expected == null ? "exists" : "=="));
         ComponentOperator resolved = ComponentOperator.fromConfig(operator);
         if (resolved == null) {
-            return rejectComponentMatcher("unknown operator '" + operator + "' for component " + componentId);
+            return rejectComponentMatcher("组件 " + componentId + " 的运算符 '" + operator + "' 未知");
         }
         if (resolved.requiresValue() && expected == null) {
-            return rejectComponentMatcher("operator '" + operator + "' requires a 'value' for component " + componentId);
+            return rejectComponentMatcher("运算符 '" + operator + "' 需要组件 " + componentId + " 的 'value'");
         }
         if (ComponentMatcherSupport.isNonValued(componentId)
                 && resolved != ComponentOperator.EXISTS
                 && resolved != ComponentOperator.ABSENT) {
             return rejectComponentMatcher(componentId
-                    + " is a unit component and only supports exists/absent, got '" + operator + "'");
+                    + " 是单位组件，仅支持 exists/absent，收到 '" + operator + "'");
         }
         return new ComponentMatcher(componentId, ComponentPath.parse(section.getString("path", "")), resolved, expected);
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("Component matcher rejected at load time, it will never match: " + reason + ".");
+        ComponentMatcherSupport.LOGGER.warning("组件匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
         return new AnyMatcher(List.of());
     }
 

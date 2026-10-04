@@ -230,7 +230,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiSkills readiness publication skipped: " + exception);
+            getLogger().fine("已跳过 EmakiSkills 就绪状态发布: " + exception);
         }
     }
 
@@ -276,7 +276,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakiskills command",
+                "EmakiSkills 命令",
                 List.of("eskills"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiskills.use", commandRouter, commandRouter)
         );

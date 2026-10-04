@@ -140,7 +140,7 @@ public final class ItemSourceService {
     public ItemSourceProbeResult probeShorthand(@Nullable String shorthand) {
         if (Texts.isBlank(shorthand)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
-                    "The item source shorthand is blank.");
+                    "物品来源简写为空。");
         }
         try {
             ItemSourceRef ref = ItemSourceUtil.parseShorthand(shorthand);
@@ -149,7 +149,7 @@ public final class ItemSourceService {
             }
 
             return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_MISSING, null, "",
-                    "No installed plugin supplies the item source \"" + Texts.trim(shorthand) + "\".");
+                    "没有已安装的插件提供该物品来源 \"" + Texts.trim(shorthand) + "\"。");
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, null, "", detail(exception));
         } catch (RuntimeException exception) {
@@ -160,7 +160,7 @@ public final class ItemSourceService {
     public ItemSourceProbeResult probe(@Nullable ItemSourceRef ref) {
         if (ref == null) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
-                    "The item source kind and identifier are required.");
+                    "必须提供物品来源的种类与标识。");
         }
         ItemSourceProbeResult firstFailure = null;
         for (ItemSourceProvider provider : orderedProviders) {
@@ -179,7 +179,7 @@ public final class ItemSourceService {
             }
             if (result == null) {
                 result = ItemSourceProbeResult.of(ItemSourceProbeState.RESOLUTION_ERROR, ref,
-                        provider.kind().key(), "The provider returned no probe result.");
+                        provider.kind().key(), "提供者未返回探测结果。");
             }
             if (result.ready()) {
                 return result;
@@ -276,7 +276,7 @@ public final class ItemSourceService {
 
     private static String detail(Throwable throwable) {
         if (throwable == null) {
-            return "Unknown resolution failure";
+            return "未知的解析失败";
         }
         String message = throwable.getMessage();
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;

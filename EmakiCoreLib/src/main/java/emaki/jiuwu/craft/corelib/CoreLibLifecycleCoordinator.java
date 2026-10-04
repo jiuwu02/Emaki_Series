@@ -143,7 +143,7 @@ final class CoreLibLifecycleCoordinator
             YamlFiles.copyResourceIfMissing(plugin, "dialogs/example_notice.yml",
                     dialogsDirectory.resolve("example_notice.yml").toFile());
         } catch (Exception exception) {
-            plugin.getLogger().warning("Failed to release example dialog dialogs/example_notice.yml: "
+            plugin.getLogger().warning("释放示例对话 dialogs/example_notice.yml 失败: "
                     + exception.getMessage());
         }
     }

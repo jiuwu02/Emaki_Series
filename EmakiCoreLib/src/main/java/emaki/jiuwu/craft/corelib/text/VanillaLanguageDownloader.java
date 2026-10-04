@@ -71,7 +71,7 @@ public final class VanillaLanguageDownloader {
             }
             return parsed;
         } catch (IOException | RuntimeException exception) {
-            logger.fine("Vanilla language cache unreadable, will re-download: " + exception.getMessage());
+            logger.fine("原版语言缓存不可读，将重新下载: " + exception.getMessage());
             return Map.of();
         }
     }
@@ -83,7 +83,7 @@ public final class VanillaLanguageDownloader {
             Files.writeString(temporary, body, StandardCharsets.UTF_8);
             Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
-            logger.fine("Failed to cache vanilla language file: " + exception.getMessage());
+            logger.fine("缓存原版语言文件失败: " + exception.getMessage());
             try {
                 Files.deleteIfExists(temporary);
             } catch (IOException _) {
@@ -99,12 +99,12 @@ public final class VanillaLanguageDownloader {
         }
         String assetIndexUrl = readStringPath(versionUrl, "assetIndex", "url");
         if (assetIndexUrl == null) {
-            logger.fine("Version metadata has no assetIndex.url");
+            logger.fine("版本元数据缺少 assetIndex.url");
             return null;
         }
         String hash = resolveObjectHash(assetIndexUrl, "minecraft/lang/" + locale + ".json");
         if (hash == null) {
-            logger.fine("Asset index has no entry for locale " + locale);
+            logger.fine("资源索引中没有语言 " + locale + " 的条目");
             return null;
         }
         return fetch(RESOURCE_BASE_URL + hash.substring(0, 2) + "/" + hash);
@@ -156,7 +156,7 @@ public final class VanillaLanguageDownloader {
             }
             return null;
         } catch (RuntimeException exception) {
-            logger.fine("Failed to read version manifest: " + exception.getMessage());
+            logger.fine("读取版本清单失败: " + exception.getMessage());
             return null;
         }
     }
@@ -175,7 +175,7 @@ public final class VanillaLanguageDownloader {
             String hash = entry == null ? null : optionalString(entry, "hash");
             return hash != null && hash.length() >= 2 ? hash : null;
         } catch (RuntimeException exception) {
-            logger.fine("Failed to read asset index: " + exception.getMessage());
+            logger.fine("读取资源索引失败: " + exception.getMessage());
             return null;
         }
     }
@@ -189,7 +189,7 @@ public final class VanillaLanguageDownloader {
             JsonObject nested = JsonParser.parseString(body).getAsJsonObject().getAsJsonObject(objectName);
             return nested == null ? null : optionalString(nested, field);
         } catch (RuntimeException exception) {
-            logger.fine("Failed to read " + objectName + "." + field + ": " + exception.getMessage());
+            logger.fine("读取 " + objectName + "." + field + " 失败: " + exception.getMessage());
             return null;
         }
     }
@@ -206,7 +206,7 @@ public final class VanillaLanguageDownloader {
             }
             return table;
         } catch (RuntimeException exception) {
-            logger.fine("Vanilla language file is not a flat JSON object: " + exception.getMessage());
+            logger.fine("原版语言文件不是扁平 JSON 对象: " + exception.getMessage());
             return Map.of();
         }
     }
@@ -223,7 +223,7 @@ public final class VanillaLanguageDownloader {
             connection.setRequestProperty("User-Agent", USER_AGENT);
             int responseCode = connection.getResponseCode();
             if (responseCode != HttpURLConnection.HTTP_OK) {
-                logger.fine("Language download returned HTTP " + responseCode + " for " + url);
+                logger.fine("语言下载返回 HTTP " + responseCode + "，地址 " + url);
                 return null;
             }
             try (InputStream inputStream = connection.getInputStream()) {
@@ -231,7 +231,7 @@ public final class VanillaLanguageDownloader {
                 return new String(bytes, StandardCharsets.UTF_8);
             }
         } catch (IOException | RuntimeException exception) {
-            logger.fine("Language download failed for " + url + ": " + exception.getMessage());
+            logger.fine("语言下载失败，地址 " + url + ": " + exception.getMessage());
             return null;
         } finally {
             if (connection != null) {

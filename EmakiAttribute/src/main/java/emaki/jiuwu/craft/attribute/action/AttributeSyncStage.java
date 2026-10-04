@@ -24,9 +24,9 @@ public final class AttributeSyncStage implements CoreActionStage {
 
     public enum Operation {
 
-        SYNC("attribute_sync", "Recomputes attribute values for the target or everyone online.", "false"),
+        SYNC("attribute_sync", "为目标或所有在线玩家重新计算属性值。", "false"),
 
-        REFRESH("attribute_refresh", "Drops attribute caches and recomputes values.", "true");
+        REFRESH("attribute_refresh", "丢弃属性缓存并重新计算数值。", "true");
 
         private final String id;
         private final String description;
@@ -70,7 +70,7 @@ public final class AttributeSyncStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(CoreStageParameter.optional("all", CoreStageParameterType.BOOLEAN,
-                operation.allDefault, "Apply to every online player instead of the target"));
+                operation.allDefault, "作用于所有在线玩家而非目标"));
     }
 
     @Override

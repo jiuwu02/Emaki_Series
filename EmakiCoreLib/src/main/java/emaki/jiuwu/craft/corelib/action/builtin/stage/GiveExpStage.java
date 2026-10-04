@@ -9,7 +9,7 @@ import emaki.jiuwu.craft.corelib.debug.ActionAuditLogger.OperationType;
 public final class GiveExpStage extends ExperienceStage {
 
     public GiveExpStage(ActionAuditLogger auditLogger) {
-        super("give_exp", "Grants experience to the target.", auditLogger, OperationType.INCREASE);
+        super("give_exp", "为目标增加经验。", auditLogger, OperationType.INCREASE);
     }
 
     @Override

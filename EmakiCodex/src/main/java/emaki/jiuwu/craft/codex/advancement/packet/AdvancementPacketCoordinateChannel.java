@@ -53,7 +53,7 @@ public final class AdvancementPacketCoordinateChannel extends PacketListenerAbst
             }
         } catch (Throwable throwable) {
 
-            logger.log(Level.WARNING, "[Codex] Advancement coordinate injection skipped: " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] 已跳过成就坐标注入：" + throwable.getMessage());
         }
     }
 

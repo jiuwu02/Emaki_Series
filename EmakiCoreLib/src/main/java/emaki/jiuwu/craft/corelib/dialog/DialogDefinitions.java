@@ -28,19 +28,19 @@ public final class DialogDefinitions {
         }
         String normalizedId = Texts.normalizeId(id);
         if (Texts.isBlank(normalizedId)) {
-            report(issues, "missing or invalid id.");
+            report(issues, "id 缺失或无效。");
             return null;
         }
         String title = ConfigNodes.string(mapping, "title", "");
         if (Texts.isBlank(title)) {
-            report(issues, "title is required.");
+            report(issues, "必须提供 title。");
             return null;
         }
         DialogDefinition.Type type = DialogDefinition.Type.parse(
                 ConfigNodes.string(mapping, "type", null), DialogDefinition.Type.NOTICE);
         List<DialogDefinition.Button> buttons = parseButtons(ConfigNodes.get(mapping, "buttons"));
         if (type == DialogDefinition.Type.CONFIRMATION && buttons.size() < 2) {
-            report(issues, "confirmation type requires two buttons.");
+            report(issues, "confirmation 类型需要两个按钮。");
             return null;
         }
         return new DialogDefinition(

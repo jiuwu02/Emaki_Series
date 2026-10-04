@@ -226,7 +226,7 @@ public final class StationPreviewRenderer {
             return displayNameOf(primary);
         }
         return guiSupport.text(state.station().previewLayoutId(), "texts.recipe.material_matcher",
-                "Custom condition", Map.of());
+                "自定义条件", Map.of());
     }
 
     private static long totalOutput(RecipeDefinition recipe, long batch) {
@@ -240,7 +240,7 @@ public final class StationPreviewRenderer {
         List<String> lore = new ArrayList<>();
         lore.add("<red>" + reason + "</red>");
         return new ConfiguredItemDefinition("BARRIER", 1, Map.of(
-                "minecraft:custom_name", ItemComponentPatch.set("<red>Cannot craft</red>"),
+                "minecraft:custom_name", ItemComponentPatch.set("<red>无法合成</red>"),
                 "minecraft:lore", ItemComponentPatch.set(lore)));
     }
 }

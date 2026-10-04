@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class SelfSource extends BaseSource {
 
     public SelfSource() {
-        super("self", "The caster itself.", CoreActionExecutionDomain.SERVER_GLOBAL);
+        super("self", "施法者自身。", CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 
     @Override

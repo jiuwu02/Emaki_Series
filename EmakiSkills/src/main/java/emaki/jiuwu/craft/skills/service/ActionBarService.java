@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.model.PlayerCastTimingState;
 import emaki.jiuwu.craft.skills.model.PlayerSkillProfile;
@@ -101,13 +102,15 @@ public final class ActionBarService {
                     try {
                         refreshPlayer(player);
                     } catch (Exception exception) {
-                        plugin.getLogger().warning("[ActionBar] Failed to refresh for "
-                                + player.getName() + ": " + exception.getMessage());
+                        messageService.warning("console.actionbar_refresh_failed", Map.of(
+                                "player", player.getName(),
+                                "error", Texts.toStringSafe(exception.getMessage())));
                     }
                 }, () -> { });
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[ActionBar] Failed to schedule refresh for "
-                        + player.getName() + ": " + throwable.getMessage());
+                messageService.warning("console.actionbar_schedule_failed", Map.of(
+                        "player", player.getName(),
+                        "error", Texts.toStringSafe(throwable.getMessage())));
             }
         }
     }

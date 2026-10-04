@@ -136,8 +136,8 @@ public final class SourceExperienceService {
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
             return requirement.test(itemStack, actual, player);
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Source rule requirement threw and is treated as no match: "
-                    + exception.getClass().getSimpleName());
+            plugin.messages().warning("console.source_rule_requirement_failed",
+                    Map.of("error", exception.getClass().getSimpleName()));
             return false;
         }
     }

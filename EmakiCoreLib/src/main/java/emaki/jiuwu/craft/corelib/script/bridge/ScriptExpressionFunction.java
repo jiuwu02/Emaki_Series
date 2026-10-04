@@ -58,8 +58,8 @@ final class ScriptExpressionFunction extends Function {
             return;
         }
         String detail = exception == null || Texts.isBlank(exception.getMessage())
-                ? "returned a non-numeric value"
+                ? "返回了非数值"
                 : exception.getMessage();
-        warns.accept("expressions: function '" + getName() + "' " + detail);
+        warns.accept("expressions: 函数 '" + getName() + "' " + detail);
     }
 }

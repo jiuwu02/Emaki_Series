@@ -93,7 +93,7 @@ public final class StationLayoutValidator {
                 String previous = claimedByType.putIfAbsent(position, slot.key());
                 if (previous != null) {
                     issues.add(new LayoutIssue(layoutId, "duplicate_slot",
-                            position + " claimed by " + previous + " and " + slot.key()));
+                            position + " 已被 " + previous + " 和 " + slot.key() + " 占用"));
                 }
             }
         }

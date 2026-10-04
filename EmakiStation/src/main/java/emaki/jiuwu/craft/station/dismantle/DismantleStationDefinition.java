@@ -15,7 +15,7 @@ public record DismantleStationDefinition(
 
     public DismantleStationDefinition {
         if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("DismantleStationDefinition id must not be blank");
+            throw new IllegalArgumentException("DismantleStationDefinition 的 id 不能为空");
         }
         displayName = displayName == null ? id : displayName;
         layoutId = layoutId == null || layoutId.isBlank() ? DEFAULT_LAYOUT : layoutId;

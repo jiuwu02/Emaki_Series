@@ -81,7 +81,7 @@ final class ComponentMatcherSupport {
         try {
             pattern = Pattern.compile(plain(expected));
         } catch (RuntimeException exception) {
-            LOGGER.warning("Component matcher regex is invalid and evaluates to false: "
+            LOGGER.warning("组件匹配器正则无效，结果按 false 处理: "
                     + plain(expected) + ", cause=" + exception.getClass().getSimpleName());
             return false;
         }

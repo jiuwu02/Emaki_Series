@@ -59,7 +59,7 @@ public final class ItemComponentInspector {
     public ComponentValueParseResult parseComponentValue(String rawValue) {
         String value = Texts.toStringSafe(rawValue).trim();
         if (value.isEmpty()) {
-            return ComponentValueParseResult.failure("Component value cannot be blank.");
+            return ComponentValueParseResult.failure("组件值不能为空。");
         }
         String unquoted = ComponentValueParser.unquote(value);
         String candidate = unquoted == null ? value : unquoted;
@@ -71,7 +71,7 @@ public final class ItemComponentInspector {
             return ComponentValueParseResult.success(unquoted);
         }
         if (looksStructured(value)) {
-            return ComponentValueParseResult.failure("Malformed structured component value.");
+            return ComponentValueParseResult.failure("结构化组件值格式错误。");
         }
         Object scalar = ComponentValueParser.parseScalar(value);
         return ComponentValueParseResult.success(scalar == ComponentValueParser.INVALID ? value : scalar);
@@ -241,7 +241,7 @@ public final class ItemComponentInspector {
             }
         } catch (RuntimeException | LinkageError throwable) {
             Bukkit.getLogger().log(Level.WARNING,
-                    "[EmakiItem] Paper data component inspection failed: item=" + itemStack.getType()
+                    "[EmakiItem] Paper 数据组件检查失败: item=" + itemStack.getType()
                             + ", collected=" + result.size()
                             + ", operation=read_paper_data_components, cause=" + throwable,
                     throwable);

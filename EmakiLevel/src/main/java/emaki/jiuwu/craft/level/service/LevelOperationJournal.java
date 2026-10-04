@@ -135,9 +135,9 @@ final class LevelOperationJournal {
                     .thenCompose(_ -> advanceAsync(operationId, Phase.COMPLETED))
                     .whenComplete((_, failure) -> {
                         if (failure != null) {
-                            plugin.getLogger().severe("Level operation " + operationId
-                                    + " completed its actions but the journal write failed; the entry stays in active"
-                                    + " for the next recovery pass: " + rootCauseMessage(failure));
+                            plugin.getLogger().severe("等级操作 " + operationId
+                                    + " 已完成动作但操作日志写入失败；该条目保留在 active 中"
+                                    + "，等待下次恢复处理: " + rootCauseMessage(failure));
                         }
                     });
         });
@@ -300,14 +300,14 @@ final class LevelOperationJournal {
         for (Entry entry : entries) {
             operationIds.add(entry.operationId() + "(" + entry.phase().name() + ")");
         }
-        plugin.getLogger().info("Recoverable level operations: " + String.join(", ", operationIds));
+        plugin.getLogger().info("可恢复的等级操作: " + String.join(", ", operationIds));
     }
 
     private String rootCauseMessage(Throwable throwable) {
         Throwable current = AsyncFailures.unwrap(throwable);
         String message = current == null ? null : current.getMessage();
         return message == null || message.isBlank()
-                ? current == null ? "unknown error" : current.getClass().getSimpleName()
+                ? current == null ? "未知错误" : current.getClass().getSimpleName()
                 : message;
     }
 

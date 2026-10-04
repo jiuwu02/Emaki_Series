@@ -44,13 +44,13 @@ public final class ModelBridgeFactory {
                 return bridge;
             }
         }
-        logger.info("No usable model backend found; EmakiMobs models are disabled");
+        logger.info("未找到可用的模型后端，EmakiMobs 模型功能已禁用");
         return NoopModelBridge.INSTANCE;
     }
 
     private MobModelBridge createNamed(String pluginName, String bridgeClassName) {
         if (!Bukkit.getPluginManager().isPluginEnabled(pluginName)) {
-            logger.warning("Model backend '" + pluginName + "' is not installed; models are disabled");
+            logger.warning("模型后端 '" + pluginName + "' 未安装，模型功能已禁用");
             return NoopModelBridge.INSTANCE;
         }
         try {
@@ -60,11 +60,11 @@ public final class ModelBridgeFactory {
             if (value instanceof MobModelBridge bridge) {
                 return bridge;
             }
-            logger.warning("Model backend " + pluginName + " has an invalid bridge implementation");
+            logger.warning("模型后端 " + pluginName + " 的桥接实现无效");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("Model backend " + pluginName + " classes unavailable; models are disabled");
+            logger.info("模型后端 " + pluginName + " 的类不可用，模型功能已禁用");
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("Model backend " + pluginName + " failed to initialise: " + exception.getMessage());
+            logger.warning("模型后端 " + pluginName + " 初始化失败: " + exception.getMessage());
         }
         return NoopModelBridge.INSTANCE;
     }

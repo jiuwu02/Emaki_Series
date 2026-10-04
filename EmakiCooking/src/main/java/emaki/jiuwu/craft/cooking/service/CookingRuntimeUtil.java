@@ -71,40 +71,40 @@ public final class CookingRuntimeUtil {
         boolean canonical = output.containsKey("item_source");
         boolean legacy = output.containsKey("item_sources");
         if (canonical && legacy) {
-            warnOutputSchema(plugin, path, "item_source and item_sources cannot both be declared");
+            warnOutputSchema(plugin, path, "item_source 与 item_sources 不能同时声明");
             return null;
         }
         if (output.containsKey("matcher")) {
-            warnOutputSchema(plugin, path, "matcher is not allowed on output nodes");
+            warnOutputSchema(plugin, path, "输出节点上不允许使用 matcher");
             return null;
         }
         if (canonical) {
             Object raw = output.get("item_source");
             if (raw instanceof Collection<?> || raw instanceof Iterable<?>) {
-                warnOutputSchema(plugin, path + ".item_source", "canonical item_source must be a single source");
+                warnOutputSchema(plugin, path + ".item_source", "规范 item_source 必须为单一来源");
                 return null;
             }
             ItemSourceRef source = ItemSourceUtil.parse(raw);
             if (source == null) {
-                warnOutputSchema(plugin, path + ".item_source", "item_source is invalid");
+                warnOutputSchema(plugin, path + ".item_source", "item_source 无效");
             }
             return source;
         }
         if (!legacy) {
-            warnOutputSchema(plugin, path, "missing item_source");
+            warnOutputSchema(plugin, path, "缺少 item_source");
             return null;
         }
         List<Object> values = ConfigNodes.asObjectList(output.get("item_sources"));
         if (values.size() != 1) {
-            warnOutputSchema(plugin, path + ".item_sources", "legacy item_sources must contain exactly one source");
+            warnOutputSchema(plugin, path + ".item_sources", "旧版 item_sources 必须恰好包含一个来源");
             return null;
         }
         ItemSourceRef source = ItemSourceUtil.parse(values.getFirst());
         if (source == null) {
-            warnOutputSchema(plugin, path + ".item_sources[0]", "legacy item_sources entry is invalid");
+            warnOutputSchema(plugin, path + ".item_sources[0]", "旧版 item_sources 条目无效");
             return null;
         }
-        warnOutputSchema(plugin, path + ".item_sources", "legacy item_sources is accepted; migrate to item_source");
+        warnOutputSchema(plugin, path + ".item_sources", "接受旧版 item_sources；请迁移到 item_source");
         return source;
     }
 

@@ -20,13 +20,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class OffsetSource extends BaseSource {
 
     public OffsetSource() {
-        super("offset", "A location offset from the pipeline origin.",
+        super("offset", "相对管道原点的位置偏移。",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
-                CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X offset"),
-                CoreStageParameter.optional("y", CoreStageParameterType.DOUBLE, "0", "Y offset"),
-                CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z offset"),
+                CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X 偏移"),
+                CoreStageParameter.optional("y", CoreStageParameterType.DOUBLE, "0", "Y 偏移"),
+                CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z 偏移"),
                 CoreStageParameter.optional("relative", CoreStageParameterType.BOOLEAN, "false",
-                        "Offset along the origin facing instead of world axes"));
+                        "沿原点朝向偏移，而非世界坐标轴"));
     }
 
     @Override

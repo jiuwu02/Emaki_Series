@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.5"
+version: "2.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -99,6 +99,9 @@ gem:
     status: "<gray>洗炼 <yellow>%operation_type%</yellow>：词条 <yellow>%original_count%</yellow> → <green>%candidate_count%</green>，剩余 <gold>%expires_in%</gold> 秒。</gray>"
     usage: "<gray>用法: /emakigem reroll <full|value|confirm|cancel|status></gray>"
     unavailable: "<red>洗炼服务当前不可用。</red>"
+  item:
+    # 物品：宝石物品词条 lore 标题
+    affixes_header: "<gray>词条</gray>"
 
 command:
   help:
@@ -112,6 +115,8 @@ command:
       gui: "打开对应的宝石 GUI"
       reload: "重载宝石配置与资源"
       inspect: "查看主手装备的宝石状态"
+      # 命令：reroll 子命令帮助描述
+      reroll: "生成或接受主手宝石的洗炼候选"
       clearstate: "移除主手物品上的宝石层"
       convert_legacy: "把 items/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 模式"
@@ -308,6 +313,64 @@ gui_text:
     upgrade_confirm_inactive_lore: "<dark_gray>请先放入未达到上限的宝石</dark_gray>"
     pending_inlay_text: "镶嵌宝石"
     pending_extract_text: "取出宝石"
+    # GUI：洗炼模式按钮标题
+    mode_reroll_full_title: "洗炼模式"
+    # GUI：洗炼模式按钮描述
+    mode_reroll_full_desc: "将宝石拿在主手并重掷全部词条"
+    # GUI：重算模式按钮标题
+    mode_reroll_value_title: "重算模式"
+    # GUI：重算模式按钮描述
+    mode_reroll_value_desc: "将宝石拿在主手并重算词条数值"
+    # GUI：洗炼目标槽位名称
+    reroll_target_name: "<light_purple>主手宝石</light_purple>"
+    # GUI：洗炼目标槽位说明
+    reroll_target_lore_1: "<gray>洗炼始终以主手宝石为目标</gray>"
+    # GUI：洗炼目标槽位说明
+    reroll_target_lore_2: "<dark_gray>此槽位不接受任何物品</dark_gray>"
+    # GUI：升级模式名称
+    mode_upgrade: "升级"
+    # GUI：洗炼模式名称
+    mode_reroll_full: "洗炼"
+    # GUI：重算模式名称
+    mode_reroll_value: "重算"
+    # GUI：洗炼信息提示
+    reroll_full_help: "<gray>查看洗炼候选后点击确认</gray>"
+    # GUI：重算信息提示
+    reroll_value_help: "<gray>查看重算后的数值后点击确认</gray>"
+    # GUI：洗炼操作提示
+    reroll_hold_hint: "<gray>请将宝石拿在主手</gray>"
+    # GUI：洗炼操作提示
+    reroll_generate_hint: "<green>点击确认生成候选</green>"
+    # GUI：洗炼候选状态提示
+    reroll_candidate_open: "<green>已有候选等待确认</green>"
+    # GUI：洗炼候选剩余时间；占位符：%seconds%
+    reroll_expires_in: "<gray>剩余时间: <gold>%seconds%s</gold></gray>"
+    # GUI：洗炼操作提示
+    reroll_confirm_hint: "<gray>点击确认写入宝石</gray>"
+    # GUI：洗炼操作提示
+    reroll_cancel_hint: "<dark_gray>切换模式或关闭界面将退还费用</dark_gray>"
+    # GUI：洗炼对比标题
+    reroll_summary_name: "<gold>洗炼对比</gold>"
+    # GUI：洗炼对比空状态
+    reroll_summary_empty: "<gray>生成候选后将显示对比</gray>"
+    # GUI：洗炼原词条标题
+    reroll_original_header: "<gray>当前词条:</gray>"
+    # GUI：洗炼原词条行；占位符：%affix%
+    reroll_original_line: "<dark_gray>- %affix%</dark_gray>"
+    # GUI：洗炼空词条行
+    reroll_none_line: "<dark_gray>- 无</dark_gray>"
+    # GUI：洗炼候选词条标题
+    reroll_candidate_header: "<gray>候选词条:</gray>"
+    # GUI：洗炼候选词条行；占位符：%affix%
+    reroll_candidate_line: "<green>+ %affix%</green>"
+    # GUI：确认洗炼按钮名称
+    reroll_confirm_name_active: "<green>确认洗炼</green>"
+    # GUI：生成洗炼候选按钮名称
+    reroll_generate_name: "<light_purple>生成候选</light_purple>"
+    # GUI：确认洗炼按钮说明
+    reroll_confirm_active_lore: "<gray>点击将候选写入主手宝石</gray>"
+    # GUI：生成洗炼候选按钮说明
+    reroll_generate_lore: "<gray>点击消耗费用并生成候选</gray>"
   open:
     target_empty_name: "<aqua>放入装备</aqua>"
     target_empty_lore_1: "<gray>将需要开孔的装备放入此槽</gray>"

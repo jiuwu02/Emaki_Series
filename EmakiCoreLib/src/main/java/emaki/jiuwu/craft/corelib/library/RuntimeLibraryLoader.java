@@ -34,10 +34,10 @@ public final class RuntimeLibraryLoader {
 
     public RuntimeLibraryLoader(Path dataDirectory, ComponentLogger logger) {
         if (dataDirectory == null) {
-            throw new IllegalArgumentException("CoreLib data directory cannot be null");
+            throw new IllegalArgumentException("CoreLib 数据目录不能为 null");
         }
         if (logger == null) {
-            throw new IllegalArgumentException("CoreLib plugin loader logger cannot be null");
+            throw new IllegalArgumentException("CoreLib 插件加载器 logger 不能为 null");
         }
         this.logger = logger;
         this.cacheDirectory = dataDirectory.resolve("libraries");
@@ -67,7 +67,7 @@ public final class RuntimeLibraryLoader {
         }
 
         if (!failed.isEmpty()) {
-            throw new IllegalStateException("CoreLib runtime libraries could not be prepared: " + failed);
+            throw new IllegalStateException("无法准备 CoreLib 运行时库: " + failed);
         }
         info(NamedTextColor.GREEN, "CoreLib 运行库准备完成（" + prepared.size() + "/" + libraries.size() + "）");
         return List.copyOf(prepared);
@@ -247,7 +247,7 @@ public final class RuntimeLibraryLoader {
         try {
             Files.createDirectories(cacheDirectory);
         } catch (IOException exception) {
-            throw new IllegalStateException("Cannot create CoreLib runtime library cache: " + cacheDirectory, exception);
+            throw new IllegalStateException("无法创建 CoreLib 运行时库缓存: " + cacheDirectory, exception);
         }
     }
 

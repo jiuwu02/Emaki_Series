@@ -275,19 +275,20 @@ public final class MobsCommandRouter {
         TaskToken token;
         if (sender instanceof Player player) {
             token = plugin.executionDispatcher().runEntity(plugin, player, delivery,
-                    () -> plugin.getLogger().warning(
-                            "[EmakiMobs] Command result recipient retired before delivery."));
+                    () -> plugin.messageService().warning("console.command_result_recipient_retired"));
         } else {
             token = plugin.executionDispatcher().runGlobal(plugin, delivery);
         }
         if (token == null || token.cancelled()) {
-            plugin.getLogger().warning("[EmakiMobs] Unable to schedule command result delivery.");
+            plugin.messageService().warning("console.command_result_schedule_failed");
         }
     }
 
     private void reportOperationFailure(CommandSender sender, String operation, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                "[EmakiMobs] Managed mob command operation failed: " + operation, throwable);
+                plugin.messageService().message("console.command_operation_failed",
+                        Map.of("operation", operation)),
+                throwable);
         deliver(sender, "command.operation_failed", Map.of("operation", operation));
     }
 

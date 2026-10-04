@@ -103,7 +103,7 @@ public final class GrinderRuntimeService {
                 GrinderState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed grinder state"));
+                            new IllegalArgumentException("已提交的研磨机状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -148,7 +148,9 @@ public final class GrinderRuntimeService {
         if (!blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
             activeStations.remove(coordinates.runtimeKey());
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=grinder coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "grinder",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         activeStations.add(coordinates.runtimeKey());

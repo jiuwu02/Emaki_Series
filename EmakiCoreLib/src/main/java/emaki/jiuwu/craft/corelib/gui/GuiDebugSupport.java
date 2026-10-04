@@ -37,7 +37,7 @@ public final class GuiDebugSupport {
             return new LinkedHashMap<>();
         }
         if (entries.length % 2 != 0) {
-            throw new IllegalArgumentException("entries must contain key-value pairs");
+            throw new IllegalArgumentException("entries 必须包含键值对");
         }
         Map<String, Object> replacements = new LinkedHashMap<>();
         for (int index = 0; index < entries.length; index += 2) {

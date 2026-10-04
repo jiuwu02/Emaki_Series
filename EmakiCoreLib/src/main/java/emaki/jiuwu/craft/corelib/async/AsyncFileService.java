@@ -242,13 +242,13 @@ public final class AsyncFileService implements AutoCloseable {
 
     private void ensureOpen() {
         if (state.get() != ServiceState.OPEN) {
-            throw new RejectedExecutionException("Async file service is shutting down");
+            throw new RejectedExecutionException("异步文件服务正在关闭");
         }
     }
 
     private <T> CompletableFuture<T> rejectedFuture(FileScope scope) {
         return CompletableFuture.failedFuture(new RejectedExecutionException(
-                "Async file scope is sealed: " + scope.ownerName));
+                "异步文件作用域已封闭: " + scope.ownerName));
     }
 
     private Path physicalPath(Path path) {

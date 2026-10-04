@@ -50,7 +50,7 @@ final class CraftEngineItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "CraftEngine items are not loaded yet.";
+        return "CraftEngine 物品尚未加载完成。";
     }
 
     @Override

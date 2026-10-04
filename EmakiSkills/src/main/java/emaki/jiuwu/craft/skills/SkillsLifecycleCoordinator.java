@@ -293,13 +293,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                                     plugin.appConfigLoader()::overrideCurrent);
                             if (gate.rejected()) {
 
-                                throw new IllegalStateException("Skills config precheck failed: "
+                                throw new IllegalStateException("技能配置预检失败: "
                                         + String.join("; ", gate.failures()));
                             }
                         },
                         null,
-                        (stage, ex) -> plugin.getLogger().warning(
-                                "[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                        (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                                "stage", String.valueOf(stage),
+                                "error", Texts.toStringSafe(ex.getMessage())))
                 )))
                 .thenCompose(ignored -> {
                     notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
@@ -343,7 +344,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                         task.completeExceptionally(throwable);
                     }
                 }, () -> task.completeExceptionally(new RejectedExecutionException(
-                        "Skills player reload operation retired before execution.")));
+                        "技能玩家重载操作在执行前已退役。")));
             } catch (Throwable throwable) {
                 task.completeExceptionally(throwable);
             }
@@ -358,7 +359,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (plugin.playerSkillDataStore() != null) {
             var flushResult = plugin.playerSkillDataStore().flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                plugin.getLogger().warning("[Shutdown] Skill data drain incomplete: pending="
+                plugin.getLogger().warning("[Shutdown] 技能数据落盘不完整: pending="
                         + flushResult.drainResult().pendingOperations()
                         + ", ioFailures=" + flushResult.drainResult().failures().size()
                         + ", saveFailures=" + flushResult.failedEntries()
@@ -612,7 +613,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             if (!skill.cronExpression().isBlank()) {
                 registry.register(new TriggerDefinition(
                         "cron_" + skill.id(),
-                        skill.displayName() + " (Cron)",
+                        skill.displayName() + "（定时）",
                         null,
                         true,
                         Set.of(),

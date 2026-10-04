@@ -82,7 +82,7 @@ public final class BStatsService {
 
     private Map<String, String> replacements(JavaPlugin plugin, int pluginId, Throwable throwable) {
         return Map.of(
-                "plugin", plugin == null ? "unknown" : plugin.getName(),
+                "plugin", plugin == null ? "未知" : plugin.getName(),
                 "plugin_id", String.valueOf(pluginId),
                 "error", errorMessage(throwable)
         );

@@ -24,9 +24,9 @@ public final class GemActionCoordinator {
         }
     }
 
-    private static final String RUNNER_UNAVAILABLE = "Action executor unavailable.";
+    private static final String RUNNER_UNAVAILABLE = "动作执行器不可用。";
 
-    private static final String UNKNOWN_FAILURE = "Unknown action failure.";
+    private static final String UNKNOWN_FAILURE = "未知动作失败。";
 
     private final EmakiGemPlugin plugin;
     private final ActionLineRunner actionLines;
@@ -85,7 +85,7 @@ public final class GemActionCoordinator {
 
     private void warnActionFailure(String phase, String message) {
         if (plugin != null) {
-            plugin.getLogger().warning("Gem action phase '" + Texts.toStringSafe(phase) + "' failed: " + Texts.toStringSafe(message));
+            plugin.getLogger().warning("宝石动作阶段 '" + Texts.toStringSafe(phase) + "' 失败: " + Texts.toStringSafe(message));
         }
     }
 }

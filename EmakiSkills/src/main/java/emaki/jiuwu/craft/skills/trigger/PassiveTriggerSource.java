@@ -244,9 +244,9 @@ public final class PassiveTriggerSource {
                     if (!timerDispatchWarningLogged) {
                         timerDispatchWarningLogged = true;
                         plugin.getLogger().log(Level.WARNING,
-                                "Passive trigger dispatch failed: trigger=timer, player=" + player.getName()
+                                "被动触发器派发失败: trigger=timer, player=" + player.getName()
                                         + ", operation=timer_dispatch, cause=" + throwable
-                                        + " (further identical warnings suppressed until the next successful dispatch)",
+                                        + "（后续相同警告将在下次成功派发前抑制）",
                                 throwable);
                     }
                 }
@@ -288,8 +288,8 @@ public final class PassiveTriggerSource {
                 });
             } catch (CronParseException e) {
                 plugin.getLogger().warning(
-                        "[EmakiSkills] Invalid cron expression '" + skill.cronExpression()
-                                + "' for skill '" + skill.id() + "': " + e.getMessage());
+                        "[EmakiSkills] 无效的定时表达式 '" + skill.cronExpression()
+                                + "'（技能 '" + skill.id() + "'）: " + e.getMessage());
             }
         }
     }

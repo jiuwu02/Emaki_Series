@@ -10,6 +10,6 @@ public final class GemItemLayerPreviewLifecycle extends AbstractPluginIntegratio
             "emaki.jiuwu.craft.gem.integration.item.GemItemLayerPreviewProvider";
 
     public GemItemLayerPreviewLifecycle(EmakiGemPlugin plugin) {
-        super(plugin, EmakiGemPlugin.class, ITEM_PLUGIN_NAME, PROVIDER_CLASS, "EmakiItem gem preview integration");
+        super(plugin, EmakiGemPlugin.class, ITEM_PLUGIN_NAME, PROVIDER_CLASS, "EmakiItem 宝石预览集成");
     }
 }

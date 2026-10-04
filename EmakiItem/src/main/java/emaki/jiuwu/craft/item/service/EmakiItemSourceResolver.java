@@ -63,17 +63,17 @@ public final class EmakiItemSourceResolver implements ItemSourceProvider {
         String providerId = KIND.key();
         if (!supports(ref) || Texts.isBlank(ref.identifier())) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "The EmakiItem source kind and identifier are required.");
+                    "EmakiItem 来源类型与标识符为必填项。");
         }
         try {
             if (!api.status().usable()) {
                 return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_NOT_READY, ref, providerId,
-                        "EmakiItem is installed but its runtime is not ready.");
+                        "EmakiItem 已安装但运行时尚未就绪。");
             }
             return api.catalog().exists(ref.identifier())
                     ? ItemSourceProbeResult.ready(ref, providerId)
                     : ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
-                            "EmakiItem does not contain the requested item definition.");
+                            "EmakiItem 不包含所请求的物品定义。");
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId, detail(exception));
         } catch (RuntimeException exception) {
@@ -117,7 +117,7 @@ public final class EmakiItemSourceResolver implements ItemSourceProvider {
     private String detail(Throwable throwable) {
         String message = throwable == null ? null : throwable.getMessage();
         return message == null || message.isBlank()
-                ? throwable == null ? "Unknown EmakiItem resolution failure" : throwable.getClass().getSimpleName()
+                ? throwable == null ? "未知的 EmakiItem 解析失败" : throwable.getClass().getSimpleName()
                 : message;
     }
 }

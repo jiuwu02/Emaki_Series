@@ -8,7 +8,7 @@ public record PityCounterConfig(
 ) {
     public PityCounterConfig {
         if (group == null || group.isBlank()) {
-            throw new IllegalArgumentException("Pity group cannot be null or blank");
+            throw new IllegalArgumentException("保底分组不能为空");
         }
     }
 }

@@ -17,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class KeepGate extends BaseGate {
 
     public KeepGate() {
-        super("keep", "Marks the current target flow as the one to carry forward.", CoreGateThread.PURE);
+        super("keep", "将当前目标流标记为后续沿用的一条。", CoreGateThread.PURE);
     }
 
     @Override

@@ -213,7 +213,7 @@ public final class EaBridge {
 
     private String errorMessage(Throwable throwable) {
         if (throwable == null) {
-            return "unknown";
+            return "未知";
         }
         Throwable resolved = throwable instanceof InvocationTargetException invocation
                 && invocation.getCause() != null

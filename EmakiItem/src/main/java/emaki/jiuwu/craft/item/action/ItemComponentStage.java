@@ -35,11 +35,11 @@ public final class ItemComponentStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("item_component_add", "Adds a data component to the target item."),
+        ADD("item_component_add", "为目标物品添加一个数据组件。"),
 
-        MODIFY("item_component_modify", "Modifies a data component on the target item."),
+        MODIFY("item_component_modify", "修改目标物品上的一个数据组件。"),
 
-        REMOVE("item_component_remove", "Removes a data component from the target item.");
+        REMOVE("item_component_remove", "移除目标物品上的一个数据组件。");
 
         private final String id;
         private final String description;
@@ -81,15 +81,15 @@ public final class ItemComponentStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         if (operation == Operation.REMOVE) {
             return List.of(
-                    CoreStageParameter.required("component", CoreStageParameterType.STRING, "Component id"),
+                    CoreStageParameter.required("component", CoreStageParameterType.STRING, "组件 ID"),
                     CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "",
-                            "Inventory slot; empty uses the pipeline item or the main hand"));
+                            "背包槽位；留空则使用管道物品或主手物品"));
         }
         return List.of(
-                CoreStageParameter.required("component", CoreStageParameterType.STRING, "Component id"),
-                CoreStageParameter.required("value", CoreStageParameterType.STRING, "Component value"),
+                CoreStageParameter.required("component", CoreStageParameterType.STRING, "组件 ID"),
+                CoreStageParameter.required("value", CoreStageParameterType.STRING, "组件值"),
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "",
-                        "Inventory slot; empty uses the pipeline item or the main hand"));
+                        "背包槽位；留空则使用管道物品或主手物品"));
     }
 
     @Override

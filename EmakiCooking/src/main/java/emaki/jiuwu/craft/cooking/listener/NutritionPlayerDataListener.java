@@ -63,7 +63,7 @@ public final class NutritionPlayerDataListener implements Listener {
                 return;
             }
             plugin.getLogger().log(Level.WARNING,
-                    "Failed to load nutrition data for " + playerId,
+                    "加载玩家营养数据失败: " + playerId,
                     AsyncFailures.unwrap(throwable));
         });
     }

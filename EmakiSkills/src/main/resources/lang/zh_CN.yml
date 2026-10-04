@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.3"
+version: "2.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
@@ -12,6 +12,10 @@ general:
   unknown_command: "<red>未知命令，请使用 /eskills help 查看帮助。</red>"
   invalid_args: "<red>参数错误。</red>"
   reloading: "<gray>正在重载配置...</gray>"
+  # 玩家：配置重载失败提示
+  reload_failed: "<red>配置重载失败。</red>"
+  # 玩家：配置重载耗时提示；占位符：%elapsed%
+  reload_elapsed: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>技能: %skills% | 资源: %resources% | GUI: %guis%</gray>"
 
@@ -64,6 +68,8 @@ console:
   ea_bridge_read_resource_max_failed: "读取 EmakiAttribute 资源上限失败: %resource% (%error%)"
   ea_bridge_consume_failed: "扣除 EmakiAttribute 资源失败: %resource% (%error%)"
   ea_bridge_attribute_read_failed: "读取 EmakiAttribute 属性失败: %attribute% (%error%)"
+  # 控制台：应用 EmakiAttribute 伤害失败；占位符：%damage_type%、%error%
+  ea_bridge_apply_damage_failed: "应用 EmakiAttribute 伤害失败: %damage_type% (%error%)"
   auraskills_mana_unavailable: "未检测到可用的 AuraSkills 法力接口，AuraSkills 法力消耗将阻止施法。"
   auraskills_mana_ready: "AuraSkills 法力桥接已就绪，接入方式: %mode%。"
   auraskills_mana_init_failed: "初始化 AuraSkills 法力桥接失败: %error%"
@@ -90,6 +96,39 @@ console:
     file_error: "<red>JS 技能脚本 <yellow>%file%</yellow> 加载失败: %error%</red>"
     register_error: "<red>JS 技能注册失败 [<yellow>%id%</yellow>]: %error%</red>"
     example_release_failed: "释放 JS 技能示例脚本失败: %path% (%error%)"
+    # 控制台：JS 技能脚本注册失败原因（无占位符）
+    reason:
+      blank_id: "ID 为空或缺失"
+      registry_inactive: "EmakiSkills 注册表未激活"
+      registration_rejected: "注册被拒绝"
+  # 控制台：命令授予/收回技能失败；占位符：%error%
+  command_grant_revoke_failed: "技能授予/收回失败: %error%"
+  # 控制台：命令重置技能失败；占位符：%error%
+  command_reset_failed: "技能重置失败: %error%"
+  # 控制台：等级命令执行失败；占位符：%error%
+  command_level_failed: "等级命令执行失败: %error%"
+  # 控制台：调度命令响应失败；占位符：%error%
+  command_schedule_failed: "调度命令响应失败: %error%"
+  # 控制台：异步重载失败；占位符：%error%
+  reload_async_failed: "[Reload] 异步重载失败: %error%"
+  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  reload_stage_failed: "[Reload] 阶段 %stage% 失败: %error%"
+  # 控制台：注册管线阶段失败；占位符：%stage%、%reason%
+  stage_register_failed: "注册管线阶段 '%stage%' 失败: %reason%"
+  # 控制台：未找到 GUI 模板；占位符：%template%
+  gui_template_not_found: "[SkillsGui] 未找到模板 '%template%'"
+  # 控制台：技能声明的升级模板不存在并回退；占位符：%skill%、%template%、%fallback%
+  gui_upgrade_template_missing: "[SkillsGui] 技能 '%skill%' 声明的升级模板 '%template%' 不存在；回退到 '%fallback%'"
+  # 控制台：关闭技能 GUI 会话失败；占位符：%error%
+  gui_close_failed: "关闭技能 GUI 会话失败: %error%"
+  # 控制台：技能升级材料需求判定异常并按零计入；占位符：%error%
+  gui_material_requirement_failed: "技能升级材料需求判定抛出异常，按零计入: %error%"
+  # 控制台：ActionBar 刷新失败；占位符：%player%、%error%
+  actionbar_refresh_failed: "[ActionBar] 为 %player% 刷新失败: %error%"
+  # 控制台：ActionBar 调度刷新失败；占位符：%player%、%error%
+  actionbar_schedule_failed: "[ActionBar] 为 %player% 调度刷新失败: %error%"
+  # 控制台：技能通过触发器释放失败；占位符：%skill%、%trigger%、%kind%、%detail%
+  skill_cast_failed: "技能 '%skill%' 通过触发器 '%trigger%' 释放失败: %kind% - %detail%"
 
 loader:
   lang_directory_create_failed: "无法创建语言目录: %path%"
@@ -245,6 +284,8 @@ command:
     header: "<gray>===== 玩家 <aqua>%player%</aqua> 技能状态 =====</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
     empty_slot: "[空]"
+    # 命令：玩家档案未加载时显示的取值
+    not_loaded: "未加载"
   castmode:
     enabled: "<green>施法模式已开启。</green>"
     disabled: "<yellow>施法模式已关闭。</yellow>"

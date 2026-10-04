@@ -52,7 +52,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
             }
             return loaded;
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[Codex] Failed to register advancement " + key + ": " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] 注册成就 " + key + " 失败：" + throwable.getMessage());
             return false;
         }
     }
@@ -65,7 +65,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             return Bukkit.getAdvancement(key) != null;
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[Codex] Failed to look up advancement " + key + ": " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] 查询成就 " + key + " 失败：" + throwable.getMessage());
             return false;
         }
     }
@@ -78,7 +78,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             return Bukkit.getUnsafe().removeAdvancement(key);
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[Codex] Failed to remove advancement " + key + ": " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] 移除成就 " + key + " 失败：" + throwable.getMessage());
             return false;
         }
     }
@@ -115,8 +115,8 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
                 }
             }
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[Codex] Failed to enumerate advancements for namespace "
-                    + namespace + ": " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] 枚举命名空间 "
+                    + namespace + " 的成就失败：" + throwable.getMessage());
         }
         return keys;
     }
@@ -136,8 +136,8 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
                 }
                 Files.write(target.toPath(), json.getBytes(StandardCharsets.UTF_8));
             } catch (IOException | RuntimeException exception) {
-                logger.log(Level.WARNING, "[Codex] Failed to mirror advancement " + key
-                        + " into singular dir of world " + world.getName() + ": " + exception.getMessage());
+                logger.log(Level.WARNING, "[Codex] 将成就 " + key
+                        + " 镜像到世界 " + world.getName() + " 的单数目录失败：" + exception.getMessage());
             }
         }
     }
@@ -183,7 +183,7 @@ public final class UnsafeAdvancementPlatform implements AdvancementPlatform {
         try {
             Bukkit.reloadData();
         } catch (Throwable throwable) {
-            logger.log(Level.WARNING, "[Codex] reloadData failed: " + throwable.getMessage());
+            logger.log(Level.WARNING, "[Codex] reloadData 失败：" + throwable.getMessage());
         }
     }
 }

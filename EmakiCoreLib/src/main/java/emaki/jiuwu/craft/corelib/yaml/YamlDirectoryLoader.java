@@ -152,7 +152,7 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     protected void onPreparationFailure(File directory, RuntimeException exception) {
-        String message = "Failed to prepare " + typeName() + " configuration files in "
+        String message = "准备 " + typeName() + " 配置文件失败，目录 "
                 + directory.getPath() + ": " + Texts.toStringSafe(exception.getMessage());
         issues.add(message);
         plugin.getLogger().warning(message);
@@ -196,7 +196,7 @@ public abstract class YamlDirectoryLoader<T> {
         int separator = safeKey.lastIndexOf('.');
         String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
         String label = Texts.isBlank(token)
-                ? "Configuration loader issue"
+                ? "配置加载器问题"
                 : Character.toUpperCase(token.charAt(0)) + token.substring(1);
         if (replacements == null || replacements.isEmpty()) {
             return label;

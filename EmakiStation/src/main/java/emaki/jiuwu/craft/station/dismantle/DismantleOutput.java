@@ -9,7 +9,7 @@ public record DismantleOutput(ItemSourceRef source, int amount) {
             throw new NullPointerException("source");
         }
         if (amount <= 0) {
-            throw new IllegalArgumentException("amount must be positive: " + amount);
+            throw new IllegalArgumentException("amount 必须为正数: " + amount);
         }
     }
 }

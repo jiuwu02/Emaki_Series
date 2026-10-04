@@ -19,10 +19,10 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class ChanceGate extends BaseGate {
 
     public ChanceGate() {
-        super("chance", "Stops the pipeline unless a probability roll succeeds.",
+        super("chance", "概率判定未通过时终止管道。",
                 CoreGateThread.PURE,
                 CoreStageParameter.positional("chance", CoreStageParameterType.PERCENTAGE,
-                        "Probability such as 50%, 0.5 or 1/3"));
+                        "概率，例如 50%、0.5 或 1/3"));
     }
 
     @Override

@@ -23,11 +23,11 @@ public final class SkillLearnStage implements CoreActionStage {
 
     public enum Operation {
 
-        LEARN("skill_learn", "Unlocks a skill for the target through the manual skill source."),
+        LEARN("skill_learn", "通过手动技能来源为目标解锁一个技能。"),
 
-        FORGET("skill_forget", "Removes one manually unlocked skill from the target."),
+        FORGET("skill_forget", "移除目标一个手动解锁的技能。"),
 
-        FORGET_ALL("skill_forget_all", "Removes all manually unlocked skills from the target.");
+        FORGET_ALL("skill_forget_all", "移除目标全部手动解锁的技能。");
 
         private final String id;
         private final String description;
@@ -69,7 +69,7 @@ public final class SkillLearnStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return operation == Operation.FORGET_ALL
                 ? List.of()
-                : List.of(CoreStageParameter.required("skill", CoreStageParameterType.STRING, "Skill id"));
+                : List.of(CoreStageParameter.required("skill", CoreStageParameterType.STRING, "技能 ID"));
     }
 
     @Override

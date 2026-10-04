@@ -17,9 +17,9 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class AfterGate extends BaseGate {
 
     public AfterGate() {
-        super("after", "Delays every following stage.", CoreGateThread.PURE,
+        super("after", "延迟其后所有段。", CoreGateThread.PURE,
                 CoreStageParameter.positional("delay", CoreStageParameterType.DURATION,
-                        "Delay such as 10t, 500ms or 2s"));
+                        "延迟，例如 10t、500ms 或 2s"));
     }
 
     @Override

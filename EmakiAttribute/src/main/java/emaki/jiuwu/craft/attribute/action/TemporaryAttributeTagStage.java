@@ -27,11 +27,11 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_tag_add", "Adds every tagged attribute into one timed effect group on the target."),
+        ADD("attribute_tag_add", "将所有带标签的属性加入目标的一个限时效果组。"),
 
-        REMOVE("attribute_tag_remove", "Removes tagged timed attribute modifiers from the target."),
+        REMOVE("attribute_tag_remove", "从目标移除带标签的限时属性修饰符。"),
 
-        CLEAR("attribute_tag_clear", "Clears tagged timed attribute modifiers on the target; equivalent to attribute_tag_remove.");
+        CLEAR("attribute_tag_clear", "清除目标上带标签的限时属性修饰符；等同于 attribute_tag_remove。");
 
         private final String id;
         private final String description;
@@ -73,17 +73,17 @@ public final class TemporaryAttributeTagStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         if (operation != Operation.ADD) {
-            return List.of(CoreStageParameter.required("tag", CoreStageParameterType.STRING, "Attribute tag"));
+            return List.of(CoreStageParameter.required("tag", CoreStageParameterType.STRING, "属性标签"));
         }
         return List.of(
-                CoreStageParameter.required("tag", CoreStageParameterType.STRING, "Attribute tag"),
-                CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "Modifier value"),
+                CoreStageParameter.required("tag", CoreStageParameterType.STRING, "属性标签"),
+                CoreStageParameter.required("value", CoreStageParameterType.DOUBLE, "修饰符数值"),
                 CoreStageParameter.required("duration_ticks", CoreStageParameterType.DURATION,
-                        "How long the modifiers last"),
+                        "修饰符持续时间"),
                 CoreStageParameter.optional("effect_prefix", CoreStageParameterType.STRING, "",
-                        "Effect group id for every matched attribute; defaults to tag:<tag>"),
+                        "每个匹配属性的效果组 ID；默认为 tag:<tag>"),
                 CoreStageParameter.optional("stack_mode", CoreStageParameterType.STRING, "",
-                        "How to combine with existing effects"));
+                        "与已有效果的叠加方式"));
     }
 
     @Override

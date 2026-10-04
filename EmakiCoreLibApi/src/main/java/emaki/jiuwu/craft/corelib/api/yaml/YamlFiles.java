@@ -65,9 +65,9 @@ public final class YamlFiles {
         try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             return BoostedYamlSupport.load(inputStream);
         } catch (YamlLoadException exception) {
-            throw new YamlLoadException("Failed to load YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
+            throw new YamlLoadException("加载 YAML 文件 '" + file.getPath() + "' 失败: " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to read YAML file '" + file.getPath() + "': " + safeMessage(exception), exception);
+            throw new YamlLoadException("读取 YAML 文件 '" + file.getPath() + "' 失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -89,9 +89,9 @@ public final class YamlFiles {
             }
             return load(inputStream);
         } catch (YamlLoadException exception) {
-            throw new YamlLoadException("Failed to load YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
+            throw new YamlLoadException("加载 YAML 资源 '" + resourcePath + "' 失败: " + safeMessage(exception), exception);
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to read YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
+            throw new YamlLoadException("读取 YAML 资源 '" + resourcePath + "' 失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -112,7 +112,7 @@ public final class YamlFiles {
             );
             return new VersionedYamlFile(null, resourcePath, document);
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to load versioned YAML resource '" + resourcePath + "': " + safeMessage(exception), exception);
+            throw new YamlLoadException("加载带版本 YAML 资源 '" + resourcePath + "' 失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -348,7 +348,7 @@ public final class YamlFiles {
 
     private static String safeMessage(Throwable throwable) {
         if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
-            return throwable == null ? "unknown error" : throwable.getClass().getSimpleName();
+            return throwable == null ? "未知错误" : throwable.getClass().getSimpleName();
         }
         return throwable.getMessage();
     }

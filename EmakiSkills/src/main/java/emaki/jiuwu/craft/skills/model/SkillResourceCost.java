@@ -8,7 +8,7 @@ public record SkillResourceCost(ResourceCostType type,
 
     public SkillResourceCost {
         if (type == null) {
-            throw new IllegalArgumentException("type must not be null");
+            throw new IllegalArgumentException("type 不能为 null");
         }
         targetId = targetId == null ? "" : targetId;
         amount = Math.max(0D, amount);

@@ -129,7 +129,7 @@ public final class GemItemFactory {
             if (!lore.isEmpty()) {
                 lore.add("");
             }
-            lore.add("<gray>Affixes</gray>");
+            lore.add(plugin.messageService().message("gem.item.affixes_header"));
             for (GemAffix affix : affixes) {
                 GemDefinition.AffixPoolEntry configured = definition.reroll().pools().values().stream()
                         .flatMap(List::stream)

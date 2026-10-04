@@ -52,7 +52,7 @@ final class ItemsAdderItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "ItemsAdder items are not loaded yet.";
+        return "ItemsAdder 物品尚未加载完成。";
     }
 
     @Override

@@ -23,11 +23,11 @@ public final class SkillSlotStage implements CoreActionStage {
 
     public enum Operation {
 
-        EQUIP("skill_equip", "Equips a skill into one of the target's skill slots."),
+        EQUIP("skill_equip", "将技能装配到目标的一个技能槽位中。"),
 
-        UNEQUIP("skill_unequip", "Clears one of the target's skill slots."),
+        UNEQUIP("skill_unequip", "清除目标的一个技能槽位。"),
 
-        BIND("skill_bind", "Binds a trigger to one of the target's skill slots.");
+        BIND("skill_bind", "将触发器绑定到目标的一个技能槽位。");
 
         private final String id;
         private final String description;
@@ -69,13 +69,13 @@ public final class SkillSlotStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return switch (operation) {
             case EQUIP -> List.of(
-                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "Slot index"),
-                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "Skill id"));
+                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "槽位序号"),
+                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "技能 ID"));
             case BIND -> List.of(
-                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "Slot index"),
-                    CoreStageParameter.required("trigger", CoreStageParameterType.STRING, "Trigger id"));
+                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "槽位序号"),
+                    CoreStageParameter.required("trigger", CoreStageParameterType.STRING, "触发器 ID"));
             case UNEQUIP -> List.of(
-                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "Slot index"));
+                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "槽位序号"));
         };
     }
 

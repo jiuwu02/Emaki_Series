@@ -32,10 +32,10 @@ public record MaterialRequirement(String materialId,
         }
         sources = sources == null ? List.of() : List.copyOf(sources);
         if (sources.isEmpty() && matcher == null) {
-            throw new IllegalArgumentException("sources must not be empty");
+            throw new IllegalArgumentException("sources 不能为空");
         }
         if (amount <= 0L) {
-            throw new IllegalArgumentException("amount must be positive: " + amount);
+            throw new IllegalArgumentException("amount 必须为正数: " + amount);
         }
     }
 

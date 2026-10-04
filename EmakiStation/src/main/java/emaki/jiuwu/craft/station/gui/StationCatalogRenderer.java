@@ -95,7 +95,7 @@ public final class StationCatalogRenderer {
         values.put("materials", materialLines(layoutId, recipe));
         if (!entry.unlocked()) {
             values.put("lock_reason", guiSupport.text(layoutId, "texts.recipe.locked",
-                    "Locked", Map.of()));
+                    "未解锁", Map.of()));
             return guiSupport.build(layoutId, "virtual_items.recipe_locked", values,
                     fallbackLocked(recipe.displayName()));
         }
@@ -106,18 +106,18 @@ public final class StationCatalogRenderer {
         List<String> lines = new ArrayList<>();
         if (recipe.hasPermission()) {
             lines.add(guiSupport.text(layoutId, "texts.recipe.condition_permission",
-                    "Requires permission", Map.of("permission", recipe.permission())));
+                    "需要权限", Map.of("permission", recipe.permission())));
         }
         if (recipe.condition().configured()) {
             lines.add(guiSupport.text(layoutId, "texts.recipe.condition_gate",
-                    "Has craft conditions", Map.of()));
+                    "有合成条件", Map.of()));
         }
         if (recipe.hasDisplayCondition()) {
             lines.add(guiSupport.text(layoutId, "texts.recipe.condition_display",
-                    "Has unlock conditions", Map.of()));
+                    "有解锁条件", Map.of()));
         }
         if (lines.isEmpty()) {
-            lines.add(guiSupport.text(layoutId, "texts.recipe.condition_none", "No conditions", Map.of()));
+            lines.add(guiSupport.text(layoutId, "texts.recipe.condition_none", "无条件", Map.of()));
         }
         return lines;
     }
@@ -125,18 +125,18 @@ public final class StationCatalogRenderer {
     private List<String> costLines(String layoutId, RecipeDefinition recipe) {
         List<String> lines = new ArrayList<>();
         if (recipe.cost().charges()) {
-            lines.add(guiSupport.text(layoutId, "texts.recipe.cost_currency", "Costs %amount%",
+            lines.add(guiSupport.text(layoutId, "texts.recipe.cost_currency", "消耗 %amount%",
                     Map.of("amount", AmountDisplay.precise(recipe.cost().amount()),
                             "currency", recipe.cost().providerId())));
         }
-        lines.add(guiSupport.text(layoutId, "texts.recipe.cost_duration", "Takes %duration%",
+        lines.add(guiSupport.text(layoutId, "texts.recipe.cost_duration", "耗时 %duration%",
                 Map.of("duration", DurationDisplay.format(recipe.durationSeconds() * 1_000L))));
 
         for (MaterialRequirement requirement : recipe.requirements()) {
             if (requirement.consume()) {
                 continue;
             }
-            lines.add(guiSupport.text(layoutId, "texts.recipe.cost_keep", "Requires holding %material% x%amount%",
+            lines.add(guiSupport.text(layoutId, "texts.recipe.cost_keep", "需要持有 %material% x%amount%",
                     Map.of("material", materialNameOf(layoutId, requirement),
                             "material_id", requirement.materialId(),
                             "requirement_id", requirement.requirementId(),
@@ -161,7 +161,7 @@ public final class StationCatalogRenderer {
                             "alternatives", String.valueOf(alternativesOf(requirement)))));
         }
         if (lines.isEmpty()) {
-            lines.add(guiSupport.text(layoutId, "texts.recipe.material_none", "No materials", Map.of()));
+            lines.add(guiSupport.text(layoutId, "texts.recipe.material_none", "无材料", Map.of()));
         }
         return lines;
     }
@@ -229,7 +229,7 @@ public final class StationCatalogRenderer {
             return displayNameOf(primary);
         }
         return guiSupport.text(layoutId, "texts.recipe.material_matcher",
-                "Custom condition", Map.of());
+                "自定义条件", Map.of());
     }
 
     private static int alternativesOf(MaterialRequirement requirement) {
@@ -245,7 +245,7 @@ public final class StationCatalogRenderer {
 
     private static ConfiguredItemDefinition fallbackLocked(String recipeName) {
         List<String> lore = new ArrayList<>();
-        lore.add("<dark_gray>Not unlocked</dark_gray>");
+        lore.add("<dark_gray>未解锁</dark_gray>");
         return new ConfiguredItemDefinition("GRAY_DYE", 1, Map.of(
                 "minecraft:custom_name", ItemComponentPatch.set("<dark_gray>" + recipeName + "</dark_gray>"),
                 "minecraft:lore", ItemComponentPatch.set(lore)));

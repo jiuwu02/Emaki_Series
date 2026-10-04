@@ -322,7 +322,7 @@ public final class ExternalManaBridge {
 
     private String errorMessage(Throwable throwable) {
         if (throwable == null) {
-            return "unknown";
+            return "未知";
         }
         String message = throwable.getMessage();
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;

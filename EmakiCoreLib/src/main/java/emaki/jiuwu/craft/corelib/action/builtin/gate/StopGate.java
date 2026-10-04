@@ -14,7 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class StopGate extends BaseGate {
 
     public StopGate() {
-        super("stop", "Ends the pipeline here.", CoreGateThread.PURE);
+        super("stop", "在此终止管道。", CoreGateThread.PURE);
     }
 
     @Override

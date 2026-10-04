@@ -13,7 +13,7 @@ public final class StationRenderFallbacks {
 
     public static ConfiguredItemDefinition purchaseUnavailable(String reason) {
         return new ConfiguredItemDefinition("GRAY_DYE", 1, Map.of(
-                "minecraft:custom_name", ItemComponentPatch.set("<gray>Cannot buy queue slots</gray>"),
+                "minecraft:custom_name", ItemComponentPatch.set("<gray>无法购买队列槽位</gray>"),
                 "minecraft:lore", ItemComponentPatch.set(List.of("<dark_gray>" + reason + "</dark_gray>"))));
     }
 }

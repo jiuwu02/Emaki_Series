@@ -30,9 +30,9 @@ final class ItemMigrationCommand {
             return true;
         }
         if (args.length < 2 || "list".equalsIgnoreCase(args[1])) {
-            plugin.messageService().sendRaw(sender, "<gray>EmakiItem aliases: <white>" + plugin.aliasLoader().all().size() + "</white></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.alias.header", Map.of("count", plugin.aliasLoader().all().size())));
             for (EmakiItemAlias alias : plugin.aliasLoader().all().values()) {
-                plugin.messageService().sendRaw(sender, "<gray>- <aqua>" + alias.oldId() + "</aqua> -> <green>" + alias.targetId() + "</green></gray>");
+                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.alias.line", Map.of("old_id", alias.oldId(), "target_id", alias.targetId())));
             }
             return true;
         }
@@ -45,17 +45,17 @@ final class ItemMigrationCommand {
             }
             plugin.aliasLoader().put(oldId, newId);
             plugin.itemFactory().clearCache();
-            plugin.messageService().sendRaw(sender, "<green>Alias 已添加：</green> <aqua>" + oldId + "</aqua> -> <green>" + newId + "</green>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.alias.added", Map.of("old_id", oldId, "new_id", newId)));
             return true;
         }
         if ("remove".equalsIgnoreCase(args[1]) && args.length >= 3) {
             String oldId = Texts.normalizeId(args[2]);
             boolean removed = plugin.aliasLoader().remove(oldId);
             plugin.itemFactory().clearCache();
-            plugin.messageService().sendRaw(sender, removed ? "<green>Alias 已删除：</green> <aqua>" + oldId + "</aqua>" : "<yellow>Alias 不存在：</yellow> <aqua>" + oldId + "</aqua>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(removed ? "command.alias.removed" : "command.alias.missing", Map.of("old_id", oldId)));
             return true;
         }
-        plugin.messageService().sendRaw(sender, "<red>用法：</red> /ei alias list | add <old> <new> | remove <old>");
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.alias.usage"));
         return true;
     }
 
@@ -71,9 +71,9 @@ final class ItemMigrationCommand {
             try {
                 if ("--dry-run".equals(mode)) {
                     Map<String, Object> preview = plugin.migrationService().preview(oldId, newId);
-                    plugin.messageService().sendRaw(sender, "<gray>迁移预览：<aqua>" + oldId + "</aqua> -> <green>" + newId + "</green>，替换数 <white>" + preview.get("replacementCount") + "</white></gray>");
+                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.preview", Map.of("old_id", oldId, "new_id", newId, "count", Texts.toStringSafe(preview.get("replacementCount")))));
                     for (Object file : (List<?>) preview.getOrDefault("files", List.of())) {
-                        plugin.messageService().sendRaw(sender, "<gray>- " + file + "</gray>");
+                        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.preview_file", Map.of("file", String.valueOf(file))));
                     }
                     return true;
                 }
@@ -81,11 +81,11 @@ final class ItemMigrationCommand {
                     Map<String, Object> result = plugin.migrationService().apply(oldId, newId, true, true);
                     plugin.aliasLoader().load();
                     plugin.itemFactory().clearCache();
-                    plugin.messageService().sendRaw(sender, "<green>迁移完成：</green> 替换数 <white>" + result.get("replacementCount") + "</white>，并保留 alias。");
+                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.applied", Map.of("count", Texts.toStringSafe(result.get("replacementCount")))));
                     return true;
                 }
             } catch (Exception exception) {
-                plugin.messageService().sendRaw(sender, "<red>迁移失败：</red> " + MiniMessages.escape(exception.getMessage()));
+                plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.failed", Map.of("error", MiniMessages.escape(Texts.toStringSafe(exception.getMessage())))));
                 return true;
             }
         }
@@ -93,7 +93,7 @@ final class ItemMigrationCommand {
             if ("all".equalsIgnoreCase(args[2])) {
                 List<Player> targets = List.copyOf(Bukkit.getOnlinePlayers());
                 if (targets.isEmpty()) {
-                    plugin.messageService().sendRaw(sender, "<green>在线玩家背包迁移完成：</green> 0 件物品。");
+                    plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.inventory_all_done", Map.of("count", 0)));
                     return true;
                 }
                 AtomicInteger totalChanged = new AtomicInteger();
@@ -102,7 +102,7 @@ final class ItemMigrationCommand {
                     totalChanged.addAndGet(changed);
                     if (remaining.decrementAndGet() == 0) {
                         executors.runForSender(sender, () -> plugin.messageService().sendRaw(sender,
-                                "<green>在线玩家背包迁移完成：</green> " + totalChanged.get() + " 件物品。"));
+                                plugin.messageService().message("command.migrate.inventory_all_done", Map.of("count", totalChanged.get()))));
                     }
                 };
                 for (Player target : targets) {
@@ -132,11 +132,11 @@ final class ItemMigrationCommand {
                     plugin.scheduleAttributeEquipmentSync(target);
                 }
                 executors.runForSender(sender, () -> plugin.messageService().sendRaw(sender,
-                        "<green>背包迁移完成：</green> " + target.getName() + " / " + changed + " 件物品。"));
+                        plugin.messageService().message("command.migrate.inventory_done", Map.of("player", target.getName(), "count", changed))));
             });
             return true;
         }
-        plugin.messageService().sendRaw(sender, "<red>用法：</red> /ei migrate id <old> <new> --dry-run|--apply 或 /ei migrate inventory <player|all>");
+        plugin.messageService().sendRaw(sender, plugin.messageService().message("command.migrate.usage"));
         return true;
     }
 }

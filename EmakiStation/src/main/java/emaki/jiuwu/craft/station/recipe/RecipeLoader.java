@@ -239,7 +239,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         String path = "result.outputs[" + index + "]";
         if (entry.contains("matcher")) {
             issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + ".matcher is not allowed on output nodes", "file", fileName(file)));
+                    "source", path + " 上不允许使用 matcher", "file", fileName(file)));
             return List.of();
         }
         if (canonical && legacy) {
@@ -251,7 +251,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
             Object raw = entry.get("item_source");
             if (raw instanceof Iterable<?> && !(raw instanceof String)) {
                 issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                        "source", path + ".item_source must be a single value", "file", fileName(file)));
+                        "source", path + " 的 item_source 必须是单值", "file", fileName(file)));
                 return List.of();
             }
             ItemSourceRef ref = ItemSourceUtil.parse(raw);
@@ -264,13 +264,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         }
         if (!legacy) {
             issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + ".item_source is required", "file", fileName(file)));
+                    "source", path + " 必须提供 item_source", "file", fileName(file)));
             return List.of();
         }
         List<Object> values = ConfigNodes.asObjectList(entry.get("item_sources"));
         if (values.size() != 1) {
             issue("station.recipe_bad_source", Map.of("recipe", recipeId,
-                    "source", path + ".item_sources must contain exactly one value", "file", fileName(file)));
+                    "source", path + " 的 item_sources 必须恰好包含一个值", "file", fileName(file)));
             return List.of();
         }
         ItemSourceRef ref = ItemSourceUtil.parse(values.getFirst());

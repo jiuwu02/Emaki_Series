@@ -329,7 +329,7 @@ final class GemGuiInteractionController {
             } else if (result instanceof EmakiResult.Failure<?> failure) {
                 sendUpgradeFailure(player, failure.reasonKey(), failure.placeholders());
             } else {
-                plugin.messageService().send(player, "gui.gem.upgrade_failed", Map.of("reason", "unknown_result"));
+                plugin.messageService().send(player, "gui.gem.upgrade_failed", Map.of("reason", "未知结果"));
             }
         } finally {
             state.setProcessing(false);

@@ -25,7 +25,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class CoreLibScriptsCoordinator implements AutoCloseable {
 
-    private static final String ENGINE_MISSING_REASON = "GraalJS runtime libraries are not available";
+    private static final String ENGINE_MISSING_REASON = "GraalJS 运行时库不可用";
     private static final String SCRIPTS_RESOURCE_ROOT = "scripts";
 
     private final EmakiCoreLibPlugin plugin;
@@ -162,7 +162,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
         for (ScriptActionStage stage : scriptStages) {
             CoreStageRegistration registration = registry.registerAction(plugin, stage);
             if (registration == null || !registration.successful()) {
-                plugin.getLogger().warning("Script action stage re-registration failed for '"
+                plugin.getLogger().warning("脚本动作段重新注册失败 '"
                         + stage.id() + "': " + (registration == null ? "no_registration" : registration.reasonKey()));
                 continue;
             }
@@ -176,7 +176,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("Script condition deregistration failed: " + exception.getMessage());
+                plugin.getLogger().warning("脚本条件注销失败: " + exception.getMessage());
             }
         }
         conditionHandles.clear();
@@ -199,7 +199,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("Script stage deregistration failed: " + exception.getMessage());
+                plugin.getLogger().warning("脚本段注销失败: " + exception.getMessage());
             }
         }
         stageHandles.clear();
@@ -231,7 +231,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
 
     private String resolveReason(@NotNull String reasonKey) {
         if (Texts.isBlank(reasonKey)) {
-            return "unknown";
+            return "未知";
         }
         int split = reasonKey.indexOf(':');
         String key = split >= 0 ? reasonKey.substring(0, split) : reasonKey;

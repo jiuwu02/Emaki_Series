@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.storage.listener;
 
+import java.util.Map;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -25,8 +27,9 @@ public final class StoragePlayerListener implements Listener {
         plugin.dataStore().beginSessionAsync(player.getUniqueId(), player.getName())
                 .whenComplete((loaded, throwable) -> {
                     if (throwable != null) {
-                        plugin.getLogger().warning("[storage] Failed to load storage for "
-                                + player.getName() + ": " + throwable.getClass().getSimpleName());
+                        plugin.messageService().warning("console.storage_load_failed", Map.of(
+                                "player", player.getName(),
+                                "reason", throwable.getClass().getSimpleName()));
                         return;
                     }
                     if (loaded == null) {

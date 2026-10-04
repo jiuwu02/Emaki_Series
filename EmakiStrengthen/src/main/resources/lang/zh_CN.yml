@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.4"
+version: "4.8.5"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -14,6 +14,8 @@ general:
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已重载配方 %recipes% 个、材料 %materials% 个、GUI %guis% 个。</gray>"
+  # 玩家：重载耗时反馈；占位符：%elapsed%
+  reload_elapsed: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
 
 command:
   help:
@@ -124,6 +126,28 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "路径不是目录。"
       directory_not_readable: "目录不可读。"
+      # 控制台：强化配方材料槽 target_compare 未知；占位符：%recipe%、%index%、%token%、%legal%
+      enhancement_recipe_unknown_target_compare: "强化配方 %recipe% 的 material_%index% 声明了未知的 target_compare '%token%'；合法取值为 %legal%。"
+      # 控制台：强化配方材料槽 required/optional 冲突；占位符：%recipe%、%index%
+      enhancement_recipe_required_optional_conflict: "强化配方 %recipe% 的 material_%index% 同时声明了 'required' 与 'optional'；以 'optional' 为准，'required' 会被忽略。"
+      # 控制台：强化配方材料槽既无 matcher 也无 item_sources；占位符：%recipe%、%index%
+      enhancement_recipe_empty_matcher: "强化配方 %recipe% 的 material_%index% 既没有 matcher 也没有 item_sources，任意投入的物品都会满足该槽位。"
+      # 控制台：强化配方无必需材料槽；占位符：%recipe%
+      enhancement_recipe_no_required_slot: "强化配方 %recipe% 有材料，但没有任何材料被标记为 required，这些槽位永远不会阻止强化。"
+      # 控制台：强化配方保底轨道重复；占位符：%recipe%、%track%
+      enhancement_recipe_duplicate_pity_track: "强化配方 %recipe% 声明了重复的保底轨道 '%track%'；重复轨道共用同一计数器，会重复累计同一次强化。"
+      # 控制台：强化配方保底轨道按等级隔离；占位符：%recipe%、%track%
+      enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离，目标等级变化时计数器会重置。"
+      # 控制台：强化配方 mode 与目标 provider 不一致；占位符：%recipe%、%mode%、%provider%
+      enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%'，但目标 provider 为 '%provider%'；分发以 provider 为准，mode 只用于填充 enhancement_mode 占位符，两者不一致通常是配置错误。"
+      # 控制台：forge 变量路径不在 forge 前缀下；占位符：%path%
+      forge_variable_path_prefix: "forge 变量路径 '%path%' 必须位于 forge 前缀之下。"
+      # 控制台：规范 forge 变量缺少别名来源；占位符：%variable%
+      forge_variable_canonical_missing: "规范 forge 变量 '%variable%' 未由任何别名路径产出。"
+      # 控制台：旧版 forge 变量不再产出；占位符：%variable%
+      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出，会破坏既有配方。"
+      # 控制台：forge PDC 命名空间不匹配；占位符：%namespace%
+      forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge'，实际为 '%namespace%'。"
   bootstrap_start: "<gray>开始检查默认文件...</gray>"
   bootstrap_complete: "<green>默认文件检查完成。</green>"
   bootstrap_skip: "<yellow>release_default_data=false，已跳过默认数据生成。</yellow>"
@@ -139,6 +163,31 @@ console:
   pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
   recipes_loaded: "<gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  # 控制台：重载进度提示
+  reload_loading_files: "<gray>正在加载配置文件...</gray>"
+  reload_loading_configs: "<gray>正在读取配置...</gray>"
+  reload_applying: "<gray>正在应用配置...</gray>"
+  reload_complete: "<green>重载完成。</green>"
+  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: %error%</yellow>"
+  # 控制台：强化尝试安全失败；占位符：%operation_id%、%error%
+  strengthen_attempt_failed_closed: "<red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
+  # 控制台：强化结果事件分发失败；占位符：%operation_id%、%error%
+  strengthen_result_dispatch_failed: "<yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  # 控制台：GUI 结果动作分发失败；占位符：%operation_id%、%error%
+  gui_result_action_dispatch_failed: "<yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  # 控制台：已提交结果归属者离线；占位符：%operation_id%
+  gui_owner_retired: "<yellow>强化已提交结果的归属者已离线，结算仍待处理 | operationId=%operation_id%</yellow>"
+  # 控制台：已提交结果调度被拒绝；占位符：%operation_id%
+  gui_schedule_rejected: "<red>强化已提交结果的调度被拒绝，结算仍待处理 | operationId=%operation_id%</red>"
+  # 控制台：已提交结果调度失败；占位符：%operation_id%、%error%
+  gui_schedule_failed: "<red>强化已提交结果的调度失败，结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
+  # 控制台：已提交结果结算失败将重试；占位符：%operation_id%、%error%
+  gui_settlement_retry: "<red>强化已提交结果的结算失败，将重试 | operationId=%operation_id% | error=%error%</red>"
+  # 控制台：结算后结果通知失败；占位符：%operation_id%、%error%
+  gui_notification_failed: "<yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
+  # 控制台：背包已满通知失败；占位符：%error%
+  gui_inventory_full_notify_failed: "<yellow>背包已满通知失败 | error=%error%</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"

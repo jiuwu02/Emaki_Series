@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.17"
+version: "4.8.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -643,6 +643,8 @@ command:
   loop_cancelled: "<green>已取消长期任务: <aqua>%key%</aqua></green>"
   loop_not_found: "<red>没有匹配该 key 的长期任务: <aqua>%key%</aqua></red>"
   loop_player_cancelled: "<green>已取消玩家 <aqua>%player%</aqua> 的 <yellow>%count%</yellow> 个长期任务</green>"
+  # 命令：调试长期任务列表条目；占位符：%key%、%plugin%、%index%、%times%、%interval_ticks%、%player%
+  loop_task_entry: "<gray>- key=<aqua>%key%</aqua> plugin=<yellow>%plugin%</yellow> index=<white>%index%/%times%</white> interval=<white>%interval_ticks%t</white> player=<gray>%player%</gray></gray>"
   action_unavailable: "<red>动作管道尚未就绪，无法执行。</red>"
   action_usage: "<yellow>用法: /corelib action run <动作行></yellow>"
   action_list_header: "<aqua>当前已注册段：</aqua><yellow>%count%</yellow>"

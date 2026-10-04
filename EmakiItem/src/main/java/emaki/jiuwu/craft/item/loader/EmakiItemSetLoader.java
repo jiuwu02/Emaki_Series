@@ -58,7 +58,7 @@ public final class EmakiItemSetLoader {
         }
         File directory = plugin.getDataFolder().toPath().resolve("sets").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
-            plugin.getLogger().warning("Could not create sets directory: " + directory.getPath());
+            plugin.getLogger().warning("无法创建 sets 目录: " + directory.getPath());
         }
         Map<String, ItemSetDefinition> loaded = new LinkedHashMap<>();
         for (File file : files(directory)) {
@@ -67,7 +67,7 @@ public final class EmakiItemSetLoader {
                 continue;
             }
             if (loaded.containsKey(definition.id())) {
-                plugin.getLogger().warning("Duplicate EmakiItem set id '" + definition.id() + "' in " + file.getPath() + ", keeping first definition.");
+                plugin.getLogger().warning("重复的 EmakiItem 套装 ID '" + definition.id() + "'（位于 " + file.getPath() + "），保留首个定义。");
                 continue;
             }
             loaded.put(definition.id(), definition);
@@ -110,7 +110,7 @@ public final class EmakiItemSetLoader {
         }
         String id = Texts.normalizeId(root.getString("id"));
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("Skipping set definition " + source + ": invalid id.");
+            plugin.getLogger().warning("跳过套装定义 " + source + "：ID 无效。");
             return null;
         }
         return new ItemSetDefinition(
@@ -203,9 +203,9 @@ public final class EmakiItemSetLoader {
             }
         }
         if (!present.isEmpty()) {
-            plugin.getLogger().warning("Set definition " + source + " threshold " + required
-                    + " declares retired field(s) " + String.join(", ", present)
-                    + "; they are ignored, express them as 'effects' entries.");
+            plugin.getLogger().warning("套装定义 " + source + " 阈值 " + required
+                    + " 声明了已停用的字段 " + String.join(", ", present)
+                    + "；这些字段会被忽略，请改用 'effects' 条目表达。");
         }
     }
 
@@ -318,8 +318,8 @@ public final class EmakiItemSetLoader {
                 continue;
             }
             if (depth >= maxDepth) {
-                plugin.getLogger().warning("Skipping EmakiItem set directory " + relativize(entry, root)
-                        + ": nesting exceeds data_directories.max_depth=" + maxDepth + ".");
+                plugin.getLogger().warning("跳过 EmakiItem 套装目录 " + relativize(entry, root)
+                        + "：嵌套层级超过 data_directories.max_depth=" + maxDepth + "。");
                 continue;
             }
             collect(entry, root, depth + 1, maxDepth, sink);

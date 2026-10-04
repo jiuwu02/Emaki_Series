@@ -35,7 +35,7 @@ public final class ExceptionHandler {
     public void handleUnexpected(Exception exception, String operation) {
         FrameworkException wrapped = new FrameworkException(
                 "UNEXPECTED_ERROR",
-                "Unexpected error during " + operation,
+                "操作发生意外错误: " + operation,
                 exception,
                 ExceptionContext.of("operation", operation).asMap()
         );
@@ -46,7 +46,7 @@ public final class ExceptionHandler {
         StringBuilder logMessage = new StringBuilder();
         logMessage.append(exception.errorCode()).append(": ").append(exception.getMessage());
         if (!exception.context().isEmpty()) {
-            logMessage.append(" | Context: ").append(exception.contextAsString());
+            logMessage.append(" | 上下文: ").append(exception.contextAsString());
         }
         if (exception.getCause() != null) {
             logger.log(level, logMessage.toString(), exception.getCause());

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.6.2"
+version: "1.6.3"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
@@ -45,6 +45,16 @@ console:
   bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  # 控制台：重建等级排行榜失败
+  leaderboard_rebuild_failed: "重建等级排行榜失败"
+  # 控制台：EmakiAttribute 属性桥接注册失败；占位符：%cause%
+  attribute_bridge_register_failed: "EmakiAttribute 属性桥接注册失败: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
+  # 控制台：流程阶段注册失败；占位符：%stage%、%reason%
+  stage_register_failed: "注册流程阶段 '%stage%' 失败: %reason%"
+  # 控制台：玩家数据异步操作失败；占位符：%operation%、%player%
+  async_operation_failed: "[LevelDataStore] 异步 %operation% 操作失败，玩家 %player%"
+  # 控制台：经验来源规则需求判定异常，按未匹配处理；占位符：%error%
+  source_rule_requirement_failed: "经验来源规则需求判定抛出异常，按未匹配处理: %error%"
 command:
   no_permission: "%prefix%<red>你没有权限执行该指令。</red>"
   player_only: "%prefix%<red>该指令只能由玩家执行。</red>"
@@ -53,6 +63,26 @@ command:
   invalid_number: "%prefix%<red>数字无效: <white>%value%</white></red>"
   reload_success: "%prefix%<green>配置已重载。</green>"
   usage: "%prefix%<gray>用法: /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type]</gray>"
+  # 命令：排行榜标题；占位符：%type%
+  top_header: "<gold>===== EmakiLevel 排行榜: %type% =====</gold>"
+  # 命令：排行榜条目；占位符：%rank%、%player%、%level%、%total_exp%
+  top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>Lv.%level% / %total_exp% 总计</gray>"
+  # 命令：经验操作用法提示；占位符：%mode%
+  usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
+  # 命令：等级操作用法提示；占位符：%mode%
+  usage_level: "<red>/elv %mode%level <player> <type> <amount></red>"
+  # 命令：重置用法提示
+  usage_reset: "<red>/elv reset <player> <type></red>"
+  # 命令：重载耗时；占位符：%elapsed%
+  reload_time: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
+  # 命令：升级经验需求调试输出；占位符：%type%、%level%、%required%、%source%
+  debug_requirement: "<gray>需求 %type% -> %level%: <yellow>%required%</yellow> <dark_gray>(%source%)</dark_gray></gray>"
+  # 命令：PDC 同步完成提示；占位符：%player%
+  debug_pdc_synced: "<green>已为 %player% 同步 PDC。</green>"
+  # 命令：操作成功反馈；占位符：%type%、%old_level%、%new_level%、%old_exp%、%new_exp%
+  operation_success: "<green>操作成功: %type% Lv.%old_level% → Lv.%new_level%, exp %old_exp% → %new_exp%</green>"
+  # 命令：操作失败反馈；占位符：%reason%
+  operation_failed: "<red>操作失败: %reason%</red>"
   convert_legacy:
     header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
     mode:
@@ -84,6 +114,7 @@ gui:
     unknown_type: "%prefix%<red>等级类型不存在: <white>%type%</white></red>"
     page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
     page_info_lore: "<gray>等级类型数量: <white>%type_count%</white></gray>"
+    entry_name: "%type_display_name% <gray>Lv.%level%</gray>"
     top_button_name: "<gold>%type_display_name% 排行榜</gold>"
     top_button_lore: "<gray>点击查看当前选中等级类型的排行榜</gray>"
     levelup_once_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级。</green>"

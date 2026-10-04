@@ -48,9 +48,10 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
             replaced = spawners.put(normalizedId, new RegisteredSpawner(owner, spawner, generation));
         }
         if (replaced != null) {
-            plugin.getLogger().warning("[EmakiMobs] Replaced custom spawner '" + normalizedId
-                    + "' from owner '" + ownerName(replaced.owner()) + "' with owner '"
-                    + ownerName(owner) + "'.");
+            plugin.messageService().warning("console.custom_spawner_replaced", Map.of(
+                    "id", normalizedId,
+                    "old_owner", ownerName(replaced.owner()),
+                    "new_owner", ownerName(owner)));
         }
         notifySpawner(normalizedId, owner, spawner);
         return new RegistrationHandle(this, normalizedId, generation);
@@ -105,8 +106,8 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
             spawner.onReload();
         } catch (RuntimeException exception) {
             plugin.getLogger().log(Level.WARNING,
-                    "[EmakiMobs] Custom spawner '" + id + "' from owner '"
-                            + ownerName(owner) + "' failed during reload.", exception);
+                    plugin.messageService().message("console.custom_spawner_reload_failed",
+                            Map.of("id", id, "owner", ownerName(owner))), exception);
         }
     }
 
@@ -115,7 +116,7 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
     }
 
     private static String ownerName(Plugin owner) {
-        return owner == null ? "unowned" : owner.getName();
+        return owner == null ? "无主" : owner.getName();
     }
 
     private record RegisteredSpawner(Plugin owner, CustomSpawner spawner, long generation) {

@@ -102,13 +102,13 @@ public final class SkillScriptCastService {
             return PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.run.exception",
                     Map.of("error", cause == null || cause.getMessage() == null
-                            ? "Skill script execution failed."
+                            ? "技能脚本执行失败。"
                             : cause.getMessage()),
                     List.of());
         }
         return completion.outcome() == null
                 ? PipelineOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
-                        "action.run.exception", Map.of("error", "no result"), List.of())
+                        "action.run.exception", Map.of("error", "无结果"), List.of())
                 : completion.outcome();
     }
 
@@ -138,7 +138,7 @@ public final class SkillScriptCastService {
                     CompletionStage<T> stage = task.get();
                     if (stage == null) {
                         future.completeExceptionally(new IllegalStateException(
-                                "Skill cast entity-domain task returned no stage."));
+                                "技能施法实体域任务未返回阶段。"));
                         return;
                     }
                     stage.whenComplete((result, throwable) -> {
@@ -157,7 +157,7 @@ public final class SkillScriptCastService {
             } else {
                 plugin.scheduling().runForEntity(plugin, caster, operation,
                         () -> future.completeExceptionally(new RejectedExecutionException(
-                                "Skill cast entity-domain task retired before execution.")));
+                                "技能施法实体域任务在执行前已退役。")));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -165,7 +165,7 @@ public final class SkillScriptCastService {
         CompletableFuture.delayedExecutor(30L, TimeUnit.SECONDS).execute(() -> {
             if (!started.get()) {
                 future.completeExceptionally(new IllegalStateException(
-                        "Skill cast entity-domain task did not execute before its scheduling deadline."));
+                        "技能施法实体域任务未在调度截止前执行。"));
             }
         });
         return future;

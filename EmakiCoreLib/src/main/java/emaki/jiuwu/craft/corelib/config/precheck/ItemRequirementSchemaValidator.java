@@ -41,13 +41,13 @@ public final class ItemRequirementSchemaValidator {
         List<ConfigPrecheckIssue> issues = new ArrayList<>();
         Map<String, Object> values = mapping(node);
         if (values == null) {
-            issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR, "item requirement must be a mapping"));
+            issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR, "物品需求必须是映射"));
             return List.copyOf(issues);
         }
         Role resolvedRole = role == null ? Role.INPUT : role;
         List<String> sourceKeys = resolvedRole == Role.OUTPUT ? OUTPUT_SOURCE_KEYS : SOURCE_KEYS;
-        validateAliases(module, path, values, sourceKeys, "item source", issues);
-        validateAliases(module, path, values, MATCHER_KEYS, "matcher", issues);
+        validateAliases(module, path, values, sourceKeys, "物品来源", issues);
+        validateAliases(module, path, values, MATCHER_KEYS, "匹配器", issues);
         validateIdentityFields(module, path, values, issues);
         validateAmount(module, path, values, resolvedRole, issues);
         validateSource(module, path, values, sourceKeys, resolvedRole, issues);
@@ -55,16 +55,16 @@ public final class ItemRequirementSchemaValidator {
         if (resolvedRole != Role.OUTPUT && resolvedRole != Role.PERSISTENT
                 && !containsAny(values, SOURCE_KEYS) && !containsAny(values, MATCHER_KEYS)) {
             issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                    "item requirement must declare item_sources or matcher"));
+                    "物品需求必须声明 item_sources 或 matcher"));
         }
         if (resolvedRole == Role.PERSISTENT && !containsAny(values, IDENTITY_KEYS)) {
             issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                    "persistent item requirement must declare a stable identity field"));
+                    "持久化物品需求必须声明稳定的身份字段"));
         }
         if (resolvedRole == Role.PERSISTENT && values.containsKey("persistent")
                 && !(values.get("persistent") instanceof Boolean)) {
             issues.add(issue(module, field(path, "persistent"), ConfigPrecheckSeverity.ERROR,
-                    "persistent must be a boolean"));
+                    "persistent 必须是布尔值"));
         }
         return List.copyOf(issues);
     }
@@ -92,7 +92,7 @@ public final class ItemRequirementSchemaValidator {
                     Integer previous = seen.putIfAbsent(normalized, index);
                     if (previous != null) {
                         issues.add(issue(module, nodePath + "." + key, ConfigPrecheckSeverity.ERROR,
-                                "duplicate " + key + " identity '" + normalized + "', first declared at "
+                                "重复的 " + key + " 身份 '" + normalized + "'，首次声明于 "
                                         + indexed(path, previous)));
                     }
                 }
@@ -140,7 +140,7 @@ public final class ItemRequirementSchemaValidator {
             return validateDocument(module, path, YamlFiles.load(file));
         } catch (RuntimeException exception) {
             return List.of(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                    "unable to parse item requirement document: " + Texts.toStringSafe(exception.getMessage())));
+                    "无法解析物品需求文档: " + Texts.toStringSafe(exception.getMessage())));
         }
     }
 
@@ -240,15 +240,15 @@ public final class ItemRequirementSchemaValidator {
         for (String key : declared) {
             if ("matchers".equals(key) && "matcher".equals(aliases.getFirst())) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                        "top-level 'matchers' is not an item requirement matcher; use 'matcher'"));
+                        "顶层 'matchers' 不是物品需求匹配器；请使用 'matcher'"));
             } else if (!key.equals(aliases.getFirst())) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.WARN,
-                        "legacy " + label + " field '" + key + "'; use '" + aliases.getFirst() + "'"));
+                        "旧版 " + label + " 字段 '" + key + "'；请使用 '" + aliases.getFirst() + "'"));
             }
         }
         if (declared.size() > 1) {
             issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                    "conflicting top-level " + label + " fields: " + String.join(", ", declared)));
+                    "顶层 " + label + " 字段冲突: " + String.join(", ", declared)));
         }
     }
 
@@ -261,10 +261,10 @@ public final class ItemRequirementSchemaValidator {
             Object value = values.get(key);
             if (!(value instanceof String text)) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                        key + " must be a string"));
+                        key + " 必须是字符串"));
             } else if (Texts.isBlank(text)) {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                        key + " must not be blank"));
+                        key + " 不能为空"));
             }
         }
     }
@@ -274,14 +274,14 @@ public final class ItemRequirementSchemaValidator {
         if (!values.containsKey("amount")) {
             if (role == Role.MATERIAL) {
                 issues.add(issue(module, field(path, "amount"), ConfigPrecheckSeverity.ERROR,
-                        "material amount is required"));
+                        "必须提供材料数量"));
             }
             return;
         }
         Object value = values.get("amount");
         if (!(value instanceof Number number) || number.doubleValue() % 1.0D != 0.0D || number.intValue() <= 0) {
             issues.add(issue(module, field(path, "amount"), ConfigPrecheckSeverity.ERROR,
-                    "amount must be a positive integer"));
+                    "amount 必须是正整数"));
         }
     }
 
@@ -291,7 +291,7 @@ public final class ItemRequirementSchemaValidator {
         if (keys.isEmpty()) {
             if (role == Role.OUTPUT) {
                 issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR,
-                        "output must declare exactly one item_source"));
+                        "output 必须恰好声明一个 item_source"));
             }
             return;
         }
@@ -303,16 +303,16 @@ public final class ItemRequirementSchemaValidator {
                 valid++;
             } else {
                 issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.WARN,
-                        "item source entry is invalid: " + String.valueOf(rawSource)));
+                        "物品来源条目无效: " + String.valueOf(rawSource)));
             }
         }
         if (valid == 0) {
             issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                    "item source field must contain at least one valid source"));
+                    "物品来源字段必须包含至少一个有效来源"));
         }
         if (role == Role.OUTPUT && (rawSources.size() != 1 || valid != 1)) {
             issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                    "output must declare exactly one item_source"));
+                    "output 必须恰好声明一个 item_source"));
         }
     }
 
@@ -325,7 +325,7 @@ public final class ItemRequirementSchemaValidator {
         String key = keys.getFirst();
         if (role == Role.OUTPUT || role == Role.PERSISTENT) {
             issues.add(issue(module, field(path, key), ConfigPrecheckSeverity.ERROR,
-                    role.name().toLowerCase(Locale.ROOT) + " nodes must not declare matcher conditions"));
+                    role.name().toLowerCase(Locale.ROOT) + " 节点不能声明匹配器条件"));
             return;
         }
         validateMatcherNode(module, field(path, key), values.get(key), issues);
@@ -335,22 +335,22 @@ public final class ItemRequirementSchemaValidator {
             List<ConfigPrecheckIssue> issues) {
         Map<String, Object> values = mapping(node);
         if (values == null) {
-            issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR, "matcher must be a mapping"));
+            issues.add(issue(module, path, ConfigPrecheckSeverity.ERROR, "匹配器必须是映射"));
             return;
         }
         for (String sourceKey : SOURCE_KEYS) {
             if (values.containsKey(sourceKey)) {
                 issues.add(issue(module, field(path, sourceKey), ConfigPrecheckSeverity.ERROR,
-                        "matcher must not contain item source fields"));
+                        "匹配器不能包含物品来源字段"));
             }
         }
         Object typeValue = values.get("type");
         if (!(typeValue instanceof String type) || Texts.isBlank(type)) {
             issues.add(issue(module, field(path, "type"), ConfigPrecheckSeverity.ERROR,
-                    "matcher type must be a non-blank string"));
+                    "匹配器类型必须是非空字符串"));
         } else if (MATCHER_SOURCE_TYPES.contains(type.trim().toLowerCase(Locale.ROOT))) {
             issues.add(issue(module, field(path, "type"), ConfigPrecheckSeverity.ERROR,
-                    "matcher item source type '" + type + "' is not allowed"));
+                    "不允许的匹配器物品来源类型 '" + type + "'"));
         }
         Object children = values.get("matchers");
         if (children == null) {
@@ -358,7 +358,7 @@ public final class ItemRequirementSchemaValidator {
         }
         if (!(children instanceof Collection<?> collection)) {
             issues.add(issue(module, field(path, "matchers"), ConfigPrecheckSeverity.ERROR,
-                    "matcher children must be a list"));
+                    "匹配器的子项必须是列表"));
             return;
         }
         int index = 0;

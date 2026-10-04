@@ -176,7 +176,7 @@ public final class AnimationPlaybackService {
             try {
                 action.accept(listener);
             } catch (RuntimeException exception) {
-                plugin.getLogger().log(Level.WARNING, "Animation listener threw an exception", exception);
+                plugin.getLogger().log(Level.WARNING, "动画监听器抛出异常", exception);
             }
         }
     }
@@ -296,14 +296,14 @@ public final class AnimationPlaybackService {
                     return result.successful() ? result.pipeline() : null;
                 });
                 if (pipeline == null) {
-                    plugin.getLogger().warning("Animation keyframe line did not compile: " + frame.actionLine());
+                    plugin.getLogger().warning("动画关键帧行未通过编译: " + frame.actionLine());
                     compiledFrames.remove(frame.actionLine());
                     return;
                 }
                 engine.run(owner, pipeline, buildContext());
             } catch (RuntimeException exception) {
                 plugin.getLogger().log(Level.WARNING,
-                        "Animation keyframe line failed: " + frame.actionLine(), exception);
+                        "动画关键帧行执行失败: " + frame.actionLine(), exception);
             }
         }
 

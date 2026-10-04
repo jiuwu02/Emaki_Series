@@ -229,7 +229,7 @@ final class StrengthenCommandRouter implements TabExecutor {
                     "materials", plugin.recipeLoader().materialCatalog().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_elapsed", Map.of("elapsed", elapsedMs)));
         }));
         return true;
     }

@@ -42,7 +42,7 @@ public final class CastSkillStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Casts an EmakiSkills skill with the target as the caster.";
+        return "以目标为施法者释放一个 EmakiSkills 技能。";
     }
 
     @Override
@@ -54,13 +54,13 @@ public final class CastSkillStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
                 CoreStageParameter.required("skill", CoreStageParameterType.STRING,
-                        "EmakiSkills skill id"),
+                        "EmakiSkills 技能 ID"),
                 CoreStageParameter.optional("bypass_cooldown", CoreStageParameterType.BOOLEAN, "false",
-                        "Skips the per-skill and global cooldown checks; ignored for non-player casters"),
+                        "跳过技能独立冷却与公共冷却检查；非玩家施法者忽略此项"),
                 CoreStageParameter.optional("bypass_resource_check", CoreStageParameterType.BOOLEAN, "false",
-                        "Casts even when the caster cannot afford it; ignored for non-player casters"),
+                        "资源不足时仍可释放；非玩家施法者忽略此项"),
                 CoreStageParameter.optional("consume_resource", CoreStageParameterType.BOOLEAN, "true",
-                        "Whether a successful cast bills its resource costs; ignored for non-player casters"));
+                        "成功释放是否扣除资源消耗；非玩家施法者忽略此项"));
     }
 
     @Override
@@ -135,8 +135,8 @@ public final class CastSkillStage implements CoreActionStage {
         if (throwable == null && (result == null || result.success())) {
             return;
         }
-        plugin.getLogger().log(Level.FINE, "cast_skill: skill '" + skillId
-                + "' did not complete: " + (throwable != null
+        plugin.getLogger().log(Level.FINE, "cast_skill: 技能 '" + skillId
+                + "' 未完成: " + (throwable != null
                         ? Texts.toStringSafe(throwable.getMessage())
                         : Texts.toStringSafe(result.failureMessage())));
     }

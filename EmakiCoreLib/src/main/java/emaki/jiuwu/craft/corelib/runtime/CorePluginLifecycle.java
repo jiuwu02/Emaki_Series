@@ -62,7 +62,7 @@ public final class CorePluginLifecycle {
 
     public synchronized void start(AsyncFileService fileService, AsyncTaskScheduler taskScheduler) {
         if (state != State.NEW) {
-            throw new IllegalStateException("Core plugin lifecycle already started: " + state);
+            throw new IllegalStateException("核心插件生命周期已启动: " + state);
         }
         this.fileService = Objects.requireNonNull(fileService, "fileService");
         this.taskScheduler = Objects.requireNonNull(taskScheduler, "taskScheduler");
@@ -164,7 +164,7 @@ public final class CorePluginLifecycle {
             long deadline,
             List<Throwable> failures) {
         for (Map.Entry<String, Future<?>> entry : dependents.entrySet()) {
-            if (!awaitFuture("Dependent shutdown " + entry.getKey(), entry.getValue(), deadline, failures)) {
+            if (!awaitFuture("依赖关闭 " + entry.getKey(), entry.getValue(), deadline, failures)) {
                 return;
             }
         }
@@ -176,7 +176,7 @@ public final class CorePluginLifecycle {
         try {
             stage = invocation.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
         } catch (TimeoutException exception) {
-            failures.add(new TimeoutException("Core runtime finalization dispatch timed out"));
+            failures.add(new TimeoutException("核心运行时收尾分派超时"));
             return;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
@@ -190,7 +190,7 @@ public final class CorePluginLifecycle {
             return;
         }
         if (stage != null) {
-            awaitFuture("Core runtime finalization", futureForStage(stage), deadline, failures);
+            awaitFuture("核心运行时收尾", futureForStage(stage), deadline, failures);
         }
     }
 
@@ -219,7 +219,7 @@ public final class CorePluginLifecycle {
             future.get(remainingNanos, TimeUnit.NANOSECONDS);
             return true;
         } catch (TimeoutException exception) {
-            failures.add(new TimeoutException(label + " timed out"));
+            failures.add(new TimeoutException(label + " 超时"));
             return false;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

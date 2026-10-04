@@ -217,8 +217,9 @@ public final class StrengthenAttemptService {
             logOperation(player, operationId, "started", AttemptOutcome.NOT_COMMITTED);
             result = attemptOnce(player, safeContext, operationId);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().severe("Strengthen attempt failed closed | operationId=" + operationId
-                    + " | error=" + exception.getMessage());
+            plugin.messageService().severe("console.strengthen_attempt_failed_closed", Map.of(
+                    "operation_id", Texts.toStringSafe(operationId),
+                    "error", String.valueOf(exception.getMessage())));
             result = internalFailure(player, safeContext, operationId);
         } finally {
             if (result == null) {
@@ -333,8 +334,9 @@ public final class StrengthenAttemptService {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
             } catch (RuntimeException | LinkageError exception) {
-                plugin.getLogger().warning("Strengthen result event dispatch failed | operationId="
-                        + result.operationId() + " | error=" + exception.getMessage());
+                plugin.messageService().warning("console.strengthen_result_dispatch_failed", Map.of(
+                        "operation_id", Texts.toStringSafe(result.operationId()),
+                        "error", String.valueOf(exception.getMessage())));
             }
         }
         return result;
@@ -811,7 +813,7 @@ public final class StrengthenAttemptService {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.free_cost");
-        return Texts.isBlank(message) ? "Free" : message;
+        return Texts.isBlank(message) ? "免费" : message;
     }
 
     private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {

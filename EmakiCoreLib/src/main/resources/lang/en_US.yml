@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.17"
+version: "4.8.18"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -674,6 +674,8 @@ command:
   loop_cancelled: "<green>Cancelled long-running task: <aqua>%key%</aqua></green>"
   loop_not_found: "<red>No long-running task matches that key: <aqua>%key%</aqua></red>"
   loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> long-running task(s) for <aqua>%player%</aqua></green>"
+  # Command: debug long-running task list entry; placeholders: %key%, %plugin%, %index%, %times%, %interval_ticks%, %player%
+  loop_task_entry: "<gray>- key=<aqua>%key%</aqua> plugin=<yellow>%plugin%</yellow> index=<white>%index%/%times%</white> interval=<white>%interval_ticks%t</white> player=<gray>%player%</gray></gray>"
   action_unavailable: "<red>The action pipeline is not ready yet.</red>"
   action_usage: "<yellow>Usage: /corelib action run <action line></yellow>"
   action_list_header: "<aqua>Currently registered stages: </aqua><yellow>%count%</yellow>"

@@ -24,11 +24,11 @@ public final class ScriptCallbackException extends Exception {
     }
 
     public static @NotNull ScriptCallbackException timeout(@NotNull Throwable cause) {
-        return new ScriptCallbackException("Script callback timed out", cause, true, false);
+        return new ScriptCallbackException("脚本回调超时", cause, true, false);
     }
 
     public static @NotNull ScriptCallbackException interrupted() {
-        return new ScriptCallbackException("Script callback thread interrupted", null, false, true);
+        return new ScriptCallbackException("脚本回调线程被中断", null, false, true);
     }
 
     public static @NotNull ScriptCallbackException error(@NotNull Throwable cause) {

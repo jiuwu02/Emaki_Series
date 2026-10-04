@@ -117,7 +117,7 @@ abstract class TickingStationRuntimeService<S> {
                 S state = readState(new MapYamlSection(committedState));
                 if (state == null || stateCompletelyEmpty(state)) {
                     return CompletableFuture.failedFuture(new IllegalArgumentException(
-                            "Invalid committed " + stationType().folderName() + " state"));
+                            "已提交的 " + stationType().folderName() + " 状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -185,8 +185,9 @@ abstract class TickingStationRuntimeService<S> {
         if (!blockMatcher.matches(block, stationType(), stationSource)) {
             closeOpenInventories(coordinates, true);
             removeState(coordinates, false);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type="
-                    + stationType().folderName() + " coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", stationType().folderName(),
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         cacheState(coordinates, state);

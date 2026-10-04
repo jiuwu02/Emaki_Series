@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.3.2"
+version: "4.3.3"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -25,6 +25,8 @@ command:
       help: "Show help information"
       reload: "Reload configuration, language and recipe directories"
       inspect: "Inspect main-hand item CoreLib source identifier"
+      # Command: station subcommand description
+      station: "rebuild station storage index"
       nutrition: "Query or adjust player nutrition values"
       "convert-legacy [confirm]": "Merge legacy item_sources match keys into matcher"
       debug: "Manage Debug mode"
@@ -50,6 +52,21 @@ command:
   inspect:
     header: "<gold>========== Held Item Inspection ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
+    # Player: no target block within 6 blocks when inspecting
+    no_target_block: "<gray>No target block within 6 blocks.</gray>"
+    # Player: station block inspection header
+    block_header: "<gold>Station block inspect</gold>"
+    # Player: station interaction disabled by world blacklist
+    interaction_disabled: "disabled (world blacklist)"
+    # Player: station interaction enabled
+    interaction_enabled: "enabled"
+  # Player: station index rebuild feedback; placeholders: %legacy_yaml%, %loaded_pdc%, %total_indexed%
+  station:
+    store_not_ready: "<red>Station state store is not ready.</red>"
+    reindex_started: "<gray>Rebuilding station location index...</gray>"
+    reindex_done: "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed%"
+  # Player: reload elapsed time; placeholders: %elapsed_ms%
+  reload_elapsed: "<gray>Reload took: <white>%elapsed_ms%ms</white></gray>"
 
 nutrition:
   disabled: "<yellow>The nutrition system is currently disabled.</yellow>"
@@ -112,6 +129,44 @@ console:
   block_source_bridge_unavailable: "<yellow>Block source unavailable: %provider% (%error%)</yellow>"
   nutrition_bridge_ready: "<gray>Nutrition consume source connected: <aqua>%provider%</aqua></gray>"
   nutrition_bridge_unavailable: "<yellow>Nutrition consume source unavailable: %provider% (%error%)</yellow>"
+  # Console: station restore type mismatch; placeholders: %type%, %coordinate%
+  station_restore_skipped_mismatch: "<gray>Station restore report: skipped_mismatch type=%type% coordinate=%coordinate%</gray>"
+  # Console: station block entity lost and replaced; placeholders: %type%, %coordinate%
+  station_restore_lost_block_entity: "<gray>Station restore report: lost_block_entity_replaced type=%type% coordinate=%coordinate%</gray>"
+  # Console: reload progress - loading configs
+  reload_loading_configs: "<gray>Loading configs...</gray>"
+  # Console: reload progress - applying configuration
+  reload_applying: "<gray>Applying configuration...</gray>"
+  # Console: reload progress - complete
+  reload_complete: "<gray>Reload complete.</gray>"
+  # Console: reload stage failed; placeholders: %stage%, %error%
+  reload_stage_failed: "<yellow>[Reload] Stage %stage% failed: %error%</yellow>"
+  # Console: cooking completion recovery failed; placeholders: %error%
+  completion_recovery_failed: "<yellow>Cooking completion recovery failed: %error%</yellow>"
+  # Console: pipeline stage registration failed; placeholders: %stage%, %reason%
+  stage_register_failed: "<yellow>Failed to register pipeline stage '%stage%': %reason%</yellow>"
+  # Console: legacy cooking reward execution failed; placeholders: %error%
+  reward_legacy_execute_failed: "<yellow>Failed to execute legacy cooking reward: %error%</yellow>"
+  # Console: cooking reward output item invalid; placeholders: %output%, %recipe%
+  reward_output_invalid: "<yellow>[CookingReward] Output item is null or air. output_map=%output% recipe=%recipe%</yellow>"
+  # Console: item source creation returned null; placeholders: %source%, %amount%
+  reward_source_create_null: "<yellow>[CookingReward] itemSourceService.createItem returned null for source=%source% amount=%amount%</yellow>"
+  # Console: both assembly preview and direct creation returned null; placeholders: %source%, %type%, %id%
+  reward_source_resolve_null: "<yellow>[CookingReward] Both assembly preview and direct createItem returned null for source=%source% type=%type% id=%id%</yellow>"
+  # Console: skipped nutrition threshold evaluation; placeholders: %player%
+  nutrition_threshold_skipped: "<yellow>EmakiCooking skipped nutrition threshold evaluation for %player%: caller thread does not own the player and no execution dispatcher is available.</yellow>"
+  # Console: nutrition threshold evaluation reroute failed; placeholders: %player%
+  nutrition_threshold_reroute_failed: "<yellow>EmakiCooking failed to reroute nutrition threshold evaluation for %player%: entity task scheduling was rejected.</yellow>"
+  # Console: fermentation barrel restore state invalid; placeholders: %coordinate%
+  station_restore_rejected_invalid_fermentation_state: "<gray>Station restore report: rejected_invalid_fermentation_barrel_state coordinate=%coordinate%</gray>"
+  # Console: fermentation barrel restore slot id migration rejected; placeholders: %coordinate%, %recipe%
+  station_restore_rejected_slot_migration: "<gray>Station restore report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate% recipe=%recipe%</gray>"
+  # Console: fermentation barrel break slot id migration rejected; placeholders: %coordinate%
+  station_break_rejected_slot_migration: "<gray>Station break report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
+  # Console: fermentation barrel interaction slot id migration rejected; placeholders: %coordinate%
+  station_interaction_rejected_slot_migration: "<gray>Station interaction report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
+  # Console: fermentation barrel GUI identity migration rejected; placeholders: %coordinate%
+  station_gui_rejected_identity_migration: "<gray>Station GUI report: rejected_fermentation_barrel_identity_migration coordinate=%coordinate%</gray>"
   station_name:
     chopping_board: "Chopping Board"
     wok: "Wok"

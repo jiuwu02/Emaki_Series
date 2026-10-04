@@ -51,7 +51,7 @@ public final class CronScheduler {
             try {
                 task.run();
             } catch (Throwable t) {
-                plugin.getLogger().warning("[CronScheduler] Task threw exception: " + t.getMessage());
+                plugin.getLogger().warning("[CronScheduler] 任务抛出异常: " + t.getMessage());
             }
 
             int remaining = handle.decrementAndGet();

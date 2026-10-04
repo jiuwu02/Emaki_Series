@@ -26,12 +26,12 @@ public final class RepairItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public RepairItemStage(ActionAuditLogger auditLogger) {
-        super("repair_item", "item", "Repairs a damageable item in one of the target's slots.",
+        super("repair_item", "item", "修复目标某个槽位中的可损坏物品。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
-                        "Inventory slot"),
+                        "背包槽位"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "0",
-                        "Damage points to repair, 0 or less repairs fully"));
+                        "要修复的损耗点数，0 或更小表示完全修复"));
         this.auditLogger = auditLogger;
     }
 

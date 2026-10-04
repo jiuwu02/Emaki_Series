@@ -564,7 +564,7 @@ final class DamageCalculationService {
             EmakiScheduling sched = scheduling();
             if (sched == null) {
                 future.completeExceptionally(new IllegalStateException(
-                        "Damage source snapshot dispatcher is unavailable."));
+                        "伤害来源快照分派器不可用。"));
                 return future;
             }
             sched.runForEntity(
@@ -580,7 +580,7 @@ final class DamageCalculationService {
                                 location.getX(), location.getY(), location.getZ(), location.getYaw()));
                     },
                     () -> future.completeExceptionally(new IllegalStateException(
-                            "Damage source retired before snapshot: " + source.getUniqueId()))
+                            "伤害来源在快照前已退役: " + source.getUniqueId()))
             );
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
@@ -740,7 +740,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "Damage post-effect '" + phase + "' failed; remaining terminal effects will continue.",
+                        "伤害后置效果 '" + phase + "' 执行失败；其余终结效果将继续处理。",
                         exception
                 );
             }
@@ -1043,18 +1043,18 @@ final class DamageCalculationService {
 
     private <T> CompletableFuture<T> callEntityOwner(UUID entityId, Function<LivingEntity, T> operation) {
         if (entityId == null || operation == null || service.plugin() == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatch is unavailable."));
+            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派不可用。"));
         }
         EmakiScheduling sched = scheduling();
         if (sched == null) {
-            return CompletableFuture.failedFuture(new IllegalStateException("Entity owner dispatcher is unavailable."));
+            return CompletableFuture.failedFuture(new IllegalStateException("实体所有者分派器不可用。"));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
             sched.runGlobal(service.plugin(), () -> {
                 Entity entity = Bukkit.getEntity(entityId);
                 if (!(entity instanceof LivingEntity livingEntity) || !livingEntity.isValid()) {
-                    result.completeExceptionally(new IllegalStateException("Entity is no longer available: " + entityId));
+                    result.completeExceptionally(new IllegalStateException("实体已不可用: " + entityId));
                     return;
                 }
                 try {
@@ -1069,7 +1069,7 @@ final class DamageCalculationService {
                                 }
                             },
                             () -> result.completeExceptionally(new IllegalStateException(
-                                    "Entity retired before owner operation: " + entityId))
+                                    "实体在所有者操作前已退役: " + entityId))
                     );
                 } catch (Throwable throwable) {
                     result.completeExceptionally(throwable);
@@ -1208,7 +1208,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "Damage debug anchor emission failed; damage calculation is unaffected.",
+                        "伤害调试锚点输出失败；伤害计算不受影响。",
                         exception
                 );
             }
@@ -1473,7 +1473,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "Damage debug anchor emission failed; damage calculation is unaffected.",
+                        "伤害调试锚点输出失败；伤害计算不受影响。",
                         exception
                 );
             }

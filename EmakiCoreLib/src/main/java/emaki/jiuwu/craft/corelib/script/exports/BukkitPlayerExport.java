@@ -10,7 +10,7 @@ public final class BukkitPlayerExport {
 
     public BukkitPlayerExport(@NotNull Player player) {
         if (player == null) {
-            throw new IllegalArgumentException("player cannot be null");
+            throw new IllegalArgumentException("player 不能为 null");
         }
         this.player = player;
     }

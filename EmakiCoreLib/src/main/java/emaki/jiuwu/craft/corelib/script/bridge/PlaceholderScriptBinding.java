@@ -35,27 +35,27 @@ public final class PlaceholderScriptBinding {
 
     public void register(@Nullable Value payload) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            errors.accept("placeholders: payload must be an object");
+            errors.accept("placeholders: payload 必须是对象");
             return;
         }
         String id = Texts.toStringSafe(ScriptPayloads.textMember(payload, "id")).trim();
         if (Texts.isBlank(id)) {
-            errors.accept("placeholders: field 'id' is required");
+            errors.accept("placeholders: 必须提供字段 'id'");
             return;
         }
         Value resolve = ScriptPayloads.functionMember(payload, "resolve");
         if (resolve == null) {
-            errors.accept("placeholders: field 'resolve' of '" + id + "' must be a callable function");
+            errors.accept("placeholders: '" + id + "' 的字段 'resolve' 必须是可调用函数");
             return;
         }
         PlaceholderRegistry target = registry.get();
         if (target == null) {
-            errors.accept("placeholders: '" + id + "' -> placeholder registry is unavailable");
+            errors.accept("placeholders: '" + id + "' -> 占位符注册表不可用");
             return;
         }
         ScriptCallbackRunner resolvedRunner = runner.get();
         if (resolvedRunner == null) {
-            errors.accept("placeholders: '" + id + "' -> script host is unavailable");
+            errors.accept("placeholders: '" + id + "' -> 脚本宿主不可用");
             return;
         }
         ScriptPlaceholderResolver resolver = new ScriptPlaceholderResolver(id, resolve, resolvedRunner, warns);

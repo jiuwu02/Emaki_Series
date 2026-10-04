@@ -129,7 +129,7 @@ public final class PlayerJoinQuitListener implements Listener {
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
         plugin.getLogger().log(Level.WARNING,
-                "[SkillDataStore] Async " + operation + " failed for " + playerId,
+                "[SkillDataStore] 异步 " + operation + " 失败: " + playerId,
                 cause);
     }
 

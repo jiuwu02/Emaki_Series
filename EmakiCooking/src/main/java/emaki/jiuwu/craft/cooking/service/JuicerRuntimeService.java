@@ -109,7 +109,7 @@ public final class JuicerRuntimeService implements Listener {
                 JuicerState state = codec.readState(new MapYamlSection(committedState));
                 if (state == null || state.isCompletelyEmpty()) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed juicer state"));
+                            new IllegalArgumentException("已提交的榨汁机状态无效"));
                 }
                 runtimeStates.put(coordinates, state);
                 return stateStore.saveAsync(coordinates, committedState)
@@ -150,7 +150,9 @@ public final class JuicerRuntimeService implements Listener {
         }
         if (!blockMatcher.matches(block, StationType.JUICER, stationSource)) {
             removeState(coordinates, false);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=juicer coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "juicer",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         runtimeStates.put(coordinates, state);

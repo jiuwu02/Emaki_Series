@@ -223,7 +223,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStrengthen readiness publication skipped: " + exception);
+            getLogger().fine("EmakiStrengthen 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -284,7 +284,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakistrengthen command",
+                "EmakiStrengthen 命令",
                 List.of("estrengthen"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakistrengthen.use", commandRouter, commandRouter)
         );

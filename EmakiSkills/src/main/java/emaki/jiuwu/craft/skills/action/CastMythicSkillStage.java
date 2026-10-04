@@ -36,7 +36,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Casts a MythicMobs skill on the target.";
+        return "对目标释放一个 MythicMobs 技能。";
     }
 
     @Override
@@ -47,7 +47,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(CoreStageParameter.required("skill", CoreStageParameterType.STRING,
-                "MythicMobs skill id"));
+                "MythicMobs 技能 ID"));
     }
 
     @Override
@@ -111,7 +111,7 @@ public final class CastMythicSkillStage implements CoreActionStage {
                 available = apiHelper != null;
             } catch (NoClassDefFoundError | Exception exception) {
                 Bukkit.getLogger().log(Level.FINE,
-                        "[EmakiSkills] cast_mythic_skill: MythicMobs bridge init failed", exception);
+                        "[EmakiSkills] cast_mythic_skill: MythicMobs 桥接初始化失败", exception);
             }
             return available;
         }

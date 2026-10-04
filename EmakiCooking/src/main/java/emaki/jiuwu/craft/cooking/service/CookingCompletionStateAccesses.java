@@ -19,7 +19,7 @@ final class CookingCompletionStateAccesses {
         CompletableFuture<Void> result = new CompletableFuture<>();
         Location location = coordinates == null ? null : coordinates.location(0.5D, 0.5D, 0.5D);
         if (location == null || location.getWorld() == null) {
-            result.completeExceptionally(new IllegalStateException("Station world is unavailable"));
+            result.completeExceptionally(new IllegalStateException("工位所在世界不可用"));
             return result;
         }
         try {
@@ -27,7 +27,7 @@ final class CookingCompletionStateAccesses {
                     ? cookingPlugin.taskScheduler()
                     : null;
             if (scheduler == null) {
-                result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
+                result.completeExceptionally(new IllegalStateException("执行调度器不可用"));
                 return result;
             }
             TaskToken handle = scheduler.runAtLocation(plugin, location, () -> {
@@ -39,7 +39,7 @@ final class CookingCompletionStateAccesses {
                 }
             });
             if (handle == null) {
-                result.completeExceptionally(new IllegalStateException("Station location execution was rejected"));
+                result.completeExceptionally(new IllegalStateException("工位位置执行被拒绝"));
             }
         } catch (Throwable error) {
             result.completeExceptionally(error);
@@ -50,6 +50,6 @@ final class CookingCompletionStateAccesses {
     static CompletableFuture<Void> requireSaved(boolean success) {
         return success
                 ? CompletableFuture.completedFuture(null)
-                : CompletableFuture.failedFuture(new IllegalStateException("Station state mutation was rejected as stale"));
+                : CompletableFuture.failedFuture(new IllegalStateException("工位状态变更因过期被拒绝"));
     }
 }

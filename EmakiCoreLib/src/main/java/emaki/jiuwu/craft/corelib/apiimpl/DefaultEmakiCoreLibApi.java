@@ -144,7 +144,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public ItemBuildResult createConfiguredItem(ConfiguredItemDefinition definition, Map<String, ?> replacements) {
         ConfiguredItemService service = plugin.configuredItemService();
         return service == null
-                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("CoreLib 配置物品服务不可用。")
                 : service.create(definition, replacements);
     }
 
@@ -154,7 +154,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             Map<String, ?> replacements) {
         ConfiguredItemService service = plugin.configuredItemService();
         return service == null
-                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("CoreLib 配置物品服务不可用。")
                 : service.apply(itemStack, definition, replacements);
     }
 
@@ -319,8 +319,8 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
         return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
-                failure -> plugin.getLogger().warning("Readiness callback failed for " + failure.owner()
-                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+                failure -> plugin.getLogger().warning("就绪回调失败，插件 " + failure.owner()
+                        + " 正在等待 " + failure.moduleName() + ": " + failure.error()));
     }
 
     @Override

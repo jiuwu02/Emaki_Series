@@ -28,10 +28,10 @@ public final class GiveItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public GiveItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
-        super("give_item", "item", "Gives an item source to the target.",
+        super("give_item", "item", "把物品来源给予目标。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
-                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
+                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "物品来源"),
+                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "物品数量"));
         this.itemSourceService = itemSourceService;
         this.auditLogger = auditLogger;
     }

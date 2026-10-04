@@ -24,7 +24,7 @@ final class ForgeActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
-    static final String UNKNOWN_FAILURE_REASON = "Unknown forge action failure.";
+    static final String UNKNOWN_FAILURE_REASON = "未知的锻造动作失败。";
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;
@@ -236,7 +236,7 @@ final class ForgeActionCoordinator {
         try {
             plugin.messageService().warning(key, replacements);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Forge result action warning could not be emitted | key=" + key
+            plugin.getLogger().warning("锻造结果动作警告无法发出 | key=" + key
                     + " | error=" + exception.getMessage());
         }
     }

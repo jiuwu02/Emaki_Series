@@ -260,7 +260,7 @@ public final class CraftOperationJournal<R> {
             }
             return files;
         } catch (IOException exception) {
-            warn("Failed to list active journal directory: " + rootCauseMessage(exception));
+            warn("列出活动日志目录失败: " + rootCauseMessage(exception));
             return List.of();
         }
     }
@@ -294,7 +294,7 @@ public final class CraftOperationJournal<R> {
     }
 
     private void quarantineCorruptFile(Path file, Exception cause) {
-        warn("Corrupt journal file " + file.getFileName() + ": " + rootCauseMessage(cause));
+        warn("日志文件损坏 " + file.getFileName() + ": " + rootCauseMessage(cause));
         if (quarantineDirectory == null) {
             return;
         }
@@ -302,7 +302,7 @@ public final class CraftOperationJournal<R> {
             Files.createDirectories(quarantineDirectory);
             moveReplacing(file, quarantineDirectory.resolve(file.getFileName()));
         } catch (IOException moveException) {
-            warn("Failed to quarantine " + file.getFileName() + ": " + rootCauseMessage(moveException));
+            warn("隔离失败 " + file.getFileName() + ": " + rootCauseMessage(moveException));
         }
     }
 
@@ -317,12 +317,12 @@ public final class CraftOperationJournal<R> {
         try {
             Files.createDirectories(activeDirectory);
         } catch (IOException e) {
-            warn("Failed to create journal directory: " + rootCauseMessage(e));
+            warn("创建日志目录失败: " + rootCauseMessage(e));
             return;
         }
         files.save(activePath(entry.operationId()).toFile(), encodeEntry(entry))
                 .exceptionally(error -> {
-                    warn("Failed to write journal for operation " + entry.operationId()
+                    warn("写入操作日志失败，操作 " + entry.operationId()
                             + ": " + rootCauseMessage(error));
                     return null;
                 });
@@ -335,8 +335,8 @@ public final class CraftOperationJournal<R> {
         }
         FileScope scope = resolveFileScope();
         if (scope == null) {
-            warn("Failed to archive operation " + entry.operationId()
-                    + ": async file service unavailable");
+            warn("归档操作失败 " + entry.operationId()
+                    + ": 异步文件服务不可用");
             return CompletableFuture.completedFuture(null);
         }
         Path target = completedDirectory.resolve(entry.operationId() + ".yml");
@@ -349,7 +349,7 @@ public final class CraftOperationJournal<R> {
             }
         }).handle((_, throwable) -> {
             if (throwable != null) {
-                warn("Failed to archive operation " + entry.operationId()
+                warn("归档操作失败 " + entry.operationId()
                         + ": " + rootCauseMessage(throwable));
             }
             return null;
@@ -397,7 +397,7 @@ public final class CraftOperationJournal<R> {
             } catch (RuntimeException | LinkageError failure) {
                 if (!asyncFilesUnavailableLogged) {
                     asyncFilesUnavailableLogged = true;
-                    warn("Cannot reach async file service: " + rootCauseMessage(failure));
+                    warn("无法访问异步文件服务: " + rootCauseMessage(failure));
                 }
             }
             return asyncYamlFiles;
@@ -415,7 +415,7 @@ public final class CraftOperationJournal<R> {
         } catch (RuntimeException | LinkageError failure) {
             if (!asyncSchedulerUnavailableLogged) {
                 asyncSchedulerUnavailableLogged = true;
-                warn("Cannot reach async task scheduler, falling back to the common pool: "
+                warn("无法访问异步任务调度器，回退到公共线程池: "
                         + rootCauseMessage(failure));
             }
             return null;
@@ -433,7 +433,7 @@ public final class CraftOperationJournal<R> {
         while (current instanceof CompletionException && current.getCause() != null) {
             current = current.getCause();
         }
-        if (current == null) return "unknown error";
+        if (current == null) return "未知错误";
         String message = current.getMessage();
         return (message == null || message.isBlank()) ? current.getClass().getSimpleName() : message;
     }

@@ -20,13 +20,13 @@ import net.kyori.adventure.title.Title;
 public final class SendTitleStage extends BaseStage {
 
     public SendTitleStage() {
-        super("send_title", "message", "Shows a title to the target.",
+        super("send_title", "message", "向目标显示标题。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("title", CoreStageParameterType.STRING, "Title"),
-                CoreStageParameter.optional("subtitle", CoreStageParameterType.STRING, "", "Subtitle"),
-                CoreStageParameter.optional("fade_in", CoreStageParameterType.DURATION, "10t", "Fade in"),
-                CoreStageParameter.optional("stay", CoreStageParameterType.DURATION, "40t", "Stay"),
-                CoreStageParameter.optional("fade_out", CoreStageParameterType.DURATION, "10t", "Fade out"));
+                CoreStageParameter.required("title", CoreStageParameterType.STRING, "主标题"),
+                CoreStageParameter.optional("subtitle", CoreStageParameterType.STRING, "", "副标题"),
+                CoreStageParameter.optional("fade_in", CoreStageParameterType.DURATION, "10t", "淡入"),
+                CoreStageParameter.optional("stay", CoreStageParameterType.DURATION, "40t", "停留"),
+                CoreStageParameter.optional("fade_out", CoreStageParameterType.DURATION, "10t", "淡出"));
     }
 
     @Override

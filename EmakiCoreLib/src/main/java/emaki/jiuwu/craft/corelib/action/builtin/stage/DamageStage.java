@@ -23,9 +23,9 @@ public final class DamageStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public DamageStage(ActionAuditLogger auditLogger) {
-        super("damage", "entity", "Lowers the target's health by a flat amount.",
+        super("damage", "entity", "按固定数值降低目标的生命值。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Health to remove"));
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "要扣除的生命值"));
         this.auditLogger = auditLogger;
     }
 

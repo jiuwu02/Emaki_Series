@@ -112,7 +112,7 @@ public final class PipelineContext implements CoreStageContext {
         if (casterLocation != null) {
             return casterLocation;
         }
-        throw new IllegalStateException("pipeline context has no origin: caster="
+        throw new IllegalStateException("管道上下文没有原点: caster="
                 + caster.getClass().getSimpleName() + ", phase=" + phase);
     }
 
@@ -147,15 +147,15 @@ public final class PipelineContext implements CoreStageContext {
     @Override
     public @NotNull <T> T require(@NotNull CoreActionKey<T> key) {
         if (key == null) {
-            throw new IllegalArgumentException("key must not be null");
+            throw new IllegalArgumentException("key 不能为 null");
         }
         T value = key.cast(data.get(key));
         if (value != null) {
             return value;
         }
-        throw new IllegalStateException("missing required context key '" + key.name()
-                + "' of type " + key.type().getSimpleName()
-                + "; context holds " + presentKeys());
+        throw new IllegalStateException("缺少必需的上下文键 '" + key.name()
+                + "'，类型 " + key.type().getSimpleName()
+                + "；上下文包含 " + presentKeys());
     }
 
     @Override

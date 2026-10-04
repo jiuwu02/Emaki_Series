@@ -78,6 +78,6 @@ public final class ActionAuditLogger {
 
     private static String source(CoreStageContext context) {
         Plugin plugin = context.sourcePlugin();
-        return plugin == null ? "unknown" : plugin.getName();
+        return plugin == null ? "未知" : plugin.getName();
     }
 }

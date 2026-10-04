@@ -267,7 +267,8 @@ final class SkillsCommandRouter implements TabExecutor {
             return changed;
         }).whenComplete((changed, throwable) -> runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.getLogger().warning("Skill grant/revoke failed: " + throwable.getMessage());
+                plugin.messageService().warning("console.command_grant_revoke_failed",
+                        Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
                 return;
             }
@@ -349,7 +350,8 @@ final class SkillsCommandRouter implements TabExecutor {
             return removed;
         }).whenComplete((removed, throwable) -> runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.getLogger().warning("Skill reset failed: " + throwable.getMessage());
+                plugin.messageService().warning("console.command_reset_failed",
+                        Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
                 return;
             }
@@ -385,10 +387,12 @@ final class SkillsCommandRouter implements TabExecutor {
                     "resources", plugin.localResourceDefinitionLoader().all().size(),
                     "guis", plugin.guiTemplateLoader().all().size()
             )));
-            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                    "general.reload_elapsed", Map.of("elapsed", elapsedMs)));
         })).exceptionally(throwable -> {
             runForSender(sender, () -> plugin.messageService().send(sender, "general.reload_failed"));
-            plugin.getLogger().warning("[Reload] Async reload failed: " + throwable.getMessage());
+            plugin.messageService().warning("console.reload_async_failed",
+                    Map.of("error", Texts.toStringSafe(throwable.getMessage())));
             return null;
         });
         return true;
@@ -414,7 +418,7 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Skills command player operation retired before execution.")));
+                            "技能命令的玩家操作在执行前已退役。")));
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -427,7 +431,8 @@ final class SkillsCommandRouter implements TabExecutor {
             String messageKey) {
         runForSender(sender, () -> {
             if (throwable != null) {
-                plugin.getLogger().warning("Level command failed: " + throwable.getMessage());
+                plugin.messageService().warning("console.command_level_failed",
+                        Map.of("error", Texts.toStringSafe(throwable.getMessage())));
                 plugin.messageService().send(sender, "general.invalid_args");
             } else if (placeholders == null) {
                 plugin.messageService().send(sender, "general.player_not_found");
@@ -453,7 +458,8 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             plugin.scheduling().runGlobal(plugin, task);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("Failed to schedule command response: " + throwable.getMessage());
+            plugin.messageService().warning("console.command_schedule_failed",
+                    Map.of("error", Texts.toStringSafe(throwable.getMessage())));
         }
     }
 
@@ -512,7 +518,7 @@ final class SkillsCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.header", Map.of("player", target.getName())));
         if (profile == null) {
             plugin.messageService().sendRaw(sender, plugin.messageService().message("command.inspect.line", Map.of(
-                    "key", "profile", "value", "NOT LOADED"
+                    "key", "profile", "value", plugin.messageService().message("command.inspect.not_loaded")
             )));
             return true;
         }

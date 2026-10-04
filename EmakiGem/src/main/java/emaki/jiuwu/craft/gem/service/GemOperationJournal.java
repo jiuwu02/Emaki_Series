@@ -272,7 +272,7 @@ public final class GemOperationJournal {
         if (failure != null) {
             anchor.cause(AsyncFailures.unwrap(failure));
         }
-        plugin.debugLogger().logRaw(DEBUG_JOURNAL_MODULE, (UUID) null, "journal " + anchor.render());
+        plugin.debugLogger().logRaw(DEBUG_JOURNAL_MODULE, (UUID) null, "日志 " + anchor.render());
     }
 
     public void compensationPending(String operationId, String error) {
@@ -397,7 +397,7 @@ public final class GemOperationJournal {
             }
             entries.add(toGemEntry(item));
         }
-        plugin.getLogger().info("Recoverable gem operations: " + String.join(", ",
+        plugin.getLogger().info("可恢复的宝石操作: " + String.join(", ",
                 entries.stream().map(entry -> entry.operationId() + "(" + entry.phase().name() + ")").toList()));
         CompletableFuture<Void> result = new CompletableFuture<>();
         Runnable apply = () -> applyRecovery(entries, economyService, rerollSessionService)

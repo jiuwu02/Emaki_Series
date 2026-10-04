@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.4"
+version: "1.1.5"
 
 console:
   plugin_starting: "正在启动 EmakiStation..."
@@ -70,6 +70,8 @@ command:
   list_station: "<gray>- <aqua>%station%</aqua> <white>%name%</white> <dark_gray>(<yellow>%recipes%</yellow> 个配方)</dark_gray></gray>"
   list_recipe: "<gray>- <aqua>%recipe%</aqua> <white>%name%</white> <dark_gray>(<yellow>%duration%</yellow>s)</dark_gray></gray>"
   reload_done: "<green>重载完成：<yellow>%stations%</yellow> 个工作站，<yellow>%recipes%</yellow> 个配方，<yellow>%issues%</yellow> 个问题</green>"
+  # 命令：重载耗时提示；占位符：%elapsed%
+  reload_elapsed: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
   admin_usage: "<red>用法：/emakistation admin queue <玩家></red>"
   unknown_station: "<red>未知工作站：<gray>%station%</gray></red>"
   unknown_player: "<red>未知玩家：<gray>%player%</gray></red>"

@@ -124,7 +124,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         Runnable outerRetired = () -> {
             debug(request.viewer(), "common.gui.async_open_retired_initial_dispatch");
             future.completeExceptionally(new RejectedExecutionException(
-                    "GUI viewer retired before open scheduling completed."));
+                    "GUI 查看者在打开调度完成前已退役。"));
         };
         try {
             if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
@@ -138,7 +138,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                         debug(request.viewer(), "common.gui.async_open_retired_apply_render",
                                 GuiDebugSupport.sessionFields(session));
                         future.completeExceptionally(new RejectedExecutionException(
-                                "GUI viewer retired before rendered slots could be applied."));
+                                "GUI 查看者在渲染槽位应用前已退役。"));
                     };
                     try {
                         if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
@@ -249,7 +249,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             Runnable retired = () -> {
                 debug(session.viewer(), "common.gui.async_close_retired", GuiDebugSupport.sessionFields(session));
                 future.completeExceptionally(new RejectedExecutionException(
-                        "GUI viewer retired before close could complete: " + viewerId));
+                        "GUI 查看者在关闭完成前已退役: " + viewerId));
             };
             if (executionDispatcher.runEntity(
                     session.owner() == null ? plugin : session.owner(),

@@ -27,17 +27,17 @@ public final class ItemHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        UPDATE("item_update", "Reapplies the item definition to the target's held item."),
+        UPDATE("item_update", "将物品定义重新应用到目标的主手物品。"),
 
-        RERENDER("item_rerender", "Re-renders the target's held item."),
+        RERENDER("item_rerender", "重新渲染目标的主手物品。"),
 
-        REPAIR_AMOUNT("item_repair_amount", "Repairs the target's held item by an amount."),
+        REPAIR_AMOUNT("item_repair_amount", "按数量修复目标的主手物品。"),
 
-        DAMAGE("item_damage", "Damages the target's held item by an amount."),
+        DAMAGE("item_damage", "按数量损伤目标的主手物品。"),
 
-        SET_DAMAGE("item_set_damage", "Sets the damage value on the target's held item."),
+        SET_DAMAGE("item_set_damage", "设置目标主手物品的损伤值。"),
 
-        SET_DURABILITY("item_set_durability", "Sets the remaining durability on the target's held item.");
+        SET_DURABILITY("item_set_durability", "设置目标主手物品的剩余耐久。");
 
         private final String id;
         private final String description;
@@ -80,9 +80,9 @@ public final class ItemHeldItemStage implements CoreActionStage {
         return switch (operation) {
             case UPDATE, RERENDER -> List.of();
             case REPAIR_AMOUNT, DAMAGE -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "Damage points"));
+                    CoreStageParameterType.INTEGER, "损伤点数"));
             case SET_DAMAGE, SET_DURABILITY -> List.of(CoreStageParameter.required("value",
-                    CoreStageParameterType.INTEGER, "Target damage or durability value"));
+                    CoreStageParameterType.INTEGER, "目标损伤或耐久值"));
         };
     }
 

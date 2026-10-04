@@ -65,13 +65,13 @@ public final class CodexDataFile {
         String key = Texts.trim(rawKey);
         YamlSection node = entriesSection.getSection(rawKey);
         if (Texts.isBlank(key) || node == null) {
-            warn("Dropped unreadable codex entry '" + Texts.toStringSafe(rawKey)
-                    + "' for player " + playerId);
+            warn("已丢弃无法解析的图鉴条目 '" + Texts.toStringSafe(rawKey)
+                    + "'（玩家 " + playerId + "）");
             return;
         }
         Long unlockedAt = longOf(node.get(KEY_UNLOCKED_AT));
         if (unlockedAt == null) {
-            warn("Dropped codex entry '" + key + "' without a valid unlocked_at for player " + playerId);
+            warn("已丢弃图鉴条目 '" + key + "'：缺少有效的 unlocked_at（玩家 " + playerId + "）");
             return;
         }
         boolean activated = Boolean.TRUE.equals(node.getBoolean(KEY_ACTIVATED, false));
@@ -108,7 +108,7 @@ public final class CodexDataFile {
         try {
             return Long.valueOf(text);
         } catch (NumberFormatException exception) {
-            warn("Unparseable codex timestamp '" + text + "': " + exception.getMessage());
+            warn("无法解析图鉴时间戳 '" + text + "'：" + exception.getMessage());
             return null;
         }
     }

@@ -68,7 +68,7 @@ public final class JsLocationStage extends BaseStage {
         }
         if (!result.isSuccess()) {
             Throwable error = result.getError();
-            String message = error != null ? error.getMessage() : "unknown";
+            String message = error != null ? error.getMessage() : "未知";
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.script.eval.error",
                     Map.of("error_message", message));
@@ -87,7 +87,7 @@ public final class JsLocationStage extends BaseStage {
 
         @org.graalvm.polyglot.HostAccess.Export
         public @NotNull String getWorld() {
-            return location.getWorld() != null ? location.getWorld().getName() : "unknown";
+            return location.getWorld() != null ? location.getWorld().getName() : "未知";
         }
 
         @org.graalvm.polyglot.HostAccess.Export

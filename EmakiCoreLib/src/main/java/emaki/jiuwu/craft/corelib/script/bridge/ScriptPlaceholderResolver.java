@@ -55,6 +55,6 @@ final class ScriptPlaceholderResolver implements PlaceholderResolver {
     }
 
     private void warn(@Nullable String detail) {
-        warns.accept("placeholders: resolver '" + id + "' failed: " + Texts.toStringSafe(detail));
+        warns.accept("placeholders: 解析器 '" + id + "' 失败: " + Texts.toStringSafe(detail));
     }
 }

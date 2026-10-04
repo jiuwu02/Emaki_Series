@@ -317,7 +317,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         try {
             CompletableFuture<Void> reload = reloadAction == null ? null : reloadAction.get();
             return reload == null ? CompletableFuture.failedFuture(
-                    new IllegalStateException("EmakiItem reload action returned no completion stage.")) : reload;
+                    new IllegalStateException("EmakiItem 重载操作未返回完成阶段。")) : reload;
         } catch (RuntimeException | LinkageError exception) {
             return CompletableFuture.failedFuture(exception);
         }
@@ -369,7 +369,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiItem readiness publication skipped: " + exception);
+            getLogger().fine("EmakiItem 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -391,7 +391,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
                 return;
             }
             Throwable cause = AsyncFailures.unwrapOnce(failure);
-            getLogger().warning("EmakiItem reload failed: " + cause.getClass().getSimpleName()
+            getLogger().warning("EmakiItem 重载失败: " + cause.getClass().getSimpleName()
                     + (Texts.isBlank(cause.getMessage()) ? "" : ": " + cause.getMessage()));
         });
     }
@@ -452,7 +452,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakiitem command",
+                "EmakiItem 命令",
                 List.of("ei"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiitem.use", commandRouter, commandRouter)
         );

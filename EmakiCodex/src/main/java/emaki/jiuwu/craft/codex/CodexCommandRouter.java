@@ -186,7 +186,8 @@ final class CodexCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                 "advancements", plugin.advancementRegistrar().size()
         )));
-        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+        plugin.messageService().sendRaw(sender, plugin.messageService().message(
+                "general.reload_duration", Map.of("millis", elapsedMs)));
         return true;
     }
 
@@ -290,8 +291,9 @@ final class CodexCommandRouter implements TabExecutor {
             }
         } catch (Throwable throwable) {
             plugin.getLogger().log(Level.WARNING,
-                    "Codex command response dispatch failed: sender=" + sender.getName()
-                            + ", operation=send_to_sender, cause=" + throwable,
+                    plugin.messageService().message("console.command_dispatch_failed", Map.of(
+                            "sender", sender.getName(),
+                            "cause", throwable)),
                     throwable);
         }
     }

@@ -85,8 +85,8 @@ final class ScriptTargetCondition implements CoreTargetCondition {
 
     private void warn(@Nullable ScriptCallbackException exception) {
         String detail = exception == null || Texts.isBlank(exception.getMessage())
-                ? "returned a non-boolean value"
+                ? "返回了非布尔值"
                 : exception.getMessage();
-        warns.accept("target_conditions: condition '" + id + "' failed: " + Texts.toStringSafe(detail));
+        warns.accept("target_conditions: 条件 '" + id + "' 失败: " + Texts.toStringSafe(detail));
     }
 }

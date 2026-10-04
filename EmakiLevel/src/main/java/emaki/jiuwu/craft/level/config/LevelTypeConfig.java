@@ -165,33 +165,33 @@ public record LevelTypeConfig(String id,
         static ItemReward parse(Map<?, ?> values, int index) {
             String path = "upgrade.rewards.items[" + index + "]";
             if (values == null) {
-                throw new IllegalArgumentException(path + ": output entry must be a mapping");
+                throw new IllegalArgumentException(path + ": 输出条目必须是映射");
             }
             if (values.containsKey("item_source") && values.containsKey("item_sources")) {
-                throw new IllegalArgumentException(path + ": item_source and item_sources cannot both be declared");
+                throw new IllegalArgumentException(path + ": 不能同时声明 item_source 与 item_sources");
             }
             if (values.containsKey("matcher")) {
-                throw new IllegalArgumentException(path + ".matcher: matcher is not allowed on output nodes");
+                throw new IllegalArgumentException(path + ".matcher: 输出节点不允许使用 matcher");
             }
             String source;
             if (values.containsKey("item_source")) {
                 Object raw = values.get("item_source");
                 if (raw instanceof Iterable<?> && !(raw instanceof String)) {
-                    throw new IllegalArgumentException(path + ".item_source: canonical item_source must be a single source");
+                    throw new IllegalArgumentException(path + ".item_source: 规范 item_source 必须是单一来源");
                 }
                 source = string(values, "item_source", "");
             } else if (values.containsKey("item_sources")) {
                 List<String> legacy = stringList(values.get("item_sources"));
                 if (legacy.size() != 1) {
-                    throw new IllegalArgumentException(path + ".item_sources: legacy item_sources must contain exactly one source");
+                    throw new IllegalArgumentException(path + ".item_sources: 旧 item_sources 必须恰好包含一个来源");
                 }
                 source = legacy.getFirst();
             } else {
-                throw new IllegalArgumentException(path + ".item_source: output must declare item_source");
+                throw new IllegalArgumentException(path + ".item_source: 输出必须声明 item_source");
             }
             ItemSourceRef parsed = ItemSourceUtil.parse(source);
             if (parsed == null) {
-                throw new IllegalArgumentException(path + ".item_source: invalid item source");
+                throw new IllegalArgumentException(path + ".item_source: 无效的物品来源");
             }
             return new ItemReward(string(values, "levels", "*"), ItemSourceUtil.toShorthand(parsed),
                     (int) Math.max(1, Math.round(number(values, "amount", 1D))));

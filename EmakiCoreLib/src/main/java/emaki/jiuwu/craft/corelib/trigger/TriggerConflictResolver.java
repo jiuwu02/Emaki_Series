@@ -23,8 +23,8 @@ public final class TriggerConflictResolver {
         for (TriggerDefinition def : definitions.values()) {
             for (String other : def.incompatibleWith()) {
                 if (!definitions.containsKey(other)) {
-                    LOGGER.warning("Trigger '" + def.id()
-                            + "' declares incompatibility with unknown trigger '" + other + "'");
+                    LOGGER.warning("触发器 '" + def.id()
+                            + "' 声明了与未知触发器 '" + other + "' 的不兼容");
                     continue;
                 }
                 conflictMatrix.computeIfAbsent(def.id(), k -> new HashSet<>()).add(other);

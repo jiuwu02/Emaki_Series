@@ -170,7 +170,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
         plugin.registerCommand(
                 "emakiattribute",
-                "emakiattribute command",
+                "EmakiAttribute 命令",
                 List.of("eattribute", "ea"),
                 new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
         );
@@ -393,7 +393,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopped");
         } else {
-            plugin.getLogger().info("EmakiAttribute stopped.");
+            plugin.getLogger().info("EmakiAttribute 已关闭。");
         }
     }
 

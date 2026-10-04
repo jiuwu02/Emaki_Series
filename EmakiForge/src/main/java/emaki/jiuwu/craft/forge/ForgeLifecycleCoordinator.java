@@ -186,7 +186,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         plugin.guiTemplateLoader() == null ? 0 : plugin.guiTemplateLoader().all().size(),
                         ForgeItemRefreshService.RefreshSummary.empty(),
                         plugin.runtimeSnapshot().recipeReport(),
-                        "reload rejected because plugin shutdown has started",
+                        "插件已开始关闭，重载被拒绝",
                         0L);
                 plugin.runtimeMetrics().recordResult(result);
                 return CompletableFuture.completedFuture(result);
@@ -214,7 +214,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                                                                boolean closeOpenInventories,
                                                                Consumer<String> progressListener) {
         long started = System.nanoTime();
-        notifyProgress(progressListener, "Building forge runtime generation " + generation + "...");
+        notifyProgress(progressListener, "正在构建 Forge 运行时代次 " + generation + "...");
         CompletableFuture<ForgeReloadResult> pipeline = submitGlobal(plugin, () -> {
             plugin.beginReload(generation);
             plugin.itemIdentifierService().refresh();
@@ -222,10 +222,10 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }).thenCompose(ignored -> buildCandidateAsync(plugin, generation))
                 .thenCompose(candidate -> {
                     if (!plugin.isGenerationRequested(generation)) {
-                        return staleReload(plugin, generation, started, "superseded before install");
+                        return staleReload(plugin, generation, started, "安装前已被取代");
                     }
                     if (candidate.blocking()) {
-                        return rejectedReload(plugin, candidate, started, "candidate contains blocking issues");
+                        return rejectedReload(plugin, candidate, started, "候选包含阻断性问题");
                     }
                     return installCandidate(plugin, candidate, closeOpenInventories, started, progressListener);
                 });
@@ -235,11 +235,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             }
             Throwable cause = AsyncFailures.unwrap(throwable);
             if (cause instanceof StaleReloadException) {
-                return staleReload(plugin, generation, started, "superseded during reload");
+                return staleReload(plugin, generation, started, "重载期间已被取代");
             }
             return submitGlobal(plugin, () -> {
-                plugin.failReload(generation, "reload failed: " + cause.getMessage());
-                plugin.getLogger().warning("[Reload] Generation " + generation + " failed: " + cause.getMessage());
+                plugin.failReload(generation, "重载失败: " + cause.getMessage());
+                plugin.messageService().warning("console.reload_generation_failed",
+                        Map.of("generation", generation, "error", String.valueOf(cause.getMessage())));
                 ForgeReloadResult reloadResult = new ForgeReloadResult(
                         generation,
                         plugin.runtimeGeneration(),
@@ -340,7 +341,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private void loadCandidateAppConfigReadOnly(YamlConfigLoader<AppConfig> loader) {
         if (loader == null) {
-            throw new IllegalStateException("Forge app config loader is unavailable.");
+            throw new IllegalStateException("Forge 应用配置加载器不可用。");
         }
         File file = loader.file();
         if (file == null || !file.isFile()) {
@@ -361,7 +362,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             return normalized.endsWith(".yml") || normalized.endsWith(".yaml");
         });
         if (files == null) {
-            throw new IllegalStateException("Unable to list forge language directory " + directory.getPath());
+            throw new IllegalStateException("无法列出 Forge 语言目录 " + directory.getPath());
         }
         for (File file : files) {
             if (file != null && file.isFile()) {
@@ -385,7 +386,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         ForgeService forgeService = plugin.forgeService();
         if (forgeService == null) {
-            throw new IllegalStateException("Forge service is unavailable during candidate validation.");
+            throw new IllegalStateException("候选校验期间 Forge 服务不可用。");
         }
         return new RuntimeValidatedCandidate(
                 preparation,
@@ -476,7 +477,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private void finalizeCandidateConfiguration(EmakiForgePlugin plugin, ForgeReloadCandidate candidate) {
         if (plugin == null || candidate == null
                 || candidate.appConfigLoader() == null || candidate.languageLoader() == null) {
-            throw new IllegalStateException("Forge candidate configuration is incomplete.");
+            throw new IllegalStateException("Forge 候选配置不完整。");
         }
         if (playerStorePrepared.compareAndSet(false, true)) {
             try {
@@ -499,7 +500,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                                                                   long started,
                                                                   Consumer<String> progressListener) {
         long generation = candidate.generation();
-        notifyProgress(progressListener, "Quiescing forge generation " + plugin.runtimeGeneration() + "...");
+        notifyProgress(progressListener, "正在静默 Forge 代次 " + plugin.runtimeGeneration() + "...");
         return submitGlobal(plugin, () -> {
             if (!plugin.isGenerationRequested(generation)) {
                 throw new StaleReloadException();
@@ -545,8 +546,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     } else {
                         outcome = ForgeReloadResult.Outcome.SUCCESS;
                     }
-                    notifyProgress(progressListener, "Reload complete: generation " + generation
-                            + ", outcome=" + outcome + ".");
+                    notifyProgress(progressListener, "重载完成: 代次 " + generation
+                            + ", 结果=" + outcome + ".");
                     ForgeReloadResult result = new ForgeReloadResult(
                             generation,
                             plugin.runtimeGeneration(),
@@ -572,8 +573,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                                                                 String detail) {
         return submitGlobal(plugin, () -> {
             plugin.failReload(candidate, detail);
-            plugin.getLogger().warning("[Reload] Rejected generation " + candidate.generation() + ": "
-                    + candidate.recipeReport().summary());
+            plugin.messageService().warning("console.reload_rejected", Map.of("generation", candidate.generation(),
+                    "summary", candidate.recipeReport().summary()));
             ForgeReloadResult result = new ForgeReloadResult(
                     candidate.generation(),
                     plugin.runtimeGeneration(),
@@ -647,7 +648,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             try {
                 coreLibPlugin.namespaceRegistry().unregister("forge");
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] Namespace cleanup failed: "
+                plugin.getLogger().warning("[Shutdown] 命名空间清理失败: "
                         + String.valueOf(throwable.getMessage()));
             }
         }
@@ -656,7 +657,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             try {
                 plugin.pdcAttributeGateway().shutdown();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] PDC gateway cleanup failed: "
+                plugin.getLogger().warning("[Shutdown] PDC 网关清理失败: "
                         + String.valueOf(throwable.getMessage()));
             }
         }
@@ -669,7 +670,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         try {
             flushFuture = plugin.playerDataStore().flushAndSealAsync(5L, TimeUnit.SECONDS);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Shutdown] Player data flush could not start: "
+            plugin.getLogger().warning("[Shutdown] 玩家数据刷写无法启动: "
                     + throwable.getClass().getSimpleName() + ": " + String.valueOf(throwable.getMessage()));
             sendShutdownMessage(plugin, "console.plugin_stopped");
             return CompletableFuture.completedFuture(null);
@@ -677,13 +678,13 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         return flushFuture.handle((flushResult, throwable) -> {
             if (throwable != null) {
                 Throwable cause = AsyncFailures.unwrap(throwable);
-                plugin.getLogger().warning("[Shutdown] Player data flush failed: "
+                plugin.getLogger().warning("[Shutdown] 玩家数据刷写失败: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             } else if (flushResult != null) {
                 sendShutdownMessage(plugin, "console.player_data_saved", Map.of(
                         "count", flushResult.savedEntries()));
                 if (!flushResult.clean()) {
-                    plugin.getLogger().warning("[Shutdown] Player data drain incomplete: pending="
+                    plugin.getLogger().warning("[Shutdown] 玩家数据排空不完整: pending="
                             + flushResult.drainResult().pendingOperations()
                             + ", ioFailures=" + flushResult.drainResult().failures().size()
                             + ", saveFailures=" + flushResult.failedEntries()
@@ -710,7 +711,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 plugin.messageService().info(key, replacements);
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Shutdown] Message dispatch failed for '" + key + "': "
+            plugin.getLogger().warning("[Shutdown] 消息派发失败，键 '" + key + "': "
                     + String.valueOf(throwable.getMessage()));
         }
     }
@@ -743,15 +744,15 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     if (throwable != null) {
                         Throwable cause = AsyncFailures.unwrap(throwable);
                         plugin.runtimeMetrics().recordGuiSettlementFailure();
-                        plugin.getLogger().warning("[Shutdown] Forge retirement did not complete cleanly: "
+                        plugin.getLogger().warning("[Shutdown] Forge 退役未干净完成: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
                     }
                     return throwable == null;
                 })
                 .thenAccept(cleanRetirement -> {
                     String reason = cleanRetirement
-                            ? "shutdown cleanup found an unsettled GUI session"
-                            : "shutdown retirement timed out before GUI settlement";
+                            ? "关闭清理发现未结算的 GUI 会话"
+                            : "关闭退役在 GUI 结算前超时";
                     try {
                         plugin.forgeGuiService().finalizeShutdownSessions(reason);
                     } finally {
@@ -761,7 +762,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
                         Throwable cause = AsyncFailures.unwrap(throwable);
-                        plugin.getLogger().warning("[Shutdown] Forge runtime cleanup failed: "
+                        plugin.getLogger().warning("[Shutdown] Forge 运行时清理失败: "
                                 + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
                         closeRuntimeForShutdown(plugin);
                     }
@@ -775,7 +776,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (unresolvedSessions > 0) {
             plugin.runtimeMetrics().recordGuiSettlementFailure();
             plugin.getLogger().severe("[Shutdown] " + unresolvedSessions
-                    + " Forge GUI session(s) still own unsettled items; sessions were not silently discarded.");
+                    + " 个 Forge GUI 会话仍持有未结算物品；未静默丢弃这些会话。");
         }
         plugin.recipeBookGuiService().clearAllBooks();
         if (plugin.forgeService() != null) {
@@ -789,7 +790,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.forgeGuiService().clearSettledSessions();
                     if (!plugin.forgeGuiService().sessionsSnapshot().isEmpty()) {
                         throw new IllegalStateException(
-                                "Forge runtime reload cannot install while GUI item settlement remains unresolved.");
+                                "GUI 物品结算未解决时无法安装 Forge 运行时重载。");
                     }
                     plugin.recipeBookGuiService().clearAllBooks();
                     return null;
@@ -805,7 +806,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             Player player = session.player();
             if (player == null) {
                 plugin.forgeGuiService().handleShutdownClosureFailure(session,
-                        "shutdown session has no player owner");
+                        "关闭会话没有玩家所有者");
                 continue;
             }
             CompletableFuture<Void> closure = new CompletableFuture<>();
@@ -817,21 +818,21 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         player.closeInventory();
                     }
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[Shutdown] Forge GUI close failed for "
+                    plugin.getLogger().warning("[Shutdown] Forge GUI 关闭失败，玩家 "
                             + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                     plugin.forgeGuiService().handleShutdownClosureFailure(session,
-                            "shutdown inventory close failed: " + String.valueOf(throwable.getMessage()));
+                            "关闭背包时失败: " + String.valueOf(throwable.getMessage()));
                 } finally {
                     closure.complete(null);
                 }
             };
             Runnable retired = () -> {
                 plugin.forgeGuiService().handleShutdownClosureFailure(session,
-                        "shutdown player owner retired before inventory close");
+                        "关闭背包前玩家所有者已退役");
                 closure.complete(null);
             };
             scheduleShutdownEntityTask(plugin, coreLibPlugin, player, close, retired, closure,
-                    "Forge GUI closure");
+                    "Forge GUI 关闭");
             CompletableFuture<Void> settlementFallback = new CompletableFuture<>();
             closures.add(settlementFallback);
             scheduleShutdownSettlementFallback(plugin, coreLibPlugin, player, session,
@@ -848,7 +849,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                     plugin.recipeBookGuiService().removeRecipeBook(player);
                     player.closeInventory();
                 } catch (Throwable throwable) {
-                    plugin.getLogger().warning("[Shutdown] Recipe book close failed for "
+                    plugin.getLogger().warning("[Shutdown] 配方图鉴关闭失败，玩家 "
                             + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                 } finally {
                     closure.complete(null);
@@ -856,11 +857,11 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             };
             Runnable retired = () -> {
                 plugin.recipeBookGuiService().removeRecipeBookOwner(player);
-                plugin.getLogger().warning("[Shutdown] Recipe book owner retired before inventory close.");
+                plugin.getLogger().warning("[Shutdown] 配方图鉴所有者已在关闭背包前退役。");
                 closure.complete(null);
             };
             scheduleShutdownEntityTask(plugin, coreLibPlugin, player, close, retired, closure,
-                    "recipe book closure");
+                    "配方图鉴关闭");
         }
         return CompletableFuture.allOf(closures.toArray(CompletableFuture[]::new));
     }
@@ -876,17 +877,17 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 plugin.forgeGuiService().settleShutdownSessionOnOwner(session);
                 player.closeInventory();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("[Shutdown] Forge GUI settlement fallback failed for "
+                plugin.getLogger().warning("[Shutdown] Forge GUI 结算回退失败，玩家 "
                         + player.getUniqueId() + ": " + String.valueOf(throwable.getMessage()));
                 plugin.forgeGuiService().handleShutdownClosureFailure(session,
-                        "shutdown settlement fallback failed: " + String.valueOf(throwable.getMessage()));
+                        "关闭结算回退失败: " + String.valueOf(throwable.getMessage()));
             } finally {
                 completion.complete(null);
             }
         };
         Runnable retired = () -> {
             plugin.forgeGuiService().handleShutdownClosureFailure(session,
-                    "shutdown player owner retired before settlement fallback");
+                    "结算回退前玩家所有者已退役");
             completion.complete(null);
         };
         try {
@@ -914,15 +915,15 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                             scheduled.cancel();
                         }
                     } catch (Throwable cancellationFailure) {
-                        plugin.getLogger().warning("[Shutdown] Forge GUI settlement fallback cancellation failed: "
+                        plugin.getLogger().warning("[Shutdown] Forge GUI 结算回退取消失败: "
                                 + String.valueOf(cancellationFailure.getMessage()));
                     }
                     scheduleShutdownEntityTask(plugin, coreLibPlugin, player, settle, retired, completion,
-                            "Forge GUI post-quiesce settlement");
+                            "Forge GUI 静默后结算");
                 });
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Shutdown] Forge GUI settlement fallback scheduling failed: "
+            plugin.getLogger().warning("[Shutdown] Forge GUI 结算回退调度失败: "
                     + String.valueOf(throwable.getMessage()));
             try {
                 retired.run();
@@ -953,7 +954,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 retired.run();
             }
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Shutdown] " + description + " scheduling failed: "
+            plugin.getLogger().warning("[Shutdown] " + description + " 调度失败: "
                     + String.valueOf(throwable.getMessage()));
             try {
                 retired.run();
@@ -988,7 +989,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                             () -> closure.complete(null));
                     if (scheduled == null) {
                         closure.completeExceptionally(new RejectedExecutionException(
-                                "Forge GUI closure scheduling was rejected."));
+                                "Forge GUI 关闭调度被拒绝。"));
                     }
                 }
             } catch (Throwable throwable) {
@@ -1042,7 +1043,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     private static final class StaleReloadException extends RuntimeException {
         private StaleReloadException() {
-            super("reload generation is stale");
+            super("重载代次已过期");
         }
     }
 }

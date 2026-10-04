@@ -15,7 +15,7 @@ public final class KillerSource extends BaseSource {
 
     public KillerSource() {
         super("killer", 
-              "The entity that killed the caster (from on_death trigger).",
+              "击杀施法者的实体（来自 on_death 触发器）。",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

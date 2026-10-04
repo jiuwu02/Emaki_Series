@@ -20,9 +20,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class PlayerByNameSource extends BaseSource {
 
     public PlayerByNameSource() {
-        super("player_by_name", "An online player, addressed by name or UUID.",
+        super("player_by_name", "按名称或 UUID 指定的在线玩家。",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
-                CoreStageParameter.positional("name", CoreStageParameterType.STRING, "Player name or UUID"));
+                CoreStageParameter.positional("name", CoreStageParameterType.STRING, "玩家名称或 UUID"));
     }
 
     @Override

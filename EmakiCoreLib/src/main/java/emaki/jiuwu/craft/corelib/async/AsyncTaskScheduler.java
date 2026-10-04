@@ -138,12 +138,12 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             Supplier<T> supplier) {
         Objects.requireNonNull(supplier, "supplier");
         if (!acceptingTasks.get()) {
-            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
+            return CompletableFuture.failedFuture(new RejectedExecutionException("异步调度器正在关闭"));
         }
         if (asyncQueueFull()) {
             failed.incrementAndGet();
             return CompletableFuture.failedFuture(new RejectedExecutionException(
-                    "Async task queue is full for task: " + safeTaskName(taskName)));
+                    "异步任务队列已满，任务: " + safeTaskName(taskName)));
         }
         submitted.incrementAndGet();
         activeTasks.incrementAndGet();
@@ -169,7 +169,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
         ScheduledFuture<?> timeout;
         try {
             timeout = timeoutExecutor.schedule(() -> {
-                TimeoutException exception = new TimeoutException("Async task timed out: " + taskName);
+                TimeoutException exception = new TimeoutException("异步任务超时: " + taskName);
                 if (future.isDone()) {
                     return;
                 }
@@ -211,19 +211,19 @@ public final class AsyncTaskScheduler implements AutoCloseable {
             Supplier<T> supplier) {
         Objects.requireNonNull(supplier, "supplier");
         if (!acceptingTasks.get()) {
-            return CompletableFuture.failedFuture(new RejectedExecutionException("Async scheduler is shutting down"));
+            return CompletableFuture.failedFuture(new RejectedExecutionException("异步调度器正在关闭"));
         }
         if (delayedQueueFull()) {
             failed.incrementAndGet();
             return CompletableFuture.failedFuture(new RejectedExecutionException(
-                    "Async delayed task queue is full for task: " + safeTaskName(taskName)));
+                    "异步延迟任务队列已满，任务: " + safeTaskName(taskName)));
         }
         CompletableFuture<T> result = new CompletableFuture<>();
         try {
             ScheduledFuture<?> scheduled = timeoutExecutor.schedule(() -> {
                 delayedTasks.remove(result);
                 if (!acceptingTasks.get()) {
-                    result.completeExceptionally(new RejectedExecutionException("Async scheduler is shutting down"));
+                    result.completeExceptionally(new RejectedExecutionException("异步调度器正在关闭"));
                     return;
                 }
                 supplyAsync(taskName, priority, timeoutMillis, supplier)
@@ -272,7 +272,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     public boolean shutdownGracefully(long timeout, TimeUnit unit) {
         Objects.requireNonNull(unit, "unit");
         acceptingTasks.set(false);
-        RejectedExecutionException shutdownFailure = new RejectedExecutionException("Async scheduler is shutting down");
+        RejectedExecutionException shutdownFailure = new RejectedExecutionException("异步调度器正在关闭");
         delayedTasks.forEach((future, scheduled) -> {
             scheduled.cancel(false);
             future.completeExceptionally(shutdownFailure);
@@ -320,7 +320,7 @@ public final class AsyncTaskScheduler implements AutoCloseable {
     }
 
     private String safeTaskName(String taskName) {
-        return taskName == null || taskName.isBlank() ? "unknown" : taskName.trim();
+        return taskName == null || taskName.isBlank() ? "未知" : taskName.trim();
     }
 
     private final class PrioritizedTask<T> implements Runnable, Comparable<PrioritizedTask<?>> {

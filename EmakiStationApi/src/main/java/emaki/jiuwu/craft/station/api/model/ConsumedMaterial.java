@@ -33,7 +33,7 @@ public record ConsumedMaterial(@NotNull String materialId,
             throw new NullPointerException("channel");
         }
         if (amount <= 0L) {
-            throw new IllegalArgumentException("amount must be positive: " + amount);
+            throw new IllegalArgumentException("amount 必须为正数: " + amount);
         }
         refundedAmount = Math.clamp(refundedAmount, 0L, amount);
         itemSnapshot = itemSnapshot == null ? null : itemSnapshot.clone();

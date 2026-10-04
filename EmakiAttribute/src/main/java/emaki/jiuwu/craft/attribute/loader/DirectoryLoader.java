@@ -177,7 +177,7 @@ public abstract class DirectoryLoader<T> {
         int separator = safeKey.lastIndexOf('.');
         String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
         String label = Texts.isBlank(token)
-                ? "Configuration loader issue"
+                ? "配置加载问题"
                 : Character.toUpperCase(token.charAt(0)) + token.substring(1);
         if (safeReplacements.isEmpty()) {
             return label;

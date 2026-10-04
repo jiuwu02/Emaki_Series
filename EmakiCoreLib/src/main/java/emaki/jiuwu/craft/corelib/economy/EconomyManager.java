@@ -36,7 +36,7 @@ public final class EconomyManager {
             register(providerFactory.get());
         } catch (RuntimeException | LinkageError exception) {
             plugin.getLogger().log(Level.SEVERE,
-                    "Economy provider registration failed: dependency=" + dependencyName
+                    "经济提供者注册失败: dependency=" + dependencyName
                             + ", operation=register_optional_provider, cause=" + exception,
                     exception);
         }
@@ -85,14 +85,14 @@ public final class EconomyManager {
 
     public ActionResult requireSupported(String providerId, String currencyId) {
         if ("excellenteconomy".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy actions require 'currency'.");
+            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy 操作需要 'currency'。");
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "No economy provider available for '" + providerId + "'.");
+            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "没有可用的经济提供者: '" + providerId + "'。");
         }
         if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "excellenteconomy".equalsIgnoreCase(provider.id())) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Auto provider does not infer a default ExcellentEconomy currency.");
+            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "auto 提供者不会推断默认的 ExcellentEconomy 货币。");
         }
         return ActionResult.ok(Map.of("provider", provider.id()));
     }

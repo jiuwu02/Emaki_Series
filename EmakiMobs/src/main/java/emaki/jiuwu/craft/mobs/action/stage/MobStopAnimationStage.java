@@ -24,9 +24,9 @@ public final class MobStopAnimationStage extends BaseStage {
     private final MobModelManager modelManager;
 
     public MobStopAnimationStage(MobIdentifier mobIdentifier, MobModelManager modelManager) {
-        super("mob_stop_animation", "emakimobs", "Stops a named animation on the target mob's model.",
+        super("mob_stop_animation", "emakimobs", "停止目标生物模型上指定名称的动画。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("animation", CoreStageParameterType.STRING, "Animation key"));
+                CoreStageParameter.required("animation", CoreStageParameterType.STRING, "动画键名"));
         this.mobIdentifier = mobIdentifier;
         this.modelManager = modelManager;
     }

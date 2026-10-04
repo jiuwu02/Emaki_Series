@@ -55,13 +55,13 @@ public final class GraalJsEngine implements ScriptEngine {
                                        @NotNull Map<String, Object> bindings,
                                        long timeoutMs) {
         if (code == null) {
-            throw new IllegalArgumentException("code cannot be null");
+            throw new IllegalArgumentException("code 不能为 null");
         }
         if (bindings == null) {
-            throw new IllegalArgumentException("bindings cannot be null");
+            throw new IllegalArgumentException("bindings 不能为 null");
         }
         if (timeoutMs <= 0) {
-            throw new IllegalArgumentException("timeoutMs must be positive, got: " + timeoutMs);
+            throw new IllegalArgumentException("timeoutMs 必须为正数，实际: " + timeoutMs);
         }
 
         Source source = cache.getOrCompile(code, "eval-" + System.currentTimeMillis());

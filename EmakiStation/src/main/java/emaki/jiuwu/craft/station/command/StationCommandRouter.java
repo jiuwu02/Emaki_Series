@@ -309,7 +309,7 @@ public final class StationCommandRouter {
                 "stations", String.valueOf(summary.stations()),
                 "recipes", String.valueOf(summary.recipes()),
                 "issues", String.valueOf(summary.issues())));
-        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+        message(sender, "command.reload_elapsed", Map.of("elapsed", String.valueOf(elapsedMs)));
         return true;
     }
 

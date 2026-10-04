@@ -90,8 +90,8 @@ public final class DialogService {
             player.showDialog(build(definition));
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] Could not show " + definition.id()
-                    + " to " + player.getName() + ": " + throwable.getMessage());
+            plugin.getLogger().warning("[dialog] 无法向 " + player.getName()
+                    + " 显示 " + definition.id() + ": " + throwable.getMessage());
             return false;
         }
     }
@@ -104,8 +104,8 @@ public final class DialogService {
             player.showDialog(buildInteractive(definition, handler));
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] Could not show the runtime dialog "
-                    + definition.id() + " to " + player.getName() + ": " + throwable.getMessage());
+            plugin.getLogger().warning("[dialog] 无法向 " + player.getName()
+                    + " 显示运行时对话 " + definition.id() + ": " + throwable.getMessage());
             return false;
         }
     }
@@ -118,8 +118,8 @@ public final class DialogService {
             player.closeDialog();
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[dialog] Could not close dialog for "
-                    + player.getName() + ": " + throwable.getMessage());
+            plugin.getLogger().warning("[dialog] 无法为 " + player.getName()
+                    + " 关闭对话: " + throwable.getMessage());
             return false;
         }
     }
@@ -198,7 +198,7 @@ public final class DialogService {
             try {
                 handler.onSubmit(player, submission);
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[dialog] The submit handler failed for "
+                plugin.getLogger().warning("[dialog] 提交处理器执行失败，玩家 "
                         + player.getName() + ": " + exception.getMessage());
             }
         };
@@ -240,7 +240,7 @@ public final class DialogService {
                     continue;
                 }
                 plugin.getLogger().warning("[dialog] " + definition.id()
-                        + ": unknown item source '" + body.item() + "', skipping body entry.");
+                        + ": 未知的物品来源 '" + body.item() + "'，跳过该 body 条目。");
                 continue;
             }
             if (body.width() > 0) {

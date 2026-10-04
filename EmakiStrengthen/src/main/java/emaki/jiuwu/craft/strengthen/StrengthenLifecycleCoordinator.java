@@ -244,16 +244,16 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         }
         if (!freezeAndDrain(plugin, false, "reload-async")) {
             resumeAccepting(plugin);
-            return CompletableFuture.failedFuture(new IllegalStateException("Strengthen operations did not drain"));
+            return CompletableFuture.failedFuture(new IllegalStateException("强化操作未能排空"));
         }
 
         CompletableFuture<Void> closeSessions = closeInventories && plugin.strengthenGuiService() != null
                 ? plugin.strengthenGuiService().clearAllSessionsAsync()
                 : CompletableFuture.completedFuture(null);
-        notifyProgress(progressListener, "Loading configuration files...");
+        notifyProgress(progressListener, plugin.messageService().message("console.reload_loading_files"));
 
         return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "strengthen", "config-load", "Loading configs...", progressListener,
+                "strengthen", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
                 () -> {
                     ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                             plugin.messageService(),
@@ -270,13 +270,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                             plugin.appConfigLoader()::overrideCurrent);
                     if (gate.rejected()) {
 
-                        throw new IllegalStateException("Strengthen config precheck failed: "
+                        throw new IllegalStateException("强化配置预检失败: "
                                 + String.join("; ", gate.failures()));
                     }
                 },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                null, (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed",
+                        Map.of("stage", stage, "error", String.valueOf(ex.getMessage())))
         )).thenCompose(_ -> {
-            notifyProgress(progressListener, "Applying configuration...");
+            notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
@@ -291,7 +292,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 plugin.messageService().info("console.recipes_loaded", Map.of(
                         "count", String.valueOf(plugin.recipeLoader().all().size())
                 ));
-                notifyProgress(progressListener, "Reload complete.");
+                notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
             });
         })).whenComplete((_, _) -> resumeAccepting(plugin));
     }
@@ -345,7 +346,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             plugin.affixGuiService().clearAllSessions();
         }
         if (!attemptsDrained || !enhancementsDrained) {
-            plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
+            plugin.getLogger().severe("[Lifecycle] 强化排空未完成 | phase=" + phase
                     + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
                     + " | enhancements=" + (plugin.enhancementAttemptService() == null
                             ? Map.of() : plugin.enhancementAttemptService().journalSnapshot()));

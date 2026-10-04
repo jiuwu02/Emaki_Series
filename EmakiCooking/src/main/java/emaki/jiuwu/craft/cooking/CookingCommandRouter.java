@@ -133,7 +133,7 @@ final class CookingCommandRouter implements TabExecutor {
                     "recipes", totalRecipeCount(),
                     "resources", 1
             )));
-            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+            plugin.messageService().send(sender, "command.reload_elapsed", Map.of("elapsed_ms", elapsedMs));
         }));
         return true;
     }
@@ -185,14 +185,15 @@ final class CookingCommandRouter implements TabExecutor {
             return true;
         }
         if (plugin.stationStateStore() == null) {
-            plugin.messageService().sendRaw(sender, "<red>Station state store is not ready.</red>");
+            plugin.messageService().send(sender, "command.station.store_not_ready");
             return true;
         }
-        plugin.messageService().sendRaw(sender, "<gray>Rebuilding station location index...</gray>");
+        plugin.messageService().send(sender, "command.station.reindex_started");
         plugin.stationStateStore().reindexAsync().thenAccept(report -> runForSender(sender, () -> plugin.messageService().sendRaw(sender,
-                "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>" + report.legacyYamlStates()
-                        + " <gray>loaded_pdc=</gray>" + report.loadedPdcStates()
-                        + " <gray>total_indexed=</gray>" + report.totalIndexedStates())));
+                plugin.messageService().message("command.station.reindex_done", Map.of(
+                        "legacy_yaml", report.legacyYamlStates(),
+                        "loaded_pdc", report.loadedPdcStates(),
+                        "total_indexed", report.totalIndexedStates())))));
         return true;
     }
 
@@ -209,7 +210,7 @@ final class CookingCommandRouter implements TabExecutor {
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect hand|block", plugin.messageService().message("command.help.desc.inspect"));
-        lines.put("station reindex", "rebuild station storage index");
+        lines.put("station reindex", plugin.messageService().message("command.help.desc.station"));
         lines.put("nutrition get|set|add|remove", plugin.messageService().message("command.help.desc.nutrition"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(

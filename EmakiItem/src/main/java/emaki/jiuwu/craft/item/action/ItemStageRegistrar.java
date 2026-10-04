@@ -34,8 +34,8 @@ public final class ItemStageRegistrar {
         if (registration.successful()) {
             handles.add(registration);
         } else {
-            plugin.getLogger().warning("Failed to register pipeline stage '" + id
-                    + "': " + registration.reasonKey());
+            plugin.getLogger().warning("注册管线动作段 '" + id
+                    + "' 失败: " + registration.reasonKey());
         }
     }
 

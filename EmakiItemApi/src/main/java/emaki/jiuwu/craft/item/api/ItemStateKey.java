@@ -16,13 +16,13 @@ public record ItemStateKey<T>(String namespace, String partition, String key, It
         key = normalize(key, "key");
         type = Objects.requireNonNull(type, "type");
         if (!ItemStateSchema.NAMESPACE.equals(namespace)) {
-            throw new IllegalArgumentException("Unsupported item-state namespace: " + namespace);
+            throw new IllegalArgumentException("不支持的物品状态命名空间: " + namespace);
         }
         if (!ItemStateSchema.PARTITION.equals(partition)) {
-            throw new IllegalArgumentException("Unsupported item-state partition: " + partition);
+            throw new IllegalArgumentException("不支持的物品状态分区: " + partition);
         }
         if (!TOKEN.matcher(key).matches() || key.contains("/")) {
-            throw new IllegalArgumentException("Invalid item-state key: " + key);
+            throw new IllegalArgumentException("无效的物品状态键: " + key);
         }
     }
 
@@ -57,7 +57,7 @@ public record ItemStateKey<T>(String namespace, String partition, String key, It
     private static String normalize(String value, String label) {
         String normalized = Objects.requireNonNull(value, label).trim().toLowerCase(Locale.ROOT);
         if (normalized.isBlank()) {
-            throw new IllegalArgumentException(label + " must not be blank");
+            throw new IllegalArgumentException(label + " 不能为空");
         }
         return normalized;
     }

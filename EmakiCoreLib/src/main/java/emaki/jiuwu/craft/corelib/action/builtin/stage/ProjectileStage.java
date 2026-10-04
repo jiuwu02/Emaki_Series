@@ -36,28 +36,28 @@ public final class ProjectileStage extends BaseStage {
     private final Plugin owner;
 
     public ProjectileStage(ExecutionDispatcher executionDispatcher, Plugin owner) {
-        super("projectile", "combat", "Launches a self-driven projectile from the caster.",
+        super("projectile", "combat", "从施法者处发射一枚自动飞行的弹射物。",
                 CoreTargetRequirement.OPTIONAL, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("speed", CoreStageParameterType.DOUBLE, "1.5",
-                        "Blocks per tick"),
+                        "每 tick 移动的方块数"),
                 CoreStageParameter.optional("gravity", CoreStageParameterType.DOUBLE, "0.05",
-                        "Downward pull per tick"),
+                        "每 tick 的下拉力"),
                 CoreStageParameter.optional("lifetime", CoreStageParameterType.INTEGER, "60",
-                        "Maximum lifetime in ticks"),
+                        "最大存活 tick 数"),
                 CoreStageParameter.optional("hit_radius", CoreStageParameterType.DOUBLE, "0.5",
-                        "Hit detection radius"),
+                        "命中检测半径"),
                 CoreStageParameter.optional("pierce", CoreStageParameterType.INTEGER, "0",
-                        "How many extra entities the projectile passes through"),
+                        "弹射物可额外穿透的实体数量"),
                 CoreStageParameter.optional("homing", CoreStageParameterType.BOOLEAN, "false",
-                        "Steer toward the current target"),
+                        "朝当前目标转向"),
                 CoreStageParameter.optional("homing_strength", CoreStageParameterType.DOUBLE, "0.1",
-                        "Homing turn strength"),
+                        "追踪转向强度"),
                 CoreStageParameter.optional("particle", CoreStageParameterType.STRING, "flame",
-                        "Trail particle key"),
+                        "拖尾粒子键"),
                 CoreStageParameter.optional("damage", CoreStageParameterType.DOUBLE, "0",
-                        "Damage dealt on hit, zero means none"),
+                        "命中造成的伤害，0 表示无伤害"),
                 CoreStageParameter.optional("direction", CoreStageParameterType.STRING, "look",
-                        "Initial direction: look or target"));
+                        "初始方向：look 或 target"));
         this.executionDispatcher = executionDispatcher;
         this.owner = owner;
     }

@@ -292,7 +292,7 @@ final class ForgeGuiStateSupport {
             return;
         }
         if (player == null) {
-            throw new IllegalStateException("Forge item return has no player owner.");
+            throw new IllegalStateException("锻造物品返还没有玩家所有者。");
         }
         InventoryItemUtil.giveOrDrop(player, clone);
     }
@@ -356,7 +356,7 @@ final class ForgeGuiStateSupport {
             Player player = state.player();
             ItemStack pending = cloneNonAir(state.pendingReturn());
             if (player == null || pending == null) {
-                throw new IllegalStateException("Forge item return has no valid pending owner item.");
+                throw new IllegalStateException("锻造物品返还没有有效的待处理所有者物品。");
             }
             if (state.pendingReturnInventoryAttempted()) {
                 player.getWorld().dropItemNaturally(player.getLocation(), pending);

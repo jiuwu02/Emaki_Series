@@ -238,12 +238,12 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
             return sessionsClosed.thenRun(() -> reloadNow(plugin));
         }
 
-        notifyProgress(progressListener, "Closing active gem sessions...");
+        notifyProgress(progressListener, "正在关闭活动宝石会话...");
 
         return sessionsClosed.thenCompose(_ -> {
-            notifyProgress(progressListener, "Loading configuration files...");
+            notifyProgress(progressListener, "正在加载配置文件...");
             return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                    "gem", "config-load", "Loading configs...", progressListener,
+                    "gem", "config-load", "正在加载配置...", progressListener,
                     () -> {
                         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                                 plugin.messageService(),
@@ -260,15 +260,15 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                                 plugin.appConfigLoader()::overrideCurrent);
                         if (gate.rejected()) {
 
-                            throw new IllegalStateException("Gem config precheck failed: "
+                            throw new IllegalStateException("宝石配置预检失败: "
                                     + String.join("; ", gate.failures()));
                         }
                     },
                     null,
                     (stage, ex) -> plugin.getLogger().warning(
-                            "[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                            "[重载] 阶段 " + stage + " 失败: " + ex.getMessage())
             )).thenCompose(_ -> {
-                notifyProgress(progressListener, "Applying configuration...");
+                notifyProgress(progressListener, "正在应用配置...");
                 return submitGlobalStage(plugin, () -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.itemMatcher().refresh();
@@ -280,7 +280,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     plugin.messageService().info("console.gems_loaded", Map.of(
                             "count", String.valueOf(plugin.gemLoader().all().size())
                     ));
-                    notifyProgress(progressListener, "Reload complete.");
+                    notifyProgress(progressListener, "重载完成。");
                 });
             });
         });
@@ -308,15 +308,15 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("EmakiGem skipped gem item refresh for " + player.getName()
-                        + ": caller thread does not own the player and no scheduling is available.");
+                plugin.getLogger().warning("EmakiGem 已跳过玩家 " + player.getName()
+                        + " 的宝石物品刷新：当前线程不拥有该玩家且没有可用的调度器。");
                 continue;
             }
             var task = plugin.scheduling().runForEntity(plugin, player,
                     () -> GemItemObtainListener.refreshInventory(plugin, player), null);
             if (task.cancelled()) {
-                plugin.getLogger().warning("EmakiGem failed to reroute gem item refresh for " + player.getName()
-                        + ": entity task scheduling was rejected.");
+                plugin.getLogger().warning("EmakiGem 无法为玩家 " + player.getName()
+                        + " 重新安排宝石物品刷新：实体任务调度被拒绝。");
             }
         }
     }
@@ -332,7 +332,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (plugin.gemGuiService() != null) {
             plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
-                plugin.getLogger().warning("Failed to close gem GUI sessions during shutdown: " + throwable.getMessage());
+                plugin.getLogger().warning("关闭阶段无法关闭宝石 GUI 会话: " + throwable.getMessage());
                 return null;
             });
         }

@@ -52,10 +52,10 @@ public record InputModeConfig(Mode mode, DialogDefinition dialog, String inputKe
         InputModeConfig config = new InputModeConfig(mode, dialog, inputKey);
         if (mode != Mode.CHAT && !config.dialogUsable()) {
             report(issues, dialogId, dialog == null
-                    ? "no dialog configured, "
-                            + (mode == Mode.DIALOG ? "so this interaction is disabled." : "using chat input.")
-                    : "needs an input with key '" + inputKey + "' and at least one button, "
-                            + (mode == Mode.DIALOG ? "so this interaction is disabled." : "using chat input."));
+                    ? "未配置对话框，"
+                            + (mode == Mode.DIALOG ? "因此该交互已禁用。" : "改用聊天输入。")
+                    : "需要一个键为 '" + inputKey + "' 的输入控件和至少一个按钮，"
+                            + (mode == Mode.DIALOG ? "因此该交互已禁用。" : "改用聊天输入。"));
         }
         return config;
     }
@@ -82,7 +82,7 @@ public record InputModeConfig(Mode mode, DialogDefinition dialog, String inputKe
 
     private static void report(Consumer<String> issues, String dialogId, String issue) {
         if (issues != null) {
-            issues.accept("dialog '" + dialogId + "': " + issue);
+            issues.accept("对话框 '" + dialogId + "'：" + issue);
         }
     }
 }

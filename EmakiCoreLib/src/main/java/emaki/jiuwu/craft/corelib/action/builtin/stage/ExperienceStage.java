@@ -30,9 +30,9 @@ abstract class ExperienceStage extends BaseStage {
             OperationType operation) {
         super(id, "player", description,
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("amount", CoreStageParameterType.INTEGER, "Amount"),
+                CoreStageParameter.required("amount", CoreStageParameterType.INTEGER, "数量"),
                 CoreStageParameter.optional("mode", CoreStageParameterType.STRING, "points",
-                        "points or levels"));
+                        "points 或 levels"));
         this.auditLogger = auditLogger;
         this.operation = operation;
         this.requirePositive = operation == OperationType.DECREASE;

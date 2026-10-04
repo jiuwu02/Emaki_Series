@@ -173,7 +173,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiCodex readiness publication skipped: " + exception);
+            getLogger().fine("EmakiCodex 就绪状态发布已跳过：" + exception);
         }
     }
 
@@ -223,7 +223,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "codex command",
+                "EmakiCodex 命令",
                 List.of("ecodex"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicodex.use", commandRouter, commandRouter)
         );

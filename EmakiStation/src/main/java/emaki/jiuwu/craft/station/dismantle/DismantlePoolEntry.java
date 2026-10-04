@@ -12,7 +12,7 @@ public record DismantlePoolEntry(ItemSourceRef source, AmountRange amount, doubl
             throw new NullPointerException("amount");
         }
         if (weight <= 0.0) {
-            throw new IllegalArgumentException("weight must be positive: " + weight);
+            throw new IllegalArgumentException("weight 必须为正数: " + weight);
         }
     }
 }

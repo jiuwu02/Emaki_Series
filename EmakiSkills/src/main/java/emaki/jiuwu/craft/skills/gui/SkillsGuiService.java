@@ -103,7 +103,8 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_SKILLS_GUI);
         if (template == null) {
-            plugin.getLogger().warning("[SkillsGui] Template '" + TEMPLATE_SKILLS_GUI + "' not found");
+            plugin.messageService().warning("console.gui_template_not_found",
+                    Map.of("template", TEMPLATE_SKILLS_GUI));
             return false;
         }
 
@@ -129,7 +130,8 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_TRIGGER_SELECT);
         if (template == null) {
-            plugin.getLogger().warning("[SkillsGui] Template '" + TEMPLATE_TRIGGER_SELECT + "' not found");
+            plugin.messageService().warning("console.gui_template_not_found",
+                    Map.of("template", TEMPLATE_TRIGGER_SELECT));
             return false;
         }
 
@@ -161,7 +163,8 @@ public final class SkillsGuiService {
         }
         GuiTemplate template = resolveUpgradeTemplate(definition);
         if (template == null) {
-            plugin.getLogger().warning("[SkillsGui] Template '" + TEMPLATE_UPGRADE + "' not found");
+            plugin.messageService().warning("console.gui_template_not_found",
+                    Map.of("template", TEMPLATE_UPGRADE));
             return false;
         }
 
@@ -190,15 +193,18 @@ public final class SkillsGuiService {
             if (custom != null) {
                 return custom;
             }
-            plugin.getLogger().warning("[SkillsGui] Skill '" + definition.id() + "' declares upgrade template '"
-                    + configured + "' which does not exist; falling back to '" + TEMPLATE_UPGRADE + "'");
+            plugin.messageService().warning("console.gui_upgrade_template_missing", Map.of(
+                    "skill", definition.id(),
+                    "template", configured,
+                    "fallback", TEMPLATE_UPGRADE));
         }
         return guiTemplateLoader.get(TEMPLATE_UPGRADE);
     }
 
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
-            plugin.getLogger().warning("Failed to close skill GUI sessions: " + throwable.getMessage());
+            plugin.messageService().warning("console.gui_close_failed",
+                    Map.of("error", Texts.toStringSafe(throwable.getMessage())));
             return null;
         });
     }
@@ -220,7 +226,7 @@ public final class SkillsGuiService {
                         close.completeExceptionally(throwable);
                     }
                 }, () -> close.completeExceptionally(new RejectedExecutionException(
-                        "Skills GUI close operation retired before execution.")));
+                        "技能 GUI 关闭操作在执行前已退役。")));
             } catch (Throwable throwable) {
                 close.completeExceptionally(throwable);
             }
@@ -634,8 +640,8 @@ public final class SkillsGuiService {
                 }
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("Skill upgrade material requirement threw and counts as zero: "
-                    + exception.getClass().getSimpleName());
+            plugin.messageService().warning("console.gui_material_requirement_failed",
+                    Map.of("error", exception.getClass().getSimpleName()));
             return 0L;
         }
         return total;

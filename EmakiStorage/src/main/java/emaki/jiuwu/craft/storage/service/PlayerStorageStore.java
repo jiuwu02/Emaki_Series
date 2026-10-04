@@ -147,10 +147,10 @@ public final class PlayerStorageStore {
             throw new CompletionException(failure);
         }
         if (loaded.hasCorruption()) {
-            logger.warning("[storage] Quarantined " + loaded.corruptRecords()
-                    + " unreadable record(s) for " + playerId
+            logger.warning("[storage] 已隔离玩家 " + playerId + " 的 " + loaded.corruptRecords()
+                    + " 条无法读取的记录"
                     + (loaded.quarantineTarget() == null
-                            ? "" : " into " + loaded.quarantineTarget().getFileName()));
+                            ? "" : "，已移入 " + loaded.quarantineTarget().getFileName()));
         }
         int merged = 0;
         for (StorageDataFile.Record record : loaded.records()) {
@@ -165,8 +165,8 @@ public final class PlayerStorageStore {
             storage.append(textIndexer.createEntry(key, record.amount(), record.stackLimit()));
         }
         if (merged > 0) {
-            logger.warning("[storage] Merged " + merged + " duplicate entr(ies) for " + playerId
-                    + "; two stored items now compare equal after a component format change.");
+            logger.warning("[storage] 已为玩家 " + playerId + " 合并 " + merged
+                    + " 条重复条目；组件格式变更后两个已存物品现在判定相等。");
         }
         restoreReservations(playerId, storage, loaded.reservations());
         storage.pruneEmpty();
@@ -195,15 +195,15 @@ public final class PlayerStorageStore {
                     record.expiresAtMillis(), ops));
         }
         if (expired > 0) {
-            logger.info("[storage] Released " + expired + " expired reservation(s) for " + playerId + ".");
+            logger.info("[storage] 已释放玩家 " + playerId + " 的 " + expired + " 条过期预留。");
         }
     }
 
     private void warnOnLargeStorage(UUID playerId, PlayerStorage storage) {
         int threshold = warnEntryCount;
         if (threshold > 0 && storage.entryCount() > threshold) {
-            logger.warning("[storage] Player " + playerId + " holds " + storage.entryCount()
-                    + " entries, above capacity.warn_entry_count=" + threshold + ".");
+            logger.warning("[storage] 玩家 " + playerId + " 持有 " + storage.entryCount()
+                    + " 个条目，超过 capacity.warn_entry_count=" + threshold + "。");
         }
     }
 
@@ -332,13 +332,13 @@ public final class PlayerStorageStore {
     }
 
     private void logFailure(String stage, UUID playerId, Throwable throwable) {
-        logger.log(Level.WARNING, "[storage] Failed to " + stage + " data for " + playerId
-                + ": " + describe(throwable));
+        logger.log(Level.WARNING, "[storage] 玩家 " + playerId + " 数据处理失败（" + stage + "）："
+                + describe(throwable));
     }
 
     private static String describe(Throwable throwable) {
         if (throwable == null) {
-            return "unknown error";
+            return "未知错误";
         }
         String message = throwable.getMessage();
         return throwable.getClass().getSimpleName() + (message == null || message.isBlank() ? "" : " " + message);

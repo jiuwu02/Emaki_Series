@@ -191,7 +191,7 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
 
     private void registerCommandHandler() {
         var commandRouter = new MobsCommandRouter(this);
-        registerCommand(ROOT_COMMAND, "EmakiMobs command",
+        registerCommand(ROOT_COMMAND, "EmakiMobs 命令",
                 List.of("emobs"),
                 new MobsCommandAdapter(commandRouter, "emakimobs.use"));
     }

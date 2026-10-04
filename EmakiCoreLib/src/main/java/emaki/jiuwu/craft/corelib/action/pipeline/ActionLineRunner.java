@@ -78,12 +78,12 @@ public final class ActionLineRunner {
             boolean stopOnFailure) {
         ActionEngine engine = engineSupplier.get();
         if (engine == null) {
-            logger().warning("Pipeline lines skipped: the action engine is not available yet.");
+            logger().warning("管道行已跳过：动作引擎尚不可用。");
             return CompletableFuture.completedFuture(false);
         }
         PhaseContract resolved = phase == null ? phaseContract(context) : phase;
         return batchRunner.compileAndRun(owner, engine, lines, context, resolved, stopOnFailure,
-                diagnostic -> logger().warning("Pipeline line rejected: "
+                diagnostic -> logger().warning("管道行被拒绝: "
                         + diagnosticFormatter.apply(diagnostic)));
     }
 

@@ -414,8 +414,11 @@ public final class CastAttemptService {
         FailureReason reason = failureReasonFor(kind, outcome.reasonKey());
         String messageKey = messageKeyFor(kind, outcome.reasonKey());
         if (isConfigurationError(kind)) {
-            plugin.getLogger().warning("Skill '" + skillId + "' failed to cast via trigger '"
-                    + Texts.toStringSafe(triggerId) + "': " + kind.name() + " - " + detail);
+            plugin.messageService().warning("console.skill_cast_failed", Map.of(
+                    "skill", skillId,
+                    "trigger", Texts.toStringSafe(triggerId),
+                    "kind", kind.name(),
+                    "detail", Texts.toStringSafe(detail)));
         }
         return CastAttemptResult.fail(
                 reason,
@@ -559,7 +562,7 @@ public final class CastAttemptService {
                 CompletionStage<T> stage = task.get();
                 if (stage == null) {
                     future.completeExceptionally(new IllegalStateException(
-                            "Cast entity-domain task returned no completion stage."));
+                            "施法实体域任务未返回完成阶段。"));
                     return;
                 }
                 stage.whenComplete((result, throwable) -> {
@@ -580,7 +583,7 @@ public final class CastAttemptService {
             }
             plugin.scheduling().runForEntity(plugin, player, operation,
                     () -> future.completeExceptionally(new RejectedExecutionException(
-                            "Cast entity-domain task retired before execution.")));
+                            "施法实体域任务在执行前已退役。")));
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);
         }
@@ -674,13 +677,13 @@ public final class CastAttemptService {
                 Throwable cause = AsyncFailures.unwrap(throwable);
                 String message = cause == null ? null : cause.getMessage();
                 return Texts.isBlank(message)
-                        ? cause == null ? "unknown error" : cause.getClass().getSimpleName()
+                        ? cause == null ? "未知错误" : cause.getClass().getSimpleName()
                         : message;
             }
             if (result == null) {
-                return "no result";
+                return "无结果";
             }
-            return Texts.isBlank(result.reasonKey()) ? "no detail" : result.reasonKey();
+            return Texts.isBlank(result.reasonKey()) ? "无详情" : result.reasonKey();
         }
     }
 }

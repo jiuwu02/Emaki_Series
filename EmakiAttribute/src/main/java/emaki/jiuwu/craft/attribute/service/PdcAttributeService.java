@@ -120,7 +120,7 @@ public final class PdcAttributeService implements PdcAttributeAccess {
             return EmakiResult.invalidInput("attribute.pdc.write_input_invalid");
         }
         if (!isRegisteredSource(payload.sourceId())) {
-            plugin.getLogger().warning("Ignoring PDC attribute write for unregistered source: " + payload.sourceId());
+            plugin.getLogger().warning("忽略未注册来源的 PDC 属性写入: " + payload.sourceId());
             return EmakiResult.rejected("attribute.pdc.source_not_registered");
         }
         try {

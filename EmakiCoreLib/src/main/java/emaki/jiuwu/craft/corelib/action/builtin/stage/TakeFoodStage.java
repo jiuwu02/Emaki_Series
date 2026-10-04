@@ -23,11 +23,11 @@ public final class TakeFoodStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public TakeFoodStage(ActionAuditLogger auditLogger) {
-        super("take_food", "entity", "Removes food and optional saturation from the target.",
+        super("take_food", "entity", "扣除目标的食物值，并可扣除饱和度。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("amount", CoreStageParameterType.INTEGER, "Food points to remove"),
+                CoreStageParameter.required("amount", CoreStageParameterType.INTEGER, "要扣除的食物点数"),
                 CoreStageParameter.optional("saturation", CoreStageParameterType.DOUBLE, "0",
-                        "Saturation to remove"));
+                        "要扣除的饱和度"));
         this.auditLogger = auditLogger;
     }
 

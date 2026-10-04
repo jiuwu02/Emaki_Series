@@ -100,7 +100,7 @@ public final class ItemContributionGateRegistry implements Listener, AutoCloseab
 
     private void warnGateFailure(String id, RuntimeException exception) {
         if (logger != null) {
-            logger.log(Level.WARNING, "Item contribution gate '" + id + "' failed; treating item as active.", exception);
+            logger.log(Level.WARNING, "物品属性贡献门控 '" + id + "' 执行失败；按物品有效处理。", exception);
         }
     }
 

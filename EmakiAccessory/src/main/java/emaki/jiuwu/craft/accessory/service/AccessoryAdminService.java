@@ -43,15 +43,15 @@ public final class AccessoryAdminService {
         if (logger == null) {
             return;
         }
-        String operatorName = operator == null ? "console" : operator.getName();
+        String operatorName = operator == null ? "控制台" : operator.getName();
         if (cleared.isEmpty()) {
-            logger.info("Accessory clear by " + operatorName + " on " + targetId
-                    + " (" + accessories.playerName() + "): no items to remove");
+            logger.info("饰品清空：操作者 " + operatorName + "，目标 " + targetId
+                    + "（" + accessories.playerName() + "）：没有可移除的物品");
             return;
         }
         cleared.forEach((pageId, items) -> items.forEach((slotInstanceId, item) ->
-                logger.info("Accessory clear by " + operatorName
-                        + " on " + targetId + " (" + accessories.playerName() + "): page=" + pageId
+                logger.info("饰品清空：操作者 " + operatorName
+                        + "，目标 " + targetId + "（" + accessories.playerName() + "）: page=" + pageId
                         + " slot=" + slotInstanceId
                         + " type=" + item.getType().name()
                         + " amount=" + item.getAmount()

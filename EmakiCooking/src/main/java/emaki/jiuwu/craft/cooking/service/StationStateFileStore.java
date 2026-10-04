@@ -112,7 +112,7 @@ final class StationStateFileStore {
             long version = Math.max(storedVersion == null ? 0L : storedVersion, stateVersion(section));
             return new StoredState(section, version, pdcTombstone || tombstone(section), StationStorageBackend.BLOCK_PDC);
         } catch (YamlLoadException exception) {
-            plugin.getLogger().warning("Failed to decode PDC station state " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("解析 PDC 工位状态失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return pdcTombstone
                     ? new StoredState(null, storedVersion == null ? 0L : storedVersion, true, StationStorageBackend.BLOCK_PDC)
                     : null;
@@ -173,7 +173,7 @@ final class StationStateFileStore {
             } catch (IOException ignored) {
                 fallbackVersion = System.currentTimeMillis();
             }
-            plugin.getLogger().warning("Failed to decode station tombstone " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("解析工位墓碑失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return new StoredState(null, fallbackVersion, true, null);
         }
     }
@@ -207,7 +207,7 @@ final class StationStateFileStore {
             }
             return arbiter.isCurrentSave(coordinates, mutationVersion);
         } catch (Exception exception) {
-            plugin.getLogger().warning("PDC station save failed for " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("PDC 工位保存失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
         }
     }
@@ -233,7 +233,7 @@ final class StationStateFileStore {
             }
             return arbiter.isCurrentDelete(coordinates, mutationVersion);
         } catch (Exception exception) {
-            plugin.getLogger().warning("PDC station delete failed for " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("PDC 工位删除失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
         }
     }
@@ -302,7 +302,7 @@ final class StationStateFileStore {
             recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, source, savedAt, true);
             return true;
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("YAML fallback save failed for station " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+            plugin.getLogger().warning("工位 YAML 回退保存失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
             return false;
         });
     }
@@ -321,7 +321,7 @@ final class StationStateFileStore {
             recordIndex(coordinates, stationType(section), StationStorageBackend.YAML_FALLBACK, stationSource(section), savedAt(section), true);
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to save YAML fallback state " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("保存 YAML 回退状态失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
         }
     }
@@ -360,7 +360,7 @@ final class StationStateFileStore {
             YamlFiles.save(path.toFile(), tombstone);
             return arbiter.isCurrentDelete(coordinates, mutationVersion);
         } catch (IOException exception) {
-            plugin.getLogger().warning("Failed to persist station tombstone " + coordinates.runtimeKey() + ": " + exception.getMessage());
+            plugin.getLogger().warning("持久化工位墓碑失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
             return false;
         }
     }
@@ -395,7 +395,7 @@ final class StationStateFileStore {
                 throw new CompletionException(exception);
             }
         }).thenApply(_ -> deleted.get() && arbiter.isCurrentDelete(coordinates, mutationVersion)).exceptionally(throwable -> {
-            plugin.getLogger().warning("YAML fallback delete failed for station " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+            plugin.getLogger().warning("工位 YAML 回退删除失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
             return false;
         });
     }
@@ -439,13 +439,13 @@ final class StationStateFileStore {
             try {
                 task.run();
             } catch (CompletionException exception) {
-                plugin.getLogger().warning("Failed to archive legacy station YAML " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(exception));
+                plugin.getLogger().warning("归档旧版工位 YAML 失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(exception));
             }
             return;
         }
         fileScope.write(source, "station-yaml-archive:" + coordinates.runtimeKey(), task)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("Failed to archive legacy station YAML " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
+                    plugin.getLogger().warning("归档旧版工位 YAML 失败 " + coordinates.runtimeKey() + ": " + StationStateStore.rootCauseMessage(throwable));
                     return null;
                 });
     }
@@ -687,7 +687,7 @@ final class StationStateFileStore {
         if (location == null || threadOwnership == null || threadOwnership.isLocationOwned(location)) {
             return;
         }
-        throw new IllegalStateException("StationStateStore Bukkit state access requires location ownership");
+        throw new IllegalStateException("StationStateStore 的 Bukkit 状态访问需要位置归属");
     }
 
     private boolean causedByMissingFile(Throwable throwable) {

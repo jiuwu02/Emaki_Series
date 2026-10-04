@@ -82,7 +82,7 @@ public final class ItemEditorGuiService {
             render(session, ItemEditorMenus.HOME);
             return session;
         } catch (IOException | RuntimeException failure) {
-            plugin.getLogger().warning("Could not open EmakiItem editor for " + itemId + ": " + failure);
+            plugin.messageService().warning("console.editor_open_failed", Map.of("item", itemId, "error", String.valueOf(failure)));
             return null;
         }
     }
@@ -157,7 +157,7 @@ public final class ItemEditorGuiService {
             plugin.messageService().send(player, "editor.create.success", Map.of("id", itemId));
             open(player, itemId, packId == null ? "" : packId, returnPage);
         } catch (java.io.IOException failure) {
-            plugin.getLogger().warning("Could not create EmakiItem definition " + file + ": " + failure);
+            plugin.messageService().warning("console.editor_create_failed", Map.of("path", String.valueOf(file), "error", String.valueOf(failure)));
             plugin.messageService().send(player, "editor.create.failed");
         }
     }
@@ -223,7 +223,7 @@ public final class ItemEditorGuiService {
     private void render(ItemEditorSession session, String menuId) {
         GuiTemplate template = plugin.guiTemplateLoader().get(ItemEditorMenus.template(menuId));
         if (template == null) {
-            plugin.getLogger().warning("Missing EmakiItem editor GUI template: " + ItemEditorMenus.template(menuId));
+            plugin.messageService().warning("console.editor_template_missing", Map.of("template", ItemEditorMenus.template(menuId)));
             return;
         }
         String menuTitle = plugin.messageService().message(ItemEditorMenus.titleKey(menuId));

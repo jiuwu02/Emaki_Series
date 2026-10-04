@@ -15,7 +15,7 @@ public final class TargetSource extends BaseSource {
 
     public TargetSource() {
         super("target", 
-              "The target entity (from on_target or on_damage_give trigger).",
+              "目标实体（来自 on_target 或 on_damage_give 触发器）。",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

@@ -27,13 +27,13 @@ public final class GemHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        OPEN_SOCKET("gem_open_socket", "Opens a socket on the target's held gear."),
+        OPEN_SOCKET("gem_open_socket", "在目标手持装备上开启一个插槽。"),
 
-        INLAY("gem_inlay", "Inlays the off-hand gem into a socket on the target's held gear."),
+        INLAY("gem_inlay", "将副手宝石镶嵌到目标手持装备的插槽中。"),
 
-        EXTRACT("gem_extract", "Extracts a gem from a socket on the target's held gear."),
+        EXTRACT("gem_extract", "从目标手持装备的插槽中取出宝石。"),
 
-        CLEAR_LAYER("gem_clear_layer", "Removes the gem layer from the target's held gear.");
+        CLEAR_LAYER("gem_clear_layer", "移除目标手持装备上的宝石层。");
 
         private final String id;
         private final String description;
@@ -75,15 +75,15 @@ public final class GemHeldItemStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return switch (operation) {
             case OPEN_SOCKET -> List.of(
-                    CoreStageParameter.required("opener", CoreStageParameterType.STRING, "Socket opener id"),
+                    CoreStageParameter.required("opener", CoreStageParameterType.STRING, "开孔器 ID"),
                     CoreStageParameter.optional("slot", CoreStageParameterType.INTEGER, "-1",
-                            "Target socket slot"),
+                            "目标插槽"),
                     CoreStageParameter.optional("bypass", CoreStageParameterType.BOOLEAN, "false",
-                            "Bypass the opener item requirement"));
+                            "跳过开孔器物品要求"));
             case INLAY, EXTRACT -> List.of(
-                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "Target socket slot"),
+                    CoreStageParameter.required("slot", CoreStageParameterType.INTEGER, "目标插槽"),
                     CoreStageParameter.optional("bypass_cost", CoreStageParameterType.BOOLEAN, "false",
-                            "Bypass the configured cost"));
+                            "跳过配置的花费"));
             case CLEAR_LAYER -> List.of();
         };
     }

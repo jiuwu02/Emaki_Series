@@ -234,7 +234,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             boolean dryRun) {
         if (throwable != null || reports == null) {
             sendLang(sender, "command.pdc_convert_failed", Map.of(
-                    "error", throwable == null ? "No result returned." : Texts.toStringSafe(throwable.getMessage())
+                    "error", throwable == null ? "没有返回结果。" : Texts.toStringSafe(throwable.getMessage())
             ));
             return;
         }
@@ -302,7 +302,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             return;
         }
         if (outcome == null) {
-            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "No result returned."));
+            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "没有返回结果。"));
             return;
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {
@@ -451,11 +451,13 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.loop_header", Map.of("count", String.valueOf(snapshots.size())));
         for (PipelineTaskService.TaskSnapshot snapshot : snapshots) {
             String player = snapshot.playerUuid() == null ? "-" : snapshot.playerUuid().toString();
-            plugin.messageService().sendRaw(sender, "<gray>- key=<aqua>" + snapshot.key()
-                    + "</aqua> plugin=<yellow>" + snapshot.pluginName()
-                    + "</yellow> index=<white>" + snapshot.index() + "/" + snapshot.times()
-                    + "</white> interval=<white>" + snapshot.intervalTicks() + "t"
-                    + "</white> player=<gray>" + player + "</gray></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.loop_task_entry", Map.of(
+                    "key", snapshot.key(),
+                    "plugin", snapshot.pluginName(),
+                    "index", String.valueOf(snapshot.index()),
+                    "times", String.valueOf(snapshot.times()),
+                    "interval_ticks", String.valueOf(snapshot.intervalTicks()),
+                    "player", player)));
         }
     }
 

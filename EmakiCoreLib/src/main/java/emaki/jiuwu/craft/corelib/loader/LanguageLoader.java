@@ -138,7 +138,7 @@ public final class LanguageLoader {
         if (messages != null) {
             messages.info("console.versioned_file_updated", Map.of(
                     "path", languageDirectory + "/" + target.getName(),
-                    "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                    "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
                     "new_version", versionedFile.updatedVersion()
             ));
         }

@@ -57,7 +57,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Shows a client-side advancement toast to the target.";
+        return "向目标显示一个客户端成就弹窗。";
     }
 
     @Override
@@ -68,17 +68,17 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("title", CoreStageParameterType.STRING, "Toast title"),
+                CoreStageParameter.required("title", CoreStageParameterType.STRING, "弹窗标题"),
                 CoreStageParameter.optional("description", CoreStageParameterType.STRING, "",
-                        "Toast description"),
+                        "弹窗描述"),
                 CoreStageParameter.optional("icon", CoreStageParameterType.STRING, DEFAULT_ICON,
-                        "Toast icon item source"),
+                        "弹窗图标物品来源"),
                 CoreStageParameter.optional("frame", CoreStageParameterType.STRING, DEFAULT_FRAME,
-                        "Toast frame: task, goal, or challenge"),
+                        "弹窗边框：task、goal 或 challenge"),
                 CoreStageParameter.optional("id", CoreStageParameterType.STRING, "",
-                        "Client-side toast id"),
+                        "客户端弹窗 id"),
                 CoreStageParameter.optional("remove_delay", CoreStageParameterType.DURATION,
-                        DEFAULT_REMOVE_DELAY, "Delay before withdrawing the toast"));
+                        DEFAULT_REMOVE_DELAY, "撤回弹窗前的延迟"));
     }
 
     @Override

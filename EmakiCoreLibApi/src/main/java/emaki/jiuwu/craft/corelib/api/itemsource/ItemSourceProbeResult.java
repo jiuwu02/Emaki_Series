@@ -63,6 +63,6 @@ public record ItemSourceProbeResult(@NotNull ItemSourceProbeState state,
      */
     public static @NotNull ItemSourceProbeResult providerMissing(@Nullable ItemSourceRef ref) {
         return of(ItemSourceProbeState.PROVIDER_MISSING, ref, "",
-                "No registered provider supplies this item source.");
+                "没有已注册的提供者支持该物品来源。");
     }
 }

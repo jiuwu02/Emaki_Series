@@ -40,7 +40,7 @@ public final class RunRecipeRewardStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Delivers a configured recipe outcome to the target.";
+        return "向目标发放已配置的配方结果。";
     }
 
     @Override
@@ -51,19 +51,19 @@ public final class RunRecipeRewardStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("recipe", CoreStageParameterType.STRING, "Recipe id"),
+                CoreStageParameter.required("recipe", CoreStageParameterType.STRING, "配方 ID"),
                 CoreStageParameter.optional("station", CoreStageParameterType.STRING, "",
-                        "Station folder name; empty searches every station"),
+                        "工位目录名；留空则搜索所有工位"),
                 CoreStageParameter.optional("outcome", CoreStageParameterType.STRING, "success",
-                        "Outcome name or path, for example success or result.perfect"),
+                        "结果名称或路径，例如 success 或 result.perfect"),
                 CoreStageParameter.optional("drop_result", CoreStageParameterType.BOOLEAN, "false",
-                        "Drop outputs at the target instead of giving them"),
+                        "在目标处掉落输出而非直接给予"),
                 CoreStageParameter.optional("include_outputs", CoreStageParameterType.BOOLEAN, "true",
-                        "Deliver the configured outputs"),
+                        "发放已配置的输出"),
                 CoreStageParameter.optional("include_actions", CoreStageParameterType.BOOLEAN, "true",
-                        "Execute the configured recipe actions"),
+                        "执行已配置的配方动作"),
                 CoreStageParameter.optional("phase", CoreStageParameterType.STRING, "",
-                        "Phase name recorded for the nested actions"));
+                        "为嵌套动作记录的执行阶段名"));
     }
 
     @Override

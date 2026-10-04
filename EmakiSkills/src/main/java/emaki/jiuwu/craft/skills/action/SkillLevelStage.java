@@ -25,9 +25,9 @@ public final class SkillLevelStage implements CoreActionStage {
 
     public enum Operation {
 
-        SET_LEVEL("skill_set_level", "Sets one of the target's skill levels directly."),
+        SET_LEVEL("skill_set_level", "直接设置目标的某个技能等级。"),
 
-        UPGRADE("skill_upgrade", "Upgrades one of the target's skills through the upgrade service.");
+        UPGRADE("skill_upgrade", "通过升级服务升级目标的某个技能。");
 
         private final String id;
         private final String description;
@@ -69,10 +69,10 @@ public final class SkillLevelStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return switch (operation) {
             case SET_LEVEL -> List.of(
-                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "Skill id"),
-                    CoreStageParameter.required("level", CoreStageParameterType.INTEGER, "Target level"));
+                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "技能 ID"),
+                    CoreStageParameter.required("level", CoreStageParameterType.INTEGER, "目标等级"));
             case UPGRADE -> List.of(
-                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "Skill id"));
+                    CoreStageParameter.required("skill", CoreStageParameterType.STRING, "技能 ID"));
         };
     }
 

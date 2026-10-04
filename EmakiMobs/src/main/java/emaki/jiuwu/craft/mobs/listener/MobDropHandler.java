@@ -128,7 +128,7 @@ public final class MobDropHandler implements Listener {
             return EmakiItemApi.operations().create(itemId, 1).orElse(null);
         } catch (NoClassDefFoundError e) {
             emakiItemAbsent = true;
-            logger.fine("EmakiItem API not available, emaki_item drops disabled");
+            logger.fine("EmakiItem API 不可用，emaki_item 掉落已禁用");
             return null;
         }
     }
@@ -157,7 +157,7 @@ public final class MobDropHandler implements Listener {
             try {
                 return Math.max(1, Integer.parseInt(s));
             } catch (NumberFormatException e) {
-                logger.finest("Invalid rolls value: " + s);
+                logger.finest("无效的 rolls 值: " + s);
             }
         }
         return 1;

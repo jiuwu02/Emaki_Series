@@ -114,7 +114,7 @@ public final class WokRuntimeService {
                 WokState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed wok state"));
+                            new IllegalArgumentException("已提交的炒锅状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -150,7 +150,9 @@ public final class WokRuntimeService {
         if (!blockMatcher.matches(block, StationType.WOK, stationSource)) {
             displayService.removeStation(StationType.WOK, coordinates);
             textDisplayService.removeStation(StationType.WOK, coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=wok coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "wok",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         refreshDisplays(coordinates, state);

@@ -75,7 +75,7 @@ public final class PlayerLevelDataStore {
                         && plugin.debugLogger().shouldLog(DEBUG_SESSION_MODULE, (UUID) null),
                 fields -> {
                     if (plugin.debugLogger() != null) {
-                        plugin.debugLogger().logRaw(DEBUG_SESSION_MODULE, (UUID) null, "session " + fields);
+                        plugin.debugLogger().logRaw(DEBUG_SESSION_MODULE, (UUID) null, "会话 " + fields);
                     }
                 }
         );
@@ -388,7 +388,7 @@ public final class PlayerLevelDataStore {
         CompletableFuture<PlayerLevelData> physicalLoad;
         if (asyncYamlFiles == null) {
             physicalLoad = CompletableFuture.failedFuture(
-                    new IllegalStateException("AsyncYamlFiles is unavailable"));
+                    new IllegalStateException("AsyncYamlFiles 不可用"));
         } else {
             physicalLoad = cache.waitForIdle(playerId)
                     .thenCompose(ignored -> asyncYamlFiles.load(file))
@@ -594,14 +594,14 @@ public final class PlayerLevelDataStore {
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         logger.log(Level.WARNING,
-                "[LevelDataStore] Failed to load " + playerId
-                        + "; this session remains read-only to protect the existing file",
+                "[LevelDataStore] 加载失败 " + playerId
+                        + "；该会话保持只读以保护现有文件",
                 throwable);
     }
 
     private void logSaveFailure(UUID playerId, Throwable throwable) {
         logger.log(Level.WARNING,
-                "[LevelDataStore] Failed to save " + playerId,
+                "[LevelDataStore] 保存失败 " + playerId,
                 throwable);
     }
 

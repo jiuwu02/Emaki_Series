@@ -384,7 +384,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
         try {
             session.setSetDocument(editService.openSet(file.toPath()));
         } catch (java.io.IOException failure) {
-            plugin.getLogger().warning("Could not open EmakiItem set definition " + file + ": " + failure);
+            plugin.messageService().warning("console.editor_set_open_failed", Map.of("file", String.valueOf(file), "error", String.valueOf(failure)));
             plugin.messageService().send(session.player(), "editor.set.missing", Map.of("id", setId));
             return;
         }
@@ -747,7 +747,7 @@ public final class ItemEditorInteractionController implements GuiSessionHandler 
                         Map.of("id", session.itemId()));
                 feedback(session.player(), true);
             } catch (java.io.IOException failure) {
-                plugin.getLogger().warning("Could not delete EmakiItem definition: " + failure);
+                plugin.messageService().warning("console.editor_delete_failed", Map.of("error", String.valueOf(failure)));
                 plugin.messageService().send(session.player(), "editor.delete.failed");
                 feedback(session.player(), false);
             }

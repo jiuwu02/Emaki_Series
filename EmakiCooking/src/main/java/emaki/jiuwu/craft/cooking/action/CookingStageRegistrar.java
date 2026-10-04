@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.cooking.action;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -24,8 +25,9 @@ public final class CookingStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("Failed to register pipeline stage '" + stage.id()
-                        + "': " + registration.reasonKey());
+                plugin.messageService().warning("console.stage_register_failed", Map.of(
+                        "stage", stage.id(),
+                        "reason", String.valueOf(registration.reasonKey())));
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);

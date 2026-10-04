@@ -319,7 +319,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (plugin.messageService() != null && reloadAllowed(allowed)) {
             plugin.messageService().info("console.items_loaded", Map.of("count", loadedItems));
             plugin.messageService().info("console.sets_loaded", Map.of("count", loadedSets));
-            plugin.getLogger().info("Loaded " + loadedAliases + " EmakiItem ID aliases.");
+            plugin.messageService().info("console.aliases_loaded", Map.of("count", loadedAliases));
         }
     }
 
@@ -343,10 +343,10 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             return CompletableFuture.completedFuture(null);
         }
 
-        notifyProgress(progressListener, "Loading configuration files...");
+        notifyProgress(progressListener, "正在加载配置文件...");
 
         return runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "item", "config-load", "Loading configs...", progressListener,
+                "item", "config-load", "正在加载配置...", progressListener,
                 () -> {
                     if (!reloadAllowed(allowed)) {
                         return;
@@ -363,7 +363,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                             plugin.appConfigLoader()::overrideCurrent);
                     if (gate.rejected()) {
 
-                        throw new IllegalStateException("Item config precheck failed: "
+                        throw new IllegalStateException("物品配置预检失败: "
                                 + String.join("; ", gate.failures()));
                     }
                     if (!reloadAllowed(allowed)) {
@@ -387,12 +387,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     }
                     plugin.guiTemplateLoader().load();
                 },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                null, (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed",
+                        Map.of("stage", stage, "error", String.valueOf(ex.getMessage())))
         )).thenCompose(ignored -> {
             if (!reloadAllowed(allowed)) {
                 return CompletableFuture.completedFuture(null);
             }
-            notifyProgress(progressListener, "Applying configuration...");
+            notifyProgress(progressListener, "正在应用配置...");
             return EmakiCoreLibApi.scheduling().submitGlobal(plugin, () -> {
                 if (!reloadAllowed(allowed)) {
                     return null;
@@ -413,7 +414,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                     plugin.messageService().info("console.sets_loaded", Map.of("count", plugin.setLoader().all().size()));
                 }
                 if (reloadAllowed(allowed)) {
-                    notifyProgress(progressListener, "Reload complete.");
+                    notifyProgress(progressListener, "重载完成。");
                 }
                 return null;
             });
@@ -444,13 +445,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("EmakiItem skipped repair GUI closure for " + player.getName()
-                        + ": caller thread does not own the player and no scheduling is available.");
+                plugin.getLogger().warning("EmakiItem 跳过修复界面关闭（玩家 " + player.getName()
+                        + "）：调用线程不拥有该玩家且没有可用的调度。");
                 continue;
             }
             if (plugin.scheduling().runForEntity(plugin, player, player::closeInventory, null) == TaskToken.UNAVAILABLE) {
-                plugin.getLogger().warning("EmakiItem failed to reroute repair GUI closure for " + player.getName()
-                        + ": entity task scheduling was rejected.");
+                plugin.getLogger().warning("EmakiItem 无法重新调度修复界面关闭（玩家 " + player.getName()
+                        + "）：实体任务调度被拒绝。");
             }
         }
         plugin.repairGuiService().clearAllSessions();

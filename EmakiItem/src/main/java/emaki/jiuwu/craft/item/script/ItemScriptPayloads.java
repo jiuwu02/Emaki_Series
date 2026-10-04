@@ -12,35 +12,35 @@ final class ItemScriptPayloads {
 
     static ItemScriptPayload from(Value payload) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            throw new IllegalArgumentException("payload must be an effect type object");
+            throw new IllegalArgumentException("payload 必须是效果类型对象");
         }
         Value idValue = payload.getMember("id");
         if (isAbsent(idValue)) {
-            throw new IllegalArgumentException("id is required");
+            throw new IllegalArgumentException("id 为必填项");
         }
         if (!idValue.isString()) {
-            throw new IllegalArgumentException("id must be a string");
+            throw new IllegalArgumentException("id 必须是字符串");
         }
         String id = normalizeId(idValue.asString());
         if (id.isBlank()) {
-            throw new IllegalArgumentException("id is blank");
+            throw new IllegalArgumentException("id 为空");
         }
         if (isReservedId(id)) {
-            throw new IllegalArgumentException("id '" + id + "' is a reserved built-in effect type");
+            throw new IllegalArgumentException("id '" + id + "' 是保留的内置效果类型");
         }
         Value parseFn = payload.getMember("parse");
         if (isAbsent(parseFn) || !parseFn.canExecute()) {
-            throw new IllegalArgumentException("parse must be a function");
+            throw new IllegalArgumentException("parse 必须是函数");
         }
         Value applyFn = payload.getMember("apply");
         if (isAbsent(applyFn) || !applyFn.canExecute()) {
-            throw new IllegalArgumentException("apply must be a function");
+            throw new IllegalArgumentException("apply 必须是函数");
         }
         Value clearFn = payload.getMember("clear");
         if (isAbsent(clearFn)) {
             clearFn = null;
         } else if (!clearFn.canExecute()) {
-            throw new IllegalArgumentException("clear must be a function when provided");
+            throw new IllegalArgumentException("提供 clear 时必须是函数");
         }
         return new ItemScriptPayload(id, parseFn, clearFn, applyFn);
     }

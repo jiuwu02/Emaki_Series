@@ -245,11 +245,11 @@ public final class FoliaExecutionBackend implements ExecutionBackend {
 
     private static RejectedExecutionException rejected(Plugin owner) {
         String name = owner == null ? "<unknown>" : owner.getName();
-        return new RejectedExecutionException("Plugin is disabled or unavailable; global execution rejected: " + name);
+        return new RejectedExecutionException("插件已停用或不可用；全局执行被拒绝: " + name);
     }
 
     private static IllegalStateException scheduleFailure(String operation, Throwable throwable) {
-        return new IllegalStateException("Failed to invoke Folia scheduler operation: " + operation, throwable);
+        return new IllegalStateException("调用 Folia 调度器操作失败: " + operation, throwable);
     }
 
     private record FoliaTaskHandle(ScheduledTask task) implements TaskToken {

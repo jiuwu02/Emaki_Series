@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.1"
+version: "1.1.2"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -14,6 +14,8 @@ general:
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载。</green>"
   reload_summary: "<gray>已注册成就 %advancements% 个。</gray>"
+  # 玩家：重载耗时反馈；占位符：%millis%
+  reload_duration: "<gray>重载耗时: <white>%millis%ms</white></gray>"
 
 command:
   help:
@@ -116,6 +118,10 @@ console:
   directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
   advancements_registered: "已注册成就 %count% 个。"
   codex_categories_loaded: "已加载图鉴分类 %count% 个。"
+  # 控制台：GUI 模板未加载；占位符：%template%
+  gui_template_missing: "图鉴 GUI 模板 '%template%' 未加载。"
+  # 控制台：命令响应发送失败；占位符：%sender%、%cause%
+  command_dispatch_failed: "EmakiCodex 命令响应发送失败：sender=%sender%, operation=send_to_sender, cause=%cause%"
   advancements_resynced: "已向 %count% 名在线玩家重新推送成就（PacketEvents），无需重连。"
   advancements_need_relog: "成就已注册，但未检测到 PacketEvents，无法向在线玩家实时推送；在线玩家需重新登录后才能在成就界面看到更新。"
   advancement_packet_enabled: "成就发包坐标注入已启用（PacketEvents）。"

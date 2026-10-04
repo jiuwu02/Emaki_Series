@@ -22,7 +22,7 @@ public record MaterialRequirementView(@NotNull String materialId,
         }
         sources = List.copyOf(sources);
         if (amount <= 0L) {
-            throw new IllegalArgumentException("amount must be positive: " + amount);
+            throw new IllegalArgumentException("amount 必须为正数: " + amount);
         }
     }
 

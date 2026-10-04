@@ -62,9 +62,9 @@ final class PaperItemComponentBridge {
             }
             return true;
         } catch (IllegalArgumentException exception) {
-            issues.add(ItemBuildIssue.error(componentId, "Invalid component value: " + message(exception)));
+            issues.add(ItemBuildIssue.error(componentId, "组件值无效: " + message(exception)));
         } catch (RuntimeException | LinkageError exception) {
-            issues.add(ItemBuildIssue.error(componentId, "Paper component bridge failed: " + message(exception)));
+            issues.add(ItemBuildIssue.error(componentId, "Paper 组件桥接失败: " + message(exception)));
         }
         return false;
     }
@@ -80,7 +80,7 @@ final class PaperItemComponentBridge {
                     id,
                     runtimeSupported,
                     runtimeSupported,
-                    entry == null ? "Vanilla component syntax" : entry.valueFormat()
+                    entry == null ? "原版组件语法" : entry.valueFormat()
             ));
         }
         result.sort(Comparator.comparing(ItemComponentCapability::componentId));
@@ -96,7 +96,7 @@ final class PaperItemComponentBridge {
         String encoded = codec.encode(componentId, value, type instanceof DataComponentType.NonValued);
         ItemStack decoded = parseItemStack(materialId + "[" + componentId + "=" + encoded + "]");
         if (decoded == null || !decoded.isDataOverridden(type)) {
-            throw new IllegalArgumentException("Vanilla parser did not produce an overridden value.");
+            throw new IllegalArgumentException("原版解析器未产生被覆盖的值。");
         }
         target.copyDataFrom(decoded, candidate -> candidate.equals(type));
     }
@@ -119,7 +119,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("Static Paper data component discovery failed, falling back to registry discovery only: "
+            LOGGER.warning("静态 Paper 数据组件发现失败，回退为仅使用注册表发现: "
                     + message(exception));
         }
     }
@@ -134,7 +134,7 @@ final class PaperItemComponentBridge {
                 }
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("Registry-based Paper data component discovery failed, component support may be incomplete: "
+            LOGGER.warning("基于注册表的 Paper 数据组件发现失败，组件支持可能不完整: "
                     + message(exception));
         }
     }

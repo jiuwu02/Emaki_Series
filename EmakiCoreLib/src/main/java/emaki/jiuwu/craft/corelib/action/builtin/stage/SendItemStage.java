@@ -22,7 +22,7 @@ import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
 public final class SendItemStage extends BaseStage {
 
     public SendItemStage() {
-        super("send_item", "item", "Gives the pipeline item to the target.",
+        super("send_item", "item", "把管道物品给予目标。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

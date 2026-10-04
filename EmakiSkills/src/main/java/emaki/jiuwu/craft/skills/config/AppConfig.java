@@ -168,22 +168,22 @@ public final class AppConfig extends BaseAppConfig {
         public ActionBarSettings {
             refreshIntervalTicks = Math.max(1, refreshIntervalTicks);
             templateCastMode = templateCastMode == null || templateCastMode.isBlank()
-                    ? "&aCast Mode &7| %slot_display%" : templateCastMode;
+                    ? "&a施法模式 &7| %slot_display%" : templateCastMode;
             templateIdle = templateIdle == null || templateIdle.isBlank()
-                    ? "&7Idle" : templateIdle;
+                    ? "&7空闲" : templateIdle;
         }
 
         public static ActionBarSettings defaults() {
             return new ActionBarSettings(true, 10,
-                    "&aCast Mode &7| %slot_display%",
-                    "&7Idle");
+                    "&a施法模式 &7| %slot_display%",
+                    "&7空闲");
         }
     }
 
     public record TriggerConfig(String displayName, boolean enabled, List<String> incompatibleWith) {
 
         public TriggerConfig {
-            displayName = displayName == null || displayName.isBlank() ? "Unknown" : displayName;
+            displayName = displayName == null || displayName.isBlank() ? "未知" : displayName;
             incompatibleWith = incompatibleWith == null ? List.of() : List.copyOf(incompatibleWith);
         }
     }

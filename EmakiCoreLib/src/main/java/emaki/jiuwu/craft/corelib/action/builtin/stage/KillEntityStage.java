@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class KillEntityStage extends BaseStage {
 
     public KillEntityStage() {
-        super("kill_entity", "entity", "Removes the target entity.",
+        super("kill_entity", "entity", "移除目标实体。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

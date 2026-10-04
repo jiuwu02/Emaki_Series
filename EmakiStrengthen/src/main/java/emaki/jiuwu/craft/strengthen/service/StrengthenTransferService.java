@@ -100,7 +100,7 @@ public final class StrengthenTransferService {
                     request.decayRate(),
                     outcome));
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Strengthen transfer result event dispatch failed: " + exception.getMessage());
+            plugin.getLogger().warning("强化转移结果事件分发失败: " + exception.getMessage());
         }
         return new TransferResult(true, "", outcome.resultItem(), outcome.transferredStar());
     }

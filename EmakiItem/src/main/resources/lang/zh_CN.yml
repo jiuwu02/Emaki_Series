@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.11"
+version: "2.8.12"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -14,6 +14,8 @@ general:
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>EmakiItem 已重载。</green>"
   reload_summary: "<gray>已加载 <white>%items%</white> 个物品定义。</gray>"
+  # 命令：重载耗时提示；占位符：%elapsed_ms%
+  reload_elapsed: "<gray>重载耗时: <white>%elapsed_ms%</white>ms</gray>"
   item_not_found: "<red>找不到物品定义: <white>%id%</white></red>"
   give_success: "<green>已给予 <aqua>%player%</aqua> <gold>%id%</gold> x%amount%。</green>"
   update_success:
@@ -57,6 +59,20 @@ console:
   papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
   item_state_unknown_sound: "<yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
+  # 控制台：物品 ID alias 加载数量；占位符：%count%
+  aliases_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
+  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  reload_stage_failed: "<red>重载阶段 %stage% 失败: %error%</red>"
+  # 控制台：打开编辑界面失败；占位符：%item%、%error%
+  editor_open_failed: "<red>无法打开 EmakiItem 编辑界面: %item% (%error%)</red>"
+  # 控制台：创建物品定义失败；占位符：%path%、%error%
+  editor_create_failed: "<red>无法创建 EmakiItem 定义: %path% (%error%)</red>"
+  # 控制台：编辑界面模板缺失；占位符：%template%
+  editor_template_missing: "<red>缺少 EmakiItem 编辑界面模板: %template%</red>"
+  # 控制台：打开套装定义失败；占位符：%file%、%error%
+  editor_set_open_failed: "<red>无法打开 EmakiItem 套装定义: %file% (%error%)</red>"
+  # 控制台：删除物品定义失败；占位符：%error%
+  editor_delete_failed: "<red>无法删除 EmakiItem 定义: %error%</red>"
   scripts:
     engine_unavailable: "<yellow>GraalJS 运行库不可用，脚本扩展已禁用，其余功能不受影响。</yellow>"
     disabled: "<gray>脚本扩展已在配置中关闭，本次不加载脚本。</gray>"
@@ -79,6 +95,8 @@ command:
       repair: "打开物品修复界面"
       state: "查询、修复或重算主手物品自定义状态"
       update: "刷新玩家物品更新和套装 Lore"
+      alias: "管理物品 ID alias"
+      migrate: "预览或执行物品 ID 迁移"
       reload: "重载配置和物品定义"
       debug: "管理 Debug 模式"
   list:
@@ -100,6 +118,40 @@ command:
     line: "<gray>- <white>%key%</white> <dark_gray>(%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
     repaired: "<green>已修复 <aqua>%player%</aqua> 主手物品状态元数据（schema=<white>%schema%</white>, valid=<white>%valid%</white>）。</green>"
     recomputed: "<green>已重算 <aqua>%player%</aqua> 的状态派生，共处理 <white>%count%</white> 件。</green>"
+  alias:
+    # 命令：alias 列表标题；占位符：%count%
+    header: "<gray>EmakiItem alias 列表: <white>%count%</white></gray>"
+    # 命令：alias 列表行；占位符：%old_id%、%target_id%
+    line: "<gray>- <aqua>%old_id%</aqua> -> <green>%target_id%</green></gray>"
+    # 命令：添加 alias 成功；占位符：%old_id%、%new_id%
+    added: "<green>Alias 已添加：</green> <aqua>%old_id%</aqua> -> <green>%new_id%</green>"
+    # 命令：删除 alias 成功；占位符：%old_id%
+    removed: "<green>Alias 已删除：</green> <aqua>%old_id%</aqua>"
+    # 命令：alias 不存在；占位符：%old_id%
+    missing: "<yellow>Alias 不存在：</yellow> <aqua>%old_id%</aqua>"
+    # 命令：alias 用法
+    usage: "<red>用法：</red> <yellow>/ei alias list | add <old> <new> | remove <old></yellow>"
+  migrate:
+    # 命令：迁移预览；占位符：%old_id%、%new_id%、%count%
+    preview: "<gray>迁移预览：<aqua>%old_id%</aqua> -> <green>%new_id%</green>，替换数 <white>%count%</white></gray>"
+    # 命令：迁移预览文件行；占位符：%file%
+    preview_file: "<gray>- %file%</gray>"
+    # 命令：迁移完成；占位符：%count%
+    applied: "<green>迁移完成：</green> 替换数 <white>%count%</white>，并保留 alias。"
+    # 命令：迁移失败；占位符：%error%
+    failed: "<red>迁移失败：</red> %error%"
+    # 命令：在线玩家背包迁移完成；占位符：%count%
+    inventory_all_done: "<green>在线玩家背包迁移完成：</green> %count% 件物品。"
+    # 命令：背包迁移完成；占位符：%player%、%count%
+    inventory_done: "<green>背包迁移完成：</green> %player% / %count% 件物品。"
+    # 命令：迁移用法
+    usage: "<red>用法：</red> <yellow>/ei migrate id <old> <new> --dry-run|--apply</yellow> 或 <yellow>/ei migrate inventory <player|all></yellow>"
+  debug:
+    stats:
+      # 命令：刷新统计输出；占位符：%events%、%skipped%、%batches%、%rejected%、%coalesced%、%requested_local%、%requested_full%、%update_local%、%update_full%、%set_local%、%set_full%
+      refresh: "<gray>EmakiItem 刷新统计:</gray> <white>events=%events% skipped=%skipped% batches=%batches% rejected=%rejected% coalesced=%coalesced% requested_local=%requested_local% requested_full=%requested_full% update_local=%update_local% update_full=%update_full% set_local=%set_local% set_full=%set_full%</white>"
+      # 命令：刷新工作统计输出；占位符：%cache_hits%、%cache_invalid%、%update_scanned%、%set_scanned%、%scanned%、%changed%、%conflicts%、%ledger_decodes%、%set_compiles%、%elapsed_ms%、%full_reasons%
+      work: "<gray>刷新工作:</gray> <white>cache_hits=%cache_hits% cache_invalid=%cache_invalid% update_scanned=%update_scanned% set_scanned=%set_scanned% scanned=%scanned% changed=%changed% conflicts=%conflicts% ledger_decodes=%ledger_decodes% set_compiles=%set_compiles% elapsed_ms=%elapsed_ms% full_reasons=%full_reasons%</white>"
 repair:
   gui_open_failed: "<red>修复界面不可用，请检查 gui/repair_gui.yml。</red>"
   inventory_full: "<yellow>背包空间不足，剩余物品已掉落在脚下。</yellow>"

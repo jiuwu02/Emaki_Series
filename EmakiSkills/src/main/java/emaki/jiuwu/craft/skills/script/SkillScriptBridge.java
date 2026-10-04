@@ -21,9 +21,9 @@ public final class SkillScriptBridge implements AutoCloseable {
 
     private static final String BINDING_NAME = "skills";
     private static final String EXAMPLE_RESOURCE = "scripts/skills/example_script_skill.js";
-    private static final String EMPTY_ID_REASON = "blank or missing id";
-    private static final String REGISTRY_INACTIVE_REASON = "EmakiSkills registry is not active";
-    private static final String REGISTRATION_REJECTED_REASON = "registration was rejected";
+    private static final String EMPTY_ID_REASON = "console.scripts.reason.blank_id";
+    private static final String REGISTRY_INACTIVE_REASON = "console.scripts.reason.registry_inactive";
+    private static final String REGISTRATION_REJECTED_REASON = "console.scripts.reason.registration_rejected";
 
     private final EmakiSkillsPlugin plugin;
     private final SkillScriptBinding binding;
@@ -118,7 +118,7 @@ public final class SkillScriptBridge implements AutoCloseable {
         }
         for (String[] error : registerErrors) {
             messages.warning("console.scripts.register_error",
-                    Map.of("id", error[0], "error", error[1]));
+                    Map.of("id", error[0], "error", messages.message(error[1])));
         }
         registerErrors.clear();
     }
@@ -145,7 +145,7 @@ public final class SkillScriptBridge implements AutoCloseable {
             plugin.getLogger().warning(plugin.messageService().messageOrFallback(
                     "console.scripts.example_release_failed",
                     Map.of("path", EXAMPLE_RESOURCE, "error", String.valueOf(exception.getMessage())),
-                    "Failed to release example skill script: " + EXAMPLE_RESOURCE));
+                    "释放示例技能脚本失败: " + EXAMPLE_RESOURCE));
         }
     }
 }

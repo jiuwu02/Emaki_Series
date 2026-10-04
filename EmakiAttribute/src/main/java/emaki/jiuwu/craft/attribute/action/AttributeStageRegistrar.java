@@ -28,8 +28,8 @@ public final class AttributeStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                owner.getLogger().warning("Failed to register pipeline stage '" + stage.id()
-                        + "': " + registration.reasonKey());
+                owner.getLogger().warning("注册管线阶段 '" + stage.id()
+                        + "' 失败: " + registration.reasonKey());
             }
         }
         EmakiCoreLibApi.onStageRegistryRebuilt(owner, this::register);

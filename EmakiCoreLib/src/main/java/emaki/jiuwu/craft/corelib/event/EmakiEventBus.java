@@ -49,7 +49,7 @@ public final class EmakiEventBus {
             try {
                 ((EventSubscription<T>) subscription).dispatch(event);
             } catch (Exception exception) {
-                LOGGER.warning("Event handler threw exception for " + event.eventType() + ": " + exception.getMessage());
+                LOGGER.warning("事件处理器抛出异常，事件 " + event.eventType() + ": " + exception.getMessage());
             }
         }
     }

@@ -27,12 +27,12 @@ public final class SetItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public SetItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
-        super("set_item", "item", "Sets one of the target's inventory slots to an item source.",
+        super("set_item", "item", "把目标的一个背包槽位设置为某物品来源。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
-                        "Inventory slot"),
-                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
-                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
+                        "背包槽位"),
+                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "物品来源"),
+                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "物品数量"));
         this.itemSourceService = itemSourceService;
         this.auditLogger = auditLogger;
     }

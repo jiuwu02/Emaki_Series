@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class TriggerSource extends BaseSource {
 
     public TriggerSource() {
-        super("trigger", "The entity named by the trigger context.",
+        super("trigger", "触发器上下文所指名的实体。",
                 CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

@@ -203,7 +203,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         if (dataStore != null) {
             PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                getLogger().warning("[Shutdown] Level data drain incomplete: pending="
+                getLogger().warning("[Shutdown] 等级数据排空未完成: pending="
                         + flushResult.drainResult().pendingOperations()
                         + ", ioFailures=" + flushResult.drainResult().failures().size()
                         + ", saveFailures=" + flushResult.failedEntries()
@@ -256,7 +256,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             playerDataListener.ensureSession(player);
         }
         topService.rebuildAsync().exceptionally(throwable -> {
-            getLogger().log(Level.WARNING, "Failed to rebuild level leaderboard", throwable);
+            getLogger().log(Level.WARNING, messages.message("console.leaderboard_rebuild_failed"), throwable);
             return null;
         });
         levelService.syncAllOnline();
@@ -286,7 +286,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiLevel readiness publication skipped: " + exception);
+            getLogger().fine("EmakiLevel 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -368,7 +368,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         LevelCommand command = new LevelCommand(this);
         registerCommand(
                 "emakilevel",
-                "emakilevel command",
+                "EmakiLevel 命令",
                 List.of("elv", "elevel"),
                 new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
         );
@@ -440,8 +440,8 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
-                getLogger().warning("EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
-                        + " operation=register_attribute_bridge, cause=bridge.register() returned false");
+                messages.warning("console.attribute_bridge_register_failed",
+                        Map.of("cause", "bridge.register() 返回 false"));
                 messages.info("console.attribute_bridge_unavailable");
                 return;
             }
@@ -451,8 +451,8 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             messages.info("console.attribute_bridge_ready");
         } catch (RuntimeException | LinkageError exception) {
             getLogger().log(Level.WARNING,
-                    "EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
-                            + " operation=register_attribute_bridge, cause=" + exception,
+                    messages.message("console.attribute_bridge_register_failed",
+                            Map.of("cause", String.valueOf(exception))),
                     exception);
             messages.info("console.attribute_bridge_unavailable");
         }

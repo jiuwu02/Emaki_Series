@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.6.2"
+version: "1.6.3"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
@@ -45,6 +45,16 @@ console:
   bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "<yellow>Failed to save default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
+  # Console: rebuilding the level leaderboard failed
+  leaderboard_rebuild_failed: "Failed to rebuild level leaderboard"
+  # Console: EmakiAttribute bridge registration failed; placeholders: %cause%
+  attribute_bridge_register_failed: "EmakiAttribute bridge registration failed: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
+  # Console: pipeline stage registration failed; placeholders: %stage%, %reason%
+  stage_register_failed: "Failed to register pipeline stage '%stage%': %reason%"
+  # Console: player data async operation failed; placeholders: %operation%, %player%
+  async_operation_failed: "[LevelDataStore] Async %operation% failed for %player%"
+  # Console: source rule requirement test threw and is treated as no match; placeholder: %error%
+  source_rule_requirement_failed: "Source rule requirement threw and is treated as no match: %error%"
 command:
   no_permission: "%prefix%<red>You do not have permission.</red>"
   player_only: "%prefix%<red>This command can only be used by players.</red>"
@@ -53,6 +63,26 @@ command:
   invalid_number: "%prefix%<red>Invalid number: <white>%value%</white></red>"
   reload_success: "%prefix%<green>Configuration reloaded.</green>"
   usage: "%prefix%<gray>Usage: /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type]</gray>"
+  # Command: leaderboard header; placeholder: %type%
+  top_header: "<gold>===== EmakiLevel Top: %type% =====</gold>"
+  # Command: leaderboard entry; placeholders: %rank%, %player%, %level%, %total_exp%
+  top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>Lv.%level% / %total_exp% total</gray>"
+  # Command: experience operation usage hint; placeholder: %mode%
+  usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
+  # Command: level operation usage hint; placeholder: %mode%
+  usage_level: "<red>/elv %mode%level <player> <type> <amount></red>"
+  # Command: reset usage hint
+  usage_reset: "<red>/elv reset <player> <type></red>"
+  # Command: reload duration; placeholder: %elapsed%
+  reload_time: "<gray>Reload took: <white>%elapsed%ms</white></gray>"
+  # Command: level up exp requirement debug output; placeholders: %type%, %level%, %required%, %source%
+  debug_requirement: "<gray>Requirement %type% -> %level%: <yellow>%required%</yellow> <dark_gray>(%source%)</dark_gray></gray>"
+  # Command: PDC sync completion notice; placeholder: %player%
+  debug_pdc_synced: "<green>PDC synced for %player%.</green>"
+  # Command: operation success feedback; placeholders: %type%, %old_level%, %new_level%, %old_exp%, %new_exp%
+  operation_success: "<green>Operation succeeded: %type% Lv.%old_level% → Lv.%new_level%, exp %old_exp% → %new_exp%</green>"
+  # Command: operation failure feedback; placeholder: %reason%
+  operation_failed: "<red>Operation failed: %reason%</red>"
   convert_legacy:
     header: "<gold>========== Legacy item_sources conversion (%mode%, %files% files) ==========</gold>"
     mode:
@@ -84,6 +114,7 @@ gui:
     unknown_type: "%prefix%<red>Level type not found: <white>%type%</white></red>"
     page_info_name: "<aqua>Page %current_page%/%total_pages%</aqua>"
     page_info_lore: "<gray>Level types: <white>%type_count%</white></gray>"
+    entry_name: "%type_display_name% <gray>Lv.%level%</gray>"
     top_button_name: "<gold>%type_display_name% leaderboard</gold>"
     top_button_lore: "<gray>Click to view the selected level leaderboard</gray>"
     levelup_once_success: "%prefix%<green>%type_display_name% reached <yellow>%new_level%</yellow>.</green>"

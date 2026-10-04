@@ -55,7 +55,7 @@ public final class AccessoryAttributeProvider implements AttributeContributionPr
             return contributions;
         } catch (RuntimeException exception) {
             if (logger != null) {
-                logger.warning("Accessory attribute collection failed: " + exception.getMessage());
+                logger.warning("饰品属性收集失败：" + exception.getMessage());
             }
             return List.of();
         }

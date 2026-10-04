@@ -43,28 +43,28 @@ public final class TargetConditionScriptBinding {
 
     public void register(@Nullable Value payload) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            errors.accept("target_conditions: payload must be an object");
+            errors.accept("target_conditions: payload 必须是对象");
             return;
         }
         String id = Texts.normalizeId(Texts.toStringSafe(ScriptPayloads.textMember(payload, "id")));
         if (Texts.isBlank(id)) {
-            errors.accept("target_conditions: field 'id' is required");
+            errors.accept("target_conditions: 必须提供字段 'id'");
             return;
         }
         String description = Texts.toStringSafe(ScriptPayloads.textMember(payload, "description"));
         Value test = ScriptPayloads.functionMember(payload, "test");
         if (test == null) {
-            errors.accept("target_conditions: field 'test' of '" + id + "' must be a callable function");
+            errors.accept("target_conditions: '" + id + "' 的字段 'test' 必须是可调用函数");
             return;
         }
         TargetConditionRegistry target = registry.get();
         if (target == null) {
-            errors.accept("target_conditions: '" + id + "' -> target condition registry is unavailable");
+            errors.accept("target_conditions: '" + id + "' -> 目标条件注册表不可用");
             return;
         }
         ScriptCallbackRunner resolvedRunner = runner.get();
         if (resolvedRunner == null) {
-            errors.accept("target_conditions: '" + id + "' -> script host is unavailable");
+            errors.accept("target_conditions: '" + id + "' -> 脚本宿主不可用");
             return;
         }
         CoreTargetRegistration registration = target.register(owner,

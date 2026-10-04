@@ -62,7 +62,7 @@ public final class JsComputeStage extends BaseStage {
         }
         if (!result.isSuccess()) {
             Throwable error = result.getError();
-            String message = error != null ? error.getMessage() : "unknown";
+            String message = error != null ? error.getMessage() : "未知";
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.script.eval.error",
                     Map.of("error_message", message));

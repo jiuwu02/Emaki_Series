@@ -27,10 +27,10 @@ public final class DropItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public DropItemStage(ItemSourceService itemSourceService, ActionAuditLogger auditLogger) {
-        super("drop_item", "item", "Drops an item at the target position.",
+        super("drop_item", "item", "在目标位置掉落一个物品。",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
-                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "Item source"),
-                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "Item amount"));
+                CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "", "物品来源"),
+                CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1", "物品数量"));
         this.itemSourceService = itemSourceService;
         this.auditLogger = auditLogger;
     }

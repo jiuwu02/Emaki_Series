@@ -653,7 +653,7 @@ public final class EnhancementAttemptService {
     private void warn(String message, Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
             plugin.getLogger().warning(message + ": "
-                    + (throwable == null ? "unknown" : String.valueOf(throwable.getMessage())));
+                    + (throwable == null ? "未知" : String.valueOf(throwable.getMessage())));
         }
     }
 
@@ -688,7 +688,7 @@ public final class EnhancementAttemptService {
         warn("目标 Provider 刷新阶段失败，未扣费即拒绝 | 原因键=" + reasonKey, null);
         debug(player, "debug.attempt.refresh_failed", Map.of(
                 "provider", safeProviderId(provider),
-                "reason", refresh.failureKind() == null ? "unknown" : refresh.failureKind().name(),
+                "reason", refresh.failureKind() == null ? "未知" : refresh.failureKind().name(),
                 "error_key", reasonKey));
         return reasonKey;
     }

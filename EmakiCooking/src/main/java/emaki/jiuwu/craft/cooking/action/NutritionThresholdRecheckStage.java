@@ -33,7 +33,7 @@ public final class NutritionThresholdRecheckStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Re-evaluates the target's nutrition thresholds.";
+        return "重新评估目标的营养阈值。";
     }
 
     @Override

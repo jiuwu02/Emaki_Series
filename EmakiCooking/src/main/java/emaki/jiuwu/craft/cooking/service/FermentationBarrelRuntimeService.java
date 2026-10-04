@@ -119,7 +119,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             public CompletionStage<Void> replace(StationCoordinates coordinates, Map<String, Object> committedState) {
                 FermentationBarrelState state = codec.readState(new MapYamlSection(committedState));
                 if (state == null || !state.valid() || !state.slotIdsResolved() || state.isCompletelyEmpty()) {
-                    return CompletableFuture.failedFuture(new IllegalArgumentException("Invalid committed fermentation barrel state"));
+                    return CompletableFuture.failedFuture(new IllegalArgumentException("已提交的发酵桶状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -159,12 +159,14 @@ public final class FermentationBarrelRuntimeService implements Listener {
         ItemSourceRef stationSource = stateStore.stationSource(section);
         boolean needsCanonicalWriteback = state != null && (state.needsSchemaWriteback() || !state.slotIdsResolved());
         if (state == null || !state.valid()) {
-            plugin.getLogger().warning("Station restore report: rejected_invalid_fermentation_barrel_state coordinate=" + coordinates.runtimeKey());
+            messageService.warning("console.station_restore_rejected_invalid_fermentation_state", Map.of(
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         if (!migrateSlotIds(state)) {
-            plugin.getLogger().warning("Station restore report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey()
-                    + " recipe=" + state.activeRecipeId());
+            messageService.warning("console.station_restore_rejected_slot_migration", Map.of(
+                    "coordinate", coordinates.runtimeKey(),
+                    "recipe", String.valueOf(state.activeRecipeId())));
             return false;
         }
         if (state.isCompletelyEmpty()) {
@@ -175,7 +177,9 @@ public final class FermentationBarrelRuntimeService implements Listener {
         if (!blockMatcher.matches(block, StationType.FERMENTATION_BARREL, stationSource)) {
             removeState(coordinates, false);
             activeStations.remove(coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=fermentation_barrel coordinate=" + coordinates.runtimeKey());
+            messageService.warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "fermentation_barrel",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         runtimeStates.put(coordinates, state);
@@ -262,7 +266,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
                 openHolder.getInventory(), openHolder.viewerId(), Bukkit.getPlayer(openHolder.viewerId()) == null ? "" : Bukkit.getPlayer(openHolder.viewerId()).getName());
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
             context.cancel();
-            plugin.getLogger().warning("Station break report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey());
+            messageService.warning("console.station_break_rejected_slot_migration", Map.of(
+                    "coordinate", coordinates.runtimeKey()));
             return true;
         }
         if (state.isCompletelyEmpty()) {
@@ -284,7 +289,8 @@ public final class FermentationBarrelRuntimeService implements Listener {
         FermentationBarrelState state = loadStateOrEmpty(coordinates);
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
             interaction.cancel();
-            plugin.getLogger().warning("Station interaction report: rejected_fermentation_barrel_slot_id_migration coordinate=" + coordinates.runtimeKey());
+            messageService.warning("console.station_interaction_rejected_slot_migration", Map.of(
+                    "coordinate", coordinates.runtimeKey()));
             return true;
         }
         if (state.completed()) {

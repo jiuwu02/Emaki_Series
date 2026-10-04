@@ -25,13 +25,13 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class SetBlockStage extends BaseStage {
 
     public SetBlockStage() {
-        super("set_block", "world", "Sets the block at the target position.",
+        super("set_block", "world", "设置目标位置的方块。",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
-                CoreStageParameter.optional("material", CoreStageParameterType.STRING, "", "Block material"),
+                CoreStageParameter.optional("material", CoreStageParameterType.STRING, "", "方块材质"),
                 CoreStageParameter.optional("block_data", CoreStageParameterType.STRING, "",
-                        "Bukkit block data string"),
+                        "Bukkit 方块数据字符串"),
                 CoreStageParameter.optional("apply_physics", CoreStageParameterType.BOOLEAN, "true",
-                        "Apply physics"));
+                        "应用物理效果"));
     }
 
     @Override

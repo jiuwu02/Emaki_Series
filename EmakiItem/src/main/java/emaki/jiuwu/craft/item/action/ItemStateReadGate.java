@@ -31,14 +31,14 @@ public final class ItemStateReadGate implements CoreActionGate {
     }
 
     @Override public @NotNull String id() { return "item_state_read"; }
-    @Override public @NotNull String description() { return "Reads one persistent item state into pipeline variables."; }
+    @Override public @NotNull String description() { return "将一个持久化物品状态读入管道变量。"; }
     @Override public @NotNull String category() { return "item"; }
     @Override public @NotNull CoreGateThread threadNeed() { return CoreGateThread.NEEDS_ENTITY_READ; }
     @Override public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("key", CoreStageParameterType.STRING, "State key"),
-                CoreStageParameter.required("type", CoreStageParameterType.STRING, "State type"),
-                CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "Inventory slot"));
+                CoreStageParameter.required("key", CoreStageParameterType.STRING, "状态键"),
+                CoreStageParameter.required("type", CoreStageParameterType.STRING, "状态类型"),
+                CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
     }
     @Override public @NotNull java.util.Set<String> providedVariables() {
         return java.util.Set.of("item_state.value", "item_state.exists", "item_state.key", "item_state.type");

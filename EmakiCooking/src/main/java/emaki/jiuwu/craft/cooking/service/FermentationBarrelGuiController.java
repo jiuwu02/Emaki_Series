@@ -53,7 +53,8 @@ final class FermentationBarrelGuiController {
         debug(player, coordinates, "gui.fermentation_barrel.open_requested");
         FermentationBarrelState state = runtimeService.loadStateOrEmpty(coordinates);
         if (state == null || !state.valid() || !state.slotIdsResolved()) {
-            plugin.getLogger().warning("Station GUI report: rejected_fermentation_barrel_identity_migration coordinate=" + coordinates.runtimeKey());
+            messageService.warning("console.station_gui_rejected_identity_migration", Map.of(
+                    "coordinate", coordinates.runtimeKey()));
             return true;
         }
         FermentationBarrelGuiHolder existing = findOpenSession(coordinates);

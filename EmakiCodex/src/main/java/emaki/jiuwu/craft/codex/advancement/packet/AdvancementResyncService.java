@@ -105,7 +105,7 @@ public final class AdvancementResyncService {
             }
         } catch (Throwable throwable) {
             plugin.getLogger().log(Level.WARNING,
-                    "[Codex] Advancement resync scheduling failed for " + player.getName() + ": " + throwable.getMessage());
+                    "[Codex] 为 " + player.getName() + " 安排成就重同步失败：" + throwable.getMessage());
             future.complete(false);
         }
         return future;
@@ -122,7 +122,7 @@ public final class AdvancementResyncService {
             return true;
         } catch (Throwable throwable) {
             plugin.getLogger().log(Level.WARNING,
-                    "[Codex] Advancement resync failed for " + player.getName() + ": " + throwable.getMessage());
+                    "[Codex] 为 " + player.getName() + " 重同步成就失败：" + throwable.getMessage());
             return false;
         }
     }
@@ -134,7 +134,7 @@ public final class AdvancementResyncService {
                 holders.add(buildHolder(node));
             } catch (Throwable throwable) {
                 plugin.getLogger().log(Level.FINE,
-                        "[Codex] Skipped advancement holder " + node.key() + ": " + throwable.getMessage());
+                        "[Codex] 已跳过成就持有者 " + node.key() + "：" + throwable.getMessage());
             }
         }
         return holders;

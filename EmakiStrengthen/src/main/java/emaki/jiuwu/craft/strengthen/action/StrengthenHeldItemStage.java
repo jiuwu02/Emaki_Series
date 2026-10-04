@@ -28,17 +28,17 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
 
     public enum Operation {
 
-        RERENDER("strengthen_rerender", "Re-renders the strengthen layer on the target's held item."),
+        RERENDER("strengthen_rerender", "重新渲染目标手持物品上的强化层。"),
 
-        SET_STAR("strengthen_set_star", "Sets the star count on the target's held item."),
+        SET_STAR("strengthen_set_star", "设置目标手持物品的星级。"),
 
-        ADD_STAR("strengthen_add_star", "Adds stars to the target's held item."),
+        ADD_STAR("strengthen_add_star", "为目标手持物品增加星级。"),
 
-        REMOVE_STAR("strengthen_remove_star", "Removes stars from the target's held item."),
+        REMOVE_STAR("strengthen_remove_star", "移除目标手持物品的星级。"),
 
-        RESET_STAR("strengthen_reset_star", "Resets the star count on the target's held item to zero."),
+        RESET_STAR("strengthen_reset_star", "将目标手持物品的星级重置为零。"),
 
-        CLEAR_LAYER("strengthen_clear_layer", "Removes the strengthen layer from the target's held item.");
+        CLEAR_LAYER("strengthen_clear_layer", "移除目标手持物品上的强化层。");
 
         private final String id;
         private final String description;
@@ -81,11 +81,11 @@ public final class StrengthenHeldItemStage implements CoreActionStage {
         return switch (operation) {
             case RERENDER, RESET_STAR, CLEAR_LAYER -> List.of();
             case SET_STAR -> List.of(CoreStageParameter.required("star",
-                    CoreStageParameterType.INTEGER, "Target star count"));
+                    CoreStageParameterType.INTEGER, "目标星级"));
             case ADD_STAR -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "Stars to add"));
+                    CoreStageParameterType.INTEGER, "增加的星级"));
             case REMOVE_STAR -> List.of(CoreStageParameter.required("amount",
-                    CoreStageParameterType.INTEGER, "Stars to remove"));
+                    CoreStageParameterType.INTEGER, "移除的星级"));
         };
     }
 

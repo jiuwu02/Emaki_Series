@@ -67,7 +67,7 @@ final class ScriptAdvancementTrigger implements AdvancementTrigger {
     private Collection<String> normalizeResult(Value result) {
         List<Object> elements = flatten(result);
         if (elements == null) {
-            warnFailure("unsupported return type");
+            warnFailure("不支持的返回类型");
             return List.of();
         }
         List<String> ids = TriggerScriptLogic.collectStringIds(elements);

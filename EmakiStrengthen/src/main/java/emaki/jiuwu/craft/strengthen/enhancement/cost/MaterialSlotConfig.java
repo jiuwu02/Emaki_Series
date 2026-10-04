@@ -23,13 +23,13 @@ public record MaterialSlotConfig(
 
     public MaterialSlotConfig {
         if (requirement == null) {
-            throw new IllegalArgumentException("Material requirement cannot be null");
+            throw new IllegalArgumentException("材料需求不能为空");
         }
         if (quantity == null) {
-            throw new IllegalArgumentException("Material quantity cannot be null");
+            throw new IllegalArgumentException("材料数量不能为空");
         }
         if (consumeTiming == null) {
-            throw new IllegalArgumentException("Material consume timing cannot be null");
+            throw new IllegalArgumentException("材料消耗时机不能为空");
         }
         targetCompare = targetCompare == null ? TargetCompareEnum.NONE : targetCompare;
         materialId = materialId == null || materialId.isBlank()

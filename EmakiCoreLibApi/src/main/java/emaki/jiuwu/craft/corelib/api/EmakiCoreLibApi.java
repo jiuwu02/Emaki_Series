@@ -168,7 +168,7 @@ public final class EmakiCoreLibApi {
             @Nullable Map<String, ?> replacements) {
         Bridge resolved = bridge;
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.createConfiguredItem(definition, replacements == null ? Map.of() : replacements);
     }
 
@@ -201,7 +201,7 @@ public final class EmakiCoreLibApi {
             @Nullable Map<String, ?> replacements) {
         Bridge resolved = bridge;
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.applyConfiguredItem(itemStack, definition, replacements == null ? Map.of() : replacements);
     }
 

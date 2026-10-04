@@ -106,8 +106,8 @@ public final class TargetConditionEvaluator {
         List<String> known = new ArrayList<>(BuiltinTargetConditions.ids());
         known.addAll(conditions.ids());
         known.addAll(facts.identitySystems());
-        unknownTypeReporter.accept("Selector condition type '" + type
-                + "' is unknown; targets are treated as unmatched. Known types: " + String.join(", ", known));
+        unknownTypeReporter.accept("选择器条件类型 '" + type
+                + "' 未知；目标将按不匹配处理。已知类型: " + String.join(", ", known));
     }
 
     private CoreTargetOutcome expression(String raw, TargetConditionContext context) {

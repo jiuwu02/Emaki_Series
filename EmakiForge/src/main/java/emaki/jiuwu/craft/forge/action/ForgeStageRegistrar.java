@@ -24,7 +24,7 @@ public final class ForgeStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("Failed to register pipeline stage '" + operation.id()
+                plugin.getLogger().warning("注册流程阶段失败 '" + operation.id()
                         + "': " + registration.reasonKey());
             }
         }

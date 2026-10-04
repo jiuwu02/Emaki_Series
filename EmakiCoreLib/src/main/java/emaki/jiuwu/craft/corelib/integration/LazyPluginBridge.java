@@ -74,7 +74,7 @@ abstract class LazyPluginBridge<T extends CustomBlockBridge> implements CustomBl
             } catch (LinkageError exception) {
                 failed = true;
                 if (owner != null) {
-                    owner.getLogger().warning("Failed to initialize " + pluginName + " block API bridge: "
+                    owner.getLogger().warning("初始化 " + pluginName + " 方块 API 桥接失败: "
                             + Texts.toStringSafe(exception.getMessage()));
                 }
                 return noop;

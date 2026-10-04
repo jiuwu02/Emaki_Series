@@ -178,7 +178,7 @@ final class GemDefinitionParser {
                 if (!entries.isEmpty()) {
                     pools.put(Texts.lower(key), List.copyOf(entries));
                 } else {
-                    diagnostics.add("reroll pool '" + key + "' is empty or invalid");
+                    diagnostics.add("洗炼池 '" + key + "' 为空或无效");
                 }
             }
         }
@@ -202,7 +202,7 @@ final class GemDefinitionParser {
             String fallbackId) {
         String id = Texts.isBlank(fallbackId) ? ConfigNodes.string(raw, "id", "") : fallbackId;
         if (Texts.isBlank(id)) {
-            diagnostics.add("reroll affix entry missing id");
+            diagnostics.add("洗炼词条条目缺少 id");
             return null;
         }
         double weight = Numbers.tryParseDouble(ConfigNodes.get(raw, "weight"), 1D);
@@ -211,7 +211,7 @@ final class GemDefinitionParser {
         double maxValue = Numbers.tryParseDouble(ConfigNodes.get(raw, "max"),
                 Numbers.tryParseDouble(ConfigNodes.get(raw, "max_value"), minValue));
         if (weight <= 0D) {
-            diagnostics.add("reroll affix '" + id + "' has non-positive weight");
+            diagnostics.add("洗炼词条 '" + id + "' 的权重非正数");
         }
         return new GemDefinition.AffixPoolEntry(
                 id,

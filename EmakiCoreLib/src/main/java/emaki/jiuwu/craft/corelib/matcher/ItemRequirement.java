@@ -70,7 +70,7 @@ public record ItemRequirement(
         if (ItemRequirementSchemaValidator.blocking(issues)) {
             for (ConfigPrecheckIssue issue : issues) {
                 if (issue.severity().blocking()) {
-                    ComponentMatcherSupport.LOGGER.warning("Item requirement rejected at load time: "
+                    ComponentMatcherSupport.LOGGER.warning("物品需求在加载时被拒绝: "
                             + issue.path() + ": " + issue.message());
                 }
             }

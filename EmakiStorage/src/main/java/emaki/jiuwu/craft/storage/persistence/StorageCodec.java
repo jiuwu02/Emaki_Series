@@ -24,7 +24,7 @@ public final class StorageCodec {
 
     public static void writeVarLong(OutputStream out, long value) throws IOException {
         if (value < 0L) {
-            throw new IOException("Refusing to encode negative varint: " + value);
+            throw new IOException("拒绝编码负数 varint：" + value);
         }
         long remaining = value;
         while (true) {
@@ -44,7 +44,7 @@ public final class StorageCodec {
         while (shift < 64) {
             int read = in.read();
             if (read < 0) {
-                throw new EOFException("Truncated varint");
+                throw new EOFException("varint 数据被截断");
             }
             result |= (long) (read & 0x7F) << shift;
             if ((read & 0x80) == 0) {
@@ -52,7 +52,7 @@ public final class StorageCodec {
             }
             shift += 7;
         }
-        throw new IOException("Varint longer than 64 bits");
+        throw new IOException("varint 超过 64 位");
     }
 
     public static void writeItem(OutputStream out, ItemStack template) throws IOException {
@@ -64,11 +64,11 @@ public final class StorageCodec {
     public static byte[] readItemPayload(InputStream in) throws IOException {
         long length = readVarLong(in);
         if (length <= 0L || length > MAX_PAYLOAD_LENGTH) {
-            throw new IOException("Implausible item payload length: " + length);
+            throw new IOException("物品负载长度不合理：" + length);
         }
         byte[] payload = in.readNBytes((int) length);
         if (payload.length != length) {
-            throw new EOFException("Truncated item payload: expected " + length + " bytes, got " + payload.length);
+            throw new EOFException("物品负载被截断：预期 " + length + " 字节，实际 " + payload.length);
         }
         return payload;
     }
@@ -95,7 +95,7 @@ public final class StorageCodec {
     private static long readLongRaw(InputStream in) throws IOException {
         byte[] bytes = in.readNBytes(Long.BYTES);
         if (bytes.length != Long.BYTES) {
-            throw new EOFException("Truncated 64-bit value");
+            throw new EOFException("64 位数值被截断");
         }
         long value = 0L;
         for (byte part : bytes) {
@@ -112,16 +112,16 @@ public final class StorageCodec {
     public static int readHeader(InputStream in) throws IOException {
         byte[] magic = in.readNBytes(MAGIC.length);
         if (magic.length != MAGIC.length) {
-            throw new EOFException("Truncated header");
+            throw new EOFException("文件头被截断");
         }
         for (int index = 0; index < MAGIC.length; index++) {
             if (magic[index] != MAGIC[index]) {
-                throw new IOException("Bad storage file magic");
+                throw new IOException("存储文件魔数错误");
             }
         }
         long version = readVarLong(in);
         if (version <= 0L || version > FORMAT_VERSION) {
-            throw new IOException("Unsupported storage format version: " + version);
+            throw new IOException("不支持的存储格式版本：" + version);
         }
         return (int) version;
     }

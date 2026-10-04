@@ -26,12 +26,12 @@ public final class StructuredPresentationValidator {
             }
             String slotId = Texts.trim(contribution.slotId());
             if (Texts.isBlank(slotId)) {
-                issues.add("name contribution is missing slot_id");
+                issues.add("名称贡献缺少 slot_id");
                 continue;
             }
             String duplicateKey = Texts.lower(slotId);
             if (!seenNameSlots.add(duplicateKey)) {
-                issues.add("duplicate name slot_id: " + slotId);
+                issues.add("重复的名称 slot_id: " + slotId);
                 continue;
             }
             nameContributions.add(contribution);
@@ -45,12 +45,12 @@ public final class StructuredPresentationValidator {
             }
             String sectionId = Texts.trim(section.sectionId());
             if (Texts.isBlank(sectionId)) {
-                issues.add("lore section is missing section_id");
+                issues.add("Lore 段落缺少 section_id");
                 continue;
             }
             String duplicateKey = Texts.lower(sectionId);
             if (!seenSectionIds.add(duplicateKey)) {
-                issues.add("duplicate lore section_id: " + sectionId);
+                issues.add("重复的 Lore section_id: " + sectionId);
                 continue;
             }
             loreSections.add(section);
@@ -58,7 +58,7 @@ public final class StructuredPresentationValidator {
 
         if (presentation.baseNamePolicy() == BaseNamePolicy.EXPLICIT_TEMPLATE
                 && Texts.isBlank(presentation.baseNameTemplate())) {
-            issues.add("base_name_policy is EXPLICIT_TEMPLATE but base_name_template is blank");
+            issues.add("base_name_policy 为 EXPLICIT_TEMPLATE，但 base_name_template 为空");
         }
 
         EmakiStructuredPresentation sanitized = new EmakiStructuredPresentation(

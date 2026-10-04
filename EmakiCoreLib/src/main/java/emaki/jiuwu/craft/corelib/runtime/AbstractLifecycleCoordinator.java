@@ -90,7 +90,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         }
         if (executionDispatcher == null || executionOwner == null) {
             IllegalStateException exception = new IllegalStateException(
-                    "Reload pipeline requires an ExecutionDispatcher and owner for the global apply stage");
+                    "重载管道需要为全局应用阶段提供 ExecutionDispatcher 与所属插件");
             handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
             return failedFuture(exception);
         }
@@ -128,7 +128,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
         try {
             if (executionDispatcher.runGlobal(executionOwner, task) == null) {
                 RejectedExecutionException exception = new RejectedExecutionException(
-                        "Reload pipeline global apply stage was rejected");
+                        "重载管道的全局应用阶段被拒绝");
                 handleReloadPipelineFailure(config, config.applyStageName(), exception, executionOwner);
                 future.completeExceptionally(exception);
             }
@@ -161,8 +161,7 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             Exception rollbackFailure) {
         Logger logger = rollbackLogOwner == null ? Bukkit.getLogger() : rollbackLogOwner.getLogger();
         logger.log(Level.SEVERE,
-                "Reload rollback failed after stage failure; module may be left with neither the new"
-                        + " nor the previous configuration applied: stage=" + stageName
+                "阶段失败后重载回滚失败；模块可能既未应用新配置也未应用旧配置: stage=" + stageName
                         + ", stageFailure=" + stageFailure
                         + ", rollbackFailure=" + rollbackFailure,
                 rollbackFailure);

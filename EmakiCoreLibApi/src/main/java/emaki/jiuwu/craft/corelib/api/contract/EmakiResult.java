@@ -316,6 +316,6 @@ public sealed interface EmakiResult<T> {
         if (this instanceof Failure<T> failure) {
             return (EmakiResult<R>) new Failure<R>(failure.kind(), failure.reasonKey(), failure.placeholders());
         }
-        throw new IllegalStateException("retypeFailure() called on a result that carries a value");
+        throw new IllegalStateException("对携带值的结果调用了 retypeFailure()");
     }
 }

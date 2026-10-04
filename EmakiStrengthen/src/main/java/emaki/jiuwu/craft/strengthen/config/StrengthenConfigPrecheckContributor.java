@@ -47,9 +47,6 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         addLoaderIssues("recipes", plugin.recipeLoader() == null ? null : plugin.recipeLoader().issues(), issues);
         addLoaderIssues("enhancement_recipes",
                 plugin.enhancementRecipeLoader() == null ? null : plugin.enhancementRecipeLoader().issues(), issues);
-        // recipes/ 与 enhancement_recipes/ 不做通用物品需求文档扫描：
-        // 星级材料的 amount 支持负数语义（仅检测不消耗），enhancement 材料槽用 quantity、
-        // costs 为经济配置，通用扫描会全部误判；两目录的真实问题由各自 loader 的 issues 上报。
         checkEnhancementVariableContract(issues);
         checkForgeVariableKeys(issues);
         checkEnhancementRecipeContracts(issues);
@@ -89,35 +86,31 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
             if (raw == null) {
                 continue;
             }
-            String slotLabel = "recipe '" + recipeId + "' material_" + (index + 1);
             Object compare = rawValue(raw, "target_compare");
             if (compare != null) {
                 String token = Texts.toStringSafe(compare);
                 if (!Texts.isBlank(token)
                         && TargetCompareEnum.fromStringOrDefault(token, TargetCompareEnum.NONE)
                                 == TargetCompareEnum.NONE) {
-                    addIssue("enhancement_recipes", ERROR, slotLabel + " declares unknown target_compare '"
-                            + token + "'; legal values are " + TargetCompareEnum.legalTokens(), issues);
+                    addMessageIssue("enhancement_recipes", ERROR, "enhancement_recipe_unknown_target_compare",
+                            Map.of("recipe", recipeId, "index", index + 1,
+                                    "token", token, "legal", TargetCompareEnum.legalTokens()),
+                            issues);
                 }
             }
             if (rawValue(raw, "required") != null && rawValue(raw, "optional") != null) {
-                addIssue("enhancement_recipes", ERROR, slotLabel
-                        + " declares both 'required' and 'optional'; 'optional' wins and 'required' is ignored",
-                        issues);
+                addMessageIssue("enhancement_recipes", ERROR, "enhancement_recipe_required_optional_conflict",
+                        Map.of("recipe", recipeId, "index", index + 1), issues);
             }
             if (rawValue(raw, "matcher") == null && rawValue(raw, "item_sources") == null) {
-                // 只写 item_sources 的材料槽是合法形态；只有判定条件整体为空时，
-                // 该槽位才会对任意物品放行，此时才值得提示。
-                addIssue("enhancement_recipes", WARN, slotLabel
-                        + " declares no matcher and no item_sources, so every supplied item satisfies this slot",
-                        issues);
+                addMessageIssue("enhancement_recipes", WARN, "enhancement_recipe_empty_matcher",
+                        Map.of("recipe", recipeId, "index", index + 1), issues);
             }
         }
         List<MaterialSlotConfig> slots = loaded.value().materials();
         if (!slots.isEmpty() && slots.stream().noneMatch(MaterialSlotConfig::required)) {
-            addIssue("enhancement_recipes", WARN, "recipe '" + recipeId
-                    + "' has materials but none of them is required, so the slots never block an attempt",
-                    issues);
+            addMessageIssue("enhancement_recipes", WARN, "enhancement_recipe_no_required_slot",
+                    Map.of("recipe", recipeId), issues);
         }
     }
 
@@ -132,16 +125,13 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         for (EnhancementRecipe.PityConfig track : tracks) {
             String identity = track.counter().scope().name() + "|" + Texts.lower(track.counter().group());
             if (!identities.add(identity)) {
-                addIssue("enhancement_recipes", ERROR, "recipe '" + recipeId
-                        + "' declares duplicate pity track '" + identity
-                        + "'; duplicate tracks share one counter and double-count the same attempt", issues);
+                addMessageIssue("enhancement_recipes", ERROR, "enhancement_recipe_duplicate_pity_track",
+                        Map.of("recipe", recipeId, "track", identity), issues);
             }
             if (track.isolate().contains(PityIsolationEnum.LEVEL)
                     && track.counter().scope() == PityScopeEnum.PLAYER) {
-                addIssue("enhancement_recipes", WARN, "recipe '" + recipeId + "' pity track '"
-                        + track.counter().group()
-                        + "' isolates by level under player scope, so the counter resets whenever the"
-                        + " target level changes", issues);
+                addMessageIssue("enhancement_recipes", WARN, "enhancement_recipe_pity_level_isolation",
+                        Map.of("recipe", recipeId, "track", track.counter().group()), issues);
             }
         }
     }
@@ -153,10 +143,8 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         if (Texts.isBlank(provider) || provider.equals(recipe.mode())) {
             return;
         }
-        addIssue("enhancement_recipes", WARN, "recipe '" + recipeId + "' declares mode '" + recipe.mode()
-                + "' but target provider '" + provider
-                + "'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder,"
-                + " so the two disagreeing is usually a configuration mistake", issues);
+        addMessageIssue("enhancement_recipes", WARN, "enhancement_recipe_mode_provider_mismatch",
+                Map.of("recipe", recipeId, "mode", recipe.mode(), "provider", provider), issues);
     }
 
     private static Object rawValue(Map<?, ?> raw, String key) {
@@ -181,8 +169,8 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
             String path = entry.getKey();
 
             if (!path.startsWith("forge_") && !path.startsWith("forge.")) {
-                addIssue("enhancement_variables", ERROR,
-                        "forge variable path '" + path + "' must live under the forge prefix", issues);
+                addMessageIssue("enhancement_variables", ERROR, "forge_variable_path_prefix",
+                        Map.of("path", path), issues);
             }
 
             declared.addAll(entry.getValue());
@@ -190,21 +178,19 @@ public final class StrengthenConfigPrecheckContributor extends AbstractModuleCon
         for (String required : List.of("forge_quality_id", "forge_quality_display",
                 "forge_quality_multiplier", "forge_recipe_id")) {
             if (!declared.contains(required)) {
-                addIssue("enhancement_variables", ERROR,
-                        "canonical forge variable '" + required + "' is not produced by any alias path", issues);
+                addMessageIssue("enhancement_variables", ERROR, "forge_variable_canonical_missing",
+                        Map.of("variable", required), issues);
             }
         }
         for (String legacy : List.of("quality_id", "quality_display", "quality_multiplier")) {
             if (!declared.contains(legacy)) {
-                addIssue("enhancement_variables", ERROR,
-                        "legacy forge variable '" + legacy + "' is no longer produced, breaking existing recipes",
-                        issues);
+                addMessageIssue("enhancement_variables", ERROR, "forge_variable_legacy_missing",
+                        Map.of("variable", legacy), issues);
             }
         }
         if (!EnhancementTargetVariables.forgeNamespace().equals("emakiforge")) {
-            addIssue("enhancement_variables", ERROR,
-                    "forge pdc namespace expected 'emakiforge' but was "
-                            + EnhancementTargetVariables.forgeNamespace(), issues);
+            addMessageIssue("enhancement_variables", ERROR, "forge_pdc_namespace_mismatch",
+                    Map.of("namespace", EnhancementTargetVariables.forgeNamespace()), issues);
         }
     }
 }

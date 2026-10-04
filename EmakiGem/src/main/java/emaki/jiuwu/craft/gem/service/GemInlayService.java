@@ -433,12 +433,12 @@ public final class GemInlayService {
             return;
         }
         if (!actor.isOnline()) {
-            plugin.getLogger().warning("Skipped gem completed event because operation actor is offline: "
+            plugin.getLogger().warning("已跳过宝石完成事件，因为操作执行者离线: "
                     + actor.getUniqueId());
             return;
         }
         scheduling.runForEntity(plugin, actor, eventCall,
-                () -> plugin.getLogger().warning("Skipped gem completed event because actor scheduling retired: "
+                () -> plugin.getLogger().warning("已跳过宝石完成事件，因为执行者调度已退役: "
                         + actor.getUniqueId()));
     }
 

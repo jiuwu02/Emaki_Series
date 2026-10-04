@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.1"
+version: "1.1.2"
 
 general:
   prefix: "<gray>[ <gradient:#D946EF:#F59E0B>EmakiCodex</gradient> ]</gray>"
@@ -14,6 +14,8 @@ general:
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded.</green>"
   reload_summary: "<gray>Registered %advancements% advancements.</gray>"
+  # Player: reload duration feedback; placeholders: %millis%
+  reload_duration: "<gray>Reload took: <white>%millis%ms</white></gray>"
 
 command:
   help:
@@ -116,6 +118,10 @@ console:
   directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
   advancements_registered: "Registered %count% advancements."
   codex_categories_loaded: "Loaded %count% codex categories."
+  # Console: GUI template not loaded; placeholders: %template%
+  gui_template_missing: "Codex GUI template '%template%' is not loaded."
+  # Console: command response dispatch failed; placeholders: %sender%, %cause%
+  command_dispatch_failed: "EmakiCodex command response dispatch failed: sender=%sender%, operation=send_to_sender, cause=%cause%"
   advancements_resynced: "Re-pushed advancements to %count% online player(s) via PacketEvents; no relog needed."
   advancements_need_relog: "Advancements registered, but PacketEvents was not detected, so online players cannot be refreshed live; they must reconnect to see the updated advancement screen."
   advancement_packet_enabled: "Advancement packet coordinate injection enabled (PacketEvents)."

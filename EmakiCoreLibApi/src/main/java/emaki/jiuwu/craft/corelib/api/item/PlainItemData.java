@@ -19,14 +19,14 @@ final class PlainItemData {
 
     static String componentId(String raw) {
         if (raw == null) {
-            throw new IllegalArgumentException("Component id cannot be null.");
+            throw new IllegalArgumentException("组件 ID 不能为 null。");
         }
         String normalized = raw.trim().toLowerCase(Locale.ROOT);
         if (!normalized.contains(":")) {
             normalized = "minecraft:" + normalized;
         }
         if (!COMPONENT_ID.matcher(normalized).matches()) {
-            throw new IllegalArgumentException("Invalid namespaced component id: " + raw);
+            throw new IllegalArgumentException("无效的带命名空间组件 ID: " + raw);
         }
         return normalized;
     }
@@ -45,7 +45,7 @@ final class PlainItemData {
             Map<String, Object> copied = new LinkedHashMap<>();
             for (Map.Entry<?, ?> entry : map.entrySet()) {
                 if (entry.getKey() == null) {
-                    throw new IllegalArgumentException("Plain item data maps cannot contain null keys.");
+                    throw new IllegalArgumentException("纯物品数据映射不能包含 null 键。");
                 }
                 copied.put(String.valueOf(entry.getKey()), copy(entry.getValue()));
             }
@@ -58,7 +58,7 @@ final class PlainItemData {
             }
             return Collections.unmodifiableList(copied);
         }
-        throw new IllegalArgumentException("Unsupported item data value type: " + value.getClass().getName());
+        throw new IllegalArgumentException("不支持的物品数据值类型: " + value.getClass().getName());
     }
 
     static Map<String, ItemComponentPatch> componentMap(Map<String, ItemComponentPatch> source) {
@@ -68,7 +68,7 @@ final class PlainItemData {
         Map<String, ItemComponentPatch> copied = new LinkedHashMap<>();
         for (Map.Entry<String, ItemComponentPatch> entry : source.entrySet()) {
             if (entry.getValue() == null) {
-                throw new IllegalArgumentException("Component patch cannot be null: " + entry.getKey());
+                throw new IllegalArgumentException("组件补丁不能为 null: " + entry.getKey());
             }
             copied.put(componentId(entry.getKey()), entry.getValue().copy());
         }

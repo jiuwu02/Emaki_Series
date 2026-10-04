@@ -470,7 +470,7 @@ public final class TemporaryAttributeService implements AutoCloseable {
             cleanupExpired();
         } catch (Exception exception) {
             plugin.getLogger().log(Level.WARNING,
-                    "Temporary attribute cleanup failed: trackedEntities=" + states.size()
+                    "临时属性清理失败: trackedEntities=" + states.size()
                             + ", operation=cleanup_expired, cause=" + exception,
                     exception);
         }

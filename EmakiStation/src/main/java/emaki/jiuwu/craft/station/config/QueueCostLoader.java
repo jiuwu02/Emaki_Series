@@ -22,7 +22,7 @@ public final class QueueCostLoader {
         if (section == null || section.isEmpty()) {
             if (reportMissingFile && logger != null) {
                 logger.warning("[station] " + (file == null ? "queue_costs.yml" : file.getName())
-                        + " is missing or empty; paid queue slots are disabled until it is provided.");
+                        + " 缺失或为空；在提供之前付费队列槽位将被禁用。");
             }
             return QueueCostConfig.empty();
         }
@@ -45,13 +45,13 @@ public final class QueueCostLoader {
         String range = ConfigNodes.string(raw, "count_range", null);
         int[] bounds = parseRange(range);
         if (bounds == null) {
-            warn(logger, "Skipping queue cost tier with invalid count_range: " + range);
+            warn(logger, "跳过 count_range 无效的队列费用档位: " + range);
             return null;
         }
         QueueCostConfig.CurrencyCost currency = parseCurrency(ConfigNodes.get(raw, "currency"), logger);
         QueueCostConfig.ItemCost item = parseItem(ConfigNodes.get(raw, "item"));
         if (currency == null && item == null) {
-            warn(logger, "Skipping queue cost tier " + range + " with no usable price.");
+            warn(logger, "跳过队列费用档位 " + range + "：没有可用的价格。");
             return null;
         }
         return new QueueCostConfig.Tier(bounds[0], bounds[1], currency, item);
@@ -69,8 +69,8 @@ public final class QueueCostLoader {
         Double maxAmount = section.getDouble("max_amount", null);
         if (maxAmount == null || maxAmount <= 0.0D) {
 
-            warn(logger, "queue_costs.yml fallback requires a positive max_amount guard rail;"
-                    + " paid queue slots beyond the defined tiers are disabled.");
+            warn(logger, "queue_costs.yml 的 fallback 需要正数 max_amount 作为保护值；"
+                    + "超出已定义档位的付费队列槽位将被禁用。");
             return null;
         }
         return new QueueCostConfig.Fallback(currency, item, maxAmount);
@@ -98,7 +98,7 @@ public final class QueueCostLoader {
         String token = ConfigNodes.string(raw, "type", "vault");
         RecipeCost resolved = RecipeCost.fromToken(token, 1L);
         if (resolved == null) {
-            warn(logger, "Unrecognised queue cost currency type: " + token);
+            warn(logger, "无法识别的队列费用货币类型: " + token);
             return null;
         }
         String providerId = resolved.providerId();

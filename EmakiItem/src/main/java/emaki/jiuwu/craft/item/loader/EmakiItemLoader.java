@@ -46,7 +46,7 @@ public final class EmakiItemLoader {
         }
         File directory = plugin.getDataFolder().toPath().resolve("items").toFile();
         if (!directory.exists() && !directory.mkdirs()) {
-            plugin.getLogger().warning("Could not create items directory: " + directory.getPath());
+            plugin.getLogger().warning("无法创建 items 目录: " + directory.getPath());
         }
         Map<String, EmakiItemDefinition> loaded = new LinkedHashMap<>();
         Map<String, String> packs = new LinkedHashMap<>();
@@ -59,14 +59,14 @@ public final class EmakiItemLoader {
                     continue;
                 }
                 if (loaded.containsKey(definition.id())) {
-                    plugin.getLogger().warning("Duplicate EmakiItem id '" + definition.id() + "' in " + file.getPath() + ", keeping first definition.");
+                    plugin.getLogger().warning("重复的 EmakiItem ID '" + definition.id() + "'（位于 " + file.getPath() + "），保留首个定义。");
                     continue;
                 }
                 loaded.put(definition.id(), definition);
                 packs.put(definition.id(), packIdOf(file, directory));
                 located.put(definition.id(), file);
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("Could not load EmakiItem definition " + file.getPath()
+                plugin.getLogger().warning("无法加载 EmakiItem 定义 " + file.getPath()
                         + ": " + Texts.toStringSafe(exception.getMessage()));
             }
         }
@@ -159,8 +159,8 @@ public final class EmakiItemLoader {
                 continue;
             }
             if (depth >= maxDepth) {
-                plugin.getLogger().warning("Skipping EmakiItem directory " + relativize(entry, root)
-                        + ": nesting exceeds data_directories.max_depth=" + maxDepth + ".");
+                plugin.getLogger().warning("跳过 EmakiItem 目录 " + relativize(entry, root)
+                        + "：嵌套层级超过 data_directories.max_depth=" + maxDepth + "。");
                 continue;
             }
             collect(entry, root, depth + 1, maxDepth, sink);

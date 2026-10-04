@@ -94,7 +94,7 @@ public final class AttributeScriptBridge {
         String reason;
         try {
             if (!ScriptHost.isEngineAvailable()) {
-                reason = "GraalJS engine class not found";
+                reason = "未找到 GraalJS 引擎类";
             } else {
                 seedScriptsDirectory();
                 host = new ScriptHost(

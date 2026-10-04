@@ -78,8 +78,8 @@ public final class SkillRegistryService {
                         }
                     }
                 } catch (RuntimeException | LinkageError exception) {
-                    plugin.getLogger().warning("[SkillRegistry] Provider '" + source.id()
-                            + "' owned by '" + source.owner().getName() + "' failed: " + exception.getMessage());
+                    plugin.getLogger().warning("[SkillRegistry] 提供者 '" + source.id()
+                            + "'（归属 '" + source.owner().getName() + "'）失败: " + exception.getMessage());
                 }
             }
         }

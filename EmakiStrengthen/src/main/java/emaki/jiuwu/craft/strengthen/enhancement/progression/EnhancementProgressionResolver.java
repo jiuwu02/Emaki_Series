@@ -58,7 +58,7 @@ public final class EnhancementProgressionResolver {
             int level,
             IntFunction<VariableContext> contextFactory) {
         contexts.computeIfAbsent(level, key -> {
-            VariableContext source = Objects.requireNonNull(contextFactory.apply(key), "variable context");
+            VariableContext source = Objects.requireNonNull(contextFactory.apply(key), "变量上下文");
             return VariableContext.builder(null).withAll(source.toMap()).build();
         });
     }

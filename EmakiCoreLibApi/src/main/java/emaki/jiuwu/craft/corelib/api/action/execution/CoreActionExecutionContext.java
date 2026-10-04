@@ -162,7 +162,7 @@ public final class CoreActionExecutionContext {
         Map<CoreActionKey<?>, Object> copy = new LinkedHashMap<>();
         source.forEach((key, value) -> {
             if (key == null || value == null || !key.type().isInstance(value)) {
-                throw new IllegalArgumentException("Execution context data does not match its typed key.");
+                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配。");
             }
             copy.put(key, value);
         });
@@ -305,7 +305,7 @@ public final class CoreActionExecutionContext {
          */
         public <T> @NotNull Builder data(@NotNull CoreActionKey<T> key, @NotNull T value) {
             if (key == null || value == null || !key.type().isInstance(value)) {
-                throw new IllegalArgumentException("Execution context data does not match its typed key.");
+                throw new IllegalArgumentException("执行上下文数据与其类型化 key 不匹配。");
             }
             Map<CoreActionKey<?>, Object> copy = new LinkedHashMap<>(data);
             copy.put(key, value);

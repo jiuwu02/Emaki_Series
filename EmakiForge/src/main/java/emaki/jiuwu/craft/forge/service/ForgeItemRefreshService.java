@@ -112,7 +112,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 if (scheduled == null) {
                     failed.incrementAndGet();
                     refresh.completeExceptionally(new RejectedExecutionException(
-                            "Forge player refresh scheduling was rejected."));
+                            "Forge 玩家刷新调度被拒绝。"));
                 }
             } catch (Throwable throwable) {
                 failed.incrementAndGet();
@@ -215,7 +215,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                     Map.of("recipe", plan.recipe().id())
             );
             if (failOnRefreshError) {
-                throw new IllegalStateException("Forge item assembly failed for recipe '" + plan.recipe().id() + "'.");
+                throw new IllegalStateException("配方 '" + plan.recipe().id() + "' 的锻造物品组装失败。");
             }
             return itemStack;
         }
@@ -224,8 +224,8 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (stateLoss.detected()) {
             debugForgeStateLoss(player, target, plan, stateLoss, itemStack, rebuilt);
             if (failOnRefreshError) {
-                throw new IllegalStateException("Forge item refresh would discard persistent state for recipe '"
-                        + plan.recipe().id() + "'.");
+                throw new IllegalStateException("刷新配方 '"
+                        + plan.recipe().id() + "' 的锻造物品会丢弃持久化状态。");
             }
             return itemStack;
         }
@@ -287,7 +287,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             warnOnce(
                     "missing_recipe_id|" + snapshotIdentity(audit),
                     "console.forge_refresh_invalid_audit",
-                    Map.of("reason", "missing recipe_id")
+                    Map.of("reason", "缺少 recipe_id")
             );
             return null;
         }
@@ -358,7 +358,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                     warnOnce(
                             "invalid_material_entry|" + recipe.id() + "|" + snapshotId + "|" + fallbackSequence,
                             "console.forge_refresh_invalid_audit",
-                            Map.of("reason", "missing material identity")
+                            Map.of("reason", "缺少材料标识")
                     );
                 } else {
                     warnOnce(

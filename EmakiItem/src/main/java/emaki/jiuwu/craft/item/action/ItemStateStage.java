@@ -31,10 +31,10 @@ import emaki.jiuwu.craft.item.service.EmakiItemStateService;
 
 public final class ItemStateStage implements CoreActionStage {
     public enum Operation {
-        SET("item_state_set", "Sets a typed persistent item state."),
-        ADD("item_state_add", "Adds to a numeric persistent item state."),
-        REMOVE("item_state_remove", "Removes a persistent item state."),
-        REFRESH("item_state_refresh", "Refreshes the target item while preserving persistent state.");
+        SET("item_state_set", "设置一个带类型的持久化物品状态。"),
+        ADD("item_state_add", "为一个数值型持久化物品状态累加。"),
+        REMOVE("item_state_remove", "移除一个持久化物品状态。"),
+        REFRESH("item_state_refresh", "刷新目标物品并保留持久化状态。");
         private final String id;
         private final String description;
         Operation(String id, String description) { this.id = id; this.description = description; }
@@ -55,23 +55,23 @@ public final class ItemStateStage implements CoreActionStage {
     @Override public @NotNull String category() { return "item"; }
     @Override public @NotNull List<CoreStageParameter> parameters() {
         if (operation == Operation.REFRESH) {
-            return List.of(CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "Inventory slot"));
+            return List.of(CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
         }
         if (operation == Operation.REMOVE) {
-            return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "State key"),
-                    CoreStageParameter.required("type", CoreStageParameterType.STRING, "State type"),
-                    CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "Inventory slot"));
+            return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "状态键"),
+                    CoreStageParameter.required("type", CoreStageParameterType.STRING, "状态类型"),
+                    CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
         }
         if (operation == Operation.ADD) {
-            return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "State key"),
-                    CoreStageParameter.required("type", CoreStageParameterType.STRING, "State type"),
-                    CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Numeric delta"),
-                    CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "Inventory slot"));
+            return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "状态键"),
+                    CoreStageParameter.required("type", CoreStageParameterType.STRING, "状态类型"),
+                    CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "数值增量"),
+                    CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
         }
-        return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "State key"),
-                CoreStageParameter.required("type", CoreStageParameterType.STRING, "State type"),
-                CoreStageParameter.required("value", CoreStageParameterType.STRING, "State value"),
-                CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "Inventory slot"));
+        return List.of(CoreStageParameter.required("key", CoreStageParameterType.STRING, "状态键"),
+                CoreStageParameter.required("type", CoreStageParameterType.STRING, "状态类型"),
+                CoreStageParameter.required("value", CoreStageParameterType.STRING, "状态值"),
+                CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
     }
     @Override public @NotNull CoreTargetRequirement targetRequirement() { return CoreTargetRequirement.OPTIONAL; }
     @Override public @NotNull Set<CoreActionKey<?>> requiredContext() { return Set.of(); }

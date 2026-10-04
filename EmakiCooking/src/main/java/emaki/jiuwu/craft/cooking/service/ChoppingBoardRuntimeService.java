@@ -110,7 +110,7 @@ public final class ChoppingBoardRuntimeService {
                 ChoppingBoardState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed chopping-board state"));
+                            new IllegalArgumentException("已提交的砧板状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -154,7 +154,9 @@ public final class ChoppingBoardRuntimeService {
         if (!blockMatcher.matches(block, StationType.CHOPPING_BOARD, stationSource)) {
             clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=chopping_board coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "chopping_board",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         if (state.hasInputSource()) {

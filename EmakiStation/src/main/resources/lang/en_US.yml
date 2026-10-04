@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.1.4"
+version: "1.1.5"
 
 console:
   plugin_starting: "Starting EmakiStation..."
@@ -70,6 +70,8 @@ command:
   list_station: "<gray>- <aqua>%station%</aqua> <white>%name%</white> <dark_gray>(<yellow>%recipes%</yellow> recipes)</dark_gray></gray>"
   list_recipe: "<gray>- <aqua>%recipe%</aqua> <white>%name%</white> <dark_gray>(<yellow>%duration%</yellow>s)</dark_gray></gray>"
   reload_done: "<green>Reloaded: <yellow>%stations%</yellow> stations, <yellow>%recipes%</yellow> recipes, <yellow>%issues%</yellow> issues</green>"
+  # Command: reload elapsed time notice; placeholders: %elapsed%
+  reload_elapsed: "<gray>Reload took <white>%elapsed%ms</white></gray>"
   admin_usage: "<red>Usage: /emakistation admin queue <player></red>"
   unknown_station: "<red>Unknown station: <gray>%station%</gray></red>"
   unknown_player: "<red>Unknown player: <gray>%player%</gray></red>"

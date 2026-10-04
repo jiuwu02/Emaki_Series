@@ -190,7 +190,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             PlayerCodexStore.FlushResult flush =
                     plugin.codexStore().flushAndSeal(SHUTDOWN_FLUSH_SECONDS, TimeUnit.SECONDS);
             if (!flush.clean()) {
-                plugin.getLogger().warning("Codex progress flush finished dirty: saved="
+                plugin.getLogger().warning("EmakiCodex 进度刷新结束时仍有未落盘数据：saved="
                         + flush.savedEntries() + " failed=" + flush.failedEntries()
                         + " remaining=" + flush.remainingDirtyEntries());
             }

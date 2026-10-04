@@ -23,13 +23,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class AtSource extends BaseSource {
 
     public AtSource() {
-        super("at", "An absolute or origin-relative coordinate.",
+        super("at", "绝对坐标，或相对原点的坐标。",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("world", CoreStageParameterType.STRING, "",
-                        "World name or key, defaults to the origin world"),
-                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X, supports ~"),
-                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y, supports ~"),
-                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z, supports ~"));
+                        "世界名称或键，默认使用原点所在世界"),
+                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X 坐标，支持 ~"),
+                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y 坐标，支持 ~"),
+                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z 坐标，支持 ~"));
     }
 
     @Override

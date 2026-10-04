@@ -26,14 +26,14 @@ public final class DamageItemStage extends BaseStage {
     private final ActionAuditLogger auditLogger;
 
     public DamageItemStage(ActionAuditLogger auditLogger) {
-        super("damage_item", "item", "Adds durability damage to an item in one of the target's slots.",
+        super("damage_item", "item", "为目标的某个槽位物品增加耐久损耗。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "mainhand",
-                        "Inventory slot"),
+                        "背包槽位"),
                 CoreStageParameter.optional("amount", CoreStageParameterType.INTEGER, "1",
-                        "Damage points to add"),
+                        "要增加的损耗点数"),
                 CoreStageParameter.optional("delete_item", CoreStageParameterType.BOOLEAN, "false",
-                        "Remove the item when damage reaches max durability"));
+                        "损耗达到最大耐久时移除该物品"));
         this.auditLogger = auditLogger;
     }
 

@@ -89,7 +89,7 @@ public final class StrengthenGuiService implements Listener {
 
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
-            plugin.getLogger().warning("Failed to close all strengthen GUI sessions: " + throwable.getMessage());
+            plugin.getLogger().warning("关闭全部强化 GUI 会话失败: " + throwable.getMessage());
             return null;
         });
     }

@@ -21,14 +21,14 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class SpawnParticleStage extends BaseStage {
 
     public SpawnParticleStage() {
-        super("spawn_particle", "feedback", "Spawns particles at the target position.",
+        super("spawn_particle", "feedback", "在目标位置生成粒子。",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
-                CoreStageParameter.required("particle", CoreStageParameterType.STRING, "Particle key"),
-                CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1", "Particle count"),
-                CoreStageParameter.optional("offset_x", CoreStageParameterType.DOUBLE, "0", "Offset x"),
-                CoreStageParameter.optional("offset_y", CoreStageParameterType.DOUBLE, "0", "Offset y"),
-                CoreStageParameter.optional("offset_z", CoreStageParameterType.DOUBLE, "0", "Offset z"),
-                CoreStageParameter.optional("extra", CoreStageParameterType.DOUBLE, "0", "Extra data"));
+                CoreStageParameter.required("particle", CoreStageParameterType.STRING, "粒子键"),
+                CoreStageParameter.optional("count", CoreStageParameterType.INTEGER, "1", "粒子数量"),
+                CoreStageParameter.optional("offset_x", CoreStageParameterType.DOUBLE, "0", "X 偏移"),
+                CoreStageParameter.optional("offset_y", CoreStageParameterType.DOUBLE, "0", "Y 偏移"),
+                CoreStageParameter.optional("offset_z", CoreStageParameterType.DOUBLE, "0", "Z 偏移"),
+                CoreStageParameter.optional("extra", CoreStageParameterType.DOUBLE, "0", "额外数据"));
     }
 
     @Override

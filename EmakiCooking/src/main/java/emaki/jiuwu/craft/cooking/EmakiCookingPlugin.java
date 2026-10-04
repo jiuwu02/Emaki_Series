@@ -196,7 +196,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (nutritionDataStore != null) {
             var flushResult = nutritionDataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.success()) {
-                getLogger().warning("Nutrition data drain incomplete: pending="
+                getLogger().warning("营养数据排空未完成: pending="
                         + flushResult.pendingFileOperations()
                         + ", dirty=" + flushResult.remainingDirtyEntries()
                         + ", failures=" + flushResult.failures().size());
@@ -220,7 +220,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (completionCoordinator != null) {
             var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("Cooking completion journal drain incomplete: pending="
+                getLogger().warning("烹饪完成日志排空未完成: pending="
                         + drainResult.pendingOperations()
                         + ", failures=" + drainResult.failures().size());
             }
@@ -228,7 +228,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (stationStateStore != null) {
             var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("Station state drain incomplete: pending="
+                getLogger().warning("工位状态排空未完成: pending="
                         + drainResult.pendingOperations()
                         + ", failures=" + drainResult.failures().size());
             }
@@ -284,7 +284,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiCooking readiness publication skipped: " + exception);
+            getLogger().fine("EmakiCooking 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -294,7 +294,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         }
         completionCoordinator.recover().whenComplete((_, error) -> {
             if (error != null) {
-                getLogger().warning("Cooking completion recovery failed: " + error.getMessage());
+                messageService.warning("console.completion_recovery_failed", Map.of("error", String.valueOf(error.getMessage())));
             }
         });
     }
@@ -365,7 +365,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "ecooking command",
+                "EmakiCooking 命令",
                 List.of("ec"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicooking.use", commandRouter, commandRouter)
         );

@@ -25,12 +25,12 @@ public final class SortByGate extends BaseGate {
     private static final String HEALTH = "health";
 
     public SortByGate() {
-        super("sort_by", "Orders the target flow by distance or health.",
+        super("sort_by", "按距离或生命值排序目标流。",
                 CoreGateThread.NEEDS_ENTITY_READ,
                 CoreStageParameter.positional("key", CoreStageParameterType.STRING,
-                        "distance or health"),
+                        "distance 或 health"),
                 CoreStageParameter.optional("order", CoreStageParameterType.STRING, "asc",
-                        "asc or desc"));
+                        "asc 或 desc"));
     }
 
     @Override

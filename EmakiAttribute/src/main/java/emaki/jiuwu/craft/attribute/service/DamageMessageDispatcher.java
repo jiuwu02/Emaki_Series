@@ -188,8 +188,8 @@ final class DamageMessageDispatcher {
         replacements.put("damage_cause_name", causeName);
         replacements.put("damage_cause_id", damageContext.causeId());
         replacements.put("critical", critical);
-        replacements.put("critical_text", critical ? messageOrFallback("damage.critical_text", "critical") : "");
-        replacements.put("critical_suffix", critical ? messageOrFallback("damage.critical_suffix", " <red>critical</red>") : "");
+        replacements.put("critical_text", critical ? messageOrFallback("damage.critical_text", "暴击") : "");
+        replacements.put("critical_suffix", critical ? messageOrFallback("damage.critical_suffix", " <red>暴击</red>") : "");
         replacements.put("roll", rollText);
         double attackerHealth = damageContext.variables().getDouble("attacker_health", 0D);
         double attackerMaxHealth = damageContext.variables().getDouble("attacker_max_health", 0D);
@@ -216,37 +216,37 @@ final class DamageMessageDispatcher {
 
     private String resolveCauseDisplayName(EntityDamageEvent.DamageCause cause) {
         if (cause == null) {
-            return messageOrFallback("damage.cause.environment", "environment");
+            return messageOrFallback("damage.cause.environment", "环境");
         }
         return switch (cause) {
-            case CONTACT -> messageOrFallback("damage.cause.contact", "contact");
-            case ENTITY_ATTACK -> messageOrFallback("damage.cause.entity_attack", "attack");
-            case PROJECTILE -> messageOrFallback("damage.cause.projectile", "projectile");
-            case SUFFOCATION -> messageOrFallback("damage.cause.suffocation", "suffocation");
-            case FALL -> messageOrFallback("damage.cause.fall", "fall");
-            case FIRE -> messageOrFallback("damage.cause.fire", "fire");
-            case FIRE_TICK -> messageOrFallback("damage.cause.fire_tick", "burning");
-            case MELTING -> messageOrFallback("damage.cause.melting", "melting");
-            case LAVA -> messageOrFallback("damage.cause.lava", "lava");
-            case DROWNING -> messageOrFallback("damage.cause.drowning", "drowning");
-            case BLOCK_EXPLOSION -> messageOrFallback("damage.cause.block_explosion", "block explosion");
-            case ENTITY_EXPLOSION -> messageOrFallback("damage.cause.entity_explosion", "entity explosion");
-            case VOID -> messageOrFallback("damage.cause.void", "void");
-            case LIGHTNING -> messageOrFallback("damage.cause.lightning", "lightning");
-            case WORLD_BORDER -> messageOrFallback("damage.cause.world_border", "world border");
-            case STARVATION -> messageOrFallback("damage.cause.starvation", "starvation");
-            case POISON -> messageOrFallback("damage.cause.poison", "poison");
-            case MAGIC -> messageOrFallback("damage.cause.magic", "magic");
-            case WITHER -> messageOrFallback("damage.cause.wither", "wither");
-            case FALLING_BLOCK -> messageOrFallback("damage.cause.falling_block", "falling block");
-            case DRAGON_BREATH -> messageOrFallback("damage.cause.dragon_breath", "dragon breath");
-            case FLY_INTO_WALL -> messageOrFallback("damage.cause.fly_into_wall", "collision");
-            case HOT_FLOOR -> messageOrFallback("damage.cause.hot_floor", "hot floor");
-            case CAMPFIRE -> messageOrFallback("damage.cause.campfire", "campfire");
-            case CRAMMING -> messageOrFallback("damage.cause.cramming", "cramming");
-            case DRYOUT -> messageOrFallback("damage.cause.dryout", "dryout");
-            case FREEZE -> messageOrFallback("damage.cause.freeze", "freeze");
-            case SONIC_BOOM -> messageOrFallback("damage.cause.sonic_boom", "sonic boom");
+            case CONTACT -> messageOrFallback("damage.cause.contact", "接触");
+            case ENTITY_ATTACK -> messageOrFallback("damage.cause.entity_attack", "攻击");
+            case PROJECTILE -> messageOrFallback("damage.cause.projectile", "弹射物");
+            case SUFFOCATION -> messageOrFallback("damage.cause.suffocation", "窒息");
+            case FALL -> messageOrFallback("damage.cause.fall", "摔落");
+            case FIRE -> messageOrFallback("damage.cause.fire", "火焰");
+            case FIRE_TICK -> messageOrFallback("damage.cause.fire_tick", "燃烧");
+            case MELTING -> messageOrFallback("damage.cause.melting", "融化");
+            case LAVA -> messageOrFallback("damage.cause.lava", "岩浆");
+            case DROWNING -> messageOrFallback("damage.cause.drowning", "溺水");
+            case BLOCK_EXPLOSION -> messageOrFallback("damage.cause.block_explosion", "方块爆炸");
+            case ENTITY_EXPLOSION -> messageOrFallback("damage.cause.entity_explosion", "爆炸");
+            case VOID -> messageOrFallback("damage.cause.void", "虚空");
+            case LIGHTNING -> messageOrFallback("damage.cause.lightning", "雷击");
+            case WORLD_BORDER -> messageOrFallback("damage.cause.world_border", "世界边界");
+            case STARVATION -> messageOrFallback("damage.cause.starvation", "饥饿");
+            case POISON -> messageOrFallback("damage.cause.poison", "中毒");
+            case MAGIC -> messageOrFallback("damage.cause.magic", "魔法");
+            case WITHER -> messageOrFallback("damage.cause.wither", "凋零");
+            case FALLING_BLOCK -> messageOrFallback("damage.cause.falling_block", "落块");
+            case DRAGON_BREATH -> messageOrFallback("damage.cause.dragon_breath", "龙息");
+            case FLY_INTO_WALL -> messageOrFallback("damage.cause.fly_into_wall", "碰撞");
+            case HOT_FLOOR -> messageOrFallback("damage.cause.hot_floor", "高温");
+            case CAMPFIRE -> messageOrFallback("damage.cause.campfire", "营火");
+            case CRAMMING -> messageOrFallback("damage.cause.cramming", "挤压");
+            case DRYOUT -> messageOrFallback("damage.cause.dryout", "脱水");
+            case FREEZE -> messageOrFallback("damage.cause.freeze", "冻结");
+            case SONIC_BOOM -> messageOrFallback("damage.cause.sonic_boom", "音爆");
             default -> messageOrFallback("damage.cause.unknown", cause.name().toLowerCase(Locale.ROOT).replace('_', ' '));
         };
     }

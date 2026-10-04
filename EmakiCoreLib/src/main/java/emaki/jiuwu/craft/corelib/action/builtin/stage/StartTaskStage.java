@@ -28,28 +28,28 @@ public final class StartTaskStage extends BaseStage {
     private final SequenceSource sequences;
 
     public StartTaskStage(@Nullable PipelineTaskService tasks, @Nullable SequenceSource sequences) {
-        super("start_task", "task", "Starts a named sequence repeating on an interval.",
+        super("start_task", "task", "按间隔重复启动一个具名序列。",
                 CoreTargetRequirement.OPTIONAL, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("sequence", CoreStageParameterType.STRING,
-                        "Name of the sequence to repeat"),
+                        "要重复的序列名称"),
                 CoreStageParameter.optional("times", CoreStageParameterType.INTEGER, "1",
-                        "How many iterations; capped by action.pipeline.max_repeat_times"),
+                        "迭代次数；受 action.pipeline.max_repeat_times 限制"),
                 CoreStageParameter.optional("interval", CoreStageParameterType.DURATION, "20t",
-                        "Delay between iterations"),
+                        "迭代之间的延迟"),
                 CoreStageParameter.optional("initial_delay", CoreStageParameterType.DURATION, "0t",
-                        "Delay before the first iteration"),
+                        "首次迭代前的延迟"),
                 CoreStageParameter.optional("key", CoreStageParameterType.STRING, "",
-                        "De-duplication key; defaults to a generated one"),
+                        "去重键；默认自动生成"),
                 CoreStageParameter.optional("on_conflict", CoreStageParameterType.STRING, "replace",
-                        "replace, ignore or allow_duplicate"),
+                        "replace、ignore 或 allow_duplicate"),
                 CoreStageParameter.optional("stop_when_offline", CoreStageParameterType.BOOLEAN, "true",
-                        "Stop once the owning player is offline"),
+                        "所属玩家离线后停止"),
                 CoreStageParameter.optional("stop_when_dead", CoreStageParameterType.BOOLEAN, "false",
-                        "Stop once the owning entity is dead"),
+                        "所属实体死亡后停止"),
                 CoreStageParameter.optional("stop_when", CoreStageParameterType.STRING, "",
-                        "Stop once this condition stops holding"),
+                        "该条件不再成立后停止"),
                 CoreStageParameter.optional("stop_on_failure", CoreStageParameterType.BOOLEAN, "false",
-                        "Stop when an iteration fails"));
+                        "某次迭代失败时停止"));
         this.tasks = tasks;
         this.sequences = sequences;
     }

@@ -161,7 +161,7 @@ public final class GemItemMatcher {
         try {
             return matcher.test(MatchContext.of(itemStack, identified, null));
         } catch (RuntimeException | LinkageError failure) {
-            plugin.getLogger().warning("Gem matcher evaluation failed, treating the item as unmatched: "
+            plugin.getLogger().warning("宝石匹配器求值失败，将该物品视为不匹配: "
                     + failure.getMessage());
             return false;
         }
@@ -174,7 +174,7 @@ public final class GemItemMatcher {
         try {
             return requirement.test(itemStack, identified, null);
         } catch (RuntimeException | LinkageError failure) {
-            plugin.getLogger().warning("Gem recognition evaluation failed, treating the item as unmatched: "
+            plugin.getLogger().warning("宝石识别求值失败，将该物品视为不匹配: "
                     + failure.getMessage());
             return false;
         }

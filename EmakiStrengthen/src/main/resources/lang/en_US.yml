@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.4"
+version: "4.8.5"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -16,6 +16,8 @@ general:
   reload_summary:
     "<gray>Reloaded %recipes% recipes, %materials% materials, %guis%
     GUIs.</gray>"
+  # Player: reload elapsed feedback; placeholders: %elapsed%
+  reload_elapsed: "<gray>Reload took <white>%elapsed%ms</white></gray>"
 
 command:
   help:
@@ -126,6 +128,28 @@ console:
       required_directory_missing: "Required directory is missing."
       path_not_directory: "Path is not a directory."
       directory_not_readable: "Directory is not readable."
+      # Console: enhancement recipe material slot target_compare unknown; placeholders: %recipe%, %index%, %token%, %legal%
+      enhancement_recipe_unknown_target_compare: "Enhancement recipe %recipe% material_%index% declares unknown target_compare '%token%'; legal values are %legal%."
+      # Console: enhancement recipe material slot required/optional conflict; placeholders: %recipe%, %index%
+      enhancement_recipe_required_optional_conflict: "Enhancement recipe %recipe% material_%index% declares both 'required' and 'optional'; 'optional' wins and 'required' is ignored."
+      # Console: enhancement recipe material slot has neither matcher nor item_sources; placeholders: %recipe%, %index%
+      enhancement_recipe_empty_matcher: "Enhancement recipe %recipe% material_%index% declares no matcher and no item_sources, so every supplied item satisfies this slot."
+      # Console: enhancement recipe has no required material slot; placeholders: %recipe%
+      enhancement_recipe_no_required_slot: "Enhancement recipe %recipe% has materials but none of them is required, so the slots never block an attempt."
+      # Console: enhancement recipe duplicate pity track; placeholders: %recipe%, %track%
+      enhancement_recipe_duplicate_pity_track: "Enhancement recipe %recipe% declares duplicate pity track '%track%'; duplicate tracks share one counter and double-count the same attempt."
+      # Console: enhancement recipe pity track isolated by level; placeholders: %recipe%, %track%
+      enhancement_recipe_pity_level_isolation: "Enhancement recipe %recipe% pity track '%track%' isolates by level under player scope, so the counter resets whenever the target level changes."
+      # Console: enhancement recipe mode disagrees with target provider; placeholders: %recipe%, %mode%, %provider%
+      enhancement_recipe_mode_provider_mismatch: "Enhancement recipe %recipe% declares mode '%mode%' but target provider '%provider%'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder, so the two disagreeing is usually a configuration mistake."
+      # Console: forge variable path not under forge prefix; placeholders: %path%
+      forge_variable_path_prefix: "forge variable path '%path%' must live under the forge prefix."
+      # Console: canonical forge variable has no alias path; placeholders: %variable%
+      forge_variable_canonical_missing: "canonical forge variable '%variable%' is not produced by any alias path."
+      # Console: legacy forge variable no longer produced; placeholders: %variable%
+      forge_variable_legacy_missing: "legacy forge variable '%variable%' is no longer produced, breaking existing recipes."
+      # Console: forge PDC namespace mismatch; placeholders: %namespace%
+      forge_pdc_namespace_mismatch: "forge pdc namespace expected 'emakiforge' but was '%namespace%'."
   bootstrap_start: "<gray>Checking default files...</gray>"
   bootstrap_complete: "<green>Default file check complete.</green>"
   bootstrap_skip: "<yellow>release_default_data=false, skipped default data generation.</yellow>"
@@ -144,6 +168,31 @@ console:
   pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
   recipes_loaded: "<gray>Loaded <yellow>%count%</yellow> strengthen recipe(s)</gray>"
   papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  # Console: reload progress notice
+  reload_loading_files: "<gray>Loading configuration files...</gray>"
+  reload_loading_configs: "<gray>Loading configs...</gray>"
+  reload_applying: "<gray>Applying configuration...</gray>"
+  reload_complete: "<green>Reload complete.</green>"
+  # Console: reload stage failed; placeholders: %stage%, %error%
+  reload_stage_failed: "<yellow>[Reload] Stage %stage% failed: %error%</yellow>"
+  # Console: strengthen attempt failed closed; placeholders: %operation_id%, %error%
+  strengthen_attempt_failed_closed: "<red>Strengthen attempt failed closed | operationId=%operation_id% | error=%error%</red>"
+  # Console: strengthen result event dispatch failed; placeholders: %operation_id%, %error%
+  strengthen_result_dispatch_failed: "<yellow>Strengthen result event dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
+  # Console: GUI result action dispatch failed; placeholders: %operation_id%, %error%
+  gui_result_action_dispatch_failed: "<yellow>Strengthen result action dispatch failed | operationId=%operation_id% | error=%error%</yellow>"
+  # Console: committed result owner retired; placeholders: %operation_id%
+  gui_owner_retired: "<yellow>Strengthen committed result owner retired; settlement remains pending | operationId=%operation_id%</yellow>"
+  # Console: committed result scheduling rejected; placeholders: %operation_id%
+  gui_schedule_rejected: "<red>Strengthen committed result scheduling was rejected; settlement remains pending | operationId=%operation_id%</red>"
+  # Console: committed result scheduling failed; placeholders: %operation_id%, %error%
+  gui_schedule_failed: "<red>Strengthen committed result scheduling failed; settlement remains pending | operationId=%operation_id% | error=%error%</red>"
+  # Console: committed result settlement failed and will be retried; placeholders: %operation_id%, %error%
+  gui_settlement_retry: "<red>Strengthen committed result settlement failed and will be retried | operationId=%operation_id% | error=%error%</red>"
+  # Console: result notification failed after settlement; placeholders: %operation_id%, %error%
+  gui_notification_failed: "<yellow>Strengthen committed result notification failed after settlement | operationId=%operation_id% | error=%error%</yellow>"
+  # Console: inventory-full notification failed; placeholders: %error%
+  gui_inventory_full_notify_failed: "<yellow>Strengthen inventory-full notification failed | error=%error%</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>Failed to create language directory: <red>%path%</red></yellow>"

@@ -35,7 +35,7 @@ public record EnhancementOperationView(@NotNull String operationId,
 
     public EnhancementOperationView {
         if (operationId == null || operationId.isBlank()) {
-            throw new IllegalArgumentException("operationId cannot be null or blank");
+            throw new IllegalArgumentException("operationId 不能为 null 或为空");
         }
         phase = phase == null ? "" : phase;
     }

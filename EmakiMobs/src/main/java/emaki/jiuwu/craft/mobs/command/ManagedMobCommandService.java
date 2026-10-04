@@ -77,7 +77,7 @@ final class ManagedMobCommandService {
                 Throwable throwable = null;
                 try {
                     if (!plugin.isEnabled() || plugin.isShutdownStarted()) {
-                        throw new IllegalStateException("EmakiMobs is shutting down");
+                        throw new IllegalStateException("EmakiMobs 正在关闭");
                     }
                     if (!entity.isValid() || entity.isDead()) {
                         mobIdentifier.forget(entity);
@@ -91,7 +91,7 @@ final class ManagedMobCommandService {
             }, retired);
             if (token == null || token.cancelled()) {
                 completeCandidate(completed, remaining, total, failure, result,
-                        new IllegalStateException("Unable to schedule managed mob inspection"));
+                        new IllegalStateException("无法调度受管生物检查"));
             }
         }
         return result;

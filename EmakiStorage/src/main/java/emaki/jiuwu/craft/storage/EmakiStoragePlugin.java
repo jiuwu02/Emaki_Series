@@ -154,8 +154,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 ApiCapability.of("emakistorage:batch_count"),
                 ApiCapability.of("emakistorage:reservation")));
         if (!capabilityRegistration.successful()) {
-            getLogger().warning("[storage] Capability publication was refused: "
-                    + capabilityRegistration.reasonKey());
+            messageService.warning("console.capability_refused",
+                    Map.of("reason", String.valueOf(capabilityRegistration.reasonKey())));
         }
     }
 
@@ -194,7 +194,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             long timeout = appConfig().persistence().drainTimeoutSeconds();
             PlayerStorageStore.FlushResult result = dataStore.flushAndSeal(timeout, TimeUnit.SECONDS);
             if (!result.clean()) {
-                getLogger().warning("[storage] Shutdown flush was not clean: saved="
+                getLogger().warning("[storage] 关闭刷新未干净完成：saved="
                         + result.savedEntries() + " failed=" + result.failedEntries()
                         + " remainingDirty=" + result.remainingDirtyEntries()
                         + " drained=" + (result.drainResult() != null && result.drainResult().drained()));
@@ -233,7 +233,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStorage readiness publication skipped: " + exception);
+            getLogger().fine("EmakiStorage 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -309,12 +309,12 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             placeholderExpansion = new StoragePlaceholderExpansion(this);
             if (!placeholderExpansion.register()) {
-                getLogger().warning("[storage] PlaceholderAPI expansion registration was refused.");
+                messageService.warning("console.papi_registration_refused");
                 placeholderExpansion = null;
             }
         } catch (RuntimeException | LinkageError failure) {
-            getLogger().warning("[storage] PlaceholderAPI expansion unavailable: "
-                    + failure.getClass().getSimpleName());
+            messageService.warning("console.papi_unavailable",
+                    Map.of("reason", failure.getClass().getSimpleName()));
             placeholderExpansion = null;
         }
     }
@@ -506,8 +506,9 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 YamlFiles.save(target.toFile(), dump);
                 return "exports/" + fileName;
             } catch (IOException failure) {
-                getLogger().warning("[storage] Failed to export storage for " + playerId
-                        + ": " + failure.getMessage());
+                messageService.warning("console.export_failed", Map.of(
+                        "player", playerId,
+                        "error", String.valueOf(failure.getMessage())));
                 return null;
             }
         });

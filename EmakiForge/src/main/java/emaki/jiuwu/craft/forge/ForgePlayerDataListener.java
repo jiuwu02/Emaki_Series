@@ -80,7 +80,7 @@ final class ForgePlayerDataListener implements Listener {
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
         plugin.getLogger().log(Level.WARNING,
-                "[PlayerDataStore] Async " + operation + " failed for " + playerId,
+                "[PlayerDataStore] 异步 " + operation + " 失败，玩家 " + playerId,
                 cause);
     }
 

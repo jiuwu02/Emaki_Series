@@ -56,7 +56,7 @@ public final class BoostedYamlSupport {
             );
             return new MapYamlSection(new BoostedYamlSection(document).asMap());
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to parse YAML input: " + safeMessage(exception), exception);
+            throw new YamlLoadException("解析 YAML 输入失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -69,7 +69,7 @@ public final class BoostedYamlSupport {
         } catch (YamlLoadException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to read YAML payload: " + safeMessage(exception), exception);
+            throw new YamlLoadException("读取 YAML 内容失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -84,7 +84,7 @@ public final class BoostedYamlSupport {
         } catch (YamlLoadException exception) {
             throw exception;
         } catch (Exception exception) {
-            throw new YamlLoadException("Failed to read YAML stream: " + safeMessage(exception), exception);
+            throw new YamlLoadException("读取 YAML 流失败: " + safeMessage(exception), exception);
         }
     }
 
@@ -110,7 +110,7 @@ public final class BoostedYamlSupport {
 
     private static String safeMessage(Throwable throwable) {
         if (throwable == null || throwable.getMessage() == null || throwable.getMessage().isBlank()) {
-            return throwable == null ? "unknown error" : throwable.getClass().getSimpleName();
+            return throwable == null ? "未知错误" : throwable.getClass().getSimpleName();
         }
         return throwable.getMessage();
     }

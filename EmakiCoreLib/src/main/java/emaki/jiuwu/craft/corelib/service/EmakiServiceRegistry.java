@@ -10,6 +10,6 @@ public interface EmakiServiceRegistry {
             return service;
         }
         String name = type == null ? "<unknown>" : type.getName();
-        throw new IllegalStateException("Required service is not registered: " + name);
+        throw new IllegalStateException("所需服务未注册: " + name);
     }
 }

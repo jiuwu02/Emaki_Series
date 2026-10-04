@@ -23,12 +23,12 @@ record ActionStagePayload(String id,
 
     static PayloadResult<ActionStagePayload> parse(@Nullable Value payload, long defaultTimeoutMillis) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            return PayloadResult.fail("actions: payload must be an object");
+            return PayloadResult.fail("actions: payload 必须是对象");
         }
         String rawId = ScriptPayloads.textMember(payload, "id");
         String id = Texts.normalizeId(Texts.toStringSafe(rawId));
         if (Texts.isBlank(id)) {
-            return PayloadResult.fail("actions: field 'id' is required");
+            return PayloadResult.fail("actions: 必须提供字段 'id'");
         }
         String description = Texts.toStringSafe(ScriptPayloads.textMember(payload, "description"));
         String category = Texts.toStringSafe(ScriptPayloads.textMember(payload, "category"));
@@ -41,11 +41,11 @@ record ActionStagePayload(String id,
         }
         long timeout = parseTimeout(payload, defaultTimeoutMillis);
         if (timeout <= 0L) {
-            return PayloadResult.fail("actions: field 'timeout' of '" + id + "' must be a positive number");
+            return PayloadResult.fail("actions: '" + id + "' 的字段 'timeout' 必须是正数");
         }
         Value execute = ScriptPayloads.functionMember(payload, "execute");
         if (execute == null) {
-            return PayloadResult.fail("actions: field 'execute' of '" + id + "' must be a callable function");
+            return PayloadResult.fail("actions: '" + id + "' 的字段 'execute' 必须是可调用函数");
         }
         return PayloadResult.ok(new ActionStagePayload(id, description, category,
                 parameters.value(), timeout, execute));
@@ -57,22 +57,22 @@ record ActionStagePayload(String id,
         }
         Value parameters = payload.getMember("parameters");
         if (!parameters.hasArrayElements()) {
-            return PayloadResult.fail("actions: field 'parameters' must be an array");
+            return PayloadResult.fail("actions: 字段 'parameters' 必须是数组");
         }
         List<CoreStageParameter> parsed = new ArrayList<>();
         for (long index = 0; index < parameters.getArraySize(); index++) {
             Value entry = parameters.getArrayElement(index);
             if (entry == null || entry.isNull() || !entry.hasMembers()) {
-                return PayloadResult.fail("actions: parameter at index " + index + " must be an object");
+                return PayloadResult.fail("actions: 索引 " + index + " 处的参数必须是对象");
             }
             String name = Texts.toStringSafe(ScriptPayloads.textMember(entry, "name")).trim();
             if (Texts.isBlank(name)) {
-                return PayloadResult.fail("actions: parameter at index " + index + " is missing 'name'");
+                return PayloadResult.fail("actions: 索引 " + index + " 处的参数缺少 'name'");
             }
             CoreStageParameterType type = parseType(entry);
             if (type == null) {
                 String rawType = Texts.toStringSafe(ScriptPayloads.textMember(entry, "type"));
-                return PayloadResult.fail("actions: parameter '" + name + "' declares invalid type '"
+                return PayloadResult.fail("actions: 参数 '" + name + "' 声明了无效类型 '"
                         + rawType + "'");
             }
             boolean required = parseBoolean(entry, "required");

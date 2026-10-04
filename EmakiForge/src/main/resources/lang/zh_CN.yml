@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.3"
+version: "4.8.4"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
@@ -32,6 +32,11 @@ command:
       "edit recipe <id>": "编辑指定配方"
       "create recipe [id]": "创建新配方草稿"
       "delete recipe <id>": "删除指定配方"
+  debug:
+    # 命令：锻造运行状态调试输出；占位符：%status%、%generation%、%gui%、%recipes%、%issues%、%source_states%、%reload_candidates%、%reload_installed%、%reload_failed%、%reload_stale%、%gui_stale%、%execution_stale%、%settlement_failures%、%last_ms%
+    runtime: "<gray>EmakiForge 运行状态:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"
+    # 命令：配方加载报告调试输出；占位符：%generation%、%files%、%parsed%、%skipped%、%registered%、%duplicates%、%executable%、%gui_visible%、%issues%、%warnings%、%hash%、%duration_ms%、%source_statuses%
+    recipe_load: "<gray>EmakiForge 配方加载:</gray> <white>generation=%generation% files=%files% parsed=%parsed% skipped=%skipped% registered=%registered% duplicates=%duplicates% executable=%executable% gui_visible=%gui_visible% issues=%issues% warnings=%warnings% hash=%hash% duration_ms=%duration_ms% source_statuses=%source_statuses%</white>"
   convert_legacy:
     header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
     mode:
@@ -134,6 +139,14 @@ console:
     "<yellow>外部物品来源不可用: <gray>依赖=%dependency%,
     场景=%context%, 来源=%source%, 详情=%detail%</gray></yellow>"
   item_bridge_unavailable: "<yellow>%dependency% API 桥接不可用: <red>%error%</red></yellow>"
+  # 控制台：物品来源不可用；占位符：%source%、%location%、%provider%、%status%、%detail%
+  item_source_unavailable: "<yellow>物品来源不可用: <gray>来源=%source%, 位置=%location%, 提供者=%provider%, 状态=%status%, 详情=%detail%</gray></yellow>"
+  # 控制台：物品来源解析失败；占位符：%source%、%operation%
+  item_source_resolve_failed: "<yellow>物品来源解析失败: <gray>来源=%source%, 操作=%operation%</gray></yellow>"
+  # 控制台：重载代次失败；占位符：%generation%、%error%
+  reload_generation_failed: "[Reload] 代次 %generation% 重载失败: %error%"
+  # 控制台：重载被拒绝；占位符：%generation%、%summary%
+  reload_rejected: "[Reload] 已拒绝代次 %generation%: %summary%"
   forge_execution_failed: "<yellow>锻造执行失败: 配方 <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
   forge_phase_execution_failed:
     "<yellow>锻造阶段执行失败: 阶段 <red>%phase%</red>，配方

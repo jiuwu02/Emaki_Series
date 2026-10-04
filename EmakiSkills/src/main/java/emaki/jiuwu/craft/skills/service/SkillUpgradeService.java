@@ -259,8 +259,8 @@ public final class SkillUpgradeService {
             boolean costsRestored = rollbackCharge(player, chargeResult);
             boolean compensated = stateRestored & costsRestored;
             if (!compensated && plugin != null) {
-                plugin.getLogger().severe("Failed to fully compensate skill upgrade state commit for "
-                        + (player == null ? "unknown player" : player.getUniqueId()));
+                plugin.getLogger().severe("技能升级状态提交补偿不完整，玩家 "
+                        + (player == null ? "未知玩家" : player.getUniqueId()));
             }
             placeholders.put("reason", Texts.isBlank(exception.getMessage())
                     ? exception.getClass().getSimpleName()
@@ -370,7 +370,7 @@ public final class SkillUpgradeService {
     }
 
     private String matcherDisplayName(int configIndex) {
-        return "matcher#" + (configIndex + 1);
+        return "匹配器#" + (configIndex + 1);
     }
 
     private CostCheckResult checkCosts(Player player, UpgradePreview preview) {
@@ -578,8 +578,8 @@ public final class SkillUpgradeService {
         } catch (RuntimeException | LinkageError exception) {
             if (plugin != null) {
                 plugin.getLogger().log(Level.SEVERE,
-                        "Failed to restore skill level after upgrade commit failure for "
-                                + (player == null ? "unknown player" : player.getUniqueId()),
+                        "升级提交失败后恢复技能等级失败，玩家 "
+                                + (player == null ? "未知玩家" : player.getUniqueId()),
                         exception);
             }
             return false;
@@ -634,14 +634,14 @@ public final class SkillUpgradeService {
             Throwable throwable) {
         if (throwable != null) {
             plugin.getLogger().log(Level.WARNING,
-                    "[SkillUpgrade] Action phase '" + phase + "' failed for "
-                            + (definition == null ? "-" : definition.id()),
+                    "[SkillUpgrade] 动作阶段 '" + phase + "' 对 "
+                            + (definition == null ? "-" : definition.id()) + " 执行失败",
                     throwable);
             return;
         }
         if (success == null || !success) {
-            plugin.getLogger().warning("[SkillUpgrade] Action phase '" + phase + "' failed for "
-                    + (definition == null ? "-" : definition.id()));
+            plugin.getLogger().warning("[SkillUpgrade] 动作阶段 '" + phase + "' 对 "
+                    + (definition == null ? "-" : definition.id()) + " 执行失败");
         }
     }
 

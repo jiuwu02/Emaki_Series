@@ -81,7 +81,7 @@ public final class TargetSelectorLoader {
         if (root == null) {
             warn("loader.target_selectors_load_failed", Map.of(
                     "file", FILE_NAME,
-                    "error", "empty document"));
+                    "error", "空文档"));
             blockingIssues = true;
             config = TargetSelectorConfig.empty();
             return 0;

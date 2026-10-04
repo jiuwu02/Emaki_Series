@@ -121,21 +121,21 @@ public final class CookingCompletionCoordinator {
             operation = prepareOperation(request);
         } catch (Throwable error) {
             activeByStation.remove(stationKey, operationId);
-            logger.warning("Failed to prepare cooking completion at " + stationKey + ": " + rootCauseMessage(error));
+            logger.warning("准备烹饪完成失败，位置 " + stationKey + ": " + rootCauseMessage(error));
             return false;
         }
 
         journalStore.createIfAbsent(operation).whenComplete((created, error) -> {
             if (error != null || created == null) {
                 activeByStation.remove(stationKey, operationId);
-                logger.warning("Failed to persist PREPARED cooking completion " + operationId + ": "
+                logger.warning("持久化 PREPARED 烹饪完成失败 " + operationId + ": "
                         + rootCauseMessage(error));
                 return;
             }
             install(created);
             triggerAdvance(created.operationId());
         }).exceptionally(error -> {
-            logger.warning("Unhandled failure while starting cooking completion " + operationId + ": "
+            logger.warning("启动烹饪完成时发生未处理失败 " + operationId + ": "
                     + rootCauseMessage(error));
             return null;
         });
@@ -280,7 +280,7 @@ public final class CookingCompletionCoordinator {
             return taskScheduler.runAtLocation(
                     plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
         } catch (Throwable error) {
-            logger.warning("Failed to schedule cooking completion advance " + operationId + ": "
+            logger.warning("调度烹饪完成推进失败 " + operationId + ": "
                     + rootCauseMessage(error));
             return false;
         }
@@ -301,7 +301,7 @@ public final class CookingCompletionCoordinator {
             if (error != null) {
                 CookingCompletionOperation operation = operations.get(operationId);
                 if (operation == null) {
-                    logger.warning("Cooking completion advance failed for " + operationId + ": "
+                    logger.warning("烹饪完成推进失败 " + operationId + ": "
                             + rootCauseMessage(error));
                     return;
                 }
@@ -321,7 +321,7 @@ public final class CookingCompletionCoordinator {
         }
         CookingStationStateAccess access = stateAccesses.get(operation.stationType());
         if (access == null) {
-            return quarantine(operation, "No completion state access registered for " + operation.stationType())
+            return quarantine(operation, "未注册工位完成状态访问: " + operation.stationType())
                     .thenApply(_ -> false);
         }
         return switch (recoveryPlanner.nextStep(operation)) {
@@ -347,7 +347,7 @@ public final class CookingCompletionCoordinator {
             return save(recovered.withStatus(Status.INPUT_COMMITTED)).thenApply(_ -> true);
         }
         if (relation != StateRelation.EXPECTED) {
-            return quarantine(operation, "Station state changed before inventory input commit")
+            return quarantine(operation, "物品栏输入提交前工位状态已变更")
                     .thenApply(_ -> false);
         }
         Optional<Unit> pending = operation.nextPendingInput();
@@ -372,7 +372,7 @@ public final class CookingCompletionCoordinator {
                         return abandonUnavailableInput(saved, current).thenApply(_ -> false);
                     }
                     CookingCompletionOperation updated =
-                            saved.withInputUnit(current.fail("Required main-hand inventory input is unavailable"));
+                            saved.withInputUnit(current.fail("所需主手物品栏输入不可用"));
                     return save(updated).thenApply(_ -> {
                         scheduleRetry(updated.operationId());
                         return false;
@@ -383,17 +383,16 @@ public final class CookingCompletionCoordinator {
     private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
             CookingCompletionOperation operation,
             Unit unit) {
-        logger.warning("Abandoning cooking completion " + operation.operationId()
-                + " after " + unit.attempts() + " attempts: required inventory input was never available"
-                + " (nothing consumed, station state unchanged)");
+        logger.warning("放弃烹饪完成 " + operation.operationId()
+                + "，经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
+                + "（未消耗任何物品，工位状态未变）");
         debugCompletion("station.completion_input_abandoned", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),
                 "unit", unit.unitId(),
                 "attempts", unit.attempts()
         ));
-        String reason = "Required main-hand inventory input was never available after "
-                + unit.attempts() + " attempts";
+        String reason = "所需主手物品栏输入经 " + unit.attempts() + " 次尝试后始终不可用";
         return archive(operation
                 .withInputUnit(unit.fail(reason))
                 .withError(reason));
@@ -407,7 +406,7 @@ public final class CookingCompletionCoordinator {
             return save(operation.withStatus(Status.INPUT_COMMITTED)).thenApply(_ -> true);
         }
         if (relation != StateRelation.EXPECTED) {
-            return quarantine(operation, "Station state changed before durable completion commit")
+            return quarantine(operation, "持久化完成提交前工位状态已变更")
                     .thenApply(_ -> false);
         }
         CompletionStage<Void> commit = operation.commitMode() == CookingCompletionOperation.CommitMode.DELETE
@@ -422,7 +421,7 @@ public final class CookingCompletionCoordinator {
             CookingCompletionOperation operation,
             CookingStationStateAccess access) {
         if (relation(operation) != StateRelation.COMMITTED) {
-            return quarantine(operation, "Committed station state no longer matches completion journal")
+            return quarantine(operation, "已提交的工位状态不再匹配完成日志")
                     .thenApply(_ -> false);
         }
         if (operation.status() == Status.INPUT_COMMITTED) {
@@ -451,7 +450,7 @@ public final class CookingCompletionCoordinator {
                         .thenCompose(success -> {
                             if (!success) {
                                 CookingCompletionOperation failed = saved.withDeliveryUnit(
-                                        current.fail("Frozen reward unit returned failure"));
+                                        current.fail("冻结奖励单元返回失败"));
                                 return save(failed).thenApply(_ -> {
                                     scheduleRetry(failed.operationId());
                                     return false;
@@ -461,7 +460,7 @@ public final class CookingCompletionCoordinator {
                                     .thenCompose(confirmed -> {
                                         if (!Boolean.TRUE.equals(confirmed)) {
                                             CookingCompletionOperation failed = saved.withDeliveryUnit(
-                                                    current.fail("Delivery receiver acknowledgement was not persisted"));
+                                                    current.fail("交付接收确认未能持久化"));
                                             return save(failed).thenApply(_ -> {
                                                 scheduleRetry(failed.operationId());
                                                 return false;
@@ -478,7 +477,7 @@ public final class CookingCompletionCoordinator {
             CookingCompletionOperation operation,
             CookingStationStateAccess access) {
         if (relation(operation) != StateRelation.COMMITTED) {
-            return quarantine(operation, "Station state changed before completion archive")
+            return quarantine(operation, "完成归档前工位状态已变更")
                     .thenApply(_ -> false);
         }
         return ensureDeliveryAcknowledgements(operation)
@@ -493,7 +492,7 @@ public final class CookingCompletionCoordinator {
             chain = chain.thenCompose(_ -> {
                 if (!unit.isCompleted()) {
                     return CompletableFuture.<Void>failedFuture(new IllegalStateException(
-                            "Cooking delivery unit is not completed: " + unit.unitId()));
+                            "烹饪交付单元尚未完成: " + unit.unitId()));
                 }
                 CookingRewardService.RewardUnitKind kind = unit.kind() == UnitKind.ITEM_REWARD
                         ? CookingRewardService.RewardUnitKind.ITEM_REWARD
@@ -505,7 +504,7 @@ public final class CookingCompletionCoordinator {
                                         .thenCompose(persisted -> Boolean.TRUE.equals(persisted)
                                                 ? CompletableFuture.completedFuture(null)
                                                 : CompletableFuture.<Void>failedFuture(new IllegalStateException(
-                                                        "Cooking delivery acknowledgement was not persisted: " + unit.unitId()))));
+                                                        "烹饪交付确认未能持久化: " + unit.unitId()))));
             });
         }
         return chain;
@@ -532,7 +531,7 @@ public final class CookingCompletionCoordinator {
         try {
             Player target = player;
             if (taskScheduler == null) {
-                result.completeExceptionally(new IllegalStateException("Execution dispatcher is unavailable"));
+                result.completeExceptionally(new IllegalStateException("执行调度器不可用"));
                 return result;
             }
             TaskToken handle = taskScheduler.runForEntity(plugin, target, () -> {
@@ -608,8 +607,8 @@ public final class CookingCompletionCoordinator {
     private CompletableFuture<CookingCompletionOperation> quarantine(
             CookingCompletionOperation operation,
             String error) {
-        String reason = Texts.isBlank(error) ? "Cooking completion recovery rejected operation" : error;
-        logger.warning("Quarantining cooking completion " + operation.operationId() + ": " + reason);
+        String reason = Texts.isBlank(error) ? "烹饪完成恢复拒绝了操作" : error;
+        logger.warning("隔离烹饪完成 " + operation.operationId() + ": " + reason);
         debugCompletion("station.completion_quarantined", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),
@@ -679,7 +678,7 @@ public final class CookingCompletionCoordinator {
     private String rootCauseMessage(Throwable throwable) {
         Throwable current = AsyncFailures.unwrap(throwable);
         if (current == null) {
-            return "unknown error";
+            return "未知错误";
         }
         String message = current.getMessage();
         return Texts.isBlank(message) ? current.getClass().getSimpleName() : message;

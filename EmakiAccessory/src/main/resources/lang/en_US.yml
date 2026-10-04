@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource.
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
-version: "1.1.3"
+version: "1.1.4"
 
 console:
   plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
@@ -97,6 +97,8 @@ command:
   retrieve_unknown_page: "<red>No such accessory page: <white>%page%</white></red>"
   retrieve_busy: "<red>Someone else is editing your accessories right now; try again shortly</red>"
   reload_done: "<green>Reload complete</green> <gray>slots <yellow>%slots%</yellow>, sets <yellow>%sets%</yellow>, issues <yellow>%issues%</yellow></gray>"
+  # Command: reload elapsed hint; placeholders: %elapsed_ms%
+  reload_elapsed: "<gray>Reload took <white>%elapsed_ms%ms</white></gray>"
   unknown_player: "<red>No such player: <white>%player%</white></red>"
   admin_target_offline: "<red>That player is offline; this operation needs them online</red>"
   admin_target_busy: "<red>Someone else is already editing that player's accessories</red>"

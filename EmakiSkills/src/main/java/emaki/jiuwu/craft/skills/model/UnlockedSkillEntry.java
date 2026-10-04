@@ -8,7 +8,7 @@ public record UnlockedSkillEntry(String skillId,
 
     public UnlockedSkillEntry {
         if (skillId == null || skillId.isBlank()) {
-            throw new IllegalArgumentException("skillId must not be blank");
+            throw new IllegalArgumentException("skillId 不能为空");
         }
         sourceId = sourceId == null ? "" : sourceId;
         sourceType = sourceType == null ? SkillSourceType.EQUIPMENT : sourceType;

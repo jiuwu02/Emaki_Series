@@ -245,7 +245,7 @@ public final class AccessoryCommandRouter {
                 "issues", String.valueOf(plugin.partLoader().issues().size()
                         + plugin.setLoader().issues().size()
                         + plugin.accessoryGuiService().issues().size())));
-        plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+        plugin.messageService().send(sender, "command.reload_elapsed", Map.of("elapsed_ms", String.valueOf(elapsedMs)));
         return true;
     }
 

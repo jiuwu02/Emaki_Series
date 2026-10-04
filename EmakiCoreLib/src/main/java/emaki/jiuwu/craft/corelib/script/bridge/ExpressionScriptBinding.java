@@ -34,40 +34,40 @@ public final class ExpressionScriptBinding {
 
     public void register(@Nullable Value payload) {
         if (payload == null || payload.isNull() || !payload.hasMembers()) {
-            errors.accept("expressions: payload must be an object");
+            errors.accept("expressions: payload 必须是对象");
             return;
         }
         String name = Texts.toStringSafe(ScriptPayloads.textMember(payload, "name")).trim();
         if (Texts.isBlank(name)) {
-            errors.accept("expressions: field 'name' is required");
+            errors.accept("expressions: 必须提供字段 'name'");
             return;
         }
         if (!NAME_PATTERN.matcher(name).matches()) {
-            errors.accept("expressions: function name '" + name + "' is invalid");
+            errors.accept("expressions: 函数名 '" + name + "' 无效");
             return;
         }
         if (ExpressionEngine.isBuiltinFunctionName(name)) {
-            errors.accept("expressions: function name '" + name + "' conflicts with built-in functions");
+            errors.accept("expressions: 函数名 '" + name + "' 与内置函数冲突");
             return;
         }
         Integer arguments = ScriptPayloads.intMember(payload, "args");
         if (arguments == null || arguments < 1) {
-            errors.accept("expressions: field 'args' of '" + name + "' must be an integer >= 1");
+            errors.accept("expressions: '" + name + "' 的字段 'args' 必须是 >= 1 的整数");
             return;
         }
         Value fn = ScriptPayloads.functionMember(payload, "fn");
         if (fn == null) {
-            errors.accept("expressions: field 'fn' of '" + name + "' must be a callable function");
+            errors.accept("expressions: '" + name + "' 的字段 'fn' 必须是可调用函数");
             return;
         }
         ScriptCallbackRunner resolvedRunner = runner.get();
         if (resolvedRunner == null) {
-            errors.accept("expressions: '" + name + "' -> script host is unavailable");
+            errors.accept("expressions: '" + name + "' -> 脚本宿主不可用");
             return;
         }
         if (!ExpressionEngine.registerDynamicFunction(name, new ScriptExpressionFunction(name, arguments, fn,
                 resolvedRunner, warns))) {
-            errors.accept("expressions: function name '" + name + "' is already registered");
+            errors.accept("expressions: 函数名 '" + name + "' 已注册");
             return;
         }
         nameSink.add(name);

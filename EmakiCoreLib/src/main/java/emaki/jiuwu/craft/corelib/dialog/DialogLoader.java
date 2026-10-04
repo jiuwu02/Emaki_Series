@@ -40,10 +40,10 @@ public final class DialogLoader extends YamlDirectoryLoader<DialogDefinition> {
         }
         String id = Texts.normalizeId(configuration.getString("id"));
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("[dialog] Skipping " + file.getName() + ": missing or invalid id.");
+            plugin.getLogger().warning("[dialog] 跳过 " + file.getName() + ": id 缺失或无效。");
             return null;
         }
         return DialogDefinitions.parse(id, configuration,
-                issue -> plugin.getLogger().warning("[dialog] Skipping " + id + ": " + issue));
+                issue -> plugin.getLogger().warning("[dialog] 跳过 " + id + ": " + issue));
     }
 }

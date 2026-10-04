@@ -53,7 +53,7 @@ public final class AdvancementPacketGateway {
             registeredListener = PacketEvents.getAPI().getEventManager().registerListener(listener);
             return true;
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Codex] Advancement coordinate channel unavailable, skipped: "
+            plugin.getLogger().warning("[Codex] 成就坐标通道不可用，已跳过："
                     + throwable.getMessage());
             registeredListener = null;
             return false;
@@ -88,7 +88,7 @@ public final class AdvancementPacketGateway {
         try {
             return resyncService().resyncAllAsync();
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Codex] Advancement resync skipped: " + throwable.getMessage());
+            plugin.getLogger().warning("[Codex] 已跳过成就重同步：" + throwable.getMessage());
             return CompletableFuture.completedFuture(-1);
         }
     }
@@ -101,8 +101,8 @@ public final class AdvancementPacketGateway {
         try {
             return resyncService().resync(player);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("[Codex] Advancement resync skipped for "
-                    + player.getName() + ": " + throwable.getMessage());
+            plugin.getLogger().warning("[Codex] 已跳过对 "
+                    + player.getName() + " 的成就重同步：" + throwable.getMessage());
             return false;
         }
     }

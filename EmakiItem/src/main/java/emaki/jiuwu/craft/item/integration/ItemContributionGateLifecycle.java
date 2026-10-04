@@ -11,6 +11,6 @@ public final class ItemContributionGateLifecycle extends AbstractPluginIntegrati
 
     public ItemContributionGateLifecycle(EmakiItemPlugin plugin) {
         super(plugin, EmakiItemPlugin.class, ATTRIBUTE_PLUGIN_NAME, GATE_CLASS,
-                "EmakiAttribute item condition gate");
+                "EmakiAttribute 物品条件门控");
     }
 }

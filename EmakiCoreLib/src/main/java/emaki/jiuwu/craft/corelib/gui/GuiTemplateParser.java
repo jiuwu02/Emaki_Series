@@ -178,7 +178,7 @@ public final class GuiTemplateParser {
             GuiClickType clickType = SOUND_KEYS.get(Texts.lower(entry.getKey()));
             if (clickType == null) {
                 if (issueSink != null) {
-                    issueSink.accept("Unknown gui sound key '" + entry.getKey() + "' ignored.");
+                    issueSink.accept("未知的 gui 音效键 '" + entry.getKey() + "'，已忽略。");
                 }
                 continue;
             }

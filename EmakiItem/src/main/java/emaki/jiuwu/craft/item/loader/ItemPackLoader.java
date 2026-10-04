@@ -53,7 +53,7 @@ public final class ItemPackLoader {
                     loaded.put(packId, definition);
                 }
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("Could not load EmakiItem pack metadata " + file.getPath()
+                plugin.getLogger().warning("无法加载 EmakiItem 分包元数据 " + file.getPath()
                         + ": " + Texts.toStringSafe(exception.getMessage()));
             }
         }
