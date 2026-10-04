@@ -18,6 +18,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.server.PluginDisableEvent;
+import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -915,10 +916,24 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (guiBackendRegistry == null) {
             return;
         }
-        var packetEvents = getServer().getPluginManager().getPlugin("PacketEvents");
-        if (packetEvents == null || !packetEvents.isEnabled()) {
+        var packetEvents = getServer().getPluginManager().getPlugin("packetevents");
+        if (packetEvents != null && packetEvents.isEnabled()) {
+            registerPacketBackend();
             return;
         }
+        getServer().getPluginManager().registerEvents(new Listener() {
+            @EventHandler
+            public void onPluginEnable(PluginEnableEvent event) {
+                if (event.getPlugin().getName().equalsIgnoreCase("packetevents")) {
+                    HandlerList.unregisterAll(this);
+                    registerPacketBackend();
+                }
+            }
+        }, this);
+        getLogger().info("PacketEvents is not enabled yet; the packet GUI backend will register once it enables.");
+    }
+
+    private void registerPacketBackend() {
         try {
             PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {

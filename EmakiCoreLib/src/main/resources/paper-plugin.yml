@@ -53,3 +53,6 @@ dependencies:
     PacketEvents:
       load: BEFORE
       required: false
+    packetevents:
+      load: BEFORE
+      required: false
