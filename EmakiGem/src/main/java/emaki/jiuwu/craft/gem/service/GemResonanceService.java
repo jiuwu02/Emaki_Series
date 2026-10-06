@@ -2,10 +2,12 @@ package emaki.jiuwu.craft.gem.service;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
 import emaki.jiuwu.craft.gem.model.GemDefinition;
 import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
@@ -21,7 +23,13 @@ public final class GemResonanceService {
         }
     }
 
+    private static final Comparator<GemResonanceDefinition> PRIORITY_DESCENDING =
+            Comparator.comparingInt(GemResonanceDefinition::priority).reversed();
+
     private GemResonanceLoader resonanceLoader;
+    private volatile List<GemResonanceDefinition> sortedResonances;
+    private final CacheManager<List<String>, List<GemResonanceDefinition>> resultCache =
+            new CacheManager<>(1024, 0L);
 
     public GemResonanceService(GemResonanceLoader resonanceLoader) {
         this.resonanceLoader = resonanceLoader;
@@ -29,6 +37,8 @@ public final class GemResonanceService {
 
     public void refresh(GemResonanceLoader resonanceLoader) {
         this.resonanceLoader = resonanceLoader;
+        this.sortedResonances = null;
+        resultCache.clear();
     }
 
     public List<GemResonanceDefinition> evaluate(Collection<GemDefinition> inlaidGems) {
@@ -47,14 +57,27 @@ public final class GemResonanceService {
             return List.of();
         }
         List<GemEntry> gemList = new ArrayList<>(inlaidGems);
-        List<GemResonanceDefinition> sortedResonances = new ArrayList<>(resonanceLoader.all().values());
-        sortedResonances.sort((a, b) -> Integer.compare(b.priority(), a.priority()));
+        List<String> cacheKey = new ArrayList<>(gemList.size());
+        for (GemEntry entry : gemList) {
+            cacheKey.add(entry.gem().id() + "@" + entry.level());
+        }
+        List<String> key = List.copyOf(cacheKey);
+        List<GemResonanceDefinition> cached = resultCache.get(key);
+        if (cached != null) {
+            return cached;
+        }
+        List<GemResonanceDefinition> result = computeResonances(gemList);
+        resultCache.put(key, result);
+        return result;
+    }
 
+    private List<GemResonanceDefinition> computeResonances(List<GemEntry> gemList) {
+        List<GemResonanceDefinition> sorted = sortedResonances();
         List<GemResonanceDefinition> activeResonances = new ArrayList<>();
         Set<Integer> usedGemIndices = new HashSet<>();
         Set<String> activatedGroups = new HashSet<>();
 
-        for (GemResonanceDefinition resonance : sortedResonances) {
+        for (GemResonanceDefinition resonance : sorted) {
             ResonanceChain chain = resonance.chain();
             if (chain.pattern().isEmpty()) {
                 continue;
@@ -78,6 +101,18 @@ public final class GemResonanceService {
             }
         }
         return List.copyOf(activeResonances);
+    }
+
+    private List<GemResonanceDefinition> sortedResonances() {
+        List<GemResonanceDefinition> cached = sortedResonances;
+        if (cached != null) {
+            return cached;
+        }
+        List<GemResonanceDefinition> sorted = new ArrayList<>(resonanceLoader.all().values());
+        sorted.sort(PRIORITY_DESCENDING);
+        List<GemResonanceDefinition> result = List.copyOf(sorted);
+        sortedResonances = result;
+        return result;
     }
 
     private Set<Integer> matchesUnorderedWithIndices(List<ResonancePatternEntry> pattern,

@@ -5,6 +5,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -130,6 +131,11 @@ final class StationIndexRegistry {
         }
         Set<StationCoordinates> coordinates = worldIndex.get(chunkKey(chunkX, chunkZ));
         return coordinates == null || coordinates.isEmpty() ? Set.of() : Set.copyOf(coordinates);
+    }
+
+    Collection<StationCoordinates> indexedCoordinates() {
+        ensureIndexLoaded();
+        return List.copyOf(entries.keySet());
     }
 
     Map<String, List<StationIndexEntry>> entriesByChunkForType(StationType stationType) {

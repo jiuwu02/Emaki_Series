@@ -2,9 +2,7 @@ package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.bukkit.plugin.Plugin;
@@ -15,10 +13,13 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompiledPipeline;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 
 public final class PipelineBatchRunner {
 
-    private final Map<CacheKey, Object> cache = new ConcurrentHashMap<>();
+    private static final int COMPILE_CACHE_SIZE = 4096;
+
+    private final CacheManager<CacheKey, Object> cache = new CacheManager<>(COMPILE_CACHE_SIZE, 0);
 
     public @NotNull List<CompiledPipeline> compile(@Nullable ActionEngine engine,
             @Nullable List<String> lines,

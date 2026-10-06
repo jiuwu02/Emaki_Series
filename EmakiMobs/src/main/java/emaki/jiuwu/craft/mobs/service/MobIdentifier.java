@@ -10,7 +10,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -19,7 +22,7 @@ public final class MobIdentifier implements Listener {
 
     private final NamespacedKey mobIdKey;
     private final NamespacedKey fireImmuneKey;
-    private final ConcurrentMap<UUID, LivingEntity> trackedEntities = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, WeakReference<LivingEntity>> trackedEntities = new ConcurrentHashMap<>();
 
     public MobIdentifier(Plugin plugin) {
         mobIdKey = new NamespacedKey(plugin, "mob_id");
@@ -28,13 +31,13 @@ public final class MobIdentifier implements Listener {
 
     public void mark(LivingEntity entity, String mobId) {
         entity.getPersistentDataContainer().set(mobIdKey, PersistentDataType.STRING, mobId);
-        trackedEntities.put(entity.getUniqueId(), entity);
+        trackedEntities.put(entity.getUniqueId(), new WeakReference<>(entity));
     }
 
     public String readId(LivingEntity entity) {
         String mobId = entity.getPersistentDataContainer().get(mobIdKey, PersistentDataType.STRING);
         if (mobId != null) {
-            trackedEntities.put(entity.getUniqueId(), entity);
+            trackedEntities.put(entity.getUniqueId(), new WeakReference<>(entity));
         }
         return mobId;
     }
@@ -44,11 +47,29 @@ public final class MobIdentifier implements Listener {
     }
 
     public List<LivingEntity> trackedEntities() {
-        return List.copyOf(trackedEntities.values());
+        List<LivingEntity> entities = new ArrayList<>();
+        for (Map.Entry<UUID, WeakReference<LivingEntity>> entry : trackedEntities.entrySet()) {
+            LivingEntity entity = entry.getValue().get();
+            if (entity == null) {
+                trackedEntities.remove(entry.getKey(), entry.getValue());
+                continue;
+            }
+            entities.add(entity);
+        }
+        return List.copyOf(entities);
     }
 
     public LivingEntity trackedEntity(UUID entityId) {
-        return trackedEntities.get(entityId);
+        WeakReference<LivingEntity> reference = trackedEntities.get(entityId);
+        if (reference == null) {
+            return null;
+        }
+        LivingEntity entity = reference.get();
+        if (entity == null) {
+            trackedEntities.remove(entityId, reference);
+            return null;
+        }
+        return entity;
     }
 
     public void forget(Entity entity) {

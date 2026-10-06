@@ -57,6 +57,10 @@ public final class PlayerSkillStateService {
         return registryService.collectUnlockedSkills(player, equipmentCollector, sourceRegistry);
     }
 
+    public Map<String, SkillDefinition> passiveSkillCandidates(String triggerId) {
+        return registryService.passiveSkillsFor(triggerId);
+    }
+
     public List<UnlockedSkillEntry> getUnlockedActiveSkills(Player player) {
         return getUnlockedSkills(player).stream()
                 .filter(entry -> {

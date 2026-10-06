@@ -53,6 +53,7 @@ public final class GrinderRuntimeService {
     private final EmakiScheduling taskScheduler;
     private final Set<String> activeStations = ConcurrentHashMap.newKeySet();
     private final Set<String> tickingStations = ConcurrentHashMap.newKeySet();
+    private final Map<StationCoordinates, Long> renderedProgress = new ConcurrentHashMap<>();
     private CookingCompletionCoordinator completionCoordinator;
     private TaskToken tickerTask;
 
@@ -119,6 +120,7 @@ public final class GrinderRuntimeService {
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
                             activeStations.remove(coordinates.runtimeKey());
+                            renderedProgress.remove(coordinates);
                             textDisplayService.removeStation(StationType.GRINDER, coordinates);
                         }));
             }
@@ -128,6 +130,7 @@ public final class GrinderRuntimeService {
     public void reload() {
         cancelTicker();
         activeStations.clear();
+        renderedProgress.clear();
         textDisplayService.removeStationType(StationType.GRINDER);
         stateStore.forEachLoadedState(StationType.GRINDER, this::restoreStoredState);
         ensureTicker();
@@ -164,6 +167,7 @@ public final class GrinderRuntimeService {
             return;
         }
         activeStations.remove(coordinates.runtimeKey());
+        renderedProgress.remove(coordinates);
         textDisplayService.removeStation(StationType.GRINDER, coordinates);
         if (activeStations.isEmpty()) {
             cancelTicker();
@@ -174,6 +178,7 @@ public final class GrinderRuntimeService {
         cancelTicker();
         waitForInFlightTicks();
         activeStations.clear();
+        renderedProgress.clear();
         textDisplayService.removeStationType(StationType.GRINDER);
     }
 
@@ -265,6 +270,7 @@ public final class GrinderRuntimeService {
                     "type", StationType.GRINDER.folderName()
             ));
             activeStations.remove(coordinates.runtimeKey());
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return false;
         }
@@ -276,6 +282,7 @@ public final class GrinderRuntimeService {
             }
         }
         activeStations.remove(coordinates.runtimeKey());
+        renderedProgress.remove(coordinates);
         stateStore.deleteAsync(coordinates);
         textDisplayService.removeStation(StationType.GRINDER, coordinates);
         return true;
@@ -385,6 +392,7 @@ public final class GrinderRuntimeService {
                                 "target_ms", 0
                         ));
                         activeStations.remove(stationKey);
+                        renderedProgress.remove(coordinates);
                         textDisplayService.removeStation(StationType.GRINDER, coordinates);
                         return;
                     }
@@ -411,6 +419,7 @@ public final class GrinderRuntimeService {
         ItemSourceRef stationSource = stateStore.rememberedStationSource(coordinates);
         if (block == null || recipe == null || !blockMatcher.matches(block, StationType.GRINDER, stationSource)) {
             activeStations.remove(coordinates.runtimeKey());
+            renderedProgress.remove(coordinates);
             stateStore.deleteAsync(coordinates);
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return;
@@ -468,11 +477,15 @@ public final class GrinderRuntimeService {
 
     private void refreshText(StationCoordinates coordinates, GrinderState state) {
         if (!settingsService.textDisplayEnabled(StationType.GRINDER) || coordinates == null || state == null) {
+            if (coordinates != null) {
+                renderedProgress.remove(coordinates);
+            }
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return;
         }
         Location baseLocation = coordinates.location(0D, 0D, 0D);
         if (baseLocation == null || baseLocation.getWorld() == null) {
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.GRINDER, coordinates);
             return;
         }
@@ -480,6 +493,10 @@ public final class GrinderRuntimeService {
         int grindTimeSeconds = recipe == null ? 0 : recipeService.grinderTimeSeconds(recipe);
         long elapsedMs = System.currentTimeMillis() - state.startTimeMs();
         long remainingSeconds = Math.max(0L, (grindTimeSeconds * 1000L - elapsedMs + 999L) / 1000L);
+        Long previous = renderedProgress.get(coordinates);
+        if (previous != null && previous == remainingSeconds) {
+            return;
+        }
 
         StringBuilder builder = new StringBuilder();
         appendLine(builder, messageService.message("text_display.grinder.title"));
@@ -499,6 +516,7 @@ public final class GrinderRuntimeService {
                 baseLocation,
                 settingsService.textDisplayProfile(StationType.GRINDER)
         ));
+        renderedProgress.put(coordinates, remainingSeconds);
     }
 
     private StationCoordinates parseRuntimeKey(String key) {

@@ -60,5 +60,8 @@ public final class StoragePlayerListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         plugin.dataStore().unloadAsync(event.getPlayer().getUniqueId());
         plugin.storageGuiService().releaseViewState(event.getPlayer().getUniqueId());
+        if (plugin.autoPickupService() != null) {
+            plugin.autoPickupService().releasePlayer(event.getPlayer().getUniqueId());
+        }
     }
 }

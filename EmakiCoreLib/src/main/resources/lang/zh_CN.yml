@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.18"
+version: "4.8.19"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -669,3 +669,8 @@ command:
   pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> 扫描=<white>%scanned%</white> 转换键=<yellow>%migrated%</yellow> 跳过=<gray>%skipped%</gray> 失败=<red>%failed%</red></gray>"
   pdc_convert_total: "<green>共转换 <yellow>%migrated%</yellow> 个键。离线玩家与未加载区块依赖读取时的懒转换，无需手工处理。</green>"
   pdc_convert_failed: "<red>历史 PDC 键转换失败: %error%</red>"
+  help_storage_migrate: "<green>%root% storage-migrate <migrate|dump|verify|rollback> <文件> [binary|sqlite]</green><gray> - 迁移/转储/校验/回滚玩家数据存储后端</gray>"
+  storage_migrate_usage: "<yellow>用法: /corelib storage-migrate <migrate|dump|verify|rollback> <文件> [binary|sqlite]</yellow>"
+  storage_migrate_started: "<gray>开始存储迁移操作 <aqua>%mode%</aqua>，文件 <aqua>%file%</aqua>，完成后汇报</gray>"
+  storage_migrate_result: "<green>存储迁移 %mode% 完成：%detail%</green>"
+  storage_migrate_failed: "<red>存储迁移操作失败: %error%</red>"

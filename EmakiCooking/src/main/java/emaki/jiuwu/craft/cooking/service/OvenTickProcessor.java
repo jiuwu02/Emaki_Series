@@ -5,6 +5,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
@@ -30,6 +31,7 @@ final class OvenTickProcessor {
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final OvenStateCodec codec;
+    private final Map<String, RecipeCacheEntry> recipeCache = new ConcurrentHashMap<>();
     private CookingCompletionCoordinator completionCoordinator;
 
     OvenTickProcessor(EmakiCookingPlugin plugin,
@@ -86,7 +88,7 @@ final class OvenTickProcessor {
         List<Integer> validSlots = new ArrayList<>();
         Map<Integer, RecipeDocument> recipesBySlot = new LinkedHashMap<>();
         for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
-            RecipeDocument recipe = recipeService.findOvenRecipe(entry.getValue(), null);
+            RecipeDocument recipe = cachedOvenRecipe(entry.getValue());
             if (recipe != null) {
                 validSlots.add(entry.getKey());
                 recipesBySlot.put(entry.getKey(), recipe);
@@ -188,6 +190,20 @@ final class OvenTickProcessor {
                 null
         ));
         return accepted;
+    }
+
+    private RecipeDocument cachedOvenRecipe(String inputSource) {
+        if (Texts.isBlank(inputSource)) {
+            return null;
+        }
+        long bucket = System.currentTimeMillis() / 1000L;
+        RecipeCacheEntry cached = recipeCache.get(inputSource);
+        if (cached != null && cached.bucket() == bucket) {
+            return cached.recipe();
+        }
+        RecipeDocument recipe = recipeService.findOvenRecipe(inputSource, null);
+        recipeCache.put(inputSource, new RecipeCacheEntry(bucket, recipe));
+        return recipe;
     }
 
     private OvenState copyState(StationCoordinates coordinates, OvenState state) {
@@ -310,5 +326,8 @@ final class OvenTickProcessor {
     private boolean isCompleted(int slot, String source, OvenState state) {
         RecipeDocument recipe = recipeService.findOvenRecipe(source, null);
         return recipe != null && state.progressAt(slot) >= recipeService.ovenBakeTimeSeconds(recipe);
+    }
+
+    private record RecipeCacheEntry(long bucket, RecipeDocument recipe) {
     }
 }

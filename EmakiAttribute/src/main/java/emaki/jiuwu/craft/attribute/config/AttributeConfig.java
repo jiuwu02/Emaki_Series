@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.attribute.config;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -8,6 +9,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.attribute.model.DefaultProfile;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record AttributeConfig(String language,
@@ -34,8 +36,14 @@ public record AttributeConfig(String language,
         ShieldConfig shield,
         DamageIndicatorConfig damageIndicator,
         List<DamageCauseRule> allowedDamageCauses,
+        Map<String, DamageCauseRule> damageCauseIndex,
         List<ScalingCurveConfig> scalingCurves,
         ScriptsConfig scripts) {
+
+    public AttributeConfig {
+        allowedDamageCauses = allowedDamageCauses == null ? List.of() : List.copyOf(allowedDamageCauses);
+        damageCauseIndex = damageCauseIndex == null ? Map.of() : Map.copyOf(damageCauseIndex);
+    }
 
     private static final String ATTACK_SPEED_SCOPE_GLOBAL = "global";
 
@@ -67,6 +75,7 @@ public record AttributeConfig(String language,
                 ShieldConfig.defaults(),
                 DamageIndicatorConfig.defaults(),
                 List.of(),
+                Map.of(),
                 List.of(),
                 ScriptsConfig.defaults()
         );
@@ -152,6 +161,7 @@ public record AttributeConfig(String language,
                 ShieldConfig.fromConfig(configuration.getSection("shield")),
                 DamageIndicatorConfig.fromConfig(configuration.getSection("damage_indicator")),
                 List.copyOf(causes),
+                damageCauseIndex(causes),
                 List.copyOf(curves),
                 ScriptsConfig.fromConfig(configuration.getSection("scripts"))
         );
@@ -166,15 +176,24 @@ public record AttributeConfig(String language,
     }
 
     public DamageCauseRule damageCauseRule(String cause) {
-        if (cause == null || cause.isBlank() || allowedDamageCauses == null || allowedDamageCauses.isEmpty()) {
+        if (cause == null || cause.isBlank()) {
             return null;
         }
-        for (DamageCauseRule rule : allowedDamageCauses) {
-            if (rule != null && rule.matches(cause)) {
-                return rule;
-            }
+        return damageCauseIndex.get(Texts.normalizeId(cause));
+    }
+
+    private static Map<String, DamageCauseRule> damageCauseIndex(List<DamageCauseRule> rules) {
+        if (rules == null || rules.isEmpty()) {
+            return Map.of();
         }
-        return null;
+        Map<String, DamageCauseRule> index = new LinkedHashMap<>();
+        for (DamageCauseRule rule : rules) {
+            if (rule == null || !rule.enabled() || Texts.isBlank(rule.cause())) {
+                continue;
+            }
+            index.putIfAbsent(rule.cause(), rule);
+        }
+        return index.isEmpty() ? Map.of() : Map.copyOf(index);
     }
 
     private static DefaultProfile defaultProfileDefaults() {

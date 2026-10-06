@@ -163,8 +163,34 @@ public final class PacketTextDisplayService implements TextDisplayService, Liste
     }
 
     private void refreshAll() {
-        for (VirtualText display : List.copyOf(displays.values())) {
-            refreshEntry(display);
+        Map<VirtualText, TextDisplaySpec> snapshot = new LinkedHashMap<>();
+        for (VirtualText display : displays.values()) {
+            TextDisplaySpec spec = display.spec;
+            if (spec != null && spec.hasText()) {
+                snapshot.put(display, spec);
+            }
+        }
+        if (snapshot.isEmpty()) {
+            return;
+        }
+        Set<UUID> onlinePlayers = ConcurrentHashMap.newKeySet();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlinePlayers.add(player.getUniqueId());
+            executionDispatcher.runEntity(plugin, player, () -> {
+                for (Map.Entry<VirtualText, TextDisplaySpec> entry : snapshot.entrySet()) {
+                    refreshVisibilityForPlayer(entry.getKey(), entry.getValue(), player, null);
+                }
+            }, () -> {
+                for (Map.Entry<VirtualText, TextDisplaySpec> entry : snapshot.entrySet()) {
+                    VirtualText display = entry.getKey();
+                    if (display.spec == entry.getValue() && isCurrentDisplay(display)) {
+                        display.visiblePlayers.remove(player.getUniqueId());
+                    }
+                }
+            });
+        }
+        for (VirtualText display : snapshot.keySet()) {
+            display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
         }
     }
 

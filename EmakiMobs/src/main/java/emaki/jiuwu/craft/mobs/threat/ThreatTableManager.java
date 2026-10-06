@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.mobs.threat;
 
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.collection.UuidDoubleMap;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loader.ThreatConfig;
@@ -31,7 +32,7 @@ import java.util.function.Supplier;
 
 public final class ThreatTableManager implements Listener {
 
-    private final Map<UUID, Map<UUID, Double>> tables = new ConcurrentHashMap<>();
+    private final Map<UUID, UuidDoubleMap> tables = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> firstDamagers = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> lastDamagers = new ConcurrentHashMap<>();
     private final Map<UUID, LockEntry> lockingEntities = new ConcurrentHashMap<>();
@@ -46,6 +47,8 @@ public final class ThreatTableManager implements Listener {
     private final TaskToken decayTask;
 
     private volatile boolean closed;
+
+    private volatile double healScanRadius;
 
     private volatile TargetSelectorService targetSelectorService;
 
@@ -67,7 +70,7 @@ public final class ThreatTableManager implements Listener {
     }
 
     public double threat(UUID entityUid, UUID playerUid) {
-        Map<UUID, Double> table = tables.get(entityUid);
+        UuidDoubleMap table = tables.get(entityUid);
         return table == null ? 0D : table.getOrDefault(playerUid, 0D);
     }
 
@@ -84,6 +87,7 @@ public final class ThreatTableManager implements Listener {
     public void reload() {
         generation.incrementAndGet();
         lockingEntities.clear();
+        healScanRadius = computeHealScanRadius();
     }
 
     public void close() {
@@ -98,23 +102,23 @@ public final class ThreatTableManager implements Listener {
     }
 
     public void addThreat(UUID entityUid, UUID playerUid, double amount) {
-        tables.computeIfAbsent(entityUid, k -> new ConcurrentHashMap<>())
-                .merge(playerUid, amount, Double::sum);
+        tables.computeIfAbsent(entityUid, k -> new UuidDoubleMap())
+                .addTo(playerUid, amount);
     }
 
     @Nullable
     public Player getHighestThreatPlayer(LivingEntity entity) {
-        Map<UUID, Double> table = tables.get(entity.getUniqueId());
+        UuidDoubleMap table = tables.get(entity.getUniqueId());
         if (table == null || table.isEmpty()) return null;
-        UUID topUid = null;
-        double topValue = 0;
-        for (var e : table.entrySet()) {
-            if (e.getValue() > topValue) {
-                topValue = e.getValue();
-                topUid = e.getKey();
+        UUID[] topUid = new UUID[1];
+        double[] topValue = new double[1];
+        table.forEach((most, least, value) -> {
+            if (value > topValue[0]) {
+                topValue[0] = value;
+                topUid[0] = new UUID(most, least);
             }
-        }
-        return topUid != null ? Bukkit.getPlayer(topUid) : null;
+        });
+        return topUid[0] != null ? Bukkit.getPlayer(topUid[0]) : null;
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
@@ -159,7 +163,7 @@ public final class ThreatTableManager implements Listener {
     public void onEntityRegainHealth(EntityRegainHealthEvent event) {
         if (tables.isEmpty()) return;
         if (!(event.getEntity() instanceof Player player)) return;
-        double radius = healScanRadius();
+        double radius = healScanRadius;
         if (radius <= 0) return;
         UUID playerUid = player.getUniqueId();
         double amount = event.getAmount();
@@ -218,7 +222,7 @@ public final class ThreatTableManager implements Listener {
     }
 
     private void processThreatTable(LivingEntity entity,
-            Map<UUID, Double> table,
+            UuidDoubleMap table,
             long expectedGeneration) {
         if (closed || expectedGeneration != generation.get() || !entity.isValid()) return;
         String mobId = mobIdentifier.readId(entity);
@@ -229,8 +233,8 @@ public final class ThreatTableManager implements Listener {
                 ? spec.threatConfig().maxRange() : 64;
         boolean removeOOR = spec != null && spec.threatConfig() != null
                 && spec.threatConfig().decay().outOfRange();
-        table.replaceAll((uid, val) -> val * (1.0 - decayRate));
-        table.entrySet().removeIf(e -> e.getValue() < 0.001);
+        table.replaceAllValues(value -> value * (1.0 - decayRate));
+        table.removeIf((most, least, value) -> value < 0.001);
         if (removeOOR) {
             evictOutOfRange(entity, table, maxRange);
         }
@@ -265,11 +269,11 @@ public final class ThreatTableManager implements Listener {
         }
     }
 
-    private void evictOutOfRange(LivingEntity entity, Map<UUID, Double> table, double maxRange) {
+    private void evictOutOfRange(LivingEntity entity, UuidDoubleMap table, double maxRange) {
         var location = entity.getLocation();
         double maxDistanceSquared = maxRange * maxRange;
-        table.entrySet().removeIf(entry -> {
-            UUID playerUid = entry.getKey();
+        table.removeIf((most, least, value) -> {
+            UUID playerUid = new UUID(most, least);
             if (!snapshots.isTracked(playerUid)) return true;
             PlayerScoreSnapshot snapshot = snapshots.snapshot(playerUid);
             if (snapshot == null) return false;
@@ -281,7 +285,7 @@ public final class ThreatTableManager implements Listener {
         });
     }
 
-    private double healScanRadius() {
+    private double computeHealScanRadius() {
         double radius = 0D;
         for (MobSpec spec : registry.get().values()) {
             ThreatConfig threat = spec.threatConfig();

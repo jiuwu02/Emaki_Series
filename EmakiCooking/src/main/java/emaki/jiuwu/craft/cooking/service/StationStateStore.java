@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
@@ -46,6 +48,7 @@ public final class StationStateStore {
     private final StationStateFileStore fileStore;
     private final StationIndexRegistry indexRegistry;
     private final Set<CompletableFuture<?>> pendingOperations = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean indexedStatesPrewarmed = new AtomicBoolean(false);
     private final ReentrantLock pendingLock = new ReentrantLock();
     private final Condition pendingIdle = pendingLock.newCondition();
 
@@ -77,13 +80,37 @@ public final class StationStateStore {
         if (entriesByChunk.isEmpty()) {
             return;
         }
-        for (List<StationIndexEntry> entries : entriesByChunk.values()) {
-            trackOperation(runLoadedStateBatch(stationType, entries, consumer)
-                    .exceptionally(throwable -> {
-                        plugin.getLogger().warning("工位恢复批次失败: " + rootCauseMessage(throwable));
-                        return null;
-                    }));
+        preloadIndexedStatesAsync().whenComplete((_, _) -> {
+            for (List<StationIndexEntry> entries : entriesByChunk.values()) {
+                trackOperation(runLoadedStateBatch(stationType, entries, consumer)
+                        .exceptionally(throwable -> {
+                            plugin.getLogger().warning("工位恢复批次失败: " + rootCauseMessage(throwable));
+                            return null;
+                        }));
+            }
+        });
+    }
+
+    private CompletableFuture<Void> preloadIndexedStatesAsync() {
+        if (fileScope == null) {
+            return CompletableFuture.completedFuture(null);
         }
+        if (!indexedStatesPrewarmed.compareAndSet(false, true)) {
+            return CompletableFuture.completedFuture(null);
+        }
+        Collection<StationCoordinates> coordinates = indexRegistry.indexedCoordinates();
+        if (coordinates.isEmpty()) {
+            indexedStatesPrewarmed.set(false);
+            return CompletableFuture.completedFuture(null);
+        }
+        return fileScope.<Void>read("station-state-prewarm", () -> {
+            fileStore.preloadCandidates(coordinates);
+            return null;
+        }).exceptionally(throwable -> {
+            indexedStatesPrewarmed.set(false);
+            plugin.getLogger().warning("工位状态预加载失败: " + rootCauseMessage(throwable));
+            return null;
+        });
     }
 
     public YamlSection load(StationCoordinates coordinates) {
@@ -366,6 +393,7 @@ public final class StationStateStore {
     }
 
     public CompletableFuture<ReindexReport> reindexAsync() {
+        indexedStatesPrewarmed.set(false);
         return indexRegistry.reindexAsync();
     }
 

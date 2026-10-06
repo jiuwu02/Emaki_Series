@@ -1,23 +1,35 @@
 package emaki.jiuwu.craft.level.service;
 
+import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
+import org.bukkit.Chunk;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
-import org.bukkit.block.Block;
+import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
 
 public final class LevelAntiAbuseService {
 
+    private static final int SPAWNER_CACHE_MAX_CHUNKS = 4096;
+    private static final long SPAWNER_CACHE_TTL_MILLIS = 5000L;
+
+    private record ChunkKey(UUID worldId, int chunkX, int chunkZ) {
+    }
+
     private final Map<String, Long> placedBlocks = new ConcurrentHashMap<>();
     private final Map<String, Long> cooldowns = new ConcurrentHashMap<>();
+    private final CacheManager<ChunkKey, List<long[]>> spawnerChunks =
+            new CacheManager<>(SPAWNER_CACHE_MAX_CHUNKS, SPAWNER_CACHE_TTL_MILLIS);
     private AppConfig config;
 
     public LevelAntiAbuseService(AppConfig config) {
@@ -29,7 +41,11 @@ public final class LevelAntiAbuseService {
     }
 
     public void recordPlacedBlock(Location location) {
-        if (location == null || config == null || !config.placedBlockTracking()) {
+        if (location == null) {
+            return;
+        }
+        invalidateSpawnerChunk(location);
+        if (config == null || !config.placedBlockTracking()) {
             return;
         }
         cleanupPlacedBlocks();
@@ -40,6 +56,7 @@ public final class LevelAntiAbuseService {
         if (location == null) {
             return false;
         }
+        invalidateSpawnerChunk(location);
         cleanupPlacedBlocks();
         return placedBlocks.remove(key(location)) != null;
     }
@@ -55,8 +72,13 @@ public final class LevelAntiAbuseService {
             return false;
         }
         long now = System.currentTimeMillis();
-        Long until = cooldowns.get(cooldownKey(player.getUniqueId(), source));
-        if (until == null || until <= now) {
+        String key = cooldownKey(player.getUniqueId(), source);
+        Long until = cooldowns.get(key);
+        if (until == null) {
+            return false;
+        }
+        if (until <= now) {
+            cooldowns.remove(key, until);
             return false;
         }
         return true;
@@ -83,17 +105,53 @@ public final class LevelAntiAbuseService {
         int baseZ = location.getBlockZ();
         int minY = Math.max(world.getMinHeight(), baseY - scanRadius);
         int maxY = Math.min(world.getMaxHeight() - 1, baseY + scanRadius);
-        for (int x = baseX - scanRadius; x <= baseX + scanRadius; x++) {
-            for (int y = minY; y <= maxY; y++) {
-                for (int z = baseZ - scanRadius; z <= baseZ + scanRadius; z++) {
-                    Block block = world.getBlockAt(x, y, z);
-                    if (block.getType() == Material.SPAWNER) {
-                        return true;
+        int minChunkX = (baseX - scanRadius) >> 4;
+        int maxChunkX = (baseX + scanRadius) >> 4;
+        int minChunkZ = (baseZ - scanRadius) >> 4;
+        int maxChunkZ = (baseZ + scanRadius) >> 4;
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                for (long[] position : spawnerPositions(world, chunkX, chunkZ)) {
+                    int dx = (int) position[0] - baseX;
+                    int dz = (int) position[2] - baseZ;
+                    int dy = (int) position[1] - baseY;
+                    if (dx < -scanRadius || dx > scanRadius
+                            || dz < -scanRadius || dz > scanRadius
+                            || dy < -scanRadius || dy > scanRadius) {
+                        continue;
                     }
+                    return true;
                 }
             }
         }
         return false;
+    }
+
+    private List<long[]> spawnerPositions(World world, int chunkX, int chunkZ) {
+        ChunkKey cacheKey = new ChunkKey(world.getUID(), chunkX, chunkZ);
+        List<long[]> cached = spawnerChunks.get(cacheKey);
+        if (cached != null) {
+            return cached;
+        }
+        Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+        List<long[]> positions = new ArrayList<>();
+        for (BlockState state : chunk.getTileEntities()) {
+            if (state != null && state.getType() == Material.SPAWNER) {
+                positions.add(new long[]{state.getX(), state.getY(), state.getZ()});
+            }
+        }
+        List<long[]> result = List.copyOf(positions);
+        spawnerChunks.put(cacheKey, result);
+        return result;
+    }
+
+    private void invalidateSpawnerChunk(Location location) {
+        World world = location.getWorld();
+        if (world == null) {
+            return;
+        }
+        spawnerChunks.invalidate(new ChunkKey(world.getUID(),
+                location.getBlockX() >> 4, location.getBlockZ() >> 4));
     }
 
     private void cleanupPlacedBlocks() {

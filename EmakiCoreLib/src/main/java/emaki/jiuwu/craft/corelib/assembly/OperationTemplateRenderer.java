@@ -4,12 +4,12 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
@@ -18,7 +18,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class OperationTemplateRenderer {
 
-    private static final Map<String, Pattern> REGEX_CACHE = new ConcurrentHashMap<>();
+    private static final int REGEX_CACHE_LIMIT = 512;
+
+    private static final CacheManager<String, Pattern> REGEX_CACHE = new CacheManager<>(REGEX_CACHE_LIMIT, 0L);
 
     private final PlaceholderRegistry placeholderRegistry;
 
@@ -189,7 +191,11 @@ public final class OperationTemplateRenderer {
             return Texts.toStringSafe(text);
         }
         try {
-            Pattern pattern = REGEX_CACHE.computeIfAbsent(regex, Pattern::compile);
+            Pattern pattern = REGEX_CACHE.get(regex);
+            if (pattern == null) {
+                pattern = Pattern.compile(regex);
+                REGEX_CACHE.put(regex, pattern);
+            }
             Matcher matcher = pattern.matcher(Texts.toStringSafe(text));
             return matcher.replaceAll(Matcher.quoteReplacement(Texts.formatTemplate(
                     Texts.toStringSafe(replacement),

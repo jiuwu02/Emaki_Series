@@ -23,7 +23,7 @@ public final class GemPlayerLifecycleListener implements Listener {
         terminateRerolls(event.getPlayer(), GemRerollSessionService.TerminationReason.PLAYER_QUIT);
     }
 
-    @EventHandler(priority = EventPriority.MONITOR)
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onKick(PlayerKickEvent event) {
         terminateRerolls(event.getPlayer(), GemRerollSessionService.TerminationReason.PLAYER_KICK);
     }
@@ -32,6 +32,8 @@ public final class GemPlayerLifecycleListener implements Listener {
         if (player == null || plugin.rerollSessionService() == null) {
             return;
         }
-        plugin.rerollSessionService().abandon(player.getUniqueId(), reason);
+        GemRerollSessionService service = plugin.rerollSessionService();
+        service.abandon(player.getUniqueId(), reason);
+        service.releasePlayer(player.getUniqueId());
     }
 }

@@ -450,16 +450,20 @@ final class ItemSetListenerScopeRefresher {
                     : sharedSnapshot.ledgerRead();
             accumulator.addLedgerDecodes(refreshBatch.ledgerDecodes() - ledgerDecodesBefore);
             LedgerFacts ledgerFacts = LedgerFacts.from(ledgerRead);
+            String contributionRole = contributionRole(slot, heldSlot);
+            String presentationDigest = Texts.isBlank(contributionRole)
+                    ? ""
+                    : managedPresentationDigest(itemMeta, identity, ledgerFacts);
             accumulator.put(new SlotFacts(
                     slot,
-                    contributionRole(slot, heldSlot),
+                    contributionRole,
                     expected,
                     identity,
                     definition,
                     membership,
                     ledgerRead,
                     ledgerFacts,
-                    managedPresentationDigest(itemMeta, identity, ledgerFacts)
+                    presentationDigest
             ));
             accumulator.incrementScannedSlots();
         }

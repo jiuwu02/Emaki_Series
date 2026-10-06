@@ -256,6 +256,19 @@ final class GemGuiRenderer {
         return replacements;
     }
 
+    private GemGuiSession.TargetResolution targetResolution(GemGuiSession state) {
+        GemGuiSession.TargetResolution cached = state.targetResolution();
+        if (cached != null) {
+            return cached;
+        }
+        ItemStack targetItem = state.mutableTargetItem();
+        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
+        GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
+        GemGuiSession.TargetResolution resolution = new GemGuiSession.TargetResolution(itemDefinition, gemState);
+        state.cacheTargetResolution(resolution);
+        return resolution;
+    }
+
     private GemUpgradeView resolveUpgradeView(GemGuiSession state) {
         GemItemInstance instance = plugin.itemMatcher().readGemInstance(state == null ? null : state.targetItem());
         GemDefinition definition = instance == null ? null : plugin.gemLoader().get(instance.gemId());
@@ -279,9 +292,9 @@ final class GemGuiRenderer {
         if (state.rerollMode()) {
             return renderRerollInfo(state, slot);
         }
-        ItemStack targetItem = state.targetItem();
-        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
-        GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
+        GemGuiSession.TargetResolution resolution = targetResolution(state);
+        GemItemDefinition itemDefinition = resolution.definition();
+        GemState gemState = resolution.state();
         String title = text("info_name", "<gold>操作说明</gold>");
         List<String> lore = new ArrayList<>();
         lore.add(text("mode_line", Map.of("mode", modeText(state.mode())), "<gray>当前模式: <yellow>%mode%</yellow></gray>"));
@@ -313,9 +326,9 @@ final class GemGuiRenderer {
         if (state.rerollMode()) {
             return renderRerollSummary(state, slot);
         }
-        ItemStack targetItem = state.targetItem();
-        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
-        GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
+        GemGuiSession.TargetResolution resolution = targetResolution(state);
+        GemItemDefinition itemDefinition = resolution.definition();
+        GemState gemState = resolution.state();
         String title = text("summary_name", "<gold>宝石槽统计</gold>");
         List<String> lore = new ArrayList<>();
         if (itemDefinition == null || gemState == null) {
@@ -437,9 +450,9 @@ final class GemGuiRenderer {
         if (state.rerollMode()) {
             return hiddenSlot();
         }
-        ItemStack targetItem = state.targetItem();
-        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
-        GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
+        GemGuiSession.TargetResolution resolution = targetResolution(state);
+        GemItemDefinition itemDefinition = resolution.definition();
+        GemState gemState = resolution.state();
         if (itemDefinition != null && displayIndex >= itemDefinition.slots().size()) {
             return hiddenSlot();
         }
@@ -551,9 +564,9 @@ final class GemGuiRenderer {
             return buildConfiguredItem(slot, Material.WRITABLE_BOOK, title, lore,
                     previewReplacements(title, lore, state));
         }
-        ItemStack targetItem = state.targetItem();
-        GemItemDefinition itemDefinition = plugin.stateService().resolveItemDefinition(targetItem);
-        GemState gemState = itemDefinition == null ? null : plugin.stateService().resolveState(targetItem, itemDefinition);
+        GemGuiSession.TargetResolution resolution = targetResolution(state);
+        GemItemDefinition itemDefinition = resolution.definition();
+        GemState gemState = resolution.state();
         GemItemDefinition.SocketSlot socketSlot = itemDefinition == null ? null : itemDefinition.slot(pendingOperation.slotIndex());
         lore.add(text("pending_action", Map.of("action", pendingText(pendingOperation.type())), "<gray>待执行: <yellow>%action%</yellow></gray>"));
         lore.add(text("target_slot", Map.of("slot", pendingOperation.slotIndex()), "<gray>目标插槽: <gold>#%slot%</gold></gray>"));

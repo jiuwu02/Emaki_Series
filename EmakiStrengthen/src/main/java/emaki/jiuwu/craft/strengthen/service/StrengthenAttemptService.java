@@ -213,14 +213,16 @@ public final class StrengthenAttemptService {
         }
 
         AttemptResult result = null;
+        AttemptPreview preview = null;
         try {
             logOperation(player, operationId, "started", AttemptOutcome.NOT_COMMITTED);
-            result = attemptOnce(player, safeContext, operationId);
+            preview = preview(player, safeContext);
+            result = attemptOnce(player, safeContext, preview, operationId);
         } catch (RuntimeException | LinkageError exception) {
             plugin.messageService().severe("console.strengthen_attempt_failed_closed", Map.of(
                     "operation_id", Texts.toStringSafe(operationId),
                     "error", String.valueOf(exception.getMessage())));
-            result = internalFailure(player, safeContext, operationId);
+            result = internalFailure(player, safeContext, preview, operationId);
         } finally {
             if (result == null) {
                 result = AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
@@ -232,9 +234,12 @@ public final class StrengthenAttemptService {
         return result;
     }
 
-    private AttemptResult internalFailure(Player player, AttemptContext context, String operationId) {
+    private AttemptResult internalFailure(Player player,
+            AttemptContext context,
+            AttemptPreview resolvedPreview,
+            String operationId) {
         try {
-            AttemptPreview failedPreview = preview(player, context);
+            AttemptPreview failedPreview = resolvedPreview == null ? preview(player, context) : resolvedPreview;
             return AttemptResult.failure("strengthen.error.internal", failedPreview,
                     replacements(failedPreview, failedPreview.currentStar()), operationId);
         } catch (RuntimeException | LinkageError ignored) {
@@ -242,8 +247,10 @@ public final class StrengthenAttemptService {
         }
     }
 
-    private AttemptResult attemptOnce(Player player, AttemptContext context, String operationId) {
-        AttemptPreview preview = preview(player, context);
+    private AttemptResult attemptOnce(Player player,
+            AttemptContext context,
+            AttemptPreview preview,
+            String operationId) {
         if (!preview.eligible()) {
             return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview,
                     replacements(preview, preview.currentStar()), operationId));

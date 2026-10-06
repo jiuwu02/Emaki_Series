@@ -84,17 +84,24 @@ public final class EconomyManager {
     }
 
     public ActionResult requireSupported(String providerId, String currencyId) {
+        return resolveSupported(providerId, currencyId).result();
+    }
+
+    private Supported resolveSupported(String providerId, String currencyId) {
         if ("excellenteconomy".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId)) {
-            return ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy 操作需要 'currency'。");
+            return new Supported(null,
+                    ActionResult.failure(ActionErrorType.INVALID_ARGUMENT, "ExcellentEconomy 操作需要 'currency'。"));
         }
         EconomyProvider provider = select(providerId, currencyId);
         if (provider == null) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "没有可用的经济提供者: '" + providerId + "'。");
+            return new Supported(null,
+                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "没有可用的经济提供者: '" + providerId + "'。"));
         }
         if ("auto".equalsIgnoreCase(providerId) && Texts.isBlank(currencyId) && "excellenteconomy".equalsIgnoreCase(provider.id())) {
-            return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "auto 提供者不会推断默认的 ExcellentEconomy 货币。");
+            return new Supported(null,
+                    ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "auto 提供者不会推断默认的 ExcellentEconomy 货币。"));
         }
-        return ActionResult.ok(Map.of("provider", provider.id()));
+        return new Supported(provider, ActionResult.ok(Map.of("provider", provider.id())));
     }
 
     public double getBalance(Player player, String providerId, String currencyId) {
@@ -103,26 +110,29 @@ public final class EconomyManager {
     }
 
     public ActionResult add(Player player, String providerId, String currencyId, double amount) {
-        ActionResult supported = requireSupported(providerId, currencyId);
-        if (!supported.success()) {
-            return supported;
+        Supported supported = resolveSupported(providerId, currencyId);
+        if (!supported.result().success()) {
+            return supported.result();
         }
-        return select(providerId, currencyId).add(player, currencyId, amount);
+        return supported.provider().add(player, currencyId, amount);
     }
 
     public ActionResult remove(Player player, String providerId, String currencyId, double amount) {
-        ActionResult supported = requireSupported(providerId, currencyId);
-        if (!supported.success()) {
-            return supported;
+        Supported supported = resolveSupported(providerId, currencyId);
+        if (!supported.result().success()) {
+            return supported.result();
         }
-        return select(providerId, currencyId).remove(player, currencyId, amount);
+        return supported.provider().remove(player, currencyId, amount);
     }
 
     public ActionResult set(Player player, String providerId, String currencyId, double amount) {
-        ActionResult supported = requireSupported(providerId, currencyId);
-        if (!supported.success()) {
-            return supported;
+        Supported supported = resolveSupported(providerId, currencyId);
+        if (!supported.result().success()) {
+            return supported.result();
         }
-        return select(providerId, currencyId).set(player, currencyId, amount);
+        return supported.provider().set(player, currencyId, amount);
+    }
+
+    private record Supported(EconomyProvider provider, ActionResult result) {
     }
 }

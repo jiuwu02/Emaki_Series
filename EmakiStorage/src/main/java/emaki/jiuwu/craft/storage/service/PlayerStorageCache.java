@@ -164,8 +164,8 @@ public final class PlayerStorageCache {
                 entry.lifecycle = Lifecycle.CLOSING;
             }
             if (!entry.writable || entry.data == null || !entry.data.dirty()) {
-                if (closeAfterSave) {
-                    entries.remove(playerId, entry);
+                if (closeAfterSave && entries.remove(playerId, entry)) {
+                    forgetAuxiliary(playerId);
                 }
                 return null;
             }
@@ -231,7 +231,9 @@ public final class PlayerStorageCache {
 
     public void discard(UUID playerId) {
         synchronized (lifecycleLock) {
-            entries.remove(playerId);
+            if (entries.remove(playerId) != null) {
+                forgetAuxiliary(playerId);
+            }
         }
     }
 
@@ -252,8 +254,17 @@ public final class PlayerStorageCache {
     public void clear() {
         synchronized (lifecycleLock) {
             entries.clear();
+            generations.clear();
             saveLanes.clear();
         }
+    }
+
+    private void forgetAuxiliary(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        generations.remove(playerId);
+        saveLanes.remove(playerId);
     }
 
     private void commitSaved(SaveTicket ticket) {
@@ -267,7 +278,9 @@ public final class PlayerStorageCache {
                 entry.data.markPersisted(ticket.revision());
             }
             if (ticket.closeAfterSave()) {
-                entries.remove(ticket.playerId(), entry);
+                if (entries.remove(ticket.playerId(), entry)) {
+                    forgetAuxiliary(ticket.playerId());
+                }
             }
         }
     }

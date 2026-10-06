@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.level.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -56,9 +57,9 @@ public final class LevelTopService {
             entries.removeIf(entry -> data.uuid().equals(entry.uuid()));
             TopEntry entry = toEntry(data, type.id());
             if (entry != null) {
-                entries.add(entry);
+                int index = Collections.binarySearch(entries, entry, TOP_ENTRY_COMPARATOR);
+                entries.add(index < 0 ? -index - 1 : index, entry);
             }
-            entries.sort(TOP_ENTRY_COMPARATOR);
             snapshot.put(type.id(), List.copyOf(entries));
         }
     }

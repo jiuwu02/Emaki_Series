@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.mobs.config.ModelSettings;
 import emaki.jiuwu.craft.mobs.loader.MobModelConfig;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -299,14 +300,11 @@ public final class MobModelManager implements Listener {
     }
 
     private MobModelBridge.LodTier tierFor(LivingEntity entity, ModelSettings settings) {
-        double radius = settings.lodFar() + 8.0;
-        double nearestSquared = Double.MAX_VALUE;
         double farSquared = settings.lodFar() * settings.lodFar();
-        for (Entity nearby : entity.getNearbyEntities(radius, radius, radius)) {
-            if (!(nearby instanceof Player)) {
-                continue;
-            }
-            double distanceSquared = nearby.getLocation().distanceSquared(entity.getLocation());
+        Location entityLocation = entity.getLocation();
+        double nearestSquared = Double.MAX_VALUE;
+        for (Player player : entity.getWorld().getPlayers()) {
+            double distanceSquared = player.getLocation().distanceSquared(entityLocation);
             if (distanceSquared < nearestSquared) {
                 nearestSquared = distanceSquared;
             }

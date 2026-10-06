@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.action.pipeline;
 
+import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -14,7 +15,10 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class RegistryPlaceholderBridge implements PlaceholderBridge {
 
+    private static final int MAX_CACHED_TABLES = 256;
+
     private final Supplier<PlaceholderRegistry> registrySupplier;
+    private final Map<Map<String, String>, Map<String, String>> variableTables = new IdentityHashMap<>();
 
     public RegistryPlaceholderBridge(@NotNull Supplier<PlaceholderRegistry> registrySupplier) {
         this.registrySupplier = registrySupplier;
@@ -41,9 +45,15 @@ public final class RegistryPlaceholderBridge implements PlaceholderBridge {
         return Texts.toStringSafe(registry.resolve(adapter, resolved));
     }
 
-    private static Map<String, String> variablePlaceholders(Map<String, String> variables) {
+    private Map<String, String> variablePlaceholders(Map<String, String> variables) {
         if (variables == null || variables.isEmpty()) {
             return Map.of();
+        }
+        synchronized (variableTables) {
+            Map<String, String> cached = variableTables.get(variables);
+            if (cached != null) {
+                return cached;
+            }
         }
         Map<String, String> placeholders = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : variables.entrySet()) {
@@ -53,7 +63,14 @@ public final class RegistryPlaceholderBridge implements PlaceholderBridge {
             String key = Texts.lower(entry.getKey());
             placeholders.put(key.startsWith("var.") ? key : "var." + key, entry.getValue());
         }
-        return Map.copyOf(placeholders);
+        Map<String, String> table = Map.copyOf(placeholders);
+        synchronized (variableTables) {
+            if (variableTables.size() >= MAX_CACHED_TABLES) {
+                variableTables.clear();
+            }
+            variableTables.put(variables, table);
+        }
+        return table;
     }
 
     private static Player playerOf(PipelineContext context) {

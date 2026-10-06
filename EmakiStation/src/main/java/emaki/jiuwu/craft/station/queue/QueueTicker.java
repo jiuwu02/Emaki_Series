@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.station.queue;
 
-import java.util.List;
 import java.util.UUID;
 import java.util.function.Supplier;
 
@@ -64,7 +63,7 @@ public final class QueueTicker {
             if (player == null || !player.isOnline()) {
                 continue;
             }
-            for (CraftQueue queue : List.copyOf(queues.all())) {
+            for (CraftQueue queue : queues.all()) {
                 StationDefinition station = registry.station(queue.stationId());
                 if (station == null) {
                     continue;

@@ -105,6 +105,10 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             if (runtime != null) {
                 runtime.invalidateAll();
             }
+            SkillRegistryService registry = plugin.skillRegistryService();
+            if (registry != null) {
+                registry.rebuildPassiveSkillIndex();
+            }
         });
         SkillRegistryService skillRegistryService = new SkillRegistryService(
                 plugin,
@@ -626,6 +630,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
             plugin.passiveTriggerSource().reloadCronTasks(
                     plugin, plugin.skillRegistryService().allDefinitions().values());
         }
+        plugin.skillRegistryService().rebuildPassiveSkillIndex();
     }
 
     private List<String> staticFiles(EmakiSkillsPlugin plugin) {

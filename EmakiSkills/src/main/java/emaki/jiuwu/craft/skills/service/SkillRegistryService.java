@@ -11,6 +11,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.skills.api.SkillSourceEntry;
+import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.SkillSourceType;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
@@ -23,6 +24,7 @@ public final class SkillRegistryService {
     private final JavaPlugin plugin;
     private final Supplier<Map<String, SkillDefinition>> definitionsSupplier;
     private final ExternalSkillDefinitionRegistry externalDefinitions;
+    private volatile Map<String, Map<String, SkillDefinition>> passiveSkillIndex;
 
     public SkillRegistryService(JavaPlugin plugin,
             Supplier<Map<String, SkillDefinition>> definitionsSupplier) {
@@ -50,6 +52,52 @@ public final class SkillRegistryService {
             return null;
         }
         return allDefinitions().get(Texts.normalizeId(skillId));
+    }
+
+    public void rebuildPassiveSkillIndex() {
+        passiveSkillIndex = buildPassiveSkillIndex();
+    }
+
+    public Map<String, SkillDefinition> passiveSkillsFor(String triggerId) {
+        if (triggerId == null || triggerId.isBlank()) {
+            return Map.of();
+        }
+        return passiveSkillIndex().getOrDefault(triggerId, Map.of());
+    }
+
+    private Map<String, Map<String, SkillDefinition>> passiveSkillIndex() {
+        Map<String, Map<String, SkillDefinition>> index = passiveSkillIndex;
+        if (index == null) {
+            index = buildPassiveSkillIndex();
+            passiveSkillIndex = index;
+        }
+        return index;
+    }
+
+    private Map<String, Map<String, SkillDefinition>> buildPassiveSkillIndex() {
+        Map<String, Map<String, SkillDefinition>> index = new LinkedHashMap<>();
+        for (SkillDefinition definition : allDefinitions().values()) {
+            if (definition == null
+                    || !definition.enabled()
+                    || definition.activationType() != SkillActivationType.PASSIVE) {
+                continue;
+            }
+            for (String triggerId : definition.passiveTriggers()) {
+                if (triggerId == null || triggerId.isBlank()) {
+                    continue;
+                }
+                index.computeIfAbsent(triggerId, ignored -> new LinkedHashMap<>())
+                        .putIfAbsent(definition.id(), definition);
+            }
+        }
+        if (index.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, Map<String, SkillDefinition>> snapshot = new LinkedHashMap<>(index.size());
+        for (Map.Entry<String, Map<String, SkillDefinition>> entry : index.entrySet()) {
+            snapshot.put(entry.getKey(), Map.copyOf(entry.getValue()));
+        }
+        return Map.copyOf(snapshot);
     }
 
     public List<UnlockedSkillEntry> collectUnlockedSkills(Player player,

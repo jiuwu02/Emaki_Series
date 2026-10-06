@@ -35,6 +35,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
     private final List<ScheduledTask> tasks = new CopyOnWriteArrayList<>();
     private final List<AutonomousSpawnRule> dayIntervalRules = new CopyOnWriteArrayList<>();
     private final Map<String, NamespacedKey> pdcKeyCache = new HashMap<>();
+    private volatile ScheduledTask heartbeatTask;
 
     public AutonomousSpawnHandler(Plugin plugin,
                                   MobIdentifier mobIdentifier,
@@ -42,13 +43,12 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
         this.plugin = plugin;
         this.mobIdentifier = mobIdentifier;
         this.mobFactory = mobFactory;
-        plugin.getServer().getGlobalRegionScheduler()
-                .runAtFixedRate(plugin, t -> checkDayIntervalRules(), 1L, 20L);
     }
 
     @Override
     public void register(SpawnRule rule) {
         if (!(rule instanceof AutonomousSpawnRule r)) return;
+        ensureHeartbeat();
         switch (r.trigger()) {
             case INTERVAL -> {
                 ScheduledTask task = plugin.getServer().getGlobalRegionScheduler()
@@ -111,8 +111,20 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
             if (!t.isCancelled()) t.cancel();
         });
         tasks.clear();
+        heartbeatTask = null;
         dayIntervalRules.clear();
         cronScheduler.cancelAll();
+    }
+
+    private void ensureHeartbeat() {
+        ScheduledTask current = heartbeatTask;
+        if (current != null && !current.isCancelled()) {
+            return;
+        }
+        ScheduledTask task = plugin.getServer().getGlobalRegionScheduler()
+                .runAtFixedRate(plugin, t -> checkDayIntervalRules(), 1L, 20L);
+        heartbeatTask = task;
+        tasks.add(task);
     }
 
     private void checkDayIntervalRules() {

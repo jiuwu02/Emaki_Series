@@ -290,8 +290,25 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     }
 
     private void refreshAll() {
-        for (VirtualDisplay display : List.copyOf(displays.values())) {
-            refreshEntry(display);
+        List<VirtualDisplay> snapshot = List.copyOf(displays.values());
+        if (snapshot.isEmpty()) {
+            return;
+        }
+        Set<UUID> onlinePlayers = ConcurrentHashMap.newKeySet();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlinePlayers.add(player.getUniqueId());
+            executionDispatcher.runEntity(plugin, player, () -> {
+                for (VirtualDisplay display : snapshot) {
+                    refreshVisibilityForPlayer(display, player);
+                }
+            }, () -> {
+                for (VirtualDisplay display : snapshot) {
+                    display.visiblePlayers.remove(player.getUniqueId());
+                }
+            });
+        }
+        for (VirtualDisplay display : snapshot) {
+            display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
         }
     }
 

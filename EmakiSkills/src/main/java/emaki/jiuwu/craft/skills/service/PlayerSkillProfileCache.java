@@ -241,15 +241,15 @@ final class PlayerSkillProfileCache {
                 entry.lifecycle = Lifecycle.CLOSING;
             }
             if (!entry.loadWritable) {
-                if (closeAfterSave) {
-                    entries.remove(playerId, entry);
+                if (closeAfterSave && entries.remove(playerId, entry)) {
+                    forgetAuxiliary(playerId);
                 }
                 return null;
             }
             long revision = entry.profile.revision();
             if (revision <= entry.profile.persistedRevision()) {
-                if (closeAfterSave) {
-                    entries.remove(playerId, entry);
+                if (closeAfterSave && entries.remove(playerId, entry)) {
+                    forgetAuxiliary(playerId);
                 }
                 return null;
             }
@@ -407,9 +407,19 @@ final class PlayerSkillProfileCache {
             }
         }
         if (remove) {
-            entries.remove(ticket.playerId(), entry);
+            if (entries.remove(ticket.playerId(), entry)) {
+                forgetAuxiliary(ticket.playerId());
+            }
         }
         return result;
+    }
+
+    private void forgetAuxiliary(UUID playerId) {
+        if (playerId == null) {
+            return;
+        }
+        generations.remove(playerId);
+        saveLanes.remove(playerId);
     }
 
     private CommitResult commitFailed(SaveTicket ticket) {

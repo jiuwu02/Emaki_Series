@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
@@ -28,12 +29,15 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -44,6 +48,14 @@ import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
+    private static final int PLAN_CACHE_SIZE = 512;
+    private static final long PLAN_CACHE_TTL_MILLIS = 60_000L;
+    private static final int FIRST_ARMOR_SLOT = 36;
+    private static final int OFF_HAND_SLOT = 40;
+    private static final String[] ARMOR_SLOT_TARGETS = {"feet", "legs", "chest", "head"};
+    private static final String ASSEMBLY_SIGNATURE_FIELD = "assembly_signature";
+    private static final String LEGACY_ITEM_PARTITION = "item";
+
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final ExecutionDispatcher executionDispatcher;
@@ -52,6 +64,9 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final ItemOperationLedger operationLedger;
     private final Set<String> warningCache = new LinkedHashSet<>();
+    private final CacheManager<String, CachedPlan> planCache = new CacheManager<>(PLAN_CACHE_SIZE, PLAN_CACHE_TTL_MILLIS);
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin,
                                    EmakiItemAssemblyService itemAssemblyService,
@@ -63,6 +78,8 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
         this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
+        this.pdcService = new PdcService("emaki", "forge", plugin.debugLogger());
+        this.itemPartition = pdcService.partition("item");
     }
 
     public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
@@ -74,6 +91,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         synchronized (warningCache) {
             warningCache.clear();
         }
+        planCache.clear();
         List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
         if (players.isEmpty()) {
             return CompletableFuture.completedFuture(new RefreshSummary(generation, 0, 0, 0, 0,
@@ -156,6 +174,77 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (refreshedCursor != cursor) {
             player.setItemOnCursor(refreshedCursor);
         }
+    }
+
+    @Override
+    public void refreshPlayerSlots(Player player, Set<Integer> slots, boolean full) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (full) {
+            refreshPlayerInventory(player);
+            return;
+        }
+        PlayerInventory inventory = player.getInventory();
+        ItemStack[] storage = null;
+        boolean storageChanged = false;
+        ItemStack[] armor = null;
+        boolean armorChanged = false;
+        for (int slot : orderedSlots(slots)) {
+            if (slot < FIRST_ARMOR_SLOT) {
+                if (storage == null) {
+                    storage = inventory.getStorageContents();
+                }
+                if (slot >= storage.length) {
+                    continue;
+                }
+                ItemStack original = storage[slot];
+                ItemStack refreshed = refreshItem(player, "storage:" + slot, original, true);
+                if (refreshed != original) {
+                    storage[slot] = refreshed;
+                    storageChanged = true;
+                }
+            } else if (slot < OFF_HAND_SLOT) {
+                if (armor == null) {
+                    armor = inventory.getArmorContents();
+                }
+                int index = slot - FIRST_ARMOR_SLOT;
+                if (index >= armor.length) {
+                    continue;
+                }
+                String target = "armor:" + (index < ARMOR_SLOT_TARGETS.length ? ARMOR_SLOT_TARGETS[index] : index);
+                ItemStack original = armor[index];
+                ItemStack refreshed = refreshItem(player, target, original, true);
+                if (refreshed != original) {
+                    armor[index] = refreshed;
+                    armorChanged = true;
+                }
+            } else if (slot == OFF_HAND_SLOT) {
+                ItemStack offHand = inventory.getItemInOffHand();
+                ItemStack refreshedOffHand = refreshItem(player, "offhand", offHand, true);
+                if (refreshedOffHand != offHand) {
+                    inventory.setItemInOffHand(refreshedOffHand);
+                }
+            }
+        }
+        if (storageChanged) {
+            inventory.setStorageContents(storage);
+        }
+        if (armorChanged) {
+            inventory.setArmorContents(armor);
+        }
+        ItemStack cursor = player.getItemOnCursor();
+        ItemStack refreshedCursor = refreshItem(player, "cursor", cursor, true);
+        if (refreshedCursor != cursor) {
+            player.setItemOnCursor(refreshedCursor);
+        }
+    }
+
+    private Set<Integer> orderedSlots(Set<Integer> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return Set.of();
+        }
+        return new TreeSet<>(slots);
     }
 
     @Override
@@ -274,6 +363,29 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
+        String signature = assemblySignature(itemStack);
+        if (signature == null) {
+            return computeRefreshPlan(itemStack);
+        }
+        long generation = plugin.runtimeGeneration();
+        CachedPlan cached = planCache.get(signature);
+        if (cached != null && cached.generation() == generation) {
+            return cached.plan();
+        }
+        RefreshPlan plan = computeRefreshPlan(itemStack);
+        if (plan != null) {
+            planCache.put(signature, new CachedPlan(generation, plan));
+        }
+        return plan;
+    }
+
+    private String assemblySignature(ItemStack itemStack) {
+        String signature = pdcService.getMigrating(itemStack, itemPartition,
+                LEGACY_ITEM_PARTITION, ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
+        return Texts.isBlank(signature) ? null : signature;
+    }
+
+    private RefreshPlan computeRefreshPlan(ItemStack itemStack) {
         if (itemAssemblyService == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return null;
         }
@@ -640,6 +752,9 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
 
     private record ResolvedAuditMaterials(List<ForgeMaterialContribution> materials,
                                           boolean requiresIdentityMigration) {
+    }
+
+    private record CachedPlan(long generation, RefreshPlan plan) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,

@@ -19,17 +19,29 @@ public final class CronScheduler {
 
     public CronTaskHandle schedule(Plugin plugin, String cronExpression, int maxExecutions, Runnable task) {
         CronExpression expr = CronExpression.parse(cronExpression);
-        DefaultHandle handle = new DefaultHandle(maxExecutions);
-        handles.add(handle);
+        DefaultHandle handle = new DefaultHandle(this, maxExecutions);
+        synchronized (handles) {
+            handles.add(handle);
+        }
         scheduleNext(plugin, expr, task, handle);
         return handle;
     }
 
     public void cancelAll() {
-        for (DefaultHandle h : handles) {
+        List<DefaultHandle> snapshot;
+        synchronized (handles) {
+            snapshot = List.copyOf(handles);
+            handles.clear();
+        }
+        for (DefaultHandle h : snapshot) {
             h.cancel();
         }
-        handles.clear();
+    }
+
+    private void forget(DefaultHandle handle) {
+        synchronized (handles) {
+            handles.remove(handle);
+        }
     }
 
     private void scheduleNext(Plugin plugin, CronExpression expr, Runnable task, DefaultHandle handle) {
@@ -65,10 +77,12 @@ public final class CronScheduler {
 
     private static final class DefaultHandle implements CronTaskHandle {
 
+        private final CronScheduler owner;
         private final AtomicInteger remaining;
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
-        DefaultHandle(int maxExecutions) {
+        DefaultHandle(CronScheduler owner, int maxExecutions) {
+            this.owner = owner;
             this.remaining = new AtomicInteger(maxExecutions <= 0 ? -1 : maxExecutions);
         }
 
@@ -80,11 +94,13 @@ public final class CronScheduler {
 
         void markDone() {
             cancelled.set(true);
+            owner.forget(this);
         }
 
         @Override
         public void cancel() {
             cancelled.set(true);
+            owner.forget(this);
         }
 
         @Override

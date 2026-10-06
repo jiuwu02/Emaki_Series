@@ -347,7 +347,26 @@ public sealed interface Matcher permits
         }
     }
 
-    record LoreMatcher(@NotNull String pattern, @NotNull LoreMatchMode mode) implements Matcher {
+    static final class LoreMatcher implements Matcher {
+
+        private final String pattern;
+        private final LoreMatchMode mode;
+        private final Pattern regex;
+
+        LoreMatcher(@NotNull String pattern, @NotNull LoreMatchMode mode) {
+            this.pattern = pattern;
+            this.mode = mode;
+            this.regex = mode == LoreMatchMode.REGEX ? compile(pattern) : null;
+        }
+
+        private static Pattern compile(String pattern) {
+            try {
+                return Pattern.compile(pattern);
+            } catch (RuntimeException _) {
+                return null;
+            }
+        }
+
         @Override
         public boolean test(@NotNull MatchContext context) {
             if (context.item() == null || !context.item().hasItemMeta()) {
@@ -365,10 +384,13 @@ public sealed interface Matcher permits
                 case CONTAINS -> lore.stream().anyMatch(line -> line.contains(pattern));
                 case EXACT -> lore.stream().anyMatch(line -> line.equals(pattern));
                 case REGEX -> {
+                    Pattern compiled = regex;
+                    if (compiled == null) {
+                        yield false;
+                    }
                     try {
-                        Pattern regex = Pattern.compile(pattern);
-                        yield lore.stream().anyMatch(line -> regex.matcher(line).find());
-                    } catch (Exception _) {
+                        yield lore.stream().anyMatch(line -> compiled.matcher(line).find());
+                    } catch (RuntimeException _) {
                         yield false;
                     }
                 }

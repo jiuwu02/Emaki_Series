@@ -44,6 +44,7 @@ final class ForgeGuiStateSupport {
         if (state == null) {
             return;
         }
+        state.invalidateCandidateRecipes();
         state.setPreviewRecipe(resolvePreviewRecipe(state));
         state.setMaxCapacity(resolveMaxCapacity(state));
         state.setCurrentCapacity(calculateCurrentCapacity(state));
@@ -117,6 +118,7 @@ final class ForgeGuiStateSupport {
         if (state == null || state.guiSession() == null) {
             return;
         }
+        state.invalidateCandidateRecipes();
         Inventory inventory = state.guiSession().getInventory();
         state.blueprintItems().clear();
         for (int slot : slotsForType(state, "blueprint_inputs")) {
@@ -208,6 +210,16 @@ final class ForgeGuiStateSupport {
         if (state == null) {
             return List.of();
         }
+        List<Recipe> cached = state.candidateRecipes();
+        if (cached != null) {
+            return cached;
+        }
+        List<Recipe> computed = List.copyOf(computeCandidateRecipes(state));
+        state.cacheCandidateRecipes(computed);
+        return computed;
+    }
+
+    private List<Recipe> computeCandidateRecipes(ForgeGuiSession state) {
         if (state.recipe() != null) {
             return List.of(state.recipe());
         }

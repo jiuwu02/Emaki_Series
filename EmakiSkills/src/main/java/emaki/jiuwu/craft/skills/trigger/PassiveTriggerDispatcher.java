@@ -1,15 +1,16 @@
 package emaki.jiuwu.craft.skills.trigger;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.trigger.TriggerCategory;
 import emaki.jiuwu.craft.corelib.trigger.TriggerDefinition;
 import emaki.jiuwu.craft.corelib.trigger.TriggerInvocation;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
-import emaki.jiuwu.craft.skills.model.SkillActivationType;
 import emaki.jiuwu.craft.skills.model.SkillDefinition;
 import emaki.jiuwu.craft.skills.model.UnlockedSkillEntry;
 import emaki.jiuwu.craft.skills.service.CastAttemptService;
@@ -38,12 +39,17 @@ public final class PassiveTriggerDispatcher {
             return;
         }
 
+        Map<String, SkillDefinition> candidates = stateService.passiveSkillCandidates(invocation.triggerId());
+        if (candidates.isEmpty()) {
+            return;
+        }
+
         Player player = invocation.player();
         List<UnlockedSkillEntry> unlocked = stateService.getUnlockedSkills(player);
         CompletableFuture<Void> chain = CompletableFuture.completedFuture(null);
         for (UnlockedSkillEntry entry : unlocked) {
-            SkillDefinition definition = stateService.getDefinition(entry.skillId());
-            if (!isMatchingPassiveSkill(definition, invocation.triggerId())) {
+            SkillDefinition definition = candidates.get(Texts.normalizeId(entry.skillId()));
+            if (definition == null) {
                 continue;
             }
             chain = chain.thenCompose(_ -> castAttemptService.attemptPassiveCast(
@@ -51,12 +57,5 @@ public final class PassiveTriggerDispatcher {
                     .thenApply(_ -> null);
         }
         chain.exceptionally(_ -> null);
-    }
-
-    private boolean isMatchingPassiveSkill(SkillDefinition definition, String triggerId) {
-        return definition != null
-                && definition.enabled()
-                && definition.activationType() == SkillActivationType.PASSIVE
-                && definition.passiveTriggers().contains(triggerId);
     }
 }

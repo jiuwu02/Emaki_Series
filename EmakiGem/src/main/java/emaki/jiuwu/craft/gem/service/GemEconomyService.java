@@ -1,12 +1,12 @@
 package emaki.jiuwu.craft.gem.service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.bukkit.entity.Player;
@@ -130,10 +130,18 @@ public final class GemEconomyService {
         }
     }
 
+    private static final int MAX_REFUNDED_RECEIPTS = 4096;
+
     private final EmakiGemPlugin plugin;
     private final Supplier<EconomyManager> economyManagerSupplier;
     private final ItemSourceService itemSourceService;
-    private final Set<UUID> refundedReceipts = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> refundedReceipts = Collections.synchronizedSet(
+            Collections.newSetFromMap(new LinkedHashMap<UUID, Boolean>() {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<UUID, Boolean> eldest) {
+                    return size() > MAX_REFUNDED_RECEIPTS;
+                }
+            }));
 
     public GemEconomyService(EmakiGemPlugin plugin,
             Supplier<EconomyManager> economyManagerSupplier,

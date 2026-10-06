@@ -5,9 +5,11 @@ import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
@@ -58,6 +60,9 @@ final class StationStateFileStore {
     private final NamespacedKey tombstoneKey;
     private final ConcurrentMap<StationCoordinates, ItemSourceRef> stationSources = new ConcurrentHashMap<>();
     private final ConcurrentMap<StationCoordinates, YamlSection> yamlCache = new ConcurrentHashMap<>();
+    private final Set<StationCoordinates> yamlAbsent = ConcurrentHashMap.newKeySet();
+    private final ConcurrentMap<StationCoordinates, StoredState> tombstoneCache = new ConcurrentHashMap<>();
+    private final Set<StationCoordinates> tombstoneAbsent = ConcurrentHashMap.newKeySet();
     private volatile StationIndexRegistry indexRegistry;
 
     StationStateFileStore(JavaPlugin plugin,
@@ -133,13 +138,18 @@ final class StationStateFileStore {
             YamlSection copy = cached.copy();
             return new StoredState(copy, stateVersion(copy), tombstone(copy), StationStorageBackend.YAML_FALLBACK);
         }
+        if (yamlAbsent.contains(coordinates)) {
+            return null;
+        }
         Path file = pathFor(coordinates);
         if (!Files.exists(file)) {
+            yamlAbsent.add(coordinates);
             return null;
         }
         try {
             YamlSection state = normalizeLoadedState(coordinates, YamlFiles.load(file.toFile()));
             if (state == null) {
+                yamlAbsent.add(coordinates);
                 return null;
             }
             yamlCache.put(coordinates, state.copy());
@@ -148,6 +158,7 @@ final class StationStateFileStore {
             if (!causedByMissingFile(exception)) {
                 throw exception;
             }
+            yamlAbsent.add(coordinates);
             return null;
         }
     }
@@ -156,16 +167,27 @@ final class StationStateFileStore {
         if (coordinates == null) {
             return null;
         }
+        StoredState cached = tombstoneCache.get(coordinates);
+        if (cached != null) {
+            return cached;
+        }
+        if (tombstoneAbsent.contains(coordinates)) {
+            return null;
+        }
         Path path = tombstonePathFor(coordinates);
         if (!Files.exists(path)) {
+            tombstoneAbsent.add(coordinates);
             return null;
         }
         try {
             YamlSection state = normalizeLoadedState(coordinates, YamlFiles.load(path.toFile()));
             if (state == null || !tombstone(state)) {
+                tombstoneAbsent.add(coordinates);
                 return null;
             }
-            return new StoredState(null, stateVersion(state), true, null);
+            StoredState result = new StoredState(null, stateVersion(state), true, null);
+            tombstoneCache.put(coordinates, result);
+            return result;
         } catch (YamlLoadException exception) {
             long fallbackVersion;
             try {
@@ -174,8 +196,35 @@ final class StationStateFileStore {
                 fallbackVersion = System.currentTimeMillis();
             }
             plugin.getLogger().warning("解析工位墓碑失败 " + coordinates.runtimeKey() + ": " + exception.getMessage());
-            return new StoredState(null, fallbackVersion, true, null);
+            StoredState result = new StoredState(null, fallbackVersion, true, null);
+            tombstoneCache.put(coordinates, result);
+            return result;
         }
+    }
+
+    void preloadCandidates(Collection<StationCoordinates> coordinates) {
+        if (coordinates == null || coordinates.isEmpty()) {
+            return;
+        }
+        for (StationCoordinates target : coordinates) {
+            if (target == null) {
+                continue;
+            }
+            try {
+                preloadYaml(target);
+                readTombstoneCandidate(target);
+            } catch (Throwable throwable) {
+                plugin.getLogger().warning("预加载工位状态失败 " + target.runtimeKey() + ": "
+                        + StationStateStore.rootCauseMessage(throwable));
+            }
+        }
+    }
+
+    private void preloadYaml(StationCoordinates coordinates) {
+        if (yamlCache.containsKey(coordinates) || yamlAbsent.contains(coordinates)) {
+            return;
+        }
+        readYamlCandidate(coordinates);
     }
 
     boolean tryWritePdcState(StationCoordinates coordinates, YamlSection state, long mutationVersion) {
@@ -330,6 +379,8 @@ final class StationStateFileStore {
         if (coordinates == null || !arbiter.isCurrentDelete(coordinates, mutationVersion)) {
             return CompletableFuture.completedFuture(false);
         }
+        tombstoneAbsent.remove(coordinates);
+        tombstoneCache.remove(coordinates);
         Map<String, Object> tombstone = stateWithMetadata(coordinates, Map.of(), mutationVersion, true);
         Path path = tombstonePathFor(coordinates);
         if (fileScope == null) {
@@ -626,10 +677,12 @@ final class StationStateFileStore {
 
     void cacheYamlState(StationCoordinates coordinates, YamlSection state) {
         yamlCache.put(coordinates, state.copy());
+        yamlAbsent.remove(coordinates);
     }
 
     void invalidateYamlCache(StationCoordinates coordinates) {
         yamlCache.remove(coordinates);
+        yamlAbsent.remove(coordinates);
     }
 
     boolean hasLegacyYaml(StationCoordinates coordinates) {

@@ -13,6 +13,8 @@ public final class VaultEconomyProvider implements EconomyProvider {
 
     private final Plugin plugin;
 
+    private volatile Economy cachedEconomy;
+
     public VaultEconomyProvider(Plugin plugin) {
         this.plugin = plugin;
     }
@@ -78,11 +80,18 @@ public final class VaultEconomyProvider implements EconomyProvider {
     }
 
     private Economy economy() {
-        if (plugin == null || plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
+        if (plugin == null || !plugin.getServer().getPluginManager().isPluginEnabled("Vault")) {
+            cachedEconomy = null;
             return null;
         }
+        Economy cached = cachedEconomy;
+        if (cached != null) {
+            return cached;
+        }
         RegisteredServiceProvider<Economy> registration = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-        return registration == null ? null : registration.getProvider();
+        Economy provider = registration == null ? null : registration.getProvider();
+        cachedEconomy = provider;
+        return provider;
     }
 
     private ActionResult unavailable() {

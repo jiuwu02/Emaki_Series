@@ -95,6 +95,12 @@ public final class GemOperationJournal {
         return INSTANCES.computeIfAbsent(plugin, ignored -> new GemOperationJournal(plugin, scheduling));
     }
 
+    public static void release(EmakiGemPlugin plugin) {
+        if (plugin != null) {
+            INSTANCES.remove(plugin);
+        }
+    }
+
     public String begin(String kind, UUID playerId) {
         return begin(UUID.randomUUID().toString(), kind, playerId);
     }

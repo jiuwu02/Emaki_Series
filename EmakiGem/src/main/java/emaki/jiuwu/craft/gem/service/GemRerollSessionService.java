@@ -316,6 +316,12 @@ public final class GemRerollSessionService {
                 reason == null ? TerminationReason.USER_CANCEL : reason, null);
     }
 
+    public void releasePlayer(UUID playerId) {
+        if (playerId != null) {
+            sessionLocks.remove(playerId);
+        }
+    }
+
     public CompletableFuture<Void> clearAllAsync(TerminationReason reason) {
         List<CompletableFuture<Void>> completions = new ArrayList<>();
         for (Session session : List.copyOf(sessions.values())) {

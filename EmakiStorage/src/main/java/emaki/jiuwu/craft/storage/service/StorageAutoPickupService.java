@@ -1,8 +1,6 @@
 package emaki.jiuwu.craft.storage.service;
 
-import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -11,6 +9,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.collection.UuidLongMap;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
@@ -21,8 +20,10 @@ public final class StorageAutoPickupService {
 
     public static final String PERMISSION = "emakistorage.autopickup";
 
+    private static final long NOTIFY_NONE = Long.MIN_VALUE;
+
     private final EmakiStoragePlugin plugin;
-    private final Map<UUID, Long> notifyCooldowns = new ConcurrentHashMap<>();
+    private final UuidLongMap notifyCooldowns = new UuidLongMap();
     private TaskToken scanTask;
 
     public StorageAutoPickupService(EmakiStoragePlugin plugin) {
@@ -58,6 +59,12 @@ public final class StorageAutoPickupService {
         }
         PlayerStorage storage = plugin.dataStore().cached(player.getUniqueId());
         return storage != null && storage.autoPickupEnabled();
+    }
+
+    public void releasePlayer(UUID playerId) {
+        if (playerId != null) {
+            notifyCooldowns.remove(playerId);
+        }
     }
 
     public boolean tryDepositAll(Player player, ItemStack stack) {
@@ -146,8 +153,8 @@ public final class StorageAutoPickupService {
             return;
         }
         long now = System.currentTimeMillis();
-        Long last = notifyCooldowns.get(player.getUniqueId());
-        if (last != null && now - last < config.notifyCooldownMs()) {
+        long last = notifyCooldowns.getOrDefault(player.getUniqueId(), NOTIFY_NONE);
+        if (last != NOTIFY_NONE && now - last < config.notifyCooldownMs()) {
             return;
         }
         notifyCooldowns.put(player.getUniqueId(), now);

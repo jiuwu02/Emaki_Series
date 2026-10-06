@@ -9,6 +9,7 @@ import java.util.regex.Pattern;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
 
@@ -39,10 +40,25 @@ public final class TargetPredicateParser {
 
     private static final Pattern IDENTIFIER = Pattern.compile("[a-z0-9_]+");
 
+    private static final CacheManager<String, Result> PARSE_CACHE = new CacheManager<>(512, 0);
+
     private TargetPredicateParser() {
     }
 
     public static Result parse(@NotNull String raw) {
+        if (raw == null) {
+            return parseUncached(raw);
+        }
+        Result cached = PARSE_CACHE.get(raw);
+        if (cached != null) {
+            return cached;
+        }
+        Result result = parseUncached(raw);
+        PARSE_CACHE.put(raw, result);
+        return result;
+    }
+
+    private static Result parseUncached(String raw) {
         String text = Texts.trim(raw);
         if (text.isEmpty()) {
             return new Result.Invalid("action.gate.filter.condition_required", Map.of());

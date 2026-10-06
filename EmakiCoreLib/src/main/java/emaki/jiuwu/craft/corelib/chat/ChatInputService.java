@@ -98,7 +98,7 @@ public final class ChatInputService implements Listener {
         finishOnDisconnect(event.getPlayer(), "common.chat_input.player_quit_cancelled");
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPlayerKick(PlayerKickEvent event) {
         finishOnDisconnect(event.getPlayer(), "common.chat_input.player_kick_cancelled");
     }

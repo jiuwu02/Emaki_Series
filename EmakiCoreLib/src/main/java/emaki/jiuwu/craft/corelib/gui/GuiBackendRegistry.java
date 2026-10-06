@@ -12,18 +12,21 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class GuiBackendRegistry {
 
     public static final String BUKKIT = "bukkit";
 
+    private static final int WARNED_NAMES_LIMIT = 256;
+
     private final MessageService messageService;
     private final BukkitGuiBackend bukkitBackend = new BukkitGuiBackend();
     private final Map<String, GuiBackend> backends = new ConcurrentHashMap<>();
 
     private final Set<String> registrationOrder = Collections.synchronizedSet(new LinkedHashSet<>());
-    private final Set<String> warnedNames = ConcurrentHashMap.newKeySet();
+    private final CacheManager<String, Boolean> warnedNames = new CacheManager<>(WARNED_NAMES_LIMIT, 0L);
     private final AtomicReference<CompletableFuture<Void>> shutdownFuture = new AtomicReference<>();
 
     private volatile String configuredName = BUKKIT;
@@ -48,7 +51,7 @@ public final class GuiBackendRegistry {
             safeShutdownAsync(previous);
         }
 
-        warnedNames.remove(key);
+        warnedNames.invalidate(key);
     }
 
     public synchronized void unregister(String name) {
@@ -142,9 +145,10 @@ public final class GuiBackendRegistry {
     }
 
     private void warnOnce(String dedupeKey, String messageKey, String value) {
-        if (messageService == null || !warnedNames.add(dedupeKey)) {
+        if (messageService == null || warnedNames.get(dedupeKey) != null) {
             return;
         }
+        warnedNames.put(dedupeKey, Boolean.TRUE);
         if (value == null) {
             messageService.warning(messageKey);
         } else {

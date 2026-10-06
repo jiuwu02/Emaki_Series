@@ -96,7 +96,10 @@ public final class StageDispatcher implements AutoCloseable {
         AtomicReference<TaskToken> handleReference = new AtomicReference<>();
         registerSignal(owner, cancellation);
         Runnable invocation = () -> invoke(task, cancellation, future);
-        Runnable retired = () -> future.completeExceptionally(new StageRetiredException(safeName(taskName)));
+        Runnable retired = target.domain() == ExecutionDomain.ENTITY
+                || target.domain() == ExecutionDomain.LOCATION_REGION
+                        ? () -> future.completeExceptionally(new StageRetiredException(safeName(taskName)))
+                        : null;
         try {
             TaskToken handle = schedule(owner, target, invocation, retired, Math.max(0L, delayTicks));
             handleReference.set(handle);

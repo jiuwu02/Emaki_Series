@@ -301,6 +301,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.fermentationBarrelRecipeLoader().load();
         plugin.nutritionTypeLoader().load();
         plugin.settingsService().reload();
+        plugin.recipeService().clearCaches();
         plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
         plugin.nutritionService().reload();
         plugin.choppingBoardRuntimeService().reload();
@@ -344,6 +345,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 _ -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.settingsService().reload();
+                    plugin.recipeService().clearCaches();
                     plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
                     plugin.nutritionService().reload();
                     plugin.choppingBoardRuntimeService().reload();

@@ -29,10 +29,12 @@ public final class GuiSession implements InventoryHolder {
     private final GuiBackend backend;
     private final GuiSessionRegistry registry;
     private final Map<String, Object> replacements = new LinkedHashMap<>();
+    private final Map<Integer, CachedSlot> renderedSlotCache = new LinkedHashMap<>();
     private final String plainTitle;
     private final Component titleComponent;
     private Inventory inventory;
     private long lastClickAt;
+    private long renderRevision;
 
     GuiSession(Plugin owner,
             Player viewer,
@@ -118,18 +120,34 @@ public final class GuiSession implements InventoryHolder {
 
     public Map<Integer, ItemStack> renderSlots() {
         Map<Integer, ItemStack> renderedSlots = new LinkedHashMap<>();
+        boolean cacheable = renderer == null;
+        long revision = renderRevision;
         for (GuiSlot slot : template.slots().values()) {
             for (int index = 0; index < slot.slots().size(); index++) {
                 int inventorySlot = slot.slots().get(index);
                 GuiTemplate.ResolvedSlot resolved = new GuiTemplate.ResolvedSlot(slot, inventorySlot, index);
-                ItemStack rendered = renderer == null ? null : renderer.render(this, resolved);
+                ItemStack rendered = cacheable ? cachedSlot(inventorySlot, slot, revision) : null;
                 if (rendered == null) {
-                    rendered = GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
+                    rendered = renderer == null ? null : renderer.render(this, resolved);
+                    if (rendered == null) {
+                        rendered = GuiItemBuilder.build(slot.itemDefinition(), replacements, configuredItemService);
+                    }
+                    if (cacheable) {
+                        renderedSlotCache.put(inventorySlot, new CachedSlot(revision, slot, rendered.clone()));
+                    }
                 }
                 renderedSlots.put(inventorySlot, rendered);
             }
         }
         return renderedSlots;
+    }
+
+    private ItemStack cachedSlot(int inventorySlot, GuiSlot slot, long revision) {
+        CachedSlot cached = renderedSlotCache.get(inventorySlot);
+        if (cached == null || cached.revision != revision || cached.definition != slot) {
+            return null;
+        }
+        return cached.item.clone();
     }
 
     public void applyRenderedSlots(Map<Integer, ItemStack> renderedSlots) {
@@ -147,11 +165,13 @@ public final class GuiSession implements InventoryHolder {
         if (values != null) {
             replacements.putAll(values);
         }
+        renderRevision++;
     }
 
     public void putReplacement(String key, Object value) {
         if (key != null) {
             replacements.put(key, value);
+            renderRevision++;
         }
     }
 
@@ -198,5 +218,18 @@ public final class GuiSession implements InventoryHolder {
     @Override
     public Inventory getInventory() {
         return inventory;
+    }
+
+    private static final class CachedSlot {
+
+        private final long revision;
+        private final GuiSlot definition;
+        private final ItemStack item;
+
+        private CachedSlot(long revision, GuiSlot definition, ItemStack item) {
+            this.revision = revision;
+            this.definition = definition;
+            this.item = item;
+        }
     }
 }

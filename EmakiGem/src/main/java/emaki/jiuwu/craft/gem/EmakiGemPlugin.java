@@ -48,6 +48,7 @@ import emaki.jiuwu.craft.gem.service.GemGuiService;
 import emaki.jiuwu.craft.gem.service.GemInlayService;
 import emaki.jiuwu.craft.gem.service.GemItemFactory;
 import emaki.jiuwu.craft.gem.service.GemItemMatcher;
+import emaki.jiuwu.craft.gem.service.GemOperationJournal;
 import emaki.jiuwu.craft.gem.service.GemPdcAttributeWriter;
 import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
@@ -149,6 +150,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         if (rerollSessionService != null) {
             rerollSessionService.clearAll(GemRerollSessionService.TerminationReason.DISABLE);
         }
+        GemOperationJournal.release(this);
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("gem");
         if (placeholderExpansion != null) {

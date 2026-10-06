@@ -33,20 +33,19 @@ public final class AccessoryDurabilityService {
                 continue;
             }
             int maxDurability = AccessoryEffectGate.maxDurability(stored);
-            if (maxDurability <= 0) {
+            if (maxDurability <= 0 || AccessoryEffectGate.damage(stored) >= maxDurability) {
                 continue;
             }
-            boolean intactBefore = AccessoryEffectGate.damage(stored) < maxDurability;
             ItemStack updated = stored.clone();
             if (AccessoryEffectGate.applyDamage(updated, points) <= 0) {
                 continue;
             }
             accessories.put(pageId, slotInstanceId, updated);
-            if (intactBefore && !AccessoryEffectGate.durabilityIntact(updated)) {
+            if (!AccessoryEffectGate.durabilityIntact(updated)) {
                 brokenSlots.add(slotInstanceId);
             }
         }
-        return List.copyOf(brokenSlots);
+        return brokenSlots;
     }
 
     private static boolean allowsDeduction(AccessoryPartRegistry partRegistry, String slotInstanceId) {

@@ -79,7 +79,7 @@ public final class DisplayMotionRunner {
     }
 
     private void tick() {
-        for (Map.Entry<String, MotionState> entry : Map.copyOf(activeMotions).entrySet()) {
+        for (Map.Entry<String, MotionState> entry : activeMotions.entrySet()) {
             MotionState state = entry.getValue();
             state.elapsedTicks++;
             DisplayMotion motion = state.motion;

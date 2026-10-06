@@ -15,12 +15,15 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentity;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.integration.IntegrationFailures;
 
 public final class TargetIdentityRegistry {
 
+    private static final int REPORTED_FAILURES_LIMIT = 512;
+
     private final Map<String, Entry> entries = new ConcurrentHashMap<>();
-    private final Set<String> reportedFailures = ConcurrentHashMap.newKeySet();
+    private final CacheManager<String, Boolean> reportedFailures = new CacheManager<>(REPORTED_FAILURES_LIMIT, 0L);
     private final Consumer<String> failureReporter;
 
     public TargetIdentityRegistry() {
@@ -88,7 +91,8 @@ public final class TargetIdentityRegistry {
         try {
             return entry.provider().identify(entity);
         } catch (RuntimeException | LinkageError exception) {
-            if (failureReporter != null && reportedFailures.add(entry.systemId())) {
+            if (failureReporter != null && reportedFailures.get(entry.systemId()) == null) {
+                reportedFailures.put(entry.systemId(), Boolean.TRUE);
                 failureReporter.accept("目标身份提供者 '" + entry.systemId() + "' 失败: "
                         + IntegrationFailures.detail(exception));
             }

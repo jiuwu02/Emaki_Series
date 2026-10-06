@@ -41,6 +41,9 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     private static final long DEFAULT_REMOVE_DELAY_TICKS = 20L;
 
     private static final ConcurrentMap<String, UUID> REMOVAL_TOKENS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Method> BRIDGE_METHODS = new ConcurrentHashMap<>();
+    private static volatile Class<?> bridgeClass;
+    private static volatile Boolean packetEventsPresent;
 
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
@@ -178,12 +181,19 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     }
 
     private boolean isPacketEventsPresent() {
+        Boolean cached = packetEventsPresent;
+        if (cached != null) {
+            return cached;
+        }
+        boolean present;
         try {
             Class.forName("com.github.retrooper.packetevents.PacketEvents");
-            return true;
+            present = true;
         } catch (ClassNotFoundException exception) {
-            return false;
+            present = false;
         }
+        packetEventsPresent = present;
+        return present;
     }
 
     private boolean invokeBridge(String methodName,
@@ -193,14 +203,28 @@ public final class ShowAchievementToastStage implements CoreActionStage {
             String description,
             ItemStack icon,
             String frame) throws Throwable {
-        Class<?> bridge = Class.forName(PACKET_BRIDGE_CLASS);
-        Method method = bridge.getMethod(methodName, Player.class, String.class, String.class,
-                String.class, ItemStack.class, String.class);
+        Method method = bridgeMethod(methodName);
         try {
             return Boolean.TRUE.equals(method.invoke(null, target, key, title, description, icon, frame));
         } catch (InvocationTargetException exception) {
             throw exception.getCause() == null ? exception : exception.getCause();
         }
+    }
+
+    private Method bridgeMethod(String methodName) throws ClassNotFoundException, NoSuchMethodException {
+        Method cached = BRIDGE_METHODS.get(methodName);
+        if (cached != null) {
+            return cached;
+        }
+        Class<?> bridge = bridgeClass;
+        if (bridge == null) {
+            bridge = Class.forName(PACKET_BRIDGE_CLASS);
+            bridgeClass = bridge;
+        }
+        Method method = bridge.getMethod(methodName, Player.class, String.class, String.class,
+                String.class, ItemStack.class, String.class);
+        BRIDGE_METHODS.putIfAbsent(methodName, method);
+        return method;
     }
 
     private void scheduleRemoval(Player target, String key, long removeDelayTicks) {

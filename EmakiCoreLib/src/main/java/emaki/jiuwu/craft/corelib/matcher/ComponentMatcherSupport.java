@@ -8,6 +8,7 @@ import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
 import emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog;
 
@@ -16,6 +17,8 @@ final class ComponentMatcherSupport {
     static final Logger LOGGER = Logger.getLogger(Matcher.class.getName());
 
     private static final MinecraftItemComponentCatalog CATALOG = new MinecraftItemComponentCatalog();
+
+    private static final CacheManager<String, Pattern> REGEX_CACHE = new CacheManager<>(256, 0);
 
     private static final double EPSILON = 1e-9;
 
@@ -77,15 +80,20 @@ final class ComponentMatcherSupport {
     }
 
     private static boolean matchesRegex(Object actual, Object expected) {
-        Pattern pattern;
-        try {
-            pattern = Pattern.compile(plain(expected));
-        } catch (RuntimeException exception) {
-            LOGGER.warning("组件匹配器正则无效，结果按 false 处理: "
-                    + plain(expected) + ", cause=" + exception.getClass().getSimpleName());
-            return false;
+        String expression = plain(expected);
+        Pattern pattern = REGEX_CACHE.get(expression);
+        if (pattern == null) {
+            try {
+                pattern = Pattern.compile(expression);
+            } catch (RuntimeException exception) {
+                LOGGER.warning("组件匹配器正则无效，结果按 false 处理: "
+                        + expression + ", cause=" + exception.getClass().getSimpleName());
+                return false;
+            }
+            REGEX_CACHE.put(expression, pattern);
         }
-        return anyText(actual, text -> pattern.matcher(text).find());
+        Pattern resolved = pattern;
+        return anyText(actual, text -> resolved.matcher(text).find());
     }
 
     private static boolean hasKey(Object actual, Object expected) {

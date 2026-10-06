@@ -15,6 +15,7 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
     private final UUID playerId;
     private final Map<StorageKey, StorageEntry> entries = new HashMap<>();
     private final List<StorageKey> entryOrder = new ArrayList<>();
+    private final Map<StorageKey, Integer> indexByKey = new HashMap<>();
     private final Map<UUID, StorageReservation> reservations = new LinkedHashMap<>();
 
     private String playerName = "";
@@ -124,18 +125,18 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
     }
 
     public int indexOf(StorageKey key) {
-        return key == null ? -1 : entryOrder.indexOf(key);
+        return key == null ? -1 : indexByKey.getOrDefault(key, -1);
     }
 
     public int append(StorageEntry entry) {
         if (entry == null) {
             return -1;
         }
-        StorageEntry existing = entries.get(entry.key());
-        if (existing != null) {
-            return entryOrder.indexOf(entry.key());
+        if (entries.containsKey(entry.key())) {
+            return indexOf(entry.key());
         }
         entries.put(entry.key(), entry);
+        indexByKey.put(entry.key(), entryOrder.size());
         entryOrder.add(entry.key());
         return entryOrder.size() - 1;
     }
@@ -145,6 +146,7 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
             return false;
         }
         entryOrder.remove(key);
+        rebuildIndex();
         return true;
     }
 
@@ -158,6 +160,9 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
                 entryOrder.remove(index);
                 removed++;
             }
+        }
+        if (removed > 0) {
+            rebuildIndex();
         }
         return removed;
     }
@@ -180,6 +185,14 @@ public final class PlayerStorage implements SessionData<PlayerStorage> {
         }
         entryOrder.clear();
         entryOrder.addAll(rebuilt);
+        rebuildIndex();
+    }
+
+    private void rebuildIndex() {
+        indexByKey.clear();
+        for (int index = 0; index < entryOrder.size(); index++) {
+            indexByKey.put(entryOrder.get(index), index);
+        }
     }
 
     @Override

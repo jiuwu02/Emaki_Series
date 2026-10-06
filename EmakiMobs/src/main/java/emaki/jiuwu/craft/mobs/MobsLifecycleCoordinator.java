@@ -184,6 +184,7 @@ final class MobsLifecycleCoordinator
         }
         components.scoreSnapshotService().reload();
         components.threatTableManager().reload();
+        components.mobDropHandler().reload();
         components.mobSkillExecutor().invalidate();
         components.healthPhaseTracker().clearAll();
         var loadedRules = components.spawnRegistry().get();

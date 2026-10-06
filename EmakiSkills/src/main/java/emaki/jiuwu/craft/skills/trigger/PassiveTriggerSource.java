@@ -29,6 +29,7 @@ import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
@@ -170,6 +171,11 @@ public final class PassiveTriggerSource {
             @EventHandler(priority = EventPriority.MONITOR)
             public void onJoin(PlayerJoinEvent event) {
                 trigger(event.getPlayer(), "login", event, null, event.getPlayer().getLocation(), null);
+            }
+
+            @EventHandler(priority = EventPriority.MONITOR)
+            public void onQuit(PlayerQuitEvent event) {
+                comboStates.remove(event.getPlayer().getUniqueId());
             }
 
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)

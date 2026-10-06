@@ -22,21 +22,22 @@ final class AsyncGuiRenderer {
         if (session == null) {
             return CompletableFuture.completedFuture(Map.of());
         }
+        String renderKey = "gui-render:" + session.template().id();
         if (scheduler == null) {
-            return CompletableFuture.completedFuture(render(session));
+            return CompletableFuture.completedFuture(render(session, renderKey));
         }
         return scheduler.supplyAsync(
-                "gui-render:" + session.template().id(),
+                renderKey,
                 AsyncTaskScheduler.TaskPriority.NORMAL,
                 5_000L,
-                () -> render(session)
+                () -> render(session, renderKey)
         );
     }
 
-    private Map<Integer, ItemStack> render(GuiSession session) {
+    private Map<Integer, ItemStack> render(GuiSession session, String renderKey) {
         if (performanceMonitor == null) {
             return session.renderSlots();
         }
-        return performanceMonitor.measure("gui-render:" + session.template().id(), session::renderSlots);
+        return performanceMonitor.measure(renderKey, session::renderSlots);
     }
 }

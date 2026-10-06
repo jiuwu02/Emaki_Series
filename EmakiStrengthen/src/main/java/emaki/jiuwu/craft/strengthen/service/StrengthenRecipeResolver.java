@@ -13,15 +13,19 @@ import java.util.function.Predicate;
 
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiStatContribution;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
@@ -34,11 +38,24 @@ public final class StrengthenRecipeResolver {
 
     private static final double EPSILON = 1.0E-9D;
 
+    private static final String ASSEMBLY_SIGNATURE_FIELD = "assembly_signature";
+
+    private static final String ITEM_PARTITION_PATH = "item";
+
+    private static final int RESOLVE_CACHE_SIZE = 512;
+
+    private static final long RESOLVE_CACHE_TTL_MILLIS = 3_000L;
+
     private static final Map<String, Pattern> PATTERN_CACHE = new ConcurrentHashMap<>();
+
+    private static final CacheManager<String, ResolvedItem> RESOLVE_CACHE =
+            new CacheManager<>(RESOLVE_CACHE_SIZE, RESOLVE_CACHE_TTL_MILLIS);
 
     private final EmakiStrengthenPlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
     private final ItemSourceService itemSourceService;
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
 
     public StrengthenRecipeResolver(EmakiStrengthenPlugin plugin,
             EmakiItemAssemblyService itemAssemblyService,
@@ -46,14 +63,44 @@ public final class StrengthenRecipeResolver {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.itemSourceService = itemSourceService;
+        this.pdcService = new PdcService("emaki", "strengthen", plugin == null ? null : plugin.debugLogger());
+        this.itemPartition = pdcService.partition(ITEM_PARTITION_PATH);
     }
 
     public ResolvedItem resolve(ItemStack itemStack, String explicitRecipeId) {
+        String cacheKey = resolveCacheKey(itemStack, explicitRecipeId);
+        if (cacheKey != null) {
+            ResolvedItem cached = RESOLVE_CACHE.get(cacheKey);
+            if (cached != null) {
+                return cached;
+            }
+        }
+        ResolvedItem resolved = resolveUncached(itemStack, explicitRecipeId);
+        if (cacheKey != null) {
+            RESOLVE_CACHE.put(cacheKey, resolved);
+        }
+        return resolved;
+    }
+
+    private String resolveCacheKey(ItemStack itemStack, String explicitRecipeId) {
+        if (itemAssemblyService == null || itemStack == null || itemStack.getType().isAir()
+                || !itemAssemblyService.isEmakiItem(itemStack)) {
+            return null;
+        }
+        String signature = pdcService.get(itemStack, itemPartition, ASSEMBLY_SIGNATURE_FIELD,
+                PersistentDataType.STRING);
+        if (Texts.isBlank(signature)) {
+            return null;
+        }
+        return signature + '\u0000' + Texts.toStringSafe(explicitRecipeId);
+    }
+
+    private ResolvedItem resolveUncached(ItemStack itemStack, String explicitRecipeId) {
         boolean isEmaki = itemAssemblyService != null && itemAssemblyService.isEmakiItem(itemStack);
         ItemSourceRef baseSource = resolveBaseSource(itemStack);
         String shorthand = ItemSourceUtil.toShorthand(baseSource);
-        Map<String, Double> stats = aggregateStats(itemStack, isEmaki);
         List<String> loreLines = extractLore(itemStack);
+        Map<String, Double> stats = aggregateStats(itemStack, isEmaki, loreLines);
         String slotGroup = resolveSlotGroup(itemStack, baseSource);
         String resolvedRecipeId = resolveRecipeId(explicitRecipeId, shorthand, baseSource, slotGroup, loreLines, stats,
                 itemStack);
@@ -240,7 +287,7 @@ public final class StrengthenRecipeResolver {
         return exists.test("generic_visual") ? "generic_visual" : "";
     }
 
-    private Map<String, Double> aggregateStats(ItemStack itemStack, boolean isEmaki) {
+    private Map<String, Double> aggregateStats(ItemStack itemStack, boolean isEmaki, List<String> loreLines) {
         Map<String, Double> values = new LinkedHashMap<>();
         if (itemStack == null || itemStack.getType().isAir()) {
             return values;
@@ -258,7 +305,7 @@ public final class StrengthenRecipeResolver {
                 }
             }
         }
-        for (String line : extractLore(itemStack)) {
+        for (String line : loreLines) {
             if (line.contains("物理伤害")) {
                 values.merge("physical_attack", 1D, Double::sum);
             }
@@ -339,5 +386,6 @@ public final class StrengthenRecipeResolver {
 
     public static void clearPatternCache() {
         PATTERN_CACHE.clear();
+        RESOLVE_CACHE.clear();
     }
 }

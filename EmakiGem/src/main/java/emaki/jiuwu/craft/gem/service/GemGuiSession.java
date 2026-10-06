@@ -9,8 +9,13 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.gui.GuiSession;
 import emaki.jiuwu.craft.corelib.inventory.InventoryItemUtil;
+import emaki.jiuwu.craft.gem.model.GemItemDefinition;
+import emaki.jiuwu.craft.gem.model.GemState;
 
 final class GemGuiSession implements GemPlayerGuiSession {
+
+    record TargetResolution(GemItemDefinition definition, GemState state) {
+    }
 
     private final Player player;
     private GuiSession guiSession;
@@ -24,6 +29,7 @@ final class GemGuiSession implements GemPlayerGuiSession {
     private PendingOperation pendingOperation = PendingOperation.none();
     private boolean rerollCompletedOnce;
     private boolean rerollRestartAcknowledged;
+    private TargetResolution targetResolution;
 
     GemGuiSession(Player player) {
         this.player = player;
@@ -99,7 +105,16 @@ final class GemGuiSession implements GemPlayerGuiSession {
 
     public void setTargetItem(ItemStack targetItem) {
         this.targetItem = targetItem;
+        this.targetResolution = null;
         clearPendingOperation();
+    }
+
+    public TargetResolution targetResolution() {
+        return targetResolution;
+    }
+
+    public void cacheTargetResolution(TargetResolution resolution) {
+        this.targetResolution = resolution;
     }
 
     public boolean returnTargetOnClose() {
@@ -117,6 +132,7 @@ final class GemGuiSession implements GemPlayerGuiSession {
 
     private void setTargetItem(ItemStack targetItem, boolean clearPending) {
         this.targetItem = cloneNonAir(targetItem);
+        this.targetResolution = null;
         if (clearPending) {
             clearPendingOperation();
         }

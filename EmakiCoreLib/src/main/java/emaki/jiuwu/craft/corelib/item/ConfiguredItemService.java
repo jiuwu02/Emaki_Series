@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -19,10 +17,13 @@ import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 
 public final class ConfiguredItemService {
 
     private static final String LORE_COMPONENT_ID = "minecraft:lore";
+
+    private static final int LOGGED_ISSUES_LIMIT = 1024;
 
     private final Plugin plugin;
     private final ItemSourceService itemSourceService;
@@ -31,7 +32,7 @@ public final class ConfiguredItemService {
     private final MinecraftItemComponentCatalog catalog = new MinecraftItemComponentCatalog();
     private final PaperItemComponentBridge paperBridge = new PaperItemComponentBridge();
     private final List<ItemComponentCapability> capabilities = paperBridge.capabilities(catalog);
-    private final Set<String> loggedIssues = ConcurrentHashMap.newKeySet();
+    private final CacheManager<String, Boolean> loggedIssues = new CacheManager<>(LOGGED_ISSUES_LIMIT, 0L);
 
     public ConfiguredItemService(Plugin plugin, ItemSourceService itemSourceService) {
         this.plugin = plugin;
@@ -217,7 +218,9 @@ public final class ConfiguredItemService {
         if (MinecraftServerVersions.satisfies(requirement, server)) {
             return;
         }
-        if (loggedIssues.add("component_version:" + componentId + "@" + server)) {
+        String issueKey = "component_version:" + componentId + "@" + server;
+        if (loggedIssues.get(issueKey) == null) {
+            loggedIssues.put(issueKey, Boolean.TRUE);
             plugin.getLogger().warning("物品组件 " + componentId + " 需要 Minecraft " + requirement
                     + "，但当前服务器为 " + server + "；该组件不会生效。");
         }
@@ -323,9 +326,10 @@ public final class ConfiguredItemService {
         }
         for (ItemBuildIssue issue : issues) {
             String key = issue.severity() + "|" + issue.componentId() + "|" + issue.message();
-            if (!loggedIssues.add(key)) {
+            if (loggedIssues.get(key) != null) {
                 continue;
             }
+            loggedIssues.put(key, Boolean.TRUE);
             String prefix = issue.componentId() == null ? "" : "[" + issue.componentId() + "] ";
             if (issue.severity() == ItemBuildIssueSeverity.ERROR) {
                 plugin.getLogger().severe(prefix + issue.message());

@@ -313,19 +313,21 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return;
         }
         GuiClickContext click = new BukkitGuiClickContext(event);
-        debug(session.viewer(), "common.gui.bukkit_click", GuiDebugSupport.sessionFields(
-                session,
-                GuiDebugSupport.replacements(
-                        "raw_slot", event.getRawSlot(),
-                        "click_type", event.getClick(),
-                        "action", event.getAction(),
-                        "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
-                        "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
-                        "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
-                        "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor()),
-                        "top_inventory", event.getClickedInventory() == session.getInventory()
-                )
-        ));
+        if (GuiDebugSupport.shouldLog(plugin, session.viewer())) {
+            debug(session.viewer(), "common.gui.bukkit_click", GuiDebugSupport.sessionFields(
+                    session,
+                    GuiDebugSupport.replacements(
+                            "raw_slot", event.getRawSlot(),
+                            "click_type", event.getClick(),
+                            "action", event.getAction(),
+                            "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
+                            "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
+                            "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
+                            "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor()),
+                            "top_inventory", event.getClickedInventory() == session.getInventory()
+                    )
+            ));
+        }
         boolean topInventory = event.getClickedInventory() == session.getInventory();
         if (topInventory) {
             event.setCancelled(true);
@@ -379,7 +381,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPlayerKick(PlayerKickEvent event) {
         if (event.getPlayer() != null) {
             debug(event.getPlayer(), "common.gui.player_kick_close_active_session");

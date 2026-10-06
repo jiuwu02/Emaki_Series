@@ -75,8 +75,10 @@ public final class StorageOperationLog {
         fileScope.write(playerDirectory, "storage-log-append", () -> {
             gate.set(false);
             flushPlayer(playerId);
+            flushScheduled.remove(playerId, gate);
         }).exceptionally(throwable -> {
             gate.set(false);
+            flushScheduled.remove(playerId, gate);
             warn("为玩家 " + playerId + " 追加存储日志失败", throwable);
             return null;
         });

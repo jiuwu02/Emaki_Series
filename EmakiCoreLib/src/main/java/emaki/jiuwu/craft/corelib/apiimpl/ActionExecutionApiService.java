@@ -22,10 +22,15 @@ import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionStageExecution;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionStageExecutionStatus;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 
 final class ActionExecutionApiService {
 
+    private static final int COMPILE_CACHE_SIZE = 4096;
+
     private final EmakiCoreLibPlugin plugin;
+    private final CacheManager<CompileKey, ActionEngine.Result> compileCache =
+            new CacheManager<>(COMPILE_CACHE_SIZE, 0);
 
     ActionExecutionApiService(EmakiCoreLibPlugin plugin) {
         this.plugin = plugin;
@@ -66,11 +71,16 @@ final class ActionExecutionApiService {
                 : input;
         ActionLineRunner runner = plugin.actionLineRunner(owner);
         PipelineContext context = runner.context(resolved);
-        ActionEngine.Result compiled;
-        try {
-            compiled = engine.compile(line, phase);
-        } catch (RuntimeException | LinkageError exception) {
-            return completed(internalFailure("action.execution.compile_exception", exception));
+        CompileKey cacheKey = new CompileKey(engine, line,
+                phase == null ? PhaseContract.permissive("default") : phase);
+        ActionEngine.Result compiled = compileCache.get(cacheKey);
+        if (compiled == null) {
+            try {
+                compiled = engine.compile(line, phase);
+            } catch (RuntimeException | LinkageError exception) {
+                return completed(internalFailure("action.execution.compile_exception", exception));
+            }
+            compileCache.put(cacheKey, compiled);
         }
         if (!compiled.successful()) {
             return completed(CoreActionExecutionResult.compileFailed("action.execution.compile_failed", Map.of(),
@@ -130,5 +140,8 @@ final class ActionExecutionApiService {
             current = current.getCause();
         }
         return current;
+    }
+
+    private record CompileKey(ActionEngine engine, String line, PhaseContract phase) {
     }
 }

@@ -20,6 +20,9 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.inventory.ItemStack;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
@@ -32,6 +35,7 @@ public final class MobDropHandler implements Listener {
     private final Supplier<Map<String, LootTableDefinition>> lootRegistry;
     private final Logger logger;
     private volatile boolean emakiItemAbsent = false;
+    private volatile Map<String, List<PreparedPool>> preparedTables = Map.of();
 
     public MobDropHandler(MobIdentifier mobIdentifier,
                           Supplier<Map<String, MobSpec>> mobRegistry,
@@ -41,6 +45,22 @@ public final class MobDropHandler implements Listener {
         this.mobRegistry = mobRegistry;
         this.lootRegistry = lootRegistry;
         this.logger = logger;
+    }
+
+    public void reload() {
+        Map<String, List<PreparedPool>> prepared = new HashMap<>();
+        for (Map.Entry<String, LootTableDefinition> table : lootRegistry.get().entrySet()) {
+            List<PreparedPool> pools = new ArrayList<>();
+            for (LootPoolDefinition pool : table.getValue().pools()) {
+                WeightedPool<LootEntryDefinition> weighted = new WeightedPool<>();
+                for (LootEntryDefinition entry : pool.entries()) {
+                    weighted.add(entry, entry.weight());
+                }
+                pools.add(new PreparedPool(resolveRolls(pool.rolls()), weighted));
+            }
+            prepared.put(table.getKey(), List.copyOf(pools));
+        }
+        preparedTables = Map.copyOf(prepared);
     }
 
     @EventHandler(priority = EventPriority.NORMAL, ignoreCancelled = true)
@@ -59,11 +79,11 @@ public final class MobDropHandler implements Listener {
         if (spec.experience() > 0) {
             event.setDroppedExp(spec.experience());
         }
-        LootTableDefinition lootDef = lootRegistry.get().get(mobId);
-        if (lootDef != null) {
+        List<PreparedPool> pools = preparedTables.get(mobId);
+        if (pools != null) {
             event.getDrops().clear();
             int lootingLevel = getLootingLevel(event.getEntity().getKiller());
-            for (LootPoolDefinition pool : lootDef.pools()) {
+            for (PreparedPool pool : pools) {
                 applyPool(event, pool, lootingLevel);
             }
         }
@@ -71,14 +91,9 @@ public final class MobDropHandler implements Listener {
                 new EmakiMobDeathEvent(entity, mobId, event.getEntity().getKiller()));
     }
 
-    private void applyPool(EntityDeathEvent event, LootPoolDefinition pool, int lootingLevel) {
-        int rolls = resolveRolls(pool.rolls());
-        for (int i = 0; i < rolls; i++) {
-            WeightedPool<LootEntryDefinition> weightedPool = new WeightedPool<>();
-            for (LootEntryDefinition entry : pool.entries()) {
-                weightedPool.add(entry, entry.weight());
-            }
-            weightedPool.roll().ifPresent(entry -> tryDropEntry(event, entry, lootingLevel));
+    private void applyPool(EntityDeathEvent event, PreparedPool pool, int lootingLevel) {
+        for (int i = 0; i < pool.rolls(); i++) {
+            pool.entries().roll().ifPresent(entry -> tryDropEntry(event, entry, lootingLevel));
         }
     }
 
@@ -167,5 +182,8 @@ public final class MobDropHandler implements Listener {
         }
         ItemStack weapon = killer.getInventory().getItemInMainHand();
         return weapon.getEnchantmentLevel(Enchantment.LOOTING);
+    }
+
+    private record PreparedPool(int rolls, WeightedPool<LootEntryDefinition> entries) {
     }
 }

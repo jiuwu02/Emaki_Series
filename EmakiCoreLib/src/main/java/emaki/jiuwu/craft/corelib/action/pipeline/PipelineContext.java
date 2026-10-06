@@ -24,7 +24,7 @@ public final class PipelineContext implements CoreStageContext {
     private final Location origin;
     private final String phase;
     private final boolean silent;
-    private final Map<String, String> variables;
+    private final VariableScope variableScope;
     private final Map<CoreActionKey<?>, Object> data;
     private final int currentTargetIndex;
     private final PlaceholderBridge placeholders;
@@ -35,7 +35,7 @@ public final class PipelineContext implements CoreStageContext {
             Location origin,
             String phase,
             boolean silent,
-            Map<String, String> variables,
+            VariableScope variableScope,
             Map<CoreActionKey<?>, Object> data,
             int currentTargetIndex,
             PlaceholderBridge placeholders) {
@@ -45,7 +45,7 @@ public final class PipelineContext implements CoreStageContext {
         this.origin = origin;
         this.phase = Texts.isBlank(phase) ? "default" : Texts.trim(phase);
         this.silent = silent;
-        this.variables = variables == null ? Map.of() : Map.copyOf(variables);
+        this.variableScope = variableScope == null ? VariableScope.EMPTY : variableScope;
         this.data = data == null ? Map.of() : Map.copyOf(data);
         this.currentTargetIndex = Math.max(0, currentTargetIndex);
         this.placeholders = placeholders == null ? PlaceholderBridge.noop() : placeholders;
@@ -72,7 +72,7 @@ public final class PipelineContext implements CoreStageContext {
         CoreActionSubject resolvedCaster = caster == null ? CoreActionSubject.absent() : caster;
         Location resolvedOrigin = origin == null ? null : origin.clone();
         return new PipelineContext(sourcePlugin, resolvedCaster, targets, resolvedOrigin,
-                phase, silent, variables, data, 0, placeholders);
+                phase, silent, VariableScope.base(variables), data, 0, placeholders);
     }
 
     @Override
@@ -168,11 +168,11 @@ public final class PipelineContext implements CoreStageContext {
         if (Texts.isBlank(name)) {
             return Optional.empty();
         }
-        return Optional.ofNullable(variables.get(Texts.lower(name)));
+        return Optional.ofNullable(variableScope.get(Texts.lower(name)));
     }
 
     public @NotNull Map<String, String> variables() {
-        return variables;
+        return variableScope.resolved();
     }
 
     @Override
@@ -186,37 +186,37 @@ public final class PipelineContext implements CoreStageContext {
 
     public @NotNull PipelineContext withTargets(@Nullable List<CoreActionSubject> newTargets) {
         return new PipelineContext(sourcePlugin, caster, newTargets, origin, phase, silent,
-                variables, data, 0, placeholders);
+                variableScope, data, 0, placeholders);
     }
 
     public @NotNull PipelineContext withTargetIndex(int index) {
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                variables, data, index, placeholders);
+                variableScope, data, index, placeholders);
     }
 
     public @NotNull PipelineContext withVariable(@Nullable String name, @Nullable Object value) {
         if (Texts.isBlank(name)) {
             return this;
         }
-        Map<String, String> copy = new LinkedHashMap<>(variables);
-        copy.put(Texts.lower(name), Texts.toStringSafe(value));
+        Map<String, String> overlay = new LinkedHashMap<>(1);
+        overlay.put(Texts.lower(name), Texts.toStringSafe(value));
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                copy, data, currentTargetIndex, placeholders);
+                variableScope.overlay(overlay), data, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext withVariables(@Nullable Map<String, ?> values) {
         if (values == null || values.isEmpty()) {
             return this;
         }
-        Map<String, String> copy = new LinkedHashMap<>(variables);
+        Map<String, String> overlay = new LinkedHashMap<>();
         for (Map.Entry<String, ?> entry : values.entrySet()) {
             if (Texts.isBlank(entry.getKey())) {
                 continue;
             }
-            copy.put(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
+            overlay.put(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
         }
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                copy, data, currentTargetIndex, placeholders);
+                variableScope.overlay(overlay), data, currentTargetIndex, placeholders);
     }
 
     public @NotNull <T> PipelineContext with(@NotNull CoreActionKey<T> key, @Nullable T value) {
@@ -230,7 +230,7 @@ public final class PipelineContext implements CoreStageContext {
             copy.put(key, value);
         }
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                variables, copy, currentTargetIndex, placeholders);
+                variableScope, copy, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext withData(@Nullable Map<CoreActionKey<?>, Object> values) {
@@ -250,18 +250,18 @@ public final class PipelineContext implements CoreStageContext {
             }
         }
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                variables, copy, currentTargetIndex, placeholders);
+                variableScope, copy, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext withOrigin(@Nullable Location newOrigin) {
         return new PipelineContext(sourcePlugin, caster, targets, origin == null && newOrigin == null
                 ? null : (newOrigin == null ? origin : newOrigin.clone()),
-                phase, silent, variables, data, currentTargetIndex, placeholders);
+                phase, silent, variableScope, data, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext withPhase(@Nullable String newPhase) {
         return new PipelineContext(sourcePlugin, caster, targets, origin, newPhase, silent,
-                variables, data, currentTargetIndex, placeholders);
+                variableScope, data, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext isolated(@Nullable Map<String, String> parameters) {
@@ -275,7 +275,7 @@ public final class PipelineContext implements CoreStageContext {
             }
         }
         return new PipelineContext(sourcePlugin, caster, targets, origin, phase, silent,
-                scoped, data, currentTargetIndex, placeholders);
+                VariableScope.base(scoped), data, currentTargetIndex, placeholders);
     }
 
     public @NotNull PipelineContext revalidated() {
@@ -289,5 +289,64 @@ public final class PipelineContext implements CoreStageContext {
             }
         }
         return alive.size() == targets.size() ? this : withTargets(alive);
+    }
+
+    private static final class VariableScope {
+
+        private static final VariableScope EMPTY = new VariableScope(null, Map.of());
+
+        private final VariableScope parent;
+        private final Map<String, String> entries;
+        private volatile Map<String, String> resolved;
+
+        private VariableScope(VariableScope parent, Map<String, String> entries) {
+            this.parent = parent;
+            this.entries = entries;
+        }
+
+        private static VariableScope base(Map<String, String> variables) {
+            return variables == null || variables.isEmpty()
+                    ? EMPTY
+                    : new VariableScope(null, Map.copyOf(variables));
+        }
+
+        private VariableScope overlay(Map<String, String> values) {
+            return values == null || values.isEmpty()
+                    ? this
+                    : new VariableScope(this, Map.copyOf(values));
+        }
+
+        private String get(String key) {
+            VariableScope scope = this;
+            while (scope != null) {
+                String value = scope.entries.get(key);
+                if (value != null) {
+                    return value;
+                }
+                scope = scope.parent;
+            }
+            return null;
+        }
+
+        private Map<String, String> resolved() {
+            Map<String, String> cached = resolved;
+            if (cached != null) {
+                return cached;
+            }
+            Map<String, String> computed;
+            if (parent == null) {
+                computed = entries;
+            } else if (entries.isEmpty()) {
+                computed = parent.resolved();
+            } else {
+                Map<String, String> parentValues = parent.resolved();
+                Map<String, String> merged = new LinkedHashMap<>(parentValues.size() + entries.size());
+                merged.putAll(parentValues);
+                merged.putAll(entries);
+                computed = Map.copyOf(merged);
+            }
+            resolved = computed;
+            return computed;
+        }
     }
 }

@@ -78,6 +78,7 @@ public final class CookingSettingsService {
     private volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
     private volatile Set<String> globalDisabledWorlds = Set.of();
     private volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
+    private volatile Map<StationType, List<ItemSourceRef>> stationBlockSourceCache = Map.of();
 
     private final ChoppingBoardSettings choppingBoardSettings;
     private final GrinderSettings grinderSettings;
@@ -109,6 +110,7 @@ public final class CookingSettingsService {
         itemAdjustments = loadItemAdjustments();
         globalDisabledWorlds = disabledWorldSet(configuration.get("station.disabled_worlds"));
         stationDisabledWorlds = loadStationDisabledWorlds();
+        stationBlockSourceCache = loadStationBlockSources();
     }
 
     private void warnLegacyMatcherKeys() {
@@ -140,7 +142,11 @@ public final class CookingSettingsService {
     }
 
     public List<ItemSourceRef> stationBlockSources(StationType stationType) {
-        return parseSources(configuration.get(stationPath(stationType) + ".block_item_sources"));
+        if (stationType == null) {
+            return List.of();
+        }
+        List<ItemSourceRef> sources = stationBlockSourceCache.get(stationType);
+        return sources == null ? List.of() : sources;
     }
 
     public ItemSourceRef stationBlockSource(StationType stationType) {
@@ -669,6 +675,14 @@ public final class CookingSettingsService {
         DisplayAdjustmentSpec stationDefaults = parseDisplayAdjustmentSpec(
                 configuration.getSection("display_adjustments.station_defaults." + stationType.folderName() + "." + kind.path()));
         return stationDefaults == null ? resolved : stationDefaults.resolve(resolved);
+    }
+
+    private Map<StationType, List<ItemSourceRef>> loadStationBlockSources() {
+        EnumMap<StationType, List<ItemSourceRef>> result = new EnumMap<>(StationType.class);
+        for (StationType stationType : StationType.values()) {
+            result.put(stationType, parseSources(configuration.get(stationPath(stationType) + ".block_item_sources")));
+        }
+        return Map.copyOf(result);
     }
 
     private Map<StationType, Set<String>> loadStationDisabledWorlds() {

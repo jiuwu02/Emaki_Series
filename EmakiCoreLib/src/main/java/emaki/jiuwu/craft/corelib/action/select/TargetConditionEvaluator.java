@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 import org.jetbrains.annotations.NotNull;
@@ -15,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetConditionArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetOutcome;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.condition.ConditionCombineMode;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.condition.ConditionNode;
@@ -27,9 +26,11 @@ public final class TargetConditionEvaluator {
             "or", ConditionCombineMode.ANY_OF,
             "not", ConditionCombineMode.NONE_OF);
 
+    private static final int REPORTED_TYPES_LIMIT = 512;
+
     private final TargetConditionRegistry conditions;
     private final Consumer<String> unknownTypeReporter;
-    private final Set<String> reportedTypes = ConcurrentHashMap.newKeySet();
+    private final CacheManager<String, Boolean> reportedTypes = new CacheManager<>(REPORTED_TYPES_LIMIT, 0L);
 
     public TargetConditionEvaluator(TargetConditionRegistry conditions) {
         this(conditions, null);
@@ -100,9 +101,10 @@ public final class TargetConditionEvaluator {
     }
 
     private void reportUnknownType(String type, TargetFacts facts) {
-        if (unknownTypeReporter == null || Texts.isBlank(type) || !reportedTypes.add(type)) {
+        if (unknownTypeReporter == null || Texts.isBlank(type) || reportedTypes.get(type) != null) {
             return;
         }
+        reportedTypes.put(type, Boolean.TRUE);
         List<String> known = new ArrayList<>(BuiltinTargetConditions.ids());
         known.addAll(conditions.ids());
         known.addAll(facts.identitySystems());

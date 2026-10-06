@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,6 +46,7 @@ public final class AnimationPlaybackService {
     private final AnimationRegistry registry;
     private final Map<UUID, Map<String, ActivePlayback>> byEntity = new ConcurrentHashMap<>();
     private final Map<String, CompiledPipeline> compiledFrames = new ConcurrentHashMap<>();
+    private final Set<String> failedFrames = ConcurrentHashMap.newKeySet();
     private final AtomicInteger playbackCounter = new AtomicInteger();
     private final AtomicBoolean closed = new AtomicBoolean();
 
@@ -132,6 +134,7 @@ public final class AnimationPlaybackService {
 
     public void invalidateCompiledFrames() {
         compiledFrames.clear();
+        failedFrames.clear();
     }
 
     public void stopAll() {
@@ -145,6 +148,7 @@ public final class AnimationPlaybackService {
         }
         byEntity.clear();
         compiledFrames.clear();
+        failedFrames.clear();
     }
 
     private EmakiResult<AnimationPlaybackHandle> startOnEntityThread(Plugin owner,
@@ -292,12 +296,16 @@ public final class AnimationPlaybackService {
                     return;
                 }
                 CompiledPipeline pipeline = compiledFrames.computeIfAbsent(frame.actionLine(), line -> {
+                    if (failedFrames.contains(line)) {
+                        return null;
+                    }
                     ActionEngine.Result result = engine.compile(line, KEYFRAME_PHASE);
                     return result.successful() ? result.pipeline() : null;
                 });
                 if (pipeline == null) {
-                    plugin.getLogger().warning("动画关键帧行未通过编译: " + frame.actionLine());
-                    compiledFrames.remove(frame.actionLine());
+                    if (failedFrames.add(frame.actionLine())) {
+                        plugin.getLogger().warning("动画关键帧行未通过编译: " + frame.actionLine());
+                    }
                     return;
                 }
                 engine.run(owner, pipeline, buildContext());
