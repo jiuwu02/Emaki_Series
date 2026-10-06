@@ -18,7 +18,6 @@ components:
   custom_name: "<dark_red>☠ 骨骼领主 ☠</dark_red>"
   custom_name_visible: true
   persistent: true
-  loot_table: "emakimobs:entities/bone_lord"
 
 experience: 500
 

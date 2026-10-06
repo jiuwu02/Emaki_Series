@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.loader.ThreatConfig;
 import emaki.jiuwu.craft.mobs.selector.PlayerScoreSnapshot;
 import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
 import emaki.jiuwu.craft.mobs.selector.TargetSelectorService;
@@ -156,10 +157,13 @@ public final class ThreatTableManager implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityRegainHealth(EntityRegainHealthEvent event) {
+        if (tables.isEmpty()) return;
         if (!(event.getEntity() instanceof Player player)) return;
+        double radius = healScanRadius();
+        if (radius <= 0) return;
         UUID playerUid = player.getUniqueId();
         double amount = event.getAmount();
-        player.getNearbyEntities(32, 32, 32).forEach(nearby -> {
+        player.getNearbyEntities(radius, radius, radius).forEach(nearby -> {
             if (!(nearby instanceof LivingEntity mob)) return;
             executionDispatcher.runEntity(plugin, mob, () -> {
                 String mobId = mobIdentifier.readId(mob);
@@ -275,6 +279,16 @@ public final class ThreatTableManager implements Listener {
             double dz = location.getZ() - snapshot.z();
             return dx * dx + dy * dy + dz * dz > maxDistanceSquared;
         });
+    }
+
+    private double healScanRadius() {
+        double radius = 0D;
+        for (MobSpec spec : registry.get().values()) {
+            ThreatConfig threat = spec.threatConfig();
+            if (threat == null || !threat.enabled()) continue;
+            radius = Math.max(radius, threat.maxRange());
+        }
+        return radius;
     }
 
     private record LockEntry(LivingEntity entity, String selectorId, long intervalCycles) {

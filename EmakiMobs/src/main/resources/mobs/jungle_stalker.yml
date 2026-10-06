@@ -12,7 +12,6 @@ components:
   movement_speed: 0.35
   # 不设置 custom_name / custom_name_visible，生物不显示名牌
   persistent: true
-  loot_table: "emakimobs:entities/jungle_stalker"
 
 experience: 20
 

@@ -59,14 +59,12 @@ public final class MobDropHandler implements Listener {
         if (spec.experience() > 0) {
             event.setDroppedExp(spec.experience());
         }
-        if (spec.components().containsKey("loot_table")) {
-            LootTableDefinition lootDef = lootRegistry.get().get(mobId);
-            if (lootDef != null) {
-                event.getDrops().clear();
-                int lootingLevel = getLootingLevel(event.getEntity().getKiller());
-                for (LootPoolDefinition pool : lootDef.pools()) {
-                    applyPool(event, pool, lootingLevel);
-                }
+        LootTableDefinition lootDef = lootRegistry.get().get(mobId);
+        if (lootDef != null) {
+            event.getDrops().clear();
+            int lootingLevel = getLootingLevel(event.getEntity().getKiller());
+            for (LootPoolDefinition pool : lootDef.pools()) {
+                applyPool(event, pool, lootingLevel);
             }
         }
         Bukkit.getPluginManager().callEvent(

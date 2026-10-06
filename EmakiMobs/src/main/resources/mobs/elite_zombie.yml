@@ -22,8 +22,7 @@ components:
   custom_name: "<gradient:#ff4444:#ffaa00>精英僵尸</gradient>"
   custom_name_visible: true
   persistent: true
-  # loot_table 值格式：<namespace>:entities/<mob_id>
-  loot_table: "emakimobs:entities/elite_zombie"
+  # 自定义掉落表见 loot_tables/elite_zombie.yml
 
 # 击杀该生物获得的原版经验值
 experience: 80
