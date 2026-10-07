@@ -1,0 +1,8 @@
+// EmakiStorageApi（原 EmakiStorageApi/pom.xml）。
+version = '1.1.2'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

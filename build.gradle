@@ -1,0 +1,136 @@
+// Emaki Series 根构建脚本。
+// 对应原根 pom.xml 的 <build><pluginManagement>：统一的编译/文档/打包约定在此集中配置，
+// 各模块 build.gradle 只声明依赖与模块专属的打包差异。
+
+plugins {
+    // Maven Shade Plugin 的等价物，用于运行时模块的 fat-jar 与包重定位。
+    id 'com.gradleup.shadow' version '9.2.2' apply false
+}
+
+allprojects {
+    group = 'emaki.jiuwu.craft'
+}
+
+subprojects {
+    apply plugin: 'java-library'
+
+    // 原 maven-compiler-plugin：release=25、proc=none、UTF-8。
+    // 这里不声明 java toolchain，避免 Gradle 自动下载 JDK：构建始终使用
+    // JAVA_HOME 指向的 GraalVM JDK 25。
+    tasks.withType(JavaCompile).configureEach {
+        options.encoding = 'UTF-8'
+        options.release = libs.versions.java.release.get().toInteger()
+        options.compilerArgs.add('-proc:none')
+    }
+
+    // 原 maven-javadoc-plugin：-Xdoclint:all,-missing，其余 DocLint 组保持失败可见。
+    tasks.withType(Javadoc).configureEach {
+        options.encoding = 'UTF-8'
+        options.addStringOption('Xdoclint:all,-missing', '-quiet')
+    }
+
+    tasks.withType(Test).configureEach {
+        useJUnitPlatform()
+    }
+
+    // 原根 pom dependencyManagement 中 import 的 junit-bom。
+    dependencies {
+        testImplementation platform(libs.junit.bom)
+        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    }
+
+    // Maven provided 作用域：仅编译期可见，但同样参与本模块测试类路径
+    // （Maven 的 provided 会出现在 test compile/runtime classpath 上）。
+    ext.provided = { Object dep, Closure configure = null ->
+        ['compileOnly', 'testImplementation'].each { String configurationName ->
+            if (configure == null) {
+                dependencies.add(configurationName, dep)
+            } else {
+                dependencies.add(configurationName, dep, configure)
+            }
+        }
+    }
+
+    // Maven optional 作用域：本模块编译与运行可用，但不向消费方传递。
+    ext.optional = { Object dep, Closure configure = null ->
+        if (configure == null) {
+            dependencies.add('implementation', dep)
+        } else {
+            dependencies.add('implementation', dep, configure)
+        }
+    }
+
+    // 私有模块（private-modules profile）在缺少 .key 时不在构建内，
+    // 此时回退到已发布的 Maven 坐标，行为与 Maven 从仓库解析一致。
+    ext.emakiDep = { String projectPath, String coordinate ->
+        def sibling = rootProject.findProject(projectPath)
+        return sibling != null ? sibling : coordinate
+    }
+
+    if (name.endsWith('Api')) {
+        // API 模块：附带 sources/javadoc 构件，并可通过 publishToMavenLocal
+        // 等价替代原 mvn install。产物名沿用 Maven artifactId（Gradle 默认用目录名），
+        // 即 emaki-<模块名小写>-api。
+        def apiArtifactId = 'emaki-' + name.substring('Emaki'.length(), name.length() - 'Api'.length()).toLowerCase(Locale.ROOT) + '-api'
+        base {
+            archivesName = apiArtifactId
+        }
+        apply plugin: 'maven-publish'
+        java {
+            withSourcesJar()
+            withJavadocJar()
+        }
+        publishing {
+            publications {
+                maven(MavenPublication) {
+                    from components.java
+                    artifactId = apiArtifactId
+                }
+            }
+        }
+    } else {
+        // 运行时模块：Maven Shade Plugin 的等价配置。
+        // - jar 任务保留未加 shade 的普通产物（Gradle 项目间依赖使用它，
+        //   等价于 Maven reactor 中普通模块产物的角色）；
+        // - shadowJar 产出与原 finalName 完全一致的 ${name}-${version}.jar，
+        //   即服务器实际部署的插件本体。
+        apply plugin: 'com.gradleup.shadow'
+
+        // 原 shade artifactSet <includes> 白名单的等价物：只有声明到 shadeBundle 的构件
+        // 进入最终插件 Jar。其余依赖仍按 Maven 作用域正常参与编译/测试类路径与传递，
+        // 但不会被 shade——这正是 artifactSet 白名单的实际效果。
+        configurations {
+            shadeBundle {
+                canBeConsumed = false
+                canBeResolved = true
+                attributes {
+                    attribute(org.gradle.api.attributes.Usage.USAGE_ATTRIBUTE,
+                            objects.named(org.gradle.api.attributes.Usage, org.gradle.api.attributes.Usage.JAVA_RUNTIME))
+                }
+            }
+        }
+
+        tasks.named('processResources') {
+            // 原各运行时模块的 <resources>：只有 paper-plugin.yml 参与 ${project.version}
+            // 过滤，其余资源（config.yml、lang/*.yml、各类数据 yml）原样拷贝。
+            filesMatching('paper-plugin.yml') {
+                filter { String line -> line.replace('${project.version}', project.version.toString()) }
+            }
+        }
+        tasks.named('jar') {
+            archiveClassifier = 'plain'
+        }
+        tasks.named('shadowJar') {
+            archiveClassifier = ''
+            configurations = [project.configurations.getByName('shadeBundle')]
+            // 原根 pom shade 全局过滤：剔除 module-info 与依赖自带的 MANIFEST/Maven 元数据。
+            exclude 'module-info.class'
+            exclude 'META-INF/versions/**/module-info.class'
+            exclude 'META-INF/MANIFEST.MF'
+            exclude 'META-INF/maven/**'
+        }
+        tasks.named('assemble') {
+            dependsOn tasks.named('shadowJar')
+        }
+    }
+}

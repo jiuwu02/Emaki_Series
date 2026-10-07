@@ -1,0 +1,52 @@
+// Emaki Series 多模块构建入口。
+// 对应原根 pom.xml：<modules> 与 <profiles><profile id="private-modules">。
+
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+    }
+}
+
+// 原根 pom.xml 的 <repositories>，顺序保持原样：Gradle 与 Maven 一样按声明顺序
+// 取第一个可解析到该构件的仓库（EcoItems 依赖 jitpack 排在 auxilor 之前）。
+dependencyResolutionManagement {
+    repositories {
+        maven { name = 'papermc'; url = 'https://repo.papermc.io/repository/maven-public/' }
+        maven { name = 'phoenix'; url = 'https://nexus.phoenixdevt.fr/repository/maven-public/' }
+        maven { name = 'irepo-space'; url = 'https://r.irepo.space/maven/' }
+        maven { name = 'placeholderapi'; url = 'https://repo.helpch.at/releases' }
+        maven { name = 'jitpack'; url = 'https://jitpack.io' }
+        maven { name = 'nightexpress-releases'; url = 'https://repo.nightexpressdev.com/releases' }
+        maven { name = 'lumine-public'; url = 'https://mvn.lumine.io/repository/maven-public/' }
+        maven { name = 'momirealms-releases'; url = 'https://repo.momirealms.net/releases/' }
+        maven { name = 'devs-beer'; url = 'https://maven.devs.beer/' }
+        maven { name = 'nexo-releases'; url = 'https://repo.nexomc.com/releases/' }
+        maven { name = 'oraxen-releases'; url = 'https://repo.oraxen.com/releases/' }
+        maven { name = 'auxilor-releases'; url = 'https://repo.auxilor.io/repository/maven-public/' }
+        maven { name = 'mockbukkit-releases'; url = 'https://s01.oss.sonatype.org/content/repositories/releases/' }
+        maven { name = 'codemc-releases'; url = 'https://repo.codemc.io/repository/maven-releases/' }
+        mavenCentral()
+    }
+}
+
+rootProject.name = 'emaki-parent'
+
+// 默认参与构建的 23 个模块（原 <modules> 列表）。
+def defaultModules = [
+        'EmakiCoreLibApi', 'EmakiCoreLib',
+        'EmakiItemApi',
+        'EmakiStrengthenApi', 'EmakiSkillsApi', 'EmakiAttributeApi',
+        'EmakiForgeApi', 'EmakiCookingApi', 'EmakiGemApi', 'EmakiLevelApi',
+        'EmakiCodexApi', 'EmakiStorageApi', 'EmakiStationApi', 'EmakiAccessoryApi',
+        'EmakiMobsApi',
+        'EmakiForge', 'EmakiStrengthen', 'EmakiCooking', 'EmakiAttribute',
+        'EmakiLevel', 'EmakiCodex', 'EmakiStation', 'EmakiMobs',
+]
+defaultModules.each { include it }
+
+// private-modules profile 等价实现：仓库根存在 .key 文件时追加 5 个私有模块。
+// .key 被 .gitignore 忽略，新克隆默认不存在，此时与 Maven 一致只构建 23 个模块。
+if (file('.key').exists()) {
+    ['EmakiSkills', 'EmakiGem', 'EmakiItem', 'EmakiStorage', 'EmakiAccessory'].each { include it }
+}

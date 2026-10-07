@@ -1,6 +1,6 @@
 # Emaki Series
 
-Emaki Series is a multi-module Maven project for Minecraft 1.21.8+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
+Emaki Series is a multi-module Gradle project for Minecraft 1.21.8+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
 
 Current source versions: `EmakiCoreLib 4.8.9`, `EmakiAttribute 4.8.1`, `EmakiForge 4.8.1`, `EmakiStrengthen 4.8.2`, `EmakiCooking 4.3.1`, `EmakiGem 2.8.2`, `EmakiSkills 2.8.2`, `EmakiItem 2.8.4`, `EmakiLevel 1.6.1`, `EmakiCodex 1.1.0`, `EmakiStorage 1.1.0`, `EmakiStation 1.1.3`, `EmakiAccessory 1.1.3`, and `EmakiMobs 1.0.3`.
 
@@ -34,7 +34,7 @@ The repository also contains the compile-time `Emaki*Api` contract modules. The 
 | Descriptor base | `api-version: "1.21.8"`                               |
 | Folia           | All 14 runtime plugins declare `folia-supported: true` (declaration only; no live-server verification recorded) |
 | Text components | `Adventure 4.26.1`                                    |
-| Build tool      | Multi-module Maven project                            |
+| Build tool      | Multi-module Gradle project (wrapper pins Gradle 9.1.0) |
 | License         | `GPL-3.0-only`                                        |
 
 ## Module relationships
@@ -89,10 +89,13 @@ Project/
 ├── EmakiMobs/             # Custom mobs
 ├── Emaki*Api/             # Compile-time API contracts (never deployed)
 │                          #   Equipment-skill PDC protocol lives in EmakiSkillsApi's api.pdc package
-└── pom.xml                # Maven parent project
+├── settings.gradle        # Module list (23 default + 5 .key-gated private modules)
+├── build.gradle           # Root build script: shared compile / javadoc / shade conventions
+├── gradle/libs.versions.toml  # Version catalog: single source of truth for dependency versions
+└── gradlew, gradlew.bat   # Gradle wrapper (pins Gradle 9.1.0)
 ```
 
-The `private-modules` profile activates automatically when a `.key` file exists in the repository root, adding `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, and `EmakiAccessory` to the reactor. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; Maven then builds the default 23 project modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
+The private modules are gated by the `.key` marker rather than a Maven profile: `settings.gradle` adds `EmakiSkills`, `EmakiGem`, `EmakiItem`, `EmakiStorage`, and `EmakiAccessory` to the build only when a `.key` file exists in the repository root. `.key` is ignored by `.gitignore` and untracked, so a fresh clone does not contain it; the build then compiles the default 23 project modules without failing, which is a supported state. Create an empty `.key` file in the repository root when you need the private modules.
 
 ## Item configuration and migration boundary
 
@@ -110,19 +113,25 @@ Set-membership visibility is calculated separately from the valid equipped-piece
 
 ## Build
 
-From the repository root:
+From the repository root (Java `25`; start the build with `JAVA_HOME` pointing at your JDK 25 installation):
 
 ```bash
-mvn clean package
+./gradlew build
 ```
 
 A common local compilation check is:
 
 ```bash
-mvn -DskipTests compile
+./gradlew compileJava
 ```
 
-Build outputs are written to each module's `target/` directory. Install only the plugin runtime jars on the server; the `emaki-*-api` artifacts are compile-time dependencies for third-party developers.
+To assemble the jars without running the test suite:
+
+```bash
+./gradlew build -x test
+```
+
+Build outputs are written to each module's `build/libs/` directory. Runtime modules produce `EmakiXxx-<version>.jar` (the deployable shaded plugin jar) alongside an unshaded `EmakiXxx-<version>-plain.jar`; API modules produce `emaki-xxx-api-<version>.jar` with matching `-sources` and `-javadoc` jars. `./gradlew publishToMavenLocal` installs the API artifacts into the local Maven repository, replacing the former `mvn install`. Install only the plugin runtime jars on the server; the `emaki-*-api` artifacts are compile-time dependencies for third-party developers.
 
 ## Installation and first check
 

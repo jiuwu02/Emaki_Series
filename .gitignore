@@ -1,4 +1,10 @@
-# Java / Maven / IDE build output
+# Java / Gradle build output
+# Gradle：根工程与各子工程的构建输出、项目级缓存（gradle/wrapper 与 *.gradle 需入库，不在此列）
+/build/
+/*/build/
+/.gradle/
+/*/.gradle/
+# Maven 时代遗留目录：目录已删除，保留忽略规则以防被旧工具重新生成
 /target/
 /*/target/
 *.class

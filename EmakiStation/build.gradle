@@ -1,0 +1,25 @@
+// EmakiStation（原 EmakiStation/pom.xml）。
+version = '1.1.6'
+
+dependencies {
+    // 原 shade artifactSet 白名单。
+    shadeBundle project(':EmakiStationApi')
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiStationApi')
+
+    // 原 provided 作用域。Storage 保持 provided 且永不 shade：EmakiStorage 的运行期
+    // Jar 已内嵌自己的 API，重复一份会产生类身份分裂并破坏静态门面。
+    provided project(':EmakiStorageApi')
+    provided libs.paper.api
+    provided libs.placeholderapi
+
+    // 原 test 作用域。
+    testImplementation libs.junit.jupiter
+    testImplementation libs.boosted.yaml
+    testImplementation emakiDep(':EmakiStorage', 'emaki.jiuwu.craft:emaki-storage:1.1.2')
+    testImplementation libs.mockbukkit
+    testImplementation libs.mockito.core
+}

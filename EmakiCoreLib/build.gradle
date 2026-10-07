@@ -1,0 +1,66 @@
+// EmakiCoreLib（原 EmakiCoreLib/pom.xml）。
+version = '4.8.19'
+
+// libreforge 的类只在 classifier=all 的胖 Jar 中；libreforge.core 仅存在于私有仓库而
+// maven-public 返回 404，整组排除（胖 Jar 已自包含编译所需类），与根 pom 一致。
+def libreforgeAll = "com.willfp:libreforge:${libs.versions.libreforge.get()}:all"
+
+dependencies {
+    // 原 shade artifactSet 白名单（bstats-base 由 bstats-bukkit 传递带入）。
+    shadeBundle project(':EmakiCoreLibApi')
+    shadeBundle libs.bstats.bukkit
+    shadeBundle libs.sqlite.jdbc
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api libs.bstats.bukkit
+    api libs.adventure.api
+    api libs.adventure.text.minimessage
+    api libs.adventure.text.serializer.plain
+    api libs.adventure.text.serializer.legacy
+    api libs.caffeine
+
+    // 原 optional 作用域。
+    optional libs.exp4j
+    optional libs.boosted.yaml
+    optional(libs.sqlite.jdbc) { exclude group: 'org.slf4j', module: 'slf4j-api' }
+
+    // 原 provided 作用域：运行期由服务端或 RuntimeLibraryLoader 提供。
+    provided libs.paper.api
+    provided libs.graalvm.polyglot
+    provided libs.graalvm.js.language
+    provided libs.graalvm.truffle.api
+    provided libs.jetbrains.annotations
+    provided libs.vault.api
+    provided libs.excellent.economy
+    provided libs.nightcore
+    provided libs.placeholderapi
+    provided libs.mmoitems.api
+    provided libs.mythiclib.dist
+    provided libs.mythic.dist
+    provided libs.craft.engine.core
+    provided libs.craft.engine.bukkit
+    provided libs.itemsadder.api
+    provided(libs.nexo) { transitive = false }
+    provided(libs.oraxen) { transitive = false }
+    provided libs.neigeitems
+    provided libs.ecoitems
+    provided libs.libreforge.loader
+    provided libs.eco
+    provided libs.packetevents.spigot
+    provided(libreforgeAll) { exclude group: 'libreforge.core' }
+
+    // 原 test 作用域。
+    testImplementation libs.junit.jupiter
+    testImplementation libs.graalvm.truffle.runtime
+    testImplementation libs.graalvm.regex
+    testImplementation libs.graalvm.icu4j
+    testImplementation libs.mockbukkit
+    testImplementation libs.mockito.core
+}
+
+tasks.named('shadowJar') {
+    relocate 'org.bstats', 'emaki.jiuwu.craft.runtime.bstats'
+    // bstats-bukkit 自带的 plugin.yml 不得覆盖本插件的 paper-plugin.yml。
+    exclude 'plugin.yml'
+}

@@ -1,0 +1,8 @@
+// EmakiCookingApi（原 EmakiCookingApi/pom.xml）。
+version = '4.3.4'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

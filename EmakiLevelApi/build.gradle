@@ -1,0 +1,8 @@
+// EmakiLevelApi（原 EmakiLevelApi/pom.xml）。
+version = '1.6.4'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

@@ -1,0 +1,31 @@
+// EmakiMobs（原 EmakiMobs/pom.xml）。
+version = '1.0.7'
+
+dependencies {
+    // 原 shade artifactSet 白名单。
+    shadeBundle project(':EmakiMobsApi')
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiMobsApi')
+
+    // 原 provided 作用域。
+    provided project(':EmakiAttributeApi')
+    provided project(':EmakiSkillsApi')
+    provided project(':EmakiItemApi')
+    provided libs.paper.api
+    provided libs.modelengine
+    provided libs.bettermodel.bukkit.api
+
+    // 原 test 作用域。
+    testImplementation project(':EmakiAttribute')
+    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.5')
+    testImplementation emakiDep(':EmakiItem', 'emaki.jiuwu.craft:emaki-item:2.8.13')
+    testImplementation libs.junit.jupiter
+    testImplementation libs.boosted.yaml
+    testImplementation libs.placeholderapi
+    testImplementation libs.graalvm.polyglot
+    testImplementation libs.mockbukkit
+    testImplementation libs.mockito.core
+}

@@ -1,0 +1,8 @@
+// EmakiForgeApi（原 EmakiForgeApi/pom.xml）。
+version = '4.8.5'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

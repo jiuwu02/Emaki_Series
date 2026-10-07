@@ -1,0 +1,9 @@
+// EmakiCoreLibApi（原 EmakiCoreLibApi/pom.xml）。
+version = '4.8.19'
+
+dependencies {
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+    // YAML 契约（YamlSection 等）对外可见，但保持「不传递」语义，与 Maven optional 一致。
+    provided libs.boosted.yaml
+}

@@ -1,0 +1,96 @@
+# Gradle 版本目录（version catalog）。
+# 对应原根 pom.xml 的 <properties> / <dependencyManagement>：
+# 这里是所有第三方依赖版本与坐标的唯一来源，模块 build.gradle 通过 libs.* 引用。
+# 修改依赖版本时只改本文件；模块自身的版本号写在各自 build.gradle 的 version 字段。
+
+[versions]
+# --- 构建设置（原根 pom 的 maven.compiler.release）---
+java-release = "25"
+
+# --- 服务端与平台 ---
+paper = "1.21.8-R0.1-SNAPSHOT"
+
+# --- 通用库 ---
+adventure = "4.26.1"
+exp4j = "0.4.8"
+jetbrains-annotations = "26.1.0"
+boosted-yaml = "1.3.7"
+caffeine = "3.3.0"
+sqlite-jdbc = "3.50.3.0"
+bstats = "3.2.1"
+packetevents = "2.14.0"
+graalvm = "25.4.4.1.1"
+
+# --- 可选运行时集成（全部 provided）---
+vault = "1.7.1"
+excellent-economy = "2.8.0"
+nightcore = "2.16.4"
+placeholderapi = "2.12.3"
+mmoitems = "6.10.1-SNAPSHOT"
+mythic = "5.13.0"
+mythiclib = "1.7.1-SNAPSHOT"
+craftengine = "26.9.1"
+itemsadder = "4.0.17"
+nexo = "1.28.0"
+oraxen = "1.219.1"
+neigeitems = "1.21.171"
+ecoitems = "2026.38"
+eco = "2026.39"
+libreforge = "2026.38"
+betterhud = "2.0.0"
+modelengine = "R4.2.0"
+bettermodel = "3.5.0"
+
+# --- 测试 ---
+junit = "6.1.3"
+mockbukkit = "4.93.0"
+mockito = "5.20.0"
+
+[libraries]
+paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
+
+adventure-api = { module = "net.kyori:adventure-api", version.ref = "adventure" }
+adventure-text-minimessage = { module = "net.kyori:adventure-text-minimessage", version.ref = "adventure" }
+adventure-text-serializer-plain = { module = "net.kyori:adventure-text-serializer-plain", version.ref = "adventure" }
+adventure-text-serializer-legacy = { module = "net.kyori:adventure-text-serializer-legacy", version.ref = "adventure" }
+adventure-text-serializer-gson = { module = "net.kyori:adventure-text-serializer-gson", version.ref = "adventure" }
+adventure-text-serializer-json = { module = "net.kyori:adventure-text-serializer-json", version.ref = "adventure" }
+exp4j = { module = "net.objecthunter:exp4j", version.ref = "exp4j" }
+jetbrains-annotations = { module = "org.jetbrains:annotations", version.ref = "jetbrains-annotations" }
+boosted-yaml = { module = "dev.dejvokep:boosted-yaml", version.ref = "boosted-yaml" }
+caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
+sqlite-jdbc = { module = "org.xerial:sqlite-jdbc", version.ref = "sqlite-jdbc" }
+bstats-bukkit = { module = "org.bstats:bstats-bukkit", version.ref = "bstats" }
+packetevents-spigot = { module = "com.github.retrooper:packetevents-spigot", version.ref = "packetevents" }
+
+graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graalvm" }
+graalvm-js-language = { module = "org.graalvm.js:js-language", version.ref = "graalvm" }
+graalvm-truffle-api = { module = "org.graalvm.truffle:truffle-api", version.ref = "graalvm" }
+graalvm-truffle-runtime = { module = "org.graalvm.truffle:truffle-runtime", version.ref = "graalvm" }
+graalvm-regex = { module = "org.graalvm.regex:regex", version.ref = "graalvm" }
+graalvm-icu4j = { module = "org.graalvm.shadowed:icu4j", version.ref = "graalvm" }
+
+vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault" }
+excellent-economy = { module = "su.nightexpress.excellenteconomy:ExcellentEconomy", version.ref = "excellent-economy" }
+nightcore = { module = "su.nightexpress.nightcore:main", version.ref = "nightcore" }
+placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
+mmoitems-api = { module = "net.Indyuce:MMOItems-API", version.ref = "mmoitems" }
+mythic-dist = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
+mythiclib-dist = { module = "io.lumine:MythicLib-dist", version.ref = "mythiclib" }
+craft-engine-core = { module = "net.momirealms:craft-engine-core", version.ref = "craftengine" }
+craft-engine-bukkit = { module = "net.momirealms:craft-engine-bukkit", version.ref = "craftengine" }
+itemsadder-api = { module = "beer.devs:itemsadder-api", version.ref = "itemsadder" }
+nexo = { module = "com.nexomc:nexo", version.ref = "nexo" }
+oraxen = { module = "io.th0rgal:oraxen", version.ref = "oraxen" }
+neigeitems = { module = "pers.neige.neigeitems:NeigeItems", version.ref = "neigeitems" }
+ecoitems = { module = "com.willfp:EcoItems", version.ref = "ecoitems" }
+eco = { module = "com.willfp:eco", version.ref = "eco" }
+libreforge-loader = { module = "com.willfp:libreforge-loader", version.ref = "libreforge" }
+betterhud-bukkit-api = { module = "io.github.toxicity188:BetterHud-bukkit-api", version.ref = "betterhud" }
+modelengine = { module = "com.ticxo.modelengine:ModelEngine", version.ref = "modelengine" }
+bettermodel-bukkit-api = { module = "io.github.toxicity188:bettermodel-bukkit-api", version.ref = "bettermodel" }
+
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+mockbukkit = { module = "org.mockbukkit.mockbukkit:mockbukkit-v1.21", version.ref = "mockbukkit" }
+mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }

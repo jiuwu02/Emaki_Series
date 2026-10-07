@@ -1,0 +1,8 @@
+// EmakiMobsApi（原 EmakiMobsApi/pom.xml）。
+version = '1.0.7'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

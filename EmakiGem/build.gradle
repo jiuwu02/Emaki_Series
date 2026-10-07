@@ -1,0 +1,41 @@
+// EmakiGem（原 EmakiGem/pom.xml，private-modules profile 模块）。
+version = '2.8.7'
+
+dependencies {
+    // 原 shade artifactSet 白名单。
+    shadeBundle project(':EmakiGemApi')
+    shadeBundle project(':EmakiSkillsApi')
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiGemApi')
+    api project(':EmakiSkillsApi')
+
+    // 原 provided 作用域。
+    provided project(':EmakiItemApi')
+    provided project(':EmakiAttributeApi')
+    provided project(':EmakiStrengthenApi')
+    provided libs.paper.api
+    provided libs.placeholderapi
+    provided libs.jetbrains.annotations
+
+    // 原 test 作用域。
+    testImplementation libs.junit.jupiter
+    testImplementation project(':EmakiAttribute')
+    testImplementation project(':EmakiSkills')
+    testImplementation project(':EmakiItem')
+    testImplementation project(':EmakiStrengthen')
+    testImplementation libs.boosted.yaml
+    testImplementation libs.graalvm.polyglot
+    testImplementation libs.mockbukkit
+    testImplementation libs.mockito.core
+}
+
+tasks.named('shadowJar') {
+    // 同 EmakiItem：只保留 EmakiSkillsApi 的 pdc 协议包并重定位。
+    exclude 'emaki/jiuwu/craft/skills/api/*.class'
+    exclude 'emaki/jiuwu/craft/skills/api/event/**'
+    exclude 'emaki/jiuwu/craft/skills/api/model/**'
+    relocate 'emaki.jiuwu.craft.skills.api.pdc', 'emaki.jiuwu.craft.gem.runtime.skillsprotocol'
+}

@@ -1,0 +1,33 @@
+// EmakiAttribute（原 EmakiAttribute/pom.xml）。
+version = '4.8.4'
+
+dependencies {
+    // 原 shade artifactSet 白名单。
+    shadeBundle project(':EmakiAttributeApi')
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiAttributeApi')
+    api libs.betterhud.bukkit.api
+
+    // 原 provided 作用域。
+    provided libs.paper.api
+    provided libs.graalvm.polyglot
+    provided libs.graalvm.js.language
+    provided libs.graalvm.truffle.api
+    provided libs.mythic.dist
+    provided libs.mythiclib.dist
+    provided libs.mmoitems.api
+    provided libs.placeholderapi
+    provided libs.jetbrains.annotations
+
+    // 原 test 作用域。
+    testImplementation libs.junit.jupiter
+    testImplementation libs.graalvm.truffle.runtime
+    testImplementation libs.graalvm.regex
+    testImplementation libs.graalvm.icu4j
+    testImplementation libs.boosted.yaml
+    testImplementation libs.mockbukkit
+    testImplementation libs.mockito.core
+}
