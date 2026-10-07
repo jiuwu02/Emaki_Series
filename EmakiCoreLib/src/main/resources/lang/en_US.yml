@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.19"
+version: "4.8.20"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -700,8 +700,3 @@ command:
   pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> scanned=<white>%scanned%</white> keys=<yellow>%migrated%</yellow> skipped=<gray>%skipped%</gray> failed=<red>%failed%</red></gray>"
   pdc_convert_total: "<green>Converted <yellow>%migrated%</yellow> keys. Offline players and unloaded chunks are handled by lazy conversion on read; no manual action is required.</green>"
   pdc_convert_failed: "<red>Legacy PDC key conversion failed: %error%</red>"
-  help_storage_migrate: "<green>%root% storage-migrate <migrate|dump|verify|rollback> <file> [binary|sqlite]</green><gray> - Migrate, dump, verify or roll back a player data storage backend</gray>"
-  storage_migrate_usage: "<yellow>Usage: /corelib storage-migrate <migrate|dump|verify|rollback> <file> [binary|sqlite]</yellow>"
-  storage_migrate_started: "<gray>Starting storage migration <aqua>%mode%</aqua> for <aqua>%file%</aqua>; the result will be reported when done</gray>"
-  storage_migrate_result: "<green>Storage migration %mode% finished: %detail%</green>"
-  storage_migrate_failed: "<red>Storage migration failed: %error%</red>"

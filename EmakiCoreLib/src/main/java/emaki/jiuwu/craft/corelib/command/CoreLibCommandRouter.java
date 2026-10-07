@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.corelib.command;
 
-import java.io.File;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -9,7 +7,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -25,22 +22,18 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineTaskService;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
-import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
-import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.corelib.storage.StoreFormat;
-import emaki.jiuwu.craft.corelib.storage.StoreMigrationService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class CoreLibCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_RELOAD = "emakicorelib.reload";
     private static final String PERMISSION_ADMIN = "emakicorelib.admin";
-    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "actions", "pdc-convert", "storage-migrate");
+    private static final List<String> SUB_COMMANDS = List.of("help", "reload", "check", "debug", "action", "actions", "pdc-convert");
     private static final List<String> ACTION_MODES = List.of("list", "run");
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> PDC_CONVERT_SCOPES = List.of("players", "containers", "entities", "all");
@@ -48,13 +41,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> DEBUG_MODES = List.of("loops", "all");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
-    private static final List<String> STORAGE_MIGRATE_MODES = List.of("migrate", "dump", "verify", "rollback");
-    private static final List<String> STORAGE_MIGRATE_FORMATS = List.of("binary", "sqlite");
-    private static final String STORAGE_DUMP_SUFFIX = ".dump.yml";
 
     private final EmakiCoreLibPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
-    private volatile AsyncFileService.FileScope storageScope;
 
     public CoreLibCommandRouter(EmakiCoreLibPlugin plugin, ExecutionDispatcher executionDispatcher) {
         this.plugin = plugin;
@@ -77,7 +66,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
             case "debug" -> handleDebug(sender, args);
             case "action", "actions" -> handleAction(sender, args);
             case "pdc-convert" -> handlePdcConvert(sender, args);
-            case "storage-migrate" -> handleStorageMigrate(sender, args);
             default -> {
                 sendHelp(sender, label);
                 yield true;
@@ -107,13 +95,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[1], PDC_CONVERT_SCOPES, result);
         } else if (args.length == 3 && "pdc-convert".equalsIgnoreCase(args[0])) {
             complete(args[2], List.of(DRY_RUN_FLAG), result);
-        } else if (args.length == 2 && "storage-migrate".equalsIgnoreCase(args[0])) {
-            complete(args[1], STORAGE_MIGRATE_MODES, result);
-            completeYamlFiles(args[1], result);
-        } else if (args.length == 3 && "storage-migrate".equalsIgnoreCase(args[0])) {
-            completeYamlFiles(args[2], result);
-        } else if (args.length == 4 && "storage-migrate".equalsIgnoreCase(args[0])) {
-            complete(args[3], STORAGE_MIGRATE_FORMATS, result);
         } else if (args.length == 2 && "debug".equalsIgnoreCase(args[0])) {
             complete(args[1], DEBUG_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "all".equalsIgnoreCase(args[1])) {
@@ -274,126 +255,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
             ));
         }
         sendLang(sender, "command.pdc_convert_total", Map.of("migrated", String.valueOf(migrated)));
-    }
-
-    private boolean handleStorageMigrate(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            sendLang(sender, "command.no_permission_admin");
-            return true;
-        }
-        if (args.length < 3 || !STORAGE_MIGRATE_MODES.contains(args[1].toLowerCase(Locale.ROOT))) {
-            sendLang(sender, "command.storage_migrate_usage");
-            return true;
-        }
-        String mode = args[1].toLowerCase(Locale.ROOT);
-        Path source;
-        try {
-            source = resolveStoragePath(args[2]);
-        } catch (IllegalArgumentException exception) {
-            sendLang(sender, "command.storage_migrate_failed", Map.of(
-                    "error", Texts.toStringSafe(exception.getMessage())
-            ));
-            return true;
-        }
-        AsyncFileService.FileScope scope;
-        try {
-            scope = storageScope();
-        } catch (IllegalStateException exception) {
-            sendLang(sender, "command.storage_migrate_failed", Map.of(
-                    "error", Texts.toStringSafe(exception.getMessage())
-            ));
-            return true;
-        }
-        StoreFormat format = StoreFormat.parse(args.length >= 4 ? args[3] : null, StoreFormat.BINARY);
-        StoreMigrationService service = new StoreMigrationService(scope);
-        sendLang(sender, "command.storage_migrate_started", Map.of("mode", mode, "file", args[2]));
-        CompletableFuture<String> operation = switch (mode) {
-            case "dump" -> service.dump(source, format, dumpFileOf(source)).thenApply(this::describeDump);
-            case "verify" -> service.verify(source, format).thenApply(this::describeVerification);
-            case "rollback" -> service.rollback(source).thenApply(this::describeRollback);
-            default -> service.migrate(source, format).thenApply(this::describeMigration);
-        };
-        operation.whenComplete((detail, throwable) -> dispatchSender(sender, () -> {
-            if (throwable != null) {
-                sendLang(sender, "command.storage_migrate_failed", Map.of(
-                        "error", AsyncFailures.describe(throwable)
-                ));
-                return;
-            }
-            sendLang(sender, "command.storage_migrate_result", Map.of("mode", mode, "detail", detail));
-        }));
-        return true;
-    }
-
-    private AsyncFileService.FileScope storageScope() {
-        AsyncFileService.FileScope current = storageScope;
-        if (current == null || !current.acceptingOperations()) {
-            current = plugin.asyncFileScope(plugin);
-            storageScope = current;
-        }
-        return current;
-    }
-
-    private Path resolveStoragePath(String rawPath) {
-        if (Texts.isBlank(rawPath)) {
-            throw new IllegalArgumentException("路径不能为空");
-        }
-        Path base = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
-        Path resolved = base.resolve(rawPath).toAbsolutePath().normalize();
-        if (!resolved.startsWith(base)) {
-            throw new IllegalArgumentException("路径必须位于插件数据目录内");
-        }
-        String name = resolved.getFileName().toString().toLowerCase(Locale.ROOT);
-        if (!name.endsWith(".yml") && !name.endsWith(".yaml")) {
-            throw new IllegalArgumentException("仅支持 .yml 或 .yaml 源文件");
-        }
-        return resolved;
-    }
-
-    private Path dumpFileOf(Path source) {
-        return source.resolveSibling(source.getFileName() + STORAGE_DUMP_SUFFIX);
-    }
-
-    private String describeMigration(StoreMigrationService.MigrationResult result) {
-        return "条目=" + result.entryCount()
-                + " 备份=" + (result.backupCreated() ? "新建" : "复用")
-                + " 目标=" + relativeToData(result.target());
-    }
-
-    private String describeVerification(StoreMigrationService.VerificationResult result) {
-        if (result.valid()) {
-            return "校验通过，条目=" + result.entryCount();
-        }
-        return "校验失败，差异 " + result.differences().size() + " 处: " + String.join("; ", result.differences());
-    }
-
-    private String describeRollback(StoreMigrationService.RollbackResult result) {
-        return "已回滚，移除目标文件 " + result.removedTargets().size() + " 个";
-    }
-
-    private String describeDump(Path dumpFile) {
-        return "转储=" + relativeToData(dumpFile);
-    }
-
-    private String relativeToData(Path path) {
-        Path base = plugin.getDataFolder().toPath().toAbsolutePath().normalize();
-        Path absolute = path.toAbsolutePath().normalize();
-        return absolute.startsWith(base) ? base.relativize(absolute).toString() : absolute.toString();
-    }
-
-    private void completeYamlFiles(String rawPrefix, List<String> result) {
-        File[] files = plugin.getDataFolder().listFiles();
-        if (files == null) {
-            return;
-        }
-        String prefix = Texts.toStringSafe(rawPrefix).toLowerCase(Locale.ROOT);
-        for (File file : files) {
-            String lower = file.getName().toLowerCase(Locale.ROOT);
-            if (file.isFile() && lower.startsWith(prefix)
-                    && (lower.endsWith(".yml") || lower.endsWith(".yaml"))) {
-                result.add(file.getName());
-            }
-        }
     }
 
     private void sendStageList(CommandSender sender, StageRegistry registry) {
@@ -609,7 +470,6 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.help_debug_all", Map.of("root", root));
         sendLang(sender, "command.help_debug_loops", Map.of("root", root));
         sendLang(sender, "command.help_pdc_convert", Map.of("root", root));
-        sendLang(sender, "command.help_storage_migrate", Map.of("root", root));
     }
 
     private void complete(String rawPrefix, List<String> options, List<String> result) {

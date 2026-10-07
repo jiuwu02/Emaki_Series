@@ -1,5 +1,5 @@
 // EmakiCoreLib（原 EmakiCoreLib/pom.xml）。
-version = '4.8.19'
+version = '4.8.20'
 
 // libreforge 的类只在 classifier=all 的胖 Jar 中；libreforge.core 仅存在于私有仓库而
 // maven-public 返回 404，整组排除（胖 Jar 已自包含编译所需类），与根 pom 一致。
@@ -9,7 +9,6 @@ dependencies {
     // 原 shade artifactSet 白名单（bstats-base 由 bstats-bukkit 传递带入）。
     shadeBundle project(':EmakiCoreLibApi')
     shadeBundle libs.bstats.bukkit
-    shadeBundle libs.sqlite.jdbc
 
     // 原 compile 作用域。
     api project(':EmakiCoreLibApi')
@@ -23,7 +22,6 @@ dependencies {
     // 原 optional 作用域。
     optional libs.exp4j
     optional libs.boosted.yaml
-    optional(libs.sqlite.jdbc) { exclude group: 'org.slf4j', module: 'slf4j-api' }
 
     // 原 provided 作用域：运行期由服务端或 RuntimeLibraryLoader 提供。
     provided libs.paper.api
