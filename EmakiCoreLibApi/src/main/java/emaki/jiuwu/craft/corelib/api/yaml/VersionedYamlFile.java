@@ -80,7 +80,7 @@ public final class VersionedYamlFile {
 
     public void save() throws IOException {
         if (document != null) {
-            document.save();
+            YamlFiles.saveText(file, document.dump());
         }
     }
 }

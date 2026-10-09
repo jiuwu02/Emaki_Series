@@ -171,6 +171,10 @@ public final class YamlFiles {
     }
 
     public static void save(File file, Map<String, ?> values) throws IOException {
+        saveText(file, BoostedYamlSupport.dump(values));
+    }
+
+    public static void saveText(File file, String content) throws IOException {
         Objects.requireNonNull(file, "file");
         ensureDirectory(file.toPath().getParent());
         Path target = file.toPath();
@@ -179,7 +183,7 @@ public final class YamlFiles {
         Path temp = Files.createTempFile(tempDirectory, target.getFileName().toString(), ".tmp");
         boolean moved = false;
         try {
-            Files.writeString(temp, BoostedYamlSupport.dump(values), StandardCharsets.UTF_8);
+            Files.writeString(temp, content, StandardCharsets.UTF_8);
             moveReplacing(temp, target);
             moved = true;
         } finally {

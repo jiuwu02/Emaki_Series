@@ -3,11 +3,12 @@ package emaki.jiuwu.craft.corelib.loader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeMap;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -64,29 +65,14 @@ public final class LanguageLoader {
             }
         }
         Set<String> loggedUpdates = new LinkedHashSet<>();
-        File fallbackFile = dataPath(languageDirectory, fallbackLanguage + ".yml").toFile();
-        try {
-            syncVersionedLanguage(fallbackFile, bundledPath(fallbackLanguage), loggedUpdates);
-            syncBundledLanguages(loggedUpdates);
-        } catch (IOException exception) {
-            warning("loader.bundled_language_load_failed", Map.of("error", Texts.toStringSafe(exception.getMessage())));
-        }
-        if (!fallbackFile.exists()) {
-            warning("loader.bundled_resource_missing", Map.of(
-                    "type", "语言",
-                    "path", fallbackFile.getPath(),
-                    "resource", bundledPath(fallbackLanguage)
-            ));
-        }
-        File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
-        if (files == null) {
-            return 0;
-        }
-        Arrays.sort(files, (left, right) -> left.getName().compareToIgnoreCase(right.getName()));
-        for (File file : files) {
-            String langId = file.getName().replace(".yml", "").replace(".yaml", "");
+        Map<String, String> bundledResources = new HashMap<>();
+        Map<String, File> targets = collectTargets(directory, bundledResources);
+        for (Map.Entry<String, File> target : targets.entrySet()) {
+            File file = target.getValue();
+            String langId = target.getKey().replace(".yml", "").replace(".yaml", "");
+            String bundledResource = bundledResources.getOrDefault(target.getKey(), bundledPath(langId));
             try {
-                VersionedYamlFile versionedFile = syncVersionedLanguage(file, bundledPath(langId), loggedUpdates);
+                VersionedYamlFile versionedFile = syncVersionedLanguage(file, bundledResource, loggedUpdates);
                 YamlSection loaded = versionedFile == null || versionedFile.root() == null
                         ? YamlFiles.load(file)
                         : versionedFile.root().copy();
@@ -102,22 +88,38 @@ public final class LanguageLoader {
                 warning("loader.bundled_resource_missing", Map.of(
                         "type", "语言",
                         "path", file.getPath(),
-                        "resource", bundledPath(langId)
+                        "resource", bundledResource
                 ));
             }
+        }
+        File fallbackFile = dataPath(languageDirectory, fallbackLanguage + ".yml").toFile();
+        if (!fallbackFile.exists()) {
+            warning("loader.bundled_resource_missing", Map.of(
+                    "type", "语言",
+                    "path", fallbackFile.getPath(),
+                    "resource", bundledPath(fallbackLanguage)
+            ));
         }
         return languages.size();
     }
 
-    private void syncBundledLanguages(Set<String> loggedUpdates) throws IOException {
+    private Map<String, File> collectTargets(File directory, Map<String, String> bundledResources) {
+        Map<String, File> targets = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        File[] files = directory.listFiles((dir, name) -> name.endsWith(".yml") || name.endsWith(".yaml"));
+        if (files != null) {
+            for (File file : files) {
+                targets.put(file.getName(), file);
+            }
+        }
         for (String bundledResource : YamlFiles.listResourcePaths(plugin, bundledDirectory)) {
             String fileName = Path.of(bundledResource).getFileName().toString();
             if (Texts.isBlank(fileName)) {
                 continue;
             }
-            File target = dataPath(languageDirectory, fileName).toFile();
-            syncVersionedLanguage(target, bundledResource, loggedUpdates);
+            bundledResources.put(fileName, bundledResource);
+            targets.putIfAbsent(fileName, dataPath(languageDirectory, fileName).toFile());
         }
+        return targets;
     }
 
     private VersionedYamlFile syncVersionedLanguage(File target, String bundledResource, Set<String> loggedUpdates) throws IOException {

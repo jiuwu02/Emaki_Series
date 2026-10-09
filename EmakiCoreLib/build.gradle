@@ -1,5 +1,5 @@
 // EmakiCoreLib（原 EmakiCoreLib/pom.xml）。
-version = '4.8.20'
+version = '4.8.21'
 
 // libreforge 的类只在 classifier=all 的胖 Jar 中；libreforge.core 仅存在于私有仓库而
 // maven-public 返回 404，整组排除（胖 Jar 已自包含编译所需类），与根 pom 一致。
