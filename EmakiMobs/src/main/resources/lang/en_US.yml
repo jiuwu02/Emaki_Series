@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.7"
+version: "1.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -88,6 +88,7 @@ loader:
   target_selector_unknown_table: "Target selector %selector% references missing equipment weight table %table%; skipped"
   target_selector_invalid_expression: "Target selector %selector% contains invalid expression %expression%; skipped"
   model_missing_blueprint: "model section of mob %file% has no blueprint; the model config is ignored"
+  model_api_invalid: "model.api value %api% of mob %file% is invalid, expected one of auto, model_engine or better_model; fell back to the global config"
   model_invalid_duration: "duration_ticks of animation %animation% in mob %file% is invalid (%duration%); the keyframe timeline is ignored"
   model_keyframe_missing_tick: "Animation %animation% in mob %file% has a keyframe without tick; the frame is skipped"
   type:

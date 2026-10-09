@@ -29,10 +29,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    PacketEvents:
-      load: BEFORE
-      required: false
-      join-classpath: true
     MMOItems:
       load: BEFORE
       required: false

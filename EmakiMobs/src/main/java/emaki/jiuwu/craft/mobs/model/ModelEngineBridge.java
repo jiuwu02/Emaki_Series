@@ -84,7 +84,7 @@ public final class ModelEngineBridge implements MobModelBridge {
         if (modeled == null) {
             return;
         }
-        float range = tier == LodTier.FAR ? 0.0F : (float) viewDistance;
+        float range = (float) Math.max(0.0D, viewDistance);
         for (ActiveModel activeModel : modeled.getModels().values()) {
             activeModel.setViewRange(range);
         }

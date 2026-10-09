@@ -1,6 +1,6 @@
 # EmakiAttribute 主配置
 
-version: "4.8.4"
+version: "4.8.5"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
@@ -317,9 +317,8 @@ allowed_damage_causes:
     enabled: true
 
 # JS 脚本扩展：扫描 plugins/EmakiAttribute/scripts/ 下的脚本，经 attributes 绑定声明式注册属性定义。
-# enabled 关闭时不扫描不加载；timeout_ms 为单次脚本求值超时（毫秒，非正数回退 5000）；debug 输出脚本调试日志。
+# enabled 关闭时不扫描不加载；timeout_ms 为单次脚本求值超时（毫秒，非正数回退 5000）。
 # 首次启动时释放示例脚本到 scripts/attributes/；目录已存在时不覆盖任何文件。
 scripts:
   enabled: true
   timeout_ms: 5000
-  debug: false

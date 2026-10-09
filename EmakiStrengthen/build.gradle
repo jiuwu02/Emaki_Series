@@ -27,7 +27,6 @@ dependencies {
     testImplementation emakiDep(':EmakiItem', 'emaki.jiuwu.craft:emaki-item:2.8.13')
     testImplementation libs.graalvm.polyglot
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }
 
 tasks.named('shadowJar') {

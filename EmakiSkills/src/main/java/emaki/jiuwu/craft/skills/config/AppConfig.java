@@ -211,7 +211,7 @@ public final class AppConfig extends BaseAppConfig {
         }
     }
 
-    public record ScriptSettings(boolean enabled, long timeoutMs, boolean debug) {
+    public record ScriptSettings(boolean enabled, long timeoutMs) {
 
         private static final long DEFAULT_TIMEOUT_MS = 5000L;
 
@@ -222,7 +222,7 @@ public final class AppConfig extends BaseAppConfig {
         }
 
         public static ScriptSettings defaults() {
-            return new ScriptSettings(true, DEFAULT_TIMEOUT_MS, false);
+            return new ScriptSettings(true, DEFAULT_TIMEOUT_MS);
         }
     }
 

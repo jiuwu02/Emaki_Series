@@ -1,5 +1,5 @@
 // EmakiMobs（原 EmakiMobs/pom.xml）。
-version = '1.0.7'
+version = '1.0.8'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -27,5 +27,4 @@ dependencies {
     testImplementation libs.placeholderapi
     testImplementation libs.graalvm.polyglot
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }

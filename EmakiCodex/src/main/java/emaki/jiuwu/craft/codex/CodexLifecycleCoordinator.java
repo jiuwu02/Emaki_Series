@@ -229,8 +229,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 bool(configuration, "op_bypass", false),
                 new ScriptHostSettings(
                         scripts == null || bool(scripts, "enabled", true),
-                        scripts == null ? 5000L : scriptTimeoutMs(scripts),
-                        scripts != null && bool(scripts, "debug", false)));
+                        scripts == null ? 5000L : scriptTimeoutMs(scripts)));
     }
 
     private long scriptTimeoutMs(YamlSection scripts) {

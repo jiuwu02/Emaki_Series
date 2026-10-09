@@ -50,7 +50,7 @@ public final class SkillScriptBridge implements AutoCloseable {
         seedExampleScript();
         if (host == null) {
             host = new ScriptHost(plugin, scriptsDirectory(),
-                    new ScriptHostSettings(true, settings.timeoutMs(), settings.debug()),
+                    new ScriptHostSettings(true, settings.timeoutMs()),
                     Map.of(BINDING_NAME, binding));
         }
         report(host.load());

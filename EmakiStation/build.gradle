@@ -21,5 +21,4 @@ dependencies {
     testImplementation libs.boosted.yaml
     testImplementation emakiDep(':EmakiStorage', 'emaki.jiuwu.craft:emaki-storage:1.1.2')
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }

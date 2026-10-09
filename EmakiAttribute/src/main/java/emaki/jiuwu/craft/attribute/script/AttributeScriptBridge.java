@@ -100,7 +100,7 @@ public final class AttributeScriptBridge {
                 host = new ScriptHost(
                         plugin,
                         scriptsDirectory(),
-                        new ScriptHostSettings(settings.enabled(), settings.timeoutMs(), settings.debug()),
+                        new ScriptHostSettings(settings.enabled(), settings.timeoutMs()),
                         Map.of(BINDING_NAME, binding)
                 );
                 return host;

@@ -12,7 +12,6 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
-        boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
         List<SelectorDefinition> actionSelectors,
         LoopConfig loopConfig,
@@ -28,7 +27,7 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-                return new CoreLibConfig("zh_CN", true, Map.of(), List.of(), LoopConfig.defaults(),
+                return new CoreLibConfig("zh_CN", Map.of(), List.of(), LoopConfig.defaults(),
                 PipelineConfig.defaults(), GuiConfig.defaults(),
  GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
@@ -50,7 +49,6 @@ public record CoreLibConfig(
         }
         return new CoreLibConfig(
                 language,
-                configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
                 SelectorDefinition.parseAll(actionSection == null ? null : actionSection.getSection("selectors")),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
@@ -66,10 +64,10 @@ public record CoreLibConfig(
         );
     }
 
-    public record ScriptsConfig(boolean enabled, long timeoutMs, boolean debug) {
+    public record ScriptsConfig(boolean enabled, long timeoutMs) {
 
         public static ScriptsConfig defaults() {
-            return new ScriptsConfig(true, 5000L, false);
+            return new ScriptsConfig(true, 5000L);
         }
 
         public static ScriptsConfig fromConfig(YamlSection section) {
@@ -79,12 +77,10 @@ public record CoreLibConfig(
             }
             Boolean enabled = section.getBoolean("enabled", defaults.enabled());
             Integer timeout = section.getInt("timeout_ms", (int) defaults.timeoutMs());
-            Boolean debug = section.getBoolean("debug", defaults.debug());
             long resolvedTimeout = timeout == null || timeout <= 0 ? defaults.timeoutMs() : timeout.longValue();
             return new ScriptsConfig(
                     enabled == null ? defaults.enabled() : enabled,
-                    resolvedTimeout,
-                    debug == null ? defaults.debug() : debug
+                    resolvedTimeout
             );
         }
     }

@@ -29,7 +29,6 @@ dependencies {
     testImplementation libs.boosted.yaml
     testImplementation libs.graalvm.polyglot
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }
 
 tasks.named('shadowJar') {

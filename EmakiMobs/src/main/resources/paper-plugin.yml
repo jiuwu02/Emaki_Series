@@ -21,10 +21,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    PlaceholderAPI:
-      load: BEFORE
-      required: false
-      join-classpath: true
     ModelEngine:
       load: BEFORE
       required: false

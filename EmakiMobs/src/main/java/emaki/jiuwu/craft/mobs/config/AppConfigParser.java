@@ -24,7 +24,6 @@ public final class AppConfigParser {
                 section.getString("language", defaults.language()),
                 section.getString("version", AppConfig.CURRENT_VERSION),
                 section.getBoolean("release_default_data", defaults.releaseDefaultData()),
-                section.getInt("drain_timeout_seconds", defaults.drainTimeoutSeconds()),
                 parseModel(section.getSection("model"), defaults.model()));
     }
 

@@ -23,7 +23,6 @@ graalvm = "25.4.4.1.1"
 # --- 可选运行时集成（全部 provided）---
 vault = "1.7.1"
 excellent-economy = "2.8.0"
-nightcore = "2.16.4"
 placeholderapi = "2.12.3"
 mmoitems = "6.10.1-SNAPSHOT"
 mythic = "5.13.0"
@@ -34,6 +33,8 @@ nexo = "1.28.0"
 oraxen = "1.219.1"
 neigeitems = "1.21.171"
 ecoitems = "2026.38"
+# eco / libreforge 无直接 import，但 EcoItems 的 API 签名引用其类型（ConfigCategory、
+# FastItemStack、Holder、Registrable），编译期必需，属签名级传递依赖。
 eco = "2026.39"
 libreforge = "2026.38"
 betterhud = "2.0.0"
@@ -43,7 +44,6 @@ bettermodel = "3.5.0"
 # --- 测试 ---
 junit = "6.1.3"
 mockbukkit = "4.93.0"
-mockito = "5.20.0"
 
 [libraries]
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
@@ -70,7 +70,6 @@ graalvm-icu4j = { module = "org.graalvm.shadowed:icu4j", version.ref = "graalvm"
 
 vault-api = { module = "com.github.MilkBowl:VaultAPI", version.ref = "vault" }
 excellent-economy = { module = "su.nightexpress.excellenteconomy:ExcellentEconomy", version.ref = "excellent-economy" }
-nightcore = { module = "su.nightexpress.nightcore:main", version.ref = "nightcore" }
 placeholderapi = { module = "me.clip:placeholderapi", version.ref = "placeholderapi" }
 mmoitems-api = { module = "net.Indyuce:MMOItems-API", version.ref = "mmoitems" }
 mythic-dist = { module = "io.lumine:Mythic-Dist", version.ref = "mythic" }
@@ -91,4 +90,3 @@ bettermodel-bukkit-api = { module = "io.github.toxicity188:bettermodel-bukkit-ap
 junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
 junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
 mockbukkit = { module = "org.mockbukkit.mockbukkit:mockbukkit-v1.21", version.ref = "mockbukkit" }
-mockito-core = { module = "org.mockito:mockito-core", version.ref = "mockito" }

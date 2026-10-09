@@ -267,6 +267,43 @@ public final class YamlFiles {
         return mergeMissingValues(runtime, defaults, "");
     }
 
+    public static int countMissingKeys(YamlSection runtime, YamlSection defaults) {
+        if (runtime == null || defaults == null) {
+            return 0;
+        }
+        return countMissingKeys(runtime, defaults, "");
+    }
+
+    public static int mergeMissingKeys(JavaPlugin plugin, File target, String resourcePath) throws IOException {
+        VersionedYamlFile versionedFile = loadCurrentResource(plugin, target, resourcePath);
+        if (versionedFile == null || versionedFile.root() == null || versionedFile.defaults() == null) {
+            return 0;
+        }
+        int missing = countMissingKeys(versionedFile.root(), versionedFile.defaults());
+        if (missing == 0) {
+            return 0;
+        }
+        versionedFile.document().update(BOOSTED_UPDATER_SETTINGS);
+        versionedFile.save();
+        return missing;
+    }
+
+    private static int countMissingKeys(YamlSection runtime, YamlSection defaults, String parentPath) {
+        int missing = 0;
+        for (String key : defaults.getKeys(false)) {
+            String fullPath = parentPath == null || parentPath.isBlank() ? key : parentPath + "." + key;
+            YamlSection nested = defaults.getSection(key);
+            if (nested != null) {
+                missing += countMissingKeys(runtime, nested, fullPath);
+                continue;
+            }
+            if (!runtime.contains(fullPath)) {
+                missing++;
+            }
+        }
+        return missing;
+    }
+
     private static VersionedYamlFile openVersioned(JavaPlugin plugin, File target, String resourcePath) throws IOException {
         if (plugin == null || target == null || Texts.isBlank(resourcePath)) {
             return null;

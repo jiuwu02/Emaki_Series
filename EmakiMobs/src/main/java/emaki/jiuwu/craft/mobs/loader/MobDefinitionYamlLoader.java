@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.mobs.loader;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.animation.AnimationKeyframe;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.mobs.config.ModelSettings;
 import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -186,6 +187,10 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
             return null;
         }
         String api = normalizeOptionalId(section.getString("api"));
+        if (api != null && !ModelSettings.validApiValue(api)) {
+            issue("loader.model_api_invalid", Map.of("file", file.getName(), "api", api));
+            api = null;
+        }
         double scale = section.getDouble("scale", 1.0);
         Map<String, String> animations = new HashMap<>();
         YamlSection animationsSection = section.getSection("animations");

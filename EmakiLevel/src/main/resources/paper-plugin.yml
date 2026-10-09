@@ -17,14 +17,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    EmakiCooking:
-      load: BEFORE
-      required: false
-      join-classpath: true
-    EmakiForge:
-      load: BEFORE
-      required: false
-      join-classpath: true
     PlaceholderAPI:
       load: BEFORE
       required: false

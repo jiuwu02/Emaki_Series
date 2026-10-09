@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckFixResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -86,6 +87,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
+        } else if (args.length == 3 && "check".equalsIgnoreCase(args[0])
+                && "--fix".equalsIgnoreCase(args[1])) {
+            complete(args[2], plugin.configPrecheckService().registry().moduleIds(), result);
         } else if (args.length == 2 && isActionCommand(args[0])) {
             complete(args[1], ACTION_MODES, result);
             complete(args[1], stageIds(), result);
@@ -131,13 +135,28 @@ public final class CoreLibCommandRouter implements TabExecutor {
             return true;
         }
         if (args.length >= 2 && "--fix".equalsIgnoreCase(args[1])) {
-            sendLang(sender, "command.check_fix_unavailable");
-            return true;
+            return handleCheckFix(sender, args.length >= 3 ? args[2] : null);
         }
         ConfigPrecheckReport report = args.length >= 2 && !"report".equalsIgnoreCase(args[1])
                 ? plugin.configPrecheckService().checkModule(plugin.configModel(), args[1])
                 : (args.length >= 2 ? plugin.configPrecheckService().lastReport() : plugin.configPrecheckService().checkAll(plugin.configModel()));
         sendReport(sender, report);
+        return true;
+    }
+
+    private boolean handleCheckFix(CommandSender sender, String module) {
+        ConfigPrecheckFixResult result = plugin.configPrecheckService().fix(plugin.configModel(), module);
+        if (result.fixed() == 0 && result.failed() == 0) {
+            sendLang(sender, "command.check_fix_none");
+        } else {
+            sendLang(sender, "command.check_fix_summary", Map.of(
+                    "fixed", String.valueOf(result.fixed()),
+                    "failed", String.valueOf(result.failed())));
+            if (result.fixed() > 0) {
+                sendLang(sender, "command.check_fix_reload_hint");
+            }
+        }
+        sendReport(sender, result.report());
         return true;
     }
 

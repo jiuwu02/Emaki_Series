@@ -18,5 +18,4 @@ dependencies {
     testImplementation libs.junit.jupiter
     testImplementation libs.boosted.yaml
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }

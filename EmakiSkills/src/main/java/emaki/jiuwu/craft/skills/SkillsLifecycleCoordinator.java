@@ -481,8 +481,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 : new AppConfig.ScriptSettings(
                         boolValue(scriptsSection.getBoolean("enabled"), defaults.scripts().enabled()),
                         scriptsSection.getInt("timeout_ms",
-                                (int) defaults.scripts().timeoutMs()),
-                        boolValue(scriptsSection.getBoolean("debug"), defaults.scripts().debug())
+                                (int) defaults.scripts().timeoutMs())
                 );
 
         return new AppConfig(

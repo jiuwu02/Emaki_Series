@@ -95,7 +95,7 @@ public final class ItemScriptBridge implements AutoCloseable {
     private ScriptHost createHost(ScriptSettings settings) {
         Path scriptsDirectory = plugin.getDataFolder().toPath().resolve(SCRIPTS_DIRECTORY);
         return new ScriptHost(plugin, scriptsDirectory,
-                new ScriptHostSettings(true, settings.timeoutMs(), settings.debug()),
+                new ScriptHostSettings(true, settings.timeoutMs()),
                 Map.of(BINDING_NAME, binding));
     }
 

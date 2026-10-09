@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.mobs.config;
 
+import org.jetbrains.annotations.Nullable;
+
+import java.util.Locale;
 import java.util.Map;
 
 public record ModelSettings(
@@ -26,7 +29,17 @@ public record ModelSettings(
     }
 
     public boolean validApi() {
-        return API_AUTO.equals(api) || API_MODEL_ENGINE.equals(api) || API_BETTER_MODEL.equals(api);
+        return validApiValue(api);
+    }
+
+    public static boolean validApiValue(@Nullable String value) {
+        if (value == null) {
+            return false;
+        }
+        return switch (value.trim().toLowerCase(Locale.ROOT)) {
+            case API_AUTO, API_MODEL_ENGINE, "modelengine", API_BETTER_MODEL, "bettermodel" -> true;
+            default -> false;
+        };
     }
 
     public int fadeTicks(String animation) {

@@ -521,8 +521,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         Integer timeoutMs = section.getInt("timeout_ms", 5000);
         return new ScriptSettings(
                 section.getBoolean("enabled", true),
-                timeoutMs == null ? 5000L : timeoutMs.longValue(),
-                section.getBoolean("debug", false)
+                timeoutMs == null ? 5000L : timeoutMs.longValue()
         );
     }
 

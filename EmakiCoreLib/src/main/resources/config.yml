@@ -1,13 +1,10 @@
 # EmakiCoreLib 主配置
 # 为其他 Emaki 模块提供 GUI、展示实体、事件、动作、对话框与语言表能力。
 
-version: "4.8.21"
+version: "4.8.22"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
-
-# 当前默认资源释放流程不使用此兼容项。
-release_default_data: true
 
 # global_all 启用 CoreLib DebugLogger 的模块默认输出。
 debug:
@@ -107,5 +104,3 @@ scripts:
   enabled: true
   # 单次脚本求值/回调的超时时间，单位：毫秒；非正数回退默认 5000。
   timeout_ms: 5000
-  # 预留的脚本调试开关。
-  debug: false

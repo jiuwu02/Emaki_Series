@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.21"
+version: "4.8.22"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -36,6 +36,9 @@ console:
       required_directory_missing: "Required directory does not exist."
       path_not_directory: "Path is not a directory."
       directory_not_readable: "Directory is not readable."
+      config_keys_missing: "Missing %count% bundled default key(s)."
+      fixable_hint: "run check --fix to repair automatically"
+      fix_failed: "Auto-fix failed: %path% (%kind%): %error%"
       unknown_module: "Unknown config precheck module. Available modules: %modules%"
       contributor_failed: "Config precheck contributor failed: %error%"
       loop_max_times_invalid: "max_times must be greater than 0."
@@ -668,7 +671,9 @@ command:
   reload_success: "<green>EmakiCoreLib has been reloaded</green>"
   reload_failed_precheck: "<red>EmakiCoreLib precheck failed. Reload was cancelled and the previous config is still active</red>"
   check_no_report: "<yellow>No precheck report is available. Run /corelib check first</yellow>"
-  check_fix_unavailable: "<yellow>This version only supports read-only prechecks; automatic fixes are not enabled yet</yellow>"
+  check_fix_none: "<gray>No automatically fixable issues were found.</gray>"
+  check_fix_summary: "<green>Fixed <yellow>%fixed%</yellow> issue(s), <yellow>%failed%</yellow> failed; re-check results:</green>"
+  check_fix_reload_hint: "<gray>Hint: reload the affected module or restart the server for fixed files to take effect.</gray>"
   loop_empty: "<gray>There are no active long-running tasks</gray>"
   loop_header: "<aqua>Active long-running tasks: </aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>Cancelled long-running task: <aqua>%key%</aqua></green>"

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.7"
+version: "1.0.8"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -88,6 +88,7 @@ loader:
   target_selector_unknown_table: "目标选择器 %selector% 引用了不存在的装备权重表 %table%，已跳过"
   target_selector_invalid_expression: "目标选择器 %selector% 包含无效表达式 %expression%，已跳过"
   model_missing_blueprint: "生物 %file% 的 model 节缺少 blueprint，已忽略该模型配置"
+  model_api_invalid: "生物 %file% 的 model.api 取值 %api% 无效，应为 auto、model_engine 或 better_model 之一，已回退为全局配置"
   model_invalid_duration: "生物 %file% 的动画 %animation% 的 duration_ticks 无效（%duration%），已忽略该关键帧时间轴"
   model_keyframe_missing_tick: "生物 %file% 的动画 %animation% 存在缺少 tick 的关键帧，已跳过该帧"
   type:

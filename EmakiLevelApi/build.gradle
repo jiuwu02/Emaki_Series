@@ -1,5 +1,5 @@
 // EmakiLevelApi（原 EmakiLevelApi/pom.xml）。
-version = '1.6.4'
+version = '1.6.5'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

@@ -1,5 +1,5 @@
 // EmakiAttribute（原 EmakiAttribute/pom.xml）。
-version = '4.8.4'
+version = '4.8.5'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -29,5 +29,4 @@ dependencies {
     testImplementation libs.graalvm.icu4j
     testImplementation libs.boosted.yaml
     testImplementation libs.mockbukkit
-    testImplementation libs.mockito.core
 }

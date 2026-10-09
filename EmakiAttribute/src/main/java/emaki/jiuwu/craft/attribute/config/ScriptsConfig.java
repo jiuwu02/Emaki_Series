@@ -4,9 +4,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record ScriptsConfig(boolean enabled,
-        long timeoutMs,
-        boolean debug) {
-
+        long timeoutMs) {
     private static final long DEFAULT_TIMEOUT_MS = 5000L;
 
     public ScriptsConfig {
@@ -16,7 +14,7 @@ public record ScriptsConfig(boolean enabled,
     }
 
     public static ScriptsConfig defaults() {
-        return new ScriptsConfig(true, DEFAULT_TIMEOUT_MS, false);
+        return new ScriptsConfig(true, DEFAULT_TIMEOUT_MS);
     }
 
     public static ScriptsConfig fromConfig(YamlSection configuration) {
@@ -25,8 +23,7 @@ public record ScriptsConfig(boolean enabled,
         }
         return new ScriptsConfig(
                 Boolean.TRUE.equals(configuration.getBoolean("enabled", true)),
-                Numbers.tryParseLong(configuration.get("timeout_ms"), DEFAULT_TIMEOUT_MS),
-                Boolean.TRUE.equals(configuration.getBoolean("debug", false))
+                Numbers.tryParseLong(configuration.get("timeout_ms"), DEFAULT_TIMEOUT_MS)
         );
     }
 }

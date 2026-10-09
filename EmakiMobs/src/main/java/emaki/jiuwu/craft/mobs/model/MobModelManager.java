@@ -44,13 +44,16 @@ public final class MobModelManager implements Listener {
     private final Supplier<Map<String, MobSpec>> registry;
     private final Supplier<AppConfig> configSupplier;
     private final MessageService messageService;
-    private final MobModelBridge bridge;
+    private final ModelBridgeFactory bridgeFactory;
+    private final Map<String, MobModelBridge> bridges = new ConcurrentHashMap<>();
+    private final MobModelBridge defaultBridge;
     private final Map<UUID, String> attached = new ConcurrentHashMap<>();
+    private final Map<UUID, MobModelBridge> attachedBridge = new ConcurrentHashMap<>();
     private final Map<UUID, String> currentMovement = new ConcurrentHashMap<>();
     private final Map<UUID, MobModelBridge.LodTier> currentLod = new ConcurrentHashMap<>();
     private final Map<String, String> engineByDefinition = new ConcurrentHashMap<>();
     private final List<AnimationRegistration> registrations = new ArrayList<>();
-    private final @Nullable TaskToken tickTask;
+    private @Nullable TaskToken tickTask;
     private final AnimationRegistration listenerRegistration;
 
     public MobModelManager(Plugin plugin,
@@ -63,9 +66,10 @@ public final class MobModelManager implements Listener {
         this.registry = registry;
         this.configSupplier = configSupplier;
         this.messageService = messageService;
-        this.bridge = new ModelBridgeFactory(plugin).create(modelSettings().api());
+        this.bridgeFactory = new ModelBridgeFactory(plugin);
+        this.defaultBridge = bridgeFor(null);
         this.listenerRegistration = EmakiCoreLibApi.addAnimationListener(plugin, new EnginePlaybackListener());
-        if (bridge.available()) {
+        if (defaultBridge.available()) {
             this.tickTask = scheduleTick();
         } else {
             this.tickTask = null;
@@ -73,7 +77,7 @@ public final class MobModelManager implements Listener {
     }
 
     public boolean modelsEnabled() {
-        return bridge.available();
+        return bridges.values().stream().anyMatch(MobModelBridge::available);
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -84,16 +88,17 @@ public final class MobModelManager implements Listener {
     }
 
     public @Nullable String backendId() {
-        return bridge.available() ? bridge.id() : null;
+        return defaultBridge.available() ? defaultBridge.id() : null;
     }
 
     public void attachMob(LivingEntity entity, String mobId) {
-        if (!bridge.available()) {
-            return;
-        }
         MobSpec spec = registry.get().get(mobId);
         MobModelConfig model = spec == null ? null : spec.modelConfig();
         if (model == null) {
+            return;
+        }
+        MobModelBridge bridge = bridgeFor(model.api());
+        if (!bridge.available()) {
             return;
         }
         if (!bridge.hasBlueprint(model.blueprint())) {
@@ -103,6 +108,8 @@ public final class MobModelManager implements Listener {
         }
         if (bridge.attach(entity, model.blueprint(), model.scale())) {
             attached.put(entity.getUniqueId(), mobId);
+            attachedBridge.put(entity.getUniqueId(), bridge);
+            ensureTicking();
             playStandard(entity, mobId, StandardAnimation.IDLE);
         }
     }
@@ -137,19 +144,29 @@ public final class MobModelManager implements Listener {
     }
 
     public void setModel(LivingEntity entity, String mobId, String blueprintId) {
-        if (!bridge.available()) {
+        MobSpec spec = registry.get().get(mobId);
+        MobModelConfig model = spec == null ? null : spec.modelConfig();
+        MobModelBridge target = bridgeFor(model == null ? null : model.api());
+        if (!target.available()) {
             return;
         }
-        if (!bridge.hasBlueprint(blueprintId)) {
+        if (!target.hasBlueprint(blueprintId)) {
             messageService.warning("console.model_blueprint_missing",
                     Map.of("mob_id", mobId, "blueprint", blueprintId));
             return;
         }
-        MobSpec spec = registry.get().get(mobId);
-        double scale = spec == null || spec.modelConfig() == null ? 1.0 : spec.modelConfig().scale();
-        bridge.detach(entity);
-        if (bridge.attach(entity, blueprintId, scale)) {
+        double scale = model == null ? 1.0 : model.scale();
+        MobModelBridge previous = attachedBridge.remove(entity.getUniqueId());
+        if (previous != null) {
+            previous.detach(entity);
+        } else {
+            target.detach(entity);
+        }
+        if (target.attach(entity, blueprintId, scale)) {
             attached.put(entity.getUniqueId(), mobId);
+            attachedBridge.put(entity.getUniqueId(), target);
+            currentLod.remove(entity.getUniqueId());
+            ensureTicking();
             playStandard(entity, mobId, StandardAnimation.IDLE);
         }
     }
@@ -167,19 +184,23 @@ public final class MobModelManager implements Listener {
         if (attached.remove(entity.getUniqueId()) != null) {
             currentMovement.remove(entity.getUniqueId());
             currentLod.remove(entity.getUniqueId());
-            bridge.detach(entity);
+            MobModelBridge bridge = attachedBridge.remove(entity.getUniqueId());
+            if (bridge != null) {
+                bridge.detach(entity);
+            }
         }
     }
 
     public void registerAnimationDefinitions() {
         revokeRegistrations();
         engineByDefinition.clear();
-        if (!bridge.available()) {
-            return;
-        }
         for (MobSpec spec : registry.get().values()) {
             MobModelConfig model = spec.modelConfig();
             if (model == null) {
+                continue;
+            }
+            MobModelBridge bridge = bridgeFor(model.api());
+            if (!bridge.available()) {
                 continue;
             }
             for (StandardAnimation animation : StandardAnimation.values()) {
@@ -221,9 +242,10 @@ public final class MobModelManager implements Listener {
         registerAnimationDefinitions();
     }
 
-    public void close() {
+    public synchronized void close() {
         if (tickTask != null) {
             tickTask.cancel();
+            tickTask = null;
         }
         for (UUID entityId : List.copyOf(attached.keySet())) {
             Entity entity = plugin.getServer().getEntity(entityId);
@@ -232,13 +254,17 @@ public final class MobModelManager implements Listener {
             }
         }
         attached.clear();
+        attachedBridge.clear();
         currentMovement.clear();
         currentLod.clear();
         revokeRegistrations();
         if (listenerRegistration != null) {
             listenerRegistration.close();
         }
-        bridge.close();
+        for (MobModelBridge bridge : bridges.values()) {
+            bridge.close();
+        }
+        bridges.clear();
     }
 
     private void revokeRegistrations() {
@@ -246,6 +272,19 @@ public final class MobModelManager implements Listener {
             registration.close();
         }
         registrations.clear();
+    }
+
+    private MobModelBridge bridgeFor(@Nullable String apiPreference) {
+        String key = apiPreference == null || apiPreference.isBlank()
+                ? modelSettings().api().trim().toLowerCase(Locale.ROOT)
+                : apiPreference;
+        return bridges.computeIfAbsent(key, value -> bridgeFactory.create(value));
+    }
+
+    private synchronized void ensureTicking() {
+        if (tickTask == null) {
+            tickTask = scheduleTick();
+        }
     }
 
     private @Nullable TaskToken scheduleTick() {
@@ -269,7 +308,7 @@ public final class MobModelManager implements Listener {
 
     private void tickEntity(LivingEntity entity, String mobId, ModelSettings settings) {
         applyMovement(entity, mobId, settings);
-        applyLod(entity, settings);
+        applyLod(entity, mobId, settings);
     }
 
     private void applyMovement(LivingEntity entity, String mobId, ModelSettings settings) {
@@ -290,17 +329,32 @@ public final class MobModelManager implements Listener {
         }
     }
 
-    private void applyLod(LivingEntity entity, ModelSettings settings) {
-        MobModelBridge.LodTier tier = tierFor(entity, settings);
+    private void applyLod(LivingEntity entity, String mobId, ModelSettings settings) {
+        MobModelBridge bridge = attachedBridge.get(entity.getUniqueId());
+        if (bridge == null) {
+            return;
+        }
+        MobSpec spec = registry.get().get(mobId);
+        MobModelConfig model = spec == null ? null : spec.modelConfig();
+        MobModelConfig.LodBounds bounds = model == null ? null : model.lod();
+        double near = bounds == null ? settings.lodNear() : bounds.near();
+        double mid = bounds == null ? settings.lodMid() : bounds.mid();
+        double far = bounds == null ? settings.lodFar() : bounds.far();
+        MobModelBridge.LodTier tier = tierFor(entity, near, mid, far);
         MobModelBridge.LodTier previous = currentLod.get(entity.getUniqueId());
         if (previous != tier) {
             currentLod.put(entity.getUniqueId(), tier);
-            bridge.applyLod(entity, tier, settings.viewDistance());
+            double range = switch (tier) {
+                case NEAR -> settings.viewDistance();
+                case MID -> Math.min(settings.viewDistance(), mid);
+                case FAR -> 0.0;
+            };
+            bridge.applyLod(entity, tier, range);
         }
     }
 
-    private MobModelBridge.LodTier tierFor(LivingEntity entity, ModelSettings settings) {
-        double farSquared = settings.lodFar() * settings.lodFar();
+    private MobModelBridge.LodTier tierFor(LivingEntity entity, double near, double mid, double far) {
+        double farSquared = far * far;
         Location entityLocation = entity.getLocation();
         double nearestSquared = Double.MAX_VALUE;
         for (Player player : entity.getWorld().getPlayers()) {
@@ -312,10 +366,10 @@ public final class MobModelManager implements Listener {
         if (nearestSquared > farSquared) {
             return MobModelBridge.LodTier.FAR;
         }
-        if (nearestSquared <= settings.lodNear() * settings.lodNear()) {
+        if (nearestSquared <= near * near) {
             return MobModelBridge.LodTier.NEAR;
         }
-        if (nearestSquared <= settings.lodMid() * settings.lodMid()) {
+        if (nearestSquared <= mid * mid) {
             return MobModelBridge.LodTier.MID;
         }
         return MobModelBridge.LodTier.FAR;
@@ -343,6 +397,7 @@ public final class MobModelManager implements Listener {
 
         @Override
         public void onPlay(Entity entity, AnimationDefinition definition, UUID playbackId) {
+            MobModelBridge bridge = attachedBridge.getOrDefault(entity.getUniqueId(), defaultBridge);
             if (!bridge.available()) {
                 return;
             }
@@ -364,6 +419,7 @@ public final class MobModelManager implements Listener {
             if (state == AnimationPlaybackHandle.State.CANCELLED) {
                 String engine = engineByDefinition.get(definitionId);
                 if (engine != null && !engine.isBlank()) {
+                    MobModelBridge bridge = attachedBridge.getOrDefault(entity.getUniqueId(), defaultBridge);
                     bridge.stopAnimation(entity, engine);
                 }
                 return;

@@ -142,7 +142,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
     }
 
     private ScriptHostSettings settingsFor(CoreLibConfig.ScriptsConfig config) {
-        return new ScriptHostSettings(config.enabled(), config.timeoutMs(), config.debug());
+        return new ScriptHostSettings(config.enabled(), config.timeoutMs());
     }
 
     private ScriptCallbackRunner currentRunner() {

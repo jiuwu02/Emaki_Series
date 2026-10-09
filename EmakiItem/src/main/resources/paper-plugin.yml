@@ -32,6 +32,8 @@ permissions:
     default: op
   emakiitem.browse:
     default: op
+  emakiitem.edit:
+    default: op
   emakiitem.inspect:
     default: op
   emakiitem.update:

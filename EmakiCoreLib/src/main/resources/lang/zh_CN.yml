@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.21"
+version: "4.8.22"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -36,6 +36,9 @@ console:
       required_directory_missing: "必需目录不存在。"
       path_not_directory: "路径不是目录。"
       directory_not_readable: "目录不可读。"
+      config_keys_missing: "缺少 %count% 个内置默认键。"
+      fixable_hint: "可运行 check --fix 自动修复"
+      fix_failed: "自动修复失败：%path%（%kind%）：%error%"
       unknown_module: "未知的配置预检模块。可用模块：%modules%"
       contributor_failed: "配置预检贡献器执行失败：%error%"
       loop_max_times_invalid: "max_times 必须大于 0。"
@@ -637,7 +640,9 @@ command:
   reload_success: "<green>EmakiCoreLib 已重载</green>"
   reload_failed_precheck: "<red>EmakiCoreLib 预检失败，本次重载已取消，旧配置仍保持生效</red>"
   check_no_report: "<yellow>暂无预检报告，请先执行 /corelib check</yellow>"
-  check_fix_unavailable: "<yellow>当前版本仅支持只读预检，暂未启用自动修复</yellow>"
+  check_fix_none: "<gray>没有发现可自动修复的问题。</gray>"
+  check_fix_summary: "<green>已修复 <yellow>%fixed%</yellow> 项，<yellow>%failed%</yellow> 项修复失败，复检结果如下：</green>"
+  check_fix_reload_hint: "<gray>提示：已修复的文件需执行对应模块的 reload 或重启服务器后生效。</gray>"
   loop_empty: "<gray>当前没有活动长期任务</gray>"
   loop_header: "<aqua>活动长期任务：</aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>已取消长期任务: <aqua>%key%</aqua></green>"

@@ -21,10 +21,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    MythicMobs:
-      load: BEFORE
-      required: false
-      join-classpath: true
 permissions:
   emakicodex.use:
     default: true
