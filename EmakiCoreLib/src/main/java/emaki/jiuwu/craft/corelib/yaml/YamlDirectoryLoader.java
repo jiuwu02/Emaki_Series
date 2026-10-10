@@ -152,10 +152,10 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     protected void onPreparationFailure(File directory, RuntimeException exception) {
-        String message = "准备 " + typeName() + " 配置文件失败，目录 "
+        String message = "[loader] 准备 " + typeName() + " 配置文件失败，目录 "
                 + directory.getPath() + ": " + Texts.toStringSafe(exception.getMessage());
         issues.add(message);
-        plugin.getLogger().warning("[loader] " + message);
+        plugin.getLogger().warning(message);
     }
 
     protected abstract String directoryName();

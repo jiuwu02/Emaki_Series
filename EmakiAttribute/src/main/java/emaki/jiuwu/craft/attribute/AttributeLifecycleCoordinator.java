@@ -393,7 +393,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopped");
         } else {
-            plugin.getLogger().info("[shutdown] 已关闭。");
+            plugin.getLogger().info("[shutdown] 已关闭");
         }
     }
 

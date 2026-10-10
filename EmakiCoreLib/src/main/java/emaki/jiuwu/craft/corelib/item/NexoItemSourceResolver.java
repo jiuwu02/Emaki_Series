@@ -53,7 +53,7 @@ final class NexoItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "Nexo 物品尚未加载完成。";
+        return "Nexo 物品尚未加载完成";
     }
 
     @Override

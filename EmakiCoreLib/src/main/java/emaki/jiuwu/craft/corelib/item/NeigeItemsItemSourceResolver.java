@@ -51,7 +51,7 @@ final class NeigeItemsItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "NeigeItems 物品尚未加载完成。";
+        return "NeigeItems 物品尚未加载完成";
     }
 
     @Override

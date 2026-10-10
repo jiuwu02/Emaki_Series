@@ -46,12 +46,12 @@ public final class AccessoryAdminService {
         String operatorName = operator == null ? "控制台" : operator.getName();
         if (cleared.isEmpty()) {
             logger.info("[command] 饰品清空: 操作者 " + operatorName + "，目标 " + targetId
-                    + "（" + accessories.playerName() + "）: 没有可移除的物品");
+                    + " (" + accessories.playerName() + "): 没有可移除的物品");
             return;
         }
         cleared.forEach((pageId, items) -> items.forEach((slotInstanceId, item) ->
                 logger.info("[command] 饰品清空: 操作者 " + operatorName
-                        + "，目标 " + targetId + "（" + accessories.playerName() + "）: page=" + pageId
+                        + "，目标 " + targetId + " (" + accessories.playerName() + "): page=" + pageId
                         + " slot=" + slotInstanceId
                         + " type=" + item.getType().name()
                         + " amount=" + item.getAmount()

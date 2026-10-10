@@ -141,7 +141,7 @@ public final class AttributeSlotRegistry implements Listener, AutoCloseable {
     private void warnSlotFailure(String id, RuntimeException exception) {
         if (logger != null) {
             logger.log(Level.WARNING, "[registry] 属性槽位提供器 '" + id
-                    + "' 执行失败；跳过该槽位。", exception);
+                    + "' 执行失败；跳过该槽位", exception);
         }
     }
 

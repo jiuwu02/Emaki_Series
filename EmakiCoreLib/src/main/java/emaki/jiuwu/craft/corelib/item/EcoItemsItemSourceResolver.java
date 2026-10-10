@@ -46,7 +46,7 @@ final class EcoItemsItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "EcoItems 物品尚未加载完成。";
+        return "EcoItems 物品尚未加载完成";
     }
 
     static final class DirectAccessor implements AbstractManagedItemSourceProvider.Accessor {

@@ -43,7 +43,7 @@ public final class MythicItemDropBridge implements Listener {
         String argument = event.getArgument();
         String id = value(config, argument, "id", "");
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("[integration] MythicMobs 掉落物 '" + dropName + "' 缺少必需的 'id' 参数。");
+            plugin.getLogger().warning("[integration] MythicMobs 掉落物 '" + dropName + "' 缺少必需的 'id' 参数");
             return;
         }
         String amountText = value(config, argument, "amount", "1");
@@ -130,7 +130,7 @@ public final class MythicItemDropBridge implements Listener {
                     : plugin.itemFactory().create(id, finalAmount);
             if (itemStack == null) {
                 plugin.getLogger().warning("[integration] MythicMobs 掉落物 '" + dropName
-                        + "' 无法解析 EmakiItem ID '" + id + "'。");
+                        + "' 无法解析 EmakiItem ID '" + id + "'");
                 return null;
             }
             itemStack.setAmount(Math.max(1, Math.min(finalAmount, itemStack.getMaxStackSize())));

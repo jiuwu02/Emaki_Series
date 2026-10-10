@@ -54,12 +54,12 @@ public final class ConfiguredItemService {
     public ItemBuildResult create(ConfiguredItemDefinition definition, Map<String, ?> replacements) {
         List<ItemBuildIssue> issues = new ArrayList<>();
         if (definition == null) {
-            return finish(null, List.of(ItemBuildIssue.error(null, "配置物品定义为 null。")));
+            return finish(null, List.of(ItemBuildIssue.error(null, "配置物品定义为 null")));
         }
         ConfiguredItemDefinition resolved = resolve(definition, replacements);
         ItemSourceRef source = ItemSourceUtil.parse(resolved.source());
         if (source == null) {
-            return finish(null, List.of(ItemBuildIssue.error(null, "配置物品来源缺失或无效。")));
+            return finish(null, List.of(ItemBuildIssue.error(null, "配置物品来源缺失或无效")));
         }
 
         ItemStack itemStack = source.vanilla()
@@ -78,10 +78,10 @@ public final class ConfiguredItemService {
             Map<String, ?> replacements) {
         List<ItemBuildIssue> issues = new ArrayList<>();
         if (baseItem == null) {
-            return finish(null, List.of(ItemBuildIssue.error(null, "基础物品堆为 null。")));
+            return finish(null, List.of(ItemBuildIssue.error(null, "基础物品堆为 null")));
         }
         if (definition == null) {
-            return finish(baseItem, List.of(ItemBuildIssue.error(null, "配置物品定义为 null。")));
+            return finish(baseItem, List.of(ItemBuildIssue.error(null, "配置物品定义为 null")));
         }
         ConfiguredItemDefinition resolved = resolve(definition, replacements);
         ItemStack itemStack = baseItem.clone();
@@ -152,7 +152,7 @@ public final class ConfiguredItemService {
                 continue;
             }
             if (catalog.entry(componentId) == null) {
-                issues.add(ItemBuildIssue.error(componentId, "未知的物品组件 id。"));
+                issues.add(ItemBuildIssue.error(componentId, "未知的物品组件 id"));
             } else {
 
                 accepted.put(componentId, entry.getValue());
@@ -171,10 +171,10 @@ public final class ConfiguredItemService {
                 continue;
             }
             if (catalog.entry(componentId) == null) {
-                issues.add(ItemBuildIssue.error(componentId, "未知的物品组件 id。"));
+                issues.add(ItemBuildIssue.error(componentId, "未知的物品组件 id"));
             } else {
                 issues.add(ItemBuildIssue.warning(componentId,
-                        "当前 Paper 运行时未通过通用桥接暴露该组件；为保留来源数据已跳过补丁。"));
+                        "当前 Paper 运行时未通过通用桥接暴露该组件；为保留来源数据已跳过补丁"));
             }
         }
     }
@@ -222,7 +222,7 @@ public final class ConfiguredItemService {
         if (loggedIssues.get(issueKey) == null) {
             loggedIssues.put(issueKey, Boolean.TRUE);
             plugin.getLogger().warning("[assembly] 物品组件 " + componentId + " 需要 Minecraft " + requirement
-                    + "，但当前服务器为 " + server + "；该组件不会生效。");
+                    + "，但当前服务器为 " + server + "；该组件不会生效");
         }
     }
 
@@ -309,7 +309,7 @@ public final class ConfiguredItemService {
         int clamped = Math.max(1, Math.min(requestedAmount, maximum));
         if (clamped != requestedAmount) {
             issues.add(ItemBuildIssue.warning("minecraft:max_stack_size",
-                    "请求数量 " + requestedAmount + " 已被裁剪为 " + clamped + "。"));
+                    "请求数量 " + requestedAmount + " 已被裁剪为 " + clamped));
         }
         itemStack.setAmount(clamped);
     }

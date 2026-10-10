@@ -79,7 +79,7 @@ public final class DisplayServiceFactory {
         if (!Bukkit.getPluginManager().isPluginEnabled(PACKET_EVENTS_PLUGIN)) {
             if (BACKEND_PACKET.equals(backend)) {
                 owner.getLogger().warning("[display] packet 后端需要安装 PacketEvents，"
-                        + "回退为实体显示。");
+                        + "回退为实体显示");
             }
             return false;
         }

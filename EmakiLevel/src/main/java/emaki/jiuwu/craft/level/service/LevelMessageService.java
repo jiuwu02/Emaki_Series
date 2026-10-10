@@ -10,6 +10,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
@@ -24,6 +25,7 @@ public final class LevelMessageService implements LogMessages, LegacyMessageSink
 
     public LevelMessageService(JavaPlugin plugin) {
         this.plugin = plugin;
+        EmakiLog.registerPrefix(plugin.getName(), this::logPrefix);
     }
 
     public void load(String language) {
@@ -55,6 +57,16 @@ public final class LevelMessageService implements LogMessages, LegacyMessageSink
             prefix = resolveText("prefix", "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>");
         }
         return Texts.toStringSafe(prefix);
+    }
+
+    private String logPrefix() {
+        String prefix = MiniMessages.plainText(prefix());
+        return prefix.endsWith(" ") ? prefix : prefix + " ";
+    }
+
+    private String withPrefix(String text) {
+        String prefix = prefix();
+        return prefix + (prefix.endsWith(" ") ? "" : " ") + Texts.toStringSafe(text);
     }
 
     private String resolveText(String key, String fallback) {
@@ -143,7 +155,7 @@ public final class LevelMessageService implements LogMessages, LegacyMessageSink
         if (Texts.isBlank(text)) {
             return;
         }
-        var component = MiniMessages.parse("[" + plugin.getName() + "] " + text);
+        var component = MiniMessages.parse(withPrefix(text));
         if (level.intValue() >= Level.SEVERE.intValue()) {
             plugin.getComponentLogger().error(component);
         } else if (level.intValue() >= Level.WARNING.intValue()) {

@@ -115,16 +115,16 @@ public final class ItemIdentifierService {
 
     public SourceProbe probeSource(ItemSourceRef source, String location) {
         if (source == null) {
-            return new SourceProbe(null, ItemSourceProbeState.INVALID_SOURCE, "", "物品来源无效。");
+            return new SourceProbe(null, ItemSourceProbeState.INVALID_SOURCE, "", "物品来源无效");
         }
         if (itemSourceService == null) {
             return new SourceProbe(source, ItemSourceProbeState.PROVIDER_MISSING, "EmakiCoreLib",
-                    "ItemSourceService 不可用。");
+                    "ItemSourceService 不可用");
         }
         ItemSourceProbeResult probe = itemSourceService.probe(source);
         if (probe == null) {
             return new SourceProbe(source, ItemSourceProbeState.RESOLUTION_ERROR, "EmakiCoreLib",
-                    "ItemSourceService 未返回探测结果。");
+                    "ItemSourceService 未返回探测结果");
         }
         String detail = probe.detail();
         if (!Texts.isBlank(location) && !probe.ready()) {

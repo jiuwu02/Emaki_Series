@@ -55,7 +55,7 @@ public sealed interface Matcher permits
         }
         return switch (type) {
             case "item_source", "item_sources", "source", "sources" -> reject(
-                    "匹配器不再接受物品来源条件（'type: " + type + "'）；请将它们移到同级 '"
+                    "匹配器不再接受物品来源条件('type: " + type + "')；请将它们移到同级 '"
                             + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
@@ -79,7 +79,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝，永远不会匹配: " + reason);
         return new AnyMatcher(List.of());
     }
 
@@ -155,7 +155,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝，永远不会匹配: " + reason);
         return new AnyMatcher(List.of());
     }
 

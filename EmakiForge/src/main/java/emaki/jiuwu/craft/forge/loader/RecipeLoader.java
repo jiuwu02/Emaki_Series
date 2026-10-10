@@ -285,7 +285,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     try {
                         Recipe prioritized = Recipe.fromConfig(prioritizeSourceCandidates(deferred.configuration()));
                         if (prioritized == null) {
-                            recordFinalizationFailure(deferred, "物品来源校验后无法完成配方配置定稿。");
+                            recordFinalizationFailure(deferred, "物品来源校验后无法完成配方配置定稿");
                             continue;
                         }
                         if (!validateActions(deferred.file(), prioritized)) {
@@ -394,14 +394,14 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     protected Recipe parse(File file, YamlSection configuration) {
         if (configuration == null) {
             recordIssue(file, "", "", IssueSeverity.ERROR, "INVALID_CONFIG",
-                    "配方配置为空。", true, null, null);
+                    "配方配置为空", true, null, null);
             skipped++;
             return null;
         }
         String recipeId = configuration.getString("id");
         if (Texts.isBlank(recipeId)) {
             recordIssue(file, "", "id", IssueSeverity.ERROR, "BLANK_ID",
-                    "配方 ID 不能为空。", true, null, null);
+                    "配方 ID 不能为空", true, null, null);
             skipped++;
             return null;
         }
@@ -419,13 +419,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         Recipe recipe = Recipe.fromConfig(effectiveConfiguration);
         if (recipe == null) {
             recordIssue(file, recipeId, "", IssueSeverity.ERROR, "INVALID_CONFIG",
-                    "无法解析配方配置。", true, null, null);
+                    "无法解析配方配置", true, null, null);
             skipped++;
             return null;
         }
         if (!SUPPORTED_CONDITION_TYPES.contains(Texts.lower(recipe.conditionType()))) {
             recordIssue(file, recipe.id(), "condition.type", IssueSeverity.ERROR, "INVALID_CONDITION_MODE",
-                    "不支持的 condition 模式 '" + recipe.conditionType() + "'。允许值: "
+                    "不支持的 condition 模式 '" + recipe.conditionType() + "'，允许值: "
                             + String.join(", ", SUPPORTED_CONDITION_TYPES), true, null, null);
             skipped++;
             return null;
@@ -454,7 +454,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     @Override
     protected void onBlankId(File file) {
         recordIssue(file, "", "id", IssueSeverity.ERROR, "BLANK_ID",
-                "配方 ID 不能为空。", true, null, null);
+                "配方 ID 不能为空", true, null, null);
         skipped++;
     }
 
@@ -463,13 +463,13 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         duplicates++;
         skipped++;
         recordIssue(file, id, "id", IssueSeverity.ERROR, "DUPLICATE_ID",
-                "重复的配方 ID '" + id + "'。", true, null, null);
+                "重复的配方 ID '" + id + "'", true, null, null);
     }
 
     @Override
     protected void onDirectoryCreateFailed(File directory) {
         recordIssue(directory, "", "", IssueSeverity.ERROR, "DIRECTORY_CREATE_FAILED",
-                "无法创建配方目录。", true, null, null);
+                "无法创建配方目录", true, null, null);
     }
 
     @Override
@@ -506,41 +506,41 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             boolean legacy = ConfigNodes.contains(output, "item_sources");
             if (canonical && legacy) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "OUTPUT_SOURCE_FIELD_CONFLICT",
-                        "输出不能同时声明 item_source 和 item_sources。", true, null, null);
+                        "输出不能同时声明 item_source 和 item_sources", true, null, null);
                 return false;
             }
             if (ConfigNodes.contains(output, "matcher")) {
                 recordIssue(file, recipeId, path + ".matcher", IssueSeverity.ERROR, "OUTPUT_MATCHER_FORBIDDEN",
-                        "输出节点不能声明 matcher。", true, null, null);
+                        "输出节点不能声明 matcher", true, null, null);
                 return false;
             }
             if (canonical) {
                 Object raw = ConfigNodes.get(output, "item_source");
                 if (raw instanceof Iterable<?> && !(raw instanceof String)) {
                     recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_NOT_SINGLE",
-                            "item_source 必须解析为单一来源。", true, null, null);
+                            "item_source 必须解析为单一来源", true, null, null);
                     return false;
                 }
                 if (ItemSourceUtil.parse(raw) == null) {
                     recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_INVALID",
-                            "item_source 无效。", true, null, null);
+                            "item_source 无效", true, null, null);
                     return false;
                 }
                 continue;
             }
             if (!legacy) {
                 recordIssue(file, recipeId, path + ".item_source", IssueSeverity.ERROR, "OUTPUT_SOURCE_MISSING",
-                        "输出必须声明 item_source。", true, null, null);
+                        "输出必须声明 item_source", true, null, null);
                 return false;
             }
             List<Object> values = ConfigNodes.asObjectList(ConfigNodes.get(output, "item_sources"));
             if (values.size() != 1 || ItemSourceUtil.parse(values.getFirst()) == null) {
                 recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.ERROR, "OUTPUT_LEGACY_SOURCE_INVALID",
-                        "旧 item_sources 必须恰好包含一个有效来源。", true, null, null);
+                        "旧 item_sources 必须恰好包含一个有效来源", true, null, null);
                 return false;
             }
             recordIssue(file, recipeId, path + ".item_sources", IssueSeverity.WARNING, "OUTPUT_LEGACY_SOURCE",
-                    "接受旧 item_sources；请迁移到 item_source。", false, null, null);
+                    "接受旧 item_sources；请迁移到 item_source", false, null, null);
         }
         return true;
     }
@@ -562,7 +562,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_MATCH_EMPTY",
-                        "材料必须声明 item_sources、matcher 或两者都声明。", true, null, null);
+                        "材料必须声明 item_sources、matcher 或两者都声明", true, null, null);
                 return false;
             }
             String materialId = normalizedIdentity(entry, "material_id", "count_key", "audit_id");
@@ -582,7 +582,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     || optional != materialOptional.get(materialId))) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "MATERIAL_IDENTITY_CONFLICT",
                         "material_id '" + materialId
-                                + "' 的所有形式必须使用相同的 count_key、audit_id、amount 与 optional 标志。",
+                                + "' 的所有形式必须使用相同的 count_key、audit_id、amount 与 optional 标志",
                         true, null, null);
                 return false;
             }
@@ -590,7 +590,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             if (auditOwner != null && !auditOwner.equals(materialId)) {
                 recordIssue(file, recipeId, path + ".audit_id", IssueSeverity.ERROR,
                         "AUDIT_ID_CONFLICT",
-                        "audit_id '" + auditId + "' 被不同的 material_id 值共享。",
+                        "audit_id '" + auditId + "' 被不同的 material_id 值共享",
                         true, null, null);
                 return false;
             }
@@ -610,7 +610,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             }
             if (ConfigNodes.get(entry, "item_sources") == null && ConfigNodes.get(entry, "matcher") == null) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "BLUEPRINT_MATCH_EMPTY",
-                        "图纸需求必须声明 item_sources、matcher 或两者都声明。",
+                        "图纸需求必须声明 item_sources、matcher 或两者都声明",
                         true, null, null);
                 return false;
             }
@@ -622,7 +622,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             Integer existing = blueprintAmounts.putIfAbsent(blueprintId, amount);
             if (existing != null && existing != amount) {
                 recordIssue(file, recipeId, path, IssueSeverity.ERROR, "BLUEPRINT_IDENTITY_CONFLICT",
-                        "blueprint id '" + blueprintId + "' 的所有形式必须使用相同的 amount。",
+                        "blueprint id '" + blueprintId + "' 的所有形式必须使用相同的 amount",
                         true, null, null);
                 return false;
             }
@@ -639,7 +639,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
             return true;
         }
         recordIssue(file, recipeId, path + "." + key, IssueSeverity.ERROR, "IDENTITY_BLANK",
-                key + " 声明后不能为空。", true, null, null);
+                key + " 声明后不能为空", true, null, null);
         return false;
     }
 
@@ -660,7 +660,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         ActionEngine engine = actionEngineSupplier == null ? null : actionEngineSupplier.get();
         if (engine == null) {
             recordIssue(file, recipe.id(), "actions", IssueSeverity.WARNING, "ACTION_VALIDATION_SKIPPED",
-                    "EmakiCoreLib 操作管线不可用，已跳过操作校验。",
+                    "EmakiCoreLib 操作管线不可用，已跳过操作校验",
                     false, null, null);
             return true;
         }
@@ -868,7 +868,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         if (alternatives.isEmpty()) {
             if (required) {
                 recordIssue(file, recipeId, yamlPath, IssueSeverity.ERROR, "SOURCE_ALTERNATIVES_EMPTY",
-                        "必需的物品来源候选为空。", true, null, null);
+                        "必需的物品来源候选为空", true, null, null);
             }
             return;
         }
@@ -880,7 +880,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
                     ? new ItemIdentifierService.SourceProbe(source,
                     ItemSourceProbeState.PROVIDER_MISSING,
                     "EmakiCoreLib",
-                    "物品来源探测不可用。")
+                    "物品来源探测不可用")
                     : itemIdentifierService.probeSource(source, yamlPath);
             probes.add(probe);
             sourceStatuses.merge(probe.status(), 1, Integer::sum);

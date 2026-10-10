@@ -16,4 +16,4 @@ components:
 experience: 20
 
 # 无 ea_attributes / actions / threat / boss_bar — 保持轻量
-# 需要配合 spawn_rules/ 中 type: biome 规则使用
+# 需要配合 spawn_rules/ 中 type: autonomous 且带 biomes 限制的规则使用

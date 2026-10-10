@@ -240,7 +240,7 @@ public final class DialogService {
                     continue;
                 }
                 plugin.getLogger().warning("[dialog] " + definition.id()
-                        + ": 未知的物品来源 '" + body.item() + "'，跳过该 body 条目。");
+                        + ": 未知的物品来源 '" + body.item() + "'，跳过该 body 条目");
                 continue;
             }
             if (body.width() > 0) {

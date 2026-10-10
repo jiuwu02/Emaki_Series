@@ -55,7 +55,7 @@ public final class EmakiItemAliasLoader {
                     Texts.toStringSafe(data.getOrDefault("expires_after", "never"))
             );
             if (!alias.valid()) {
-                plugin.getLogger().warning("[loader] 无效的 EmakiItem alias '" + oldId + "'（位于 " + file.getPath() + "），已跳过。");
+                plugin.getLogger().warning("[loader] 无效的 EmakiItem alias '" + oldId + "' (位于 " + file.getPath() + ")，已跳过");
                 continue;
             }
             loaded.put(alias.oldId(), alias);

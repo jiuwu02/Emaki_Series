@@ -319,7 +319,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 try {
                     messageService.info("console.plugin_stopped");
                 } catch (RuntimeException exception) {
-                    getLogger().info("[shutdown] 已停止。");
+                    getLogger().info("[shutdown] 已停止");
                 }
             }
         });
@@ -509,7 +509,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         }
         int replayed = stageRebuildListeners.notifyRebuilt(failure -> getLogger().warning(
                 "[pipeline] 段重新注册失败，插件 " + failure.owner() + ": " + failure.error()));
-        getLogger().info("[pipeline] 已重放管道段注册，共 " + replayed + " 个插件。");
+        getLogger().info("[pipeline] 已重放管道段注册，共 " + replayed + " 个插件");
     }
 
     private void loadScriptsSafely() {
@@ -937,7 +937,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }
         }, this);
-        getLogger().info("[gui] PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端。");
+        getLogger().info("[gui] PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端");
     }
 
     private void registerPacketBackend() {
@@ -945,7 +945,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
             getLogger().warning("[gui] 注册 packet GUI 后端失败: " + exception.getMessage()
-                    + "。EmakiCoreLib 将使用 Bukkit（实体）后端。");
+                    + "，EmakiCoreLib 将使用 Bukkit(实体)后端");
         }
     }
 
@@ -1009,12 +1009,12 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                     new VanillaLanguageDownloader(getLogger(), cacheDirectory);
             Map<String, String> table = downloader.load(minecraftVersion, locale);
             if (table.isEmpty()) {
-                getLogger().info("[text] 原版语言表（'" + locale
-                        + "'）不可用；需要本地化原版名称的功能将保持禁用。");
+                getLogger().info("[text] 原版语言表('" + locale
+                        + "')不可用；需要本地化原版名称的功能将保持禁用");
                 return;
             }
             vanillaTranslationService.install(table);
-            getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'。");
+            getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'");
         });
     }
 

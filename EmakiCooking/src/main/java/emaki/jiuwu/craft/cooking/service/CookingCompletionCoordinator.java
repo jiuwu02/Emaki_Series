@@ -385,7 +385,7 @@ public final class CookingCompletionCoordinator {
             Unit unit) {
         logger.warning("[completion] 放弃烹饪完成 " + operation.operationId()
                 + "，经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
-                + "（未消耗任何物品，工位状态未变）");
+                + " (未消耗任何物品，工位状态未变)");
         debugCompletion("station.completion_input_abandoned", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),

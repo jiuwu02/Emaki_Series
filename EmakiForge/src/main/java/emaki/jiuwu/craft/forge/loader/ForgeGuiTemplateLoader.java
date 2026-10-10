@@ -87,20 +87,20 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                         GuiTemplate value = parse(document.file(), configuration);
                         if (value == null) {
                             recordCandidateIssue(document.file(), "GUI_INVALID_CONFIG",
-                                    "无法解析 GUI 模板配置。");
+                                    "无法解析 GUI 模板配置");
                             continue;
                         }
                         String id = idOf(value);
                         if (Texts.isBlank(id)) {
                             onBlankId(document.file());
                             recordCandidateIssue(document.file(), "GUI_BLANK_ID",
-                                    "GUI 模板 ID 不能为空。");
+                                    "GUI 模板 ID 不能为空");
                             continue;
                         }
                         if (items.containsKey(id)) {
                             onDuplicateId(document.file(), id);
                             recordCandidateIssue(document.file(), "GUI_DUPLICATE_ID",
-                                    "重复的 GUI 模板 ID '" + id + "'。");
+                                    "重复的 GUI 模板 ID '" + id + "'");
                             continue;
                         }
                         items.put(id, value);
@@ -133,7 +133,7 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
                     GuiTemplate template = parsePrioritized(entry.configuration());
                     if (template == null) {
                         recordCandidateIssue(entry.file(), "GUI_FINALIZATION_FAILED",
-                                "物品来源校验后无法完成 GUI 模板定稿。");
+                                "物品来源校验后无法完成 GUI 模板定稿");
                         continue;
                     }
                     items.put(entry.id(), template);

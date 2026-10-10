@@ -52,7 +52,7 @@ final class OraxenItemSourceResolver
 
     @Override
     protected String waitingDetail() {
-        return "Oraxen 物品尚未加载完成。";
+        return "Oraxen 物品尚未加载完成";
     }
 
     @Override

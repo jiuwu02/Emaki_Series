@@ -445,13 +445,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("[scheduler] 跳过修复界面关闭（玩家 " + player.getName()
-                        + "）: 调用线程不拥有该玩家且没有可用的调度。");
+                plugin.getLogger().warning("[scheduler] 跳过修复界面关闭 (玩家 " + player.getName()
+                        + "): 调用线程不拥有该玩家且没有可用的调度");
                 continue;
             }
             if (plugin.scheduling().runForEntity(plugin, player, player::closeInventory, null) == TaskToken.UNAVAILABLE) {
-                plugin.getLogger().warning("[scheduler] 无法重新调度修复界面关闭（玩家 " + player.getName()
-                        + "）: 实体任务调度被拒绝。");
+                plugin.getLogger().warning("[scheduler] 无法重新调度修复界面关闭 (玩家 " + player.getName()
+                        + "): 实体任务调度被拒绝");
             }
         }
         plugin.repairGuiService().clearAllSessions();

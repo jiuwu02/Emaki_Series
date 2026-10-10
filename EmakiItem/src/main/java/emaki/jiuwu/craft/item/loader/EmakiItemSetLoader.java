@@ -67,7 +67,7 @@ public final class EmakiItemSetLoader {
                 continue;
             }
             if (loaded.containsKey(definition.id())) {
-                plugin.getLogger().warning("[loader] 重复的 EmakiItem 套装 ID '" + definition.id() + "'（位于 " + file.getPath() + "），保留首个定义。");
+                plugin.getLogger().warning("[loader] 重复的 EmakiItem 套装 ID '" + definition.id() + "' (位于 " + file.getPath() + ")，保留首个定义");
                 continue;
             }
             loaded.put(definition.id(), definition);
@@ -110,7 +110,7 @@ public final class EmakiItemSetLoader {
         }
         String id = Texts.normalizeId(root.getString("id"));
         if (Texts.isBlank(id)) {
-            plugin.getLogger().warning("[loader] 跳过套装定义 " + source + ": ID 无效。");
+            plugin.getLogger().warning("[loader] 跳过套装定义 " + source + ": ID 无效");
             return null;
         }
         return new ItemSetDefinition(
@@ -205,7 +205,7 @@ public final class EmakiItemSetLoader {
         if (!present.isEmpty()) {
             plugin.getLogger().warning("[loader] 套装定义 " + source + " 阈值 " + required
                     + " 声明了已停用的字段 " + String.join(", ", present)
-                    + "；这些字段会被忽略，请改用 'effects' 条目表达。");
+                    + "；这些字段会被忽略，请改用 'effects' 条目表达");
         }
     }
 
@@ -319,7 +319,7 @@ public final class EmakiItemSetLoader {
             }
             if (depth >= maxDepth) {
                 plugin.getLogger().warning("[loader] 跳过 EmakiItem 套装目录 " + relativize(entry, root)
-                        + ": 嵌套层级超过 data_directories.max_depth=" + maxDepth + "。");
+                        + ": 嵌套层级超过 data_directories.max_depth=" + maxDepth);
                 continue;
             }
             collect(entry, root, depth + 1, maxDepth, sink);

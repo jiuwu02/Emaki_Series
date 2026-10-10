@@ -58,13 +58,13 @@ public final class ConfigKeyMigration {
         if (!isStillDefault(runtime, bundled, currentPath)) {
             runtime.set(legacyPath, null);
             warn(logger, "配置键 " + legacyPath + " 已改名为 " + currentPath
-                    + "，检测到你已设置新键，旧键值 " + legacyValue + " 被忽略并移除。");
+                    + "，检测到你已设置新键，旧键值 " + legacyValue + " 被忽略并移除");
             return false;
         }
         runtime.set(currentPath, legacyValue);
         runtime.set(legacyPath, null);
         warn(logger, "配置键 " + legacyPath + " 已改名为 " + currentPath
-                + "，你的原值 " + legacyValue + " 已自动迁移。");
+                + "，你的原值 " + legacyValue + " 已自动迁移");
         return true;
     }
 

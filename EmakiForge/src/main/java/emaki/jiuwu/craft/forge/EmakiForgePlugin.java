@@ -227,12 +227,12 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerCoreShutdownBarrier(EmakiCoreLibPlugin coreLibPlugin,
             CompletableFuture<Void> shutdownFuture) {
         if (coreLibPlugin == null) {
-            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用。");
+            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用");
             return;
         }
         try {
             if (!coreLibPlugin.registerDependentShutdown("forge", shutdownFuture)) {
-                getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障。");
+                getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障");
             }
         } catch (Throwable throwable) {
             getLogger().warning("[shutdown] CoreLib 依赖关闭屏障注册失败: "

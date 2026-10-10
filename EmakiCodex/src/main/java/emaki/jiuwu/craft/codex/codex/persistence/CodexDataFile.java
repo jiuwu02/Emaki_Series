@@ -66,12 +66,12 @@ public final class CodexDataFile {
         YamlSection node = entriesSection.getSection(rawKey);
         if (Texts.isBlank(key) || node == null) {
             warn("已丢弃无法解析的图鉴条目 '" + Texts.toStringSafe(rawKey)
-                    + "'（玩家 " + playerId + "）");
+                    + "'(玩家 " + playerId + ")");
             return;
         }
         Long unlockedAt = longOf(node.get(KEY_UNLOCKED_AT));
         if (unlockedAt == null) {
-            warn("已丢弃图鉴条目 '" + key + "': 缺少有效的 unlocked_at（玩家 " + playerId + "）");
+            warn("已丢弃图鉴条目 '" + key + "': 缺少有效的 unlocked_at(玩家 " + playerId + ")");
             return;
         }
         boolean activated = Boolean.TRUE.equals(node.getBoolean(KEY_ACTIVATED, false));

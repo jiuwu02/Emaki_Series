@@ -59,7 +59,7 @@ public final class EmakiItemLoader {
                     continue;
                 }
                 if (loaded.containsKey(definition.id())) {
-                    plugin.getLogger().warning("[loader] 重复的 EmakiItem ID '" + definition.id() + "'（位于 " + file.getPath() + "），保留首个定义。");
+                    plugin.getLogger().warning("[loader] 重复的 EmakiItem ID '" + definition.id() + "' (位于 " + file.getPath() + ")，保留首个定义");
                     continue;
                 }
                 loaded.put(definition.id(), definition);
@@ -160,7 +160,7 @@ public final class EmakiItemLoader {
             }
             if (depth >= maxDepth) {
                 plugin.getLogger().warning("[loader] 跳过 EmakiItem 目录 " + relativize(entry, root)
-                        + ": 嵌套层级超过 data_directories.max_depth=" + maxDepth + "。");
+                        + ": 嵌套层级超过 data_directories.max_depth=" + maxDepth);
                 continue;
             }
             collect(entry, root, depth + 1, maxDepth, sink);

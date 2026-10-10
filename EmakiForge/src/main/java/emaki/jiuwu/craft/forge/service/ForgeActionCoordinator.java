@@ -24,7 +24,7 @@ final class ForgeActionCoordinator {
 
     private static final long ACTION_TIMEOUT_SECONDS = 30L;
 
-    static final String UNKNOWN_FAILURE_REASON = "未知的锻造动作失败。";
+    static final String UNKNOWN_FAILURE_REASON = "未知的锻造动作失败";
 
     private final EmakiForgePlugin plugin;
     private final ForgeResultItemFactory resultItemFactory;

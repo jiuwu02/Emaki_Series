@@ -53,9 +53,9 @@ public record InputModeConfig(Mode mode, DialogDefinition dialog, String inputKe
         if (mode != Mode.CHAT && !config.dialogUsable()) {
             report(issues, dialogId, dialog == null
                     ? "未配置对话框，"
-                            + (mode == Mode.DIALOG ? "因此该交互已禁用。" : "改用聊天输入。")
+                            + (mode == Mode.DIALOG ? "因此该交互已禁用" : "改用聊天输入")
                     : "需要一个键为 '" + inputKey + "' 的输入控件和至少一个按钮，"
-                            + (mode == Mode.DIALOG ? "因此该交互已禁用。" : "改用聊天输入。"));
+                            + (mode == Mode.DIALOG ? "因此该交互已禁用" : "改用聊天输入"));
         }
         return config;
     }

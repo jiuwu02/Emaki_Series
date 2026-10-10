@@ -190,13 +190,13 @@ loader:
   error:
     empty_document: "Empty document"
     missing_field: "Missing field: %path%"
-  lang_directory_create_failed: "<yellow>Unable to create language directory: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
-  directory_create_failed: "<yellow>Unable to create %type% directory: <red>%path%</red></yellow>"
-  invalid_blank_id: "<yellow>%type% ID is blank: <red>%file%</red></yellow>"
-  duplicate_id: "<yellow>Duplicate %type% ID <red>%id%</red>, source
+  lang_directory_create_failed: "[loader] <yellow>Unable to create language directory: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "[loader] <yellow>Failed to load bundled language: <red>%error%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>Unable to create %type% directory: <red>%path%</red></yellow>"
+  invalid_blank_id: "[loader] <yellow>%type% ID is blank: <red>%file%</red></yellow>"
+  duplicate_id: "[loader] <yellow>Duplicate %type% ID <red>%id%</red>, source
     <gray>%file%</gray></yellow>"
-  load_failed: "<yellow>Failed to load %type% file: <red>%file%</red>
+  load_failed: "[loader] <yellow>Failed to load %type% file: <red>%file%</red>
     <gray>(%error%)</gray></yellow>"
 
 chopping_board:

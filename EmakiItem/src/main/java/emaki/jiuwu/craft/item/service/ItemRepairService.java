@@ -292,7 +292,7 @@ public final class ItemRepairService {
             success &= InventoryItemUtil.rollbackRemoval(providedMaterials, plans.get(index));
         }
         if (!success && plugin != null) {
-            plugin.getLogger().severe("[repair] 无法完整回滚修复材料。");
+            plugin.getLogger().severe("[repair] 无法完整回滚修复材料");
         }
         return success;
     }

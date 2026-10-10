@@ -164,10 +164,10 @@ command:
 
 console:
   plugin_starting: "[startup] Starting EmakiStorage..."
-  plugin_started: "[startup] started."
+  plugin_started: "[startup] started"
   bootstrap_start: "[loader] <gray>Installing default resources...</gray>"
-  bootstrap_skip: "[loader] <yellow>Skipped default data generation.</yellow>"
-  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
+  bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
+  bootstrap_complete: "[loader] <green>Default file check complete</green>"
   versioned_file_updated: "[config] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
@@ -176,27 +176,27 @@ console:
   # Console: capability publication was refused; placeholders: %reason%
   capability_refused: "[integration] Capability publication was refused: %reason%"
   # Console: PlaceholderAPI expansion registration was refused
-  papi_registration_refused: "[integration] PlaceholderAPI expansion registration was refused."
+  papi_registration_refused: "[integration] PlaceholderAPI expansion registration was refused"
   # Console: PlaceholderAPI expansion unavailable; placeholders: %reason%
   papi_unavailable: "[integration] PlaceholderAPI expansion unavailable: %reason%"
   # Console: failed to export storage; placeholders: %player%, %error%
   export_failed: "[command] Failed to export storage for %player%: %error%"
   # Console: GUI template loading issue; placeholders: %issue%
-  gui_issue: "[gui] %issue%"
+  gui_issue: "%issue%"
   # Console: paid expansion cost file missing; placeholders: %file%
-  cost_file_missing: "[economy] %file% is missing or empty; paid expansion is disabled until it is provided."
+  cost_file_missing: "[economy] %file% is missing or empty; paid expansion is disabled until it is provided"
   # Console: unlock tier has invalid count_range; placeholders: %range%
   unlock_tier_invalid_range: "[economy] Skipping unlock tier with invalid count_range: %range%"
   # Console: unlock tier has no price; placeholders: %range%
-  unlock_tier_no_price: "[economy] Skipping unlock tier %range% with no price."
+  unlock_tier_no_price: "[economy] Skipping unlock tier %range% with no price"
   # Console: unlock fallback lacks a positive max_amount guard rail
-  unlock_fallback_invalid: "[economy] unlock_costs.yml fallback requires a positive max_amount guard rail; paid expansion beyond the defined tiers is disabled."
+  unlock_fallback_invalid: "[economy] unlock_costs.yml fallback requires a positive max_amount guard rail; paid expansion beyond the defined tiers is disabled"
   # Console: failed to load storage; placeholders: %player%, %reason%
   storage_load_failed: "[persistence] Failed to load storage for %player%: %reason%"
   # Console: failed to register pipeline stage; placeholders: %stage%, %reason%
   stage_register_failed: "[registry] Failed to register pipeline stage '%stage%': %reason%"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem(s).</red>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s)</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem(s)</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -208,13 +208,13 @@ console:
       info: "Info"
     hint: " <dark_gray>(%hint%)</dark_gray>"
     messages:
-      passed: "EmakiStorage configuration precheck passed."
-      required_file_missing: "The required file is missing."
-      path_not_file: "The specified path is not a file."
-      file_not_readable: "The file is not readable."
-      required_directory_missing: "The required directory is missing."
-      path_not_directory: "The specified path is not a directory."
-      directory_not_readable: "The directory is not readable."
+      passed: "EmakiStorage configuration precheck passed"
+      required_file_missing: "The required file is missing"
+      path_not_file: "The specified path is not a file"
+      file_not_readable: "The file is not readable"
+      required_directory_missing: "The required directory is missing"
+      path_not_directory: "The specified path is not a directory"
+      directory_not_readable: "The directory is not readable"
 
 debug:
   storage:

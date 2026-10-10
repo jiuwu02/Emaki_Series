@@ -43,7 +43,7 @@ abstract class AbstractManagedItemSourceProvider<A extends AbstractManagedItemSo
         String providerId = kind().key();
         if (!supports(ref)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "该提供者不处理给定的物品来源。");
+                    "该提供者不处理给定的物品来源");
         }
         if (!pluginAvailability.isPluginEnabled(providerPluginName())) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_NOT_READY, ref, providerId,
@@ -61,7 +61,7 @@ abstract class AbstractManagedItemSourceProvider<A extends AbstractManagedItemSo
             ItemStack itemStack = accessor.createItem(ref.identifier(), 1);
             return itemStack == null || itemStack.getType().isAir()
                     ? ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
-                            "提供者中不包含所请求的物品来源。")
+                            "提供者中不包含所请求的物品来源")
                     : ItemSourceProbeResult.ready(ref, providerId);
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId, detail(exception));

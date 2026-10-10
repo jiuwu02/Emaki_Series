@@ -251,7 +251,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[config] 配置键 advancement." + legacyPath
                     + " 已更名为 advancement." + path
                     + "，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键。");
+                    + " 生效，启动时会自动迁移到新键");
             return legacyValue;
         }
         return fallback;

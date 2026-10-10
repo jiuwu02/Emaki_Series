@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.log;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 
@@ -10,7 +11,7 @@ import org.bukkit.plugin.Plugin;
 
 public final class EmakiLog {
 
-    private static final Map<String, Logger> LOGGERS = new ConcurrentHashMap<>();
+    private static final Map<String, Prefixed> LOGGERS = new ConcurrentHashMap<>();
 
     private EmakiLog() {
     }
@@ -23,21 +24,26 @@ public final class EmakiLog {
         return LOGGERS.computeIfAbsent(pluginName, EmakiLog::create);
     }
 
-    private static Logger create(String pluginName) {
-        String prefix = "[" + pluginName + "] ";
-        if (Bukkit.getServer() == null) {
-            return new Prefixed("emaki", prefix);
+    public static void registerPrefix(String pluginName, Supplier<String> prefixSupplier) {
+        if (pluginName == null || prefixSupplier == null) {
+            return;
         }
-        return new Prefixed(Bukkit.getLogger().getName(), prefix);
+        LOGGERS.computeIfAbsent(pluginName, EmakiLog::create).prefixSupplier = prefixSupplier;
+    }
+
+    private static Prefixed create(String pluginName) {
+        Supplier<String> fallback = () -> "[" + pluginName + " ] ";
+        String name = Bukkit.getServer() == null ? "emaki" : Bukkit.getLogger().getName();
+        return new Prefixed(name, fallback);
     }
 
     private static final class Prefixed extends Logger {
 
-        private final String prefix;
+        private volatile Supplier<String> prefixSupplier;
 
-        private Prefixed(String name, String prefix) {
+        private Prefixed(String name, Supplier<String> prefixSupplier) {
             super(name, null);
-            this.prefix = prefix;
+            this.prefixSupplier = prefixSupplier;
             if (Bukkit.getServer() != null) {
                 setParent(Bukkit.getLogger());
             }
@@ -51,7 +57,8 @@ public final class EmakiLog {
 
         @Override
         public void log(LogRecord record) {
-            record.setMessage(prefix + record.getMessage());
+            String prefix = prefixSupplier.get();
+            record.setMessage((prefix == null ? "" : prefix) + record.getMessage());
             if (getParent() == null && Bukkit.getServer() != null) {
                 setParent(Bukkit.getLogger());
             }

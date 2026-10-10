@@ -133,14 +133,14 @@ console:
   skill_cast_failed: "[cast] Skill '%skill%' failed to cast via trigger '%trigger%': %kind% - %detail%"
 
 loader:
-  lang_directory_create_failed: "Unable to create language directory: %path%"
-  bundled_language_load_failed: "Failed to load bundled language file: %error%"
-  bundled_resource_missing: "Bundled resource missing: %resource%, cannot write to %path%"
-  directory_create_failed: "Unable to create %type% directory: %path%"
-  invalid_blank_id: "%type% ID is blank: %file%"
-  duplicate_id: "Duplicate %type% ID %id%, source %file%"
-  load_failed: "Failed to load %type% file: %file% (%error%)"
-  invalid_config: "Invalid %type% config: %file%"
+  lang_directory_create_failed: "[loader] Unable to create language directory: %path%"
+  bundled_language_load_failed: "[loader] Failed to load bundled language file: %error%"
+  bundled_resource_missing: "[loader] Bundled resource missing: %resource%, cannot write to %path%"
+  directory_create_failed: "[loader] Unable to create %type% directory: %path%"
+  invalid_blank_id: "[loader] %type% ID is blank: %file%"
+  duplicate_id: "[loader] Duplicate %type% ID %id%, source %file%"
+  load_failed: "[loader] Failed to load %type% file: %file% (%error%)"
+  invalid_config: "[loader] Invalid %type% config: %file%"
   type:
     skill: "skill"
     resource: "local resource"

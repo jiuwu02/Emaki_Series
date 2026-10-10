@@ -140,7 +140,7 @@ public final class ItemSourceService {
     public ItemSourceProbeResult probeShorthand(@Nullable String shorthand) {
         if (Texts.isBlank(shorthand)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
-                    "物品来源简写为空。");
+                    "物品来源简写为空");
         }
         try {
             ItemSourceRef ref = ItemSourceUtil.parseShorthand(shorthand);
@@ -149,7 +149,7 @@ public final class ItemSourceService {
             }
 
             return ItemSourceProbeResult.of(ItemSourceProbeState.PROVIDER_MISSING, null, "",
-                    "没有已安装的插件提供该物品来源 \"" + Texts.trim(shorthand) + "\"。");
+                    "没有已安装的插件提供该物品来源 \"" + Texts.trim(shorthand) + "\"");
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, null, "", detail(exception));
         } catch (RuntimeException exception) {
@@ -160,7 +160,7 @@ public final class ItemSourceService {
     public ItemSourceProbeResult probe(@Nullable ItemSourceRef ref) {
         if (ref == null) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, null, "",
-                    "必须提供物品来源的种类与标识。");
+                    "必须提供物品来源的种类与标识");
         }
         ItemSourceProbeResult firstFailure = null;
         for (ItemSourceProvider provider : orderedProviders) {
@@ -179,7 +179,7 @@ public final class ItemSourceService {
             }
             if (result == null) {
                 result = ItemSourceProbeResult.of(ItemSourceProbeState.RESOLUTION_ERROR, ref,
-                        provider.kind().key(), "提供者未返回探测结果。");
+                        provider.kind().key(), "提供者未返回探测结果");
             }
             if (result.ready()) {
                 return result;

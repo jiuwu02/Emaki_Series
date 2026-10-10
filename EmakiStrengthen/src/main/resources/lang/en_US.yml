@@ -108,8 +108,8 @@ console:
   plugin_starting: "[startup] <gray>Starting...</gray>"
   plugin_started: "[startup] <green>Started</green>"
   plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s)</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s)</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -121,38 +121,38 @@ console:
       info: "Info"
     hint: " <dark_gray>(%hint%)</dark_gray>"
     messages:
-      passed: "Strengthen config precheck passed."
-      required_file_missing: "Required file is missing."
-      path_not_file: "Path is not a file."
-      file_not_readable: "File is not readable."
-      required_directory_missing: "Required directory is missing."
-      path_not_directory: "Path is not a directory."
-      directory_not_readable: "Directory is not readable."
+      passed: "Strengthen config precheck passed"
+      required_file_missing: "Required file is missing"
+      path_not_file: "Path is not a file"
+      file_not_readable: "File is not readable"
+      required_directory_missing: "Required directory is missing"
+      path_not_directory: "Path is not a directory"
+      directory_not_readable: "Directory is not readable"
       # Console: enhancement recipe material slot target_compare unknown; placeholders: %recipe%, %index%, %token%, %legal%
-      enhancement_recipe_unknown_target_compare: "Enhancement recipe %recipe% material_%index% declares unknown target_compare '%token%'; legal values are %legal%."
+      enhancement_recipe_unknown_target_compare: "Enhancement recipe %recipe% material_%index% declares unknown target_compare '%token%'; legal values are %legal%"
       # Console: enhancement recipe material slot required/optional conflict; placeholders: %recipe%, %index%
-      enhancement_recipe_required_optional_conflict: "Enhancement recipe %recipe% material_%index% declares both 'required' and 'optional'; 'optional' wins and 'required' is ignored."
+      enhancement_recipe_required_optional_conflict: "Enhancement recipe %recipe% material_%index% declares both 'required' and 'optional'; 'optional' wins and 'required' is ignored"
       # Console: enhancement recipe material slot has neither matcher nor item_sources; placeholders: %recipe%, %index%
-      enhancement_recipe_empty_matcher: "Enhancement recipe %recipe% material_%index% declares no matcher and no item_sources, so every supplied item satisfies this slot."
+      enhancement_recipe_empty_matcher: "Enhancement recipe %recipe% material_%index% declares no matcher and no item_sources, so every supplied item satisfies this slot"
       # Console: enhancement recipe has no required material slot; placeholders: %recipe%
-      enhancement_recipe_no_required_slot: "Enhancement recipe %recipe% has materials but none of them is required, so the slots never block an attempt."
+      enhancement_recipe_no_required_slot: "Enhancement recipe %recipe% has materials but none of them is required, so the slots never block an attempt"
       # Console: enhancement recipe duplicate pity track; placeholders: %recipe%, %track%
-      enhancement_recipe_duplicate_pity_track: "Enhancement recipe %recipe% declares duplicate pity track '%track%'; duplicate tracks share one counter and double-count the same attempt."
+      enhancement_recipe_duplicate_pity_track: "Enhancement recipe %recipe% declares duplicate pity track '%track%'; duplicate tracks share one counter and double-count the same attempt"
       # Console: enhancement recipe pity track isolated by level; placeholders: %recipe%, %track%
-      enhancement_recipe_pity_level_isolation: "Enhancement recipe %recipe% pity track '%track%' isolates by level under player scope, so the counter resets whenever the target level changes."
+      enhancement_recipe_pity_level_isolation: "Enhancement recipe %recipe% pity track '%track%' isolates by level under player scope, so the counter resets whenever the target level changes"
       # Console: enhancement recipe mode disagrees with target provider; placeholders: %recipe%, %mode%, %provider%
-      enhancement_recipe_mode_provider_mismatch: "Enhancement recipe %recipe% declares mode '%mode%' but target provider '%provider%'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder, so the two disagreeing is usually a configuration mistake."
+      enhancement_recipe_mode_provider_mismatch: "Enhancement recipe %recipe% declares mode '%mode%' but target provider '%provider%'; dispatch follows the provider and the mode only feeds the enhancement_mode placeholder, so the two disagreeing is usually a configuration mistake"
       # Console: forge variable path not under forge prefix; placeholders: %path%
-      forge_variable_path_prefix: "forge variable path '%path%' must live under the forge prefix."
+      forge_variable_path_prefix: "forge variable path '%path%' must live under the forge prefix"
       # Console: canonical forge variable has no alias path; placeholders: %variable%
-      forge_variable_canonical_missing: "canonical forge variable '%variable%' is not produced by any alias path."
+      forge_variable_canonical_missing: "canonical forge variable '%variable%' is not produced by any alias path"
       # Console: legacy forge variable no longer produced; placeholders: %variable%
-      forge_variable_legacy_missing: "legacy forge variable '%variable%' is no longer produced, breaking existing recipes."
+      forge_variable_legacy_missing: "legacy forge variable '%variable%' is no longer produced, breaking existing recipes"
       # Console: forge PDC namespace mismatch; placeholders: %namespace%
-      forge_pdc_namespace_mismatch: "forge pdc namespace expected 'emakiforge' but was '%namespace%'."
+      forge_pdc_namespace_mismatch: "forge pdc namespace expected 'emakiforge' but was '%namespace%'"
   bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
-  bootstrap_skip: "[loader] <yellow>release_default_data=false, skipped default data generation.</yellow>"
+  bootstrap_complete: "[loader] <green>Default file check complete</green>"
+  bootstrap_skip: "[loader] <yellow>release_default_data=false, skipped default data generation</yellow>"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
@@ -172,7 +172,7 @@ console:
   reload_loading_files: "[reload] <gray>Loading configuration files...</gray>"
   reload_loading_configs: "[reload] <gray>Loading configs...</gray>"
   reload_applying: "[reload] <gray>Applying configuration...</gray>"
-  reload_complete: "[reload] <green>Reload complete.</green>"
+  reload_complete: "[reload] <green>Reload complete</green>"
   # Console: reload stage failed; placeholders: %stage%, %error%
   reload_stage_failed: "[reload] <yellow>Stage %stage% failed: %error%</yellow>"
   # Console: strengthen attempt failed closed; placeholders: %operation_id%, %error%
@@ -195,13 +195,13 @@ console:
   gui_inventory_full_notify_failed: "[gui] <yellow>Strengthen inventory-full notification failed | error=%error%</yellow>"
 
 loader:
-  lang_directory_create_failed: "<yellow>Failed to create language directory: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "<yellow>Failed to load bundled language: <red>%error%</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create %type% directory: <red>%path%</red></yellow>"
-  invalid_blank_id: "<yellow>%type% ID is blank: <red>%file%</red></yellow>"
-  duplicate_id: "<yellow>Duplicate %type% ID <red>%id%</red>, source
+  lang_directory_create_failed: "[loader] <yellow>Failed to create language directory: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "[loader] <yellow>Failed to load bundled language: <red>%error%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>Failed to create %type% directory: <red>%path%</red></yellow>"
+  invalid_blank_id: "[loader] <yellow>%type% ID is blank: <red>%file%</red></yellow>"
+  duplicate_id: "[loader] <yellow>Duplicate %type% ID <red>%id%</red>, source
     <gray>%file%</gray></yellow>"
-  load_failed: "<yellow>Failed to load %type% file: <red>%file%</red>
+  load_failed: "[loader] <yellow>Failed to load %type% file: <red>%file%</red>
     <gray>(%error%)</gray></yellow>"
   type:
     recipe: "strengthen recipe"

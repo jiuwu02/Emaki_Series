@@ -71,7 +71,7 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         }
         plugin.getLogger().warning("[advancement] 已配置的 " + configuredKeys.size() + " 个成就中有 " + missing.size()
                 + " 个被平台 '" + platform.id() + "' 接受，但服务端上不存在、无法授予；"
-                + "可能是有程序在注册后从磁盘重建了成就树。受影响: " + describeMissing(missing));
+                + "可能是有程序在注册后从磁盘重建了成就树，受影响: " + describeMissing(missing));
         return configuredKeys.size() - missing.size();
     }
 
@@ -91,7 +91,7 @@ public final class AdvancementRegistrar implements Listener, AutoCloseable {
         AdvancementDefinition root = page.root();
         if (root == null) {
             plugin.getLogger().warning("[advancement] 成就页面 '" + page.pageId()
-                    + "' 没有有效的根节点 '" + page.rootId() + "'，已跳过。");
+                    + "' 没有有效的根节点 '" + page.rootId() + "'，已跳过");
             return;
         }
         registerNode(page, root, null);

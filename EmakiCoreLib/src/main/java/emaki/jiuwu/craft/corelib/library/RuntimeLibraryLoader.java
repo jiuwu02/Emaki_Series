@@ -55,7 +55,7 @@ public final class RuntimeLibraryLoader {
 
         List<Path> prepared = new ArrayList<>(libraries.size());
         List<RuntimeLibrary> failed = new ArrayList<>();
-        info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库（共 " + libraries.size() + " 个）...");
+        info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库(共 " + libraries.size() + " 个)...");
         for (RuntimeLibrary library : libraries) {
             Path localFile = resolveLocalPath(library);
             if (prepareLibrary(library, localFile, preferredRepo, fallbackRepo)) {
@@ -69,7 +69,7 @@ public final class RuntimeLibraryLoader {
         if (!failed.isEmpty()) {
             throw new IllegalStateException("无法准备 CoreLib 运行时库: " + failed);
         }
-        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成（" + prepared.size() + "/" + libraries.size() + "）");
+        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + prepared.size() + "/" + libraries.size() + ")");
         return List.copyOf(prepared);
     }
 
@@ -112,7 +112,7 @@ public final class RuntimeLibraryLoader {
 
     private boolean prepareLibrary(RuntimeLibrary library, Path localFile, String preferredRepo, String fallbackRepo) {
         if (validCached(localFile)) {
-            info(NamedTextColor.GREEN, library + " 已就绪（缓存，" + formatSize(sizeKb(localFile)) + "）");
+            info(NamedTextColor.GREEN, library + " 已就绪(缓存，" + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
@@ -122,7 +122,7 @@ public final class RuntimeLibraryLoader {
             success = downloadLibrary(library.coordinate(), localFile, fallbackRepo);
         }
         if (success && validCached(localFile)) {
-            info(NamedTextColor.GREEN, library + " 下载完成（" + formatSize(sizeKb(localFile)) + "）");
+            info(NamedTextColor.GREEN, library + " 下载完成(" + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
@@ -136,15 +136,15 @@ public final class RuntimeLibraryLoader {
         ProbeResult central = probeRepository(CENTRAL_REPO, "Maven Central");
         if (aliyun.reachable && central.reachable) {
             ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + chosen.name + "（延迟 " + chosen.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + chosen.name + "(延迟 " + chosen.latencyMs + "ms)");
             return chosen == aliyun ? ALIYUN_REPO : CENTRAL_REPO;
         }
         if (aliyun.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + aliyun.name + "（延迟 " + aliyun.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + aliyun.name + "(延迟 " + aliyun.latencyMs + "ms)");
             return ALIYUN_REPO;
         }
         if (central.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + central.name + "（延迟 " + central.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + central.name + "(延迟 " + central.latencyMs + "ms)");
             return CENTRAL_REPO;
         }
         warn(NamedTextColor.YELLOW, "Maven 仓库探测均不可达，将优先尝试阿里云镜像");

@@ -776,7 +776,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (unresolvedSessions > 0) {
             plugin.runtimeMetrics().recordGuiSettlementFailure();
             plugin.getLogger().severe("[shutdown] " + unresolvedSessions
-                    + " 个 Forge GUI 会话仍持有未结算物品；未静默丢弃这些会话。");
+                    + " 个 Forge GUI 会话仍持有未结算物品；未静默丢弃这些会话");
         }
         plugin.recipeBookGuiService().clearAllBooks();
         if (plugin.forgeService() != null) {
@@ -857,7 +857,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             };
             Runnable retired = () -> {
                 plugin.recipeBookGuiService().removeRecipeBookOwner(player);
-                plugin.getLogger().warning("[shutdown] 配方图鉴所有者已在关闭背包前退役。");
+                plugin.getLogger().warning("[shutdown] 配方图鉴所有者已在关闭背包前退役");
                 closure.complete(null);
             };
             scheduleShutdownEntityTask(plugin, coreLibPlugin, player, close, retired, closure,
@@ -1031,7 +1031,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             boolean legacyValue = permission.getBoolean("op_bypass", false);
             JavaPlugin.getPlugin(EmakiForgePlugin.class).getLogger().warning("[config] 配置键 permission.op_bypass"
                     + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键。");
+                    + " 生效，启动时会自动迁移到新键");
             return legacyValue;
         }
         return false;

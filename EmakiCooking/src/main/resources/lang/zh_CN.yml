@@ -84,8 +84,8 @@ console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
   plugin_started: "[startup] <green>启动完成</green>"
   plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -95,27 +95,27 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>（%hint%）</dark_gray>"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
     messages:
-      passed: "Cooking 配置预检通过。"
-      required_file_missing: "必需文件不存在。"
-      path_not_file: "路径不是文件。"
-      file_not_readable: "文件不可读。"
-      required_directory_missing: "必需目录不存在。"
-      path_not_directory: "路径不是目录。"
-      directory_not_readable: "目录不可读。"
-      recipe_directory_missing: "配方目录不存在。"
-      recipe_directory_not_readable: "配方目录不可读。"
-      station_state_directory_missing: "工位状态目录不存在。"
-      station_state_directory_not_readable: "工位状态目录不可读。"
-      station_storage: "工位存储预检：%station% 来源 %source% -> %backend%"
-      station_storage_inspect_anchor: "后端取决于实际锚点 BlockState；请检查已放置的工位。"
-      station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC。"
-      station_storage_yaml_fallback: "除非已放置方块是 TileState，否则回退到 YAML。"
+      passed: "Cooking 配置预检通过"
+      required_file_missing: "必需文件不存在"
+      path_not_file: "路径不是文件"
+      file_not_readable: "文件不可读"
+      required_directory_missing: "必需目录不存在"
+      path_not_directory: "路径不是目录"
+      directory_not_readable: "目录不可读"
+      recipe_directory_missing: "配方目录不存在"
+      recipe_directory_not_readable: "配方目录不可读"
+      station_state_directory_missing: "工位状态目录不存在"
+      station_state_directory_not_readable: "工位状态目录不可读"
+      station_storage: "工位存储预检: %station% 来源 %source% -> %backend%"
+      station_storage_inspect_anchor: "后端取决于实际锚点 BlockState；请检查已放置的工位"
+      station_storage_block_pdc: "已放置的原版 %material% 支持 BLOCK_PDC"
+      station_storage_yaml_fallback: "除非已放置方块是 TileState，否则回退到 YAML"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成。</green>"
+  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
   versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入。</yellow>"
+  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
   bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
@@ -137,7 +137,7 @@ console:
   # 控制台：重载进度-应用配置
   reload_applying: "[reload] <gray>正在应用配置...</gray>"
   # 控制台：重载进度-完成
-  reload_complete: "[reload] <gray>重载完成。</gray>"
+  reload_complete: "[reload] <gray>重载完成</gray>"
   # 控制台：重载阶段失败；占位符：%stage%、%error%
   reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
   # 控制台：烹饪完成恢复失败；占位符：%error%
@@ -147,15 +147,15 @@ console:
   # 控制台：执行旧版烹饪奖励失败；占位符：%error%
   reward_legacy_execute_failed: "[reward] <yellow>执行旧版烹饪奖励失败: %error%</yellow>"
   # 控制台：烹饪奖励输出物品无效；占位符：%output%、%recipe%
-  reward_output_invalid: "[reward] <yellow>输出物品为空或空气。output_map=%output% recipe=%recipe%</yellow>"
+  reward_output_invalid: "[reward] <yellow>输出物品为空或空气，output_map=%output% recipe=%recipe%</yellow>"
   # 控制台：创建来源物品返回 null；占位符：%source%、%amount%
   reward_source_create_null: "[reward] <yellow>itemSourceService.createItem 对 source=%source% amount=%amount% 返回 null</yellow>"
   # 控制台：组装预览与直接创建均返回 null；占位符：%source%、%type%、%id%
   reward_source_resolve_null: "[reward] <yellow>组装预览与直接 createItem 对 source=%source% type=%type% id=%id% 均返回 null</yellow>"
   # 控制台：跳过营养阈值评估；占位符：%player%
-  nutrition_threshold_skipped: "[scheduler] <yellow>已跳过 %player% 的营养阈值评估: 调用线程不拥有该玩家且无可用执行调度器。</yellow>"
+  nutrition_threshold_skipped: "[scheduler] <yellow>已跳过 %player% 的营养阈值评估: 调用线程不拥有该玩家且无可用执行调度器</yellow>"
   # 控制台：营养阈值评估重新路由失败；占位符：%player%
-  nutrition_threshold_reroute_failed: "[scheduler] <yellow>重新路由 %player% 的营养阈值评估失败: 实体任务调度被拒绝。</yellow>"
+  nutrition_threshold_reroute_failed: "[scheduler] <yellow>重新路由 %player% 的营养阈值评估失败: 实体任务调度被拒绝</yellow>"
   # 控制台：发酵桶恢复时状态无效；占位符：%coordinate%
   station_restore_rejected_invalid_fermentation_state: "[persistence] <gray>工位恢复报告: 发酵桶状态无效 coordinate=%coordinate%</gray>"
   # 控制台：发酵桶恢复时槽位 ID 迁移被拒；占位符：%coordinate%、%recipe%
@@ -188,13 +188,13 @@ loader:
     fermentation_barrel: "发酵桶"
   error:
     empty_document: "空文档"
-    missing_field: "缺少字段：%path%"
-  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
-  directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
-  invalid_blank_id: "<yellow>%type% ID 为空: <red>%file%</red></yellow>"
-  duplicate_id: "<yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
-  load_failed: "<yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
+    missing_field: "缺少字段: %path%"
+  lang_directory_create_failed: "[loader] <yellow>无法创建语言目录: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "[loader] <yellow>读取内置语言失败: <red>%error%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
+  invalid_blank_id: "[loader] <yellow>%type% ID 为空: <red>%file%</red></yellow>"
+  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
+  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
 
 chopping_board:
   too_fast: "<yellow>操作太快了，请稍等一下。</yellow>"

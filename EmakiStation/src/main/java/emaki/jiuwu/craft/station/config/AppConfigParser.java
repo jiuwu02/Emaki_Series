@@ -107,7 +107,7 @@ public final class AppConfigParser {
             JavaPlugin.getPlugin(EmakiStationPlugin.class).getLogger().warning("[config] 配置键 " + legacyPath
                     + " 已更名为 " + path
                     + "，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键。");
+                    + " 生效，启动时会自动迁移到新键");
             return legacyValue;
         }
         return fallback;

@@ -106,8 +106,8 @@ console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
   plugin_started: "[startup] <green>启动完成</green>"
   plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
-  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -117,40 +117,40 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>（%hint%）</dark_gray>"
+    hint: " <dark_gray>(%hint%)</dark_gray>"
     messages:
-      passed: "强化配置预检通过。"
-      required_file_missing: "缺少必需文件。"
-      path_not_file: "路径不是文件。"
-      file_not_readable: "文件不可读。"
-      required_directory_missing: "缺少必需目录。"
-      path_not_directory: "路径不是目录。"
-      directory_not_readable: "目录不可读。"
+      passed: "强化配置预检通过"
+      required_file_missing: "缺少必需文件"
+      path_not_file: "路径不是文件"
+      file_not_readable: "文件不可读"
+      required_directory_missing: "缺少必需目录"
+      path_not_directory: "路径不是目录"
+      directory_not_readable: "目录不可读"
       # 控制台：强化配方材料槽 target_compare 未知；占位符：%recipe%、%index%、%token%、%legal%
-      enhancement_recipe_unknown_target_compare: "强化配方 %recipe% 的 material_%index% 声明了未知的 target_compare '%token%'；合法取值为 %legal%。"
+      enhancement_recipe_unknown_target_compare: "强化配方 %recipe% 的 material_%index% 声明了未知的 target_compare '%token%'；合法取值为 %legal%"
       # 控制台：强化配方材料槽 required/optional 冲突；占位符：%recipe%、%index%
-      enhancement_recipe_required_optional_conflict: "强化配方 %recipe% 的 material_%index% 同时声明了 'required' 与 'optional'；以 'optional' 为准，'required' 会被忽略。"
+      enhancement_recipe_required_optional_conflict: "强化配方 %recipe% 的 material_%index% 同时声明了 'required' 与 'optional'；以 'optional' 为准，'required' 会被忽略"
       # 控制台：强化配方材料槽既无 matcher 也无 item_sources；占位符：%recipe%、%index%
-      enhancement_recipe_empty_matcher: "强化配方 %recipe% 的 material_%index% 既没有 matcher 也没有 item_sources，任意投入的物品都会满足该槽位。"
+      enhancement_recipe_empty_matcher: "强化配方 %recipe% 的 material_%index% 既没有 matcher 也没有 item_sources，任意投入的物品都会满足该槽位"
       # 控制台：强化配方无必需材料槽；占位符：%recipe%
-      enhancement_recipe_no_required_slot: "强化配方 %recipe% 有材料，但没有任何材料被标记为 required，这些槽位永远不会阻止强化。"
+      enhancement_recipe_no_required_slot: "强化配方 %recipe% 有材料，但没有任何材料被标记为 required，这些槽位永远不会阻止强化"
       # 控制台：强化配方保底轨道重复；占位符：%recipe%、%track%
-      enhancement_recipe_duplicate_pity_track: "强化配方 %recipe% 声明了重复的保底轨道 '%track%'；重复轨道共用同一计数器，会重复累计同一次强化。"
+      enhancement_recipe_duplicate_pity_track: "强化配方 %recipe% 声明了重复的保底轨道 '%track%'；重复轨道共用同一计数器，会重复累计同一次强化"
       # 控制台：强化配方保底轨道按等级隔离；占位符：%recipe%、%track%
-      enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离，目标等级变化时计数器会重置。"
+      enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离，目标等级变化时计数器会重置"
       # 控制台：强化配方 mode 与目标 provider 不一致；占位符：%recipe%、%mode%、%provider%
-      enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%'，但目标 provider 为 '%provider%'；分发以 provider 为准，mode 只用于填充 enhancement_mode 占位符，两者不一致通常是配置错误。"
+      enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%'，但目标 provider 为 '%provider%'；分发以 provider 为准，mode 只用于填充 enhancement_mode 占位符，两者不一致通常是配置错误"
       # 控制台：forge 变量路径不在 forge 前缀下；占位符：%path%
-      forge_variable_path_prefix: "forge 变量路径 '%path%' 必须位于 forge 前缀之下。"
+      forge_variable_path_prefix: "forge 变量路径 '%path%' 必须位于 forge 前缀之下"
       # 控制台：规范 forge 变量缺少别名来源；占位符：%variable%
-      forge_variable_canonical_missing: "规范 forge 变量 '%variable%' 未由任何别名路径产出。"
+      forge_variable_canonical_missing: "规范 forge 变量 '%variable%' 未由任何别名路径产出"
       # 控制台：旧版 forge 变量不再产出；占位符：%variable%
-      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出，会破坏既有配方。"
+      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出，会破坏既有配方"
       # 控制台：forge PDC 命名空间不匹配；占位符：%namespace%
-      forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge'，实际为 '%namespace%'。"
+      forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge'，实际为 '%namespace%'"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "[loader] <green>默认文件检查完成。</green>"
-  bootstrap_skip: "[loader] <yellow>release_default_data=false，已跳过默认数据生成。</yellow>"
+  bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
+  bootstrap_skip: "[loader] <yellow>release_default_data=false，已跳过默认数据生成</yellow>"
   versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
   bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
@@ -167,7 +167,7 @@ console:
   reload_loading_files: "[reload] <gray>正在加载配置文件...</gray>"
   reload_loading_configs: "[reload] <gray>正在读取配置...</gray>"
   reload_applying: "[reload] <gray>正在应用配置...</gray>"
-  reload_complete: "[reload] <green>重载完成。</green>"
+  reload_complete: "[reload] <green>重载完成</green>"
   # 控制台：重载阶段失败；占位符：%stage%、%error%
   reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
   # 控制台：强化尝试安全失败；占位符：%operation_id%、%error%
@@ -190,12 +190,12 @@ console:
   gui_inventory_full_notify_failed: "[gui] <yellow>背包已满通知失败 | error=%error%</yellow>"
 
 loader:
-  lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"
-  bundled_language_load_failed: "<yellow>读取内置语言失败: <red>%error%</red></yellow>"
-  directory_create_failed: "<yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
-  invalid_blank_id: "<yellow>%type% ID 为空: <red>%file%</red></yellow>"
-  duplicate_id: "<yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
-  load_failed: "<yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
+  lang_directory_create_failed: "[loader] <yellow>无法创建语言目录: <red>%path%</red></yellow>"
+  bundled_language_load_failed: "[loader] <yellow>读取内置语言失败: <red>%error%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
+  invalid_blank_id: "[loader] <yellow>%type% ID 为空: <red>%file%</red></yellow>"
+  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
+  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
   type:
     recipe: "强化配方"
 

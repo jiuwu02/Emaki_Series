@@ -70,7 +70,7 @@ public final class GemStrengthenIntegration {
                     EnhancementAttemptContext.of(recipeId, target, materials, operationId));
         } catch (RuntimeException | LinkageError exception) {
             if (plugin != null && plugin.getLogger() != null) {
-                plugin.getLogger().log(Level.WARNING, "[integration] 通过强化框架执行宝石升级失败。", exception);
+                plugin.getLogger().log(Level.WARNING, "[integration] 通过强化框架执行宝石升级失败", exception);
             }
             return EmakiResult.internalError("strengthen.enhancement.internal");
         }
@@ -86,7 +86,7 @@ public final class GemStrengthenIntegration {
         } catch (RuntimeException | LinkageError exception) {
             if (plugin.getLogger() != null) {
                 plugin.getLogger().log(Level.WARNING,
-                        "[integration] 注册 gem 强化目标 Provider 失败；宝石升级将无法通过强化框架执行。", exception);
+                        "[integration] 注册 gem 强化目标 Provider 失败；宝石升级将无法通过强化框架执行", exception);
             }
         }
     }

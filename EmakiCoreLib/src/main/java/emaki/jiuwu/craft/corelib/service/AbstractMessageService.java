@@ -14,6 +14,7 @@ import java.util.List;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.DiagnosticRenderer;
 import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -50,6 +51,7 @@ public class AbstractMessageService implements LogMessages, LegacyMessageSink {
         this.messageResolver = messageResolver;
         this.replacementResolver = replacementResolver;
         this.includePrefixInLogs = includePrefixInLogs;
+        EmakiLog.registerPrefix(plugin.getName(), this::logPrefix);
     }
 
     @Override
@@ -172,13 +174,23 @@ public class AbstractMessageService implements LogMessages, LegacyMessageSink {
         sender.sendMessage(render(withPrefix(text)));
     }
 
-    protected final String withPrefix(String text) {
+    private String prefixSource() {
         String prefix = message("general.prefix");
         if (Texts.isBlank(prefix) || "general.prefix".equals(prefix)) {
             prefix = defaultPrefix;
         }
+        return Texts.toStringSafe(prefix);
+    }
+
+    protected final String withPrefix(String text) {
+        String prefix = prefixSource();
         String normalizedText = Texts.toStringSafe(text);
         return prefix + (prefix.endsWith(" ") ? "" : " ") + normalizedText;
+    }
+
+    private String logPrefix() {
+        String prefix = MiniMessages.plainText(prefixSource());
+        return prefix.endsWith(" ") ? prefix : prefix + " ";
     }
 
     private void log(Level level, String text) {
@@ -189,7 +201,7 @@ public class AbstractMessageService implements LogMessages, LegacyMessageSink {
             plugin.getLogger().log(level, MiniMessages.plain(render(text)));
             return;
         }
-        Component component = render("[" + plugin.getName() + "] " + text);
+        Component component = render(withPrefix(text));
         if (level.intValue() >= Level.SEVERE.intValue()) {
             plugin.getComponentLogger().error(component);
         } else if (level.intValue() >= Level.WARNING.intValue()) {
