@@ -113,8 +113,11 @@ subprojects {
         tasks.named('processResources') {
             // 原各运行时模块的 <resources>：只有 paper-plugin.yml 参与 ${project.version}
             // 过滤，其余资源（config.yml、lang/*.yml、各类数据 yml）原样拷贝。
+            // 版本号在配置期捕获为字符串：configuration cache 不支持在执行期的
+            // filter 闭包内引用 project 对象。
+            def pluginVersion = project.version.toString()
             filesMatching('paper-plugin.yml') {
-                filter { String line -> line.replace('${project.version}', project.version.toString()) }
+                filter { String line -> line.replace('${project.version}', pluginVersion) }
             }
         }
         tasks.named('jar') {
