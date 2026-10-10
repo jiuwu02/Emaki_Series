@@ -97,7 +97,7 @@ public final class PlayerCodexStore {
                     pendingLoads.remove(playerId);
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, new PlayerCodex(playerId));
-                        warn("加载玩家 " + playerId + " 的图鉴进度失败："
+                        warn("加载玩家 " + playerId + " 的图鉴进度失败: "
                                 + Texts.toStringSafe(throwable.getMessage()));
                         future.complete(null);
                         return;
@@ -178,7 +178,7 @@ public final class PlayerCodexStore {
         return asyncYamlFiles.save(file, values)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        warn("保存玩家 " + ticket.key() + " 的图鉴进度失败："
+                        warn("保存玩家 " + ticket.key() + " 的图鉴进度失败: "
                                 + Texts.toStringSafe(throwable.getMessage()));
                         return false;
                     }
@@ -192,7 +192,7 @@ public final class PlayerCodexStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException | RuntimeException exception) {
-            warn("保存图鉴进度到 " + file.getName() + " 失败："
+            warn("保存图鉴进度到 " + file.getName() + " 失败: "
                     + Texts.toStringSafe(exception.getMessage()));
             return false;
         }
@@ -249,7 +249,7 @@ public final class PlayerCodexStore {
 
     private void warn(String message) {
         if (logger != null) {
-            logger.warning(message);
+            logger.warning("[persistence] " + message);
         }
     }
 }

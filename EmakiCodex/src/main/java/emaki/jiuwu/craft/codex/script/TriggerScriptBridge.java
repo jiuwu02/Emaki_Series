@@ -146,7 +146,7 @@ public final class TriggerScriptBridge {
                 registration.close();
             } catch (RuntimeException | LinkageError exception) {
                 plugin.getLogger().warning(
-                        "EmakiCodex 脚本触发器注销失败：" + TriggerScriptLogic.describe(exception));
+                        "[script] 脚本触发器注销失败: " + TriggerScriptLogic.describe(exception));
             }
         }
     }

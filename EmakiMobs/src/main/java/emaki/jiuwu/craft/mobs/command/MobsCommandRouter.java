@@ -286,7 +286,7 @@ public final class MobsCommandRouter {
 
     private void reportOperationFailure(CommandSender sender, String operation, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                plugin.messageService().message("console.command_operation_failed",
+                "[command] " + plugin.messageService().message("console.command_operation_failed",
                         Map.of("operation", operation)),
                 throwable);
         deliver(sender, "command.operation_failed", Map.of("operation", operation));

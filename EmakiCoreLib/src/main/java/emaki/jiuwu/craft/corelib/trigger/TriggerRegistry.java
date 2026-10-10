@@ -5,9 +5,11 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.logging.Logger;
 
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
+
 public final class TriggerRegistry {
 
-    private static final Logger LOGGER = Logger.getLogger(TriggerRegistry.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private final Map<String, TriggerDefinition> definitions = new LinkedHashMap<>();
 
@@ -33,7 +35,7 @@ public final class TriggerRegistry {
         if (def != null) {
             return def.displayName();
         }
-        LOGGER.warning("触发器 '" + id + "' 未注册；回退为 [" + id + "]");
+        LOGGER.warning("[trigger] 触发器 '" + id + "' 未注册；回退为 [" + id + "]");
         return "[" + id + "]";
     }
 

@@ -122,7 +122,7 @@ public final class CookingSettingsService {
             Map<String, Object> rule = MapYamlSection.normalizeMap(raw);
             if (rule.containsKey("input_item_sources") || rule.containsKey("input_matcher")) {
                 boolean nested = rule.get("input") instanceof Map<?, ?>;
-                plugin.getLogger().warning("stations.steamer.moisture_rules[" + index
+                plugin.getLogger().warning("[config] stations.steamer.moisture_rules[" + index
                         + "] 处的旧版烹饪匹配键已弃用；请使用 input.item_sources 与 input.matcher。 "
                         + (nested ? "嵌套输入配置优先。" : "旧键仅作兼容读取。"));
             }
@@ -136,7 +136,7 @@ public final class CookingSettingsService {
             return;
         }
         YamlSection nested = owner.getSection(nestedKey);
-        plugin.getLogger().warning(ownerPath + "." + legacySourcesKey + "/" + legacyMatcherKey
+        plugin.getLogger().warning("[config] " + ownerPath + "." + legacySourcesKey + "/" + legacyMatcherKey
                 + " 处的旧版烹饪匹配键已弃用；请使用 " + ownerPath + "." + nestedKey + ".item_sources 与 .matcher。 "
                 + (nested != null && !nested.isEmpty() ? "嵌套配置优先。" : "旧键仅作兼容读取。"));
     }

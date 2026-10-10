@@ -45,7 +45,7 @@ public final class AccessorySkillProvider implements SkillSourceProvider {
             return entries;
         } catch (RuntimeException exception) {
             if (logger != null) {
-                logger.warning("饰品技能收集失败：" + exception.getMessage());
+                logger.warning("[integration] 饰品技能收集失败: " + exception.getMessage());
             }
             return List.of();
         }

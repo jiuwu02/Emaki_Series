@@ -121,21 +121,21 @@ public final class CookingCompletionCoordinator {
             operation = prepareOperation(request);
         } catch (Throwable error) {
             activeByStation.remove(stationKey, operationId);
-            logger.warning("准备烹饪完成失败，位置 " + stationKey + ": " + rootCauseMessage(error));
+            logger.warning("[completion] 准备烹饪完成失败，位置 " + stationKey + ": " + rootCauseMessage(error));
             return false;
         }
 
         journalStore.createIfAbsent(operation).whenComplete((created, error) -> {
             if (error != null || created == null) {
                 activeByStation.remove(stationKey, operationId);
-                logger.warning("持久化 PREPARED 烹饪完成失败 " + operationId + ": "
+                logger.warning("[completion] 持久化 PREPARED 烹饪完成失败 " + operationId + ": "
                         + rootCauseMessage(error));
                 return;
             }
             install(created);
             triggerAdvance(created.operationId());
         }).exceptionally(error -> {
-            logger.warning("启动烹饪完成时发生未处理失败 " + operationId + ": "
+            logger.warning("[completion] 启动烹饪完成时发生未处理失败 " + operationId + ": "
                     + rootCauseMessage(error));
             return null;
         });
@@ -280,7 +280,7 @@ public final class CookingCompletionCoordinator {
             return taskScheduler.runAtLocation(
                     plugin, location, () -> advanceOnOwnerThread(operationId)) != null;
         } catch (Throwable error) {
-            logger.warning("调度烹饪完成推进失败 " + operationId + ": "
+            logger.warning("[completion] 调度烹饪完成推进失败 " + operationId + ": "
                     + rootCauseMessage(error));
             return false;
         }
@@ -301,7 +301,7 @@ public final class CookingCompletionCoordinator {
             if (error != null) {
                 CookingCompletionOperation operation = operations.get(operationId);
                 if (operation == null) {
-                    logger.warning("烹饪完成推进失败 " + operationId + ": "
+                    logger.warning("[completion] 烹饪完成推进失败 " + operationId + ": "
                             + rootCauseMessage(error));
                     return;
                 }
@@ -383,7 +383,7 @@ public final class CookingCompletionCoordinator {
     private CompletableFuture<CookingCompletionOperation> abandonUnavailableInput(
             CookingCompletionOperation operation,
             Unit unit) {
-        logger.warning("放弃烹饪完成 " + operation.operationId()
+        logger.warning("[completion] 放弃烹饪完成 " + operation.operationId()
                 + "，经 " + unit.attempts() + " 次尝试后所需物品栏输入始终不可用"
                 + "（未消耗任何物品，工位状态未变）");
         debugCompletion("station.completion_input_abandoned", Map.of(
@@ -608,7 +608,7 @@ public final class CookingCompletionCoordinator {
             CookingCompletionOperation operation,
             String error) {
         String reason = Texts.isBlank(error) ? "烹饪完成恢复拒绝了操作" : error;
-        logger.warning("隔离烹饪完成 " + operation.operationId() + ": " + reason);
+        logger.warning("[completion] 隔离烹饪完成 " + operation.operationId() + ": " + reason);
         debugCompletion("station.completion_quarantined", Map.of(
                 "operation", operation.operationId(),
                 "station", operation.stationCoordinates().runtimeKey(),

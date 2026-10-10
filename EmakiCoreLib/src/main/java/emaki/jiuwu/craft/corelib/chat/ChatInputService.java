@@ -168,9 +168,9 @@ public final class ChatInputService implements Listener {
                             input.request,
                             Map.of("status", result.status().name())
                     )));
-            owner.getLogger().warning("聊天输入回调失败，玩家 "
+            owner.getLogger().warning("[chat] 聊天输入回调失败，玩家 "
                     + input.request.player().getName()
-                    + "（状态=" + result.status().name() + "）："
+                    + "（状态=" + result.status().name() + "）: "
                     + throwable.getClass().getSimpleName()
                     + ": " + throwable.getMessage());
         }

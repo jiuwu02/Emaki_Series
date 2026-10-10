@@ -346,7 +346,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             plugin.affixGuiService().clearAllSessions();
         }
         if (!attemptsDrained || !enhancementsDrained) {
-            plugin.getLogger().severe("[Lifecycle] 强化排空未完成 | phase=" + phase
+            plugin.getLogger().warning("[lifecycle] 强化排空未完成 | phase=" + phase
                     + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
                     + " | enhancements=" + (plugin.enhancementAttemptService() == null
                             ? Map.of() : plugin.enhancementAttemptService().journalSnapshot()));

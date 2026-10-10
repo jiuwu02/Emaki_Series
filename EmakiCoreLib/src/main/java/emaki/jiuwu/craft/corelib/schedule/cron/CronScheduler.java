@@ -63,7 +63,7 @@ public final class CronScheduler {
             try {
                 task.run();
             } catch (Throwable t) {
-                plugin.getLogger().warning("[CronScheduler] 任务抛出异常: " + t.getMessage());
+                plugin.getLogger().warning("[scheduler] 任务抛出异常: " + t.getMessage());
             }
 
             int remaining = handle.decrementAndGet();

@@ -163,7 +163,7 @@ public final class MaterialAllocator {
         try {
             return requirement.test(context);
         } catch (RuntimeException exception) {
-            ComponentMatcherSupport.LOGGER.warning("材料分配需求抛出异常，按不匹配处理: "
+            ComponentMatcherSupport.LOGGER.warning("[matcher] 材料分配需求抛出异常，按不匹配处理: "
                     + exception.getClass().getSimpleName());
             return false;
         }

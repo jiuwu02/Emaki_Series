@@ -55,13 +55,13 @@ public final class StorageLayoutResolver {
 
     public int clampRows(int configuredRows) {
         if (configuredRows > MAX_ROWS) {
-            logger.warning("[storage] gui.storage_rows=" + configuredRows
+            logger.warning("[config] gui.storage_rows=" + configuredRows
                     + " 超过最大值 " + MAX_ROWS
                     + "（功能行始终占用最后一行）；已限制为 " + MAX_ROWS + "。");
             return MAX_ROWS;
         }
         if (configuredRows < MIN_ROWS) {
-            logger.warning("[storage] gui.storage_rows=" + configuredRows
+            logger.warning("[config] gui.storage_rows=" + configuredRows
                     + " 低于最小值 " + MIN_ROWS + "；已限制为 " + MIN_ROWS + "。");
             return MIN_ROWS;
         }
@@ -71,7 +71,7 @@ public final class StorageLayoutResolver {
     public Layout resolve(GuiTemplateLoader loader, int configuredRows) {
         var entry = loader.entry(TEMPLATE_ID);
         if (entry == null || entry.configuration() == null) {
-            logger.warning("[storage] GUI 模板 '" + TEMPLATE_ID + "' 未加载。");
+            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 未加载。");
             return null;
         }
         int storageRows = clampRows(configuredRows);
@@ -81,14 +81,14 @@ public final class StorageLayoutResolver {
         var configuration = entry.configuration();
         GuiTemplate parsed = entry.value();
         if (parsed == null) {
-            logger.warning("[storage] GUI 模板 '" + TEMPLATE_ID + "' 解析失败。");
+            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 解析失败。");
             return null;
         }
 
         Map<String, GuiSlot> slots = new LinkedHashMap<>();
         GuiSlot displayPrototype = parsed.slots().get(STORAGE_SLOT_KEY);
         if (displayPrototype == null) {
-            logger.warning("[storage] GUI 模板 '" + TEMPLATE_ID + "' 缺少 '"
+            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID + "' 缺少 '"
                     + STORAGE_SLOT_KEY + "' 定义；无法构建展示区。");
             return null;
         }
@@ -108,13 +108,13 @@ public final class StorageLayoutResolver {
                 }
                 Integer offset = readOffset(function.getValue());
                 if (offset == null) {
-                    logger.warning("[storage] 功能槽位 '" + key
+                    logger.warning("[gui] 功能槽位 '" + key
                             + "' 没有有效偏移（应为 0-" + (ROW_WIDTH - 1) + "）；已跳过。");
                     continue;
                 }
                 String previous = claimedOffsets.putIfAbsent(offset, key);
                 if (previous != null) {
-                    logger.warning("[storage] 功能槽位 '" + key + "' 复用了已被 '" + previous
+                    logger.warning("[gui] 功能槽位 '" + key + "' 复用了已被 '" + previous
                             + "' 占用的偏移 " + offset + "；已跳过。");
                     continue;
                 }
@@ -126,7 +126,7 @@ public final class StorageLayoutResolver {
             }
         }
         if (claimedOffsets.isEmpty()) {
-            logger.warning("[storage] GUI 模板 '" + TEMPLATE_ID
+            logger.warning("[gui] GUI 模板 '" + TEMPLATE_ID
                     + "' 未声明任何功能槽位；分页与投入按钮将不可用。");
         }
 

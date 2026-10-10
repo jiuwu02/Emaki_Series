@@ -434,7 +434,7 @@ final class ForgeGuiInteractionController {
                         "error", String.valueOf(throwable.getMessage())
                 ));
             } catch (Throwable messageFailure) {
-                plugin.getLogger().warning("锻造执行失败日志记录失败: "
+                plugin.getLogger().warning("[gui] 锻造执行失败日志记录失败: "
                         + Texts.toStringSafe(messageFailure.getMessage()));
             }
             if (committedDelivery) {
@@ -722,7 +722,7 @@ final class ForgeGuiInteractionController {
         String playerId = state == null || state.playerId() == null
                 ? "unknown"
                 : state.playerId().toString();
-        plugin.getLogger().warning("Forge GUI 结算无法在玩家所有者线程上运行: player="
+        plugin.getLogger().warning("[gui] Forge GUI 结算无法在玩家所有者线程上运行: player="
                 + playerId + " reason=" + Texts.toStringSafe(reason));
     }
 
@@ -733,7 +733,7 @@ final class ForgeGuiInteractionController {
                     errorKey,
                     replacements == null ? Map.of() : replacements);
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("锻造失败消息派发失败: "
+            plugin.getLogger().warning("[gui] 锻造失败消息派发失败: "
                     + Texts.toStringSafe(throwable.getMessage()));
         }
         stateSupport.returnItems(state);

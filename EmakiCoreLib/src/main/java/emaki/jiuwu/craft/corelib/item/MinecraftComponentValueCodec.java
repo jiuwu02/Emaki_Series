@@ -11,11 +11,12 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import net.kyori.adventure.text.Component;
 
 public final class MinecraftComponentValueCodec {
 
-    private static final Logger LOGGER = Logger.getLogger(MinecraftComponentValueCodec.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private static final Pattern NEWLINE_SPLIT = Pattern.compile("<newline>|\\R", Pattern.CASE_INSENSITIVE);
 
@@ -152,7 +153,7 @@ public final class MinecraftComponentValueCodec {
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             if (gsonWarningLogged.compareAndSet(false, true)) {
-                LOGGER.warning("Adventure GsonComponentSerializer 不可用，回退为纯文本"
+                LOGGER.warning("[component] Adventure GsonComponentSerializer 不可用，回退为纯文本"
                         + "组件编码: " + describe(exception));
             }
         }

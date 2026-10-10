@@ -281,7 +281,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiAttribute 就绪状态发布已跳过: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 

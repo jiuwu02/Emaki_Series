@@ -497,7 +497,7 @@ final class ResourceManagementService {
             resetHealthDisplayScaling(player);
             if (!healthDisplayScalingWarningLogged) {
                 healthDisplayScalingWarningLogged = true;
-                service.plugin().getLogger().warning("配置项 health_display_scaling.target 无效 '" + target + "': " + exception.getMessage());
+                service.plugin().getLogger().warning("[config] 配置项 health_display_scaling.target 无效 '" + target + "': " + exception.getMessage());
             }
         }
     }

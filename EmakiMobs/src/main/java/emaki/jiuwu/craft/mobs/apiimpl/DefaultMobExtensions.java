@@ -106,7 +106,7 @@ public final class DefaultMobExtensions implements MobExtensions, Listener, Auto
             spawner.onReload();
         } catch (RuntimeException exception) {
             plugin.getLogger().log(Level.WARNING,
-                    plugin.messageService().message("console.custom_spawner_reload_failed",
+                    "[spawn] " + plugin.messageService().message("console.custom_spawner_reload_failed",
                             Map.of("id", id, "owner", ownerName(owner))), exception);
         }
     }

@@ -96,7 +96,7 @@ public final class MobSkillExecutor {
                     compiled.add(r.pipeline());
                 } else {
                     int lineNum = i + 1;
-                    logger.warning("[EmakiMobs] 技能编译错误: 生物='" + mobId
+                    logger.warning("[script] 技能编译错误: 生物='" + mobId
                             + "' 触发器='" + trigger + "' 行=" + lineNum
                             + " 原因=" + r.diagnostics());
                 }

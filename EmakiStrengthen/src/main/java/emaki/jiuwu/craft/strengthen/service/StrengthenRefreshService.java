@@ -50,10 +50,10 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
             try {
                 if (executionDispatcher.runEntity(
                         plugin, player, () -> refreshPlayerInventory(player)) == null) {
-                    plugin.getLogger().warning("玩家刷新的调度被拒绝: " + player.getUniqueId());
+                    plugin.getLogger().warning("[scheduler] 玩家刷新的调度被拒绝: " + player.getUniqueId());
                 }
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("调度玩家刷新失败: " + player.getUniqueId()
+                plugin.getLogger().warning("[scheduler] 调度玩家刷新失败: " + player.getUniqueId()
                         + ": " + throwable.getMessage());
             }
         }
@@ -167,12 +167,12 @@ public final class StrengthenRefreshService implements PlayerItemRefreshService 
         try {
             ItemStack rebuilt = attemptService.rebuild(itemStack);
             if (rebuilt == null) {
-                plugin.getLogger().warning("刷新失败：rebuild 返回 null | material=" + itemStack.getType().name());
+                plugin.getLogger().warning("[refresh] 刷新失败: rebuild 返回 null | material=" + itemStack.getType().name());
                 return itemStack;
             }
             return rebuilt;
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("刷新失败：rebuild 抛出异常 | material=" + itemStack.getType().name()
+            plugin.getLogger().warning("[refresh] 刷新失败: rebuild 抛出异常 | material=" + itemStack.getType().name()
                     + " | error=" + exception.getMessage());
             return itemStack;
         }

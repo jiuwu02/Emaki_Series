@@ -85,7 +85,7 @@ public final class GemActionCoordinator {
 
     private void warnActionFailure(String phase, String message) {
         if (plugin != null) {
-            plugin.getLogger().warning("宝石动作阶段 '" + Texts.toStringSafe(phase) + "' 失败: " + Texts.toStringSafe(message));
+            plugin.getLogger().warning("[action] 宝石动作阶段 '" + Texts.toStringSafe(phase) + "' 失败: " + Texts.toStringSafe(message));
         }
     }
 }

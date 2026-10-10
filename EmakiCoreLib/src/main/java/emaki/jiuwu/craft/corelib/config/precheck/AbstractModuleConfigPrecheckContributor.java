@@ -65,7 +65,7 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
                         "kind", fix.kind().name(),
                         "error", Texts.toStringSafe(exception.getMessage())));
             } else if (plugin != null) {
-                plugin.getLogger().warning("自动修复 " + fix.target().getPath()
+                plugin.getLogger().warning("[config] 自动修复 " + fix.target().getPath()
                         + " 失败: " + exception.getMessage());
             }
             return false;
@@ -232,7 +232,7 @@ public abstract class AbstractModuleConfigPrecheckContributor implements ConfigP
             YamlSection defaults = YamlFiles.loadResource(plugin, resourcePath);
             return YamlFiles.countMissingKeys(runtime, defaults);
         } catch (RuntimeException exception) {
-            plugin.getLogger().fine("跳过缺键检查 " + resourcePath + ": " + exception.getMessage());
+            plugin.getLogger().fine("[config] 跳过缺键检查 " + resourcePath + ": " + exception.getMessage());
             return 0;
         }
     }

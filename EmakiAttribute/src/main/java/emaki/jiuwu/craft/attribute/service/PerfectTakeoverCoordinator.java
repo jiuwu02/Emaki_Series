@@ -80,7 +80,7 @@ public final class PerfectTakeoverCoordinator implements Listener {
             }
         } catch (UnsupportedOperationException | IllegalArgumentException exception) {
             service.plugin().getLogger().log(Level.WARNING,
-                    "原版伤害修饰符归零失败: entity=" + event.getEntity().getType()
+                    "[combat] 原版伤害修饰符归零失败: entity=" + event.getEntity().getType()
                             + ", modifier=" + modifier
                             + ", operation=zero_damage_modifier, cause=" + exception,
                     exception);

@@ -141,7 +141,7 @@ public final class LegacyItemSourceRewriter {
                     .sorted(Comparator.comparing(Path::toString, String.CASE_INSENSITIVE_ORDER))
                     .toList();
         } catch (IOException failure) {
-            logger.warning("无法列出待转换目录 " + target + ": " + failure.getMessage());
+            logger.warning("[legacy] 无法列出待转换目录 " + target + ": " + failure.getMessage());
             return List.of();
         }
     }
@@ -152,7 +152,7 @@ public final class LegacyItemSourceRewriter {
         try {
             lines = new ArrayList<>(Files.readAllLines(file, StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException failure) {
-            logger.warning("读取配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[legacy] 读取配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
                     0, 0, 0, List.of(), "");
         }
@@ -187,7 +187,7 @@ public final class LegacyItemSourceRewriter {
             return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), merged, duplicated,
                     diff, backupName);
         } catch (IOException failure) {
-            logger.warning("写入配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[legacy] 写入配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
                     replacements.size(), merged, duplicated, diff, "");
         }

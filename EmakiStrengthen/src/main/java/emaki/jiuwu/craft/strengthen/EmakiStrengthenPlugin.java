@@ -223,7 +223,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStrengthen 就绪状态发布已跳过: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 

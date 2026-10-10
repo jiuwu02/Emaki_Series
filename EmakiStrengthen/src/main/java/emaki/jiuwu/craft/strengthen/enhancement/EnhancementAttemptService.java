@@ -652,7 +652,7 @@ public final class EnhancementAttemptService {
 
     private void warn(String message, Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning(message + ": "
+            plugin.getLogger().warning("[attempt] " + message + ": "
                     + (throwable == null ? "未知" : String.valueOf(throwable.getMessage())));
         }
     }

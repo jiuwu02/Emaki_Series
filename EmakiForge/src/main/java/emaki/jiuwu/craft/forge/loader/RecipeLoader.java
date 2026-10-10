@@ -930,7 +930,7 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
         );
         structuredIssues.add(issue);
         if (severity != IssueSeverity.INFO && forgePlugin != null) {
-            forgePlugin.getLogger().warning("[RecipeLoad] " + code
+            forgePlugin.getLogger().warning("[loader] " + code
                     + " path=" + issue.filePath()
                     + " yaml=" + issue.yamlPath()
                     + " recipe=" + issue.recipeId()

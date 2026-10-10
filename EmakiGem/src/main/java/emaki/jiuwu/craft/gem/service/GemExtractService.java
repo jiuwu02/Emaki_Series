@@ -158,12 +158,12 @@ public final class GemExtractService {
             return;
         }
         if (!target.isOnline()) {
-            plugin.getLogger().warning("已跳过宝石取出完成事件，因为目标玩家离线: "
+            plugin.getLogger().warning("[scheduler] 已跳过宝石取出完成事件，因为目标玩家离线: "
                     + target.getUniqueId());
             return;
         }
         scheduling.runForEntity(plugin, target, eventCall,
-                () -> plugin.getLogger().warning("已跳过宝石取出完成事件，因为目标调度已退役: "
+                () -> plugin.getLogger().warning("[scheduler] 已跳过宝石取出完成事件，因为目标调度已退役: "
                         + target.getUniqueId()));
     }
 

@@ -84,7 +84,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
                 String expr = r.cronExpression();
                 if (expr == null || expr.isBlank()) {
                     plugin.getLogger().warning(
-                            "[EmakiMobs] 生物 '" + r.mobId() + "' 的 cron 触发器缺少 cron 表达式。");
+                            "[spawn] 生物 '" + r.mobId() + "' 的 cron 触发器缺少 cron 表达式。");
                     return;
                 }
                 try {
@@ -99,7 +99,7 @@ public final class AutonomousSpawnHandler implements SpawnHandler {
                     });
                 } catch (CronParseException e) {
                     plugin.getLogger().warning(
-                            "[EmakiMobs] 生物 '" + r.mobId() + "' 的 cron 表达式 '" + expr + "' 无效: " + e.getMessage());
+                            "[spawn] 生物 '" + r.mobId() + "' 的 cron 表达式 '" + expr + "' 无效: " + e.getMessage());
                 }
             }
         }

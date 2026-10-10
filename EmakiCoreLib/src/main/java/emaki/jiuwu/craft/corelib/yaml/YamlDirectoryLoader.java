@@ -155,7 +155,7 @@ public abstract class YamlDirectoryLoader<T> {
         String message = "准备 " + typeName() + " 配置文件失败，目录 "
                 + directory.getPath() + ": " + Texts.toStringSafe(exception.getMessage());
         issues.add(message);
-        plugin.getLogger().warning(message);
+        plugin.getLogger().warning("[loader] " + message);
     }
 
     protected abstract String directoryName();

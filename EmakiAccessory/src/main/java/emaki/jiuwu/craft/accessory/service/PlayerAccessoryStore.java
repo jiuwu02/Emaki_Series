@@ -99,7 +99,7 @@ public final class PlayerAccessoryStore {
                     pendingLoads.remove(playerId);
                     if (throwable != null) {
                         cache.installLoadFailure(ticket, new PlayerAccessories(playerId));
-                        warn("加载玩家 " + playerId + " 的饰品失败："
+                        warn("[persistence] 加载玩家 " + playerId + " 的饰品失败: "
                                 + Texts.toStringSafe(throwable.getMessage()));
                         future.complete(null);
                         return;
@@ -179,8 +179,8 @@ public final class PlayerAccessoryStore {
     private CompletableFuture<Boolean> writeTicket(
             PlayerAccessoryCache.SaveTicket<UUID, PlayerAccessories> ticket) {
         if (writeProtected.contains(ticket.key())) {
-            warn("已跳过保存玩家 " + ticket.key()
-                    + " 的饰品：其数据文件结构无法识别");
+            warn("[persistence] 已跳过保存玩家 " + ticket.key()
+                    + " 的饰品: 其数据文件结构无法识别");
             return CompletableFuture.completedFuture(false);
         }
         PlayerAccessories snapshot = ticket.snapshot();
@@ -192,7 +192,7 @@ public final class PlayerAccessoryStore {
         return asyncYamlFiles.save(file, values)
                 .handle((ignored, throwable) -> {
                     if (throwable != null) {
-                        warn("保存玩家 " + ticket.key() + " 的饰品失败："
+                        warn("[persistence] 保存玩家 " + ticket.key() + " 的饰品失败: "
                                 + Texts.toStringSafe(throwable.getMessage()));
                         return false;
                     }
@@ -206,7 +206,7 @@ public final class PlayerAccessoryStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException | RuntimeException exception) {
-            warn("保存饰品到文件 " + file.getName() + " 失败："
+            warn("[persistence] 保存饰品到文件 " + file.getName() + " 失败: "
                     + Texts.toStringSafe(exception.getMessage()));
             return false;
         }
@@ -254,7 +254,7 @@ public final class PlayerAccessoryStore {
         future.whenComplete((ignored, throwable) -> latch.countDown());
         try {
             if (!latch.await(remaining, TimeUnit.NANOSECONDS)) {
-                warn("饰品数据写入未在排空截止时间前完成");
+                warn("[persistence] 饰品数据写入未在排空截止时间前完成");
             }
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();

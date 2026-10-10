@@ -236,7 +236,7 @@ final class ForgeActionCoordinator {
         try {
             plugin.messageService().warning(key, replacements);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("锻造结果动作警告无法发出 | key=" + key
+            plugin.getLogger().warning("[action] 锻造结果动作警告无法发出 | key=" + key
                     + " | error=" + exception.getMessage());
         }
     }

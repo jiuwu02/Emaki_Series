@@ -230,7 +230,7 @@ final class ForgeExecutionService {
             try {
                 deliveryCommit.run();
             } catch (Throwable throwable) {
-                plugin.getLogger().warning("锻造结果发放提交回调失败: "
+                plugin.getLogger().warning("[delivery] 锻造结果发放提交回调失败: "
                         + Texts.toStringSafe(throwable.getMessage()));
             }
         }
@@ -340,7 +340,7 @@ final class ForgeExecutionService {
         try {
             deliveryRollback.run();
         } catch (Throwable throwable) {
-            plugin.getLogger().warning("锻造结果发放回滚回调失败: "
+            plugin.getLogger().warning("[delivery] 锻造结果发放回滚回调失败: "
                     + Texts.toStringSafe(throwable.getMessage()));
         }
     }

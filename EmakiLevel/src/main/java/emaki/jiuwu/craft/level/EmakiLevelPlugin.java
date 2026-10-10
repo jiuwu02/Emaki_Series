@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -32,6 +33,7 @@ import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -62,6 +64,11 @@ import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
 
 public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
+
+    @Override
+    public Logger getLogger() {
+        return EmakiLog.of(this);
+    }
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -203,7 +210,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         if (dataStore != null) {
             PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                getLogger().warning("[Shutdown] 等级数据排空未完成: pending="
+                getLogger().warning("[shutdown] 等级数据排空未完成: pending="
                         + flushResult.drainResult().pendingOperations()
                         + ", ioFailures=" + flushResult.drainResult().failures().size()
                         + ", saveFailures=" + flushResult.failedEntries()
@@ -256,7 +263,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             playerDataListener.ensureSession(player);
         }
         topService.rebuildAsync().exceptionally(throwable -> {
-            getLogger().log(Level.WARNING, messages.message("console.leaderboard_rebuild_failed"), throwable);
+            getLogger().log(Level.WARNING, "[leaderboard] " + messages.message("console.leaderboard_rebuild_failed"), throwable);
             return null;
         });
         levelService.syncAllOnline();
@@ -286,7 +293,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiLevel 就绪状态发布已跳过: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 

@@ -18,11 +18,12 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.item.ItemBuildIssue;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentCapability;
 import emaki.jiuwu.craft.corelib.api.item.ItemComponentPatch;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import io.papermc.paper.datacomponent.DataComponentType;
 
 final class PaperItemComponentBridge {
 
-    private static final Logger LOGGER = Logger.getLogger(PaperItemComponentBridge.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private static final String DATA_COMPONENT_TYPES_CLASS = "io.papermc.paper.datacomponent.DataComponentTypes";
     private static final String DATA_COMPONENT_REGISTRY_FIELD = "DATA_COMPONENT_TYPE";
@@ -119,7 +120,7 @@ final class PaperItemComponentBridge {
                 addType(destination, value);
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("静态 Paper 数据组件发现失败，回退为仅使用注册表发现: "
+            LOGGER.warning("[component] 静态 Paper 数据组件发现失败，回退为仅使用注册表发现: "
                     + message(exception));
         }
     }
@@ -134,7 +135,7 @@ final class PaperItemComponentBridge {
                 }
             }
         } catch (ReflectiveOperationException | RuntimeException | LinkageError exception) {
-            LOGGER.warning("基于注册表的 Paper 数据组件发现失败，组件支持可能不完整: "
+            LOGGER.warning("[component] 基于注册表的 Paper 数据组件发现失败，组件支持可能不完整: "
                     + message(exception));
         }
     }

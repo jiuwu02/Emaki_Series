@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.14"
+version: "2.8.15"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -22,15 +22,15 @@ general:
     "<green>已刷新 <aqua>%player%</aqua> 的物品更新与套装 Lore，共处理
     <white>%count%</white> 件。</green>"
 console:
-  plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成</green>"
-  plugin_stopping: "EmakiItem 正在关闭..."
-  plugin_stopped: "<yellow>已关闭</yellow>"
-  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopping: "[shutdown] 正在关闭..."
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -46,39 +46,39 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "路径不是目录。"
       directory_not_readable: "目录不可读。"
-  items_loaded: "<gray>已加载 <yellow>%count%</yellow> 个物品</gray>"
-  sets_loaded: "<gray>已加载 <yellow>%count%</yellow> 个套装</gray>"
-  bootstrap_start: "<gray>正在同步默认资源...</gray>"
-  bootstrap_complete: "默认资源同步完成。"
-  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "已按配置跳过默认数据释放。"
-  default_file_missing: "内置资源不存在: %path%"
-  bootstrap_copy_failed: "复制默认资源失败: %path% (%error%)"
-  bootstrap_save_failed: "保存版本化资源失败: %path% (%error%)"
-  directory_create_failed: "创建目录失败: %path%"
-  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
-  mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
-  item_state_unknown_sound: "<yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
+  items_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个物品</gray>"
+  sets_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个套装</gray>"
+  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
+  bootstrap_complete: "[loader] 默认资源同步完成。"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] 已按配置跳过默认数据释放。"
+  default_file_missing: "[loader] 内置资源不存在: %path%"
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
+  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
+  directory_create_failed: "[loader] 创建目录失败: %path%"
+  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
+  mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
+  item_state_unknown_sound: "[config] <yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
   # 控制台：物品 ID alias 加载数量；占位符：%count%
-  aliases_loaded: "<gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
+  aliases_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
   # 控制台：重载阶段失败；占位符：%stage%、%error%
-  reload_stage_failed: "<red>重载阶段 %stage% 失败: %error%</red>"
+  reload_stage_failed: "[reload] <red>重载阶段 %stage% 失败: %error%</red>"
   # 控制台：打开编辑界面失败；占位符：%item%、%error%
-  editor_open_failed: "<red>无法打开 EmakiItem 编辑界面: %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>无法打开 EmakiItem 编辑界面: %item% (%error%)</red>"
   # 控制台：创建物品定义失败；占位符：%path%、%error%
-  editor_create_failed: "<red>无法创建 EmakiItem 定义: %path% (%error%)</red>"
+  editor_create_failed: "[editor] <red>无法创建 EmakiItem 定义: %path% (%error%)</red>"
   # 控制台：编辑界面模板缺失；占位符：%template%
-  editor_template_missing: "<red>缺少 EmakiItem 编辑界面模板: %template%</red>"
+  editor_template_missing: "[editor] <red>缺少 EmakiItem 编辑界面模板: %template%</red>"
   # 控制台：打开套装定义失败；占位符：%file%、%error%
-  editor_set_open_failed: "<red>无法打开 EmakiItem 套装定义: %file% (%error%)</red>"
+  editor_set_open_failed: "[editor] <red>无法打开 EmakiItem 套装定义: %file% (%error%)</red>"
   # 控制台：删除物品定义失败；占位符：%error%
-  editor_delete_failed: "<red>无法删除 EmakiItem 定义: %error%</red>"
+  editor_delete_failed: "[editor] <red>无法删除 EmakiItem 定义: %error%</red>"
   scripts:
-    engine_unavailable: "<yellow>GraalJS 运行库不可用，脚本扩展已禁用，其余功能不受影响。</yellow>"
-    disabled: "<gray>脚本扩展已在配置中关闭，本次不加载脚本。</gray>"
-    loaded: "<gray>脚本加载完成: <yellow>%loaded%</yellow> 个文件，<yellow>%errors%</yellow> 个错误。</gray>"
-    file_error: "<red>脚本加载失败: <white>%file%</white> -> %error%</red>"
-    register_error: "<red>脚本效果类型注册失败: <white>%id%</white> -> %error%</red>"
+    engine_unavailable: "[script] <yellow>GraalJS 运行库不可用，脚本扩展已禁用，其余功能不受影响。</yellow>"
+    disabled: "[script] <gray>脚本扩展已在配置中关闭，本次不加载脚本。</gray>"
+    loaded: "[script] <gray>脚本加载完成: <yellow>%loaded%</yellow> 个文件，<yellow>%errors%</yellow> 个错误。</gray>"
+    file_error: "[script] <red>脚本加载失败: <white>%file%</white> -> %error%</red>"
+    register_error: "[script] <red>脚本效果类型注册失败: <white>%id%</white> -> %error%</red>"
 command:
   help:
     header: "<gold>EmakiItem 命令</gold>"

@@ -21,7 +21,7 @@ public final class QueueCostLoader {
         YamlSection section = file == null ? null : YamlFiles.load(file);
         if (section == null || section.isEmpty()) {
             if (reportMissingFile && logger != null) {
-                logger.warning("[station] " + (file == null ? "queue_costs.yml" : file.getName())
+                logger.warning("[config] " + (file == null ? "queue_costs.yml" : file.getName())
                         + " 缺失或为空；在提供之前付费队列槽位将被禁用。");
             }
             return QueueCostConfig.empty();
@@ -51,7 +51,7 @@ public final class QueueCostLoader {
         QueueCostConfig.CurrencyCost currency = parseCurrency(ConfigNodes.get(raw, "currency"), logger);
         QueueCostConfig.ItemCost item = parseItem(ConfigNodes.get(raw, "item"));
         if (currency == null && item == null) {
-            warn(logger, "跳过队列费用档位 " + range + "：没有可用的价格。");
+            warn(logger, "跳过队列费用档位 " + range + ": 没有可用的价格。");
             return null;
         }
         return new QueueCostConfig.Tier(bounds[0], bounds[1], currency, item);
@@ -152,7 +152,7 @@ public final class QueueCostLoader {
 
     private static void warn(Logger logger, String message) {
         if (logger != null) {
-            logger.warning("[station] " + message);
+            logger.warning("[config] " + message);
         }
     }
 }

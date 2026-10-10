@@ -307,7 +307,7 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 "stage", stage,
                 "source", ATTRIBUTE_SOURCE_ID,
                 "error_key", ERROR_BRIDGE_UNAVAILABLE));
-        plugin.getLogger().warning("词条强化属性桥不可用 | 阶段=" + stage
+        plugin.getLogger().warning("[integration] 词条强化属性桥不可用 | 阶段=" + stage
                 + " | 来源=" + ATTRIBUTE_SOURCE_ID + " | 错误键=" + ERROR_BRIDGE_UNAVAILABLE);
     }
 
@@ -319,7 +319,7 @@ public final class AffixTargetProvider implements EnhancementTargetProvider {
                 "reason", reason,
                 "item", itemStack == null ? "-" : itemStack.getType().name(),
                 "error_key", ERROR_REFRESH_FAILED));
-        plugin.getLogger().warning("词条强化刷新失败 | 原因=" + reason
+        plugin.getLogger().warning("[affix] 词条强化刷新失败 | 原因=" + reason
                 + " | 物品=" + (itemStack == null ? "-" : itemStack.getType().name())
                 + " | 错误键=" + ERROR_REFRESH_FAILED);
     }

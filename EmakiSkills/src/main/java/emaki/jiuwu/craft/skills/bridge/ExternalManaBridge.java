@@ -307,17 +307,17 @@ public final class ExternalManaBridge {
             messages.info(key, replacements == null ? Map.of() : replacements);
             return;
         }
-        plugin.getLogger().info(key);
+        plugin.getLogger().info("[integration] " + key);
     }
 
     private void warning(String key, Map<String, ?> replacements, Throwable throwable) {
-        String text = messages == null ? key : messages.message(key, replacements == null ? Map.of() : replacements);
-        String plainText = messages == null ? text : MiniMessages.plainText(text);
+        String text = messages == null ? "[integration] " + key
+                : MiniMessages.plainText(messages.message(key, replacements == null ? Map.of() : replacements));
         if (throwable == null) {
-            plugin.getLogger().warning(plainText);
+            plugin.getLogger().warning(text);
             return;
         }
-        plugin.getLogger().log(Level.WARNING, plainText, throwable);
+        plugin.getLogger().log(Level.WARNING, text, throwable);
     }
 
     private String errorMessage(Throwable throwable) {

@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.7"
+version: "2.8.8"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -18,13 +18,13 @@ general:
     templates.</gray>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -40,23 +40,23 @@ console:
       required_directory_missing: "The required directory is missing."
       path_not_directory: "The specified path is not a directory."
       directory_not_readable: "The directory is not readable."
-  bootstrap_start: "<gray>Checking default files...</gray>"
-  bootstrap_skip: "<gray>release_default_data=false, skipped default data file
+  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data file
     generation.</gray>"
-  bootstrap_complete: "<green>Default file check complete.</green>"
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  default_file_missing: "<yellow>Missing built-in default resource, skipped:
+  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  default_file_missing: "[loader] <yellow>Missing built-in default resource, skipped:
     <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>Failed to save default resource:
+  bootstrap_save_failed: "[loader] <yellow>Failed to save default resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  directory_create_failed: "<yellow>Unable to create directory: <red>%path%</red></yellow>"
-  loader_config_load_error: "<red>Failed to load config: %path% (%error%)</red>"
-  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
-  gems_loaded: "<gray>Loaded <yellow>%count%</yellow> gem(s)</gray>"
-  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
-  reroll_refresh_degraded: "<yellow>Gem refresh after the reroll write-back did not take effect | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%</yellow>"
+  directory_create_failed: "[loader] <yellow>Unable to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "[loader] <red>Failed to load config: %path% (%error%)</red>"
+  pdc_source_registered: "[loader] <gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  gems_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> gem(s)</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
+  reroll_refresh_degraded: "[persistence] <yellow>Gem refresh after the reroll write-back did not take effect | operation=%operation_id% | instance=%instance_id% | refresh=%outcome% | reason=%reason% | expected fingerprint=%expected_fingerprint% | presented fingerprint=%presented_fingerprint%</yellow>"
 
 loader:
   type:

@@ -230,7 +230,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("已跳过 EmakiSkills 就绪状态发布: " + exception);
+            getLogger().fine("[startup] 已跳过 EmakiSkills 就绪状态发布: " + exception);
         }
     }
 

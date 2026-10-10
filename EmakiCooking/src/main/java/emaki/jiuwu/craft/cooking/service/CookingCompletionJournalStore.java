@@ -34,6 +34,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.CommitMode;
@@ -79,7 +80,7 @@ public final class CookingCompletionJournalStore {
 
     public CookingCompletionJournalStore(File dataFolder, Logger logger, FileScope fileScope) {
         Path dataRoot = Objects.requireNonNull(dataFolder, "dataFolder").toPath().resolve("data/completions");
-        this.logger = logger == null ? Logger.getLogger(CookingCompletionJournalStore.class.getName()) : logger;
+        this.logger = logger == null ? EmakiLog.of("EmakiCooking") : logger;
         this.fileScope = fileScope;
         this.activeDirectory = dataRoot.resolve("active");
         this.archiveDirectory = dataRoot.resolve("archive");
@@ -254,7 +255,7 @@ public final class CookingCompletionJournalStore {
         }
         List<CompletableFuture<Void>> moves = new ArrayList<>();
         for (LoadedOperation duplicate : duplicates) {
-            String error = "日志加载时出现重复的活动完成键: "
+            String error = "[journal] 日志加载时出现重复的活动完成键: "
                     + duplicate.operation().completionKey();
             logger.warning(error + " operation=" + duplicate.operation().operationId());
             CookingCompletionOperation quarantined = duplicate.operation()
@@ -298,10 +299,10 @@ public final class CookingCompletionJournalStore {
         try {
             Files.createDirectories(quarantineDirectory);
             moveReplacing(source, target);
-            logger.warning("已隔离损坏的烹饪完成日志 '" + fileName + "': "
+            logger.warning("[journal] 已隔离损坏的烹饪完成日志 '" + fileName + "': "
                     + rootCauseMessage(throwable));
         } catch (IOException moveFailure) {
-            logger.warning("加载烹饪完成日志失败 '" + fileName + "': "
+            logger.warning("[journal] 加载烹饪完成日志失败 '" + fileName + "': "
                     + rootCauseMessage(throwable) + "; quarantine move failed: " + rootCauseMessage(moveFailure));
         }
     }

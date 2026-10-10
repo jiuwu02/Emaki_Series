@@ -173,7 +173,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiCodex 就绪状态发布已跳过：" + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 

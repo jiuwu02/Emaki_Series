@@ -84,7 +84,7 @@ public final class StationStateStore {
             for (List<StationIndexEntry> entries : entriesByChunk.values()) {
                 trackOperation(runLoadedStateBatch(stationType, entries, consumer)
                         .exceptionally(throwable -> {
-                            plugin.getLogger().warning("工位恢复批次失败: " + rootCauseMessage(throwable));
+                            plugin.getLogger().warning("[persistence] 工位恢复批次失败: " + rootCauseMessage(throwable));
                             return null;
                         }));
             }
@@ -108,7 +108,7 @@ public final class StationStateStore {
             return null;
         }).exceptionally(throwable -> {
             indexedStatesPrewarmed.set(false);
-            plugin.getLogger().warning("工位状态预加载失败: " + rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 工位状态预加载失败: " + rootCauseMessage(throwable));
             return null;
         });
     }
@@ -254,7 +254,7 @@ public final class StationStateStore {
                     });
         }, future);
         return trackOperation(future.exceptionally(throwable -> {
-            plugin.getLogger().warning("工位异步保存失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 工位异步保存失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         }));
     }
@@ -283,7 +283,7 @@ public final class StationStateStore {
                     yamlFuture.exceptionally(_ -> false)
             ).thenApply(_ -> true);
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("工位异步删除失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 工位异步删除失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         });
         result.whenComplete((success, throwable) -> debugStation(plugin, "station.state_delete_result", Map.of(
@@ -480,7 +480,7 @@ public final class StationStateStore {
             return;
         }
         if (fileStore.backendForCurrentBlock(entry.coordinates()) == StationStorageBackend.YAML_FALLBACK) {
-            plugin.getLogger().warning("工位恢复报告：方块实体丢失已替换 type=" + entry.type().folderName()
+            plugin.getLogger().warning("[persistence] 工位恢复报告: 方块实体丢失已替换 type=" + entry.type().folderName()
                     + " coordinate=" + entry.coordinates().runtimeKey());
         }
     }

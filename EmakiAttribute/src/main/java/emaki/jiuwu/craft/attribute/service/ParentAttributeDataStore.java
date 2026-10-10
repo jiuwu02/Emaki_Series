@@ -309,7 +309,7 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<ParentAttributeData> startLoad(UUID uuid, String name, SessionEntry entry) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[ParentAttributeDataStore] CoreLib 异步 YAML 服务不可用；"
+            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用；"
                     + "无法为 " + uuid + " 加载父级属性数据，"
                     + "本次会话保持只读以保护现有文件");
             synchronized (entry) {
@@ -320,7 +320,7 @@ public final class ParentAttributeDataStore {
         return files.load(file(uuid))
                 .handle((section, throwable) -> {
                     if (throwable != null) {
-                        plugin.getLogger().warning("[ParentAttributeDataStore] 加载父级属性数据失败: "
+                        plugin.getLogger().warning("[persistence] 加载父级属性数据失败: "
                                 + uuid + "；本次会话保持只读以保护现有文件: "
                                 + throwable.getMessage());
                         synchronized (entry) {
@@ -339,7 +339,7 @@ public final class ParentAttributeDataStore {
                 return data;
             }
             if (data.revision() > entry.loadBaselineRevision) {
-                plugin.getLogger().warning("[ParentAttributeDataStore] 父级属性数据 " + uuid
+                plugin.getLogger().warning("[persistence] 父级属性数据 " + uuid
                         + " 在文件仍加载时被修改；"
                         + "保留内存中的编辑并丢弃文件内容");
                 entry.lifecycle = Lifecycle.ACTIVE;
@@ -373,7 +373,7 @@ public final class ParentAttributeDataStore {
             try {
                 pending.join();
             } catch (RuntimeException exception) {
-                plugin.getLogger().warning("[ParentAttributeDataStore] 加载未完成: "
+                plugin.getLogger().warning("[persistence] 加载未完成: "
                         + uuid + ": " + exception.getMessage());
             }
             pendingLoads.remove(uuid, pending);
@@ -446,7 +446,7 @@ public final class ParentAttributeDataStore {
     private CompletableFuture<Boolean> writeTicket(SaveTicket ticket) {
         AsyncYamlFiles files = asyncYamlFiles();
         if (files == null) {
-            plugin.getLogger().warning("[ParentAttributeDataStore] CoreLib 异步 YAML 服务不可用；"
+            plugin.getLogger().warning("[persistence] CoreLib 异步 YAML 服务不可用；"
                     + "已丢弃 " + ticket.uuid() + " 的保存");
             return CompletableFuture.completedFuture(false);
         }
@@ -476,7 +476,7 @@ public final class ParentAttributeDataStore {
     }
 
     private void commitFailed(SaveTicket ticket, Throwable throwable) {
-        plugin.getLogger().warning("[ParentAttributeDataStore] 保存父级属性数据失败: "
+        plugin.getLogger().warning("[persistence] 保存父级属性数据失败: "
                 + ticket.uuid() + ": " + (throwable == null ? "写入报告失败" : throwable.getMessage()));
         SessionEntry entry = entries.get(ticket.uuid());
         if (entry == null) {

@@ -1,25 +1,25 @@
 # EmakiAccessory English language resource.
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
-version: "1.1.6"
+version: "1.1.7"
 
 console:
-  plugin_starting: "<gray>Starting EmakiAccessory...</gray>"
-  plugin_started: "<green>EmakiAccessory started</green>"
-  plugin_stopped: "<yellow>EmakiAccessory stopped</yellow>"
-  bootstrap_start: "<gray>Checking configuration files...</gray>"
-  bootstrap_complete: "<green>Default file check complete.</green>"
-  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "<yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting EmakiAccessory...</gray>"
+  plugin_started: "[startup] <green>started</green>"
+  plugin_stopped: "[shutdown] <yellow>stopped</yellow>"
+  bootstrap_start: "[loader] <gray>Checking configuration files...</gray>"
+  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
+  bootstrap_skip: "[loader] <yellow>Skipped default data generation.</yellow>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"

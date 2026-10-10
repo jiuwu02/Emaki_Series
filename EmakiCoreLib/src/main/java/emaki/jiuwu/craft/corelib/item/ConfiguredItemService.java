@@ -221,7 +221,7 @@ public final class ConfiguredItemService {
         String issueKey = "component_version:" + componentId + "@" + server;
         if (loggedIssues.get(issueKey) == null) {
             loggedIssues.put(issueKey, Boolean.TRUE);
-            plugin.getLogger().warning("物品组件 " + componentId + " 需要 Minecraft " + requirement
+            plugin.getLogger().warning("[assembly] 物品组件 " + componentId + " 需要 Minecraft " + requirement
                     + "，但当前服务器为 " + server + "；该组件不会生效。");
         }
     }
@@ -330,7 +330,7 @@ public final class ConfiguredItemService {
                 continue;
             }
             loggedIssues.put(key, Boolean.TRUE);
-            String prefix = issue.componentId() == null ? "" : "[" + issue.componentId() + "] ";
+            String prefix = "[assembly] " + (issue.componentId() == null ? "" : "[" + issue.componentId() + "] ");
             if (issue.severity() == ItemBuildIssueSeverity.ERROR) {
                 plugin.getLogger().severe(prefix + issue.message());
             } else {

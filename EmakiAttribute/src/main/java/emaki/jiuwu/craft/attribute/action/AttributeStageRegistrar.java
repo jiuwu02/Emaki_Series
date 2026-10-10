@@ -28,7 +28,7 @@ public final class AttributeStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                owner.getLogger().warning("注册管线阶段 '" + stage.id()
+                owner.getLogger().warning("[startup] 注册管线阶段 '" + stage.id()
                         + "' 失败: " + registration.reasonKey());
             }
         }

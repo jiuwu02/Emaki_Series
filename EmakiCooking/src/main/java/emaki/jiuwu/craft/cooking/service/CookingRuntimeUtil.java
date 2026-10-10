@@ -110,7 +110,7 @@ public final class CookingRuntimeUtil {
 
     private static void warnOutputSchema(Plugin plugin, String path, String message) {
         if (plugin != null) {
-            plugin.getLogger().warning("[OutputSchema] " + path + ": " + message);
+            plugin.getLogger().warning("[output_schema] " + path + ": " + message);
         }
     }
 

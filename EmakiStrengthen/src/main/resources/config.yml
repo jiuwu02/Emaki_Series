@@ -1,6 +1,6 @@
 # EmakiStrengthen 主配置
 
-version: "4.8.6"
+version: "4.8.7"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"

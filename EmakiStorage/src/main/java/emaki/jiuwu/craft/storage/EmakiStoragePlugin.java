@@ -194,7 +194,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             long timeout = appConfig().persistence().drainTimeoutSeconds();
             PlayerStorageStore.FlushResult result = dataStore.flushAndSeal(timeout, TimeUnit.SECONDS);
             if (!result.clean()) {
-                getLogger().warning("[storage] 关闭刷新未干净完成：saved="
+                getLogger().warning("[shutdown] 关闭刷新未干净完成: saved="
                         + result.savedEntries() + " failed=" + result.failedEntries()
                         + " remainingDirty=" + result.remainingDirtyEntries()
                         + " drained=" + (result.drainResult() != null && result.drainResult().drained()));
@@ -233,7 +233,7 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStorage 就绪状态发布已跳过: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 

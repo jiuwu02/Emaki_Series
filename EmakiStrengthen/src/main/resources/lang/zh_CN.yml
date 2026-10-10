@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.6"
+version: "4.8.7"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
@@ -103,14 +103,14 @@ command:
   admin_state_failed: "<red>无法将主手物品写回强化状态。</red>"
 
 console:
-  plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成</green>"
-  plugin_stopped: "<yellow>已关闭</yellow>"
-  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -148,46 +148,46 @@ console:
       forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出，会破坏既有配方。"
       # 控制台：forge PDC 命名空间不匹配；占位符：%namespace%
       forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge'，实际为 '%namespace%'。"
-  bootstrap_start: "<gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "<green>默认文件检查完成。</green>"
-  bootstrap_skip: "<yellow>release_default_data=false，已跳过默认数据生成。</yellow>"
-  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
-  loader_config_load_error: "<yellow>读取强化配置失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
+  bootstrap_complete: "[loader] <green>默认文件检查完成。</green>"
+  bootstrap_skip: "[loader] <yellow>release_default_data=false，已跳过默认数据生成。</yellow>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
+  loader_config_load_error: "[loader] <yellow>读取强化配置失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   recipe_action_failed:
-    "<yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
+    "[attempt] <yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
     星级 %star% (%error%)</gray></yellow>"
-  pdc_source_registered: "<gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
-  recipes_loaded: "<gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
-  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  pdc_source_registered: "[integration] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   # 控制台：重载进度提示
-  reload_loading_files: "<gray>正在加载配置文件...</gray>"
-  reload_loading_configs: "<gray>正在读取配置...</gray>"
-  reload_applying: "<gray>正在应用配置...</gray>"
-  reload_complete: "<green>重载完成。</green>"
+  reload_loading_files: "[reload] <gray>正在加载配置文件...</gray>"
+  reload_loading_configs: "[reload] <gray>正在读取配置...</gray>"
+  reload_applying: "[reload] <gray>正在应用配置...</gray>"
+  reload_complete: "[reload] <green>重载完成。</green>"
   # 控制台：重载阶段失败；占位符：%stage%、%error%
-  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: %error%</yellow>"
+  reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
   # 控制台：强化尝试安全失败；占位符：%operation_id%、%error%
-  strengthen_attempt_failed_closed: "<red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
+  strengthen_attempt_failed_closed: "[attempt] <red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
   # 控制台：强化结果事件分发失败；占位符：%operation_id%、%error%
-  strengthen_result_dispatch_failed: "<yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  strengthen_result_dispatch_failed: "[event] <yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台：GUI 结果动作分发失败；占位符：%operation_id%、%error%
-  gui_result_action_dispatch_failed: "<yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
+  gui_result_action_dispatch_failed: "[gui] <yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台：已提交结果归属者离线；占位符：%operation_id%
-  gui_owner_retired: "<yellow>强化已提交结果的归属者已离线，结算仍待处理 | operationId=%operation_id%</yellow>"
+  gui_owner_retired: "[gui] <yellow>强化已提交结果的归属者已离线，结算仍待处理 | operationId=%operation_id%</yellow>"
   # 控制台：已提交结果调度被拒绝；占位符：%operation_id%
-  gui_schedule_rejected: "<red>强化已提交结果的调度被拒绝，结算仍待处理 | operationId=%operation_id%</red>"
+  gui_schedule_rejected: "[gui] <red>强化已提交结果的调度被拒绝，结算仍待处理 | operationId=%operation_id%</red>"
   # 控制台：已提交结果调度失败；占位符：%operation_id%、%error%
-  gui_schedule_failed: "<red>强化已提交结果的调度失败，结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
+  gui_schedule_failed: "[gui] <red>强化已提交结果的调度失败，结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
   # 控制台：已提交结果结算失败将重试；占位符：%operation_id%、%error%
-  gui_settlement_retry: "<red>强化已提交结果的结算失败，将重试 | operationId=%operation_id% | error=%error%</red>"
+  gui_settlement_retry: "[gui] <red>强化已提交结果的结算失败，将重试 | operationId=%operation_id% | error=%error%</red>"
   # 控制台：结算后结果通知失败；占位符：%operation_id%、%error%
-  gui_notification_failed: "<yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
+  gui_notification_failed: "[gui] <yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
   # 控制台：背包已满通知失败；占位符：%error%
-  gui_inventory_full_notify_failed: "<yellow>背包已满通知失败 | error=%error%</yellow>"
+  gui_inventory_full_notify_failed: "[gui] <yellow>背包已满通知失败 | error=%error%</yellow>"
 
 loader:
   lang_directory_create_failed: "<yellow>无法创建语言目录: <red>%path%</red></yellow>"

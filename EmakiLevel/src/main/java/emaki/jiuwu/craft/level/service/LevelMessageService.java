@@ -143,7 +143,7 @@ public final class LevelMessageService implements LogMessages, LegacyMessageSink
         if (Texts.isBlank(text)) {
             return;
         }
-        var component = MiniMessages.parse(text);
+        var component = MiniMessages.parse("[" + plugin.getName() + "] " + text);
         if (level.intValue() >= Level.SEVERE.intValue()) {
             plugin.getComponentLogger().error(component);
         } else if (level.intValue() >= Level.WARNING.intValue()) {

@@ -114,7 +114,7 @@ public final class ExpSourceProviderRegistry implements Listener, AutoCloseable 
 
     private void logProviderFailure(String id, Throwable throwable) {
         if (plugin != null) {
-            plugin.getLogger().warning("经验来源提供者 '" + id + "' 执行失败: " + throwable.getMessage());
+            plugin.getLogger().warning("[registry] 经验来源提供者 '" + id + "' 执行失败: " + throwable.getMessage());
         }
     }
 

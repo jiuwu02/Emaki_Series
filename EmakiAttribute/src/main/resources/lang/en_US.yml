@@ -2,20 +2,20 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.5"
+version: "4.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -35,34 +35,34 @@ console:
       attribute_sources_match_requires_both: "Match mode requires both Lore and PDC attribute reading; otherwise all item attributes are inactive."
       scaling_curve_type_unknown: "Unknown scaling curve type %curve_type% for attribute %attribute%; falling back to logarithmic."
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  config_load_failed: "<red>Config load failed: %error%</red>"
-  reload_stage_failed: "<yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
-  vanilla_attribute_resolve_failed: "<yellow>Failed to resolve vanilla attribute
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  config_load_failed: "[config] <red>Config load failed: %error%</red>"
+  reload_stage_failed: "[reload] <yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
+  vanilla_attribute_resolve_failed: "[loader] <yellow>Failed to resolve vanilla attribute
     mapping: <red>%attribute%</red> -> <red>%target%</red></yellow>"
-  attribute_key_contains_conflict: "<yellow>[Attribute Registry] Keyword
+  attribute_key_contains_conflict: "[loader] <yellow>Keyword
     containment conflict detected: <aqua>%lower_display_name%</aqua>
     (<white>%lower_id%</white>, priority %lower_priority%) keyword
     <white>%lower_key%</white> contains <aqua>%higher_display_name%</aqua>
     (<white>%higher_id%</white>, priority %higher_priority%) keyword
     <white>%higher_key%</white>. Lower priority causes read failure; raise
     priority or change display_name.</yellow>"
-  mmoitems_bridge_unavailable: "<yellow>MMOItems attribute bridge init failed: <red>%error%</red></yellow>"
+  mmoitems_bridge_unavailable: "[integration] <yellow>MMOItems attribute bridge init failed: <red>%error%</red></yellow>"
   mmoitems_stat_resolve_failed:
-    "<yellow>MMOItems attribute mapping cannot resolve
+    "[integration] <yellow>MMOItems attribute mapping cannot resolve
     stat: attribute <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed: "<yellow>MMOItems attribute mapping read failed:
+  mmoitems_stat_read_failed: "[integration] <yellow>MMOItems attribute mapping read failed:
     attribute <aqua>%attribute%</aqua> -> <red>%stat%</red>
     (<red>%error%</red>)</yellow>"
-  attribute_registry_empty: "<yellow>No attributes loaded</yellow>"
-  attribute_registry_summary: "<gray>Loaded <yellow>%count%</yellow> attribute(s)</gray>"
-  attribute_registry_entry: "<gray>[Attribute Registry]</gray>
+  attribute_registry_empty: "[loader] <yellow>No attributes loaded</yellow>"
+  attribute_registry_summary: "[loader] <gray>Loaded <yellow>%count%</yellow> attribute(s)</gray>"
+  attribute_registry_entry: "[loader] <gray>[Attribute Registry]</gray>
     <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray>(</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>Default</gray>
     <yellow>%default_value%</yellow> <dark_gray>|</dark_gray> <gray>Power</gray>
     <yellow>%attribute_power%</yellow>"
-  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"

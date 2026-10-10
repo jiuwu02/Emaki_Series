@@ -1,5 +1,5 @@
 // EmakiCodexApi（原 EmakiCodexApi/pom.xml）。
-version = '1.1.4'
+version = '1.1.5'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

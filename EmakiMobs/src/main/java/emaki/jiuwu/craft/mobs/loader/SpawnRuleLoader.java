@@ -63,7 +63,7 @@ public final class SpawnRuleLoader {
         synchronized (issues) {
             issues.add(message);
         }
-        plugin.getLogger().warning(message);
+        plugin.getLogger().warning("[loader] " + message);
     }
 
     private void parseFile(File file, List<SpawnRule> result) {

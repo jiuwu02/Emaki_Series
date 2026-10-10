@@ -126,7 +126,7 @@ public final class SkillRegistryService {
                         }
                     }
                 } catch (RuntimeException | LinkageError exception) {
-                    plugin.getLogger().warning("[SkillRegistry] 提供者 '" + source.id()
+                    plugin.getLogger().warning("[registry] 提供者 '" + source.id()
                             + "'（归属 '" + source.owner().getName() + "'）失败: " + exception.getMessage());
                 }
             }

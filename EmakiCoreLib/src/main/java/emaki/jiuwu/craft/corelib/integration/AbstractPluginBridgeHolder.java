@@ -77,7 +77,7 @@ public abstract class AbstractPluginBridgeHolder<B extends PluginBridge> impleme
             return cast(bridge);
         } catch (ReflectiveOperationException | LinkageError exception) {
             if (logger != null) {
-                logger.warning("初始化 " + dependencyPluginName + " 集成失败: "
+                logger.warning("[integration] 初始化 " + dependencyPluginName + " 集成失败: "
                         + IntegrationFailures.detail(exception));
             }
             return unavailable;

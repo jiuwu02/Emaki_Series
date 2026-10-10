@@ -234,7 +234,7 @@ public final class QueueStore {
             return;
         }
         if (!file.delete()) {
-            plugin.getLogger().warning("无法删除过期的队列文件: " + file.getPath());
+            plugin.getLogger().warning("[persistence] 无法删除过期的队列文件: " + file.getPath());
             return;
         }
         File parent = file.getParentFile();

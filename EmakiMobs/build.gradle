@@ -1,5 +1,5 @@
 // EmakiMobs（原 EmakiMobs/pom.xml）。
-version = '1.0.8'
+version = '1.0.9'
 
 dependencies {
     // 原 shade artifactSet 白名单。

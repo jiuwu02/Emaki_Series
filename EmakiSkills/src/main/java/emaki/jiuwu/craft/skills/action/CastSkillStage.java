@@ -135,7 +135,7 @@ public final class CastSkillStage implements CoreActionStage {
         if (throwable == null && (result == null || result.success())) {
             return;
         }
-        plugin.getLogger().log(Level.FINE, "cast_skill: 技能 '" + skillId
+        plugin.getLogger().log(Level.FINE, "[cast] cast_skill: 技能 '" + skillId
                 + "' 未完成: " + (throwable != null
                         ? Texts.toStringSafe(throwable.getMessage())
                         : Texts.toStringSafe(result.failureMessage())));

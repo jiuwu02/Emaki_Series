@@ -69,11 +69,11 @@ public final class AccessoryProviderRegistrar {
             if (value instanceof AccessoryOptionalProviderIntegration integration) {
                 return integration;
             }
-            logger.warning("EmakiSkills 集成实现类型无效");
+            logger.warning("[integration] EmakiSkills 集成实现类型无效");
         } catch (ClassNotFoundException | LinkageError exception) {
-            logger.info("EmakiSkills 集成不可用；将在没有技能贡献的情况下继续");
+            logger.info("[integration] EmakiSkills 集成不可用；将在没有技能贡献的情况下继续");
         } catch (ReflectiveOperationException | SecurityException exception) {
-            logger.warning("EmakiSkills 集成失败：" + exception.getMessage());
+            logger.warning("[integration] EmakiSkills 集成失败: " + exception.getMessage());
         }
         return null;
     }

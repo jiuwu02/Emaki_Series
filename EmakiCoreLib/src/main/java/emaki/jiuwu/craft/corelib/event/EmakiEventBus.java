@@ -11,9 +11,11 @@ import java.util.logging.Logger;
 
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
+
 public final class EmakiEventBus {
 
-    private static final Logger LOGGER = Logger.getLogger(EmakiEventBus.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private final Map<Class<?>, CopyOnWriteArrayList<EventSubscription<?>>> subscribers = new ConcurrentHashMap<>();
 
@@ -49,7 +51,7 @@ public final class EmakiEventBus {
             try {
                 ((EventSubscription<T>) subscription).dispatch(event);
             } catch (Exception exception) {
-                LOGGER.warning("事件处理器抛出异常，事件 " + event.eventType() + ": " + exception.getMessage());
+                LOGGER.warning("[event] 事件处理器抛出异常，事件 " + event.eventType() + ": " + exception.getMessage());
             }
         }
     }

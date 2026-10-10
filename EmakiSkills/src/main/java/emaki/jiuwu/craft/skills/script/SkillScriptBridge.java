@@ -145,7 +145,7 @@ public final class SkillScriptBridge implements AutoCloseable {
             plugin.getLogger().warning(plugin.messageService().messageOrFallback(
                     "console.scripts.example_release_failed",
                     Map.of("path", EXAMPLE_RESOURCE, "error", String.valueOf(exception.getMessage())),
-                    "释放示例技能脚本失败: " + EXAMPLE_RESOURCE));
+                    "[script] 释放示例技能脚本失败: " + EXAMPLE_RESOURCE));
         }
     }
 }

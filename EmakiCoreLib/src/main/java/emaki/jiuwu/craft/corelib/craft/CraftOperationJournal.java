@@ -424,7 +424,7 @@ public final class CraftOperationJournal<R> {
 
     private void warn(String message) {
         if (ownerPlugin != null) {
-            ownerPlugin.getLogger().warning("[CraftOperationJournal] " + message);
+            ownerPlugin.getLogger().warning("[journal] " + message);
         }
     }
 

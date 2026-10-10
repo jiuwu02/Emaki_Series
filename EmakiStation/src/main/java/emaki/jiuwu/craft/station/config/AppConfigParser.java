@@ -104,7 +104,7 @@ public final class AppConfigParser {
         }
         if (section.contains(legacyPath)) {
             int legacyValue = section.getInt(legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiStationPlugin.class).getLogger().warning("配置键 " + legacyPath
+            JavaPlugin.getPlugin(EmakiStationPlugin.class).getLogger().warning("[config] 配置键 " + legacyPath
                     + " 已更名为 " + path
                     + "，当前按旧键值 " + legacyValue
                     + " 生效，启动时会自动迁移到新键。");

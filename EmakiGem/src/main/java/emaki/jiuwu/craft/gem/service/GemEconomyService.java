@@ -671,7 +671,7 @@ public final class GemEconomyService {
 
     private void logCompensationFailure(Player player, String phase) {
         if (plugin != null) {
-            plugin.getLogger().severe("未能在 " + phase + " 阶段完全补偿宝石费用，玩家 "
+            plugin.getLogger().severe("[economy] 未能在 " + phase + " 阶段完全补偿宝石费用，玩家 "
                     + (player == null ? "未知" : player.getUniqueId()));
         }
     }

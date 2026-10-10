@@ -162,7 +162,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
         for (ScriptActionStage stage : scriptStages) {
             CoreStageRegistration registration = registry.registerAction(plugin, stage);
             if (registration == null || !registration.successful()) {
-                plugin.getLogger().warning("脚本动作段重新注册失败 '"
+                plugin.getLogger().warning("[script] 脚本动作段重新注册失败 '"
                         + stage.id() + "': " + (registration == null ? "no_registration" : registration.reasonKey()));
                 continue;
             }
@@ -176,7 +176,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("脚本条件注销失败: " + exception.getMessage());
+                plugin.getLogger().warning("[script] 脚本条件注销失败: " + exception.getMessage());
             }
         }
         conditionHandles.clear();
@@ -199,7 +199,7 @@ public final class CoreLibScriptsCoordinator implements AutoCloseable {
             try {
                 handle.close();
             } catch (Exception exception) {
-                plugin.getLogger().warning("脚本段注销失败: " + exception.getMessage());
+                plugin.getLogger().warning("[script] 脚本段注销失败: " + exception.getMessage());
             }
         }
         stageHandles.clear();

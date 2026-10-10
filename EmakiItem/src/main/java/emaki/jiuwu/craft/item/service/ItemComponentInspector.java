@@ -11,13 +11,13 @@ import java.util.logging.Level;
 
 import io.papermc.paper.datacomponent.DataComponentType;
 
-import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 
 public final class ItemComponentInspector {
 
@@ -240,8 +240,8 @@ public final class ItemComponentInspector {
                 result.put(id, new ComponentEntry(id, removed ? "" : paperDataValue(itemStack, type), removed));
             }
         } catch (RuntimeException | LinkageError throwable) {
-            Bukkit.getLogger().log(Level.WARNING,
-                    "[EmakiItem] Paper 数据组件检查失败: item=" + itemStack.getType()
+            EmakiLog.of("EmakiItem").log(Level.WARNING,
+                    "[component] Paper 数据组件检查失败: item=" + itemStack.getType()
                             + ", collected=" + result.size()
                             + ", operation=read_paper_data_components, cause=" + throwable,
                     throwable);

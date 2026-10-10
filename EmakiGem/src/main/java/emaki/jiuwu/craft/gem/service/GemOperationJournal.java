@@ -403,7 +403,7 @@ public final class GemOperationJournal {
             }
             entries.add(toGemEntry(item));
         }
-        plugin.getLogger().info("可恢复的宝石操作: " + String.join(", ",
+        plugin.getLogger().info("[journal] 可恢复的宝石操作: " + String.join(", ",
                 entries.stream().map(entry -> entry.operationId() + "(" + entry.phase().name() + ")").toList()));
         CompletableFuture<Void> result = new CompletableFuture<>();
         Runnable apply = () -> applyRecovery(entries, economyService, rerollSessionService)

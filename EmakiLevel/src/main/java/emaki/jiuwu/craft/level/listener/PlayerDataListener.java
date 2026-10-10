@@ -123,7 +123,7 @@ public final class PlayerDataListener implements Listener {
         }
         Throwable cause = AsyncFailures.unwrapOnce(throwable);
         plugin.getLogger().log(Level.WARNING,
-                plugin.messages().message("console.async_operation_failed",
+                "[persistence] " + plugin.messages().message("console.async_operation_failed",
                         Map.of("operation", operation, "player", playerId)),
                 cause);
     }

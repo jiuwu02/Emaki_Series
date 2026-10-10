@@ -51,7 +51,7 @@ final class ScriptItemEffectType implements ItemEffectType {
             }
             return new ScriptItemEffect(this, effect);
         } catch (ScriptCallbackException exception) {
-            logger.warning("EmakiItem 脚本效果 '" + id + "' 解析物品 '"
+            logger.warning("[script] 脚本效果 '" + id + "' 解析物品 '"
                     + context.definitionId() + "' 失败: " + exception.getMessage());
             return null;
         }
@@ -64,7 +64,7 @@ final class ScriptItemEffectType implements ItemEffectType {
         try {
             runner.run(clearFn, effect, exportApplyContext(context));
         } catch (ScriptCallbackException exception) {
-            logger.warning("EmakiItem 脚本效果 '" + id + "' 清理物品 '"
+            logger.warning("[script] 脚本效果 '" + id + "' 清理物品 '"
                     + context.definitionId() + "' 失败: " + exception.getMessage());
         }
     }
@@ -73,7 +73,7 @@ final class ScriptItemEffectType implements ItemEffectType {
         try {
             runner.run(applyFn, effect, exportApplyContext(context));
         } catch (ScriptCallbackException exception) {
-            logger.warning("EmakiItem 脚本效果 '" + id + "' 应用物品 '"
+            logger.warning("[script] 脚本效果 '" + id + "' 应用物品 '"
                     + context.definitionId() + "' 失败: " + exception.getMessage());
         }
     }

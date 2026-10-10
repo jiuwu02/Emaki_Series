@@ -259,7 +259,7 @@ public final class SkillUpgradeService {
             boolean costsRestored = rollbackCharge(player, chargeResult);
             boolean compensated = stateRestored & costsRestored;
             if (!compensated && plugin != null) {
-                plugin.getLogger().severe("技能升级状态提交补偿不完整，玩家 "
+                plugin.getLogger().severe("[upgrade] 技能升级状态提交补偿不完整，玩家 "
                         + (player == null ? "未知玩家" : player.getUniqueId()));
             }
             placeholders.put("reason", Texts.isBlank(exception.getMessage())
@@ -578,7 +578,7 @@ public final class SkillUpgradeService {
         } catch (RuntimeException | LinkageError exception) {
             if (plugin != null) {
                 plugin.getLogger().log(Level.SEVERE,
-                        "升级提交失败后恢复技能等级失败，玩家 "
+                        "[upgrade] 升级提交失败后恢复技能等级失败，玩家 "
                                 + (player == null ? "未知玩家" : player.getUniqueId()),
                         exception);
             }
@@ -634,13 +634,13 @@ public final class SkillUpgradeService {
             Throwable throwable) {
         if (throwable != null) {
             plugin.getLogger().log(Level.WARNING,
-                    "[SkillUpgrade] 动作阶段 '" + phase + "' 对 "
+                    "[upgrade] 动作阶段 '" + phase + "' 对 "
                             + (definition == null ? "-" : definition.id()) + " 执行失败",
                     throwable);
             return;
         }
         if (success == null || !success) {
-            plugin.getLogger().warning("[SkillUpgrade] 动作阶段 '" + phase + "' 对 "
+            plugin.getLogger().warning("[upgrade] 动作阶段 '" + phase + "' 对 "
                     + (definition == null ? "-" : definition.id()) + " 执行失败");
         }
     }

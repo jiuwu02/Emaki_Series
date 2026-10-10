@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.14"
+version: "2.8.15"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -22,15 +22,15 @@ general:
     "<green>Refreshed <aqua>%player%</aqua>'s item updates and set lore,
     processed <white>%count%</white> items.</green>"
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopping: "Stopping EmakiItem..."
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopping: "[shutdown] Stopping EmakiItem..."
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> problem(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -46,39 +46,39 @@ console:
       required_directory_missing: "Required directory is missing."
       path_not_directory: "Path is not a directory."
       directory_not_readable: "Directory is not readable."
-  items_loaded: "<gray>Loaded <yellow>%count%</yellow> item(s)</gray>"
-  sets_loaded: "<gray>Loaded <yellow>%count%</yellow> set(s)</gray>"
-  bootstrap_start: "<gray>Syncing bundled resources...</gray>"
-  bootstrap_complete: "Bundled resources synced."
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "Skipped default data release by config."
-  default_file_missing: "Bundled resource missing: %path%"
-  bootstrap_copy_failed: "Failed to copy default resource: %path% (%error%)"
-  bootstrap_save_failed: "Failed to save versioned resource: %path% (%error%)"
-  directory_create_failed: "Failed to create directory: %path%"
-  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
-  mythic_drops_registered: "<gray>MythicMobs Drops registered</gray>"
-  item_state_unknown_sound: "<yellow>Unresolvable item_state threshold sound: <white>%sound%</white></yellow>"
+  items_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> item(s)</gray>"
+  sets_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> set(s)</gray>"
+  bootstrap_start: "[loader] <gray>Syncing bundled resources...</gray>"
+  bootstrap_complete: "[loader] Bundled resources synced."
+  versioned_file_updated: "[config] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] Skipped default data release by config."
+  default_file_missing: "[loader] Bundled resource missing: %path%"
+  bootstrap_copy_failed: "[loader] Failed to copy default resource: %path% (%error%)"
+  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
+  directory_create_failed: "[loader] Failed to create directory: %path%"
+  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
+  mythic_drops_registered: "[integration] <gray>MythicMobs Drops registered</gray>"
+  item_state_unknown_sound: "[config] <yellow>Unresolvable item_state threshold sound: <white>%sound%</white></yellow>"
   # Console: item ID aliases loaded count; placeholders: %count%
-  aliases_loaded: "<gray>Loaded <yellow>%count%</yellow> alias(es)</gray>"
+  aliases_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> alias(es)</gray>"
   # Console: reload stage failure; placeholders: %stage%, %error%
-  reload_stage_failed: "<red>Reload stage %stage% failed: %error%</red>"
+  reload_stage_failed: "[reload] <red>Reload stage %stage% failed: %error%</red>"
   # Console: failed to open editor; placeholders: %item%, %error%
-  editor_open_failed: "<red>Could not open EmakiItem editor for %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>Could not open EmakiItem editor for %item% (%error%)</red>"
   # Console: failed to create item definition; placeholders: %path%, %error%
-  editor_create_failed: "<red>Could not create EmakiItem definition: %path% (%error%)</red>"
+  editor_create_failed: "[editor] <red>Could not create EmakiItem definition: %path% (%error%)</red>"
   # Console: editor GUI template missing; placeholders: %template%
-  editor_template_missing: "<red>Missing EmakiItem editor GUI template: %template%</red>"
+  editor_template_missing: "[editor] <red>Missing EmakiItem editor GUI template: %template%</red>"
   # Console: failed to open set definition; placeholders: %file%, %error%
-  editor_set_open_failed: "<red>Could not open EmakiItem set definition: %file% (%error%)</red>"
+  editor_set_open_failed: "[editor] <red>Could not open EmakiItem set definition: %file% (%error%)</red>"
   # Console: failed to delete item definition; placeholders: %error%
-  editor_delete_failed: "<red>Could not delete EmakiItem definition: %error%</red>"
+  editor_delete_failed: "[editor] <red>Could not delete EmakiItem definition: %error%</red>"
   scripts:
-    engine_unavailable: "<yellow>GraalJS runtime unavailable, script extension disabled; other features are unaffected.</yellow>"
-    disabled: "<gray>Script extension is disabled in the config, no scripts were loaded.</gray>"
-    loaded: "<gray>Script loading finished: <yellow>%loaded%</yellow> file(s), <yellow>%errors%</yellow> error(s).</gray>"
-    file_error: "<red>Script failed to load: <white>%file%</white> -> %error%</red>"
-    register_error: "<red>Script effect type registration failed: <white>%id%</white> -> %error%</red>"
+    engine_unavailable: "[script] <yellow>GraalJS runtime unavailable, script extension disabled; other features are unaffected.</yellow>"
+    disabled: "[script] <gray>Script extension is disabled in the config, no scripts were loaded.</gray>"
+    loaded: "[script] <gray>Script loading finished: <yellow>%loaded%</yellow> file(s), <yellow>%errors%</yellow> error(s).</gray>"
+    file_error: "[script] <red>Script failed to load: <white>%file%</white> -> %error%</red>"
+    register_error: "[script] <red>Script effect type registration failed: <white>%id%</white> -> %error%</red>"
 command:
   help:
     header: "<gold>EmakiItem Commands</gold>"

@@ -90,7 +90,7 @@ public final class ConfigKeyMigration {
 
     private static void warn(Logger logger, String message) {
         if (logger != null) {
-            logger.warning(message);
+            logger.warning("[config] " + message);
         }
     }
 }

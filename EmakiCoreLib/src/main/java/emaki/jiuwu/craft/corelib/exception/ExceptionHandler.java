@@ -44,7 +44,7 @@ public final class ExceptionHandler {
 
     private void logException(FrameworkException exception, Level level) {
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(exception.errorCode()).append(": ").append(exception.getMessage());
+        logMessage.append("[exception] ").append(exception.errorCode()).append(": ").append(exception.getMessage());
         if (!exception.context().isEmpty()) {
             logMessage.append(" | 上下文: ").append(exception.contextAsString());
         }

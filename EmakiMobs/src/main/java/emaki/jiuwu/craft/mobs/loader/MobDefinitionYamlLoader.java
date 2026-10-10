@@ -103,7 +103,7 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
             return currentKey;
         }
-        plugin.getLogger().warning("生物文件 '" + file.getName() + "' 仍在使用旧键 '"
+        plugin.getLogger().warning("[loader] 生物文件 '" + file.getName() + "' 仍在使用旧键 '"
                 + legacyKey + "'，请改为 '" + currentKey
                 + "'。旧键将在下一个大版本移除。");
         return legacyKey;

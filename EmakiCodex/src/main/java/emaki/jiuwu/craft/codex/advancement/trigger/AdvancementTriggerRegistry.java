@@ -75,8 +75,8 @@ public final class AdvancementTriggerRegistry implements Listener, AutoCloseable
                 }
             } catch (RuntimeException | LinkageError exception) {
                 if (plugin != null) {
-                    plugin.getLogger().warning("成就触发器提供者 '" + entry.getKey().id()
-                            + "' 执行失败：" + exception.getMessage());
+                    plugin.getLogger().warning("[trigger] 成就触发器提供者 '" + entry.getKey().id()
+                            + "' 执行失败: " + exception.getMessage());
                 }
             }
         }

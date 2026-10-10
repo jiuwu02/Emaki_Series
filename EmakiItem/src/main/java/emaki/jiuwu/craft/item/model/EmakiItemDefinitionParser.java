@@ -81,7 +81,7 @@ public final class EmakiItemDefinitionParser {
         }
         String id = Texts.normalizeId(root.getString("id"));
         if (Texts.isBlank(id)) {
-            warning("跳过物品定义 " + source + "：ID 无效或缺失。");
+            warning("[loader] 跳过物品定义 " + source + ": ID 无效或缺失。");
             return null;
         }
         warnRetiredFields(root, source);
@@ -89,7 +89,7 @@ public final class EmakiItemDefinitionParser {
         try {
             itemDefinition = parseConfiguredItem(root, id);
         } catch (IllegalArgumentException exception) {
-            warning("跳过物品定义 " + source + "：" + exception.getMessage());
+            warning("[loader] 跳过物品定义 " + source + ": " + exception.getMessage());
             return null;
         }
         List<Map<?, ?>> effects = root.getMapList("effects");
@@ -100,7 +100,7 @@ public final class EmakiItemDefinitionParser {
                     ? Map.of()
                     : ExpressionEngine.resolveMixedVariables(variables, Map.of());
         } catch (RuntimeException exception) {
-            warning("跳过物品定义 " + source + "：变量校验失败: " + exception.getMessage());
+            warning("[loader] 跳过物品定义 " + source + ": 变量校验失败: " + exception.getMessage());
             return null;
         }
         if (!validateConfiguredItem(itemDefinition, source, resolvedValidationVariables)) {
@@ -151,10 +151,10 @@ public final class EmakiItemDefinitionParser {
             Map<String, Object> variables) {
         ItemBuildResult result = EmakiCoreLibApi.createConfiguredItem(resolveValidationDefinition(definition, variables));
         for (ItemBuildIssue issue : result.issues()) {
-            warning("物品定义 " + source + " [" + Texts.toStringSafe(issue.componentId()) + "]: " + issue.message());
+            warning("[loader] 物品定义 " + source + " [" + Texts.toStringSafe(issue.componentId()) + "]: " + issue.message());
         }
         if (!result.success() || result.hasErrors() || result.itemStack() == null) {
-            warning("跳过物品定义 " + source + "：物品来源或组件校验失败。");
+            warning("[loader] 跳过物品定义 " + source + ": 物品来源或组件校验失败。");
             return false;
         }
         return true;
@@ -272,7 +272,7 @@ public final class EmakiItemDefinitionParser {
             return ItemUpdatePolicy.defaults();
         }
         if (configuredVersion == null || configuredVersion < 1) {
-            warning("物品定义 " + source + " 为 '" + itemId + "' 启用了更新，但缺少有效的 update.version；物品更新已禁用。");
+            warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 启用了更新，但缺少有效的 update.version；物品更新已禁用。");
             return ItemUpdatePolicy.defaults();
         }
         return new ItemUpdatePolicy(
@@ -306,7 +306,7 @@ public final class EmakiItemDefinitionParser {
         if (isSupportedEquipSlot(normalized)) {
             return normalized;
         }
-        warning("物品定义 " + source + " 为 '" + itemId + "' 配置了不支持的 equip_slot '" + configured
+        warning("[loader] 物品定义 " + source + " 为 '" + itemId + "' 配置了不支持的 equip_slot '" + configured
                 + "'；回退为 'all'。");
         return EquipmentSlotMatcher.SLOT_ALL;
     }
@@ -645,7 +645,7 @@ public final class EmakiItemDefinitionParser {
             }
         }
         if (!present.isEmpty()) {
-            warning("物品定义 " + source + " 声明了已停用的字段 " + String.join(", ", present)
+            warning("[loader] 物品定义 " + source + " 声明了已停用的字段 " + String.join(", ", present)
                     + "；这些字段会被忽略。请将基础物品声明为 'item.source' + 'item.components'，将效果写成 'effects' 条目"
                     + "，并把堆叠数量传给 give 命令。");
         }

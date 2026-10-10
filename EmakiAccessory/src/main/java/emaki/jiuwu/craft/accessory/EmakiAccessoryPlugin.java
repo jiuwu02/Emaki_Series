@@ -154,7 +154,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         PlayerAccessoryStore.FlushResult result = components.accessoryStore()
                 .flushAndSeal(appConfig().drainTimeoutSeconds(), TimeUnit.SECONDS);
         if (!result.clean()) {
-            getLogger().warning("饰品数据写入未正常结束: saved=" + result.savedEntries()
+            getLogger().warning("[shutdown] 饰品数据写入未正常结束: saved=" + result.savedEntries()
                     + " failed=" + result.failedEntries()
                     + " remainingDirty=" + result.remainingDirtyEntries());
         }
@@ -194,7 +194,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("已跳过 EmakiAccessory 就绪状态发布: " + exception);
+            getLogger().fine("[startup] 已跳过就绪状态发布: " + exception);
         }
     }
 

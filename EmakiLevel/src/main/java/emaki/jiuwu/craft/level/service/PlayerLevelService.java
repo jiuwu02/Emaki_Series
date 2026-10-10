@@ -566,16 +566,16 @@ public final class PlayerLevelService {
             return CompletableFuture.completedFuture(true);
         }
         if (actionLines == null) {
-            plugin.getLogger().warning("EmakiLevel 动作阶段 '" + phase + "' 失败: 动作执行器不可用");
+            plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: 动作执行器不可用");
             return CompletableFuture.completedFuture(false);
         }
         return actionLines.run(lines, player, phase, silent, placeholders, true).handle((success, throwable) -> {
             if (throwable != null) {
-                plugin.getLogger().warning("EmakiLevel 动作阶段 '" + phase + "' 失败: " + throwable.getMessage());
+                plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: " + throwable.getMessage());
                 return false;
             }
             if (success == null || !success) {
-                plugin.getLogger().warning("EmakiLevel 动作阶段 '" + phase + "' 失败: 动作批次未成功");
+                plugin.getLogger().warning("[action] 动作阶段 '" + phase + "' 失败: 动作批次未成功");
                 return false;
             }
             return true;

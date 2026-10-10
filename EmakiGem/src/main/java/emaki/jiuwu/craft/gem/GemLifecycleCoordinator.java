@@ -266,7 +266,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                     },
                     null,
                     (stage, ex) -> plugin.getLogger().warning(
-                            "[重载] 阶段 " + stage + " 失败: " + ex.getMessage())
+                            "[reload] 阶段 " + stage + " 失败: " + ex.getMessage())
             )).thenCompose(_ -> {
                 notifyProgress(progressListener, "正在应用配置...");
                 return submitGlobalStage(plugin, () -> {
@@ -308,15 +308,15 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 continue;
             }
             if (plugin.scheduling() == null) {
-                plugin.getLogger().warning("EmakiGem 已跳过玩家 " + player.getName()
-                        + " 的宝石物品刷新：当前线程不拥有该玩家且没有可用的调度器。");
+                plugin.getLogger().warning("[scheduler] 已跳过玩家 " + player.getName()
+                        + " 的宝石物品刷新: 当前线程不拥有该玩家且没有可用的调度器。");
                 continue;
             }
             var task = plugin.scheduling().runForEntity(plugin, player,
                     () -> GemItemObtainListener.refreshInventory(plugin, player), null);
             if (task.cancelled()) {
-                plugin.getLogger().warning("EmakiGem 无法为玩家 " + player.getName()
-                        + " 重新安排宝石物品刷新：实体任务调度被拒绝。");
+                plugin.getLogger().warning("[scheduler] 无法为玩家 " + player.getName()
+                        + " 重新安排宝石物品刷新: 实体任务调度被拒绝。");
             }
         }
     }
@@ -332,7 +332,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (plugin.gemGuiService() != null) {
             plugin.gemGuiService().clearAllSessionsAsync().exceptionally(throwable -> {
-                plugin.getLogger().warning("关闭阶段无法关闭宝石 GUI 会话: " + throwable.getMessage());
+                plugin.getLogger().warning("[shutdown] 关闭阶段无法关闭宝石 GUI 会话: " + throwable.getMessage());
                 return null;
             });
         }
@@ -385,7 +385,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
         }
         if (permission != null && permission.contains("op_bypass")) {
             boolean legacyValue = permission.getBoolean("op_bypass", fallback);
-            JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("配置键 permission.op_bypass"
+            JavaPlugin.getPlugin(EmakiGemPlugin.class).getLogger().warning("[config] 配置键 permission.op_bypass"
                     + " 已移到顶层 op_bypass，当前按旧键值 " + legacyValue
                     + " 生效，启动时会自动迁移到新键。");
             return legacyValue;

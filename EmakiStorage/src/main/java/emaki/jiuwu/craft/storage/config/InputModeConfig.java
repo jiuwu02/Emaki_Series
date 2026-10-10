@@ -82,7 +82,7 @@ public record InputModeConfig(Mode mode, DialogDefinition dialog, String inputKe
 
     private static void report(Consumer<String> issues, String dialogId, String issue) {
         if (issues != null) {
-            issues.accept("对话框 '" + dialogId + "'：" + issue);
+            issues.accept("对话框 '" + dialogId + "': " + issue);
         }
     }
 }

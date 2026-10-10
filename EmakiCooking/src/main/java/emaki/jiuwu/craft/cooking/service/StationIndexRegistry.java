@@ -261,7 +261,7 @@ final class StationIndexRegistry {
             indexFlushTask = null;
             indexFlushScheduled.set(false);
             operationTracker.accept(flushDirtyIndexesAsync());
-            plugin.getLogger().warning("调度工位索引刷写失败: " + StationStateStore.rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 调度工位索引刷写失败: " + StationStateStore.rootCauseMessage(throwable));
         }
     }
 
@@ -319,7 +319,7 @@ final class StationIndexRegistry {
         }
         return fileScope.write(file, "station-index-save:" + world, task)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("写入工位索引失败，世界 " + world + ": " + StationStateStore.rootCauseMessage(throwable));
+                    plugin.getLogger().warning("[persistence] 写入工位索引失败，世界 " + world + ": " + StationStateStore.rootCauseMessage(throwable));
                     return null;
                 });
     }
@@ -344,7 +344,7 @@ final class StationIndexRegistry {
                 }
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("加载工位索引失败: " + exception.getMessage());
+            plugin.getLogger().warning("[persistence] 加载工位索引失败: " + exception.getMessage());
         }
         return loadedAny;
     }
@@ -444,7 +444,7 @@ final class StationIndexRegistry {
                 count++;
             }
         } catch (IOException exception) {
-            plugin.getLogger().warning("扫描旧版工位 YAML 失败: " + exception.getMessage());
+            plugin.getLogger().warning("[persistence] 扫描旧版工位 YAML 失败: " + exception.getMessage());
         }
         return count;
     }
@@ -455,7 +455,7 @@ final class StationIndexRegistry {
         }
         return fileScope.read("station-index-scan-legacy-yaml", this::scanLegacyYamlSync)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("旧版工位 YAML 扫描失败: " + StationStateStore.rootCauseMessage(throwable));
+                    plugin.getLogger().warning("[persistence] 旧版工位 YAML 扫描失败: " + StationStateStore.rootCauseMessage(throwable));
                     return 0;
                 });
     }
@@ -481,7 +481,7 @@ final class StationIndexRegistry {
             return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
                     .thenApply(_ -> futures.stream().mapToInt(future -> future.getNow(0)).sum());
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("已加载 TileState 的 PDC 重建索引失败: " + StationStateStore.rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 已加载 TileState 的 PDC 重建索引失败: " + StationStateStore.rootCauseMessage(throwable));
             return 0;
         });
     }

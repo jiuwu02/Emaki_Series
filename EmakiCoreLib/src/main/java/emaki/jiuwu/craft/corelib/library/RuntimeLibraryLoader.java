@@ -23,7 +23,7 @@ public final class RuntimeLibraryLoader {
     private static final String CENTRAL_REPO = "https://repo1.maven.org/maven2";
 
     private static final String ADVENTURE_VERSION = "4.26.1";
-    private static final Component LOG_PREFIX = Component.text("[LibraryLoader] ", NamedTextColor.GRAY);
+    private static final Component LOG_PREFIX = Component.text("[library_loader] ", NamedTextColor.GRAY);
 
     private static final int PROBE_TIMEOUT_MS = 3000;
     private static final int DOWNLOAD_CONNECT_TIMEOUT_MS = 8000;
@@ -136,15 +136,15 @@ public final class RuntimeLibraryLoader {
         ProbeResult central = probeRepository(CENTRAL_REPO, "Maven Central");
         if (aliyun.reachable && central.reachable) {
             ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + chosen.name + "（延迟 " + chosen.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + chosen.name + "（延迟 " + chosen.latencyMs + "ms）");
             return chosen == aliyun ? ALIYUN_REPO : CENTRAL_REPO;
         }
         if (aliyun.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + aliyun.name + "（延迟 " + aliyun.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + aliyun.name + "（延迟 " + aliyun.latencyMs + "ms）");
             return ALIYUN_REPO;
         }
         if (central.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + central.name + "（延迟 " + central.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + central.name + "（延迟 " + central.latencyMs + "ms）");
             return CENTRAL_REPO;
         }
         warn(NamedTextColor.YELLOW, "Maven 仓库探测均不可达，将优先尝试阿里云镜像");
@@ -199,7 +199,7 @@ public final class RuntimeLibraryLoader {
             Files.move(tempFile, localFile, StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (Exception exception) {
-            debug("下载请求失败：" + downloadUrl, exception);
+            debug("下载请求失败: " + downloadUrl, exception);
             deleteIfExists(tempFile);
             return false;
         } finally {
@@ -230,7 +230,7 @@ public final class RuntimeLibraryLoader {
                 return true;
             }
         } catch (IOException | SecurityException exception) {
-            debug("运行库缓存损坏：" + path, exception);
+            debug("运行库缓存损坏: " + path, exception);
             return false;
         }
     }
@@ -239,7 +239,7 @@ public final class RuntimeLibraryLoader {
         try {
             Files.deleteIfExists(path);
         } catch (IOException exception) {
-            debug("无法删除运行库缓存：" + path, exception);
+            debug("无法删除运行库缓存: " + path, exception);
         }
     }
 

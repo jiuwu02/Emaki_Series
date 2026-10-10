@@ -1,5 +1,5 @@
 // EmakiCookingApi（原 EmakiCookingApi/pom.xml）。
-version = '4.3.5'
+version = '4.3.6'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

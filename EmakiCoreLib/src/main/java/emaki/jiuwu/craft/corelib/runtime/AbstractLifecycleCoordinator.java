@@ -10,11 +10,11 @@ import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
 
@@ -159,9 +159,9 @@ public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponent
             String stageName,
             Exception stageFailure,
             Exception rollbackFailure) {
-        Logger logger = rollbackLogOwner == null ? Bukkit.getLogger() : rollbackLogOwner.getLogger();
+        Logger logger = rollbackLogOwner == null ? EmakiLog.of("EmakiCoreLib") : rollbackLogOwner.getLogger();
         logger.log(Level.SEVERE,
-                "阶段失败后重载回滚失败；模块可能既未应用新配置也未应用旧配置: stage=" + stageName
+                "[reload] 阶段失败后重载回滚失败；模块可能既未应用新配置也未应用旧配置: stage=" + stageName
                         + ", stageFailure=" + stageFailure
                         + ", rollbackFailure=" + rollbackFailure,
                 rollbackFailure);

@@ -170,32 +170,32 @@ public final class MythicBridge implements Listener {
             separator = entry.indexOf('：');
         }
         if (separator < 0) {
-            plugin.getLogger().warning("已跳过 Mythic 生物属性: source=" + sourceId
+            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
                     + ", entry=" + entry + ", reason=missing_separator");
             return null;
         }
         String attributeName = entry.substring(0, separator).trim();
         String valueText = entry.substring(separator + 1).trim();
         if (Texts.isBlank(attributeName) || Texts.isBlank(valueText)) {
-            plugin.getLogger().warning("已跳过 Mythic 生物属性: source=" + sourceId
+            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
                     + ", entry=" + entry + ", reason=blank_attribute_or_value");
             return null;
         }
         var definition = attributeService.attributeRegistry() == null ? null : attributeService.attributeRegistry().resolve(attributeName);
         if (definition == null) {
-            plugin.getLogger().warning("已跳过 Mythic 生物属性: source=" + sourceId
+            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
                     + ", attribute=" + attributeName + ", reason=unregistered_attribute");
             return null;
         }
         Double value = parseMobAttributeValue(valueText);
         if (value == null) {
-            plugin.getLogger().warning("已跳过 Mythic 生物属性: source=" + sourceId
+            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
                     + ", attribute=" + definition.id() + ", expression=" + valueText
                     + ", reason=unparsable_value");
             return null;
         }
         if (!Double.isFinite(value)) {
-            plugin.getLogger().warning("已跳过 Mythic 生物属性: source=" + sourceId
+            plugin.getLogger().warning("[integration] 已跳过 Mythic 生物属性: source=" + sourceId
                     + ", attribute=" + definition.id() + ", expression=" + valueText
                     + ", reason=non_finite_value");
             return null;
@@ -211,7 +211,7 @@ public final class MythicBridge implements Listener {
         try {
             return ExpressionEngine.evaluate(valueText);
         } catch (Exception exception) {
-            plugin.getLogger().warning("Mythic 生物属性表达式执行失败: expression=" + valueText
+            plugin.getLogger().warning("[integration] Mythic 生物属性表达式执行失败: expression=" + valueText
                     + ", cause=" + exception);
             return null;
         }
@@ -357,12 +357,12 @@ public final class MythicBridge implements Listener {
         protected boolean rejectsDeclaredArguments(String mechanic, double value) {
             String rawStackMode = rawStackMode();
             if (!rawStackMode.isBlank() && !TemporaryStackMode.isDeclared(rawStackMode)) {
-                plugin.getLogger().warning("Mythic 技能在解析时被拒绝: mechanic=" + mechanic
+                plugin.getLogger().warning("[integration] Mythic 技能在解析时被拒绝: mechanic=" + mechanic
                         + ", reason=unknown_stack_mode, stack_mode=" + rawStackMode);
                 return true;
             }
             if (!Double.isFinite(value)) {
-                plugin.getLogger().warning("Mythic 技能在解析时被拒绝: mechanic=" + mechanic
+                plugin.getLogger().warning("[integration] Mythic 技能在解析时被拒绝: mechanic=" + mechanic
                         + ", reason=non_finite_value, value=" + value);
                 return true;
             }
@@ -381,7 +381,7 @@ public final class MythicBridge implements Listener {
             };
             if (outcome.status().rejected()) {
                 plugin.getLogger().warning(
-                        "Mythic 技能被拒绝: mechanic=" + mechanic
+                        "[integration] Mythic 技能被拒绝: mechanic=" + mechanic
                                 + ", status=" + outcome.status().name()
                                 + ", group=" + outcome.groupId()
                                 + ", attribute=" + outcome.attributeId()

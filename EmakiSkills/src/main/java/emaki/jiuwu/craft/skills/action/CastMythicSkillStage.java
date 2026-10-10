@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 
 public final class CastMythicSkillStage implements CoreActionStage {
 
@@ -110,8 +111,8 @@ public final class CastMythicSkillStage implements CoreActionStage {
                 apiHelper = MythicBukkit.inst().getAPIHelper();
                 available = apiHelper != null;
             } catch (NoClassDefFoundError | Exception exception) {
-                Bukkit.getLogger().log(Level.FINE,
-                        "[EmakiSkills] cast_mythic_skill: MythicMobs 桥接初始化失败", exception);
+                EmakiLog.of("EmakiSkills").log(Level.FINE,
+                        "[integration] cast_mythic_skill: MythicMobs 桥接初始化失败", exception);
             }
             return available;
         }

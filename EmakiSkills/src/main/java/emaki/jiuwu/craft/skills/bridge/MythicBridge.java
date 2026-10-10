@@ -144,7 +144,7 @@ public final class MythicBridge {
                 metadata.getParameters().putAll(variables);
             } catch (RuntimeException exception) {
                 plugin.getLogger().log(Level.WARNING,
-                        "MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters="
+                        "[integration] MythicMobs 技能元数据参数被拒绝: provider=MythicMobs, parameters="
                                 + variables.keySet()
                                 + ", operation=apply_skill_metadata_parameters, cause=" + exception,
                         exception);
@@ -165,17 +165,17 @@ public final class MythicBridge {
             messages.info(key);
             return;
         }
-        plugin.getLogger().info(key);
+        plugin.getLogger().info("[integration] " + key);
     }
 
     private void warning(String key, Map<String, ?> replacements, Throwable throwable) {
-        String text = messages == null ? key : messages.message(key, replacements == null ? Map.of() : replacements);
-        String plainText = messages == null ? text : MiniMessages.plainText(text);
+        String text = messages == null ? "[integration] " + key
+                : MiniMessages.plainText(messages.message(key, replacements == null ? Map.of() : replacements));
         if (throwable == null) {
-            plugin.getLogger().warning(plainText);
+            plugin.getLogger().warning(text);
             return;
         }
-        plugin.getLogger().log(Level.WARNING, plainText, throwable);
+        plugin.getLogger().log(Level.WARNING, text, throwable);
     }
 
     private String errorMessage(Throwable throwable) {

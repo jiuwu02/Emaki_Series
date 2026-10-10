@@ -29,12 +29,13 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.api.model.StrengthenRecipe;
 
 public final class StrengthenRecipeResolver {
 
-    private static final Logger LOGGER = Logger.getLogger(StrengthenRecipeResolver.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiStrengthen");
 
     private static final double EPSILON = 1.0E-9D;
 
@@ -210,7 +211,7 @@ public final class StrengthenRecipeResolver {
         try {
             return matcher.test(matchContext);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("配方 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            LOGGER.warning("[matcher] 配方 Matcher 判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
             return false;
         }
     }

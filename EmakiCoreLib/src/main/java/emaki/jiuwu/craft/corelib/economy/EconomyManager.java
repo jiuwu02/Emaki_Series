@@ -35,8 +35,8 @@ public final class EconomyManager {
         try {
             register(providerFactory.get());
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().log(Level.SEVERE,
-                    "经济提供者注册失败: dependency=" + dependencyName
+            plugin.getLogger().log(Level.WARNING,
+                    "[economy] 经济提供者注册失败: dependency=" + dependencyName
                             + ", operation=register_optional_provider, cause=" + exception,
                     exception);
         }

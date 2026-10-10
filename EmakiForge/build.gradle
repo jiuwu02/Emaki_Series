@@ -1,5 +1,5 @@
 // EmakiForge（原 EmakiForge/pom.xml）。
-version = '4.8.5'
+version = '4.8.6'
 
 dependencies {
     // 原 shade artifactSet 白名单。

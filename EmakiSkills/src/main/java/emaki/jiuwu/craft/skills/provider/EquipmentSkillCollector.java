@@ -323,7 +323,7 @@ public final class EquipmentSkillCollector {
             }
             loggedLoreFailures.put(key, Boolean.TRUE);
         }
-        logger.warning("[EquipmentSkillCollector] 读取 Lore 失败: player=" + playerId
+        logger.warning("[collector] 读取 Lore 失败: player=" + playerId
                 + ", slot=" + slotName
                 + ", material=" + material
                 + ", exception=" + failure.getClass().getName());

@@ -24,7 +24,7 @@ public final class StrengthenStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("注册流水线阶段 '" + operation.id()
+                plugin.getLogger().warning("[startup] 注册流水线阶段 '" + operation.id()
                         + "' 失败: " + registration.reasonKey());
             }
         }

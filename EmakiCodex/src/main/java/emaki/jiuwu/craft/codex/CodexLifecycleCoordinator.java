@@ -190,7 +190,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             PlayerCodexStore.FlushResult flush =
                     plugin.codexStore().flushAndSeal(SHUTDOWN_FLUSH_SECONDS, TimeUnit.SECONDS);
             if (!flush.clean()) {
-                plugin.getLogger().warning("EmakiCodex 进度刷新结束时仍有未落盘数据：saved="
+                plugin.getLogger().warning("[shutdown] 进度刷新结束时仍有未落盘数据: saved="
                         + flush.savedEntries() + " failed=" + flush.failedEntries()
                         + " remaining=" + flush.remainingDirtyEntries());
             }
@@ -248,7 +248,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (section.contains(legacyPath)) {
             boolean legacyValue = bool(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("配置键 advancement." + legacyPath
+            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[config] 配置键 advancement." + legacyPath
                     + " 已更名为 advancement." + path
                     + "，当前按旧键值 " + legacyValue
                     + " 生效，启动时会自动迁移到新键。");

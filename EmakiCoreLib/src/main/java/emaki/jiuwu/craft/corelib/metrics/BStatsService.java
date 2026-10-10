@@ -99,7 +99,7 @@ public final class BStatsService {
 
     private void info(String key, Map<String, ?> replacements) {
         if (messages == null) {
-            logger.info(key);
+            logger.info("[metrics] " + key);
             return;
         }
         messages.info(key, replacements);
@@ -107,19 +107,19 @@ public final class BStatsService {
 
     private void warning(String key, Map<String, ?> replacements) {
         if (messages == null) {
-            logger.warning(key);
+            logger.warning("[metrics] " + key);
             return;
         }
         messages.warning(key, replacements);
     }
 
     private void fine(String key, Map<String, ?> replacements, Throwable throwable) {
-        String message = messages == null ? key : messages.message(key, replacements);
-        String plainMessage = MiniMessages.plain(MiniMessages.parse(message));
+        String message = messages == null ? "[metrics] " + key
+                : MiniMessages.plain(MiniMessages.parse(messages.message(key, replacements)));
         if (throwable == null) {
-            logger.fine(plainMessage);
+            logger.fine(message);
             return;
         }
-        logger.log(Level.FINE, plainMessage, throwable);
+        logger.log(Level.FINE, message, throwable);
     }
 }

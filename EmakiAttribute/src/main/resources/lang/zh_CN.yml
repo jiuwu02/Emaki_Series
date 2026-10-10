@@ -2,20 +2,20 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.5"
+version: "4.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
 
 console:
-  plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成</green>"
-  plugin_stopped: "<yellow>已关闭</yellow>"
-  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -35,31 +35,31 @@ console:
       attribute_sources_match_requires_both: "一致模式要求同时启用 Lore 与 PDC 属性读取，否则所有物品属性都会失效。"
       scaling_curve_type_unknown: "属性 %attribute% 的衰减曲线类型 %curve_type% 无法识别，已回退为 logarithmic。"
   combat_debug_line: "<gray>[CombatDebug][<aqua>%phase%</aqua>]</gray> %message%"
-  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  config_load_failed: "<red>配置读取失败: %error%</red>"
-  reload_stage_failed: "<yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
-  vanilla_attribute_resolve_failed: "<yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
-  attribute_key_contains_conflict: "<yellow>[属性注册] 检测到词条关键字包含冲突:
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  config_load_failed: "[config] <red>配置读取失败: %error%</red>"
+  reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
+  vanilla_attribute_resolve_failed: "[loader] <yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
+  attribute_key_contains_conflict: "[loader] <yellow>[属性注册] 检测到词条关键字包含冲突:
     <aqua>%lower_display_name%</aqua> (<white>%lower_id%</white>, 优先级
     %lower_priority%) 的关键字 <white>%lower_key%</white> 包含了
     <aqua>%higher_display_name%</aqua> (<white>%higher_id%</white>, 优先级
     %higher_priority%) 的关键字
     <white>%higher_key%</white>。这会因为优先级较低导致读取失效，请提高优先级或修改
     display_name。</yellow>"
-  mmoitems_bridge_unavailable: "<yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
-  mmoitems_stat_resolve_failed: "<yellow>MMOItems 属性映射无法解析统计项: 属性
+  mmoitems_bridge_unavailable: "[integration] <yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
+  mmoitems_stat_resolve_failed: "[integration] <yellow>MMOItems 属性映射无法解析统计项: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed: "<yellow>MMOItems 属性映射读取失败: 属性
+  mmoitems_stat_read_failed: "[integration] <yellow>MMOItems 属性映射读取失败: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red> (<red>%error%</red>)</yellow>"
-  attribute_registry_empty: "<yellow>未加载到任何属性</yellow>"
-  attribute_registry_summary: "<gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
-  attribute_registry_entry: "<gray>[属性注册]</gray>
+  attribute_registry_empty: "[loader] <yellow>未加载到任何属性</yellow>"
+  attribute_registry_summary: "[loader] <gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
+  attribute_registry_entry: "[loader] <gray>[属性注册]</gray>
     <white>%index%</white> <dark_gray>|</dark_gray> <aqua>%display_name%</aqua>
     <dark_gray>(</dark_gray><white>%id%</white><dark_gray>)</dark_gray>
     <dark_gray>|</dark_gray> <gray>默认值</gray> <yellow>%default_value%</yellow>
     <dark_gray>|</dark_gray> <gray>战力系数</gray>
     <yellow>%attribute_power%</yellow>"
-  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
 
 loader:
   lang_directory_create_failed: "<red>无法创建语言目录: %path%</red>"

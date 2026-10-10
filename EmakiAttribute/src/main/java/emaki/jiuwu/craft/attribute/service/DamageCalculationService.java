@@ -740,7 +740,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "伤害后置效果 '" + phase + "' 执行失败；其余终结效果将继续处理。",
+                        "[combat] 伤害后置效果 '" + phase + "' 执行失败；其余终结效果将继续处理。",
                         exception
                 );
             }
@@ -1208,7 +1208,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "伤害调试锚点输出失败；伤害计算不受影响。",
+                        "[combat] 伤害调试锚点输出失败；伤害计算不受影响。",
                         exception
                 );
             }
@@ -1473,7 +1473,7 @@ final class DamageCalculationService {
             if (service.plugin() != null) {
                 service.plugin().getLogger().log(
                         Level.WARNING,
-                        "伤害调试锚点输出失败；伤害计算不受影响。",
+                        "[combat] 伤害调试锚点输出失败；伤害计算不受影响。",
                         exception
                 );
             }

@@ -291,11 +291,11 @@ public final class ScriptHost implements AutoCloseable {
         }
 
         public void info(@NotNull String message) {
-            logger.info(message);
+            logger.info("[script] " + message);
         }
 
         public void warn(@NotNull String message) {
-            logger.warning(message);
+            logger.warning("[script] " + message);
         }
     }
 }

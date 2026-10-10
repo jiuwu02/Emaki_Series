@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.storage.api.event.StorageBatchEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageDepositEvent;
 import emaki.jiuwu.craft.storage.api.event.StorageWithdrawEvent;
@@ -43,7 +44,7 @@ import emaki.jiuwu.craft.storage.model.StorageReservation;
 
 public final class StorageTransactionService {
 
-    private static final Logger LOGGER = Logger.getLogger(StorageTransactionService.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiStorage");
 
     private final ItemSourceService itemSourceService;
     private final StorageCapacityService capacityService;
@@ -687,7 +688,7 @@ public final class StorageTransactionService {
         try (ItemComponentSnapshotScope _ = ItemComponentSnapshotScope.open()) {
             return matcher.test(MatchContext.of(template, actual, null));
         } catch (RuntimeException exception) {
-            LOGGER.warning("[storage] deposit_filter 匹配器抛出异常，已按不匹配处理："
+            LOGGER.warning("[matcher] deposit_filter 匹配器抛出异常，已按不匹配处理: "
                     + exception.getClass().getSimpleName());
             return false;
         }

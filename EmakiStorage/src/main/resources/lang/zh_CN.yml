@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.2"
+version: "1.1.3"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -163,43 +163,43 @@ command:
     failed: "<red>导出 %player% 的仓库失败，请检查控制台日志。</red>"
 
 console:
-  plugin_starting: "正在启动 EmakiStorage..."
-  plugin_started: "EmakiStorage 已启动。"
-  bootstrap_start: "<gray>正在释放默认资源...</gray>"
-  bootstrap_skip: "<yellow>已跳过默认数据写入。</yellow>"
-  bootstrap_complete: "<green>默认文件检查完成。</green>"
-  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  plugin_starting: "[startup] 正在启动 EmakiStorage..."
+  plugin_started: "[startup] 已启动。"
+  bootstrap_start: "[loader] <gray>正在释放默认资源...</gray>"
+  bootstrap_skip: "[loader] <yellow>已跳过默认数据写入。</yellow>"
+  bootstrap_complete: "[loader] <green>默认文件检查完成。</green>"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
   # 控制台：能力发布被拒绝；占位符：%reason%
-  capability_refused: "[storage] 能力发布被拒绝：%reason%"
+  capability_refused: "[integration] 能力发布被拒绝: %reason%"
   # 控制台：PlaceholderAPI 扩展注册被拒绝
-  papi_registration_refused: "[storage] PlaceholderAPI 扩展注册被拒绝。"
+  papi_registration_refused: "[integration] PlaceholderAPI 扩展注册被拒绝。"
   # 控制台：PlaceholderAPI 扩展不可用；占位符：%reason%
-  papi_unavailable: "[storage] PlaceholderAPI 扩展不可用：%reason%"
+  papi_unavailable: "[integration] PlaceholderAPI 扩展不可用: %reason%"
   # 控制台：为玩家导出仓库失败；占位符：%player%、%error%
-  export_failed: "[storage] 为玩家 %player% 导出仓库失败：%error%"
+  export_failed: "[command] 为玩家 %player% 导出仓库失败: %error%"
   # 控制台：界面模板加载问题；占位符：%issue%
-  gui_issue: "[storage] %issue%"
+  gui_issue: "[gui] %issue%"
   # 控制台：付费扩容成本文件缺失；占位符：%file%
-  cost_file_missing: "[storage] %file% 缺失或为空；在提供之前付费扩容已禁用。"
+  cost_file_missing: "[economy] %file% 缺失或为空；在提供之前付费扩容已禁用。"
   # 控制台：解锁档位 count_range 无效；占位符：%range%
-  unlock_tier_invalid_range: "[storage] 跳过 count_range 无效的解锁档位：%range%"
+  unlock_tier_invalid_range: "[economy] 跳过 count_range 无效的解锁档位: %range%"
   # 控制台：解锁档位缺少价格；占位符：%range%
-  unlock_tier_no_price: "[storage] 跳过没有配置价格的解锁档位 %range%。"
+  unlock_tier_no_price: "[economy] 跳过没有配置价格的解锁档位 %range%。"
   # 控制台：解锁回退配置缺少正的 max_amount 保护值
-  unlock_fallback_invalid: "[storage] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值；超出既定档位的付费扩容已禁用。"
+  unlock_fallback_invalid: "[economy] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值；超出既定档位的付费扩容已禁用。"
   # 控制台：为玩家加载仓库失败；占位符：%player%、%reason%
-  storage_load_failed: "[storage] 为玩家 %player% 加载仓库失败：%reason%"
+  storage_load_failed: "[persistence] 为玩家 %player% 加载仓库失败: %reason%"
   # 控制台：注册流水线阶段失败；占位符：%stage%、%reason%
-  stage_register_failed: "注册流水线阶段 '%stage%' 失败：%reason%"
-  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  stage_register_failed: "[registry] 注册流水线阶段 '%stage%' 失败: %reason%"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"

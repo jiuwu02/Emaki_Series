@@ -92,7 +92,7 @@ public final class LegacyStrengthenConfigRewriter {
                     .sorted(Comparator.comparing(path -> path.getFileName().toString(), String.CASE_INSENSITIVE_ORDER))
                     .toList();
         } catch (IOException failure) {
-            logger.warning("无法列出待转换目录 " + directory + ": " + failure.getMessage());
+            logger.warning("[config] 无法列出待转换目录 " + directory + ": " + failure.getMessage());
             return List.of();
         }
     }
@@ -105,7 +105,7 @@ public final class LegacyStrengthenConfigRewriter {
             lines = new ArrayList<>(Files.readAllLines(file, StandardCharsets.UTF_8));
             section = YamlFiles.load(file.toFile());
         } catch (IOException | RuntimeException failure) {
-            logger.warning("读取配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[config] 读取配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()), List.of(), "");
         }
         if (section == null || !section.contains(LEGACY_KEY)) {
@@ -143,7 +143,7 @@ public final class LegacyStrengthenConfigRewriter {
             writeLines(file, rewritten);
             return new FileReport(fileName, Status.CONVERTED, "", diff, backupName);
         } catch (IOException failure) {
-            logger.warning("写入配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[config] 写入配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()), diff, "");
         }
     }

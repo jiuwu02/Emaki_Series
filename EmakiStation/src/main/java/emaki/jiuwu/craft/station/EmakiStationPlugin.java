@@ -148,12 +148,12 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         components.unlockService().saveAllAsync().whenComplete((ignoredUnlocks, unlockFailure) -> {
             if (unlockFailure != null) {
-                getLogger().warning("队列解锁数据刷写未正常完成: "
+                getLogger().warning("[shutdown] 队列解锁数据刷写未正常完成: "
                         + unlockFailure.getMessage());
             }
             components.queueService().flushAllAsync().whenComplete((ignored, failure) -> {
                 if (failure != null) {
-                    getLogger().warning("队列数据刷写未正常完成: " + failure.getMessage());
+                    getLogger().warning("[shutdown] 队列数据刷写未正常完成: " + failure.getMessage());
                 }
                 registry.set(StationRegistry.empty());
                 dismantleRegistry.set(DismantleStationRegistry.empty());
@@ -231,7 +231,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         try {
             action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("已跳过 EmakiStation 就绪状态发布: " + exception);
+            getLogger().fine("[startup] 已跳过就绪状态发布: " + exception);
         }
     }
 

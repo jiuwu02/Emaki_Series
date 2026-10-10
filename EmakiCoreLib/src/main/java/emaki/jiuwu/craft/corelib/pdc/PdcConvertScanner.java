@@ -113,7 +113,7 @@ public final class PdcConvertScanner {
                 }
             } catch (Throwable throwable) {
                 tally.failed().incrementAndGet();
-                plugin.getLogger().warning("玩家 " + player.getName() + " 的 PDC 转换失败"
+                plugin.getLogger().warning("[persistence] 玩家 " + player.getName() + " 的 PDC 转换失败"
                         + ": " + describe(throwable));
             } finally {
                 done.complete(null);
@@ -152,7 +152,7 @@ public final class PdcConvertScanner {
             } catch (Throwable throwable) {
                 Tally target = containerTally != null ? containerTally : entityTally;
                 target.failed().incrementAndGet();
-                plugin.getLogger().warning("区块 " + chunkRef.worldName()
+                plugin.getLogger().warning("[persistence] 区块 " + chunkRef.worldName()
                         + " " + chunkRef.chunkX() + "," + chunkRef.chunkZ() + " 的 PDC 转换失败: " + describe(throwable));
             } finally {
                 done.complete(null);

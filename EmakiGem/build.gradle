@@ -1,5 +1,5 @@
 // EmakiGem（原 EmakiGem/pom.xml，private-modules profile 模块）。
-version = '2.8.7'
+version = '2.8.8'
 
 dependencies {
     // 原 shade artifactSet 白名单。

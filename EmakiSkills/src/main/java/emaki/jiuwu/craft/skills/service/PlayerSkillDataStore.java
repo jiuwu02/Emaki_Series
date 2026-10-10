@@ -499,7 +499,7 @@ public final class PlayerSkillDataStore {
     private File profileFile(UUID playerId) {
         File dataDirectory = new File(plugin.getDataFolder(), "data");
         if (!dataDirectory.exists() && !dataDirectory.mkdirs()) {
-            plugin.getLogger().warning("[SkillDataStore] 无法创建数据目录: " + dataDirectory);
+            plugin.getLogger().warning("[persistence] 无法创建数据目录: " + dataDirectory);
         }
         return new File(dataDirectory, playerId + ".yml");
     }
@@ -510,14 +510,14 @@ public final class PlayerSkillDataStore {
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                "[SkillDataStore] 读取 " + playerId
+                "[persistence] 读取 " + playerId
                         + " 失败；本会话保持只读以保护现有文件",
                 throwable);
     }
 
     private void logSaveFailure(UUID playerId, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                "[SkillDataStore] 保存玩家档案失败: " + playerId,
+                "[persistence] 保存玩家档案失败: " + playerId,
                 throwable);
     }
 

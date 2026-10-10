@@ -67,7 +67,7 @@ public final class ItemEditService {
             if (result.saved()) {
                 pendingFlushes.remove(entry.getKey());
             } else {
-                plugin.getLogger().warning("EmakiItem 编辑器延迟写入未持久化 " + entry.getKey()
+                plugin.getLogger().warning("[editor] 编辑器延迟写入未持久化 " + entry.getKey()
                         + ": " + result.detail());
             }
         }

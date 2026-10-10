@@ -363,7 +363,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
         if (plugin.playerSkillDataStore() != null) {
             var flushResult = plugin.playerSkillDataStore().flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                plugin.getLogger().warning("[Shutdown] 技能数据落盘不完整: pending="
+                plugin.getLogger().warning("[shutdown] 技能数据落盘不完整: pending="
                         + flushResult.drainResult().pendingOperations()
                         + ", ioFailures=" + flushResult.drainResult().failures().size()
                         + ", saveFailures=" + flushResult.failedEntries()

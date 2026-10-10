@@ -179,7 +179,7 @@ public final class StorageOperationLog {
                 && cause instanceof CompletionException) {
             cause = cause.getCause();
         }
-        logger.log(Level.WARNING, message
+        logger.log(Level.WARNING, "[journal] " + message
                 + (cause == null ? "" : ": " + cause.getClass().getSimpleName()
                         + (cause.getMessage() == null ? "" : " " + cause.getMessage())));
     }

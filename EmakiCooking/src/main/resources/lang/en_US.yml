@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.3.5"
+version: "4.3.6"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -81,14 +81,14 @@ nutrition:
   modify_failed: "<red>Failed to modify nutrition: <gray>%reason%</gray></red>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -112,61 +112,61 @@ console:
       station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station."
       station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC."
       station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState."
-  bootstrap_start: "<gray>Checking default files...</gray>"
-  bootstrap_complete: "<green>Default file check complete.</green>"
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "<yellow>Skipped default data generation.</yellow>"
-  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
+  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] <yellow>Skipped default data generation.</yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>Failed to save merged resource:
+  bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  default_file_missing: "<yellow>Missing built-in default resource: <red>%path%</red></yellow>"
-  directory_create_failed: "<yellow>Failed to create directory: <red>%path%</red></yellow>"
-  loader_config_load_error: "<yellow>Failed to load EmakiCooking config:
+  default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
+  directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
+  loader_config_load_error: "[loader] <yellow>Failed to load EmakiCooking config:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  station_recipes_loaded: "<gray>Loaded %station% <yellow>%count%</yellow> recipe(s)</gray>"
-  block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
-  block_source_bridge_unavailable: "<yellow>Block source unavailable: %provider% (%error%)</yellow>"
-  nutrition_bridge_ready: "<gray>Nutrition consume source connected: <aqua>%provider%</aqua></gray>"
-  nutrition_bridge_unavailable: "<yellow>Nutrition consume source unavailable: %provider% (%error%)</yellow>"
+  station_recipes_loaded: "[loader] <gray>Loaded %station% <yellow>%count%</yellow> recipe(s)</gray>"
+  block_source_bridge_ready: "[integration] <gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  block_source_bridge_unavailable: "[integration] <yellow>Block source unavailable: %provider% (%error%)</yellow>"
+  nutrition_bridge_ready: "[integration] <gray>Nutrition consume source connected: <aqua>%provider%</aqua></gray>"
+  nutrition_bridge_unavailable: "[integration] <yellow>Nutrition consume source unavailable: %provider% (%error%)</yellow>"
   # Console: station restore type mismatch; placeholders: %type%, %coordinate%
-  station_restore_skipped_mismatch: "<gray>Station restore report: skipped_mismatch type=%type% coordinate=%coordinate%</gray>"
+  station_restore_skipped_mismatch: "[persistence] <gray>Station restore report: skipped_mismatch type=%type% coordinate=%coordinate%</gray>"
   # Console: station block entity lost and replaced; placeholders: %type%, %coordinate%
-  station_restore_lost_block_entity: "<gray>Station restore report: lost_block_entity_replaced type=%type% coordinate=%coordinate%</gray>"
+  station_restore_lost_block_entity: "[persistence] <gray>Station restore report: lost_block_entity_replaced type=%type% coordinate=%coordinate%</gray>"
   # Console: reload progress - loading configs
-  reload_loading_configs: "<gray>Loading configs...</gray>"
+  reload_loading_configs: "[reload] <gray>Loading configs...</gray>"
   # Console: reload progress - applying configuration
-  reload_applying: "<gray>Applying configuration...</gray>"
+  reload_applying: "[reload] <gray>Applying configuration...</gray>"
   # Console: reload progress - complete
-  reload_complete: "<gray>Reload complete.</gray>"
+  reload_complete: "[reload] <gray>Reload complete.</gray>"
   # Console: reload stage failed; placeholders: %stage%, %error%
-  reload_stage_failed: "<yellow>[Reload] Stage %stage% failed: %error%</yellow>"
+  reload_stage_failed: "[reload] <yellow>Stage %stage% failed: %error%</yellow>"
   # Console: cooking completion recovery failed; placeholders: %error%
-  completion_recovery_failed: "<yellow>Cooking completion recovery failed: %error%</yellow>"
+  completion_recovery_failed: "[completion] <yellow>Cooking completion recovery failed: %error%</yellow>"
   # Console: pipeline stage registration failed; placeholders: %stage%, %reason%
-  stage_register_failed: "<yellow>Failed to register pipeline stage '%stage%': %reason%</yellow>"
+  stage_register_failed: "[startup] <yellow>Failed to register pipeline stage '%stage%': %reason%</yellow>"
   # Console: legacy cooking reward execution failed; placeholders: %error%
-  reward_legacy_execute_failed: "<yellow>Failed to execute legacy cooking reward: %error%</yellow>"
+  reward_legacy_execute_failed: "[reward] <yellow>Failed to execute legacy cooking reward: %error%</yellow>"
   # Console: cooking reward output item invalid; placeholders: %output%, %recipe%
-  reward_output_invalid: "<yellow>[CookingReward] Output item is null or air. output_map=%output% recipe=%recipe%</yellow>"
+  reward_output_invalid: "[reward] <yellow>Output item is null or air. output_map=%output% recipe=%recipe%</yellow>"
   # Console: item source creation returned null; placeholders: %source%, %amount%
-  reward_source_create_null: "<yellow>[CookingReward] itemSourceService.createItem returned null for source=%source% amount=%amount%</yellow>"
+  reward_source_create_null: "[reward] <yellow>itemSourceService.createItem returned null for source=%source% amount=%amount%</yellow>"
   # Console: both assembly preview and direct creation returned null; placeholders: %source%, %type%, %id%
-  reward_source_resolve_null: "<yellow>[CookingReward] Both assembly preview and direct createItem returned null for source=%source% type=%type% id=%id%</yellow>"
+  reward_source_resolve_null: "[reward] <yellow>Both assembly preview and direct createItem returned null for source=%source% type=%type% id=%id%</yellow>"
   # Console: skipped nutrition threshold evaluation; placeholders: %player%
-  nutrition_threshold_skipped: "<yellow>EmakiCooking skipped nutrition threshold evaluation for %player%: caller thread does not own the player and no execution dispatcher is available.</yellow>"
+  nutrition_threshold_skipped: "[scheduler] <yellow>Skipped nutrition threshold evaluation for %player%: caller thread does not own the player and no execution dispatcher is available.</yellow>"
   # Console: nutrition threshold evaluation reroute failed; placeholders: %player%
-  nutrition_threshold_reroute_failed: "<yellow>EmakiCooking failed to reroute nutrition threshold evaluation for %player%: entity task scheduling was rejected.</yellow>"
+  nutrition_threshold_reroute_failed: "[scheduler] <yellow>Failed to reroute nutrition threshold evaluation for %player%: entity task scheduling was rejected.</yellow>"
   # Console: fermentation barrel restore state invalid; placeholders: %coordinate%
-  station_restore_rejected_invalid_fermentation_state: "<gray>Station restore report: rejected_invalid_fermentation_barrel_state coordinate=%coordinate%</gray>"
+  station_restore_rejected_invalid_fermentation_state: "[persistence] <gray>Station restore report: rejected_invalid_fermentation_barrel_state coordinate=%coordinate%</gray>"
   # Console: fermentation barrel restore slot id migration rejected; placeholders: %coordinate%, %recipe%
-  station_restore_rejected_slot_migration: "<gray>Station restore report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate% recipe=%recipe%</gray>"
+  station_restore_rejected_slot_migration: "[persistence] <gray>Station restore report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate% recipe=%recipe%</gray>"
   # Console: fermentation barrel break slot id migration rejected; placeholders: %coordinate%
-  station_break_rejected_slot_migration: "<gray>Station break report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
+  station_break_rejected_slot_migration: "[persistence] <gray>Station break report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
   # Console: fermentation barrel interaction slot id migration rejected; placeholders: %coordinate%
-  station_interaction_rejected_slot_migration: "<gray>Station interaction report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
+  station_interaction_rejected_slot_migration: "[persistence] <gray>Station interaction report: rejected_fermentation_barrel_slot_id_migration coordinate=%coordinate%</gray>"
   # Console: fermentation barrel GUI identity migration rejected; placeholders: %coordinate%
-  station_gui_rejected_identity_migration: "<gray>Station GUI report: rejected_fermentation_barrel_identity_migration coordinate=%coordinate%</gray>"
+  station_gui_rejected_identity_migration: "[persistence] <gray>Station GUI report: rejected_fermentation_barrel_identity_migration coordinate=%coordinate%</gray>"
   station_name:
     chopping_board: "Chopping Board"
     wok: "Wok"

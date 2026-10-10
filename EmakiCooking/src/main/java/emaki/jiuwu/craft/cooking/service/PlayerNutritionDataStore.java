@@ -485,10 +485,10 @@ public final class PlayerNutritionDataStore {
     }
 
     private void logLoadFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "加载玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
+        logger.log(Level.WARNING, "[persistence] 加载玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
     }
 
     private void logSaveFailure(UUID uuid, Throwable throwable) {
-        logger.log(Level.WARNING, "保存玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
+        logger.log(Level.WARNING, "[persistence] 保存玩家营养数据失败: " + uuid, AsyncFailures.unwrap(throwable));
     }
 }

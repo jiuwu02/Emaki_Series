@@ -12,6 +12,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
+import java.util.logging.Logger;
 
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -101,6 +102,7 @@ import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.metrics.BStatsService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
@@ -125,6 +127,11 @@ import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 
 public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
+
+    @Override
+    public Logger getLogger() {
+        return EmakiLog.of(this);
+    }
 
     private static final String PLUGIN_NAME = "EmakiCoreLib";
 
@@ -298,9 +305,9 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         }
         lifecycle.shutdownAsync(15L, TimeUnit.SECONDS).whenComplete((report, throwable) -> {
             if (throwable != null) {
-                getLogger().warning("CoreLib 异步关闭失败: " + AsyncFailures.describe(throwable));
+                getLogger().warning("[shutdown] 异步关闭失败: " + AsyncFailures.describe(throwable));
             } else if (report != null && !report.clean()) {
-                getLogger().warning("CoreLib 异步关闭未完成: pendingFiles="
+                getLogger().warning("[shutdown] 异步关闭未完成: pendingFiles="
                         + report.pendingFileOperations()
                         + ", shutdownFailures=" + report.fileFailures().size()
                         + ", schedulerTerminated=" + report.schedulerTerminated());
@@ -312,7 +319,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 try {
                     messageService.info("console.plugin_stopped");
                 } catch (RuntimeException exception) {
-                    getLogger().info("EmakiCoreLib 已停止。");
+                    getLogger().info("[shutdown] 已停止。");
                 }
             }
         });
@@ -399,7 +406,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (!stageReport.successful()) {
 
             for (String failure : stageReport.failures()) {
-                getLogger().severe("CoreLib 管道段注册失败: " + failure);
+                getLogger().severe("[pipeline] 管道段注册失败: " + failure);
             }
             return false;
         }
@@ -501,8 +508,8 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             return;
         }
         int replayed = stageRebuildListeners.notifyRebuilt(failure -> getLogger().warning(
-                "段重新注册失败，插件 " + failure.owner() + ": " + failure.error()));
-        getLogger().info("已重放管道段注册，共 " + replayed + " 个插件。");
+                "[pipeline] 段重新注册失败，插件 " + failure.owner() + ": " + failure.error()));
+        getLogger().info("[pipeline] 已重放管道段注册，共 " + replayed + " 个插件。");
     }
 
     private void loadScriptsSafely() {
@@ -538,7 +545,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             messageService.warning("console.scripts.engine_unavailable", Map.of("reason", detail));
             return;
         }
-        getLogger().warning("脚本扩展不可用: " + throwable);
+        getLogger().warning("[script] 脚本扩展不可用: " + throwable);
     }
 
     private void logPrecheckReport(ConfigPrecheckReport report) {
@@ -564,7 +571,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 Set.of(ApiCapability.of("emakicorelib:itemsource_registry"))
         );
         if (!registration.successful()) {
-            getLogger().warning("发布自身能力失败: " + registration.reasonKey());
+            getLogger().warning("[startup] 发布自身能力失败: " + registration.reasonKey());
         }
     }
 
@@ -610,12 +617,12 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             try {
                 guiShutdown = guiBackendRegistry.shutdownAllAsync();
             } catch (Throwable throwable) {
-                getLogger().warning("CoreLib GUI 关闭分派失败: " + AsyncFailures.describe(throwable));
+                getLogger().warning("[shutdown] GUI 关闭分派失败: " + AsyncFailures.describe(throwable));
             }
         }
         return guiShutdown.handle((ignored, throwable) -> {
             if (throwable != null) {
-                getLogger().warning("CoreLib GUI 关闭未完成: " + AsyncFailures.describe(throwable));
+                getLogger().warning("[shutdown] GUI 关闭未完成: " + AsyncFailures.describe(throwable));
             }
             return null;
         }).thenRunAsync(() -> {
@@ -664,7 +671,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         try {
             step.run();
         } catch (Throwable throwable) {
-            getLogger().warning("CoreLib " + name + " 关闭失败: " + AsyncFailures.describe(throwable));
+            getLogger().warning("[shutdown] " + name + " 关闭失败: " + AsyncFailures.describe(throwable));
         }
     }
 
@@ -705,7 +712,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                             "resource", relativePath
                     ));
                 } else {
-                    getLogger().warning("内置资源缺失: " + relativePath);
+                    getLogger().warning("[loader] 内置资源缺失: " + relativePath);
                 }
             }
         } catch (Exception exception) {
@@ -715,7 +722,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
-                getLogger().warning("写入内置资源失败 " + relativePath + ": " + exception.getMessage());
+                getLogger().warning("[loader] 写入内置资源失败 " + relativePath + ": " + exception.getMessage());
             }
         }
     }
@@ -737,7 +744,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                         "error", String.valueOf(exception.getMessage())
                 ));
             } else {
-                getLogger().warning("加载 CoreLib 配置失败: " + exception.getMessage());
+                getLogger().warning("[config] 加载 CoreLib 配置失败: " + exception.getMessage());
             }
             return CoreLibConfig.defaults();
         }
@@ -754,7 +761,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                     "new_version", versionedFile.updatedVersion()
             ));
         } else {
-            getLogger().info("已更新内置文件版本: " + relativePath + " ("
+            getLogger().info("[config] 已更新内置文件版本: " + relativePath + " ("
                     + (versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion())
                     + " -> " + versionedFile.updatedVersion() + ")");
         }
@@ -813,7 +820,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     }
 
     private void reportTargetIdentityFailure(String message) {
-        getLogger().warning(message);
+        getLogger().warning("[integration] " + message);
     }
 
     public boolean contentReady() {
@@ -825,7 +832,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     }
 
     private void logReadinessFailure(ModuleReadinessRegistry.Failure failure) {
-        getLogger().warning("就绪回调失败，插件 " + failure.owner()
+        getLogger().warning("[startup] 就绪回调失败，插件 " + failure.owner()
                 + " 正在等待 " + failure.moduleName() + ": " + failure.error());
     }
 
@@ -876,13 +883,13 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                     String reason = result.diagnostics().isEmpty()
                             ? "未通过编译"
                             : messageService().renderFirstDiagnostic(result.diagnostics());
-                    getLogger().warning("序列 '" + sequence + "' 的行被拒绝: " + reason
+                    getLogger().warning("[pipeline] 序列 '" + sequence + "' 的行被拒绝: " + reason
                             + " <- " + line);
                     return null;
                 });
         List<String> failed = sequenceRepository.failed();
         if (!failed.isEmpty()) {
-            getLogger().warning("序列不可用，因为某行未通过编译: " + failed);
+            getLogger().warning("[pipeline] 序列不可用，因为某行未通过编译: " + failed);
         }
         if (pipelineTaskService != null) {
             CoreLibConfig.LoopConfig loop = configModel.loopConfig();
@@ -930,14 +937,14 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
             }
         }, this);
-        getLogger().info("PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端。");
+        getLogger().info("[gui] PacketEvents 尚未启用；在其启用后会自动注册 packet GUI 后端。");
     }
 
     private void registerPacketBackend() {
         try {
             PacketBackendInstaller.install(this, guiBackendRegistry, executionDispatcher);
         } catch (LinkageError | RuntimeException exception) {
-            getLogger().warning("注册 packet GUI 后端失败: " + exception.getMessage()
+            getLogger().warning("[gui] 注册 packet GUI 后端失败: " + exception.getMessage()
                     + "。EmakiCoreLib 将使用 Bukkit（实体）后端。");
         }
     }
@@ -1002,12 +1009,12 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                     new VanillaLanguageDownloader(getLogger(), cacheDirectory);
             Map<String, String> table = downloader.load(minecraftVersion, locale);
             if (table.isEmpty()) {
-                getLogger().info("原版语言表（'" + locale
+                getLogger().info("[text] 原版语言表（'" + locale
                         + "'）不可用；需要本地化原版名称的功能将保持禁用。");
                 return;
             }
             vanillaTranslationService.install(table);
-            getLogger().info("已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'。");
+            getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'。");
         });
     }
 

@@ -185,11 +185,11 @@ public class AbstractMessageService implements LogMessages, LegacyMessageSink {
         if (Texts.isBlank(text)) {
             return;
         }
-        Component component = render(text);
         if (!includePrefixInLogs()) {
-            plugin.getLogger().log(level, MiniMessages.plain(component));
+            plugin.getLogger().log(level, MiniMessages.plain(render(text)));
             return;
         }
+        Component component = render("[" + plugin.getName() + "] " + text);
         if (level.intValue() >= Level.SEVERE.intValue()) {
             plugin.getComponentLogger().error(component);
         } else if (level.intValue() >= Level.WARNING.intValue()) {

@@ -350,6 +350,6 @@ public final class TargetSelectorLoader {
             return;
         }
         issues.add(key + " " + replacements);
-        plugin.getLogger().warning(key + " " + replacements);
+        plugin.getLogger().warning("[loader] " + key + " " + replacements);
     }
 }

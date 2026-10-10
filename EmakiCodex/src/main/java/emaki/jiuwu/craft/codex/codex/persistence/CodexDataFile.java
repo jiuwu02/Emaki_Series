@@ -71,7 +71,7 @@ public final class CodexDataFile {
         }
         Long unlockedAt = longOf(node.get(KEY_UNLOCKED_AT));
         if (unlockedAt == null) {
-            warn("已丢弃图鉴条目 '" + key + "'：缺少有效的 unlocked_at（玩家 " + playerId + "）");
+            warn("已丢弃图鉴条目 '" + key + "': 缺少有效的 unlocked_at（玩家 " + playerId + "）");
             return;
         }
         boolean activated = Boolean.TRUE.equals(node.getBoolean(KEY_ACTIVATED, false));
@@ -108,14 +108,14 @@ public final class CodexDataFile {
         try {
             return Long.valueOf(text);
         } catch (NumberFormatException exception) {
-            warn("无法解析图鉴时间戳 '" + text + "'：" + exception.getMessage());
+            warn("无法解析图鉴时间戳 '" + text + "': " + exception.getMessage());
             return null;
         }
     }
 
     private void warn(String message) {
         if (logger != null) {
-            logger.warning(message);
+            logger.warning("[persistence] " + message);
         }
     }
 }

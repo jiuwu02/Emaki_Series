@@ -733,7 +733,7 @@ final class ItemSetListenerScopeRefresher {
         }
         if (logger != null) {
             List<String> sample = newlyMissing.stream().limit(10).toList();
-            logger.warning("套装刷新时检测到缺失的 EmakiItem 定义；保留现有展示。 "
+            logger.warning("[set] 套装刷新时检测到缺失的 EmakiItem 定义；保留现有展示。 "
                     + "count=" + newlyMissing.size() + ", definitions=" + sample
                     + (newlyMissing.size() > sample.size() ? ", additional=" + (newlyMissing.size() - sample.size()) : ""));
         }

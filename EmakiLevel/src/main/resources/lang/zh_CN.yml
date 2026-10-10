@@ -2,19 +2,19 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.6.5"
+version: "1.6.6"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
 console:
-  plugin_starting: "<gray>正在启动...</gray>"
-  plugin_started: "<green>启动完成</green>"
-  plugin_stopped: "<yellow>已关闭</yellow>"
-  config_precheck_passed: "<gray>配置预检通过：<yellow>%issues%</yellow> 个提示。</gray>"
-  config_precheck_failed: "<red>配置预检失败：<yellow>%issues%</yellow> 个问题。</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示。</gray>"
+  config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题。</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "致命"
@@ -30,31 +30,31 @@ console:
       required_directory_missing: "缺少必需目录。"
       path_not_directory: "路径不是目录。"
       directory_not_readable: "目录不可读。"
-  types_loaded: "<gray>已加载 <yellow>%count%</yellow> 个等级类型</gray>"
-  sources_loaded: "<gray>已加载 <yellow>%count%</yellow> 条经验来源规则</gray>"
-  actions_registered: "<gray>CoreLib Action 已注册</gray>"
-  papi_registered: "<gray>PlaceholderAPI 扩展已注册</gray>"
-  attribute_bridge_ready: "<gray>EmakiAttribute 属性贡献已接入</gray>"
-  attribute_bridge_unavailable: "<gray>EmakiAttribute 属性贡献不可用，已跳过</gray>"
-  mythic_drops_registered: "<gray>MythicMobs Drops 已注册</gray>"
-  bootstrap_start: "<gray>开始检查默认文件...</gray>"
-  bootstrap_complete: "<green>默认文件检查完成。</green>"
-  versioned_file_updated: "<green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "<gray>release_default_data=false，跳过默认数据文件生成。</gray>"
-  default_file_missing: "<yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "<yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "<yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  directory_create_failed: "<yellow>创建目录失败: <red>%path%</red></yellow>"
+  types_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个等级类型</gray>"
+  sources_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 条经验来源规则</gray>"
+  actions_registered: "[integration] <gray>CoreLib Action 已注册</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
+  attribute_bridge_ready: "[integration] <gray>EmakiAttribute 属性贡献已接入</gray>"
+  attribute_bridge_unavailable: "[integration] <gray>EmakiAttribute 属性贡献不可用，已跳过</gray>"
+  mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
+  bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
+  bootstrap_complete: "[loader] <green>默认文件检查完成。</green>"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false，跳过默认数据文件生成。</gray>"
+  default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
   # 控制台：重建等级排行榜失败
   leaderboard_rebuild_failed: "重建等级排行榜失败"
   # 控制台：EmakiAttribute 属性桥接注册失败；占位符：%cause%
-  attribute_bridge_register_failed: "EmakiAttribute 属性桥接注册失败: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
+  attribute_bridge_register_failed: "[integration] 属性桥接注册失败: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
   # 控制台：流程阶段注册失败；占位符：%stage%、%reason%
-  stage_register_failed: "注册流程阶段 '%stage%' 失败: %reason%"
+  stage_register_failed: "[registry] 注册流程阶段 '%stage%' 失败: %reason%"
   # 控制台：玩家数据异步操作失败；占位符：%operation%、%player%
-  async_operation_failed: "[LevelDataStore] 异步 %operation% 操作失败，玩家 %player%"
+  async_operation_failed: "异步 %operation% 操作失败，玩家 %player%"
   # 控制台：经验来源规则需求判定异常，按未匹配处理；占位符：%error%
-  source_rule_requirement_failed: "经验来源规则需求判定抛出异常，按未匹配处理: %error%"
+  source_rule_requirement_failed: "[matcher] 经验来源规则需求判定抛出异常，按未匹配处理: %error%"
 command:
   no_permission: "%prefix%<red>你没有权限执行该指令。</red>"
   player_only: "%prefix%<red>该指令只能由玩家执行。</red>"

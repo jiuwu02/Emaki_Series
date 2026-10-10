@@ -30,7 +30,7 @@ final class ScriptExampleReleaser {
         try {
             Files.createDirectories(scriptsDirectory);
         } catch (IOException exception) {
-            plugin.getLogger().warning("创建脚本目录失败 " + scriptsDirectory + ": "
+            plugin.getLogger().warning("[script] 创建脚本目录失败 " + scriptsDirectory + ": "
                     + exception.getMessage());
             return;
         }
@@ -39,7 +39,7 @@ final class ScriptExampleReleaser {
             try {
                 YamlFiles.copyResourceIfMissing(plugin, resource, target.toFile());
             } catch (IOException exception) {
-                plugin.getLogger().warning("释放示例脚本失败 " + resource + ": "
+                plugin.getLogger().warning("[script] 释放示例脚本失败 " + resource + ": "
                         + exception.getMessage());
             }
         }

@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.22"
+version: "4.8.23"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -13,14 +13,14 @@ gui:
     unknown_value: "<yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit (entity) backend.</yellow>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -72,19 +72,19 @@ console:
       loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean."
       loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean."
       loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean."
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
-  block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
-  bstats_registered: "<gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
-  bstats_register_failed: "<yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
-  bstats_closed: "<gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
-  bstats_close_failed: "<yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
-  bstats_config_directory_create_failed: "<yellow>Failed to create bStats config directory: %path%</yellow>"
-  bstats_config_write_failed: "<yellow>Failed to write bStats config: %path% (%error%)</yellow>"
-  action_config_load_failed: "<red>Failed to load action config: %error%</red>"
-  item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
-  item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
-  item_source_bridge_incompatible: "<yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  economy_bridge_ready: "[integration] <gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
+  block_source_bridge_ready: "[integration] <gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  bstats_registered: "[metrics] <gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "[metrics] <yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_closed: "[metrics] <gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
+  bstats_close_failed: "[metrics] <yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
+  bstats_config_directory_create_failed: "[config] <yellow>Failed to create bStats config directory: %path%</yellow>"
+  bstats_config_write_failed: "[config] <yellow>Failed to write bStats config: %path% (%error%)</yellow>"
+  action_config_load_failed: "[config] <red>Failed to load action config: %error%</red>"
+  item_source_bridge_ready: "[integration] <gray>Item source connected: <aqua>%library%</aqua></gray>"
+  item_source_bridge_waiting: "[integration] <gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
+  item_source_bridge_incompatible: "[integration] <yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
   item_source:
     waiting_detail:
       itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete."
@@ -96,11 +96,11 @@ console:
       default: "External item registration has not finished. Wait for the dependency plugin to finish loading."
     incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter."
   scripts:
-    engine_unavailable: "<red>Script extensions are unavailable; script loading was skipped: %reason%</red>"
-    disabled: "<gray>Script extensions are disabled in the config; no scripts were loaded.</gray>"
-    loaded: "<gray>Script loading finished: <green>%loaded%</green> file(s) loaded, <yellow>%skipped%</yellow> skipped.</gray>"
-    file_error: "<red>Script file failed to load: <yellow>%file%</yellow> -> %error%</red>"
-    register_error: "<red>Script registration was rejected: %error%</red>"
+    engine_unavailable: "[script] <red>Script extensions are unavailable; script loading was skipped: %reason%</red>"
+    disabled: "[script] <gray>Script extensions are disabled in the config; no scripts were loaded.</gray>"
+    loaded: "[script] <gray>Script loading finished: <green>%loaded%</green> file(s) loaded, <yellow>%skipped%</yellow> skipped.</gray>"
+    file_error: "[script] <red>Script file failed to load: <yellow>%file%</yellow> -> %error%</red>"
+    register_error: "[script] <red>Script registration was rejected: %error%</red>"
 
 loader:
   lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"

@@ -273,7 +273,7 @@ final class MaterialPlanResolver {
 
     private void warnRuleFailure(Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning("星级材料规则判定失败，视为不匹配: "
+            plugin.getLogger().warning("[matcher] 星级材料规则判定失败，视为不匹配: "
                     + String.valueOf(throwable.getMessage()));
         }
     }

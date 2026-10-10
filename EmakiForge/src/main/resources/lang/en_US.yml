@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.5"
+version: "4.8.6"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
@@ -68,15 +68,15 @@ command:
       +%bonus%)</gray>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopping: "<gray>Shutting down...</gray>"
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopping: "[shutdown] <gray>Shutting down...</gray>"
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
@@ -92,129 +92,129 @@ console:
       required_directory_missing: "The required directory is missing."
       path_not_directory: "The specified path is not a directory."
       directory_not_readable: "The directory is not readable."
-  config_load_failed: "<red>Failed to load config: %error%</red>"
-  checking_config: "<white>Checking default config files...</white>"
-  data_folder_error: "<yellow>Unable to access data directory, skipped default
+  config_load_failed: "[config] <red>Failed to load config: %error%</red>"
+  checking_config: "[loader] <white>Checking default config files...</white>"
+  data_folder_error: "[loader] <yellow>Unable to access data directory, skipped default
     file check.</yellow>"
-  data_folder_failed: "<yellow>Failed to access data folder: <red>%error%</red>"
-  loading_configs: "<white>Loading config files...</white>"
-  config_loaded: "<green>Config files loaded.</green>"
-  registering_services: "<white>Registering services...</white>"
-  services_registered: "<green>Services registered.</green>"
-  unregistering_services: "<white>Unregistering services...</white>"
-  services_unregistered: "<green>Services unregistered.</green>"
-  registering_listeners: "<white>Registering event listeners...</white>"
-  listeners_registered: "<green>Event listeners registered.</green>"
-  saving_player_data: "<white>Saving player data...</white>"
-  player_data_saved: "<gray>Saved %count% player data entries</gray>"
-  bootstrap_start: "<gray>Checking default files...</gray>"
-  bootstrap_skip: "<gray>release_default_data=false, skipped default data generation</gray>"
-  bootstrap_complete: "<green>Default file check complete.</green>"
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_config_read_error: "<yellow>Failed to read or update config, using defaults: <red>%error%</red>"
-  directory_created: "<green>Created directory <yellow>%path%</yellow>"
-  directory_create_failed: "<yellow>Failed to create directory <red>%path%</red>"
-  config_exists: "<gray>config.yml already exists, skipping creation</gray>"
-  lang_exists: "<gray>lang/zh_CN.yml already exists, skipping creation</gray>"
-  gui_forge_exists: "<gray>gui/forge_gui.yml already exists, skipping creation</gray>"
-  gui_book_exists: "<gray>gui/recipe_book.yml already exists, skipping creation</gray>"
-  blueprint_weapon_exists: "<gray>blueprints/weapon_sword.yml already exists, skipping creation</gray>"
-  blueprint_universal_exists: "<gray>blueprints/universal_blueprint.yml already
+  data_folder_failed: "[loader] <yellow>Failed to access data folder: <red>%error%</red>"
+  loading_configs: "[config] <white>Loading config files...</white>"
+  config_loaded: "[config] <green>Config files loaded.</green>"
+  registering_services: "[startup] <white>Registering services...</white>"
+  services_registered: "[startup] <green>Services registered.</green>"
+  unregistering_services: "[shutdown] <white>Unregistering services...</white>"
+  services_unregistered: "[shutdown] <green>Services unregistered.</green>"
+  registering_listeners: "[startup] <white>Registering event listeners...</white>"
+  listeners_registered: "[startup] <green>Event listeners registered.</green>"
+  saving_player_data: "[persistence] <white>Saving player data...</white>"
+  player_data_saved: "[persistence] <gray>Saved %count% player data entries</gray>"
+  bootstrap_start: "[loader] <gray>Checking default files...</gray>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data generation</gray>"
+  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  bootstrap_config_read_error: "[loader] <yellow>Failed to read or update config, using defaults: <red>%error%</red>"
+  directory_created: "[loader] <green>Created directory <yellow>%path%</yellow>"
+  directory_create_failed: "[loader] <yellow>Failed to create directory <red>%path%</red>"
+  config_exists: "[loader] <gray>config.yml already exists, skipping creation</gray>"
+  lang_exists: "[loader] <gray>lang/zh_CN.yml already exists, skipping creation</gray>"
+  gui_forge_exists: "[loader] <gray>gui/forge_gui.yml already exists, skipping creation</gray>"
+  gui_book_exists: "[loader] <gray>gui/recipe_book.yml already exists, skipping creation</gray>"
+  blueprint_weapon_exists: "[loader] <gray>blueprints/weapon_sword.yml already exists, skipping creation</gray>"
+  blueprint_universal_exists: "[loader] <gray>blueprints/universal_blueprint.yml already
     exists, skipping creation</gray>"
-  material_iron_exists: "<gray>materials/iron_essence.yml already exists, skipping creation</gray>"
-  material_flame_exists: "<gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
-  recipe_example_exists: "<gray>recipes/example_recipe.yml already exists, skipping creation</gray>"
-  file_created_success: "<green>Successfully created <yellow>%name%</yellow>"
-  file_create_failed: "<yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
-  file_create_failed_ext: "<yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
-  default_file_missing: "<yellow>Built-in resource does not exist, skipped: <red>%path%</red>"
-  data_folder_not_init: "<yellow>Data directory not yet initialized.</yellow>"
-  bootstrap_copy_failed: "<yellow>Failed to copy default resource:
+  material_iron_exists: "[loader] <gray>materials/iron_essence.yml already exists, skipping creation</gray>"
+  material_flame_exists: "[loader] <gray>materials/flame_crystal.yml already exists, skipping creation</gray>"
+  recipe_example_exists: "[loader] <gray>recipes/example_recipe.yml already exists, skipping creation</gray>"
+  file_created_success: "[loader] <green>Successfully created <yellow>%name%</yellow>"
+  file_create_failed: "[loader] <yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
+  file_create_failed_ext: "[loader] <yellow>Failed to create <red>%name%</red> <yellow>: <red>%error%</red>"
+  default_file_missing: "[loader] <yellow>Built-in resource does not exist, skipped: <red>%path%</red>"
+  data_folder_not_init: "[loader] <yellow>Data directory not yet initialized.</yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
     <red>%path%</red> <gray>(%error%)</gray></yellow>"
   bootstrap_save_failed:
-    "<yellow>Failed to save merged config: <red>%path%</red>
+    "[loader] <yellow>Failed to save merged config: <red>%path%</red>
     <gray>(%error%)</gray></yellow>"
-  pdc_source_registered: "<gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
-  recipes_loaded: "<gray>Loaded <yellow>%count%</yellow> recipe(s)</gray>"
-  guis_loaded: "<gray>Loaded <yellow>%count%</yellow> GUI template(s)</gray>"
-  player_data_directory_create_failed: "<yellow>Unable to create player data directory: <red>%path%</red></yellow>"
+  pdc_source_registered: "[loader] <gray>PDC attribute source registered: <aqua>%source%</aqua></gray>"
+  recipes_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> recipe(s)</gray>"
+  guis_loaded: "[gui] <gray>Loaded <yellow>%count%</yellow> GUI template(s)</gray>"
+  player_data_directory_create_failed: "[persistence] <yellow>Unable to create player data directory: <red>%path%</red></yellow>"
   player_data_save_failed:
-    "<yellow>Failed to save player data: <red>%uuid%</red>
+    "[persistence] <yellow>Failed to save player data: <red>%uuid%</red>
     <gray>(%error%)</gray></yellow>"
-  item_unknown_vanilla_material_source: "<yellow>Unknown vanilla material source: <red>%identifier%</red></yellow>"
-  external_item_source_unavailable: "<yellow>External item source unavailable:
+  item_unknown_vanilla_material_source: "[integration] <yellow>Unknown vanilla material source: <red>%identifier%</red></yellow>"
+  external_item_source_unavailable: "[integration] <yellow>External item source unavailable:
     <gray>dependency=%dependency%, context=%context%, source=%source%,
     detail=%detail%</gray></yellow>"
-  item_bridge_unavailable: "<yellow>%dependency% API bridge unavailable: <red>%error%</red></yellow>"
+  item_bridge_unavailable: "[integration] <yellow>%dependency% API bridge unavailable: <red>%error%</red></yellow>"
   # Console: item source unavailable; placeholders: %source%, %location%, %provider%, %status%, %detail%
-  item_source_unavailable: "<yellow>Item source unavailable: <gray>source=%source%, location=%location%, provider=%provider%, status=%status%, detail=%detail%</gray></yellow>"
+  item_source_unavailable: "[integration] <yellow>Item source unavailable: <gray>source=%source%, location=%location%, provider=%provider%, status=%status%, detail=%detail%</gray></yellow>"
   # Console: failed to resolve item source; placeholders: %source%, %operation%
-  item_source_resolve_failed: "<yellow>Failed to resolve item source: <gray>source=%source%, operation=%operation%</gray></yellow>"
+  item_source_resolve_failed: "[integration] <yellow>Failed to resolve item source: <gray>source=%source%, operation=%operation%</gray></yellow>"
   # Console: reload generation failed; placeholders: %generation%, %error%
-  reload_generation_failed: "[Reload] Generation %generation% failed: %error%"
+  reload_generation_failed: "[reload] Generation %generation% failed: %error%"
   # Console: reload rejected; placeholders: %generation%, %summary%
-  reload_rejected: "[Reload] Rejected generation %generation%: %summary%"
-  forge_execution_failed: "<yellow>Forge execution failed: recipe
+  reload_rejected: "[reload] Rejected generation %generation%: %summary%"
+  forge_execution_failed: "[action] <yellow>Forge execution failed: recipe
     <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
-  forge_phase_execution_failed: "<yellow>Forge phase execution failed: phase
+  forge_phase_execution_failed: "[action] <yellow>Forge phase execution failed: phase
     <red>%phase%</red>, recipe <red>%recipe%</red>
     <gray>(%error%)</gray></yellow>"
-  forge_phase_failed: "<yellow>Forge phase failed: phase <red>%phase%</red>,
+  forge_phase_failed: "[action] <yellow>Forge phase failed: phase <red>%phase%</red>,
     recipe <red>%recipe%</red> <gray>(%reason%)</gray></yellow>"
-  forge_quality_execution_failed: "<yellow>Quality action execution failed:
+  forge_quality_execution_failed: "[action] <yellow>Quality action execution failed:
     quality <red>%tier%</red> <gray>(%error%)</gray></yellow>"
   forge_quality_failed:
-    "<yellow>Quality action failed: quality <red>%tier%</red>
+    "[action] <yellow>Quality action failed: quality <red>%tier%</red>
     <gray>(%reason%)</gray></yellow>"
-  forge_refresh_failed: "<yellow>Failed to refresh forged item: recipe <red>%recipe%</red></yellow>"
+  forge_refresh_failed: "[refresh] <yellow>Failed to refresh forged item: recipe <red>%recipe%</red></yellow>"
   forge_refresh_invalid_audit:
-    "<yellow>Detected non-refreshable forge audit data:
+    "[refresh] <yellow>Detected non-refreshable forge audit data:
     <red>%reason%</red></yellow>"
-  forge_refresh_missing_recipe: "<yellow>Recipe not found when refreshing forged
+  forge_refresh_missing_recipe: "[refresh] <yellow>Recipe not found when refreshing forged
     item: <red>%recipe%</red></yellow>"
-  forge_refresh_missing_material: "<yellow>Material not found when refreshing
+  forge_refresh_missing_material: "[refresh] <yellow>Material not found when refreshing
     forged item: recipe <red>%recipe%</red>, material
     <red>%material%</red></yellow>"
-  forge_refresh_invalid_quality: "<yellow>Invalid quality found when refreshing
+  forge_refresh_invalid_quality: "[refresh] <yellow>Invalid quality found when refreshing
     forged item: recipe <red>%recipe%</red>, quality
     <red>%quality%</red></yellow>"
-  pdc_write_skipped_primary_thread: "<yellow>Skipped forge PDC write: not on primary thread.</yellow>"
-  pdc_write_failed: "<yellow>Failed to write forge PDC data: recipe
+  pdc_write_skipped_primary_thread: "[persistence] <yellow>Skipped forge PDC write: not on primary thread.</yellow>"
+  pdc_write_failed: "[persistence] <yellow>Failed to write forge PDC data: recipe
     <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
-  pdc_corrupted_data_detected: "<yellow>Corrupted forge PDC data detected: <red>%reason%</red></yellow>"
-  pdc_deserialize_failed: "<yellow>Failed to deserialize forge material data:
+  pdc_corrupted_data_detected: "[persistence] <yellow>Corrupted forge PDC data detected: <red>%reason%</red></yellow>"
+  pdc_deserialize_failed: "[persistence] <yellow>Failed to deserialize forge material data:
     <red>%error%</red></yellow>"
   pdc_deserialize_unexpected_error:
-    "<yellow>Unexpected error deserializing forge
+    "[persistence] <yellow>Unexpected error deserializing forge
     material data: <red>%error%</red></yellow>"
-  loader_config_load_error: "<red>Failed to load config file
+  loader_config_load_error: "[loader] <red>Failed to load config file
     <yellow>%path%</yellow>: <gray>%error%</gray>"
-  loader_config_unavailable: "<yellow>%type% config unavailable <red>%path%</red>"
-  loader_invalid_config: "<yellow>%type% config invalid <red>%path%</red>"
-  loader_duplicate_id: "<yellow>Duplicate %type% ID found <red>%id%</red>
+  loader_config_unavailable: "[loader] <yellow>%type% config unavailable <red>%path%</red>"
+  loader_invalid_config: "[loader] <yellow>%type% config invalid <red>%path%</red>"
+  loader_duplicate_id: "[loader] <yellow>Duplicate %type% ID found <red>%id%</red>
     <gray>source: %path%</gray>"
   loader_exception:
-    "<red>Exception loading %type% config <yellow>%path%</yellow>:
+    "[loader] <red>Exception loading %type% config <yellow>%path%</yellow>:
     <gray>%error%</gray>"
-  forge_consume_plan_mismatch: "<yellow>%category% consumption plan mismatch
+  forge_consume_plan_mismatch: "[action] <yellow>%category% consumption plan mismatch
     <gray>recipe=%recipe%, mode=%mode%, required=%required%,
     reserved=%reserved%</gray>"
-  forge_consume_mismatch: "<yellow>%category% consumption quantity mismatch
+  forge_consume_mismatch: "[action] <yellow>%category% consumption quantity mismatch
     <gray>recipe=%recipe%, id=%id%, required=%required%,
     removed=%removed%</gray>"
-  lore_search_not_found: "<yellow>Lore search insert target not found: source
+  lore_search_not_found: "[matcher] <yellow>Lore search insert target not found: source
     <red>%source%</red>, action <red>%action%</red>, pattern
     <red>%pattern%</red></yellow>"
-  lore_invalid_action_name: "<yellow>Invalid lore search action name: source
+  lore_invalid_action_name: "[matcher] <yellow>Invalid lore search action name: source
     <red>%source%</red>, action <red>%action%</red>
     <gray>(%error%)</gray></yellow>"
-  lore_invalid_regex: "<yellow>Invalid lore search regex: source
+  lore_invalid_regex: "[matcher] <yellow>Invalid lore search regex: source
     <red>%source%</red>, action <red>%action%</red>, expression
     <red>%pattern%</red> <gray>(%error%)</gray></yellow>"
-  lore_invalid_search_insert_config: "<yellow>Invalid lore search insert config:
+  lore_invalid_search_insert_config: "[matcher] <yellow>Invalid lore search insert config:
     source <red>%source%</red>, action <red>%action%</red>
     <gray>(%error%)</gray></yellow>"
-  papi_registered: "<gray>PlaceholderAPI expansion registered</gray>"
+  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
 
 loader:
   type:

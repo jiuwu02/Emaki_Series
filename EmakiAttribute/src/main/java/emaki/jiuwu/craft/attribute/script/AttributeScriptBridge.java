@@ -203,7 +203,7 @@ public final class AttributeScriptBridge {
             messageService.info(key, replacements);
             return;
         }
-        plugin.getLogger().info(key);
+        plugin.getLogger().info("[script] " + key);
     }
 
     private void warning(String key, Map<String, ?> replacements) {
@@ -211,6 +211,6 @@ public final class AttributeScriptBridge {
             messageService.warning(key, replacements);
             return;
         }
-        plugin.getLogger().warning(key);
+        plugin.getLogger().warning("[script] " + key);
     }
 }

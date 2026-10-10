@@ -84,7 +84,7 @@ public final class AffixGuiService {
 
     public void clearAllSessions() {
         clearAllSessionsAsync().exceptionally(throwable -> {
-            plugin.getLogger().warning("关闭全部词条 GUI 会话失败: " + throwable.getMessage());
+            plugin.getLogger().warning("[gui] 关闭全部词条 GUI 会话失败: " + throwable.getMessage());
             return null;
         });
     }

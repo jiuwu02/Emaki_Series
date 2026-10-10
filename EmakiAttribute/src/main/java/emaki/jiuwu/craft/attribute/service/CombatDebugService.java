@@ -80,7 +80,7 @@ final class CombatDebugService {
             ));
             return;
         }
-        service.plugin().getLogger().info("[CombatDebug][" + safePhase + "] " + safeMessage);
+        service.plugin().getLogger().info("[combat] [" + safePhase + "] " + safeMessage);
     }
 
     public void logMessage(String phase, String messageKey, Map<String, ?> replacements) {

@@ -16,10 +16,11 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 
 public final class StrengthenMaterial {
 
-    private static final Logger LOGGER = Logger.getLogger(StrengthenMaterial.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiStrengthen");
 
     public enum Role {
         BASE,
@@ -215,7 +216,7 @@ public final class StrengthenMaterial {
         try {
             return requirement.test(context);
         } catch (RuntimeException | LinkageError exception) {
-            LOGGER.warning("材料判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
+            LOGGER.warning("[matcher] 材料判定抛出异常，视为不匹配: " + String.valueOf(exception.getMessage()));
             return false;
         }
     }

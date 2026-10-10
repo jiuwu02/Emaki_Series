@@ -57,7 +57,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("无法在玩家所有权之外打开宝石 GUI: " + player.getUniqueId());
+            plugin.getLogger().warning("[gui] 无法在玩家所有权之外打开宝石 GUI: " + player.getUniqueId());
             return false;
         }
         return switch (normalizeMode(mode)) {
@@ -75,7 +75,7 @@ public final class GemGuiService {
             return false;
         }
         if (!scheduling.ownsEntity(player)) {
-            plugin.getLogger().warning("无法在玩家所有权之外打开开孔 GUI: " + player.getUniqueId());
+            plugin.getLogger().warning("[gui] 无法在玩家所有权之外打开开孔 GUI: " + player.getUniqueId());
             return false;
         }
         return openSocket(player, initialTarget, null);
@@ -242,7 +242,7 @@ public final class GemGuiService {
             return;
         }
         if (!scheduling.ownsEntity(player) && player.isOnline()) {
-            plugin.getLogger().warning("无法在玩家所有权之外关闭宝石 GUI: " + player.getUniqueId());
+            plugin.getLogger().warning("[gui] 无法在玩家所有权之外关闭宝石 GUI: " + player.getUniqueId());
             return;
         }
         guiService.close(player.getUniqueId());

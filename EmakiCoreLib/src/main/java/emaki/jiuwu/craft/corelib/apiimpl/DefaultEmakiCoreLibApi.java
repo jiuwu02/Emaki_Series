@@ -319,7 +319,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
         return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
-                failure -> plugin.getLogger().warning("就绪回调失败，插件 " + failure.owner()
+                failure -> plugin.getLogger().warning("[startup] 就绪回调失败，插件 " + failure.owner()
                         + " 正在等待 " + failure.moduleName() + ": " + failure.error()));
     }
 

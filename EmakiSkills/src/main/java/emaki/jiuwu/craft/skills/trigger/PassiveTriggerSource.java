@@ -250,7 +250,7 @@ public final class PassiveTriggerSource {
                     if (!timerDispatchWarningLogged) {
                         timerDispatchWarningLogged = true;
                         plugin.getLogger().log(Level.WARNING,
-                                "被动触发器派发失败: trigger=timer, player=" + player.getName()
+                                "[scheduler] 被动触发器派发失败: trigger=timer, player=" + player.getName()
                                         + ", operation=timer_dispatch, cause=" + throwable
                                         + "（后续相同警告将在下次成功派发前抑制）",
                                 throwable);
@@ -294,7 +294,7 @@ public final class PassiveTriggerSource {
                 });
             } catch (CronParseException e) {
                 plugin.getLogger().warning(
-                        "[EmakiSkills] 无效的定时表达式 '" + skill.cronExpression()
+                        "[trigger] 无效的定时表达式 '" + skill.cronExpression()
                                 + "'（技能 '" + skill.id() + "'）: " + e.getMessage());
             }
         }

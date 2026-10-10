@@ -76,7 +76,7 @@ final class ActionDescriptorApiService {
                 case ACTION -> action(entry, (CoreActionStage) entry.stage());
             };
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("动作段元数据获取失败: " + entry.id() + " - "
+            plugin.getLogger().warning("[action] 动作段元数据获取失败: " + entry.id() + " - "
                     + Texts.toStringSafe(exception.getMessage()));
             return new CoreActionStageDescriptor(entry.id(), entry.kind(), entry.ownerName(), "", "", "",
                     List.of(), CoreTargetRequirement.NONE, Set.of(), Set.of(), Set.of());
@@ -88,7 +88,7 @@ final class ActionDescriptorApiService {
         try {
             description = entry.trigger().description();
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("动作触发器元数据获取失败: " + entry.id() + " - "
+            plugin.getLogger().warning("[action] 动作触发器元数据获取失败: " + entry.id() + " - "
                     + Texts.toStringSafe(exception.getMessage()));
             description = "";
         }

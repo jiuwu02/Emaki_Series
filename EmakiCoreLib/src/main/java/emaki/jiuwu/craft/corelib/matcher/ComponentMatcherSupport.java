@@ -11,10 +11,11 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ComponentValueParser;
 import emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 
 final class ComponentMatcherSupport {
 
-    static final Logger LOGGER = Logger.getLogger(Matcher.class.getName());
+    static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private static final MinecraftItemComponentCatalog CATALOG = new MinecraftItemComponentCatalog();
 
@@ -86,7 +87,7 @@ final class ComponentMatcherSupport {
             try {
                 pattern = Pattern.compile(expression);
             } catch (RuntimeException exception) {
-                LOGGER.warning("组件匹配器正则无效，结果按 false 处理: "
+                LOGGER.warning("[matcher] 组件匹配器正则无效，结果按 false 处理: "
                         + expression + ", cause=" + exception.getClass().getSimpleName());
                 return false;
             }

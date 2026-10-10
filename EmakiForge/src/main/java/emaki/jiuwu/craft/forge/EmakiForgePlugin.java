@@ -147,7 +147,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 transitionRuntime(ForgeRuntimeStatus.CLOSED, "运行时初始化前插件已停用");
                 shutdownFuture.complete(null);
             } catch (Throwable terminalFailure) {
-                getLogger().warning("[Shutdown] 早期运行时关闭失败: "
+                getLogger().warning("[shutdown] 早期运行时关闭失败: "
                         + String.valueOf(terminalFailure.getMessage()));
                 shutdownFuture.completeExceptionally(terminalFailure);
             }
@@ -177,14 +177,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             Throwable terminalFailure = throwable;
             if (throwable != null) {
                 Throwable cause = AsyncFailures.unwrapOnce(throwable);
-                getLogger().warning("[Shutdown] Forge 清理失败: "
+                getLogger().warning("[shutdown] Forge 清理失败: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             }
             if (metrics != null) {
                 try {
                     metrics.close();
                 } catch (Throwable metricsFailure) {
-                    getLogger().warning("[Shutdown] 指标关闭失败: "
+                    getLogger().warning("[shutdown] 指标关闭失败: "
                             + String.valueOf(metricsFailure.getMessage()));
                     if (terminalFailure == null) {
                         terminalFailure = metricsFailure;
@@ -199,7 +199,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             try {
                 transitionRuntime(ForgeRuntimeStatus.CLOSED, "插件已停用");
             } catch (Throwable closeFailure) {
-                getLogger().warning("[Shutdown] 最终运行时状态切换失败: "
+                getLogger().warning("[shutdown] 最终运行时状态切换失败: "
                         + String.valueOf(closeFailure.getMessage()));
                 if (terminalFailure == null) {
                     terminalFailure = closeFailure;
@@ -219,7 +219,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             return coreLib();
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] CoreLib 查找失败: " + String.valueOf(throwable.getMessage()));
+            getLogger().warning("[shutdown] CoreLib 查找失败: " + String.valueOf(throwable.getMessage()));
             return null;
         }
     }
@@ -227,15 +227,15 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerCoreShutdownBarrier(EmakiCoreLibPlugin coreLibPlugin,
             CompletableFuture<Void> shutdownFuture) {
         if (coreLibPlugin == null) {
-            getLogger().warning("[Shutdown] CoreLib 依赖关闭屏障不可用。");
+            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用。");
             return;
         }
         try {
             if (!coreLibPlugin.registerDependentShutdown("forge", shutdownFuture)) {
-                getLogger().warning("[Shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障。");
+                getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障。");
             }
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] CoreLib 依赖关闭屏障注册失败: "
+            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障注册失败: "
                     + String.valueOf(throwable.getMessage()));
         }
     }
@@ -244,13 +244,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] 玩家会话清理失败: " + String.valueOf(throwable.getMessage()));
+            getLogger().warning("[shutdown] 玩家会话清理失败: " + String.valueOf(throwable.getMessage()));
         }
         if (stageRegistrar != null) {
             try {
                 stageRegistrar.unregister();
             } catch (Throwable throwable) {
-                getLogger().warning("[Shutdown] Forge 阶段清理失败: "
+                getLogger().warning("[shutdown] Forge 阶段清理失败: "
                         + String.valueOf(throwable.getMessage()));
             }
             stageRegistrar = null;
@@ -790,7 +790,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiForge 就绪状态发布已跳过: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 }

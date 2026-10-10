@@ -40,7 +40,7 @@ public sealed interface Matcher permits
         }
         YamlSection section = asSection(config);
         if (section == null) {
-            ComponentMatcherSupport.LOGGER.warning("匹配器配置不是映射，永远不会匹配: "
+            ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器配置不是映射，永远不会匹配: "
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
@@ -79,7 +79,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher reject(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
         return new AnyMatcher(List.of());
     }
 
@@ -155,7 +155,7 @@ public sealed interface Matcher permits
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("组件匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝，永远不会匹配: " + reason + "。");
         return new AnyMatcher(List.of());
     }
 

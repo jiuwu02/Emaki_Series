@@ -98,7 +98,7 @@ public final class MasteryProgressService {
 
     private void warn(String message, Throwable throwable) {
         if (plugin.getLogger() != null) {
-            plugin.getLogger().warning(message + ": " + String.valueOf(throwable.getMessage()));
+            plugin.getLogger().warning("[mastery] " + message + ": " + String.valueOf(throwable.getMessage()));
         }
     }
 }
