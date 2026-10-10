@@ -127,37 +127,56 @@ public final class CorePluginLifecycle {
             CompletableFuture<ShutdownReport> completion) {
         long deadline = deadlineAfter(timeoutNanos);
         List<Throwable> failures = new ArrayList<>();
-        awaitDependents(dependents, deadline, failures);
-        awaitPreDrainShutdown(deadline, failures);
-
-        DrainResult fileResult;
+        boolean drained = false;
+        int pendingOperations = 0;
+        boolean schedulerTerminated = false;
         try {
-            fileResult = fileService == null
-                    ? new DrainResult(true, 0, List.of())
-                    : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
-            fileResult = new DrainResult(false,
-                    fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
-        }
-        failures.addAll(fileResult.failures());
+            awaitDependents(dependents, deadline, failures);
+            awaitPreDrainShutdown(deadline, failures);
 
-        boolean schedulerTerminated;
+            DrainResult fileResult;
+            try {
+                fileResult = fileService == null
+                        ? new DrainResult(true, 0, List.of())
+                        : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+            } catch (Throwable throwable) {
+                failures.add(safeUnwrap(throwable));
+                fileResult = new DrainResult(false,
+                        fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
+            }
+            failures.addAll(fileResult.failures());
+            drained = fileResult.drained();
+            pendingOperations = fileResult.pendingOperations();
+
+            try {
+                schedulerTerminated = taskScheduler == null
+                        || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+            } catch (Throwable throwable) {
+                failures.add(safeUnwrap(throwable));
+                schedulerTerminated = false;
+            }
+        } catch (Throwable throwable) {
+            failures.add(safeUnwrap(throwable));
+        } finally {
+            // 关闭收尾必须始终完成: 任何阶段(含 catch 内的类加载)抛出时,
+            // 也要给出关闭报告, 避免关闭线程中断导致 whenComplete 永不触发。
+            ShutdownReport report = new ShutdownReport(
+                    drained,
+                    schedulerTerminated,
+                    pendingOperations,
+                    failures
+            );
+            finishShutdown(completion, report);
+        }
+    }
+
+    private static Throwable safeUnwrap(Throwable throwable) {
         try {
-            schedulerTerminated = taskScheduler == null
-                    || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
-            schedulerTerminated = false;
+            return AsyncFailures.unwrap(throwable);
+        } catch (Throwable failure) {
+            // 关闭阶段插件 jar 可能已被外部关闭, 解包类加载失败时退回原始异常
+            return throwable;
         }
-
-        ShutdownReport report = new ShutdownReport(
-                fileResult.drained(),
-                schedulerTerminated,
-                fileResult.pendingOperations(),
-                failures
-        );
-        finishShutdown(completion, report);
     }
 
     private void awaitDependents(Map<String, Future<?>> dependents,
@@ -183,10 +202,10 @@ public final class CorePluginLifecycle {
             failures.add(exception);
             return;
         } catch (ExecutionException exception) {
-            failures.add(AsyncFailures.unwrap(exception));
+            failures.add(safeUnwrap(exception));
             return;
         } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
+            failures.add(safeUnwrap(throwable));
             return;
         }
         if (stage != null) {
@@ -201,11 +220,11 @@ public final class CorePluginLifecycle {
                 if (throwable == null) {
                     completion.complete(null);
                 } else {
-                    completion.completeExceptionally(AsyncFailures.unwrap(throwable));
+                    completion.completeExceptionally(safeUnwrap(throwable));
                 }
             });
         } catch (Throwable throwable) {
-            completion.completeExceptionally(AsyncFailures.unwrap(throwable));
+            completion.completeExceptionally(safeUnwrap(throwable));
         }
         return completion;
     }
@@ -226,13 +245,13 @@ public final class CorePluginLifecycle {
             failures.add(exception);
             return false;
         } catch (ExecutionException exception) {
-            failures.add(AsyncFailures.unwrap(exception));
+            failures.add(safeUnwrap(exception));
             return true;
         } catch (CancellationException exception) {
             failures.add(exception);
             return true;
         } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
+            failures.add(safeUnwrap(throwable));
             return true;
         }
     }

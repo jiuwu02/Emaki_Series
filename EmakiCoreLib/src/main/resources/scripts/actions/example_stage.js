@@ -31,7 +31,7 @@ actions.register({
         var amount = Number(args.amount) || 1;
         var result = amount * 10 + exampleLib.curve(amount);
         logger.info('script_demo 执行：amount=' + amount + ' result=' + result
-                + ' phase=' + ctx.getPhase());
+            + ' phase=' + ctx.getPhase());
         return result;
     }
 });
