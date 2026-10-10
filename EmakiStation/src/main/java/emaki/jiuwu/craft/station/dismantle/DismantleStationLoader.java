@@ -33,6 +33,10 @@ public final class DismantleStationLoader extends YamlDirectoryLoader<DismantleS
         return value == null ? null : value.id();
     }
 
+    public DismantleStationDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected DismantleStationDefinition parse(File file, YamlSection configuration) {
         if (configuration == null) {

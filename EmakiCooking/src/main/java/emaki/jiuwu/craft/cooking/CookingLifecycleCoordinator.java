@@ -12,13 +12,17 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -26,6 +30,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
+import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
@@ -245,6 +250,15 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 taskScheduler,
                 threadOwnership
         );
+        GuiService guiService = new GuiService(plugin, executionDispatcher,
+                coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),
+                coreLibPlugin.guiBackend());
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        CookingEditorModule editorModule = new CookingEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new CookingRuntimeComponents(
                 taskScheduler,
                 executionDispatcher,
@@ -284,13 +298,19 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 nutritionTypeLoader,
                 nutritionTypeRegistry,
                 nutritionDataStore,
-                nutritionService
+                nutritionService,
+                guiService,
+                guiTemplateLoader,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 
     public void reload(EmakiCookingPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
+        plugin.guiTemplateLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.choppingBoardRecipeLoader().load();
         plugin.wokRecipeLoader().load();
@@ -323,6 +343,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
+                    plugin.guiTemplateLoader().load();
                     plugin.choppingBoardRecipeLoader().load();
                     plugin.wokRecipeLoader().load();
                     plugin.grinderRecipeLoader().load();

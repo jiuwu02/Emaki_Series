@@ -27,11 +27,12 @@ final class CodexCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private static final String PERMISSION_USE = PERMISSION_ROOT + ".use";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "codex", "open", "reload", "grant", "revoke", "admin", "debug");
+            List.of("help", "codex", "open", "reload", "edit", "grant", "revoke", "admin", "debug");
     private static final List<String> ADMIN_ACTIONS = List.of("unlock", "reset");
 
     private final EmakiCodexPlugin plugin;
@@ -53,6 +54,7 @@ final class CodexCommandRouter implements TabExecutor {
             }
             case "codex", "open" -> openCodexGui(sender);
             case "reload" -> handleReload(sender);
+            case "edit" -> handleEdit(sender, args);
             case "grant" -> handleAdvancement(sender, args, true);
             case "revoke" -> handleAdvancement(sender, args, false);
             case "admin" -> routeAdmin(sender, args);
@@ -170,6 +172,29 @@ final class CodexCommandRouter implements TabExecutor {
             return null;
         }
         return new String[] { normalized.substring(0, separator), normalized.substring(separator + 1) };
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
     }
 
     private boolean handleReload(CommandSender sender) {
@@ -320,6 +345,7 @@ final class CodexCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("codex", plugin.messageService().message("command.help.commands.codex"));
         lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
+        lines.put("edit [id]", plugin.messageService().message("command.help.commands.edit"));
         lines.put("grant <player> <advId>", plugin.messageService().message("command.help.commands.grant"));
         lines.put("revoke <player> <advId>", plugin.messageService().message("command.help.commands.revoke"));
         lines.put("admin unlock <player> <category/entry>",
@@ -342,6 +368,12 @@ final class CodexCommandRouter implements TabExecutor {
             return switch (sub) {
                 case "grant", "revoke" -> CommandTabHelper.completeOnlinePlayers(args[1]);
                 case "admin" -> CommandTabHelper.completeSubcommands(ADMIN_ACTIONS, args[1]);
+                case "edit" -> {
+                    if (plugin.editorModule() == null) {
+                        yield List.of();
+                    }
+                    yield CommandTabHelper.filterByPrefix(plugin.editorModule().knownIds(), args[1]);
+                }
                 case "debug" -> plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
                 default -> List.of();
             };

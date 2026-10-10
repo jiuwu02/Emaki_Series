@@ -69,7 +69,10 @@ record SkillsRuntimeComponents(
         SkillsGuiService skillsGuiService,
         EaBridge eaBridge,
         ExternalManaBridge externalManaBridge,
-        MythicBridge mythicBridge
+        MythicBridge mythicBridge,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        emaki.jiuwu.craft.skills.editor.SkillsEditorModule editorModule,
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService
 ) implements RuntimeComponents {
 
     @Override

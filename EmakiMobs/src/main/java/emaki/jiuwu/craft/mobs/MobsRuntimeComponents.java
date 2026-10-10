@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.mobs;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -33,6 +37,7 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
+import emaki.jiuwu.craft.mobs.editor.MobsEditorModule;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 
 import java.util.List;
@@ -71,7 +76,12 @@ record MobsRuntimeComponents(
         BossBarManager bossBarManager,
         MobAttributeRegistrar mobAttributeRegistrar,
         MobModelManager mobModelManager,
-        DefaultMobExtensions mobExtensions
+        DefaultMobExtensions mobExtensions,
+        GuiService guiService,
+        GuiTemplateLoader guiTemplateLoader,
+        ChatInputService chatInputService,
+        MobsEditorModule editorModule,
+        EditorService editorService
 ) implements RuntimeComponents {
 
     @Override

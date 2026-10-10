@@ -6,14 +6,18 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
+import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
@@ -80,7 +84,12 @@ record CookingRuntimeComponents(EmakiScheduling taskScheduler,
         NutritionTypeLoader nutritionTypeLoader,
         NutritionTypeRegistry nutritionTypeRegistry,
         PlayerNutritionDataStore nutritionDataStore,
-        NutritionService nutritionService) implements RuntimeComponents {
+        NutritionService nutritionService,
+        GuiService guiService,
+        GuiTemplateLoader guiTemplateLoader,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        CookingEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -121,7 +130,9 @@ record CookingRuntimeComponents(EmakiScheduling taskScheduler,
                 RuntimeComponents.component(NutritionTypeLoader.class, nutritionTypeLoader),
                 RuntimeComponents.component(NutritionTypeRegistry.class, nutritionTypeRegistry),
                 RuntimeComponents.component(PlayerNutritionDataStore.class, nutritionDataStore),
-                RuntimeComponents.component(NutritionService.class, nutritionService)
+                RuntimeComponents.component(NutritionService.class, nutritionService),
+                RuntimeComponents.component(GuiService.class, guiService),
+                RuntimeComponents.component(GuiTemplateLoader.class, guiTemplateLoader)
         );
     }
 }

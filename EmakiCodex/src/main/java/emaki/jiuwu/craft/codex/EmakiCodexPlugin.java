@@ -24,15 +24,18 @@ import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
 import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
 import emaki.jiuwu.craft.codex.config.CodexConfigPrecheckContributor;
+import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.codex.api.EmakiCodexApi;
 import emaki.jiuwu.craft.codex.listener.PlayerConnectionListener;
 import emaki.jiuwu.craft.codex.script.TriggerScriptBridge;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -88,6 +91,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private CodexProviderRegistrar codexProviderRegistrar;
     private CodexEntryService codexEntryService;
     private CodexGuiService codexGuiService;
+    private ChatInputService chatInputService;
+    private CodexEditorModule editorModule;
+    private EditorService editorService;
     private TriggerScriptBridge scriptBridge;
 
     private AdvancementListener advancementListener;
@@ -142,10 +148,19 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             metrics.close();
             metrics = null;
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         lifecycleCoordinator.shutdown(this);
     }
 
     public void reloadPluginState() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this);
@@ -203,6 +218,9 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         codexProviderRegistrar = components.codexProviderRegistrar();
         codexEntryService = components.codexEntryService();
         codexGuiService = components.codexGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
 
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
@@ -230,6 +248,12 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     private void registerEventHandlers() {
+        if (guiService != null) {
+            getServer().getPluginManager().registerEvents(guiService, this);
+        }
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
+        }
         getServer().getPluginManager().registerEvents(advancementRegistrar, this);
         getServer().getPluginManager().registerEvents(advancementTriggerRegistry, this);
         advancementListener = new AdvancementListener(this, advancementRegistrar);
@@ -336,6 +360,18 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     public CodexGuiService codexGuiService() {
         return codexGuiService;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public CodexEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public TriggerScriptBridge scriptBridge() {

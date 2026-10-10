@@ -210,10 +210,12 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         ItemBrowserGuiService browserGuiService = new ItemBrowserGuiService(plugin, guiService);
         emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
                 new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
-        emaki.jiuwu.craft.item.editor.ItemEditService itemEditService =
-                new emaki.jiuwu.craft.item.editor.ItemEditService(plugin);
-        emaki.jiuwu.craft.item.editor.ItemEditorGuiService editorGuiService =
-                new emaki.jiuwu.craft.item.editor.ItemEditorGuiService(plugin, itemEditService, chatInputService);
+        emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule =
+                new emaki.jiuwu.craft.item.editor.ItemEditorModule(plugin);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new ItemRuntimeComponents(
                 scheduling,
                 appConfigLoader,
@@ -250,8 +252,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 repairGuiService,
                 browserGuiService,
                 chatInputService,
-                itemEditService,
-                editorGuiService
+                editorModule,
+                editorService
         );
     }
 

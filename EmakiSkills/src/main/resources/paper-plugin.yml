@@ -42,3 +42,5 @@ permissions:
     default: op
   emakiskills.debug:
     default: op
+  emakiskills.edit:
+    default: op

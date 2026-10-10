@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.1.3"
+version: "1.1.4"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
@@ -134,6 +134,8 @@ command:
     header: "<gold>========== EmakiStorage 帮助 ==========</gold>"
     footer: "<gold>=======================================</gold>"
     line: "<yellow>/estorage %cmd%</yellow> <gray>- %desc%</gray>"
+    desc:
+      edit: "打开扩容价格定义编辑器"
     commands:
       open_self: "打开自己的仓库"
       autopickup: "开关自动拾取"
@@ -189,8 +191,18 @@ console:
   unlock_tier_invalid_range: "[economy] 跳过 count_range 无效的解锁档位: %range%"
   # 控制台：解锁档位缺少价格；占位符：%range%
   unlock_tier_no_price: "[economy] 跳过没有配置价格的解锁档位 %range%"
-  # 控制台：解锁回退配置缺少正的 max_amount 保护值
+  # 控制台：unlock_costs.yml 回退配置缺少正的 max_amount 保护值
   unlock_fallback_invalid: "[economy] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值；超出既定档位的付费扩容已禁用"
+  # 控制台：打开编辑界面失败；占位符：%item%、%error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiStorage 编辑界面: %item% (%error%)</red>"
+  # 控制台：编辑界面模板缺失；占位符：%template%
+  editor_template_missing: "[editor] <red>缺少 EmakiStorage 编辑界面模板: %template%</red>"
+  # 控制台：创建定义失败；占位符：%path%、%error%
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
+  # 控制台：删除定义失败；占位符：%path%、%error%
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
+  # 控制台：列举定义目录失败；占位符：%path%、%error%
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
   # 控制台：为玩家加载仓库失败；占位符：%player%、%reason%
   storage_load_failed: "[persistence] 为玩家 %player% 加载仓库失败: %reason%"
   # 控制台：注册流水线阶段失败；占位符：%stage%、%reason%
@@ -221,3 +233,102 @@ debug:
     deposit: "存入完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
     withdraw: "取出完成 | 玩家=%player% | 物品=%item% | 数量=%amount% | 余额=%balance%"
     capacity: "容量重算 | 玩家=%player% | 已用=%used% | 总量=%total% | 溢出=%overflow%"
+
+editor:
+  menu:
+    home: "扩容价格编辑"
+    tiers: "价格档位条目"
+    fallback: "兜底价格"
+    batch: "批量购买"
+    option_edit: "数量选项条目"
+    list_entries: "条目编辑"
+  field:
+    entry: "条目"
+    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    value: "当前值: <white>%value%</white>"
+    disabled: "<red>该字段不可编辑</red>"
+    hint:
+      toggle: "<gray>左键切换 开/关，右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
+      number: "<gray>左键输入数值，右键重置</gray>"
+      text: "<gray>左键输入文本，右键重置</gray>"
+      navigate: "<gray>左键进入子菜单</gray>"
+      list: "<gray>左键查看列表</gray>"
+      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      command: "<gray>左键编辑该项</gray>"
+    tiers: "价格档位列表"
+    tiers_desc: "<dark_gray>按格数区间计价的档位列表，越靠前的档位越优先</dark_gray>"
+    nav_fallback: "兜底价格"
+    nav_fallback_desc: "<dark_gray>超出所有档位后每一格的价格</dark_gray>"
+    nav_batch: "批量购买设置"
+    nav_batch_desc: "<dark_gray>批量购买的开关与数量选项</dark_gray>"
+    count_range: "格数区间"
+    count_range_desc: "<dark_gray>档位覆盖的格数区间，例如 1-9 或单个数字</dark_gray>"
+    currency_type: "货币类型"
+    currency_type_desc: "<dark_gray>货币提供方：vault 或 excellent</dark_gray>"
+    currency_amount: "货币价格"
+    currency_amount_desc: "<dark_gray>每格的货币价格，支持含 count 的数学表达式</dark_gray>"
+    currency_id: "货币 ID"
+    currency_id_desc: "<dark_gray>多货币环境下指定的货币 ID，可留空</dark_gray>"
+    item_source: "物品来源"
+    item_source_desc: "<dark_gray>用于支付的物品来源 token，例如 diamond</dark_gray>"
+    item_amount: "物品数量"
+    item_amount_desc: "<dark_gray>每格需支付的物品数量</dark_gray>"
+    max_amount: "价格上限"
+    max_amount_desc: "<dark_gray>兜底价格的保护上限，防止表达式溢出，必须为正数</dark_gray>"
+    batch_enabled: "启用批量购买"
+    batch_enabled_desc: "<dark_gray>是否允许玩家一次购买多格</dark_gray>"
+    options: "数量选项"
+    options_desc: "<dark_gray>批量购买可选的数量列表</dark_gray>"
+    option_value: "选项数值"
+    option_value_desc: "<dark_gray>单个批量购买数量选项</dark_gray>"
+  modified: "<green>成功修改了 %item%</green>"
+  reset_ok: "<green>成功重置了 %item%</green>"
+  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
+  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  open_failed: "<red>无法打开 %id% 的编辑界面</red>"
+  prompt:
+    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+  map:
+    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+  tier:
+    create_hint: "<gray>输入新档位的格数区间，例如 1-9 或 50，输入 cancel 取消</gray>"
+    bad_range: "<red>格数区间无效，请输入如 1-9 或 50 的正整数区间</red>"
+  option:
+    create_hint: "<gray>输入新的数量选项（正整数），输入 cancel 取消</gray>"
+    bad_value: "<red>数量选项必须是正整数</red>"
+  root:
+    unlock_costs: "扩容价格文件"
+  browser:
+    title: "<dark_gray>定义浏览</dark_gray>"
+    roots: "<dark_gray>选择新建分类</dark_gray>"
+    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    no_skeleton: "<red>该分类不支持新建定义</red>"
+    duplicate_id: "<red>ID %id% 已存在</red>"
+    create_success: "<green>已创建定义 %id%</green>"
+    create_failed: "<red>创建失败，详见控制台</red>"
+    no_create_root: "<yellow>没有可新建定义的分类</yellow>"
+    delete_title: "确认删除定义 %id%"
+    delete_body: "确定要删除此定义吗？"
+    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_confirm_button: "确认删除"
+    delete_cancel_button: "取消"
+    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
+    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_success: "<green>已删除定义 %id%</green>"
+    delete_failed: "<red>删除失败，详见控制台</red>"
+  value:
+    unset: "未设置（空）"
+    integer: "整数"
+    decimal: "小数"
+    boolean: "布尔"
+    text: "文本"
+    list_header: "列表（%count% 项）"
+    map_header: "字典（%count% 项）"
+    scalar: "%type%: %value%"
+    more: "… 其余 %count% 项"

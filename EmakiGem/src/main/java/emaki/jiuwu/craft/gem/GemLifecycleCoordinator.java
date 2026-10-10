@@ -157,6 +157,14 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 coreLibPlugin.placeholderRegistry()
         );
         GemGuiService gemGuiService = new GemGuiService(plugin, guiService, scheduling);
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+                new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
+        emaki.jiuwu.craft.gem.editor.GemEditorModule editorModule =
+                new emaki.jiuwu.craft.gem.editor.GemEditorModule(plugin);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new GemRuntimeComponents(
                 scheduling,
                 appConfigLoader,
@@ -180,7 +188,10 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 socketOpenerService,
                 inlayService,
                 extractService,
-                gemGuiService
+                gemGuiService,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 

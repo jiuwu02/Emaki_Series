@@ -28,6 +28,8 @@ permissions:
     default: true
   emakilevel.top:
     default: true
+  emakilevel.edit:
+    default: op
   emakilevel.reload:
     default: op
   emakilevel.debug:

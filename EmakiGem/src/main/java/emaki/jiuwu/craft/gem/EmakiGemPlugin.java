@@ -11,12 +11,14 @@ import org.bukkit.plugin.ServicePriority;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
@@ -33,6 +35,7 @@ import emaki.jiuwu.craft.gem.action.GemStageRegistrar;
 import emaki.jiuwu.craft.gem.api.EmakiGemApi;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.config.GemConfigPrecheckContributor;
+import emaki.jiuwu.craft.gem.editor.GemEditorModule;
 import emaki.jiuwu.craft.gem.integration.GemItemLayerPreviewLifecycle;
 import emaki.jiuwu.craft.gem.integration.strengthen.GemStrengthenIntegration;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
@@ -104,6 +107,9 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
     private GemGuiService gemGuiService;
     private GemResonanceLoader resonanceLoader;
     private GemResonanceService resonanceService;
+    private ChatInputService chatInputService;
+    private GemEditorModule editorModule;
+    private EditorService editorService;
     private GemPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private GemStageRegistrar stageRegistrar;
@@ -168,11 +174,20 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
             metrics.close();
             metrics = null;
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         getServer().getServicesManager().unregisterAll(this);
         lifecycleCoordinator.shutdown(this);
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publicApiReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
@@ -181,6 +196,9 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publicApiReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
@@ -245,6 +263,9 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
         socketOpenerService = components.socketOpenerService();
         inlayService = components.inlayService();
         gemGuiService = components.gemGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
@@ -268,6 +289,9 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
     private void registerEventHandlers() {
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
+        }
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
         }
         getServer().getPluginManager().registerEvents(new GemItemObtainListener(this, scheduling), this);
         getServer().getPluginManager().registerEvents(new GemPlayerLifecycleListener(this), this);
@@ -396,6 +420,18 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
 
     public GemResonanceService resonanceService() {
         return resonanceService;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public GemEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public void setResonanceLoader(GemResonanceLoader resonanceLoader) {

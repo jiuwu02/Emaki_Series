@@ -86,7 +86,7 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         }
         String packId = currentPackId(session);
         int page = currentPage(session);
-        if (plugin.editorGuiService().open(player, itemId, packId, page) == null) {
+        if (plugin.editorModule().openItem(player, itemId, packId, page) == null) {
             plugin.messageService().send(player, "editor.open_failed", Map.of("id", itemId));
         }
     }
@@ -97,10 +97,10 @@ final class ItemBrowserGuiHandler implements GuiSessionHandler {
         }
         String packId = currentPackId(session);
         int page = currentPage(session);
-        plugin.editorGuiService().input().promptChat(player,
+        plugin.editorService().input().promptChat(player,
                 plugin.messageService().message("editor.hint.new_item_id"),
                 plugin.messageService().message("editor.create.prompt"),
-                rawId -> plugin.editorGuiService().createAndOpen(player, packId, page, rawId));
+                rawId -> plugin.editorModule().createAndOpen(player, packId, page, rawId));
     }
 
     private void takeItem(GuiSession session, GuiClickContext click, Player player, int slotIndex) {

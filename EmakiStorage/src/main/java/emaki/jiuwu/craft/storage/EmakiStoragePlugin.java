@@ -108,6 +108,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private StorageLayoutResolver layoutResolver;
     private StorageAmountFormatter amountFormatter;
     private StorageGuiService storageGuiService;
+    private emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule;
+    private emaki.jiuwu.craft.corelib.editor.EditorService editorService;
 
     private StorageSessionManager sessionManager;
     private StoragePlayerListener playerListener;
@@ -176,6 +178,9 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (guiService != null) {
             guiService.closeAll();
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
         if (chatInputService != null) {
             chatInputService.close();
         }
@@ -204,6 +209,9 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public int reloadPluginState() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         int result = lifecycleCoordinator.reload(this);
@@ -262,6 +270,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         layoutResolver = components.layoutResolver();
         amountFormatter = components.amountFormatter();
         storageGuiService = components.storageGuiService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
 
         sessionManager = new StorageSessionManager(this);
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -420,6 +430,14 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     public StorageGuiService storageGuiService() {
         return storageGuiService;
+    }
+
+    public emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public emaki.jiuwu.craft.corelib.editor.EditorService editorService() {
+        return editorService;
     }
 
     public StorageSessionManager sessionManager() {

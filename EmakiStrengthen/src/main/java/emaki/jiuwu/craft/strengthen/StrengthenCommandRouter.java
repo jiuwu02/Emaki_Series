@@ -39,6 +39,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private final EmakiStrengthenPlugin plugin;
 
@@ -59,6 +60,7 @@ final class StrengthenCommandRouter implements TabExecutor {
             }
             case "open" -> handleOpen(sender);
             case "affix" -> handleAffix(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
             case "refresh" -> handleRefresh(sender, args);
@@ -82,7 +84,7 @@ final class StrengthenCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "open", "affix", "reload", "inspect", "refresh", "setstar", "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "convert-legacy", "debug")) {
+            for (String sub : List.of("help", "open", "affix", "edit", "reload", "inspect", "refresh", "setstar", "branch", "clearstate", "clearcrack", "givecatalyst", "operation", "pity", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -152,6 +154,16 @@ final class StrengthenCommandRouter implements TabExecutor {
                         .map(recipe -> recipe.id())
                         .filter(id -> id.startsWith(args[1].toLowerCase(Locale.ROOT)))
                         .forEach(result::add);
+                case "edit" -> {
+                    if (plugin.editorModule() != null) {
+                        String prefix = args[1].toLowerCase(Locale.ROOT);
+                        for (String id : plugin.editorModule().knownIds()) {
+                            if (id.startsWith(prefix)) {
+                                result.add(id);
+                            }
+                        }
+                    }
+                }
                 default -> {
                 }
             }
@@ -178,6 +190,29 @@ final class StrengthenCommandRouter implements TabExecutor {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[3]));
         }
         return result;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
     }
 
     private boolean handleAffix(CommandSender sender, String[] args) {
@@ -603,6 +638,7 @@ final class StrengthenCommandRouter implements TabExecutor {
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
         lines.put("open", plugin.messageService().message("command.help.desc.open"));
         lines.put("affix [recipe]", plugin.messageService().message("command.help.desc.affix"));
+        lines.put("edit [id]", plugin.messageService().message("command.help.desc.edit"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect [player]", plugin.messageService().message("command.help.desc.inspect"));
         lines.put("refresh [player]", plugin.messageService().message("command.help.desc.refresh"));

@@ -44,5 +44,7 @@ permissions:
     default: op
   emakimobs.debug:
     default: op
+  emakimobs.edit:
+    default: op
   emakimobs.admin:
     default: op

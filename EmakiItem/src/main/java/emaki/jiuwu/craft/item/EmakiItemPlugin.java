@@ -150,8 +150,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     private ItemRepairGuiService repairGuiService;
     private ItemBrowserGuiService browserGuiService;
     private emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService;
-    private emaki.jiuwu.craft.item.editor.ItemEditService itemEditService;
-    private emaki.jiuwu.craft.item.editor.ItemEditorGuiService editorGuiService;
+    private emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule;
+    private emaki.jiuwu.craft.corelib.editor.EditorService editorService;
     private final EmakiItemApi.Bridge itemApiBridge =
             new DefaultEmakiItemApi(this);
 
@@ -207,8 +207,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         if (proficiencyGuard != null) {
             proficiencyGuard.reset();
         }
-        if (editorGuiService != null) {
-            editorGuiService.closeAll();
+        if (editorService != null) {
+            editorService.closeAll();
         }
         if (chatInputService != null) {
             chatInputService.close();
@@ -218,8 +218,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     }
 
     private void persistDeferredEditorEdits() {
-        if (editorGuiService != null) {
-            editorGuiService.editService().flushAll();
+        if (editorService != null) {
+            editorService.flushAll();
         }
     }
 
@@ -440,8 +440,8 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         repairGuiService = components.repairGuiService();
         browserGuiService = components.browserGuiService();
         chatInputService = components.chatInputService();
-        itemEditService = components.itemEditService();
-        editorGuiService = components.editorGuiService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
@@ -641,12 +641,12 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         return chatInputService;
     }
 
-    public emaki.jiuwu.craft.item.editor.ItemEditService itemEditService() {
-        return itemEditService;
+    public emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule() {
+        return editorModule;
     }
 
-    public emaki.jiuwu.craft.item.editor.ItemEditorGuiService editorGuiService() {
-        return editorGuiService;
+    public emaki.jiuwu.craft.corelib.editor.EditorService editorService() {
+        return editorService;
     }
 
     public EmakiCoreLibPlugin coreLib() {

@@ -46,7 +46,9 @@ record StorageRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StorageUnlockService unlockService,
         StorageLayoutResolver layoutResolver,
         StorageAmountFormatter amountFormatter,
-        StorageGuiService storageGuiService) implements RuntimeComponents {
+        StorageGuiService storageGuiService,
+        emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule,
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

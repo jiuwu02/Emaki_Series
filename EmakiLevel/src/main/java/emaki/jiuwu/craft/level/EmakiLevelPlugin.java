@@ -21,6 +21,8 @@ import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -41,6 +43,7 @@ import emaki.jiuwu.craft.level.bridge.MythicLevelDropBridge;
 import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
+import emaki.jiuwu.craft.level.editor.LevelEditorModule;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
 import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
@@ -105,7 +108,9 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             "sources/brewing.yml",
             "sources/taming.yml",
             "sources/smelting.yml",
-            "sources/mythicmobs.yml"
+            "sources/mythicmobs.yml",
+            "gui/editor_page_gui.yml",
+            "gui/editor_browser_gui.yml"
     );
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
     private static final Set<String> DEBUG_MODULES = Set.of("common");
@@ -140,6 +145,9 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
     private LevelPlaceholderExpansion placeholderExpansion;
     private LevelStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
+    private ChatInputService chatInputService;
+    private LevelEditorModule editorModule;
+    private EditorService editorService;
 
     private volatile boolean contentReady;
     private EmakiLevelApi.Bridge levelApiBridge;
@@ -182,6 +190,12 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
     public void onDisable() {
         contentReady = false;
         publishAbsent();
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         if (coreLib != null) {
             ConfigPrecheckLifecycleSupport.unregister("level");
         }
@@ -232,6 +246,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
 
     public void reloadPluginState() {
 
+        flushDeferredEditorEdits();
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 messages,
                 "level",
@@ -369,6 +384,13 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
         playerDataListener = new PlayerDataListener(this, scheduling);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
+        chatInputService = new ChatInputService(this, executionDispatcher);
+        editorModule = new LevelEditorModule(this);
+        AbstractMessageService editorMessages = new AbstractMessageService(this,
+                messages.message("general.prefix"), messages::message, messages::message);
+        editorService = new EditorService(this, guiService, guiTemplateLoader, editorMessages,
+                chatInputService, editorModule);
+        editorModule.bind(editorService);
     }
 
     private void registerCommand() {
@@ -392,6 +414,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(expSourceRegistry, this);
         gameplaySubscriber = new LevelGameplaySubscriber(this);
@@ -567,5 +590,19 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
 
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
+    }
+
+    public LevelEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
+    }
+
+    private void flushDeferredEditorEdits() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
     }
 }

@@ -194,6 +194,14 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillRegistryService, triggerRegistry,
                 castModeService, skillLevelService,
                 skillUpgradeService, messageService);
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+                new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
+        emaki.jiuwu.craft.skills.editor.SkillsEditorModule editorModule =
+                new emaki.jiuwu.craft.skills.editor.SkillsEditorModule(plugin);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new SkillsRuntimeComponents(
                 appConfigLoader,
                 scheduling,
@@ -226,7 +234,10 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillsGuiService,
                 eaBridge,
                 externalManaBridge,
-                mythicBridge
+                mythicBridge,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 

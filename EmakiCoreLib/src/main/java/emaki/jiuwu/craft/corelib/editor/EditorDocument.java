@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.item.editor;
+package emaki.jiuwu.craft.corelib.editor;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -7,17 +7,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.file.FileRevisions;
-import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
-import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 
-public final class ItemDefinitionDocument {
+public final class EditorDocument {
 
     public enum SaveStatus {
         SAVED,
@@ -35,65 +33,52 @@ public final class ItemDefinitionDocument {
 
     private static final long MAX_TEXT_BYTES = 512L * 1024L;
 
-    @FunctionalInterface
-    public interface DraftValidator {
-
-        String validate(YamlTextDocument candidate, String itemId, Path source);
-    }
-
     private final Logger logger;
     private final Path file;
-    private final String itemId;
-    private final DraftValidator validator;
+    private final String docId;
+    private final String docKey;
+    private final EditorValidator validator;
     private YamlTextDocument document;
     private long expectedRevision;
     private boolean dirty;
 
-    private ItemDefinitionDocument(Logger logger,
+    private EditorDocument(Logger logger,
             Path file,
-            String itemId,
-            DraftValidator validator,
+            String docId,
+            String docKey,
+            EditorValidator validator,
             YamlTextDocument document,
             long revision) {
         this.logger = logger;
         this.file = file;
-        this.itemId = itemId;
+        this.docId = docId;
+        this.docKey = docKey;
         this.validator = validator;
         this.document = document;
         this.expectedRevision = revision;
     }
 
-    public static ItemDefinitionDocument open(Logger logger, Path file, DraftValidator validator) throws IOException {
+    public static EditorDocument open(Logger logger, Path file, EditorValidator validator) throws IOException {
         String text = Files.readString(file, StandardCharsets.UTF_8);
         YamlTextDocument parsed = YamlTextDocument.parse(text);
         Object rawId = parsed.value("id");
-        String itemId = Texts.normalizeId(rawId == null ? "" : Texts.toStringSafe(rawId));
-        return new ItemDefinitionDocument(logger, file, itemId, validator, parsed, FileRevisions.revision(file));
+        String docId = Texts.normalizeId(rawId == null ? "" : Texts.toStringSafe(rawId));
+        String docKey = docId.isEmpty() ? fileStem(file) : docId;
+        return new EditorDocument(logger, file, docId, docKey, validator, parsed, FileRevisions.revision(file));
     }
 
-    public static DraftValidator definitionParserValidator(Logger logger) {
-        return (candidate, itemId, source) -> {
-            try {
-                YamlSection section = YamlFiles.load(candidate.text());
-                if (section == null) {
-                    return "unparseable_yaml";
-                }
-                EmakiItemDefinition definition = new EmakiItemDefinitionParser(logger).parse(section, source.toString());
-                if (definition == null) {
-                    return "definition_parse_failed";
-                }
-                if (!itemId.equals(definition.id())) {
-                    return "id_changed";
-                }
-            } catch (RuntimeException failure) {
-                return "unparseable_yaml";
-            }
-            return null;
-        };
+    private static String fileStem(Path file) {
+        String name = file.getFileName() == null ? "" : file.getFileName().toString();
+        int dot = name.lastIndexOf('.');
+        return dot > 0 ? name.substring(0, dot) : name;
     }
 
-    public String itemId() {
-        return itemId;
+    public String docId() {
+        return docId;
+    }
+
+    public String docKey() {
+        return docKey;
     }
 
     public Path path() {
@@ -109,9 +94,17 @@ public final class ItemDefinitionDocument {
     }
 
     public SaveResult mutate(Consumer<YamlTextDocument> mutation) {
+        return mutate(mutation, null);
+    }
+
+    public SaveResult mutate(Consumer<YamlTextDocument> mutation,
+            Function<YamlTextDocument, String> extraCheck) {
         YamlTextDocument candidate = YamlTextDocument.parse(document.text());
         mutation.accept(candidate);
         String problem = validate(candidate);
+        if (problem == null && extraCheck != null) {
+            problem = extraCheck.apply(candidate);
+        }
         if (problem != null) {
             return new SaveResult(SaveStatus.VALIDATION_FAILED, expectedRevision, problem);
         }
@@ -144,7 +137,7 @@ public final class ItemDefinitionDocument {
         } catch (FileRevisions.RevisionConflictException conflict) {
             return new SaveResult(SaveStatus.CONFLICT, conflict.currentRevision(), "revision_conflict");
         } catch (IOException | RuntimeException failure) {
-            logger.log(Level.WARNING, "[editor] 无法持久化 EmakiItem 定义 " + file + ": " + failure, failure);
+            logger.log(Level.WARNING, "[editor] 无法持久化定义文件 " + file + ": " + failure, failure);
             return new SaveResult(SaveStatus.IO_ERROR, expectedRevision, Texts.toStringSafe(failure.getMessage()));
         }
     }
@@ -156,12 +149,12 @@ public final class ItemDefinitionDocument {
             expectedRevision = FileRevisions.revision(file);
             dirty = false;
         } catch (IOException failure) {
-            logger.log(Level.WARNING, "[editor] 无法重新加载 EmakiItem 定义 " + file + ": " + failure, failure);
+            logger.log(Level.WARNING, "[editor] 无法重新加载定义文件 " + file + ": " + failure, failure);
         }
     }
 
     private String validate(YamlTextDocument candidate) {
-        return validator.validate(candidate, itemId, file);
+        return validator.validate(candidate, docId, file);
     }
 
     private void requireWritable() throws IOException {
@@ -178,7 +171,7 @@ public final class ItemDefinitionDocument {
         if (backupRoot == null) {
             return;
         }
-        Path target = backupRoot.resolve(Long.toString(System.currentTimeMillis())).resolve(itemId + ".yml");
+        Path target = backupRoot.resolve(Long.toString(System.currentTimeMillis())).resolve(docKey + ".yml");
         Files.createDirectories(target.getParent());
         Files.writeString(target, text, StandardCharsets.UTF_8);
     }

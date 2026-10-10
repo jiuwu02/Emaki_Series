@@ -8,6 +8,7 @@ import java.util.Map;
 import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfigParser;
+import emaki.jiuwu.craft.accessory.editor.AccessoryEditorModule;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPageLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPartLoader;
@@ -26,6 +27,8 @@ import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -45,7 +48,8 @@ final class AccessoryLifecycleCoordinator
             List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/accessory_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES =
-            List.of("parts.yml", "sets/example_set.yml", "pages/main.yml", "pages/secondary.yml");
+            List.of("parts.yml", "sets/example_set.yml", "pages/main.yml", "pages/secondary.yml",
+                    "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("gui", "sets", "pages", "data");
 
     @Override
@@ -105,6 +109,12 @@ final class AccessoryLifecycleCoordinator
         AccessoryProviderRegistrar providerRegistrar = new AccessoryProviderRegistrar(
                 plugin, contributionService, plugin.getLogger());
 
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        AccessoryEditorModule editorModule = new AccessoryEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
+
         return new AccessoryRuntimeComponents(
                 appConfigLoader,
                 languageLoader,
@@ -124,7 +134,10 @@ final class AccessoryLifecycleCoordinator
                 accessoryGuiService,
                 writeSessions,
                 adminService,
-                providerRegistrar);
+                providerRegistrar,
+                chatInputService,
+                editorModule,
+                editorService);
     }
 
     int reload(EmakiAccessoryPlugin plugin) {

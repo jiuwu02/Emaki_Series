@@ -114,6 +114,10 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         return value.id();
     }
 
+    public MobSpec parseDefinition(File file, YamlSection config) {
+        return parse(file, config);
+    }
+
     private boolean isEntityTypeName(String id) {
         try {
             EntityType.valueOf(id.toUpperCase(Locale.ROOT));

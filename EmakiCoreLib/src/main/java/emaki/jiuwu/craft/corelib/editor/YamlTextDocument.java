@@ -1,4 +1,4 @@
-package emaki.jiuwu.craft.item.editor;
+package emaki.jiuwu.craft.corelib.editor;
 
 import java.util.ArrayList;
 import java.util.Collections;

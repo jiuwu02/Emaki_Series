@@ -45,6 +45,10 @@ public final class RecipeLoader extends YamlDirectoryLoader<RecipeDefinition> {
         return value == null ? null : value.id();
     }
 
+    public RecipeDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected RecipeDefinition parse(File file, YamlSection configuration) {
         if (configuration == null) {

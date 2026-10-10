@@ -51,7 +51,9 @@ final class StorageLifecycleCoordinator
     private static final List<String> VERSIONED_FILES =
             List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/storage_gui.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("unlock_costs.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("unlock_costs.yml",
+            "gui/editor_page_gui.yml",
+            "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "logs", "corrupt");
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
             new ConfigKeyMigration.Rename("persistence.autosave_interval", "persistence.autosave_interval_seconds"),
@@ -126,11 +128,18 @@ final class StorageLifecycleCoordinator
         StorageGuiService storageGuiService = new StorageGuiService(guiService, capacityService,
                 searchService, overflowService, amountFormatter, messageService, config);
 
+        emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule =
+                new emaki.jiuwu.craft.storage.editor.StorageEditorModule(plugin);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
+
         return new StorageRuntimeComponents(appConfigLoader, languageLoader, messageService,
                 bootstrapService, executionDispatcher, threadOwnership, guiService, guiTemplateLoader,
                 chatInputService, textIndexer, dataStore, operationLog, capacityService,
                 transactionService, searchService, sortService, overflowService, unlockService,
-                layoutResolver, amountFormatter, storageGuiService);
+                layoutResolver, amountFormatter, storageGuiService, editorModule, editorService);
     }
 
     public int reload(EmakiStoragePlugin plugin) {

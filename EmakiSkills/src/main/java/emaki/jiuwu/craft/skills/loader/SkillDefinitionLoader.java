@@ -118,6 +118,10 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
         );
     }
 
+    public SkillDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String idOf(SkillDefinition value) {
         return value.id();

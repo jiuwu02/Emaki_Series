@@ -42,6 +42,8 @@ permissions:
     default: true
   emakicooking.reload:
     default: op
+  emakicooking.edit:
+    default: op
   emakicooking.inspect:
     default: op
   emakicooking.admin:

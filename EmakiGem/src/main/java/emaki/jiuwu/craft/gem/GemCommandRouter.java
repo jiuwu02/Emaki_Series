@@ -30,6 +30,7 @@ final class GemCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private final EmakiGemPlugin plugin;
 
@@ -50,6 +51,7 @@ final class GemCommandRouter implements TabExecutor {
             }
             case "gui" -> handleGuiCommand(sender, args);
             case "reload" -> handleReload(sender);
+            case "edit" -> handleEdit(sender, args);
             case "inspect" -> handleInspect(sender, args);
             case "reroll" -> handleReroll(sender, args);
             case "clearstate" -> handleClearState(sender);
@@ -66,7 +68,7 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "inspect", "reroll", "clearstate", "convert-legacy", "debug")) {
+            for (String sub : List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -86,6 +88,16 @@ final class GemCommandRouter implements TabExecutor {
                     }
                 }
                 case "inspect" -> result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
+                case "edit" -> {
+                    if (plugin.editorModule() != null) {
+                        String prefix = args[1].toLowerCase(Locale.ROOT);
+                        for (String id : plugin.editorModule().knownIds()) {
+                            if (id.startsWith(prefix)) {
+                                result.add(id);
+                            }
+                        }
+                    }
+                }
                 case "reroll" -> {
                     for (String sub : List.of("full", "value", "confirm", "cancel", "status")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
@@ -135,6 +147,29 @@ final class GemCommandRouter implements TabExecutor {
             return;
         }
         plugin.scheduling().runGlobal(plugin, task);
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
     }
 
     private boolean handleGui(CommandSender sender, GemGuiMode mode) {
@@ -303,6 +338,7 @@ final class GemCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", ms.message("command.help.desc.help"));
         lines.put("gui [inlay|upgrade|open]", ms.message("command.help.desc.gui"));
+        lines.put("edit [id]", ms.message("command.help.desc.edit"));
         lines.put("reload", ms.message("command.help.desc.reload"));
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
         lines.put("reroll <full|value|confirm|cancel|status>", ms.message("command.help.desc.reroll"));

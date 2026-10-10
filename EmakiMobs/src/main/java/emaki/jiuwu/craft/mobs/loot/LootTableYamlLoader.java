@@ -53,6 +53,10 @@ public final class LootTableYamlLoader extends YamlDirectoryLoader<LootTableDefi
         return value.mobId();
     }
 
+    public LootTableDefinition parseDefinition(File file, YamlSection config) {
+        return parse(file, config);
+    }
+
     private LootPoolDefinition parsePool(YamlSection section) {
         Object rolls = section.get("rolls");
         if (rolls == null) rolls = 1;

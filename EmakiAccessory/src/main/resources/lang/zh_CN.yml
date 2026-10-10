@@ -1,7 +1,7 @@
 # EmakiAccessory 简体中文语言资源。
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
-version: "1.1.7"
+version: "1.1.8"
 
 console:
   plugin_starting: "[startup] <gray>正在启动 EmakiAccessory...</gray>"
@@ -35,6 +35,16 @@ console:
       required_directory_missing: "缺少必需目录"
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
+  # 控制台：打开编辑界面失败；占位符：%item%、%error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiAccessory 编辑界面: %item% (%error%)</red>"
+  # 控制台：编辑界面模板缺失；占位符：%template%
+  editor_template_missing: "[editor] <red>缺少 EmakiAccessory 编辑界面模板: %template%</red>"
+  # 控制台：创建定义失败；占位符：%path%、%error%
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
+  # 控制台：删除定义失败；占位符：%path%、%error%
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
+  # 控制台：列举定义目录失败；占位符：%path%、%error%
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
@@ -72,6 +82,7 @@ command:
     <yellow>/eacc list</yellow> <gray>- 列出生效页的饰品槽</gray>
     <yellow>/eacc pages</yellow> <gray>- 列出所有饰品页</gray>
     <yellow>/eacc retrieve <页></yellow> <gray>- 取回该页全部饰品，主要用于没有权限的页</gray>
+    <yellow>/eacc edit [id]</yellow> <gray>- 打开定义编辑器，不带 id 时打开浏览界面</gray>
     <yellow>/eacc reload</yellow> <gray>- 重载配置、部位、套装与饰品页</gray>
     <yellow>/eacc debug</yellow> <gray>- 调试开关</gray>
     <yellow>/eacc admin</yellow> <gray>- 管理指令</gray>
@@ -131,3 +142,119 @@ debug:
   accessory:
     recompute: "<gray>[DEBUG][Accessory] 玩家 <player> 饰品贡献重算完成：属性 <attributes> 项，技能 <skills> 项，套装 <sets> 组</gray>"
     inactive_slot: "<gray>[DEBUG][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献：条件满足 <condition>，耐久完好 <durability_intact></gray>"
+
+editor:
+  menu:
+    home: "编辑主页"
+    parts: "饰品部位"
+    list_entries: "条目编辑"
+  root:
+    parts: "部位定义"
+    sets: "套装定义"
+    pages: "饰品页"
+  field:
+    entry: "条目"
+    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    value: "当前值: <white>%value%</white>"
+    disabled: "<red>该字段不可编辑</red>"
+    hint:
+      toggle: "<gray>左键切换 开/关，右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
+      number: "<gray>左键输入数值，右键重置</gray>"
+      text: "<gray>左键输入文本，右键重置</gray>"
+      navigate: "<gray>左键进入子菜单</gray>"
+      list: "<gray>左键查看列表</gray>"
+      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      command: "<gray>左键编辑该项</gray>"
+    nav_parts: "饰品部位"
+    nav_parts_desc: "<dark_gray>进入部位定义，编辑各部位的数量与展示</dark_gray>"
+    set_display_name: "套装显示名"
+    set_display_name_desc: "<dark_gray>套装整体显示的名称</dark_gray>"
+    set_pieces: "套装成员"
+    set_pieces_desc: "<dark_gray>各成员对应的物品与槽位映射</dark_gray>"
+    set_thresholds: "件数阈值"
+    set_thresholds_desc: "<dark_gray>按已装备件数激活的阈值奖励</dark_gray>"
+    page_id: "饰品页 ID"
+    page_id_desc: "<dark_gray>饰品页唯一标识，与文件名无关</dark_gray>"
+    page_display_name: "饰品页显示名"
+    page_display_name_desc: "<dark_gray>饰品页在界面中显示的名称</dark_gray>"
+    page_order: "排序值"
+    page_order_desc: "<dark_gray>升序显示，最小值为默认启用页</dark_gray>"
+    page_gui_template: "界面布局"
+    page_gui_template_desc: "<dark_gray>饰品页使用的界面布局模板 ID</dark_gray>"
+    page_permission: "使用权限"
+    page_permission_desc: "<dark_gray>打开该页所需的权限节点，留空不限制</dark_gray>"
+    page_parts: "包含部位"
+    page_parts_desc: "<dark_gray>该页引用的部位列表</dark_gray>"
+    count: "数量"
+    count_desc: "<dark_gray>该部位展开的槽位数量，修改后按新序号保留数据</dark_gray>"
+    display_name: "展示名称"
+    display_name_desc: "<dark_gray>部位在界面里展示的名称</dark_gray>"
+    icon: "图标材质"
+    icon_desc: "<dark_gray>部位槽位使用的材质名</dark_gray>"
+    durability_deduction: "扣除耐久"
+    durability_deduction_desc: "<dark_gray>该部位是否允许扣除耐久度</dark_gray>"
+    id: "定义 ID"
+    id_desc: "<dark_gray>定义唯一标识，不可修改</dark_gray>"
+    item: "物品 ID"
+    item_desc: "<dark_gray>成员引用的 EmakiItem 物品 ID</dark_gray>"
+    slot: "部位限制"
+    slot_desc: "<dark_gray>成员可装备的部位或槽位，留空表示任意饰品槽</dark_gray>"
+    display: "成员展示名"
+    display_desc: "<dark_gray>成员在套装展示中使用的名称</dark_gray>"
+    effects: "阈值效果"
+    effects_desc: "<dark_gray>达到该件数阈值时生效的效果列表</dark_gray>"
+    necklace: "项链"
+    necklace_desc: "<dark_gray>部位/成员标识: necklace</dark_gray>"
+    ring: "戒指"
+    ring_desc: "<dark_gray>部位/成员标识: ring</dark_gray>"
+    belt: "腰带"
+    belt_desc: "<dark_gray>部位/成员标识: belt</dark_gray>"
+    charm: "护符"
+    charm_desc: "<dark_gray>部位/成员标识: charm</dark_gray>"
+    "2": "2 件阈值"
+    "2_desc": "<dark_gray>已装备 2 件时激活的阈值效果</dark_gray>"
+    "3": "3 件阈值"
+    "3_desc": "<dark_gray>已装备 3 件时激活的阈值效果</dark_gray>"
+  modified: "<green>成功修改了 %item%</green>"
+  reset_ok: "<green>成功重置了 %item%</green>"
+  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
+  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  open_failed: "<red>无法打开 %id% 的编辑界面</red>"
+  prompt:
+    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+  map:
+    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+  value:
+    unset: "未设置（空）"
+    integer: "整数"
+    decimal: "小数"
+    boolean: "布尔"
+    text: "文本"
+    list_header: "列表（%count% 项）"
+    map_header: "字典（%count% 项）"
+    scalar: "%type%: %value%"
+    more: "… 其余 %count% 项"
+  browser:
+    title: "<dark_gray>定义浏览</dark_gray>"
+    roots: "<dark_gray>选择新建分类</dark_gray>"
+    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    no_skeleton: "<red>该分类不支持新建定义</red>"
+    duplicate_id: "<red>ID %id% 已存在</red>"
+    create_success: "<green>已创建定义 %id%</green>"
+    create_failed: "<red>创建失败，详见控制台</red>"
+    no_create_root: "<yellow>没有可新建定义的分类</yellow>"
+    delete_title: "确认删除定义 %id%"
+    delete_body: "确定要删除此定义吗？"
+    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_confirm_button: "确认删除"
+    delete_cancel_button: "取消"
+    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
+    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_success: "<green>已删除定义 %id%</green>"
+    delete_failed: "<red>删除失败，详见控制台</red>"

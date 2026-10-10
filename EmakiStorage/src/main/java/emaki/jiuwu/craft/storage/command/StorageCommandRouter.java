@@ -8,6 +8,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.Consumer;
+import java.nio.file.Files;
+import java.nio.file.Path;
 
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -17,6 +19,9 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.editor.EditorBrowserRoot;
+import emaki.jiuwu.craft.corelib.editor.EditorSession;
 import emaki.jiuwu.craft.storage.EmakiStoragePlugin;
 import emaki.jiuwu.craft.storage.api.model.StorageCapacity;
 import emaki.jiuwu.craft.storage.api.model.StorageSnapshot;
@@ -36,9 +41,10 @@ public final class StorageCommandRouter implements TabExecutor {
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "autopickup", "slot", "stacklimit", "info", "export", "reload", "debug");
+            List.of("help", "open", "edit", "autopickup", "slot", "stacklimit", "info", "export", "reload", "debug");
 
     private final EmakiStoragePlugin plugin;
 
@@ -57,6 +63,7 @@ public final class StorageCommandRouter implements TabExecutor {
                 yield true;
             }
             case "open" -> handleOpen(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "autopickup" -> handleAutoPickup(sender, args);
             case "slot" -> handleSlot(sender, args);
             case "stacklimit" -> handleStackLimit(sender, args);
@@ -146,6 +153,64 @@ public final class StorageCommandRouter implements TabExecutor {
                     }
                 });
         return true;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        String id = Texts.normalizeId(args[1]);
+        EditorBrowserRoot matched = null;
+        Path file = null;
+        for (EditorBrowserRoot root : plugin.editorModule().roots()) {
+            String fileName = root.fileName();
+            if (fileName == null || fileName.isBlank()) {
+                continue;
+            }
+            Path candidate = plugin.dataPath(fileName);
+            if (!Files.isRegularFile(candidate)) {
+                continue;
+            }
+            String stem = fileName.contains(".")
+                    ? fileName.substring(0, fileName.lastIndexOf('.'))
+                    : fileName;
+            String fileId = root.fileId().apply(candidate.toFile(), root.directory());
+            if (id.equals(fileId) || id.equals(root.id()) || id.equals(stem)) {
+                matched = root;
+                file = candidate;
+                break;
+            }
+        }
+        if (matched == null || file == null) {
+            plugin.messageService().send(sender, "editor.open_failed", Map.of("id", id));
+            return true;
+        }
+        EditorSession session = plugin.editorService().open(player, file, id,
+                plugin.editorModule().validator(matched, file), null);
+        if (session == null) {
+            plugin.messageService().send(sender, "editor.open_failed", Map.of("id", id));
+        }
+        return true;
+    }
+
+    private List<String> editRootIds() {
+        List<String> ids = new ArrayList<>();
+        for (EditorBrowserRoot root : plugin.editorModule().roots()) {
+            ids.add(root.id());
+        }
+        return ids;
     }
 
     private boolean handleSlot(CommandSender sender, String[] args) {
@@ -415,6 +480,7 @@ public final class StorageCommandRouter implements TabExecutor {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("", messages.message("command.help.commands.open_self"));
         lines.put("open <player>", messages.message("command.help.commands.open"));
+        lines.put("edit [id]", messages.message("command.help.desc.edit"));
         lines.put("autopickup [on|off]", messages.message("command.help.commands.autopickup"));
         lines.put("slot grant <player> <amount>", messages.message("command.help.commands.slot"));
         lines.put("stacklimit player <player> <limit>",
@@ -439,6 +505,9 @@ public final class StorageCommandRouter implements TabExecutor {
         return switch (sub) {
             case "open", "info", "export" -> args.length == 2
                     ? CommandTabHelper.completeOnlinePlayers(args[1])
+                    : List.of();
+            case "edit" -> args.length == 2 && plugin.editorModule() != null
+                    ? CommandTabHelper.completeLiterals(args[1], editRootIds().toArray(new String[0]))
                     : List.of();
             case "autopickup" -> args.length == 2
                     ? CommandTabHelper.completeLiterals(args[1], "on", "off", "toggle")

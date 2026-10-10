@@ -24,6 +24,10 @@ public final class GemResonanceLoader extends YamlDirectoryLoader<GemResonanceDe
         super(plugin);
     }
 
+    public GemResonanceDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String directoryName() {
         return "resonances";

@@ -3,6 +3,8 @@ package emaki.jiuwu.craft.station;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -16,6 +18,7 @@ import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
 import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
+import emaki.jiuwu.craft.station.editor.StationEditorModule;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
 import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
@@ -56,7 +59,10 @@ record StationRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StationQueueUnlockService purchaseService,
         StationCraftService craftService,
         StationGuiService stationGuiService,
-        QueueTicker queueTicker) implements RuntimeComponents {
+        QueueTicker queueTicker,
+        ChatInputService chatInputService,
+        StationEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

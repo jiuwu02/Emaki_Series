@@ -9,6 +9,7 @@ public final class CookingPermissions {
     public static final String USE = "emakicooking.use";
     public static final String RELOAD = "emakicooking.reload";
     public static final String INSPECT = "emakicooking.inspect";
+    public static final String EDIT = "emakicooking.edit";
 
     public static final String STEAMER_USE = "emakicooking.station.steamer.use";
     public static final String STEAMER_MOISTURE = "emakicooking.station.steamer.moisture";

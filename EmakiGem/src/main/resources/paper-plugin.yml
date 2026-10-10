@@ -34,3 +34,5 @@ permissions:
     default: op
   emakigem.debug:
     default: op
+  emakigem.edit:
+    default: op

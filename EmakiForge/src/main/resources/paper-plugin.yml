@@ -32,3 +32,5 @@ permissions:
     default: op
   emakiforge.admin:
     default: op
+  emakiforge.edit:
+    default: op

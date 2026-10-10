@@ -1,38 +1,39 @@
-package emaki.jiuwu.craft.item.editor;
+package emaki.jiuwu.craft.corelib.editor;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputRequest;
 import emaki.jiuwu.craft.corelib.api.chat.ChatInputResult;
 import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.dialog.DialogService;
-import emaki.jiuwu.craft.corelib.dialog.Dialogs;
-import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
-public final class ItemEditorInput {
+public final class EditorInput {
 
     public enum Channel {
         DIALOG,
         CHAT
     }
 
-    private static final String INPUT_KEY = "value";
-    private static final String DIALOG_ID = "emaki_item_editor_input";
+    private static final String DIALOG_ID = "emaki_editor_input";
     private static final long TIMEOUT_SECONDS = 60L;
     private static final List<String> CANCEL_KEYWORDS = List.of("cancel", "取消");
-    private static final int MAX_LENGTH = 4096;
 
-    private final EmakiItemPlugin plugin;
+    private final JavaPlugin plugin;
     private final ChatInputService chatInput;
+    private final AbstractMessageService messages;
 
-    public ItemEditorInput(EmakiItemPlugin plugin, ChatInputService chatInput) {
+    public EditorInput(JavaPlugin plugin, ChatInputService chatInput, AbstractMessageService messages) {
         this.plugin = plugin;
         this.chatInput = chatInput;
+        this.messages = messages;
     }
 
     public Channel promptText(Player player,
@@ -47,9 +48,9 @@ public final class ItemEditorInput {
     }
 
     public void promptChat(Player player, String hint, String chatPrompt, Consumer<String> callback) {
-        plugin.messageService().send(player, chatPrompt);
+        messages.send(player, chatPrompt);
         if (hint != null && !hint.isBlank()) {
-            plugin.messageService().send(player, hint);
+            messages.send(player, hint);
         }
         chatInput.await(new ChatInputRequest(plugin, player, TIMEOUT_SECONDS, CANCEL_KEYWORDS, result -> {
             if (result.status() == ChatInputResult.Status.SUBMITTED) {
@@ -67,7 +68,7 @@ public final class ItemEditorInput {
             String cancelButtonId,
             Consumer<String> buttonCallback) {
         try {
-            DialogService dialog = plugin.coreLib().dialogService();
+            DialogService dialog = EmakiCoreLibPlugin.lookup().dialogService();
             if (dialog == null || !dialog.enabled()) {
                 return false;
             }

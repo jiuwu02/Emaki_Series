@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.AttributeConfigPrecheckContributor;
+import emaki.jiuwu.craft.attribute.editor.AttributeEditorModule;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -42,12 +43,14 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
@@ -98,6 +101,9 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
     private GuiService guiService;
     private AttributePointsGuiService attributePointsGuiService;
     private AttributeService attributeService;
+    private ChatInputService chatInputService;
+    private AttributeEditorModule editorModule;
+    private EditorService editorService;
     private List<Listener> listeners = List.of();
     private AttributeCommand command;
     private MythicBridge mythicBridge;
@@ -140,6 +146,12 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         ConfigPrecheckLifecycleSupport.unregister("attribute");
         EmakiAttributeApi.uninstall(emakiAttributeBridge);
         Bukkit.getServicesManager().unregisterAll(this);
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         lifecycleCoordinator.shutdown(this, regenTask);
         if (metrics != null) {
             metrics.close();
@@ -218,6 +230,9 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
     }
 
     public void reloadPluginState(boolean resyncPlayers) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publishLoading();
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         registerCoreLibActions();
@@ -225,6 +240,9 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publishLoading();
         CompletableFuture<Void> reload = startReloadAsync(resyncPlayers, progressListener);
 
@@ -319,6 +337,9 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         guiService = components.guiService();
         attributePointsGuiService = components.attributePointsGuiService();
         attributeService = components.attributeService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         listeners = components.listeners();
         command = components.command();
         mythicBridge = components.mythicBridge();
@@ -445,6 +466,18 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
 
     public AttributeCommand command() {
         return command;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public AttributeEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public MythicBridge mythicBridge() {

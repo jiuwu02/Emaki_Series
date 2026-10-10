@@ -16,14 +16,18 @@ import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -36,6 +40,7 @@ import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
+import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
 import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.listener.MmoItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NeigeItemsNutritionListener;
@@ -99,6 +104,11 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private CookingPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private CookingStageRegistrar stageRegistrar;
+    private GuiService guiService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private ChatInputService chatInputService;
+    private CookingEditorModule editorModule;
+    private EditorService editorService;
 
     private EmakiScheduling taskScheduler;
     private ExecutionDispatcher executionDispatcher;
@@ -243,12 +253,21 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             metrics.close();
             metrics = null;
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
         }
     }
 
     public void reloadPluginState() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publicApiReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this);
@@ -258,6 +277,9 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publicApiReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, null)
@@ -344,6 +366,11 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         nutritionTypeRegistry = components.nutritionTypeRegistry();
         nutritionDataStore = components.nutritionDataStore();
         nutritionService = components.nutritionService();
+        guiService = components.guiService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         stationTracker = new CookingStationTracker();
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
         stationLocator = new CookingStationLocator(this);
@@ -372,6 +399,12 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     private void registerEventHandlers() {
+        if (guiService != null) {
+            getServer().getPluginManager().registerEvents(guiService, this);
+        }
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
+        }
         if (stationListener == null) {
             return;
         }
@@ -677,6 +710,26 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     public NutritionService nutritionService() {
         return nutritionService;
+    }
+
+    public GuiService guiService() {
+        return guiService;
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public CookingEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public DebugCommand debugCommand() {

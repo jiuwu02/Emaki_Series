@@ -16,7 +16,9 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -31,6 +33,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
@@ -60,7 +63,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String AFFIX_PDC_ATTRIBUTE_SOURCE_ID = AffixTargetProvider.ATTRIBUTE_SOURCE_ID;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
             "enhancement_recipes/example_enhancement_recipe.yml", "enhancement_recipes/example_affix_recipe.yml",
             "enhancement_recipes/example_gem.yml");
@@ -162,6 +166,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 affixSelectionService,
                 affixLayerCodec
         );
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        StrengthenEditorModule editorModule = new StrengthenEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new StrengthenRuntimeComponents(
                 executionDispatcher,
                 threadOwnership,
@@ -190,7 +199,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 enhancementAttemptService,
                 affixSelectionService,
                 affixGuiService,
-                masteryProgressService
+                masteryProgressService,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 

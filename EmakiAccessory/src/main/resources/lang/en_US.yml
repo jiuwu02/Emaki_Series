@@ -1,7 +1,7 @@
 # EmakiAccessory English language resource.
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
-version: "1.1.7"
+version: "1.1.8"
 
 console:
   plugin_starting: "[startup] <gray>Starting EmakiAccessory...</gray>"
@@ -35,6 +35,16 @@ console:
       required_directory_missing: "The required directory is missing."
       path_not_directory: "The specified path is not a directory."
       directory_not_readable: "The directory is not readable."
+  # Console: failed to open editor; placeholders: %item%, %error%
+  editor_open_failed: "[editor] <red>Could not open EmakiAccessory editor for %item% (%error%)</red>"
+  # Console: editor GUI template missing; placeholders: %template%
+  editor_template_missing: "[editor] <red>Missing EmakiAccessory editor GUI template: %template%</red>"
+  # Console: failed to create definition; placeholders: %path%, %error%
+  editor_browser_create_failed: "[editor] <red>Could not create definition: %path% (%error%)</red>"
+  # Console: failed to delete definition; placeholders: %path%, %error%
+  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path% (%error%)</red>"
+  # Console: failed to list definition directory; placeholders: %path%, %error%
+  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path% (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
@@ -72,6 +82,7 @@ command:
     <yellow>/eacc list</yellow> <gray>- List the accessory slots of the active page</gray>
     <yellow>/eacc pages</yellow> <gray>- List every accessory page</gray>
     <yellow>/eacc retrieve <page></yellow> <gray>- Take back every accessory on a page, mainly for pages you cannot open</gray>
+    <yellow>/eacc edit [id]</yellow> <gray>- Open the definition editor; opens the browser when id is omitted</gray>
     <yellow>/eacc reload</yellow> <gray>- Reload config, parts, sets and accessory pages</gray>
     <yellow>/eacc debug</yellow> <gray>- Debug toggles</gray>
     <yellow>/eacc admin</yellow> <gray>- Admin commands</gray>
@@ -131,3 +142,119 @@ debug:
   accessory:
     recompute: "<gray>[DEBUG][Accessory] Player <player> accessory contribution recomputed: <attributes> attribute(s), <skills> skill(s), <sets> set(s)</gray>"
     inactive_slot: "<gray>[DEBUG][Accessory] Slot <slot> of player <player> contributes nothing: conditions met <condition>, durability intact <durability_intact></gray>"
+
+editor:
+  menu:
+    home: "Edit Home"
+    parts: "Accessory Parts"
+    list_entries: "Entry Editor"
+  root:
+    parts: "Part Definitions"
+    sets: "Set Definitions"
+    pages: "Accessory Pages"
+  field:
+    entry: "Entry"
+    entry_desc: "<dark_gray>Left click to edit, Shift+Left click to remove</dark_gray>"
+    reset_empty: "<yellow>Nothing configured for this field, nothing to reset</yellow>"
+    value: "Current: <white>%value%</white>"
+    disabled: "<red>This field cannot be edited</red>"
+    hint:
+      toggle: "<gray>Left click to toggle, right click to reset</gray>"
+      cycle: "<gray>Left click for next value, right click to reset</gray>"
+      number: "<gray>Left click to enter a number, right click to reset</gray>"
+      text: "<gray>Left click to enter text, right click to reset</gray>"
+      navigate: "<gray>Left click to open submenu</gray>"
+      list: "<gray>Left click to view list</gray>"
+      list_seq: "<gray>Left click to append a line, Shift+Left to edit entries, right click to remove the last line, Shift+Right to clear</gray>"
+      list_map: "<gray>Left click to edit entries, right click to reset this node</gray>"
+      command: "<gray>Left click to edit this entry</gray>"
+    nav_parts: "Accessory Parts"
+    nav_parts_desc: "<dark_gray>Open part definitions to edit counts and presentation</dark_gray>"
+    set_display_name: "Set Display Name"
+    set_display_name_desc: "<dark_gray>Display name of the whole set</dark_gray>"
+    set_pieces: "Set Pieces"
+    set_pieces_desc: "<dark_gray>Item and slot mapping of each piece</dark_gray>"
+    set_thresholds: "Piece Thresholds"
+    set_thresholds_desc: "<dark_gray>Threshold bonuses activated by equipped piece count</dark_gray>"
+    page_id: "Page ID"
+    page_id_desc: "<dark_gray>Unique page identifier, independent of the file name</dark_gray>"
+    page_display_name: "Page Display Name"
+    page_display_name_desc: "<dark_gray>Name of the page shown in the interface</dark_gray>"
+    page_order: "Order"
+    page_order_desc: "<dark_gray>Shown ascending; the lowest order is the default active page</dark_gray>"
+    page_gui_template: "GUI Layout"
+    page_gui_template_desc: "<dark_gray>ID of the GUI layout template used by this page</dark_gray>"
+    page_permission: "Permission"
+    page_permission_desc: "<dark_gray>Permission node required to open this page; blank means none</dark_gray>"
+    page_parts: "Included Parts"
+    page_parts_desc: "<dark_gray>Parts referenced by this page</dark_gray>"
+    count: "Count"
+    count_desc: "<dark_gray>Number of slots this part expands to; data is kept under the new indices</dark_gray>"
+    display_name: "Display Name"
+    display_name_desc: "<dark_gray>Name of the part shown in the interface</dark_gray>"
+    icon: "Icon Material"
+    icon_desc: "<dark_gray>Material name used by the part slot</dark_gray>"
+    durability_deduction: "Durability Deduction"
+    durability_deduction_desc: "<dark_gray>Whether this part allows durability deduction</dark_gray>"
+    id: "Definition ID"
+    id_desc: "<dark_gray>Unique definition identifier; it cannot be changed</dark_gray>"
+    item: "Item ID"
+    item_desc: "<dark_gray>EmakiItem ID referenced by this piece</dark_gray>"
+    slot: "Slot Restriction"
+    slot_desc: "<dark_gray>Part or slot this piece can equip in; blank means any accessory slot</dark_gray>"
+    display: "Piece Display Name"
+    display_desc: "<dark_gray>Name of the piece shown in set display</dark_gray>"
+    effects: "Threshold Effects"
+    effects_desc: "<dark_gray>Effects active once this piece-count threshold is reached</dark_gray>"
+    necklace: "Necklace"
+    necklace_desc: "<dark_gray>Part/piece identifier: necklace</dark_gray>"
+    ring: "Ring"
+    ring_desc: "<dark_gray>Part/piece identifier: ring</dark_gray>"
+    belt: "Belt"
+    belt_desc: "<dark_gray>Part/piece identifier: belt</dark_gray>"
+    charm: "Charm"
+    charm_desc: "<dark_gray>Part/piece identifier: charm</dark_gray>"
+    "2": "2-piece threshold"
+    "2_desc": "<dark_gray>Threshold effects active with 2 pieces equipped</dark_gray>"
+    "3": "3-piece threshold"
+    "3_desc": "<dark_gray>Threshold effects active with 3 pieces equipped</dark_gray>"
+  modified: "<green>Successfully modified %item%</green>"
+  reset_ok: "<green>Successfully reset %item%</green>"
+  modify_failed: "<red>Failed to modify %item% (%reason%)</red>"
+  modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details.</red>"
+  open_failed: "<red>Could not open the editor for %id%</red>"
+  prompt:
+    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
+    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+  map:
+    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+  value:
+    unset: "Not set (empty)"
+    integer: "Integer"
+    decimal: "Decimal"
+    boolean: "Boolean"
+    text: "Text"
+    list_header: "List (%count% items)"
+    map_header: "Map (%count% entries)"
+    scalar: "%type%: %value%"
+    more: "… %count% more"
+  browser:
+    title: "<dark_gray>Definition Browser</dark_gray>"
+    roots: "<dark_gray>Choose a category</dark_gray>"
+    new_hint: "<gray>ID allows lowercase letters, digits and underscore only, e.g. my_sword</gray>"
+    new_prompt: "<yellow>Type the new definition ID for %root% in chat, or type cancel to abort</yellow>"
+    invalid_id: "<red>Invalid ID, only lowercase letters, digits and underscore are allowed</red>"
+    no_skeleton: "<red>This category does not support creating definitions</red>"
+    duplicate_id: "<red>ID %id% already exists</red>"
+    create_success: "<green>Created definition %id%</green>"
+    create_failed: "<red>Create failed, see console</red>"
+    no_create_root: "<yellow>No category supports creating definitions</yellow>"
+    delete_title: "Confirm deletion of %id%"
+    delete_body: "Are you sure you want to delete this definition?"
+    delete_body_irreversible: "<red>This cannot be undone.</red> A backup is written to edit-backups first."
+    delete_confirm_button: "Delete"
+    delete_cancel_button: "Cancel"
+    delete_cancelled: "<gray>Deletion cancelled, definition kept</gray>"
+    delete_confirm: "<red>Click the delete entry again to confirm</red>"
+    delete_success: "<green>Deleted definition %id%</green>"
+    delete_failed: "<red>Delete failed, see console</red>"

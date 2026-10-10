@@ -31,6 +31,7 @@ final class SkillsCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private final EmakiSkillsPlugin plugin;
 
@@ -51,6 +52,7 @@ final class SkillsCommandRouter implements TabExecutor {
             }
             case "gui" -> handleGui(sender);
             case "reload" -> handleReload(sender);
+            case "edit" -> handleEdit(sender, args);
             case "castmode" -> handleCastMode(sender, args);
             case "upgrade" -> handleUpgrade(sender, args);
             case "level" -> handleLevel(sender, args);
@@ -73,8 +75,8 @@ final class SkillsCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "castmode", "upgrade", "level", "grant", "revoke",
-                    "list", "reset", "debug", "inspect", "clearslot", "resync")) {
+            for (String sub : List.of("help", "gui", "reload", "edit", "castmode", "upgrade", "level",
+                    "grant", "revoke", "list", "reset", "debug", "inspect", "clearslot", "resync")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -94,6 +96,12 @@ final class SkillsCommandRouter implements TabExecutor {
                     }
                 }
                 case "upgrade" -> completeUpgradeableSkills(sender, result, args[1]);
+                case "edit" -> {
+                    if (plugin.editorModule() != null) {
+                        result.addAll(CommandTabHelper.filterByPrefix(
+                                plugin.editorModule().knownIds(), args[1]));
+                    }
+                }
                 case "level" -> result.addAll(CommandTabHelper.completeLiterals(args[1], "get", "set", "add"));
                 case "grant", "revoke", "list", "reset", "inspect", "resync" ->
                         result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
@@ -398,6 +406,29 @@ final class SkillsCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
+    }
+
     private <T> CompletableFuture<T> callForPlayer(Player player, Supplier<T> task) {
         CompletableFuture<T> future = new CompletableFuture<>();
         Runnable operation = () -> {
@@ -613,6 +644,7 @@ final class SkillsCommandRouter implements TabExecutor {
         Map<String, String> commands = new LinkedHashMap<>();
         commands.put("help", "command.help.desc.help");
         commands.put("gui", "command.help.desc.gui");
+        commands.put("edit [id]", "command.help.desc.edit");
         commands.put("reload", "command.help.desc.reload");
         commands.put("castmode <on|off|toggle>", "command.help.desc.castmode");
         commands.put("upgrade <skill>", "command.help.desc.upgrade");

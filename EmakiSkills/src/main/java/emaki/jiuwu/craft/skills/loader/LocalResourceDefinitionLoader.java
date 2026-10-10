@@ -50,6 +50,10 @@ public final class LocalResourceDefinitionLoader extends YamlDirectoryLoader<Loc
         );
     }
 
+    public LocalResourceDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String idOf(LocalResourceDefinition value) {
         return value.id();

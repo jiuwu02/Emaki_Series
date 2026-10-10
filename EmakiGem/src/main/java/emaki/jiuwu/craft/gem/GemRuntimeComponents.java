@@ -50,7 +50,10 @@ record GemRuntimeComponents(EmakiScheduling scheduling,
         SocketOpenerService socketOpenerService,
         GemInlayService inlayService,
         GemExtractService extractService,
-        GemGuiService gemGuiService) implements RuntimeComponents {
+        GemGuiService gemGuiService,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        emaki.jiuwu.craft.gem.editor.GemEditorModule editorModule,
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

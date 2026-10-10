@@ -12,11 +12,13 @@ import org.bukkit.event.HandlerList;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -45,6 +47,7 @@ import emaki.jiuwu.craft.station.dismantle.DismantleRecipeDefinition;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
 import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
+import emaki.jiuwu.craft.station.editor.StationEditorModule;
 import emaki.jiuwu.craft.station.material.StationCapabilities;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueUnlockService;
@@ -143,6 +146,13 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         HandlerList.unregisterAll(this);
         components.queueTicker().stop();
 
+        if (components.editorService() != null) {
+            components.editorService().closeAll();
+        }
+        if (components.chatInputService() != null) {
+            components.chatInputService().close();
+        }
+
         components.stationGuiService().closeAll();
         components.guiService().closeAll();
 
@@ -165,6 +175,9 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public ReloadSummary reloadContent() {
+        if (components != null && components.editorService() != null) {
+            components.editorService().flushAll();
+        }
         contentReady = false;
         publishLoading();
         ReloadSummary summary = executeReload();
@@ -278,6 +291,18 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return components == null ? null : components.layoutLoader();
     }
 
+    public ChatInputService chatInputService() {
+        return components == null ? null : components.chatInputService();
+    }
+
+    public StationEditorModule editorModule() {
+        return components == null ? null : components.editorModule();
+    }
+
+    public EditorService editorService() {
+        return components == null ? null : components.editorService();
+    }
+
     public StationGuiService stationGuiService() {
         return components == null ? null : components.stationGuiService();
     }
@@ -344,6 +369,9 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(components.guiService(), this);
+        if (components.chatInputService() != null) {
+            getServer().getPluginManager().registerEvents(components.chatInputService(), this);
+        }
         playerListener = new StationPlayerListener(this);
         getServer().getPluginManager().registerEvents(playerListener, this);
     }

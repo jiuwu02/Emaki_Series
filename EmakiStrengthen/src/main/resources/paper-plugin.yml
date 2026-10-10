@@ -26,6 +26,8 @@ permissions:
     default: true
   emakistrengthen.reload:
     default: op
+  emakistrengthen.edit:
+    default: op
   emakistrengthen.debug:
     default: op
   emakistrengthen.admin:

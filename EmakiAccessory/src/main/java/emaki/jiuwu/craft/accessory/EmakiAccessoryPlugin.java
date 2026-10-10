@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.accessory.command.AccessoryCommandRouter;
 import emaki.jiuwu.craft.accessory.config.AccessoryConfigPrecheckContributor;
 import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
+import emaki.jiuwu.craft.accessory.editor.AccessoryEditorModule;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiHandler;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
 import emaki.jiuwu.craft.accessory.listener.AccessoryPlayerListener;
@@ -43,10 +44,12 @@ import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -149,6 +152,12 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
         components.providerRegistrar().unregister();
 
+        if (editorService() != null) {
+            editorService().closeAll();
+        }
+        if (chatInputService() != null) {
+            chatInputService().close();
+        }
         components.guiService().closeAll();
         components.writeSessions().clear();
         PlayerAccessoryStore.FlushResult result = components.accessoryStore()
@@ -165,6 +174,9 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     public int reloadContent() {
+        if (editorService() != null) {
+            editorService().flushAll();
+        }
         contentReady = false;
         publishLoading();
         int result = lifecycleCoordinator.reload(this);
@@ -225,6 +237,18 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public GuiTemplateLoader guiTemplateLoader() {
         return components == null ? null : components.guiTemplateLoader();
+    }
+
+    public ChatInputService chatInputService() {
+        return components == null ? null : components.chatInputService();
+    }
+
+    public AccessoryEditorModule editorModule() {
+        return components == null ? null : components.editorModule();
+    }
+
+    public EditorService editorService() {
+        return components == null ? null : components.editorService();
     }
 
     public AccessoryPartLoader partLoader() {
@@ -511,6 +535,9 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(components.guiService(), this);
+        if (components.chatInputService() != null) {
+            getServer().getPluginManager().registerEvents(components.chatInputService(), this);
+        }
         playerListener = new AccessoryPlayerListener(this);
         getServer().getPluginManager().registerEvents(playerListener, this);
     }

@@ -26,6 +26,10 @@ public final class AdvancementPageLoader extends YamlDirectoryLoader<Advancement
         this.codexPlugin = plugin;
     }
 
+    public AdvancementPage parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String directoryName() {
         return "advancements";

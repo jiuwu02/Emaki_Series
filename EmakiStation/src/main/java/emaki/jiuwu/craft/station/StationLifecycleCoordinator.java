@@ -11,6 +11,8 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -26,6 +28,7 @@ import emaki.jiuwu.craft.station.definition.StationLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleService;
 import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
+import emaki.jiuwu.craft.station.editor.StationEditorModule;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
@@ -53,6 +56,8 @@ final class StationLifecycleCoordinator
             "gui/station_preview.yml",
             "gui/station_queue.yml",
             "gui/station_dismantle.yml",
+            "gui/editor_page_gui.yml",
+            "gui/editor_browser_gui.yml",
             "recipes/example_recipe.yml",
             "recipes/example_component_recipe.yml",
             "recipes_dismantle/example_dismantle_recipe.yml",
@@ -172,6 +177,11 @@ final class StationLifecycleCoordinator
                 craftService,
                 plugin::registry,
                 stationGuiService::refreshOpenSessions);
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        StationEditorModule editorModule = new StationEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, layoutLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
 
         return new StationRuntimeComponents(appConfigLoader,
                 languageLoader,
@@ -198,7 +208,10 @@ final class StationLifecycleCoordinator
                 purchaseService,
                 craftService,
                 stationGuiService,
-                queueTicker);
+                queueTicker,
+                chatInputService,
+                editorModule,
+                editorService);
     }
 
     private static String resolvePlaceholders(Player player, String text) {

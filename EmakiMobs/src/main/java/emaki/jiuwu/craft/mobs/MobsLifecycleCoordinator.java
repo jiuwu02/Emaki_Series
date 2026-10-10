@@ -7,6 +7,10 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -23,6 +27,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
 import emaki.jiuwu.craft.mobs.config.MobsConfigPrecheckContributor;
+import emaki.jiuwu.craft.mobs.editor.MobsEditorModule;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
@@ -70,9 +75,10 @@ final class MobsLifecycleCoordinator
                     "mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
                     "loot_tables/jungle_stalker.yml", "loot_tables/elite_zombie.yml",
                     "loot_tables/bone_lord.yml",
-                    "spawn_rules/overworld.yml", "spawn_rules/overworld_elites.yml");
+                    "spawn_rules/overworld.yml", "spawn_rules/overworld_elites.yml",
+                    "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES =
-            List.of("mobs", "loot_tables", "spawn_rules");
+            List.of("mobs", "loot_tables", "spawn_rules", "gui");
 
     private final List<CoreStageRegistration> customActionRegistrations = new ArrayList<>();
 
@@ -144,6 +150,16 @@ final class MobsLifecycleCoordinator
         mobFactory.setModelManager(mobModelManager);
         mobTriggerListener.setModelManager(mobModelManager);
 
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        GuiService guiService = new GuiService(plugin, executionDispatcher,
+                coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),
+                coreLibPlugin.guiBackend());
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        MobsEditorModule editorModule = new MobsEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
+
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, targetSelectorLoader, targetSelectorRegistry,
                 scoreSnapshotService, targetSelectorService,
@@ -154,11 +170,13 @@ final class MobsLifecycleCoordinator
                 naturalSpawnHandler, autonomousSpawnHandler,
                 mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
-                mobAttributeRegistrar, mobModelManager, mobExtensions);
+                mobAttributeRegistrar, mobModelManager, mobExtensions,
+                guiService, guiTemplateLoader, chatInputService, editorModule, editorService);
     }
 
     int reload(EmakiMobsPlugin plugin) {
         var components = plugin.components();
+        components.guiTemplateLoader().load();
         ContentSnapshot previous = new ContentSnapshot(
                 components.mobRegistry().get(),
                 components.lootRegistry().get(),

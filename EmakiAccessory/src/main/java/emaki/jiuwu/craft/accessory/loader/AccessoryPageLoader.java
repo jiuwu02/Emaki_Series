@@ -31,6 +31,19 @@ public final class AccessoryPageLoader extends YamlDirectoryLoader<AccessoryPage
         return value == null ? null : value.pageId();
     }
 
+    public AccessoryPage parseCandidate(File file, YamlSection configuration) {
+        synchronized (stateLock) {
+            int recorded = issues.size();
+            try {
+                return parse(file, configuration);
+            } finally {
+                while (issues.size() > recorded) {
+                    issues.remove(issues.size() - 1);
+                }
+            }
+        }
+    }
+
     @Override
     protected AccessoryPage parse(File file, YamlSection configuration) {
         if (configuration == null) {

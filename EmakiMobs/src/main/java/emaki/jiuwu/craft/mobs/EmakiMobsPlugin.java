@@ -5,12 +5,16 @@ import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.mobs.api.EmakiMobsApi;
 import emaki.jiuwu.craft.mobs.api.MobExtensions;
 import emaki.jiuwu.craft.mobs.apiimpl.ServiceBackedMobsBridge;
@@ -18,6 +22,7 @@ import emaki.jiuwu.craft.mobs.command.MobsCommandAdapter;
 import emaki.jiuwu.craft.mobs.command.MobsCommandRouter;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.MobsConfigPrecheckContributor;
+import emaki.jiuwu.craft.mobs.editor.MobsEditorModule;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
@@ -99,6 +104,9 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         if (!runtimeInitialized || components == null) {
             return;
         }
+        components.editorService().closeAll();
+        components.chatInputService().close();
+        components.guiService().closeAll();
         lifecycleCoordinator.unregisterCustomActions();
         HandlerList.unregisterAll(this);
         components.mobModelManager().close();
@@ -182,7 +190,30 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         return components == null ? null : components.spawnRuleLoader();
     }
 
+    public GuiService guiService() {
+        return components == null ? null : components.guiService();
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return components == null ? null : components.guiTemplateLoader();
+    }
+
+    public ChatInputService chatInputService() {
+        return components == null ? null : components.chatInputService();
+    }
+
+    public MobsEditorModule editorModule() {
+        return components == null ? null : components.editorModule();
+    }
+
+    public EditorService editorService() {
+        return components == null ? null : components.editorService();
+    }
+
     public int reloadContent() {
+        if (components != null && components.editorService() != null) {
+            components.editorService().flushAll();
+        }
         contentReady = false;
         int count = lifecycleCoordinator.reload(this);
         contentReady = true;
@@ -197,6 +228,8 @@ public class EmakiMobsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     }
 
     private void registerListeners() {
+        getServer().getPluginManager().registerEvents(components.guiService(), this);
+        getServer().getPluginManager().registerEvents(components.chatInputService(), this);
         getServer().getPluginManager().registerEvents(components.mobIdentifier(), this);
         getServer().getPluginManager().registerEvents(components.mobDropHandler(), this);
         getServer().getPluginManager().registerEvents(components.naturalSpawnHandler(), this);

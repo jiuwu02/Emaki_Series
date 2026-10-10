@@ -12,6 +12,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
@@ -24,6 +25,7 @@ final class ForgeCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     private final EmakiForgePlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
@@ -52,6 +54,7 @@ final class ForgeCommandRouter implements TabExecutor {
             case "book" -> handleBook(sender);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "convert-legacy" -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
@@ -65,7 +68,7 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "forge", "book", "reload", "list", "convert-legacy", "debug")) {
+            for (String sub : List.of("help", "forge", "book", "reload", "list", "edit", "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -79,6 +82,14 @@ final class ForgeCommandRouter implements TabExecutor {
             for (String sub : List.of("recipe")) {
                 if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
+                }
+            }
+        }
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0]) && plugin.editorModule() != null) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            for (String id : plugin.editorModule().knownIds()) {
+                if (id.startsWith(prefix)) {
+                    result.add(id);
                 }
             }
         }
@@ -150,6 +161,29 @@ final class ForgeCommandRouter implements TabExecutor {
         }
     }
 
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorModule().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
+    }
+
     private boolean handleList(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -213,6 +247,7 @@ final class ForgeCommandRouter implements TabExecutor {
         lines.put("book", plugin.messageService().message("command.help.commands.book"));
         lines.put("reload", plugin.messageService().message("command.help.commands.reload"));
         lines.put("list <type>", plugin.messageService().message("command.help.commands.list <type>"));
+        lines.put("edit [id]", plugin.messageService().message("command.help.commands.edit recipe <id>"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.commands.debug"));
         lines.forEach((commandName, description)
                 -> plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.line", Map.of("cmd", commandName, "desc", description))));

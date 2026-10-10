@@ -46,7 +46,10 @@ record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         PlayerCodexStore codexStore,
         CodexProviderRegistrar codexProviderRegistrar,
         CodexEntryService codexEntryService,
-        CodexGuiService codexGuiService) implements RuntimeComponents {
+        CodexGuiService codexGuiService,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        emaki.jiuwu.craft.codex.editor.CodexEditorModule editorModule,
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

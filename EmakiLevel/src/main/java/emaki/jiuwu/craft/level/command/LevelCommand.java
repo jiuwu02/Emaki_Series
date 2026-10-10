@@ -45,6 +45,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "info" -> handleInfo(sender, tail(args));
             case "gui", "open" -> handleGui(sender, tail(args));
+            case "edit" -> handleEdit(sender, tail(args));
             case "levelup", "up" -> handleLevelUp(sender, tail(args));
             case "top" -> handleTop(sender, tail(args));
             case "topgui", "topopen" -> handleTopGui(sender, tail(args));
@@ -224,6 +225,28 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         return true;
     }
 
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(LevelPermissions.EDIT)) {
+            plugin.messages().send(sender, "command.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messages().send(sender, "command.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length == 0) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[0]) == null) {
+            plugin.messages().send(sender, "editor.open_failed", Map.of("id", args[0]));
+        }
+        return true;
+    }
+
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(LevelPermissions.RELOAD) && !sender.hasPermission(LevelPermissions.ADMIN)) {
             plugin.messages().send(sender, "command.no_permission");
@@ -330,12 +353,20 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
+            for (String candidate : List.of("info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("edit".equals(sub) && args.length == 2) {
+            if (plugin.editorModule() != null) {
+                for (String id : plugin.editorModule().completeIds()) {
+                    addIfStarts(result, id, args[1]);
+                }
+            }
+            return result;
+        }
         if (List.of("giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset").contains(sub)) {
             if (args.length == 2) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));

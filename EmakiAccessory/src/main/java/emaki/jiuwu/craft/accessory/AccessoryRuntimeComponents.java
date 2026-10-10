@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.accessory;
 import java.util.Map;
 
 import emaki.jiuwu.craft.accessory.config.AppConfig;
+import emaki.jiuwu.craft.accessory.editor.AccessoryEditorModule;
 import emaki.jiuwu.craft.accessory.gui.AccessoryGuiService;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPageLoader;
 import emaki.jiuwu.craft.accessory.loader.AccessoryPartLoader;
@@ -15,6 +16,8 @@ import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
 import emaki.jiuwu.craft.accessory.service.AccessoryWriteSessionRegistry;
 import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -42,7 +45,10 @@ record AccessoryRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         AccessoryGuiService accessoryGuiService,
         AccessoryWriteSessionRegistry writeSessions,
         AccessoryAdminService adminService,
-        AccessoryProviderRegistrar providerRegistrar) implements RuntimeComponents {
+        AccessoryProviderRegistrar providerRegistrar,
+        ChatInputService chatInputService,
+        AccessoryEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

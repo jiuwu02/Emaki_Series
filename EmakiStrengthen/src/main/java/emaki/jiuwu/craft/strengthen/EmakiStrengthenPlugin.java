@@ -13,8 +13,10 @@ import org.bukkit.plugin.ServicePriority;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -36,6 +38,7 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
@@ -117,6 +120,9 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
     private StrengthenStageRegistrar stageRegistrar;
+    private ChatInputService chatInputService;
+    private StrengthenEditorModule editorModule;
+    private EditorService editorService;
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -155,6 +161,12 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         }
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
         itemLayerPreviewLifecycle.close();
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         lifecycleCoordinator.shutdown(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -174,6 +186,9 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         if (pityRetryScheduler != null) {
@@ -188,6 +203,9 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         if (pityRetryScheduler != null) {
@@ -265,6 +283,9 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         pityRetryScheduler = new PityPersistenceRetryScheduler(this);
         affixSelectionService = components.affixSelectionService();
         affixGuiService = components.affixGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
@@ -445,5 +466,17 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     public DebugCommand debugCommand() {
         return debugCommand;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public StrengthenEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 }

@@ -59,7 +59,10 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         EnhancementAttemptService enhancementAttemptService,
         AffixSelectionService affixSelectionService,
         AffixGuiService affixGuiService,
-        MasteryProgressService masteryProgressService) implements RuntimeComponents {
+        MasteryProgressService masteryProgressService,
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule editorModule,
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

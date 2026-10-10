@@ -245,7 +245,7 @@ final class ItemCommandRouter implements TabExecutor {
             plugin.messageService().send(sender, "editor.command.unknown_item", Map.of("id", itemId));
             return true;
         }
-        if (plugin.editorGuiService().open(player, itemId, plugin.itemLoader().packId(itemId), 0) == null) {
+        if (plugin.editorModule().openItem(player, itemId, plugin.itemLoader().packId(itemId), 0) == null) {
             plugin.messageService().send(sender, "editor.open_failed", Map.of("id", itemId));
         }
         return true;

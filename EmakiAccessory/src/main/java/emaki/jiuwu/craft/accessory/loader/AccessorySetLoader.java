@@ -34,6 +34,19 @@ public final class AccessorySetLoader extends YamlDirectoryLoader<AccessorySetDe
         return value == null ? null : value.setId();
     }
 
+    public AccessorySetDefinition parseCandidate(File file, YamlSection configuration) {
+        synchronized (stateLock) {
+            int recorded = issues.size();
+            try {
+                return parse(file, configuration);
+            } finally {
+                while (issues.size() > recorded) {
+                    issues.remove(issues.size() - 1);
+                }
+            }
+        }
+    }
+
     @Override
     protected AccessorySetDefinition parse(File file, YamlSection configuration) {
         if (configuration == null) {

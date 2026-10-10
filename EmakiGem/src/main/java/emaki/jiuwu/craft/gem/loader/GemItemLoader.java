@@ -13,6 +13,10 @@ public final class GemItemLoader extends YamlDirectoryLoader<GemItemDefinition> 
         super(plugin);
     }
 
+    public GemItemDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected String directoryName() {
         return "items";

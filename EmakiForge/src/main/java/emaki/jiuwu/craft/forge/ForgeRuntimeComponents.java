@@ -4,6 +4,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -19,6 +21,7 @@ import emaki.jiuwu.craft.forge.service.ForgeService;
 import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.config.AppConfig;
+import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 
 record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
@@ -36,7 +39,10 @@ record ForgeRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         ForgeItemRefreshService itemRefreshService,
         ForgeService forgeService,
         ForgeGuiService forgeGuiService,
-        RecipeBookGuiService recipeBookGuiService) implements RuntimeComponents {
+        RecipeBookGuiService recipeBookGuiService,
+        ChatInputService chatInputService,
+        ForgeEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

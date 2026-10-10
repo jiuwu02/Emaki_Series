@@ -26,6 +26,8 @@ permissions:
     default: true
   emakiaccessory.reload:
     default: op
+  emakiaccessory.edit:
+    default: op
   emakiaccessory.debug:
     default: op
   emakiaccessory.admin:

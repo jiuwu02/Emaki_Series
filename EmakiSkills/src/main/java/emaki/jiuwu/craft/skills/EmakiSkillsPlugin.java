@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -31,6 +33,7 @@ import emaki.jiuwu.craft.skills.bridge.ExternalManaBridge;
 import emaki.jiuwu.craft.skills.bridge.MythicBridge;
 import emaki.jiuwu.craft.skills.config.AppConfig;
 import emaki.jiuwu.craft.skills.config.SkillsConfigPrecheckContributor;
+import emaki.jiuwu.craft.skills.editor.SkillsEditorModule;
 import emaki.jiuwu.craft.skills.gui.SkillsGuiService;
 import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
@@ -117,6 +120,9 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
     private CastAttemptService castAttemptService;
     private ActionBarService actionBarService;
     private SkillsGuiService skillsGuiService;
+    private ChatInputService chatInputService;
+    private SkillsEditorModule editorModule;
+    private EditorService editorService;
     private EaBridge eaBridge;
     private ExternalManaBridge externalManaBridge;
     private MythicBridge mythicBridge;
@@ -179,6 +185,12 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
             metrics.close();
             metrics = null;
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         EmakiSkillsApi.uninstall(skillsApiBridge);
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
@@ -193,6 +205,9 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         lifecycleCoordinator.reload(this, closeOpenInventories);
@@ -201,6 +216,9 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories, Consumer<String> progressListener) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, progressListener)
@@ -264,6 +282,9 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         castAttemptService = components.castAttemptService();
         actionBarService = components.actionBarService();
         skillsGuiService = components.skillsGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         eaBridge = components.eaBridge();
         externalManaBridge = components.externalManaBridge();
         mythicBridge = components.mythicBridge();
@@ -291,6 +312,9 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
         }
         if (guiService != null) {
             getServer().getPluginManager().registerEvents(guiService, this);
+        }
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
         }
 
         triggerDispatcher = new DefaultTriggerDispatcher(
@@ -446,6 +470,18 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
 
     public SkillsGuiService skillsGuiService() {
         return skillsGuiService;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public SkillsEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public EaBridge eaBridge() {

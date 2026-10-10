@@ -41,6 +41,10 @@ public final class StationLoader extends YamlDirectoryLoader<StationDefinition> 
         return value == null ? null : value.id();
     }
 
+    public StationDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected StationDefinition parse(File file, YamlSection configuration) {
         if (configuration == null) {

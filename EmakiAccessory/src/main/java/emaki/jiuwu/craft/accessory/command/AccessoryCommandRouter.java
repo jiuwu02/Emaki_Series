@@ -26,11 +26,12 @@ public final class AccessoryCommandRouter {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
 
     public static final String PERMISSION_EDIT_OTHERS = PERMISSION_ROOT + ".admin.edit";
 
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "list", "pages", "retrieve", "reload", "debug", "admin");
+            List.of("help", "open", "list", "pages", "retrieve", "edit", "reload", "debug", "admin");
     private static final List<String> ADMIN_SUBCOMMANDS = List.of("view", "edit", "clear", "save");
 
     private final EmakiAccessoryPlugin plugin;
@@ -49,6 +50,7 @@ public final class AccessoryCommandRouter {
             case "list" -> handleList(sender);
             case "pages" -> handlePages(sender);
             case "retrieve" -> handleRetrieve(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             case "admin" -> handleAdmin(sender, args);
@@ -76,6 +78,28 @@ public final class AccessoryCommandRouter {
             for (String pageId : plugin.pageRegistry().pageIds()) {
                 if (pageId.startsWith(prefix)) {
                     result.add(pageId);
+                }
+            }
+            return result;
+        }
+        if ("edit".equals(head) && args.length == 2) {
+            String prefix = Texts.lower(args[1]);
+            if (plugin.partLoader() != null && plugin.partLoader().file().isFile()
+                    && "parts".startsWith(prefix)) {
+                result.add("parts");
+            }
+            if (plugin.setLoader() != null) {
+                for (String setId : plugin.setLoader().all().keySet()) {
+                    if (setId.startsWith(prefix)) {
+                        result.add(setId);
+                    }
+                }
+            }
+            if (plugin.pageRegistry() != null) {
+                for (String pageId : plugin.pageRegistry().pageIds()) {
+                    if (pageId.startsWith(prefix)) {
+                        result.add(pageId);
+                    }
                 }
             }
             return result;
@@ -198,6 +222,37 @@ public final class AccessoryCommandRouter {
                 plugin.writeSessions().release(playerId, playerId);
             }
         }, () -> plugin.writeSessions().release(playerId, playerId));
+        return true;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!(sender instanceof Player player)) {
+            message(sender, "general.players_only");
+            return true;
+        }
+        if (!player.hasPermission(PERMISSION_EDIT)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        if (args.length >= 2 && !Texts.isBlank(args[1])) {
+            String id = Texts.normalizeId(args[1]);
+            plugin.executionDispatcher().runEntity(plugin, player, () -> {
+                if (plugin.editorModule() == null
+                        || !plugin.editorModule().openById(player, id)) {
+                    message(player, "editor.open_failed", Map.of("id", id));
+                }
+            }, () -> {
+
+            });
+            return true;
+        }
+        plugin.executionDispatcher().runEntity(plugin, player, () -> {
+            if (plugin.editorService() != null) {
+                plugin.editorService().openBrowser(player);
+            }
+        }, () -> {
+
+        });
         return true;
     }
 

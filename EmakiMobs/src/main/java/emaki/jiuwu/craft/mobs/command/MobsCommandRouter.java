@@ -24,10 +24,11 @@ public final class MobsCommandRouter {
     private static final String PERMISSION_INFO = "emakimobs.info";
     private static final String PERMISSION_COUNT = "emakimobs.count";
     private static final String PERMISSION_DEBUG = "emakimobs.debug";
+    private static final String PERMISSION_EDIT = "emakimobs.edit";
     private static final String PERMISSION_ADMIN = "emakimobs.admin";
     private static final int PAGE_SIZE = 10;
     private static final List<String> SUBCOMMANDS =
-            List.of("spawn", "reload", "list", "info", "kill", "count", "debug");
+            List.of("spawn", "reload", "list", "info", "kill", "count", "debug", "edit");
 
     private final EmakiMobsPlugin plugin;
     private final ManagedMobCommandService managedMobService;
@@ -50,6 +51,7 @@ public final class MobsCommandRouter {
             case "kill" -> handleKill(sender, args);
             case "count" -> handleCount(sender, args);
             case "debug" -> handleDebug(sender, args);
+            case "edit" -> handleEdit(sender, args);
             default -> plugin.messageService().send(sender, "command.usage");
         }
     }
@@ -84,6 +86,15 @@ public final class MobsCommandRouter {
         }
         if ("list".equals(subcommand) && args.length == 2 && "1".startsWith(args[1])) {
             return List.of("1");
+        }
+        if ("edit".equals(subcommand) && args.length == 2) {
+            if (plugin.editorModule() == null) {
+                return List.of();
+            }
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return plugin.editorModule().completeIds().stream()
+                    .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix))
+                    .toList();
         }
         if ("debug".equals(subcommand) && plugin.debugCommand() != null) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -251,6 +262,26 @@ public final class MobsCommandRouter {
         });
     }
 
+    private void handleEdit(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_EDIT)) {
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed", Map.of("id", args[1]));
+        }
+    }
+
     private void handleDebug(CommandSender sender, String[] args) {
         if (!requirePermission(sender, PERMISSION_DEBUG)) {
             return;
@@ -317,6 +348,7 @@ public final class MobsCommandRouter {
             case "kill" -> PERMISSION_ADMIN;
             case "count" -> PERMISSION_COUNT;
             case "debug" -> PERMISSION_DEBUG;
+            case "edit" -> PERMISSION_EDIT;
             default -> "emakimobs.use";
         };
     }

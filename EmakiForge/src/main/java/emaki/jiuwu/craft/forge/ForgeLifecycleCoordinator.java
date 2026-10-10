@@ -62,7 +62,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>";
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "forge";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
@@ -147,6 +148,15 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+                new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
+        GuiTemplateLoader editorTemplateLoader = new GuiTemplateLoader(plugin);
+        emaki.jiuwu.craft.forge.editor.ForgeEditorModule editorModule =
+                new emaki.jiuwu.craft.forge.editor.ForgeEditorModule(plugin, editorTemplateLoader);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, editorTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new ForgeRuntimeComponents(
                 appConfigLoader,
                 executionDispatcher,
@@ -163,7 +173,10 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 itemRefreshService,
                 forgeService,
                 forgeGuiService,
-                recipeBookGuiService
+                recipeBookGuiService,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 

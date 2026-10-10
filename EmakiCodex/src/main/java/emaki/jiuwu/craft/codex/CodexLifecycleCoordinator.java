@@ -44,7 +44,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/codex_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
-            "advancements/example_page.yml", "codex/example_category.yml");
+            "advancements/example_page.yml", "codex/example_category.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "codex");
     private static final long SHUTDOWN_FLUSH_SECONDS = 10L;
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
@@ -112,6 +113,15 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         CodexGuiService codexGuiService = new CodexGuiService(plugin, guiService, guiTemplateLoader,
                 codexCategoryLoader, codexEntryService, messageService);
 
+        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+                new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
+        emaki.jiuwu.craft.codex.editor.CodexEditorModule editorModule =
+                new emaki.jiuwu.craft.codex.editor.CodexEditorModule(plugin);
+        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
+
         CodexTriggerService triggerService = new CodexTriggerService(
                 plugin, advancementPageLoader, advancementService, advancementTriggerRegistry,
                 codexEntryService);
@@ -122,7 +132,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancementPacketGateway, advancementTriggerRegistry, triggerService,
                 executionDispatcher, threadOwnership,
                 guiService, guiTemplateLoader, codexCategoryLoader, codexStore,
-                codexProviderRegistrar, codexEntryService, codexGuiService);
+                codexProviderRegistrar, codexEntryService, codexGuiService,
+                chatInputService, editorModule, editorService);
     }
 
     public void reload(EmakiCodexPlugin plugin) {

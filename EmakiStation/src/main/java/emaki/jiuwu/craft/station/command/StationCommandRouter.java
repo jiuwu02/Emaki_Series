@@ -14,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.station.EmakiStationPlugin;
 import emaki.jiuwu.craft.station.api.model.QueueEntryView;
 import emaki.jiuwu.craft.station.api.model.QueueSnapshot;
@@ -31,10 +32,12 @@ public final class StationCommandRouter {
     private static final String PERMISSION_RELOAD = PERMISSION_ROOT + ".reload";
     private static final String PERMISSION_DEBUG = PERMISSION_ROOT + ".debug";
     private static final String PERMISSION_ADMIN = PERMISSION_ROOT + ".admin";
+    private static final String PERMISSION_EDIT = PERMISSION_ROOT + ".edit";
     private static final String PERMISSION_ACCESS_PREFIX = PERMISSION_ROOT + ".access.";
     private static final String PERMISSION_DISMANTLE_ACCESS_PREFIX = PERMISSION_ROOT + ".dismantle.access.";
     private static final List<String> SUBCOMMANDS =
-            List.of("help", "open", "dismantle", "queue", "claim", "cancel", "list", "reload", "debug", "admin");
+            List.of("help", "open", "dismantle", "queue", "claim", "cancel", "list", "edit",
+                    "reload", "debug", "admin");
 
     private final EmakiStationPlugin plugin;
 
@@ -54,6 +57,7 @@ public final class StationCommandRouter {
             case "claim" -> handleClaim(sender);
             case "cancel" -> handleCancel(sender, args);
             case "list" -> handleList(sender, args);
+            case "edit" -> handleEdit(sender, args);
             case "reload" -> handleReload(sender);
             case "debug" -> handleDebug(sender, args);
             case "admin" -> handleAdmin(sender, args);
@@ -86,6 +90,15 @@ public final class StationCommandRouter {
             for (DismantleStationDefinition station : plugin.dismantleRegistry().all()) {
                 if (station.id().startsWith(prefix)) {
                     result.add(station.id());
+                }
+            }
+            return result;
+        }
+        if ("edit".equals(head) && args.length == 2 && plugin.editorModule() != null) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            for (String id : plugin.editorModule().knownIds()) {
+                if (id.startsWith(prefix)) {
+                    result.add(id);
                 }
             }
             return result;
@@ -293,6 +306,28 @@ public final class StationCommandRouter {
                     "station", station.id(),
                     "name", station.displayName(),
                     "recipes", String.valueOf(plugin.registry().recipeIdsOf(station.id()).size())));
+        }
+        return true;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            message(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            message(sender, "general.players_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            message(sender, "editor.open_failed", Map.of("id", Texts.normalizeId(args[1])));
         }
         return true;
     }

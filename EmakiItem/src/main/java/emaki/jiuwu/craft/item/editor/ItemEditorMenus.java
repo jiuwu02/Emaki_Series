@@ -5,6 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.editor.EditorFieldSpec;
+import emaki.jiuwu.craft.corelib.editor.EditorMenuMeta;
+import emaki.jiuwu.craft.corelib.editor.EditorSession;
+
 public final class ItemEditorMenus {
 
     public static final String HOME = "home";
@@ -70,17 +74,15 @@ public final class ItemEditorMenus {
         return meta == null ? menuId : meta.titleKey();
     }
 
-    public static String parent(String menuId) {
+    public static EditorMenuMeta meta(String menuId) {
         MenuMeta meta = MENUS.get(menuId);
-        return meta == null ? HOME : meta.parent();
+        if (meta == null) {
+            return null;
+        }
+        return new EditorMenuMeta(menuId, meta.titleKey(), meta.parent(), null, meta.paginated());
     }
 
-    public static boolean paginated(String menuId) {
-        MenuMeta meta = MENUS.get(menuId);
-        return meta != null && meta.paginated();
-    }
-
-    public static List<ItemEditorFieldSpec> specs(String menuId, ItemEditorSession session) {
+    public static List<EditorFieldSpec> specs(String menuId, EditorSession session) {
         return switch (menuId) {
             case BASIC -> basic();
             case UPDATE -> update();
@@ -99,7 +101,7 @@ public final class ItemEditorMenus {
         };
     }
 
-    private static int entryIndex(ItemEditorSession session) {
+    private static int entryIndex(EditorSession session) {
         try {
             return Math.max(0, Integer.parseInt(session.context("entry_index")));
         } catch (RuntimeException failure) {
@@ -107,48 +109,40 @@ public final class ItemEditorMenus {
         }
     }
 
-    public static List<ItemEditorFieldSpec> repairMaterial(int index) {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+    public static List<EditorFieldSpec> repairMaterial(int index) {
+        List<EditorFieldSpec> specs = new ArrayList<>();
         String prefix = "repair.materials." + index + ".";
-        specs.add(ItemEditorFieldSpec.number("mat_amount", "editor.field.mat_amount", prefix + "amount"));
-        specs.add(ItemEditorFieldSpec.text("mat_restore", "editor.field.mat_restore", prefix + "restore"));
-        specs.add(ItemEditorFieldSpec.list("mat_item_sources", "editor.field.mat_item_sources", LIST_ENTRIES,
+        specs.add(EditorFieldSpec.number("mat_amount", "editor.field.mat_amount", prefix + "amount"));
+        specs.add(EditorFieldSpec.text("mat_restore", "editor.field.mat_restore", prefix + "restore"));
+        specs.add(EditorFieldSpec.list("mat_item_sources", "editor.field.mat_item_sources", LIST_ENTRIES,
                 prefix + "item_sources"));
-        specs.add(ItemEditorFieldSpec.cycle("mat_matcher_type", "editor.field.mat_matcher_type",
+        specs.add(EditorFieldSpec.cycle("mat_matcher_type", "editor.field.mat_matcher_type",
                 List.of("component", "flag", "enchantment", "item", "potion", "regex"),
                 prefix + "matcher", "type"));
-        specs.add(ItemEditorFieldSpec.text("mat_matcher_component", "editor.field.mat_matcher_component",
+        specs.add(EditorFieldSpec.text("mat_matcher_component", "editor.field.mat_matcher_component",
                 prefix + "matcher", "component"));
-        specs.add(ItemEditorFieldSpec.cycle("mat_matcher_operator", "editor.field.mat_matcher_operator",
+        specs.add(EditorFieldSpec.cycle("mat_matcher_operator", "editor.field.mat_matcher_operator",
                 List.of("equals", "not_equals", "greater", "greater_or_equal", "less", "less_or_equal",
                         "contains", "starts_with", "ends_with", "regex", "has_key", "has_value", "size",
                         "exists", "absent"),
                 prefix + "matcher", "operator"));
-        specs.add(ItemEditorFieldSpec.text("mat_matcher_value", "editor.field.mat_matcher_value",
+        specs.add(EditorFieldSpec.text("mat_matcher_value", "editor.field.mat_matcher_value",
                 prefix + "matcher", "value"));
         return specs;
     }
 
-    public static List<ItemEditorFieldSpec> conditionEntry(int index) {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+    public static List<EditorFieldSpec> conditionEntry(int index) {
+        List<EditorFieldSpec> specs = new ArrayList<>();
         String prefix = "condition.entries." + index + ".";
-        specs.add(ItemEditorFieldSpec.cycle("cond_type", "editor.field.cond_type",
+        specs.add(EditorFieldSpec.cycle("cond_type", "editor.field.cond_type",
                 List.of("expression", "group"), prefix + "type"));
-        specs.add(ItemEditorFieldSpec.text("cond_expression", "editor.field.cond_expression",
+        specs.add(EditorFieldSpec.text("cond_expression", "editor.field.cond_expression",
                 prefix + "expression"));
-        specs.add(ItemEditorFieldSpec.number("cond_required_count", "editor.field.cond_required_count",
+        specs.add(EditorFieldSpec.number("cond_required_count", "editor.field.cond_required_count",
                 prefix + "required_count"));
-        specs.add(ItemEditorFieldSpec.list("cond_nested", "editor.field.cond_nested", LIST_ENTRIES,
+        specs.add(EditorFieldSpec.list("cond_nested", "editor.field.cond_nested", LIST_ENTRIES,
                 prefix + "entries"));
         return specs;
-    }
-
-    public static List<String> listOrder(String menuId) {
-        return switch (menuId) {
-            case COMPONENT_VALUE, EFFECT_EDIT, SET_EDITOR, SET_THRESHOLD, CONDITION_ENTRIES,
-                    REPAIR_MATERIALS, ACTION_LINES -> List.of("entry");
-            default -> List.of();
-        };
     }
 
     private static Map<String, MenuMeta> buildMenus() {
@@ -175,137 +169,141 @@ public final class ItemEditorMenus {
         return menus;
     }
 
-    private static List<ItemEditorFieldSpec> basic() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.cycle("equip_slot", "editor.field.equip_slot", EQUIP_SLOTS, "equip_slot"));
-        specs.add(ItemEditorFieldSpec.text("item_source", "editor.field.item_source", "item", "item_source"));
+    private static List<EditorFieldSpec> basic() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.cycle("equip_slot", "editor.field.equip_slot", EQUIP_SLOTS, "equip_slot"));
+        specs.add(EditorFieldSpec.text("item_source", "editor.field.item_source", "item", "item_source"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> update() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.toggle("update_enabled", "editor.field.update_enabled", "update", "enabled"));
-        specs.add(ItemEditorFieldSpec.number("update_version", "editor.field.update_version", "update", "version"));
-        specs.add(ItemEditorFieldSpec.toggle("preserve_amount", "editor.field.preserve_amount",
+    private static List<EditorFieldSpec> update() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.toggle("update_enabled", "editor.field.update_enabled", "update", "enabled"));
+        specs.add(EditorFieldSpec.number("update_version", "editor.field.update_version", "update", "version"));
+        specs.add(EditorFieldSpec.toggle("preserve_amount", "editor.field.preserve_amount",
                 "update", "preserve_amount"));
-        specs.add(ItemEditorFieldSpec.toggle("preserve_damage", "editor.field.preserve_damage",
+        specs.add(EditorFieldSpec.toggle("preserve_damage", "editor.field.preserve_damage",
                 "update", "preserve_damage"));
-        specs.add(ItemEditorFieldSpec.toggle("preserve_unknown", "editor.field.preserve_unknown",
+        specs.add(EditorFieldSpec.toggle("preserve_unknown", "editor.field.preserve_unknown",
                 "update", "preserve_unknown_attribute_sources"));
         for (String trigger : UPDATE_TRIGGERS) {
-            specs.add(ItemEditorFieldSpec.toggle("trigger_" + trigger, "editor.field.trigger." + trigger,
+            specs.add(EditorFieldSpec.toggle("trigger_" + trigger, "editor.field.trigger." + trigger,
                     "update", "triggers", trigger));
         }
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> setEditor() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.text("set_display_name", "editor.field.set_display_name", "display_name"));
-        specs.add(ItemEditorFieldSpec.text("set_pieces", "editor.field.set_pieces", "pieces"));
-        specs.add(ItemEditorFieldSpec.text("set_thresholds", "editor.field.set_thresholds", "thresholds"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_header", "editor.field.set_lore_header", "lore", "header"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_equipped", "editor.field.set_lore_equipped",
+    private static List<EditorFieldSpec> setEditor() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.text("set_display_name", "editor.field.set_display_name", "display_name"));
+        specs.add(EditorFieldSpec.text("set_pieces", "editor.field.set_pieces", "pieces"));
+        specs.add(EditorFieldSpec.text("set_thresholds", "editor.field.set_thresholds", "thresholds"));
+        specs.add(EditorFieldSpec.text("set_lore_header", "editor.field.set_lore_header", "lore", "header"));
+        specs.add(EditorFieldSpec.text("set_lore_equipped", "editor.field.set_lore_equipped",
                 "lore", "equipped_format"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_missing", "editor.field.set_lore_missing",
+        specs.add(EditorFieldSpec.text("set_lore_missing", "editor.field.set_lore_missing",
                 "lore", "missing_format"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_active", "editor.field.set_lore_active",
+        specs.add(EditorFieldSpec.text("set_lore_active", "editor.field.set_lore_active",
                 "lore", "active_threshold_format"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_inactive", "editor.field.set_lore_inactive",
+        specs.add(EditorFieldSpec.text("set_lore_inactive", "editor.field.set_lore_inactive",
                 "lore", "inactive_threshold_format"));
-        specs.add(ItemEditorFieldSpec.text("set_lore_separator", "editor.field.set_lore_separator",
+        specs.add(EditorFieldSpec.text("set_lore_separator", "editor.field.set_lore_separator",
                 "lore", "separator"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> set() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.text("set_id", "editor.field.set_id", "set", "id"));
-        specs.add(ItemEditorFieldSpec.text("set_piece", "editor.field.set_piece", "set", "piece"));
-        specs.add(ItemEditorFieldSpec.navigate("set_list", "editor.field.manage_sets", SET_LIST));
+    private static List<EditorFieldSpec> set() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.text("set_id", "editor.field.set_id", "set", "id"));
+        specs.add(EditorFieldSpec.text("set_piece", "editor.field.set_piece", "set", "piece"));
+        specs.add(EditorFieldSpec.navigate("set_list", "editor.field.manage_sets", SET_LIST));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> condition() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.cycle("condition_type", "editor.field.condition_type",
+    private static List<EditorFieldSpec> condition() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.cycle("condition_type", "editor.field.condition_type",
                 CONDITION_TYPES, "condition", "type"));
-        specs.add(ItemEditorFieldSpec.number("condition_required_count", "editor.field.condition_required_count",
+        specs.add(EditorFieldSpec.number("condition_required_count", "editor.field.condition_required_count",
                 "condition", "required_count"));
-        specs.add(ItemEditorFieldSpec.toggle("condition_invalid", "editor.field.condition_invalid",
+        specs.add(EditorFieldSpec.toggle("condition_invalid", "editor.field.condition_invalid",
                 "condition", "invalid_as_failure"));
-        specs.add(ItemEditorFieldSpec.text("condition_fail_message", "editor.field.condition_fail_message",
+        specs.add(EditorFieldSpec.text("condition_fail_message", "editor.field.condition_fail_message",
                 "condition", "on_fail", "message"));
-        specs.add(ItemEditorFieldSpec.toggle("condition_block_output", "editor.field.condition_block_output",
+        specs.add(EditorFieldSpec.toggle("condition_block_output", "editor.field.condition_block_output",
                 "condition", "on_fail", "block_output"));
-        specs.add(ItemEditorFieldSpec.list("condition_entries", "editor.field.condition_entries",
+        specs.add(EditorFieldSpec.list("condition_entries", "editor.field.condition_entries",
                 CONDITION_ENTRIES, "condition.entries"));
-        specs.add(ItemEditorFieldSpec.list("condition_pass_actions", "editor.field.condition_pass_actions",
+        specs.add(EditorFieldSpec.list("condition_pass_actions", "editor.field.condition_pass_actions",
                 ACTION_LINES, "condition.on_pass.actions"));
-        specs.add(ItemEditorFieldSpec.list("condition_fail_actions", "editor.field.condition_fail_actions",
+        specs.add(EditorFieldSpec.list("condition_fail_actions", "editor.field.condition_fail_actions",
                 ACTION_LINES, "condition.on_fail.actions"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> repair() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.toggle("repair_enabled", "editor.field.repair_enabled", "repair", "enabled"));
-        specs.add(ItemEditorFieldSpec.text("repair_name_prefix", "editor.field.repair_name_prefix",
+    private static List<EditorFieldSpec> repair() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.toggle("repair_enabled", "editor.field.repair_enabled", "repair", "enabled"));
+        specs.add(EditorFieldSpec.text("repair_name_prefix", "editor.field.repair_name_prefix",
                 "repair", "disabled_display", "name_prefix"));
-        specs.add(ItemEditorFieldSpec.list("repair_materials", "editor.field.repair_materials",
+        specs.add(EditorFieldSpec.list("repair_materials", "editor.field.repair_materials",
                 REPAIR_MATERIALS, "repair.materials"));
-        specs.add(ItemEditorFieldSpec.navigate("repair_economy", "editor.field.repair_economy", REPAIR_ECONOMY));
-        specs.add(ItemEditorFieldSpec.list("repair_lore_append", "editor.field.repair_lore_append",
+        specs.add(EditorFieldSpec.navigate("repair_economy", "editor.field.repair_economy", REPAIR_ECONOMY));
+        specs.add(EditorFieldSpec.list("repair_lore_append", "editor.field.repair_lore_append",
                 ACTION_LINES, "repair.disabled_display.lore_append"));
-        specs.add(ItemEditorFieldSpec.list("repair_on_disabled", "editor.field.repair_on_disabled",
+        specs.add(EditorFieldSpec.list("repair_on_disabled", "editor.field.repair_on_disabled",
                 ACTION_LINES, "repair.on_disabled"));
-        specs.add(ItemEditorFieldSpec.list("repair_on_repaired", "editor.field.repair_on_repaired",
+        specs.add(EditorFieldSpec.list("repair_on_repaired", "editor.field.repair_on_repaired",
                 ACTION_LINES, "repair.on_repaired"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> repairEconomy() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.toggle("repair_economy_enabled", "editor.field.repair_economy_enabled",
+    private static List<EditorFieldSpec> repairEconomy() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.toggle("repair_economy_enabled", "editor.field.repair_economy_enabled",
                 "repair", "economy", "enabled"));
-        specs.add(ItemEditorFieldSpec.text("repair_economy_restore", "editor.field.repair_economy_restore",
+        specs.add(EditorFieldSpec.text("repair_economy_restore", "editor.field.repair_economy_restore",
                 "repair", "economy", "restore"));
-        specs.add(ItemEditorFieldSpec.list("repair_currencies", "editor.field.repair_currencies",
+        specs.add(EditorFieldSpec.list("repair_currencies", "editor.field.repair_currencies",
                 REPAIR_MATERIALS, "repair.economy.currencies"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> effects() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.list("effects_list", "editor.field.effects_list", EFFECT_EDIT, "effects"));
+    private static List<EditorFieldSpec> effects() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.list("effects_list", "editor.field.effects_list", EFFECT_EDIT, "effects"));
         return specs;
     }
 
-    public static List<ItemEditorFieldSpec> effectEdit(int index) {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
+    public static List<EditorFieldSpec> effectEdit(int index) {
+        List<EditorFieldSpec> specs = new ArrayList<>();
         String prefix = "effects." + index + ".";
-        specs.add(ItemEditorFieldSpec.cycle("effect_type", "editor.field.effect_type", EFFECT_TYPES,
+        specs.add(EditorFieldSpec.cycle("effect_type", "editor.field.effect_type", EFFECT_TYPES,
                 "effects", Integer.toString(index), "type"));
-        specs.add(ItemEditorFieldSpec.list("effect_variables", "editor.field.effect_variables", LIST_ENTRIES,
+        specs.add(EditorFieldSpec.list("effect_variables", "editor.field.effect_variables", LIST_ENTRIES,
                 prefix + "variables"));
-        specs.add(ItemEditorFieldSpec.list("effect_attributes", "editor.field.effect_attributes", LIST_ENTRIES,
+        specs.add(EditorFieldSpec.list("effect_attributes", "editor.field.effect_attributes", LIST_ENTRIES,
                 prefix + "ea_attributes"));
-        specs.add(ItemEditorFieldSpec.list("effect_skills", "editor.field.effect_skills", LIST_ENTRIES,
+        specs.add(EditorFieldSpec.list("effect_skills", "editor.field.effect_skills", LIST_ENTRIES,
                 prefix + "es_skills"));
-        specs.add(ItemEditorFieldSpec.list("effect_skill_triggers", "editor.field.effect_skill_triggers",
+        specs.add(EditorFieldSpec.list("effect_skill_triggers", "editor.field.effect_skill_triggers",
                 LIST_ENTRIES, prefix + "es_skill_triggers"));
-        specs.add(ItemEditorFieldSpec.list("effect_accessory_slots", "editor.field.effect_accessory_slots",
+        specs.add(EditorFieldSpec.list("effect_accessory_slots", "editor.field.effect_accessory_slots",
                 LIST_ENTRIES, prefix + "accessory_slots"));
-        specs.add(ItemEditorFieldSpec.list("effect_name_actions", "editor.field.effect_name_actions",
+        specs.add(EditorFieldSpec.list("effect_name_actions", "editor.field.effect_name_actions",
                 LIST_ENTRIES, prefix + "name_actions"));
-        specs.add(ItemEditorFieldSpec.list("effect_lore_actions", "editor.field.effect_lore_actions",
+        specs.add(EditorFieldSpec.list("effect_lore_actions", "editor.field.effect_lore_actions",
                 LIST_ENTRIES, prefix + "lore_actions"));
         return specs;
     }
 
-    private static List<ItemEditorFieldSpec> actions() {
-        List<ItemEditorFieldSpec> specs = new ArrayList<>();
-        specs.add(ItemEditorFieldSpec.list("actions_list", "editor.field.actions_list", LIST_ENTRIES, "actions"));
+    private static List<EditorFieldSpec> actions() {
+        List<EditorFieldSpec> specs = new ArrayList<>();
+        specs.add(EditorFieldSpec.list("actions_list", "editor.field.actions_list", LIST_ENTRIES, "actions"));
         return specs;
+    }
+
+    public static boolean setMenu(String menuId) {
+        return SET_LIST.equals(menuId) || SET_EDITOR.equals(menuId) || SET_THRESHOLD.equals(menuId);
     }
 }

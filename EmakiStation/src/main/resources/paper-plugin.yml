@@ -28,6 +28,8 @@ permissions:
     default: true
   emakistation.reload:
     default: op
+  emakistation.edit:
+    default: op
   emakistation.debug:
     default: op
   emakistation.admin:

@@ -42,6 +42,10 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
         return value == null ? null : value.id();
     }
 
+    public DismantleRecipeDefinition parseDefinition(File file, YamlSection configuration) {
+        return parse(file, configuration);
+    }
+
     @Override
     protected DismantleRecipeDefinition parse(File file, YamlSection configuration) {
         if (configuration == null) {

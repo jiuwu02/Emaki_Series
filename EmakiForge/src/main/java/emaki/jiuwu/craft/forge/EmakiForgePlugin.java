@@ -16,6 +16,7 @@ import org.bukkit.plugin.ServicePriority;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
@@ -25,6 +26,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
@@ -39,6 +41,7 @@ import emaki.jiuwu.craft.forge.action.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
+import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
 import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -94,6 +97,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
+    private ChatInputService chatInputService;
+    private ForgeEditorModule editorModule;
+    private EditorService editorService;
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskToken autoSaveTask;
     private DebugCommand debugCommand;
@@ -156,6 +162,12 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         CompletableFuture<Void> shutdownPipeline;
         try {
             transitionRuntime(ForgeRuntimeStatus.CLOSING, "插件停用中");
+            if (editorService != null) {
+                editorService.closeAll();
+            }
+            if (chatInputService != null) {
+                chatInputService.close();
+            }
             autoSaveTask = lifecycleCoordinator.cancelAutoSave(autoSaveTask);
             ConfigPrecheckLifecycleSupport.unregister("forge");
             HandlerList.unregisterAll(this);
@@ -262,6 +274,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public CompletableFuture<ForgeReloadResult> reloadPluginStateAsync(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenApply(result -> {
                     if (result.installed()) {
@@ -301,6 +316,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         commandRouter = new ForgeCommandRouter(this, executionDispatcher, threadOwnership);
         itemRefreshListener = new ForgeItemRefreshListener(this, executionDispatcher);
         setDebugLogger(buildDebugLogger(languageLoader));
@@ -335,6 +353,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
+        }
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
@@ -470,6 +491,18 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         return components == null ? recipeBookGuiService : components.recipeBookGuiService();
     }
 
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public ForgeEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
+    }
+
     public DebugCommand debugCommand() {
         return debugCommand;
     }
@@ -590,7 +623,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 nextItemRefreshService,
                 nextForgeService,
                 nextForgeGuiService,
-                nextRecipeBookGuiService
+                nextRecipeBookGuiService,
+                previousComponents.chatInputService(),
+                previousComponents.editorModule(),
+                previousComponents.editorService()
         );
         ForgeRuntimeSnapshot next = ForgeRuntimeSnapshot.active(candidate, activeComponents)
                 .withStatus(ForgeRuntimeStatus.RELOADING);
@@ -717,6 +753,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             forgeService = components.forgeService();
             forgeGuiService = components.forgeGuiService();
             recipeBookGuiService = components.recipeBookGuiService();
+            chatInputService = components.chatInputService();
+            editorModule = components.editorModule();
+            editorService = components.editorService();
             return;
         }
         appConfigLoader = snapshot.appConfigLoader();
