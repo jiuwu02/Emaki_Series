@@ -76,8 +76,8 @@ public final class InstanceRegistry {
 
     public List<MultiblockInstance> allFormed() {
         Set<MultiblockInstance> unique = new LinkedHashSet<>();
-        for (Map<Long, Set<MultiblockInstance>> worldIndex : formedByChunk.values()) {
-            for (Set<MultiblockInstance> bucket : worldIndex.values()) {
+        for (Map<Long, Set<MultiblockInstance>> worldIndex : List.copyOf(formedByChunk.values())) {
+            for (Set<MultiblockInstance> bucket : List.copyOf(worldIndex.values())) {
                 unique.addAll(bucket);
             }
         }
@@ -95,6 +95,9 @@ public final class InstanceRegistry {
                 Set<MultiblockInstance> bucket = candidateIndex.get(chunkKey);
                 if (bucket != null) {
                     bucket.remove(instance);
+                    if (bucket.isEmpty()) {
+                        candidateIndex.remove(chunkKey, bucket);
+                    }
                 }
             }
             bucketFor(formedByChunk, worldName, chunkKey).add(instance);
@@ -113,6 +116,9 @@ public final class InstanceRegistry {
                 Set<MultiblockInstance> bucket = formedIndex.get(chunkKey);
                 if (bucket != null) {
                     bucket.remove(instance);
+                    if (bucket.isEmpty()) {
+                        formedIndex.remove(chunkKey, bucket);
+                    }
                 }
             }
             bucketFor(candidatesByChunk, worldName, chunkKey).add(instance);
@@ -172,7 +178,7 @@ public final class InstanceRegistry {
         return scheduled[0];
     }
 
-    public int sweepStale() {
+    public int sweepStale(long deadlineNanos) {
         Duration ttl = settings.get().instanceTtl();
         long ttlNanos = ttl.toNanos();
         int removed = 0;
@@ -183,6 +189,9 @@ public final class InstanceRegistry {
             }
         }
         for (MultiblockInstance instance : snapshot) {
+            if (System.nanoTime() >= deadlineNanos) {
+                break;
+            }
             if (instance.state() != MultiblockInstance.State.UNFORMED) {
                 continue;
             }
@@ -196,8 +205,8 @@ public final class InstanceRegistry {
 
     public int candidateInstanceCount() {
         Set<MultiblockInstance> unique = new LinkedHashSet<>();
-        for (Map<Long, Set<MultiblockInstance>> worldIndex : candidatesByChunk.values()) {
-            for (Set<MultiblockInstance> bucket : worldIndex.values()) {
+        for (Map<Long, Set<MultiblockInstance>> worldIndex : List.copyOf(candidatesByChunk.values())) {
+            for (Set<MultiblockInstance> bucket : List.copyOf(worldIndex.values())) {
                 unique.addAll(bucket);
             }
         }
@@ -236,8 +245,8 @@ public final class InstanceRegistry {
             return;
         }
         List<MultiblockInstance> owned = new ArrayList<>();
-        for (Set<MultiblockInstance> bucket : worldIndex.values()) {
-            for (MultiblockInstance instance : bucket) {
+        for (Set<MultiblockInstance> bucket : List.copyOf(worldIndex.values())) {
+            for (MultiblockInstance instance : List.copyOf(bucket)) {
                 if (instance.state() == MultiblockInstance.State.UNFORMED
                         && instance.pose().definitionId().equals(definitionId)
                         && owner.equals(instance.owner())

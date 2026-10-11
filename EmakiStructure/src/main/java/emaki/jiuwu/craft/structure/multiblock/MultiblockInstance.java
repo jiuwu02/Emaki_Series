@@ -13,6 +13,7 @@ public final class MultiblockInstance {
     private final long createdAtNanos;
     private volatile State state;
     private volatile long lastChangeNanos;
+    private volatile boolean everFormed;
 
     public MultiblockInstance(StructurePose pose, UUID owner) {
         this.pose = pose;
@@ -52,8 +53,13 @@ public final class MultiblockInstance {
             return false;
         }
         state = State.UNFORMED;
+        everFormed = true;
         lastChangeNanos = System.nanoTime();
         return true;
+    }
+
+    public boolean everFormed() {
+        return everFormed;
     }
 
     public void touch() {

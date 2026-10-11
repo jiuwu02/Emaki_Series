@@ -18,15 +18,10 @@ console:
   bootstrap_start: "[loader] <gray>Synchronising bundled resources...</gray>"
   bootstrap_skip: "[loader] Skipped default data installation as configured"
   bootstrap_complete: "[loader] Bundled resource sync complete"
-  default_file_missing: "[loader] Bundled resource missing: %path%"
   bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path% (%error%)"
   bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
-  versioned_file_updated: "[config] <green>Auto updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% -> %new_version%)</gray></green>"
-  directory_create_failed: "[loader] Failed to create directory: %path%"
   # placeholders: %count%
   templates_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
-  # placeholders: %file%, %reason%
-  template_rejected: "[loader] <red>Rejected template <yellow>%file%</yellow>: %reason%</red>"
   # placeholders: %path%, %value%, %expected%
   config_issue: "[config] <yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid (expected <white>%expected%</white>), a valid value was applied</yellow>"
   # placeholders: %template%
@@ -61,13 +56,13 @@ command:
   # placeholders: %id%, %members%, %rotation%
   multiblock_list_entry: "<white>%id%</white> <gray>members %members%, rotation %rotation%</gray>"
   # placeholders: %id%, %members%, %unresolvable%, %furniture_missing%, %candidates%, %formed%
-  multiblock_validate_result: "<gray>Definition <white>%id%</white>: members %members%, unresolvable custom blocks %unresolvable%, missing furniture sources %furniture_missing%, in-progress %candidates%, active %formed%.</gray>"
+  multiblock_validate_result: "<gray>Definition <white>%id%</white>: members %members%, unresolvable custom blocks %unresolvable%, missing furniture sources: %furniture_missing%, in-progress %candidates%, active %formed%.</gray>"
+  # placeholders: none
+  multiblock_missing_none: "none"
   # placeholders: %id%, %members%, %file%
   multiblock_record_saved: "<green>Recorded multiblock definition <white>%id%</white>: %members% members, file %file%</green>"
   # placeholders: %value%, %allowed%
   invalid_facing: "<red>Facing <white>%value%</white> is invalid, allowed: %allowed%</red>"
-  # placeholders: %template%, %facing%, %blocks%
-  get_done: "<green>Generated template <white>%template%</white>, facing <white>%facing%</white>, blocks <white>%blocks%</white></green>"
   # placeholders: %template%, %facing%, %x%, %y%, %z%, %overwritten%
   place_done: "<green>Generated template <white>%template%</white> (facing <white>%facing%</white>) at <white>%x%, %y%, %z%</white>, overwrote <white>%overwritten%</white> blocks</green>"
   # placeholders: %label%, %pos%
@@ -79,10 +74,6 @@ command:
   select_adjusted: "<green>Selection adjusted: <white>%before%</white> -> <white>%after%</white></green>"
   # placeholders: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%
   export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks (%size_x% x %size_y% x %size_z%), file %file%</green>"
-  # placeholders: %count%
-  export_skipped_entities: "<yellow>Skipped %count% entities outside the selection.</yellow>"
-  # placeholders: none
-  highlight_unavailable: "<yellow>PacketEvents is not installed, selection highlighting is disabled, only coordinates are shown.</yellow>"
 
 error:
   config:
@@ -94,8 +85,6 @@ error:
   template:
     # placeholders: %template%
     not_found: "<red>Template <white>%template%</white> does not exist.</red>"
-    # placeholders: %name%
-    already_exists: "<red>Template <white>%name%</white> already exists.</red>"
     # placeholders: %file%, %reason%
     rejected: "<red>Template import rejected: <white>%file%</white> (%reason%)</red>"
     # placeholders: %file%, %error%
@@ -137,13 +126,10 @@ error:
     # placeholders: %file%, %pos%, %limit%, %actual%
     block_entity_too_large: "<red>Template <white>%file%</white> block entity payload at %pos% is %actual% bytes, above the %limit% byte limit.</red>"
   selection:
-    incomplete: "<red>The selection is not ready, set both corners first.</red>"
     # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
     too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the limit %limit_x% x %limit_y% x %limit_z%.</red>"
     # placeholders: none
     world_mismatch: "<red>The two selection points are in different worlds.</red>"
-    # placeholders: none
-    zero_volume: "<red>The selection has zero volume, set the points again.</red>"
   select:
     # placeholders: none
     not_set: "<red>There is no active selection.</red>"
@@ -265,15 +251,11 @@ debug:
   generate_start: "Starting generation of %template% at %x%,%y%,%z% facing %facing%, %blocks% blocks"
   # placeholders: %template%, %blocks%, %millis%
   generate_complete: "Generation of %template% finished: %blocks% blocks in %millis% ms"
-  # placeholders: %template%, %reason%
-  generate_aborted: "Generation of %template% aborted: %reason%"
   # placeholders: %columns%
   ground_skipped: "Aborted generation, %columns% columns lack support"
-  # placeholders: %count%
-  entity_filtered: "Filtered %count% entities by entity policy"
-  # placeholders: %template%
-  template_lazy_loaded: "Lazy loaded block data of template %template%"
   # placeholders: %reason%
   highlight_degraded: "Selection highlight degraded: %reason%"
   # placeholders: %used%, %limit%
   cold_hit_checked: "Cold hit consumed candidate budget %used%/%limit%"
+  # placeholders: %millis%, %limit_ms%
+  sweep_budget_exceeded: "Sweep cycle exceeded its time budget, this round was aborted: %millis% ms (limit %limit_ms% ms)"

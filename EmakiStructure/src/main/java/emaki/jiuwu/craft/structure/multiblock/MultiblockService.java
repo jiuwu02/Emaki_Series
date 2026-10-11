@@ -27,6 +27,8 @@ import java.util.function.Supplier;
 
 public final class MultiblockService {
 
+    private static final long SWEEP_BUDGET_NANOS = 50_000_000L;
+
     private final EmakiStructurePlugin plugin;
     private final MultiblockRepository repository;
     private final InstanceRegistry registry;
@@ -94,7 +96,11 @@ public final class MultiblockService {
                             instance.pose().anchorX(), instance.pose().anchorY(),
                             instance.pose().anchorZ());
                     if (refreshed.isPresent()) {
+                        boolean reforming = instance.everFormed();
                         registry.markFormed(instance);
+                        if (reforming) {
+                            maybeRetrigger(instance);
+                        }
                     } else {
                         instance.touch();
                     }
@@ -222,6 +228,49 @@ public final class MultiblockService {
         return created;
     }
 
+    private void maybeRetrigger(MultiblockInstance instance) {
+        if (!config.get().detection().retriggerOnReform()) {
+            return;
+        }
+        UUID owner = instance.owner();
+        if (owner == null) {
+            return;
+        }
+        Player player = plugin.getServer().getPlayer(owner);
+        if (player == null) {
+            return;
+        }
+        Block target = autoTriggerTarget(instance);
+        if (target == null) {
+            return;
+        }
+        tryTrigger(player, instance, target);
+    }
+
+    private Block autoTriggerTarget(MultiblockInstance instance) {
+        World world = plugin.getServer().getWorld(instance.pose().worldName());
+        if (world == null) {
+            return null;
+        }
+        StructurePose pose = instance.pose();
+        MultiblockDefinition definition = pose.definition();
+        if (definition.hasCoreBlock()) {
+            int[] core = definition.coreBlock();
+            return world.getBlockAt(pose.anchorX() + core[0],
+                    pose.anchorY() + core[1], pose.anchorZ() + core[2]);
+        }
+        for (MultiblockDefinition.Member member : definition.members()) {
+            if (!definition.trigger().accepts(member.x(), member.y(), member.z())) {
+                continue;
+            }
+            Vector offset = TemplateTransform.localToWorld(member.x(), member.y(), member.z(),
+                    definition.sizeX(), definition.sizeZ(), pose.facing());
+            return world.getBlockAt(pose.anchorX() + offset.getBlockX(),
+                    pose.anchorY() + offset.getBlockY(), pose.anchorZ() + offset.getBlockZ());
+        }
+        return null;
+    }
+
     private boolean tryTrigger(Player player, MultiblockInstance instance, Block clicked) {
         try {
             MultiblockDefinition definition = instance.pose().definition();
@@ -327,14 +376,25 @@ public final class MultiblockService {
     }
 
     public void sweep() {
-        registry.sweepStale();
-        if (config.get().detection().sampleRecheck()) {
-            sampleRecheck();
+        long started = System.nanoTime();
+        long deadline = started + SWEEP_BUDGET_NANOS;
+        registry.sweepStale(deadline);
+        if (config.get().detection().sampleRecheck() && System.nanoTime() < deadline) {
+            sampleRecheck(deadline);
+        }
+        long elapsedNanos = System.nanoTime() - started;
+        if (elapsedNanos >= SWEEP_BUDGET_NANOS) {
+            plugin.debugLogger().log("structure", (UUID) null, "sweep_budget_exceeded",
+                    Map.of("millis", elapsedNanos / 1_000_000L,
+                            "limit_ms", SWEEP_BUDGET_NANOS / 1_000_000L));
         }
     }
 
-    private void sampleRecheck() {
+    private void sampleRecheck(long deadlineNanos) {
         for (MultiblockInstance instance : registry.allFormed()) {
+            if (System.nanoTime() >= deadlineNanos) {
+                break;
+            }
             World world = plugin.getServer().getWorld(instance.pose().worldName());
             if (world == null) {
                 continue;
@@ -373,9 +433,13 @@ public final class MultiblockService {
         return Math.max(1, config.get().detection().maxColdChecks());
     }
 
-    public void clearAll() {
+    public void clearIndex() {
         stopSweep();
         registry.clearAll();
+    }
+
+    public void clearAll() {
+        clearIndex();
         cooldown.clear();
     }
 

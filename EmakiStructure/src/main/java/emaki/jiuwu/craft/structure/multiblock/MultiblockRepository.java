@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.structure.multiblock;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.structure.config.AppConfig;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -14,6 +15,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Supplier;
 import java.util.stream.Stream;
 
 public final class MultiblockRepository {
@@ -22,11 +24,13 @@ public final class MultiblockRepository {
     }
 
     private final Path directory;
+    private final Supplier<AppConfig> config;
     private final Map<String, MultiblockDefinition> definitions = new ConcurrentHashMap<>();
     private final List<Problem> problems = new CopyOnWriteArrayList<>();
 
-    public MultiblockRepository(Path directory) {
+    public MultiblockRepository(Path directory, Supplier<AppConfig> config) {
         this.directory = directory;
+        this.config = config;
     }
 
     public Path directory() {
@@ -71,7 +75,9 @@ public final class MultiblockRepository {
         MultiblockLoader.LoadResult result;
         try {
             YamlSection section = YamlFiles.load(file.toFile());
-            result = MultiblockLoader.load(section, fileName);
+            var generate = config.get().generate();
+            result = MultiblockLoader.load(section, fileName,
+                    generate.sizeLimitX(), generate.sizeLimitY(), generate.sizeLimitZ());
         } catch (RuntimeException exception) {
             problems.add(new Problem(fileName, "error.multiblock.parse_failed",
                     Map.of("file", fileName,

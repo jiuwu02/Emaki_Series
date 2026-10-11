@@ -116,7 +116,8 @@ final class StructureLifecycleCoordinator
             messageService.warning("console.custom_block_source_absent",
                     Map.of("namespace", namespace));
         }
-        var multiblockRepository = new MultiblockRepository(plugin.dataPath("multiblocks"));
+        var multiblockRepository = new MultiblockRepository(plugin.dataPath("multiblocks"),
+                appConfigLoader::current);
         multiblockRepository.reload();
         reportMultiblockProblems(plugin, multiblockRepository);
         var instanceRegistry = new InstanceRegistry(plugin, executionDispatcher,
@@ -153,7 +154,7 @@ final class StructureLifecycleCoordinator
         components.appConfigLoader().overrideCurrent(repaired.withoutIssues());
         components.generationScheduler().cancelAll("error.generate.cancelled");
         components.selectionManager().clearAllSessions();
-        components.multiblockService().clearAll();
+        components.multiblockService().clearIndex();
         components.spawnSidecars().reload();
         components.templateCache().invalidateAll();
         components.templateRepository().reload();
@@ -177,7 +178,12 @@ final class StructureLifecycleCoordinator
     private static void reportMultiblockProblems(EmakiStructurePlugin plugin,
             MultiblockRepository repository) {
         for (MultiblockRepository.Problem problem : repository.drainProblems()) {
-            plugin.messageService().warning(problem.reasonKey(), problem.placeholders());
+            if ("error.multiblock.duplicate_id".equals(problem.reasonKey())
+                    || "error.multiblock.version_unsupported".equals(problem.reasonKey())) {
+                plugin.messageService().severe(problem.reasonKey(), problem.placeholders());
+            } else {
+                plugin.messageService().warning(problem.reasonKey(), problem.placeholders());
+            }
         }
     }
 

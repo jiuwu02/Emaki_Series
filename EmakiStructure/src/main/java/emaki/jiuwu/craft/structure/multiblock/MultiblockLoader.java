@@ -52,7 +52,8 @@ public final class MultiblockLoader {
     private MultiblockLoader() {
     }
 
-    public static LoadResult load(YamlSection section, String fileName) {
+    public static LoadResult load(YamlSection section, String fileName,
+            int limitX, int limitY, int limitZ) {
         String baseName = stripExtension(fileName);
         if (section == null) {
             return LoadResult.rejected(fileName, "error.multiblock.parse_failed",
@@ -81,7 +82,9 @@ public final class MultiblockLoader {
         }
         boolean allowRotation = shape.getBoolean("allow_rotation", true);
         int[] coreBlock = readTriple(shape.get("core_block"));
-        if (shape.contains("core_block") && (coreBlock == null || !isNonNegative(coreBlock))) {
+        if (shape.contains("core_block")
+                && (coreBlock == null || !isNonNegative(coreBlock)
+                        || !withinLimits(coreBlock, limitX, limitY, limitZ))) {
             return LoadResult.rejected(fileName, "error.multiblock.core_block_invalid",
                     Map.of("file", fileName, "value", String.valueOf(shape.get("core_block"))));
         }
@@ -90,16 +93,18 @@ public final class MultiblockLoader {
             return LoadResult.rejected(fileName, "error.multiblock.trigger_missing",
                     Map.of("file", fileName));
         }
-        TriggerOutcome triggerOutcome = parseTrigger(triggerSection, fileName);
+        TriggerOutcome triggerOutcome = parseTrigger(triggerSection, fileName,
+                limitX, limitY, limitZ);
         if (triggerOutcome.failure() != null) {
             return triggerOutcome.failure();
         }
         List<MultiblockDefinition.Member> members = new ArrayList<>();
         List<Issue> issues = new ArrayList<>();
-        Set<Long> seenPositions = new HashSet<>();
+        Set<List<Integer>> seenPositions = new HashSet<>();
         List<Map<?, ?>> rawBlocks = shape.getMapList("blocks");
         for (int index = 0; index < rawBlocks.size(); index++) {
-            MemberOutcome outcome = parseMember(rawBlocks.get(index), index, fileName, seenPositions);
+            MemberOutcome outcome = parseMember(rawBlocks.get(index), index, fileName,
+                    seenPositions, limitX, limitY, limitZ);
             if (outcome.member() != null) {
                 members.add(outcome.member());
             } else if (outcome.issue() != null) {
@@ -116,7 +121,8 @@ public final class MultiblockLoader {
         return new LoadResult(fileName, false, null, Map.of(), definition, List.copyOf(issues));
     }
 
-    private static TriggerOutcome parseTrigger(YamlSection triggerSection, String fileName) {
+    private static TriggerOutcome parseTrigger(YamlSection triggerSection, String fileName,
+            int limitX, int limitY, int limitZ) {
         String rawTargets = triggerSection.getString("targets", "any").trim().toLowerCase(Locale.ROOT);
         if (!TARGET_MODES.contains(rawTargets)) {
             return new TriggerOutcome(null, LoadResult.rejected(fileName,
@@ -138,7 +144,8 @@ public final class MultiblockLoader {
             }
             for (Object entry : rawPositions) {
                 int[] position = readTriple(entry);
-                if (position == null || !isNonNegative(position)) {
+                if (position == null || !isNonNegative(position)
+                        || !withinLimits(position, limitX, limitY, limitZ)) {
                     return new TriggerOutcome(null, LoadResult.rejected(fileName,
                             "error.multiblock.positions_invalid",
                             Map.of("file", fileName, "value", String.valueOf(entry))));
@@ -167,13 +174,14 @@ public final class MultiblockLoader {
     }
 
     private static MemberOutcome parseMember(Map<?, ?> raw, int index, String fileName,
-            Set<Long> seenPositions) {
+            Set<List<Integer>> seenPositions, int limitX, int limitY, int limitZ) {
         int[] pos = readTriple(raw.get("pos"));
-        if (pos == null || !isNonNegative(pos)) {
+        if (pos == null || !isNonNegative(pos)
+                || !withinLimits(pos, limitX, limitY, limitZ)) {
             return MemberOutcome.rejected(issue(index, "error.multiblock.pos_invalid",
                     Map.of("file", fileName, "value", String.valueOf(raw.get("pos")))));
         }
-        long key = ((long) pos[0] << 40) | ((long) pos[1] << 20) | (pos[2] & 0xFFFFFL);
+        List<Integer> key = List.of(pos[0], pos[1], pos[2]);
         if (!seenPositions.add(key)) {
             return MemberOutcome.rejected(issue(index, "error.multiblock.pos_duplicate",
                     Map.of("file", fileName, "value", formatTriple(pos))));
@@ -287,6 +295,10 @@ public final class MultiblockLoader {
 
     private static boolean isNonNegative(int[] triple) {
         return triple[0] >= 0 && triple[1] >= 0 && triple[2] >= 0;
+    }
+
+    private static boolean withinLimits(int[] triple, int limitX, int limitY, int limitZ) {
+        return triple[0] < limitX && triple[1] < limitY && triple[2] < limitZ;
     }
 
     private static String formatTriple(int[] triple) {

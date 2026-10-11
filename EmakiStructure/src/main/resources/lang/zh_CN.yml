@@ -18,15 +18,10 @@ console:
   bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
   bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
   bootstrap_complete: "[loader] 默认资源同步完成"
-  default_file_missing: "[loader] 内置资源不存在: %path%"
   bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
   bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
-  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  directory_create_failed: "[loader] 创建目录失败: %path%"
   # 占位符：%count%
   templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
-  # 占位符：%file%、%reason%
-  template_rejected: "[loader] <red>已拒绝模板 <yellow>%file%</yellow>: %reason%</red>"
   # 占位符：%path%、%value%、%expected%
   config_issue: "[config] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法（期望 <white>%expected%</white>），已按合法值处理</yellow>"
   # 占位符：%template%
@@ -61,13 +56,13 @@ command:
   # 占位符：%id%、%members%、%rotation%
   multiblock_list_entry: "<white>%id%</white> <gray>成员 %members%，旋转 %rotation%</gray>"
   # 占位符：%id%、%members%、%unresolvable%、%furniture_missing%、%candidates%、%formed%
-  multiblock_validate_result: "<gray>定义 <white>%id%</white>：成员 %members%，无法解析的自定义方块 %unresolvable%，缺少家具源 %furniture_missing%，进行中实例 %candidates%，活动实例 %formed%。</gray>"
+  multiblock_validate_result: "<gray>定义 <white>%id%</white>：成员 %members%，无法解析的自定义方块 %unresolvable%，缺失家具源：%furniture_missing%，进行中实例 %candidates%，活动实例 %formed%。</gray>"
+  # 占位符：无
+  multiblock_missing_none: "无"
   # 占位符：%id%、%members%、%file%
   multiblock_record_saved: "<green>已记录多方块定义 <white>%id%</white>：%members% 个成员，文件 %file%</green>"
   # 占位符：%value%、%allowed%
   invalid_facing: "<red>朝向 <white>%value%</white> 非法，可用：%allowed%</red>"
-  # 占位符：%template%、%facing%、%blocks%
-  get_done: "<green>已生成模板 <white>%template%</white>，朝向 <white>%facing%</white>，方块 <white>%blocks%</white></green>"
   # 占位符：%template%、%facing%、%x%、%y%、%z%、%overwritten%
   place_done: "<green>已生成模板 <white>%template%</white>（朝向 <white>%facing%</white>）于 <white>%x%, %y%, %z%</white>，覆盖方块 <white>%overwritten%</white></green>"
   # 占位符：%label%、%pos%
@@ -79,10 +74,6 @@ command:
   select_adjusted: "<green>选区已调整：<white>%before%</white> → <white>%after%</white></green>"
   # 占位符：%name%、%blocks%、%size_x%、%size_y%、%size_z%、%file%
   export_saved: "<green>已导出模板 <white>%name%</white>：%blocks% 个方块（%size_x% × %size_y% × %size_z%），文件 %file%</green>"
-  # 占位符：%count%
-  export_skipped_entities: "<yellow>已跳过 %count% 个超出选区范围的实体。</yellow>"
-  # 占位符：无
-  highlight_unavailable: "<yellow>未安装 PacketEvents，选区高亮已停用，仅回显坐标。</yellow>"
 
 error:
   config:
@@ -94,8 +85,6 @@ error:
   template:
     # 占位符：%template%
     not_found: "<red>模板 <white>%template%</white> 不存在。</red>"
-    # 占位符：%name%
-    already_exists: "<red>模板 <white>%name%</white> 已存在。</red>"
     # 占位符：%file%、%reason%
     rejected: "<red>模板导入被拒绝：<white>%file%</white>（%reason%）</red>"
     # 占位符：%file%、%error%
@@ -137,13 +126,10 @@ error:
     # 占位符：%file%、%pos%、%limit%、%actual%
     block_entity_too_large: "<red>模板 <white>%file%</white> 位于 %pos% 的方块实体载荷 %actual% 字节，超过上限 %limit% 字节。</red>"
   selection:
-    incomplete: "<red>选区尚未就绪，请先完成两个设点。</red>"
     # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
     too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
     # 占位符：无
     world_mismatch: "<red>两个选点不在同一世界。</red>"
-    # 占位符：无
-    zero_volume: "<red>选区体积为零，请重新设点。</red>"
   select:
     # 占位符：无
     not_set: "<red>当前没有选区。</red>"
@@ -265,15 +251,11 @@ debug:
   generate_start: "开始生成模板 %template% 于 %x%,%y%,%z% 朝向 %facing%，方块 %blocks%"
   # 占位符：%template%、%blocks%、%millis%
   generate_complete: "模板 %template% 生成完成：%blocks% 方块，耗时 %millis% ms"
-  # 占位符：%template%、%reason%
-  generate_aborted: "模板 %template% 生成中止：%reason%"
   # 占位符：%columns%
   ground_skipped: "支撑面不足，放弃生成：%columns% 列无支撑"
-  # 占位符：%count%
-  entity_filtered: "按实体策略过滤 %count% 个实体"
-  # 占位符：%template%
-  template_lazy_loaded: "模板 %template% 方块数据惰性加载"
   # 占位符：%reason%
   highlight_degraded: "选区高亮降级：%reason%"
   # 占位符：%used%、%limit%
   cold_hit_checked: "冷命中反推消耗候选预算 %used%/%limit%"
+  # 占位符：%millis%、%limit_ms%
+  sweep_budget_exceeded: "巡检单周期耗时超上限，本轮已中断：%millis% ms（上限 %limit_ms% ms）"

@@ -165,4 +165,14 @@ public final class FurnitureIdAdapter {
             default -> false;
         };
     }
+
+    public static String sourceOfNamespace(String namespace) {
+        return switch (namespace == null ? "" : namespace.toLowerCase(Locale.ROOT)) {
+            case "itemsadder" -> "ItemsAdder";
+            case "oraxen" -> "Oraxen";
+            case "nexo" -> "Nexo";
+            case "craftengine" -> "CraftEngine";
+            default -> null;
+        };
+    }
 }

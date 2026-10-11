@@ -6,6 +6,7 @@ import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.NameRules;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.generate.StructureFacing;
+import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
 import emaki.jiuwu.craft.structure.selection.AdjustDirection;
 import emaki.jiuwu.craft.structure.selection.SelectionBox;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
@@ -27,6 +28,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -580,23 +582,29 @@ public final class StructureCommandRouter {
         }
         var service = plugin.multiblockService();
         int unresolvableBlocks = 0;
-        int furnitureWithoutSource = 0;
+        Set<String> missingSources = new LinkedHashSet<>();
         for (var member : definition.members()) {
             if (member.requiresCustomBlock()
                     && !plugin.multiblockService().engine().customBlocks()
                             .bind(member.namespaceId()).resolvable()) {
                 unresolvableBlocks++;
             }
-            if (member.requiresFurniture()
-                    && !plugin.multiblockService().engine().furniture().anySourcePresent()) {
-                furnitureWithoutSource++;
+            if (member.requiresFurniture()) {
+                String source = FurnitureIdAdapter.sourceOfNamespace(
+                        FurnitureIdAdapter.namespaceOf(member.spec()));
+                if (source != null && !service.engine().furniture().sourcePresent(source)) {
+                    missingSources.add(source);
+                }
             }
         }
         plugin.messageService().send(sender, "command.multiblock_validate_result", Map.of(
                 "id", definition.id(),
                 "members", definition.members().size(),
                 "unresolvable", unresolvableBlocks,
-                "furniture_missing", furnitureWithoutSource,
+                "furniture_missing", missingSources.isEmpty()
+                        ? plugin.messageService()
+                                .messageOrFallback("command.multiblock_missing_none", "none")
+                        : String.join(", ", missingSources),
                 "candidates", service.registry().candidateInstanceCount(),
                 "formed", countFormedFor(definition.id())));
     }
