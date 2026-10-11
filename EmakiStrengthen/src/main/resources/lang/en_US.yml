@@ -428,7 +428,6 @@ editor:
     component_desc: "<dark_gray>Component id checked by the matcher</dark_gray>"
     operator: "Operator"
     operator_desc: "<dark_gray>Comparison operator of the matcher</dark_gray>"
-    value: "Value"
     value_desc: "<dark_gray>Target value compared by the matcher</dark_gray>"
     slot_groups: "Slot Groups"
     slot_groups_desc: "<dark_gray>Coarse equipment groups such as weapon / armor / offhand / generic</dark_gray>"
@@ -539,10 +538,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details.</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set (empty)"
     integer: "Integer"

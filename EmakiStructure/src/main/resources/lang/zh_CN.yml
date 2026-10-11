@@ -1,0 +1,213 @@
+# EmakiStructure 简体中文语言资源。
+# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
+# version 由资源同步流程维护，用于合并新增默认键。
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此命令。</red>"
+  player_only: "<red>此命令只能由玩家执行。</red>"
+  invalid_args: "<red>参数错误。</red>"
+  unknown_command: "<red>未知命令，可用子命令：/ems get、place、select、export。</red>"
+
+console:
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
+  bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
+  bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
+  bootstrap_complete: "[loader] 默认资源同步完成"
+  default_file_missing: "[loader] 内置资源不存在: %path%"
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
+  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  directory_create_failed: "[loader] 创建目录失败: %path%"
+  # 占位符：%count%
+  templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
+  # 占位符：%file%、%reason%
+  template_rejected: "[loader] <red>已拒绝模板 <yellow>%file%</yellow>: %reason%</red>"
+  # 占位符：%path%、%value%、%expected%
+  config_issue: "[config] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法（期望 <white>%expected%</white>），已按合法值处理</yellow>"
+  # 占位符：%template%
+  cache_rejected: "[cache] <yellow>模板 <white>%template%</white> 估算体积超出缓存上限，本次用完即弃</yellow>"
+  # 占位符：%count%
+  reload_complete: "[reload] <green>重载完成，共 <white>%count%</white> 个结构模板</green>"
+  # 占位符：%template%、%index%、%type%、%error%
+  spawn_entry_failed: "[spawn] <yellow>模板 %template% 条目 #%index% 生物 %type% 生成失败: %error%</yellow>"
+  # 占位符：%file%、%index%、%reason%
+  spawn_entry_issue: "[spawn] <yellow>生物点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
+  # 占位符：%file%、%error%
+  config_reload_failed: "[reload] <red>配置文件 %file% 解析失败，保留旧配置继续运行: %error%</red>"
+  # 占位符：%template%、%count%
+  template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析，已按 legacy_policy 跳过</yellow>"
+
+command:
+  usage: "<gray>用法：/ems <get|place|select|export> ...</gray>"
+  get_usage: "<gray>用法：/ems get <模板> [朝向]</gray>"
+  place_usage: "<gray>用法：/ems place <模板> <朝向></gray>"
+  select_usage: "<gray>用法：/ems select <pos1|pos2|adjust|clear> ...</gray>"
+  adjust_usage: "<gray>用法：/ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
+  export_usage: "<gray>用法：/ems export <名称></gray>"
+  # 占位符：%value%、%allowed%
+  invalid_facing: "<red>朝向 <white>%value%</white> 非法，可用：%allowed%</red>"
+  # 占位符：%template%、%facing%、%blocks%
+  get_done: "<green>已生成模板 <white>%template%</white>，朝向 <white>%facing%</white>，方块 <white>%blocks%</white></green>"
+  # 占位符：%template%、%facing%、%x%、%y%、%z%、%overwritten%
+  place_done: "<green>已生成模板 <white>%template%</white>（朝向 <white>%facing%</white>）于 <white>%x%, %y%, %z%</white>，覆盖方块 <white>%overwritten%</white></green>"
+  # 占位符：%label%、%pos%
+  select_pos_set: "<green>已设置 <white>%label%</white>：<white>%pos%</white></green>"
+  # 占位符：%pos1%、%pos2%、%size_x%、%size_y%、%size_z%
+  select_ready: "<green>选区已就绪：<white>%pos1%</white> → <white>%pos2%</white>（%size_x% × %size_y% × %size_z%）</green>"
+  select_cleared: "<green>已清除当前选区与高亮。</green>"
+  # 占位符：%before%、%after%
+  select_adjusted: "<green>选区已调整：<white>%before%</white> → <white>%after%</white></green>"
+  # 占位符：%name%、%blocks%、%size_x%、%size_y%、%size_z%、%file%
+  export_saved: "<green>已导出模板 <white>%name%</white>：%blocks% 个方块（%size_x% × %size_y% × %size_z%），文件 %file%</green>"
+  # 占位符：%count%
+  export_skipped_entities: "<yellow>已跳过 %count% 个超出选区范围的实体。</yellow>"
+  # 占位符：无
+  highlight_unavailable: "<yellow>未安装 PacketEvents，选区高亮已停用，仅回显坐标。</yellow>"
+
+error:
+  config:
+    # 占位符：%path%、%value%、%expected%
+    invalid: "<red>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法，期望 <white>%expected%</white></red>"
+  name:
+    # 占位符：%value%
+    invalid: "<red>名称 <white>%value%</white> 不合法：仅允许小写字母、数字、下划线与连字符，且以字母或数字开头、长度不超过 64。</red>"
+  template:
+    # 占位符：%template%
+    not_found: "<red>模板 <white>%template%</white> 不存在。</red>"
+    # 占位符：%name%
+    already_exists: "<red>模板 <white>%name%</white> 已存在。</red>"
+    # 占位符：%file%、%reason%
+    rejected: "<red>模板导入被拒绝：<white>%file%</white>（%reason%）</red>"
+    # 占位符：%file%、%error%
+    read_failed: "<red>读取模板文件失败：<white>%file%</white>（%error%）</red>"
+    # 占位符：%id%
+    invalid_id: "<red>模板 id <white>%id%</white> 不合法：仅允许小写字母、数字、下划线与连字符，且以字母或数字开头、长度不超过 64。</red>"
+    # 占位符：%file%
+    invalid_name: "<red>模板文件名 <white>%file%</white> 不合法，已跳过。</red>"
+    # 占位符：%file%、%detail%
+    scan_failed: "<red>扫描模板目录失败：<white>%file%</white>（%detail%）</red>"
+    # 占位符：%file%、%detail%
+    parse_failed: "<red>模板 <white>%file%</white> 解析失败：%detail%</red>"
+    # 占位符：%file%、%limit%、%actual%
+    file_too_large: "<red>模板 <white>%file%</white> 原始体积 %actual% 字节，超过上限 %limit% 字节。</red>"
+    # 占位符：%file%、%code%
+    not_gzip: "<red>模板 <white>%file%</white> 不是 gzip 压缩文件。</red>"
+    # 占位符：%file%、%limit%、%code%
+    output_too_large: "<red>模板 <white>%file%</white> 解压输出超过上限 %limit% 字节。</red>"
+    # 占位符：%file%、%code%
+    depth_exceeded: "<red>模板 <white>%file%</white> NBT 嵌套深度超过上限。</red>"
+    # 占位符：%file%、%code%
+    bad_root_type: "<red>模板 <white>%file%</white> 的 NBT 根节点不是复合类型。</red>"
+    # 占位符：%file%、%detail%
+    size_invalid: "<red>模板 <white>%file%</white> 的 size 非法：%detail%</red>"
+    # 占位符：%file%
+    blocks_empty: "<red>模板 <white>%file%</white> 不含任何方块条目，视为损坏。</red>"
+    # 占位符：%file%、%limit%、%actual%
+    total_blocks_exceeded: "<red>模板 <white>%file%</white> 方块数 %actual%，超过上限 %limit%。</red>"
+    # 占位符：%file%、%limit%、%actual%
+    palette_exceeded: "<red>模板 <white>%file%</white> 调色板条目 %actual%，超过上限 %limit%。</red>"
+    # 占位符：%file%、%index%
+    state_index_out_of_range: "<red>模板 <white>%file%</white> 存在越界的方块状态索引 %index%。</red>"
+    # 占位符：%file%、%pos%、%size%
+    block_pos_out_of_range: "<red>模板 <white>%file%</white> 方块坐标 %pos% 越出尺寸 %size%。</red>"
+    # 占位符：%file%、%pos%
+    block_pos_duplicate: "<red>模板 <white>%file%</white> 方块坐标 %pos% 重复。</red>"
+    # 占位符：%file%、%block%
+    legacy_block_rejected: "<red>模板 <white>%file%</white> 含当前版本无法解析的方块 <white>%block%</white>，已拒绝导入。</red>"
+    # 占位符：%file%、%pos%、%limit%、%actual%
+    block_entity_too_large: "<red>模板 <white>%file%</white> 位于 %pos% 的方块实体载荷 %actual% 字节，超过上限 %limit% 字节。</red>"
+  selection:
+    incomplete: "<red>选区尚未就绪，请先完成两个设点。</red>"
+    # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
+    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
+    # 占位符：无
+    world_mismatch: "<red>两个选点不在同一世界。</red>"
+    # 占位符：无
+    zero_volume: "<red>选区体积为零，请重新设点。</red>"
+  select:
+    # 占位符：无
+    not_set: "<red>当前没有选区。</red>"
+    # 占位符：%value%
+    invalid_operation: "<red>操作 <white>%value%</white> 非法，可用：add、reduce。</red>"
+    # 占位符：%value%、%allowed%
+    invalid_direction: "<red>方向 <white>%value%</white> 非法，可用：%allowed%</red>"
+    # 占位符：%value%
+    invalid_amount: "<red>数值 <white>%value%</white> 非法，须为正整数。</red>"
+    # 占位符：%axis%、%size%
+    shrink_too_far: "<red>收缩过多：<white>%axis%</white> 轴将不足 1 格（当前 %size% 格）。</red>"
+  generate:
+    # 占位符：%detail%
+    out_of_bounds: "<red>生成目标超出世界边界：%detail%</red>"
+    # 占位符：无
+    ground_unsupported: "<red>支撑面不足，已放弃本次生成。</red>"
+    # 占位符：%template%
+    queue_timeout: "<red>模板 <white>%template%</white> 生成队列滞留超时，已中止。</red>"
+    # 占位符：%template%
+    cancelled: "<red>模板 <white>%template%</white> 生成已取消。</red>"
+    # 占位符：%template%
+    rejected_by_limit: "<red>模板 <white>%template%</white> 尺寸超出配置上限。</red>"
+    # 占位符：%reason%
+    failed: "<red>生成失败：%reason%</red>"
+    # 占位符：%count%
+    player_trapped: "<yellow>%count% 名玩家被生成方块困住，无法自动移出，请自行离开。</yellow>"
+  export:
+    # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
+    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出导出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
+    # 占位符：%file%、%error%
+    write_failed: "<red>写入模板文件失败：<white>%file%</white>（%error%）</red>"
+    # 占位符：%count%
+    no_blocks: "<red>选区内没有可导出的方块（%count%）。</red>"
+  spawn:
+    # 占位符：%file%、%reason%
+    rejected: "<red>生物点位配置被拒绝：<white>%file%</white>（%reason%）</red>"
+    # 占位符：%template%、%type%、%error%
+    entry_failed: "<yellow>模板 <white>%template%</white> 的生物 <white>%type%</white> 生成失败：%error%</yellow>"
+    # 占位符：%total%、%limit%
+    total_exceeded: "<red>生物点位合计 %total% 只，超过单次生成上限 %limit%。</red>"
+    # 占位符：无
+    type_missing: "<red>条目缺少 type 字段。</red>"
+    # 占位符：%type%、%allowed%
+    type_prefix: "<red>生物 <white>%type%</white> 必须带命名空间前缀：%allowed%</red>"
+    # 占位符：%type%
+    pos_region_exclusive: "<red>生物 <white>%type%</white> 的 pos 与 region 必须且只能提供一个。</red>"
+    # 占位符：%type%、%value%、%expected%
+    count_range: "<red>生物 <white>%type%</white> 的 count 取值 %value% 非法，期望 %expected%。</red>"
+    # 占位符：%type%、%value%
+    chance_range: "<red>生物 <white>%type%</white> 的 chance 取值 %value% 非法，期望 0.0-1.0。</red>"
+    # 占位符：%type%、%value%、%allowed%
+    facing_invalid: "<red>生物 <white>%type%</white> 的 facing 取值 %value% 非法，可用：%allowed%</red>"
+    # 占位符：%type%
+    pos_invalid: "<red>生物 <white>%type%</white> 的 pos 坐标非法。</red>"
+    # 占位符：%type%、%size%
+    pos_out_of_bounds: "<red>生物 <white>%type%</white> 的 pos 超出模板尺寸 %size%。</red>"
+    # 占位符：%type%、%value%、%expected%
+    radius_range: "<red>生物 <white>%type%</white> 的 radius 取值 %value% 非法，期望 %expected%。</red>"
+    # 占位符：%type%、%radius%
+    radius_out_of_bounds: "<red>生物 <white>%type%</white> 的半径 %radius% 球体超出模板边界。</red>"
+    # 占位符：%type%
+    region_invalid: "<red>生物 <white>%type%</white> 的 region 定义非法。</red>"
+    # 占位符：%type%
+    region_order: "<red>生物 <white>%type%</white> 的 region min 必须小于等于 max。</red>"
+    # 占位符：%type%、%size%
+    region_out_of_bounds: "<red>生物 <white>%type%</white> 的 region 超出模板尺寸 %size%。</red>"
+
+debug:
+  # 占位符：%template%、%facing%、%x%、%y%、%z%、%blocks%
+  generate_start: "开始生成模板 %template% 于 %x%,%y%,%z% 朝向 %facing%，方块 %blocks%"
+  # 占位符：%template%、%blocks%、%millis%
+  generate_complete: "模板 %template% 生成完成：%blocks% 方块，耗时 %millis% ms"
+  # 占位符：%template%、%reason%
+  generate_aborted: "模板 %template% 生成中止：%reason%"
+  # 占位符：%columns%
+  ground_skipped: "支撑面不足，放弃生成：%columns% 列无支撑"
+  # 占位符：%count%
+  entity_filtered: "按实体策略过滤 %count% 个实体"
+  # 占位符：%template%
+  template_lazy_loaded: "模板 %template% 方块数据惰性加载"
+  # 占位符：%reason%
+  highlight_degraded: "选区高亮降级：%reason%"

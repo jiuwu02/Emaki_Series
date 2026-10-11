@@ -1,0 +1,24 @@
+// EmakiStructure（新增模块）。
+version = '1.0.0'
+
+dependencies {
+    shadeBundle project(':EmakiStructureApi')
+
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiStructureApi')
+
+    provided libs.paper.api
+    provided libs.packetevents.spigot
+    provided libs.mythic.dist
+    provided project(':EmakiMobsApi')
+    provided libs.craft.engine.core
+    provided libs.craft.engine.bukkit
+    provided libs.itemsadder.api
+    provided(libs.nexo) { transitive = false }
+    provided(libs.oraxen) { transitive = false }
+
+    testImplementation libs.junit.jupiter
+    testImplementation libs.boosted.yaml
+    testImplementation libs.mockbukkit
+}

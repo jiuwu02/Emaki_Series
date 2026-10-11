@@ -420,7 +420,6 @@ editor:
     component_desc: "<dark_gray>匹配器检查的组件 ID</dark_gray>"
     operator: "运算符"
     operator_desc: "<dark_gray>匹配器的比较运算符</dark_gray>"
-    value: "取值"
     value_desc: "<dark_gray>匹配器比较的目标值</dark_gray>"
     slot_groups: "槽位组"
     slot_groups_desc: "<dark_gray>粗粒度装备类型组，如 weapon / armor / offhand / generic</dark_gray>"

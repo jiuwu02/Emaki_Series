@@ -1,0 +1,213 @@
+# EmakiStructure English language resource.
+# Messages use MiniMessage; keep placeholders noted beside each message group.
+# version is maintained by the resource sync flow to merge new default keys.
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to run this command.</red>"
+  player_only: "<red>This command can only be run by a player.</red>"
+  invalid_args: "<red>Invalid arguments.</red>"
+  unknown_command: "<red>Unknown command, available subcommands: /ems get, place, select, export.</red>"
+
+console:
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Startup complete</green>"
+  plugin_stopped: "[shutdown] <yellow>Disabled</yellow>"
+  bootstrap_start: "[loader] <gray>Synchronising bundled resources...</gray>"
+  bootstrap_skip: "[loader] Skipped default data installation as configured"
+  bootstrap_complete: "[loader] Bundled resource sync complete"
+  default_file_missing: "[loader] Bundled resource missing: %path%"
+  bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path% (%error%)"
+  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
+  versioned_file_updated: "[config] <green>Auto updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% -> %new_version%)</gray></green>"
+  directory_create_failed: "[loader] Failed to create directory: %path%"
+  # placeholders: %count%
+  templates_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
+  # placeholders: %file%, %reason%
+  template_rejected: "[loader] <red>Rejected template <yellow>%file%</yellow>: %reason%</red>"
+  # placeholders: %path%, %value%, %expected%
+  config_issue: "[config] <yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid (expected <white>%expected%</white>), a valid value was applied</yellow>"
+  # placeholders: %template%
+  cache_rejected: "[cache] <yellow>Template <white>%template%</white> exceeds the cache size limit, it will not be cached</yellow>"
+  # placeholders: %count%
+  reload_complete: "[reload] <green>Reload complete, <white>%count%</white> structure templates</green>"
+  # placeholders: %template%, %index%, %type%, %error%
+  spawn_entry_failed: "[spawn] <yellow>Template %template% entry #%index% failed to spawn %type%: %error%</yellow>"
+  # placeholders: %file%, %index%, %reason%
+  spawn_entry_issue: "[spawn] <yellow>Spawn point %file% entry #%index% skipped: %reason%</yellow>"
+  # placeholders: %file%, %error%
+  config_reload_failed: "[reload] <red>Failed to parse %file%, previous configuration kept running: %error%</red>"
+  # placeholders: %template%, %count%
+  template_legacy_skipped: "[loader] <yellow>Template <white>%template%</white> has %count% block states that cannot be parsed by the current version, skipped by legacy_policy</yellow>"
+
+command:
+  usage: "<gray>Usage: /ems <get|place|select|export> ...</gray>"
+  get_usage: "<gray>Usage: /ems get &lt;template&gt; [facing]</gray>"
+  place_usage: "<gray>Usage: /ems place &lt;template&gt; &lt;facing&gt;</gray>"
+  select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
+  adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
+  export_usage: "<gray>Usage: /ems export &lt;name&gt;</gray>"
+  # placeholders: %value%, %allowed%
+  invalid_facing: "<red>Facing <white>%value%</white> is invalid, allowed: %allowed%</red>"
+  # placeholders: %template%, %facing%, %blocks%
+  get_done: "<green>Generated template <white>%template%</white>, facing <white>%facing%</white>, blocks <white>%blocks%</white></green>"
+  # placeholders: %template%, %facing%, %x%, %y%, %z%, %overwritten%
+  place_done: "<green>Generated template <white>%template%</white> (facing <white>%facing%</white>) at <white>%x%, %y%, %z%</white>, overwrote <white>%overwritten%</white> blocks</green>"
+  # placeholders: %label%, %pos%
+  select_pos_set: "<green>Set <white>%label%</white>: <white>%pos%</white></green>"
+  # placeholders: %pos1%, %pos2%, %size_x%, %size_y%, %size_z%
+  select_ready: "<green>Selection ready: <white>%pos1%</white> -> <white>%pos2%</white> (%size_x% x %size_y% x %size_z%)</green>"
+  select_cleared: "<green>Cleared the current selection and highlight.</green>"
+  # placeholders: %before%, %after%
+  select_adjusted: "<green>Selection adjusted: <white>%before%</white> -> <white>%after%</white></green>"
+  # placeholders: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%
+  export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks (%size_x% x %size_y% x %size_z%), file %file%</green>"
+  # placeholders: %count%
+  export_skipped_entities: "<yellow>Skipped %count% entities outside the selection.</yellow>"
+  # placeholders: none
+  highlight_unavailable: "<yellow>PacketEvents is not installed, selection highlighting is disabled, only coordinates are shown.</yellow>"
+
+error:
+  config:
+    # placeholders: %path%, %value%, %expected%
+    invalid: "<red>Config key <white>%path%</white> value <white>%value%</white> is invalid, expected <white>%expected%</white></red>"
+  name:
+    # placeholders: %value%
+    invalid: "<red>Name <white>%value%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64.</red>"
+  template:
+    # placeholders: %template%
+    not_found: "<red>Template <white>%template%</white> does not exist.</red>"
+    # placeholders: %name%
+    already_exists: "<red>Template <white>%name%</white> already exists.</red>"
+    # placeholders: %file%, %reason%
+    rejected: "<red>Template import rejected: <white>%file%</white> (%reason%)</red>"
+    # placeholders: %file%, %error%
+    read_failed: "<red>Failed to read template file: <white>%file%</white> (%error%)</red>"
+    # placeholders: %id%
+    invalid_id: "<red>Template id <white>%id%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64.</red>"
+    # placeholders: %file%
+    invalid_name: "<red>Template file name <white>%file%</white> is invalid and was skipped.</red>"
+    # placeholders: %file%, %detail%
+    scan_failed: "<red>Failed to scan the template directory: <white>%file%</white> (%detail%)</red>"
+    # placeholders: %file%, %detail%
+    parse_failed: "<red>Failed to parse template <white>%file%</white>: %detail%</red>"
+    # placeholders: %file%, %limit%, %actual%
+    file_too_large: "<red>Template <white>%file%</white> is %actual% bytes raw, above the %limit% byte limit.</red>"
+    # placeholders: %file%, %code%
+    not_gzip: "<red>Template <white>%file%</white> is not a gzip compressed file.</red>"
+    # placeholders: %file%, %limit%, %code%
+    output_too_large: "<red>Template <white>%file%</white> decompressed output exceeds the %limit% byte limit.</red>"
+    # placeholders: %file%, %code%
+    depth_exceeded: "<red>Template <white>%file%</white> exceeds the NBT nesting depth limit.</red>"
+    # placeholders: %file%, %code%
+    bad_root_type: "<red>The NBT root node of template <white>%file%</white> is not a compound.</red>"
+    # placeholders: %file%, %detail%
+    size_invalid: "<red>Template <white>%file%</white> has an invalid size: %detail%</red>"
+    # placeholders: %file%
+    blocks_empty: "<red>Template <white>%file%</white> contains no block entries and is treated as corrupt.</red>"
+    # placeholders: %file%, %limit%, %actual%
+    total_blocks_exceeded: "<red>Template <white>%file%</white> has %actual% blocks, above the %limit% limit.</red>"
+    # placeholders: %file%, %limit%, %actual%
+    palette_exceeded: "<red>Template <white>%file%</white> has %actual% palette entries, above the %limit% limit.</red>"
+    # placeholders: %file%, %index%
+    state_index_out_of_range: "<red>Template <white>%file%</white> contains an out of range block state index %index%.</red>"
+    # placeholders: %file%, %pos%, %size%
+    block_pos_out_of_range: "<red>Template <white>%file%</white> block coordinate %pos% is outside the size %size%.</red>"
+    # placeholders: %file%, %pos%
+    block_pos_duplicate: "<red>Template <white>%file%</white> has a duplicate block coordinate %pos%.</red>"
+    # placeholders: %file%, %block%
+    legacy_block_rejected: "<red>Template <white>%file%</white> contains block <white>%block%</white> that cannot be parsed by the current version, import rejected.</red>"
+    # placeholders: %file%, %pos%, %limit%, %actual%
+    block_entity_too_large: "<red>Template <white>%file%</white> block entity payload at %pos% is %actual% bytes, above the %limit% byte limit.</red>"
+  selection:
+    incomplete: "<red>The selection is not ready, set both corners first.</red>"
+    # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
+    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the limit %limit_x% x %limit_y% x %limit_z%.</red>"
+    # placeholders: none
+    world_mismatch: "<red>The two selection points are in different worlds.</red>"
+    # placeholders: none
+    zero_volume: "<red>The selection has zero volume, set the points again.</red>"
+  select:
+    # placeholders: none
+    not_set: "<red>There is no active selection.</red>"
+    # placeholders: %value%
+    invalid_operation: "<red>Operation <white>%value%</white> is invalid, allowed: add, reduce.</red>"
+    # placeholders: %value%, %allowed%
+    invalid_direction: "<red>Direction <white>%value%</white> is invalid, allowed: %allowed%</red>"
+    # placeholders: %value%
+    invalid_amount: "<red>Amount <white>%value%</white> is invalid, it must be a positive integer.</red>"
+    # placeholders: %axis%, %size%
+    shrink_too_far: "<red>Too much shrink: axis <white>%axis%</white> would drop below 1 block (current %size%).</red>"
+  generate:
+    # placeholders: %detail%
+    out_of_bounds: "<red>Generation target is outside the world bounds: %detail%</red>"
+    # placeholders: none
+    ground_unsupported: "<red>Not enough support, this generation was aborted.</red>"
+    # placeholders: %template%
+    queue_timeout: "<red>Template <white>%template%</white> waited too long in the generation queue and was aborted.</red>"
+    # placeholders: %template%
+    cancelled: "<red>Generation of template <white>%template%</white> was cancelled.</red>"
+    # placeholders: %template%
+    rejected_by_limit: "<red>Template <white>%template%</white> exceeds the configured size limit.</red>"
+    # placeholders: %reason%
+    failed: "<red>Generation failed: %reason%</red>"
+    # placeholders: %count%
+    player_trapped: "<yellow>%count% players are trapped inside newly placed blocks and could not be lifted, please move out on your own.</yellow>"
+  export:
+    # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
+    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the export limit %limit_x% x %limit_y% x %limit_z%.</red>"
+    # placeholders: %file%, %error%
+    write_failed: "<red>Failed to write template file: <white>%file%</white> (%error%)</red>"
+    # placeholders: %count%
+    no_blocks: "<red>The selection contains no exportable blocks (%count%).</red>"
+  spawn:
+    # placeholders: %file%, %reason%
+    rejected: "<red>Spawn point configuration rejected: <white>%file%</white> (%reason%)</red>"
+    # placeholders: %template%, %type%, %error%
+    entry_failed: "<yellow>Failed to spawn <white>%type%</white> for template <white>%template%</white>: %error%</yellow>"
+    # placeholders: %total%, %limit%
+    total_exceeded: "<red>Spawn points request %total% entities, above the per generation limit %limit%.</red>"
+    # placeholders: none
+    type_missing: "<red>An entry is missing the type field.</red>"
+    # placeholders: %type%, %allowed%
+    type_prefix: "<red>Entity <white>%type%</white> must carry a namespace prefix: %allowed%</red>"
+    # placeholders: %type%
+    pos_region_exclusive: "<red>Entity <white>%type%</white> must provide exactly one of pos and region.</red>"
+    # placeholders: %type%, %value%, %expected%
+    count_range: "<red>Entity <white>%type%</white> count %value% is invalid, expected %expected%.</red>"
+    # placeholders: %type%, %value%
+    chance_range: "<red>Entity <white>%type%</white> chance %value% is invalid, expected 0.0-1.0.</red>"
+    # placeholders: %type%, %value%, %allowed%
+    facing_invalid: "<red>Entity <white>%type%</white> facing %value% is invalid, allowed: %allowed%</red>"
+    # placeholders: %type%
+    pos_invalid: "<red>Entity <white>%type%</white> has an invalid pos coordinate.</red>"
+    # placeholders: %type%, %size%
+    pos_out_of_bounds: "<red>Entity <white>%type%</white> pos is outside the template size %size%.</red>"
+    # placeholders: %type%, %value%, %expected%
+    radius_range: "<red>Entity <white>%type%</white> radius %value% is invalid, expected %expected%.</red>"
+    # placeholders: %type%, %radius%
+    radius_out_of_bounds: "<red>Entity <white>%type%</white> radius %radius% sphere leaves the template bounds.</red>"
+    # placeholders: %type%
+    region_invalid: "<red>Entity <white>%type%</white> region definition is invalid.</red>"
+    # placeholders: %type%
+    region_order: "<red>Entity <white>%type%</white> region min must be less than or equal to max.</red>"
+    # placeholders: %type%, %size%
+    region_out_of_bounds: "<red>Entity <white>%type%</white> region is outside the template size %size%.</red>"
+
+debug:
+  # placeholders: %template%, %facing%, %x%, %y%, %z%, %blocks%
+  generate_start: "Starting generation of %template% at %x%,%y%,%z% facing %facing%, %blocks% blocks"
+  # placeholders: %template%, %blocks%, %millis%
+  generate_complete: "Generation of %template% finished: %blocks% blocks in %millis% ms"
+  # placeholders: %template%, %reason%
+  generate_aborted: "Generation of %template% aborted: %reason%"
+  # placeholders: %columns%
+  ground_skipped: "Aborted generation, %columns% columns lack support"
+  # placeholders: %count%
+  entity_filtered: "Filtered %count% entities by entity policy"
+  # placeholders: %template%
+  template_lazy_loaded: "Lazy loaded block data of template %template%"
+  # placeholders: %reason%
+  highlight_degraded: "Selection highlight degraded: %reason%"

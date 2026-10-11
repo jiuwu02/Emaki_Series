@@ -1,0 +1,62 @@
+name: EmakiStructure
+main: emaki.jiuwu.craft.structure.EmakiStructurePlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+author: JiuWu
+description: High performance structure generation and multiblock interaction plugin
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    MythicMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    EmakiMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PacketEvents:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    packetevents:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    ItemsAdder:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    Oraxen:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    Nexo:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    CraftEngine:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakistructure.use:
+    description: Allows using structure get preview generation
+    default: true
+  emakistructure.edit:
+    description: Allows selecting, exporting and placing structures
+    default: op
+  emakistructure.reload:
+    description: Allows reloading EmakiStructure configuration
+    default: op
+  emakistructure.admin:
+    description: Allows EmakiStructure administrative commands
+    default: op
+    children:
+      emakistructure.use: true
+      emakistructure.edit: true
+      emakistructure.reload: true

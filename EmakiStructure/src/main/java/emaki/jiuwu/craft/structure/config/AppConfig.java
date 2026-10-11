@@ -1,0 +1,256 @@
+package emaki.jiuwu.craft.structure.config;
+
+import java.time.Duration;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
+
+public record AppConfig(String language,
+                        String version,
+                        GenerateSettings generate,
+                        CacheSettings cache,
+                        SelectionSettings selection,
+                        TemplateSettings template,
+                        SpawnSettings spawn,
+                        List<ConfigIssue> issues) {
+
+    public static final String CURRENT_VERSION = "1.0.0";
+
+    public enum EntityPolicy {
+        ALL, PASSIVE, NONE;
+
+        public static EntityPolicy fromConfig(String raw, EntityPolicy fallback) {
+            if (raw == null) {
+                return fallback;
+            }
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+                case "all" -> ALL;
+                case "passive" -> PASSIVE;
+                case "none" -> NONE;
+                default -> fallback;
+            };
+        }
+    }
+
+    public enum GroundMode {
+        KEEP, FILL, SKIP;
+
+        public static GroundMode fromConfig(String raw, GroundMode fallback) {
+            if (raw == null) {
+                return fallback;
+            }
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+                case "keep" -> KEEP;
+                case "fill" -> FILL;
+                case "skip" -> SKIP;
+                default -> fallback;
+            };
+        }
+    }
+
+    public enum LegacyPolicy {
+        REJECT, SKIP;
+
+        public static LegacyPolicy fromConfig(String raw, LegacyPolicy fallback) {
+            if (raw == null) {
+                return fallback;
+            }
+            return switch (raw.trim().toLowerCase(Locale.ROOT)) {
+                case "reject" -> REJECT;
+                case "skip" -> SKIP;
+                default -> fallback;
+            };
+        }
+    }
+
+    public record GenerateSettings(int sizeLimitX,
+                                   int sizeLimitY,
+                                   int sizeLimitZ,
+                                   int maxBlocksPerTick,
+                                   EntityPolicy entityPolicy,
+                                   GroundMode groundMode,
+                                   boolean adaptiveThrottling,
+                                   Duration queueTimeout) {
+
+        public GenerateSettings withSizeLimit(GenerateSettings fallback) {
+            return new GenerateSettings(fallback.sizeLimitX(), fallback.sizeLimitY(), fallback.sizeLimitZ(),
+                    maxBlocksPerTick, entityPolicy, groundMode, adaptiveThrottling, queueTimeout);
+        }
+
+        public GenerateSettings withMaxBlocksPerTick(GenerateSettings fallback) {
+            return new GenerateSettings(sizeLimitX, sizeLimitY, sizeLimitZ,
+                    fallback.maxBlocksPerTick(), entityPolicy, groundMode, adaptiveThrottling, queueTimeout);
+        }
+
+        public GenerateSettings withEntityPolicy(GenerateSettings fallback) {
+            return new GenerateSettings(sizeLimitX, sizeLimitY, sizeLimitZ,
+                    maxBlocksPerTick, fallback.entityPolicy(), groundMode, adaptiveThrottling, queueTimeout);
+        }
+
+        public GenerateSettings withGroundMode(GenerateSettings fallback) {
+            return new GenerateSettings(sizeLimitX, sizeLimitY, sizeLimitZ,
+                    maxBlocksPerTick, entityPolicy, fallback.groundMode(), adaptiveThrottling, queueTimeout);
+        }
+
+        public GenerateSettings withAdaptiveThrottling(GenerateSettings fallback) {
+            return new GenerateSettings(sizeLimitX, sizeLimitY, sizeLimitZ,
+                    maxBlocksPerTick, entityPolicy, groundMode, fallback.adaptiveThrottling(), queueTimeout);
+        }
+
+        public GenerateSettings withQueueTimeout(GenerateSettings fallback) {
+            return new GenerateSettings(sizeLimitX, sizeLimitY, sizeLimitZ,
+                    maxBlocksPerTick, entityPolicy, groundMode, adaptiveThrottling, fallback.queueTimeout());
+        }
+    }
+
+    public record CacheSettings(int maxEntries, long maxBytes) {
+
+        public CacheSettings withMaxEntries(CacheSettings fallback) {
+            return new CacheSettings(fallback.maxEntries(), maxBytes);
+        }
+
+        public CacheSettings withMaxBytes(CacheSettings fallback) {
+            return new CacheSettings(maxEntries, fallback.maxBytes());
+        }
+    }
+
+    public record SelectionSettings(Duration sessionTimeout) {
+
+        public SelectionSettings withSessionTimeout(SelectionSettings fallback) {
+            return new SelectionSettings(fallback.sessionTimeout());
+        }
+    }
+
+    public record TemplateSettings(long importMaxFileBytes,
+                                   LegacyPolicy legacyPolicy,
+                                   int paletteLimit,
+                                   int blockEntityMaxBytes) {
+
+        public TemplateSettings withImportMaxFileBytes(TemplateSettings fallback) {
+            return new TemplateSettings(fallback.importMaxFileBytes(), legacyPolicy,
+                    paletteLimit, blockEntityMaxBytes);
+        }
+
+        public TemplateSettings withLegacyPolicy(TemplateSettings fallback) {
+            return new TemplateSettings(importMaxFileBytes, fallback.legacyPolicy(),
+                    paletteLimit, blockEntityMaxBytes);
+        }
+
+        public TemplateSettings withPaletteLimit(TemplateSettings fallback) {
+            return new TemplateSettings(importMaxFileBytes, legacyPolicy,
+                    fallback.paletteLimit(), blockEntityMaxBytes);
+        }
+
+        public TemplateSettings withBlockEntityMaxBytes(TemplateSettings fallback) {
+            return new TemplateSettings(importMaxFileBytes, legacyPolicy,
+                    paletteLimit, fallback.blockEntityMaxBytes());
+        }
+    }
+
+    public record SpawnSettings(boolean enabled,
+                                int maxPerGeneration,
+                                int batchPerTick,
+                                boolean respectEntityPolicy) {
+
+        public SpawnSettings withEnabled(SpawnSettings fallback) {
+            return new SpawnSettings(fallback.enabled(), maxPerGeneration, batchPerTick, respectEntityPolicy);
+        }
+
+        public SpawnSettings withMaxPerGeneration(SpawnSettings fallback) {
+            return new SpawnSettings(enabled, fallback.maxPerGeneration(), batchPerTick, respectEntityPolicy);
+        }
+
+        public SpawnSettings withBatchPerTick(SpawnSettings fallback) {
+            return new SpawnSettings(enabled, maxPerGeneration, fallback.batchPerTick(), respectEntityPolicy);
+        }
+
+        public SpawnSettings withRespectEntityPolicy(SpawnSettings fallback) {
+            return new SpawnSettings(enabled, maxPerGeneration, batchPerTick, fallback.respectEntityPolicy());
+        }
+    }
+
+    public static AppConfig defaults() {
+        return new AppConfig("zh_CN", CURRENT_VERSION,
+                new GenerateSettings(128, 128, 128, 3000, EntityPolicy.ALL, GroundMode.SKIP,
+                        true, Duration.ofSeconds(60)),
+                new CacheSettings(128, 268435456L),
+                new SelectionSettings(Duration.ofMinutes(30)),
+                new TemplateSettings(33554432L, LegacyPolicy.REJECT, 4096, 65536),
+                new SpawnSettings(true, 32, 8, false),
+                List.of());
+    }
+
+    public AppConfig withIssues(List<ConfigIssue> recorded) {
+        return new AppConfig(language, version, generate, cache, selection, template, spawn,
+                recorded == null ? List.of() : List.copyOf(recorded));
+    }
+
+    public AppConfig withoutIssues() {
+        return issues.isEmpty() ? this : withIssues(List.of());
+    }
+
+    public AppConfig repair(AppConfig fallback) {
+        if (issues.isEmpty()) {
+            return this;
+        }
+        Set<ConfigIssue.Kind> kinds = Set.copyOf(issues.stream().map(ConfigIssue::kind).toList());
+        GenerateSettings nextGenerate = generate;
+        if (kinds.contains(ConfigIssue.Kind.SIZE_LIMIT)) {
+            nextGenerate = nextGenerate.withSizeLimit(fallback.generate());
+        }
+        if (kinds.contains(ConfigIssue.Kind.MAX_BLOCKS_PER_TICK)) {
+            nextGenerate = nextGenerate.withMaxBlocksPerTick(fallback.generate());
+        }
+        if (kinds.contains(ConfigIssue.Kind.ENTITY_POLICY)) {
+            nextGenerate = nextGenerate.withEntityPolicy(fallback.generate());
+        }
+        if (kinds.contains(ConfigIssue.Kind.GROUND_MODE)) {
+            nextGenerate = nextGenerate.withGroundMode(fallback.generate());
+        }
+        if (kinds.contains(ConfigIssue.Kind.ADAPTIVE_THROTTLING)) {
+            nextGenerate = nextGenerate.withAdaptiveThrottling(fallback.generate());
+        }
+        if (kinds.contains(ConfigIssue.Kind.QUEUE_TIMEOUT)) {
+            nextGenerate = nextGenerate.withQueueTimeout(fallback.generate());
+        }
+        CacheSettings nextCache = cache;
+        if (kinds.contains(ConfigIssue.Kind.CACHE_MAX_ENTRIES)) {
+            nextCache = nextCache.withMaxEntries(fallback.cache());
+        }
+        if (kinds.contains(ConfigIssue.Kind.CACHE_MAX_BYTES)) {
+            nextCache = nextCache.withMaxBytes(fallback.cache());
+        }
+        SelectionSettings nextSelection = selection;
+        if (kinds.contains(ConfigIssue.Kind.SESSION_TIMEOUT)) {
+            nextSelection = nextSelection.withSessionTimeout(fallback.selection());
+        }
+        TemplateSettings nextTemplate = template;
+        if (kinds.contains(ConfigIssue.Kind.IMPORT_MAX_FILE_BYTES)) {
+            nextTemplate = nextTemplate.withImportMaxFileBytes(fallback.template());
+        }
+        if (kinds.contains(ConfigIssue.Kind.LEGACY_POLICY)) {
+            nextTemplate = nextTemplate.withLegacyPolicy(fallback.template());
+        }
+        if (kinds.contains(ConfigIssue.Kind.PALETTE_LIMIT)) {
+            nextTemplate = nextTemplate.withPaletteLimit(fallback.template());
+        }
+        if (kinds.contains(ConfigIssue.Kind.BLOCK_ENTITY_MAX_BYTES)) {
+            nextTemplate = nextTemplate.withBlockEntityMaxBytes(fallback.template());
+        }
+        SpawnSettings nextSpawn = spawn;
+        if (kinds.contains(ConfigIssue.Kind.SPAWN_ENABLED)) {
+            nextSpawn = nextSpawn.withEnabled(fallback.spawn());
+        }
+        if (kinds.contains(ConfigIssue.Kind.SPAWN_MAX_PER_GENERATION)) {
+            nextSpawn = nextSpawn.withMaxPerGeneration(fallback.spawn());
+        }
+        if (kinds.contains(ConfigIssue.Kind.SPAWN_BATCH_PER_TICK)) {
+            nextSpawn = nextSpawn.withBatchPerTick(fallback.spawn());
+        }
+        if (kinds.contains(ConfigIssue.Kind.SPAWN_RESPECT_ENTITY_POLICY)) {
+            nextSpawn = nextSpawn.withRespectEntityPolicy(fallback.spawn());
+        }
+        return new AppConfig(language, version, nextGenerate, nextCache, nextSelection,
+                nextTemplate, nextSpawn, issues);
+    }
+}

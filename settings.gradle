@@ -32,21 +32,21 @@ dependencyResolutionManagement {
 
 rootProject.name = 'emaki-parent'
 
-// 默认参与构建的 23 个模块（原 <modules> 列表）。
+// 默认参与构建的 25 个模块（原 <modules> 列表 + EmakiStructure 一组）。
 def defaultModules = [
         'EmakiCoreLibApi', 'EmakiCoreLib',
         'EmakiItemApi',
         'EmakiStrengthenApi', 'EmakiSkillsApi', 'EmakiAttributeApi',
         'EmakiForgeApi', 'EmakiCookingApi', 'EmakiGemApi', 'EmakiLevelApi',
         'EmakiCodexApi', 'EmakiStorageApi', 'EmakiStationApi', 'EmakiAccessoryApi',
-        'EmakiMobsApi',
+        'EmakiMobsApi', 'EmakiStructureApi',
         'EmakiForge', 'EmakiStrengthen', 'EmakiCooking', 'EmakiAttribute',
         'EmakiLevel', 'EmakiCodex', 'EmakiStation', 'EmakiMobs',
 ]
 defaultModules.each { include it }
 
 // private-modules profile 等价实现：仓库根存在 .key 文件时追加 5 个私有模块。
-// .key 被 .gitignore 忽略，新克隆默认不存在，此时与 Maven 一致只构建 23 个模块。
+// .key 被 .gitignore 忽略，新克隆默认不存在，此时与 Maven 一致只构建 25 个模块。
 if (file('.key').exists()) {
-    ['EmakiSkills', 'EmakiGem', 'EmakiItem', 'EmakiStorage', 'EmakiAccessory'].each { include it }
+    ['EmakiSkills', 'EmakiGem', 'EmakiItem', 'EmakiStorage', 'EmakiStructure', 'EmakiAccessory'].each { include it }
 }

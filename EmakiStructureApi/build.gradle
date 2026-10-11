@@ -1,0 +1,8 @@
+// EmakiStructureApi（新增模块）。
+version = '1.0.0'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}
