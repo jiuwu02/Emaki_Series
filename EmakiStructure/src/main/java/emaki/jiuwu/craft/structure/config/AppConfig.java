@@ -12,6 +12,8 @@ public record AppConfig(String language,
                         SelectionSettings selection,
                         TemplateSettings template,
                         SpawnSettings spawn,
+                        DetectionSettings detection,
+                        CooldownSettings cooldown,
                         List<ConfigIssue> issues) {
 
     public static final String CURRENT_VERSION = "1.0.0";
@@ -169,6 +171,61 @@ public record AppConfig(String language,
         }
     }
 
+    public record DetectionSettings(Duration sweepInterval,
+                                    int maxColdChecks,
+                                    int instanceLimit,
+                                    Duration instanceTtl,
+                                    Duration debounce,
+                                    boolean retriggerOnReform,
+                                    boolean sampleRecheck) {
+
+        public DetectionSettings withSweepInterval(DetectionSettings fallback) {
+            return new DetectionSettings(fallback.sweepInterval(), maxColdChecks, instanceLimit,
+                    instanceTtl, debounce, retriggerOnReform, sampleRecheck);
+        }
+
+        public DetectionSettings withMaxColdChecks(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, fallback.maxColdChecks(), instanceLimit,
+                    instanceTtl, debounce, retriggerOnReform, sampleRecheck);
+        }
+
+        public DetectionSettings withInstanceLimit(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, maxColdChecks, fallback.instanceLimit(),
+                    instanceTtl, debounce, retriggerOnReform, sampleRecheck);
+        }
+
+        public DetectionSettings withInstanceTtl(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, maxColdChecks, instanceLimit,
+                    fallback.instanceTtl(), debounce, retriggerOnReform, sampleRecheck);
+        }
+
+        public DetectionSettings withDebounce(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, maxColdChecks, instanceLimit,
+                    instanceTtl, fallback.debounce(), retriggerOnReform, sampleRecheck);
+        }
+
+        public DetectionSettings withRetriggerOnReform(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, maxColdChecks, instanceLimit,
+                    instanceTtl, debounce, fallback.retriggerOnReform(), sampleRecheck);
+        }
+
+        public DetectionSettings withSampleRecheck(DetectionSettings fallback) {
+            return new DetectionSettings(sweepInterval, maxColdChecks, instanceLimit,
+                    instanceTtl, debounce, retriggerOnReform, fallback.sampleRecheck());
+        }
+    }
+
+    public record CooldownSettings(Duration global, Duration perPlayer) {
+
+        public CooldownSettings withGlobal(CooldownSettings fallback) {
+            return new CooldownSettings(fallback.global(), perPlayer);
+        }
+
+        public CooldownSettings withPerPlayer(CooldownSettings fallback) {
+            return new CooldownSettings(global, fallback.perPlayer());
+        }
+    }
+
     public static AppConfig defaults() {
         return new AppConfig("zh_CN", CURRENT_VERSION,
                 new GenerateSettings(128, 128, 128, 3000, EntityPolicy.ALL, GroundMode.SKIP,
@@ -177,11 +234,15 @@ public record AppConfig(String language,
                 new SelectionSettings(Duration.ofMinutes(30)),
                 new TemplateSettings(33554432L, LegacyPolicy.REJECT, 4096, 65536),
                 new SpawnSettings(true, 32, 8, false),
+                new DetectionSettings(Duration.ZERO, 256, 8, Duration.ofMinutes(10),
+                        Duration.ofMillis(500), false, false),
+                new CooldownSettings(Duration.ZERO, Duration.ZERO),
                 List.of());
     }
 
     public AppConfig withIssues(List<ConfigIssue> recorded) {
         return new AppConfig(language, version, generate, cache, selection, template, spawn,
+                detection, cooldown,
                 recorded == null ? List.of() : List.copyOf(recorded));
     }
 
@@ -250,7 +311,36 @@ public record AppConfig(String language,
         if (kinds.contains(ConfigIssue.Kind.SPAWN_RESPECT_ENTITY_POLICY)) {
             nextSpawn = nextSpawn.withRespectEntityPolicy(fallback.spawn());
         }
+        DetectionSettings nextDetection = detection;
+        if (kinds.contains(ConfigIssue.Kind.SWEEP_INTERVAL)) {
+            nextDetection = nextDetection.withSweepInterval(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.MAX_COLD_CHECKS)) {
+            nextDetection = nextDetection.withMaxColdChecks(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.INSTANCE_LIMIT)) {
+            nextDetection = nextDetection.withInstanceLimit(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.INSTANCE_TTL)) {
+            nextDetection = nextDetection.withInstanceTtl(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.DEBOUNCE)) {
+            nextDetection = nextDetection.withDebounce(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.RETRIGGER_ON_REFORM)) {
+            nextDetection = nextDetection.withRetriggerOnReform(fallback.detection());
+        }
+        if (kinds.contains(ConfigIssue.Kind.SAMPLE_RECHECK)) {
+            nextDetection = nextDetection.withSampleRecheck(fallback.detection());
+        }
+        CooldownSettings nextCooldown = cooldown;
+        if (kinds.contains(ConfigIssue.Kind.COOLDOWN_GLOBAL)) {
+            nextCooldown = nextCooldown.withGlobal(fallback.cooldown());
+        }
+        if (kinds.contains(ConfigIssue.Kind.COOLDOWN_PER_PLAYER)) {
+            nextCooldown = nextCooldown.withPerPlayer(fallback.cooldown());
+        }
         return new AppConfig(language, version, nextGenerate, nextCache, nextSelection,
-                nextTemplate, nextSpawn, issues);
+                nextTemplate, nextSpawn, nextDetection, nextCooldown, issues);
     }
 }

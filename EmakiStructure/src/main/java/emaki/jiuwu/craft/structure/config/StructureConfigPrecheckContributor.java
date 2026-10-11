@@ -19,7 +19,8 @@ public final class StructureConfigPrecheckContributor extends AbstractModuleConf
     public static final String MODULE = "structure";
 
     private static final Set<String> KNOWN_TOP_LEVEL = Set.of(
-            "version", "language", "generate", "cache", "selection", "template", "spawn");
+            "version", "language", "generate", "cache", "selection", "template", "spawn",
+            "detection", "cooldown");
 
     private final EmakiStructurePlugin plugin;
 

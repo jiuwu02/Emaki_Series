@@ -41,6 +41,10 @@ console:
   config_reload_failed: "[reload] <red>配置文件 %file% 解析失败，保留旧配置继续运行: %error%</red>"
   # 占位符：%template%、%count%
   template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析，已按 legacy_policy 跳过</yellow>"
+  # 占位符：%source%
+  furniture_source_absent: "[loader] <yellow>家具源 <white>%source%</white> 未安装：含该源家具成员的多方块定义将永不匹配</yellow>"
+  # 占位符：%namespace%
+  custom_block_source_absent: "[loader] <yellow>自定义方块命名空间 <white>%namespace%</white> 不可用：含该命名空间方块成员的多方块定义将永不匹配</yellow>"
 
 command:
   usage: "<gray>用法：/ems <get|place|select|export> ...</gray>"
@@ -49,6 +53,17 @@ command:
   select_usage: "<gray>用法：/ems select <pos1|pos2|adjust|clear> ...</gray>"
   adjust_usage: "<gray>用法：/ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
   export_usage: "<gray>用法：/ems export <名称></gray>"
+  multiblock_usage: "<gray>用法：/ems multiblock <record|list|validate> ...</gray>"
+  multiblock_record_usage: "<gray>用法：/ems multiblock record <id> [force]</gray>"
+  multiblock_validate_usage: "<gray>用法：/ems multiblock validate <id></gray>"
+  # 占位符：%count%、%candidates%、%formed%
+  multiblock_list_header: "<gray>已加载 <white>%count%</white> 个多方块定义，进行中实例 %candidates%，活动实例 %formed%。</gray>"
+  # 占位符：%id%、%members%、%rotation%
+  multiblock_list_entry: "<white>%id%</white> <gray>成员 %members%，旋转 %rotation%</gray>"
+  # 占位符：%id%、%members%、%unresolvable%、%furniture_missing%、%candidates%、%formed%
+  multiblock_validate_result: "<gray>定义 <white>%id%</white>：成员 %members%，无法解析的自定义方块 %unresolvable%，缺少家具源 %furniture_missing%，进行中实例 %candidates%，活动实例 %formed%。</gray>"
+  # 占位符：%id%、%members%、%file%
+  multiblock_record_saved: "<green>已记录多方块定义 <white>%id%</white>：%members% 个成员，文件 %file%</green>"
   # 占位符：%value%、%allowed%
   invalid_facing: "<red>朝向 <white>%value%</white> 非法，可用：%allowed%</red>"
   # 占位符：%template%、%facing%、%blocks%
@@ -195,6 +210,55 @@ error:
     region_order: "<red>生物 <white>%type%</white> 的 region min 必须小于等于 max。</red>"
     # 占位符：%type%、%size%
     region_out_of_bounds: "<red>生物 <white>%type%</white> 的 region 超出模板尺寸 %size%。</red>"
+  multiblock:
+    # 占位符：%file%、%detail%
+    parse_failed: "<red>多方块定义 <white>%file%</white> 解析失败：%detail%</red>"
+    # 占位符：%file%、%value%、%expected%
+    version_unsupported: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 不受支持，期望 %expected%。</red>"
+    # 占位符：%file%、%value%、%expected%
+    id_mismatch: "<red>多方块定义 <white>%file%</white> 的 id=<white>%value%</white> 与文件名不一致，期望 %expected%。</red>"
+    # 占位符：%file%
+    shape_missing: "<red>多方块定义 <white>%file%</white> 缺少 shape 段。</red>"
+    # 占位符：%file%、%value%
+    core_block_invalid: "<red>多方块定义 <white>%file%</white> 的 core_block 取值 %value% 非法。</red>"
+    # 占位符：%file%
+    trigger_missing: "<red>多方块定义 <white>%file%</white> 缺少 trigger 段。</red>"
+    # 占位符：%file%、%value%、%allowed%
+    targets_invalid: "<red>多方块定义 <white>%file%</white> 的 targets=<white>%value%</white> 非法，可用：%allowed%</red>"
+    # 占位符：%file%
+    positions_missing: "<red>多方块定义 <white>%file%</white> 的 targets=specific 但缺少 positions。</red>"
+    # 占位符：%file%、%value%
+    positions_invalid: "<red>多方块定义 <white>%file%</white> 的 positions 含非法坐标 %value%。</red>"
+    # 占位符：%file%
+    blocks_empty: "<red>多方块定义 <white>%file%</white> 不含有效方块成员。</red>"
+    # 占位符：%file%、%value%、%index%
+    pos_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 pos=%value% 非法。</red>"
+    # 占位符：%file%、%value%、%index%
+    pos_duplicate: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的坐标 %value% 重复。</red>"
+    # 占位符：%file%、%value%、%index%
+    member_exclusive: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 %value% 同时声明了 block 与 furniture，二者只能择一。</red>"
+    # 占位符：%file%、%value%、%allowed%、%index%
+    furniture_prefix: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的家具 <white>%value%</white> 前缀不受支持，可用：%allowed%</red>"
+    # 占位符：%file%、%value%、%index%
+    block_missing: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 block=%value% 缺失或为空。</red>"
+    # 占位符：%file%、%value%、%index%
+    custom_block_state: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的自定义方块 <white>%value%</white> 不允许携带方块状态段。</red>"
+    # 占位符：%file%、%value%、%detail%、%index%
+    block_state_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的方块状态 <white>%value%</white> 解析失败：%detail%</red>"
+    # 占位符：%file%、%detail%
+    scan_failed: "<red>扫描多方块定义目录失败：<white>%file%</white>（%detail%）</red>"
+    # 占位符：%file%、%id%
+    duplicate_id: "<red>多方块定义 id <white>%id%</white> 重复（<white>%file%</white>），后者未加载。</red>"
+    # 占位符：%id%
+    not_found: "<red>多方块定义 <white>%id%</white> 不存在。</red>"
+    # 占位符：%id%、%file%
+    already_exists: "<red>多方块定义 <white>%id%</white> 已存在（%file%），如需覆盖请使用 record force。</red>"
+    # 占位符：%id%
+    verification_failed: "<red>多方块结构 <white>%id%</white> 形状校验未通过，已降级为未完成状态，请检查结构后重试。</red>"
+    # 占位符：%id%、%detail%
+    record_failed: "<red>记录多方块定义 <white>%id%</white> 失败：%detail%</red>"
+    # 占位符：%id%、%detail%
+    write_failed: "<red>写入多方块定义 <white>%id%</white> 失败：%detail%</red>"
 
 debug:
   # 占位符：%template%、%facing%、%x%、%y%、%z%、%blocks%
@@ -211,3 +275,5 @@ debug:
   template_lazy_loaded: "模板 %template% 方块数据惰性加载"
   # 占位符：%reason%
   highlight_degraded: "选区高亮降级：%reason%"
+  # 占位符：%used%、%limit%
+  cold_hit_checked: "冷命中反推消耗候选预算 %used%/%limit%"

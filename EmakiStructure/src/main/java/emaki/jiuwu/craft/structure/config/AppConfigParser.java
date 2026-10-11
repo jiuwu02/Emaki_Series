@@ -27,7 +27,91 @@ public final class AppConfigParser {
                 parseSelection(section.getSection("selection"), defaults.selection(), issues),
                 parseTemplate(section.getSection("template"), defaults.template(), issues),
                 parseSpawn(section.getSection("spawn"), defaults.spawn(), issues),
+                parseDetection(section.getSection("detection"), defaults.detection(), issues),
+                parseCooldown(section.getSection("cooldown"), defaults.cooldown(), issues),
                 List.copyOf(issues));
+    }
+
+    private static AppConfig.DetectionSettings parseDetection(YamlSection section,
+            AppConfig.DetectionSettings defaults,
+            List<ConfigIssue> issues) {
+        if (section == null) {
+            return defaults;
+        }
+        Duration sweep = defaults.sweepInterval();
+        Object rawSweep = section.get("sweep_interval");
+        if (rawSweep != null) {
+            String text = asText(rawSweep);
+            if (Durations.isValid(text)) {
+                Duration parsed = Durations.parse(text, sweep);
+                if (!parsed.isZero() && parsed.compareTo(Duration.ofSeconds(30)) < 0) {
+                    issues.add(invalid(ConfigIssue.Kind.SWEEP_INTERVAL,
+                            "detection.sweep_interval", rawSweep, "0 or >= 30s"));
+                } else {
+                    sweep = parsed;
+                }
+            } else {
+                issues.add(invalid(ConfigIssue.Kind.SWEEP_INTERVAL,
+                        "detection.sweep_interval", rawSweep, "0 or >= 30s"));
+            }
+        }
+        int maxColdChecks = readBoundedInt(section, "max_cold_checks",
+                ConfigIssue.Kind.MAX_COLD_CHECKS, defaults.maxColdChecks(), 8, 4096, issues);
+        int instanceLimit = readBoundedInt(section, "instance_limit",
+                ConfigIssue.Kind.INSTANCE_LIMIT, defaults.instanceLimit(),
+                1, Integer.MAX_VALUE, issues);
+        Duration instanceTtl = readDuration(section, "instance_ttl",
+                ConfigIssue.Kind.INSTANCE_TTL, defaults.instanceTtl(),
+                Duration.ofMinutes(1), issues);
+        Duration debounce = readDuration(section, "debounce",
+                ConfigIssue.Kind.DEBOUNCE, defaults.debounce(),
+                Duration.ZERO, issues);
+        boolean retrigger = readBoolean(section, "retrigger_on_reform",
+                ConfigIssue.Kind.RETRIGGER_ON_REFORM, defaults.retriggerOnReform(), issues);
+        boolean sample = readBoolean(section, "sample_recheck",
+                ConfigIssue.Kind.SAMPLE_RECHECK, defaults.sampleRecheck(), issues);
+        return new AppConfig.DetectionSettings(sweep, maxColdChecks, instanceLimit,
+                instanceTtl, debounce, retrigger, sample);
+    }
+
+    private static AppConfig.CooldownSettings parseCooldown(YamlSection section,
+            AppConfig.CooldownSettings defaults,
+            List<ConfigIssue> issues) {
+        if (section == null) {
+            return defaults;
+        }
+        Duration global = readDuration(section, "global",
+                ConfigIssue.Kind.COOLDOWN_GLOBAL, defaults.global(),
+                Duration.ZERO, issues);
+        Duration perPlayer = readDuration(section, "per_player",
+                ConfigIssue.Kind.COOLDOWN_PER_PLAYER, defaults.perPlayer(),
+                Duration.ZERO, issues);
+        return new AppConfig.CooldownSettings(global, perPlayer);
+    }
+
+    private static Duration readDuration(YamlSection section, String key, ConfigIssue.Kind kind,
+            Duration fallback, Duration minimum, List<ConfigIssue> issues) {
+        Object raw = section.get(key);
+        if (raw == null) {
+            return fallback;
+        }
+        String text = asText(raw);
+        if (!Durations.isValid(text)) {
+            issues.add(invalid(kind, key, raw, ">= " + minimum));
+            return fallback;
+        }
+        Duration parsed = Durations.parse(text, fallback);
+        if (parsed.compareTo(minimum) < 0) {
+            issues.add(invalid(kind, key, raw, ">= " + minimum));
+            return fallback;
+        }
+        return parsed;
+    }
+
+    private static String asText(Object raw) {
+        return raw instanceof Number number
+                ? String.valueOf(number.longValue())
+                : String.valueOf(raw);
     }
 
     private static AppConfig.GenerateSettings parseGenerate(YamlSection section,

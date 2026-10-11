@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.generate.StructureFacing;
 import emaki.jiuwu.craft.structure.selection.AdjustDirection;
 import emaki.jiuwu.craft.structure.selection.SelectionBox;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.selection.SelectionSession;
 import emaki.jiuwu.craft.structure.template.StructureExporter;
@@ -19,6 +20,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -38,10 +40,14 @@ public final class StructureCommandRouter {
 
     public static final String PERMISSION_USE = "emakistructure.use";
     public static final String PERMISSION_EDIT = "emakistructure.edit";
+    public static final String PERMISSION_RELOAD = "emakistructure.reload";
+    public static final String PERMISSION_ADMIN = "emakistructure.admin";
 
-    private static final List<String> TOP_LEVEL = List.of("get", "place", "select", "export");
+    private static final List<String> TOP_LEVEL =
+            List.of("get", "place", "select", "export", "reload", "multiblock");
     private static final List<String> SELECT_LEVEL = List.of("pos1", "pos2", "adjust", "clear");
     private static final List<String> ADJUST_OPERATIONS = List.of("add", "reduce");
+    private static final List<String> MULTIBLOCK_LEVEL = List.of("record", "list", "validate");
 
     private final EmakiStructurePlugin plugin;
     private final SelectionManager selectionManager;
@@ -72,6 +78,8 @@ public final class StructureCommandRouter {
             case "place" -> handlePlace(sender, args);
             case "select" -> handleSelect(sender, args);
             case "export" -> handleExport(sender, args);
+            case "reload" -> handleReload(sender);
+            case "multiblock" -> handleMultiblock(sender, args);
             default -> plugin.messageService().send(sender, "general.unknown_command");
         }
     }
@@ -90,9 +98,37 @@ public final class StructureCommandRouter {
         return switch (args[0].toLowerCase(Locale.ROOT)) {
             case "get", "place" -> suggestTemplateCommand(sender, args);
             case "select" -> suggestSelect(args);
-            case "export" -> args.length == 2 ? List.of() : List.of();
+            case "multiblock" -> suggestMultiblock(sender, args);
+            case "export", "reload" -> List.of();
             default -> List.of();
         };
+    }
+
+    private List<String> suggestMultiblock(CommandSender sender, String[] args) {
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return MULTIBLOCK_LEVEL.stream()
+                    .filter(value -> value.startsWith(prefix) && hasMultiblockPermission(sender, value))
+                    .toList();
+        }
+        if (args.length == 3 && "validate".equalsIgnoreCase(args[1])
+                && sender.hasPermission(PERMISSION_ADMIN)) {
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return plugin.multiblockService().repository().ids().stream()
+                    .filter(id -> id.startsWith(prefix))
+                    .toList();
+        }
+        if (args.length == 3 && "record".equalsIgnoreCase(args[1])
+                && sender.hasPermission(PERMISSION_EDIT)) {
+            return List.of("force");
+        }
+        return List.of();
+    }
+
+    private boolean hasMultiblockPermission(CommandSender sender, String subcommand) {
+        return "record".equals(subcommand)
+                ? sender.hasPermission(PERMISSION_EDIT)
+                : sender.hasPermission(PERMISSION_ADMIN);
     }
 
     private List<String> suggestTemplateCommand(CommandSender sender, String[] args) {
@@ -480,6 +516,267 @@ public final class StructureCommandRouter {
         return regions;
     }
 
+    private void handleReload(CommandSender sender) {
+        if (!requirePermission(sender, PERMISSION_RELOAD)) {
+            return;
+        }
+        int count = plugin.reloadContent();
+        plugin.messageService().send(sender, "console.reload_complete", Map.of("count", count));
+    }
+
+    private void handleMultiblock(CommandSender sender, String[] args) {
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "command.multiblock_usage");
+            return;
+        }
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "list" -> handleMultiblockList(sender);
+            case "validate" -> handleMultiblockValidate(sender, args);
+            case "record" -> handleMultiblockRecord(sender, args);
+            default -> plugin.messageService().send(sender, "command.multiblock_usage");
+        }
+    }
+
+    private void handleMultiblockList(CommandSender sender) {
+        if (!requirePermission(sender, PERMISSION_ADMIN)) {
+            return;
+        }
+        var service = plugin.multiblockService();
+        List<String> ids = service.repository().ids();
+        plugin.messageService().send(sender, "command.multiblock_list_header",
+                Map.of("count", ids.size(),
+                        "candidates", service.registry().candidateInstanceCount(),
+                        "formed", service.registry().formedInstanceCount()));
+        for (String id : ids) {
+            var definition = service.repository().byId(id).orElse(null);
+            if (definition == null) {
+                continue;
+            }
+            plugin.messageService().send(sender, "command.multiblock_list_entry", Map.of(
+                    "id", definition.id(),
+                    "members", definition.members().size(),
+                    "rotation", String.valueOf(definition.allowRotation())));
+        }
+    }
+
+    private void handleMultiblockValidate(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_ADMIN)) {
+            return;
+        }
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "command.multiblock_validate_usage");
+            return;
+        }
+        String id = args[2].toLowerCase(Locale.ROOT);
+        if (!NameRules.isValid(id)) {
+            plugin.messageService().send(sender, "error.name.invalid", Map.of("value", args[2]));
+            return;
+        }
+        var definition = plugin.multiblockService().repository().byId(id).orElse(null);
+        if (definition == null) {
+            plugin.messageService().send(sender, "error.multiblock.not_found",
+                    Map.of("id", id));
+            return;
+        }
+        var service = plugin.multiblockService();
+        int unresolvableBlocks = 0;
+        int furnitureWithoutSource = 0;
+        for (var member : definition.members()) {
+            if (member.requiresCustomBlock()
+                    && !plugin.multiblockService().engine().customBlocks()
+                            .bind(member.namespaceId()).resolvable()) {
+                unresolvableBlocks++;
+            }
+            if (member.requiresFurniture()
+                    && !plugin.multiblockService().engine().furniture().anySourcePresent()) {
+                furnitureWithoutSource++;
+            }
+        }
+        plugin.messageService().send(sender, "command.multiblock_validate_result", Map.of(
+                "id", definition.id(),
+                "members", definition.members().size(),
+                "unresolvable", unresolvableBlocks,
+                "furniture_missing", furnitureWithoutSource,
+                "candidates", service.registry().candidateInstanceCount(),
+                "formed", countFormedFor(definition.id())));
+    }
+
+    private int countFormedFor(String definitionId) {
+        int count = 0;
+        for (var instance : plugin.multiblockService().registry().allFormed()) {
+            if (instance.pose().definitionId().equals(definitionId)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    private void handleMultiblockRecord(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_EDIT)) {
+            return;
+        }
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "command.multiblock_record_usage");
+            return;
+        }
+        String rawId = args[2];
+        String id = rawId.toLowerCase(Locale.ROOT);
+        if (!NameRules.isValid(id)) {
+            plugin.messageService().send(sender, "error.name.invalid", Map.of("value", rawId));
+            return;
+        }
+        boolean force = args.length >= 4 && "force".equalsIgnoreCase(args[3]);
+        var service = plugin.multiblockService();
+        Path definitionFile = plugin.dataPath("multiblocks", id + ".yml");
+        if (!force && (service.repository().byId(id).isPresent()
+                || Files.isRegularFile(definitionFile))) {
+            plugin.messageService().send(sender, "error.multiblock.already_exists",
+                    Map.of("id", id, "file", definitionFile.getFileName().toString()));
+            return;
+        }
+        SelectionSession session = selectionManager.boundSession(player);
+        if (session == null || session.box().isEmpty()) {
+            plugin.messageService().send(sender, "error.select.not_set");
+            return;
+        }
+        SelectionBox box = session.box().get();
+        AppConfig.GenerateSettings settings = config.get().generate();
+        if (!box.withinLimits(settings.sizeLimitX(), settings.sizeLimitY(), settings.sizeLimitZ())) {
+            plugin.messageService().send(sender, "error.export.too_large", Map.of(
+                    "size_x", box.sizeX(), "size_y", box.sizeY(), "size_z", box.sizeZ(),
+                    "limit_x", settings.sizeLimitX(), "limit_y", settings.sizeLimitY(),
+                    "limit_z", settings.sizeLimitZ()));
+            return;
+        }
+        World world = player.getWorld();
+        String definitionId = id;
+        Map<Long, SelectionBox> regions = splitRegions(box);
+        List<int[]> positions = Collections.synchronizedList(new ArrayList<>());
+        List<String> specs = Collections.synchronizedList(new ArrayList<>());
+        List<String> failures = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger remaining = new AtomicInteger(regions.size());
+        for (SelectionBox region : regions.values()) {
+            Location sliceOrigin = new Location(world, region.minX(), region.minY(), region.minZ());
+            boolean dispatched;
+            try {
+                TaskToken token = plugin.executionDispatcher()
+                        .runAtLocation(plugin, sliceOrigin, () -> {
+                            try {
+                                if (!world.isChunkLoaded(region.minX() >> 4, region.minZ() >> 4)) {
+                                    failures.add("chunk " + (region.minX() >> 4) + ","
+                                            + (region.minZ() >> 4));
+                                } else {
+                                    captureMembers(world, region, box, positions, specs);
+                                }
+                            } catch (RuntimeException exception) {
+                                failures.add(String.valueOf(exception.getMessage()));
+                            } finally {
+                                if (remaining.decrementAndGet() == 0) {
+                                    finishRecord(sender, definitionId, world, box,
+                                            positions, specs, failures);
+                                }
+                            }
+                        });
+                dispatched = token != null && token != TaskToken.UNAVAILABLE;
+            } catch (RuntimeException exception) {
+                dispatched = false;
+                failures.add(String.valueOf(exception.getMessage()));
+            }
+            if (!dispatched && remaining.decrementAndGet() == 0) {
+                finishRecord(sender, definitionId, world, box, positions, specs, failures);
+            }
+        }
+    }
+
+    private void captureMembers(World world, SelectionBox region, SelectionBox full,
+            List<int[]> positions, List<String> specs) {
+        var adapter = plugin.multiblockService().engine().customBlocks();
+        for (int y = region.minY(); y <= region.maxY(); y++) {
+            for (int z = region.minZ(); z <= region.maxZ(); z++) {
+                for (int x = region.minX(); x <= region.maxX(); x++) {
+                    var block = world.getBlockAt(x, y, z);
+                    String identified = adapter == null ? "" : adapter.identify(block);
+                    positions.add(new int[] {
+                            x - full.minX(), y - full.minY(), z - full.minZ() });
+                    specs.add(identified == null || identified.isBlank()
+                            ? block.getBlockData().getAsString()
+                            : identified);
+                }
+            }
+        }
+    }
+
+    private void finishRecord(CommandSender sender, String id, World world, SelectionBox box,
+            List<int[]> positions, List<String> specs, List<String> failures) {
+        plugin.executionDispatcher().runAsync(plugin, () -> {
+            if (!failures.isEmpty()) {
+                runGlobalMessage(sender, "error.multiblock.record_failed", Map.of(
+                        "id", id, "detail", failures.get(0)));
+                return;
+            }
+            if (positions.isEmpty()) {
+                runGlobalMessage(sender, "error.export.no_blocks", Map.of("count", 0));
+                return;
+            }
+            String content = renderMultiblockYaml(id, positions, specs);
+            Path target = plugin.dataPath("multiblocks", id + ".yml");
+            try {
+                Path parent = target.getParent();
+                Files.createDirectories(parent);
+                Path temporary = parent.resolve(id + ".yml.tmp");
+                Files.writeString(temporary, content, StandardCharsets.UTF_8);
+                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING,
+                        StandardCopyOption.ATOMIC_MOVE);
+            } catch (IOException exception) {
+                runGlobalMessage(sender, "error.multiblock.write_failed", Map.of(
+                        "id", id, "detail", String.valueOf(exception.getMessage())));
+                return;
+            }
+            plugin.executionDispatcher().runGlobal(plugin, () -> {
+                plugin.multiblockService().repository().reload();
+                reportMultiblockProblems(sender, plugin.multiblockService().repository());
+                plugin.messageService().send(sender, "command.multiblock_record_saved", Map.of(
+                        "id", id,
+                        "members", positions.size(),
+                        "file", target.getFileName().toString()));
+            });
+        });
+    }
+
+    public static String renderMultiblockYaml(String id, List<int[]> positions, List<String> specs) {
+        StringBuilder builder = new StringBuilder();
+        builder.append("# EmakiStructure 多方块结构定义。\n");
+        builder.append("# 由 /ems multiblock record 生成，可手工补充 trigger 与 cooldown。\n");
+        builder.append("version: 1\n");
+        builder.append("id: ").append(id).append('\n');
+        builder.append("shape:\n");
+        builder.append("  allow_rotation: false\n");
+        builder.append("  blocks:\n");
+        for (int index = 0; index < positions.size(); index++) {
+            int[] pos = positions.get(index);
+            builder.append("    - pos: [").append(pos[0]).append(", ").append(pos[1])
+                    .append(", ").append(pos[2]).append("]\n");
+            builder.append("      block: \"").append(escapeYaml(specs.get(index))).append("\"\n");
+        }
+        builder.append("trigger:\n");
+        builder.append("  targets: any\n");
+        return builder.toString();
+    }
+
+    private static String escapeYaml(String value) {
+        return value.replace("\\", "\\\\").replace("\"", "\\\"");
+    }
+
+    private void reportMultiblockProblems(CommandSender sender, MultiblockRepository repository) {
+        for (var problem : repository.drainProblems()) {
+            plugin.messageService().send(sender, problem.reasonKey(), problem.placeholders());
+        }
+    }
+
     private boolean requireTemplateExists(CommandSender sender, String templateName, String raw) {
         if (!NameRules.isValid(templateName)) {
             plugin.messageService().send(sender, "error.name.invalid", Map.of("value", raw));
@@ -492,7 +789,6 @@ public final class StructureCommandRouter {
         }
         return true;
     }
-
     private void warnLegacySkip(StructureTemplate template) {
         if (template.skippedPaletteEntries() > 0 && legacySkipWarnings.add(template.id())) {
             plugin.messageService().warning("console.template_legacy_skipped", Map.of(
@@ -543,6 +839,9 @@ public final class StructureCommandRouter {
     private boolean hasPermission(CommandSender sender, String subcommand) {
         return switch (subcommand) {
             case "get" -> sender.hasPermission(PERMISSION_USE);
+            case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
+            case "multiblock" -> sender.hasPermission(PERMISSION_EDIT)
+                    || sender.hasPermission(PERMISSION_ADMIN);
             default -> sender.hasPermission(PERMISSION_EDIT);
         };
     }

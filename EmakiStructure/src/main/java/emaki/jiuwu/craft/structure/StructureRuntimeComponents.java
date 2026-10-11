@@ -12,6 +12,10 @@ import emaki.jiuwu.craft.structure.generate.BlockEntityWriter;
 import emaki.jiuwu.craft.structure.generate.GenerationFinalizer;
 import emaki.jiuwu.craft.structure.generate.GenerationScheduler;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
+import emaki.jiuwu.craft.structure.integration.CustomBlockIdAdapter;
+import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
 import emaki.jiuwu.craft.structure.spawn.SpawnQueue;
@@ -37,7 +41,11 @@ record StructureRuntimeComponents(
         BlockEntityWriter blockEntityWriter,
         GenerationFinalizer generationFinalizer,
         GenerationService generationService,
-        StructureCommandRouter commandRouter
+        StructureCommandRouter commandRouter,
+        CustomBlockIdAdapter customBlockAdapter,
+        FurnitureIdAdapter furnitureAdapter,
+        MultiblockRepository multiblockRepository,
+        MultiblockService multiblockService
 ) implements RuntimeComponents {
 
     @Override
@@ -48,6 +56,9 @@ record StructureRuntimeComponents(
                 RuntimeComponents.component(ExecutionDispatcher.class, executionDispatcher),
                 RuntimeComponents.component(BootstrapService.class, bootstrapService),
                 RuntimeComponents.component(TemplateRepository.class, templateRepository),
-                RuntimeComponents.component(GenerationService.class, generationService));
+                RuntimeComponents.component(GenerationService.class, generationService),
+                RuntimeComponents.component(MultiblockService.class, multiblockService),
+                RuntimeComponents.component(CustomBlockIdAdapter.class, customBlockAdapter),
+                RuntimeComponents.component(FurnitureIdAdapter.class, furnitureAdapter));
     }
 }

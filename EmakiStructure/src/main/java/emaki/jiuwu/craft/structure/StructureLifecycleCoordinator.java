@@ -16,6 +16,12 @@ import emaki.jiuwu.craft.structure.generate.BlockEntityWriter;
 import emaki.jiuwu.craft.structure.generate.GenerationFinalizer;
 import emaki.jiuwu.craft.structure.generate.GenerationScheduler;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
+import emaki.jiuwu.craft.structure.integration.CustomBlockIdAdapter;
+import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.structure.multiblock.InstanceRegistry;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
+import emaki.jiuwu.craft.structure.multiblock.TriggerCooldown;
 import emaki.jiuwu.craft.structure.selection.ParticleSelectionHighlighter;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
@@ -101,11 +107,32 @@ final class StructureLifecycleCoordinator
         var commandRouter = new StructureCommandRouter(plugin, selectionManager,
                 generationService, templateRepository, appConfigLoader::current);
 
+        var customBlockAdapter = new CustomBlockIdAdapter();
+        var furnitureAdapter = new FurnitureIdAdapter(plugin);
+        for (String source : furnitureAdapter.absentSources()) {
+            messageService.warning("console.furniture_source_absent", Map.of("source", source));
+        }
+        for (String namespace : customBlockAdapter.unavailableKnownNamespaces()) {
+            messageService.warning("console.custom_block_source_absent",
+                    Map.of("namespace", namespace));
+        }
+        var multiblockRepository = new MultiblockRepository(plugin.dataPath("multiblocks"));
+        multiblockRepository.reload();
+        reportMultiblockProblems(plugin, multiblockRepository);
+        var instanceRegistry = new InstanceRegistry(plugin, executionDispatcher,
+                () -> appConfigLoader.current().detection());
+        var triggerCooldown = new TriggerCooldown();
+        var multiblockService = new MultiblockService(plugin, multiblockRepository,
+                instanceRegistry, customBlockAdapter, furnitureAdapter, triggerCooldown,
+                appConfigLoader::current);
+        multiblockService.startSweep();
+
         return new StructureRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 appConfigLoader, bootstrapService, templateRepository, templateCache,
                 spawnSidecars, spawnQueue, spawnExecutor, selectionManager,
                 generationScheduler, blockEntityWriter, generationFinalizer,
-                generationService, commandRouter);
+                generationService, commandRouter,
+                customBlockAdapter, furnitureAdapter, multiblockRepository, multiblockService);
     }
 
     int reload(EmakiStructurePlugin plugin) {
@@ -126,11 +153,15 @@ final class StructureLifecycleCoordinator
         components.appConfigLoader().overrideCurrent(repaired.withoutIssues());
         components.generationScheduler().cancelAll("error.generate.cancelled");
         components.selectionManager().clearAllSessions();
+        components.multiblockService().clearAll();
         components.spawnSidecars().reload();
         components.templateCache().invalidateAll();
         components.templateRepository().reload();
+        components.multiblockRepository().reload();
         reportTemplateProblems(plugin, components.templateRepository());
+        reportMultiblockProblems(plugin, components.multiblockRepository());
         reportCacheWarnings(plugin, components.templateRepository());
+        components.multiblockService().startSweep();
         int count = components.templateRepository().templateIds().size();
         plugin.messageService().info("console.reload_complete", Map.of("count", count));
         return count;
@@ -140,6 +171,13 @@ final class StructureLifecycleCoordinator
         for (String templateId : repository.drainCacheWarnings()) {
             plugin.messageService().warning("console.cache_rejected",
                     Map.of("template", templateId));
+        }
+    }
+
+    private static void reportMultiblockProblems(EmakiStructurePlugin plugin,
+            MultiblockRepository repository) {
+        for (MultiblockRepository.Problem problem : repository.drainProblems()) {
+            plugin.messageService().warning(problem.reasonKey(), problem.placeholders());
         }
     }
 

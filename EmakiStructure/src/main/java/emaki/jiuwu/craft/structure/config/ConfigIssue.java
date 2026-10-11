@@ -21,7 +21,16 @@ public record ConfigIssue(Kind kind, String reasonKey, Map<String, Object> place
         SPAWN_ENABLED,
         SPAWN_MAX_PER_GENERATION,
         SPAWN_BATCH_PER_TICK,
-        SPAWN_RESPECT_ENTITY_POLICY
+        SPAWN_RESPECT_ENTITY_POLICY,
+        SWEEP_INTERVAL,
+        MAX_COLD_CHECKS,
+        INSTANCE_LIMIT,
+        INSTANCE_TTL,
+        DEBOUNCE,
+        RETRIGGER_ON_REFORM,
+        SAMPLE_RECHECK,
+        COOLDOWN_GLOBAL,
+        COOLDOWN_PER_PLAYER
     }
 
     public ConfigIssue {

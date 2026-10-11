@@ -6,6 +6,7 @@ import java.util.Locale;
 public final class Durations {
 
     private static final long MAX_SECONDS = Duration.ofDays(3650).toSeconds();
+    private static final long MAX_MILLIS = Duration.ofDays(3650).toMillis();
 
     private Durations() {
     }
@@ -30,6 +31,22 @@ public final class Durations {
         char last = text.charAt(text.length() - 1);
         long multiplier;
         String digits;
+        if (text.endsWith("ms")) {
+            String millis = text.substring(0, text.length() - 2);
+            if (millis.isEmpty()) {
+                return null;
+            }
+            long value;
+            try {
+                value = Long.parseLong(millis.trim());
+            } catch (NumberFormatException exception) {
+                return null;
+            }
+            if (value < 0L || value > MAX_MILLIS) {
+                return null;
+            }
+            return Duration.ofMillis(value);
+        }
         switch (last) {
             case 's' -> {
                 multiplier = 1L;

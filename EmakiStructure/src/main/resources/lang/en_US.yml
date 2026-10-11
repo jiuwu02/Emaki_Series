@@ -41,6 +41,10 @@ console:
   config_reload_failed: "[reload] <red>Failed to parse %file%, previous configuration kept running: %error%</red>"
   # placeholders: %template%, %count%
   template_legacy_skipped: "[loader] <yellow>Template <white>%template%</white> has %count% block states that cannot be parsed by the current version, skipped by legacy_policy</yellow>"
+  # placeholders: %source%
+  furniture_source_absent: "[loader] <yellow>Furniture source <white>%source%</white> is not installed: multiblock definitions declaring its furniture members will never match</yellow>"
+  # placeholders: %namespace%
+  custom_block_source_absent: "[loader] <yellow>Custom block namespace <white>%namespace%</white> is unavailable: multiblock definitions declaring its blocks will never match</yellow>"
 
 command:
   usage: "<gray>Usage: /ems <get|place|select|export> ...</gray>"
@@ -49,6 +53,17 @@ command:
   select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
   adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
   export_usage: "<gray>Usage: /ems export &lt;name&gt;</gray>"
+  multiblock_usage: "<gray>Usage: /ems multiblock &lt;record|list|validate&gt; ...</gray>"
+  multiblock_record_usage: "<gray>Usage: /ems multiblock record &lt;id&gt; [force]</gray>"
+  multiblock_validate_usage: "<gray>Usage: /ems multiblock validate &lt;id&gt;</gray>"
+  # placeholders: %count%, %candidates%, %formed%
+  multiblock_list_header: "<gray>Loaded <white>%count%</white> multiblock definitions, %candidates% in-progress instances, %formed% active instances.</gray>"
+  # placeholders: %id%, %members%, %rotation%
+  multiblock_list_entry: "<white>%id%</white> <gray>members %members%, rotation %rotation%</gray>"
+  # placeholders: %id%, %members%, %unresolvable%, %furniture_missing%, %candidates%, %formed%
+  multiblock_validate_result: "<gray>Definition <white>%id%</white>: members %members%, unresolvable custom blocks %unresolvable%, missing furniture sources %furniture_missing%, in-progress %candidates%, active %formed%.</gray>"
+  # placeholders: %id%, %members%, %file%
+  multiblock_record_saved: "<green>Recorded multiblock definition <white>%id%</white>: %members% members, file %file%</green>"
   # placeholders: %value%, %allowed%
   invalid_facing: "<red>Facing <white>%value%</white> is invalid, allowed: %allowed%</red>"
   # placeholders: %template%, %facing%, %blocks%
@@ -195,6 +210,55 @@ error:
     region_order: "<red>Entity <white>%type%</white> region min must be less than or equal to max.</red>"
     # placeholders: %type%, %size%
     region_out_of_bounds: "<red>Entity <white>%type%</white> region is outside the template size %size%.</red>"
+  multiblock:
+    # placeholders: %file%, %detail%
+    parse_failed: "<red>Failed to parse multiblock definition <white>%file%</white>: %detail%</red>"
+    # placeholders: %file%, %value%, %expected%
+    version_unsupported: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is not supported, expected %expected%.</red>"
+    # placeholders: %file%, %value%, %expected%
+    id_mismatch: "<red>Multiblock definition <white>%file%</white> has id=<white>%value%</white> which does not match the file name, expected %expected%.</red>"
+    # placeholders: %file%
+    shape_missing: "<red>Multiblock definition <white>%file%</white> is missing the shape section.</red>"
+    # placeholders: %file%, %value%
+    core_block_invalid: "<red>Multiblock definition <white>%file%</white> has an invalid core_block value %value%.</red>"
+    # placeholders: %file%
+    trigger_missing: "<red>Multiblock definition <white>%file%</white> is missing the trigger section.</red>"
+    # placeholders: %file%, %value%, %allowed%
+    targets_invalid: "<red>Multiblock definition <white>%file%</white> has targets=<white>%value%</white> which is invalid, allowed: %allowed%</red>"
+    # placeholders: %file%
+    positions_missing: "<red>Multiblock definition <white>%file%</white> uses targets=specific but has no positions.</red>"
+    # placeholders: %file%, %value%
+    positions_invalid: "<red>Multiblock definition <white>%file%</white> contains an invalid position %value%.</red>"
+    # placeholders: %file%
+    blocks_empty: "<red>Multiblock definition <white>%file%</white> has no valid block members.</red>"
+    # placeholders: %file%, %value%, %index%
+    pos_invalid: "<red>Multiblock definition <white>%file%</white> entry #%index% has an invalid pos=%value%.</red>"
+    # placeholders: %file%, %value%, %index%
+    pos_duplicate: "<red>Multiblock definition <white>%file%</white> entry #%index% duplicates coordinate %value%.</red>"
+    # placeholders: %file%, %value%, %index%
+    member_exclusive: "<red>Multiblock definition <white>%file%</white> entry #%index% at %value% declares both block and furniture, only one is allowed.</red>"
+    # placeholders: %file%, %value%, %allowed%, %index%
+    furniture_prefix: "<red>Multiblock definition <white>%file%</white> entry #%index% furniture <white>%value%</white> has an unsupported prefix, allowed: %allowed%</red>"
+    # placeholders: %file%, %value%, %index%
+    block_missing: "<red>Multiblock definition <white>%file%</white> entry #%index% has a missing or empty block=%value%.</red>"
+    # placeholders: %file%, %value%, %index%
+    custom_block_state: "<red>Multiblock definition <white>%file%</white> entry #%index% custom block <white>%value%</white> must not carry a block state section.</red>"
+    # placeholders: %file%, %value%, %detail%, %index%
+    block_state_invalid: "<red>Multiblock definition <white>%file%</white> entry #%index% block state <white>%value%</white> failed to parse: %detail%</red>"
+    # placeholders: %file%, %detail%
+    scan_failed: "<red>Failed to scan the multiblock definition directory: <white>%file%</white> (%detail%)</red>"
+    # placeholders: %file%, %id%
+    duplicate_id: "<red>Duplicate multiblock id <white>%id%</white> (<white>%file%</white>), the later file was not loaded.</red>"
+    # placeholders: %id%
+    not_found: "<red>Multiblock definition <white>%id%</white> does not exist.</red>"
+    # placeholders: %id%, %file%
+    already_exists: "<red>Multiblock definition <white>%id%</white> already exists (%file%), use record force to overwrite.</red>"
+    # placeholders: %id%
+    verification_failed: "<red>Multiblock structure <white>%id%</white> failed shape verification and was downgraded to incomplete, inspect it and try again.</red>"
+    # placeholders: %id%, %detail%
+    record_failed: "<red>Failed to record multiblock definition <white>%id%</white>: %detail%</red>"
+    # placeholders: %id%, %detail%
+    write_failed: "<red>Failed to write multiblock definition <white>%id%</white>: %detail%</red>"
 
 debug:
   # placeholders: %template%, %facing%, %x%, %y%, %z%, %blocks%
@@ -211,3 +275,5 @@ debug:
   template_lazy_loaded: "Lazy loaded block data of template %template%"
   # placeholders: %reason%
   highlight_degraded: "Selection highlight degraded: %reason%"
+  # placeholders: %used%, %limit%
+  cold_hit_checked: "Cold hit consumed candidate budget %used%/%limit%"

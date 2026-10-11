@@ -18,10 +18,18 @@ import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.StructureConfigPrecheckContributor;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.apiimpl.ServiceBackedStructureBridge;
+import emaki.jiuwu.craft.structure.integration.furniture.CraftEngineFurnitureListener;
+import emaki.jiuwu.craft.structure.integration.furniture.ItemsAdderFurnitureListener;
+import emaki.jiuwu.craft.structure.integration.furniture.NexoFurnitureListener;
+import emaki.jiuwu.craft.structure.integration.furniture.OraxenFurnitureListener;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
+import emaki.jiuwu.craft.structure.multiblock.listener.BlockChangeDetectListener;
+import emaki.jiuwu.craft.structure.multiblock.listener.MultiblockInteractListener;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
 import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 
 import java.util.List;
 import java.util.Set;
@@ -95,6 +103,7 @@ ___/ / /_/ / / / /  __/ / ____/ /_/ / /_/ / / /_/ /_/ /
         components.generationScheduler().close();
         components.spawnQueue().close();
         components.selectionManager().close();
+        components.multiblockService().clearAll();
         HandlerList.unregisterAll(this);
         debugCommand = null;
         runtimeInitialized = false;
@@ -154,6 +163,10 @@ ___/ / /_/ / / / /  __/ / ____/ /_/ / /_/ / / /_/ /_/ /
         return components == null ? null : components.commandRouter();
     }
 
+    public MultiblockService multiblockService() {
+        return components == null ? null : components.multiblockService();
+    }
+
     public int reloadContent() {
         contentReady = false;
         int count = lifecycleCoordinator.reload(this);
@@ -169,6 +182,34 @@ ___/ / /_/ / / / /  __/ / ____/ /_/ / /_/ / / /_/ /_/ /
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new SelectionQuitListener(this), this);
+        MultiblockService service = components.multiblockService();
+        getServer().getPluginManager().registerEvents(new BlockChangeDetectListener(this, service), this);
+        getServer().getPluginManager().registerEvents(new MultiblockInteractListener(this, service), this);
+        var furnitureAdapter = components.furnitureAdapter();
+        registerIfPresent(furnitureAdapter.sourcePresent("ItemsAdder"), "ItemsAdder",
+                () -> new ItemsAdderFurnitureListener(this, service));
+        registerIfPresent(furnitureAdapter.sourcePresent("Oraxen"), "Oraxen",
+                () -> new OraxenFurnitureListener(this, service));
+        registerIfPresent(furnitureAdapter.sourcePresent("Nexo"), "Nexo",
+                () -> new NexoFurnitureListener(this, service));
+        registerIfPresent(furnitureAdapter.sourcePresent("CraftEngine"), "CraftEngine",
+                () -> new CraftEngineFurnitureListener(this, service));
+    }
+
+    private void registerIfPresent(boolean present, String sourceName,
+            java.util.function.Supplier<Listener> factory) {
+        if (!present) {
+            return;
+        }
+        try {
+            getServer().getPluginManager().registerEvents(factory.get(), this);
+        } catch (LinkageError error) {
+            getLogger().warning("家具源 " + sourceName + " 监听注册失败，已跳过: "
+                    + error.getMessage());
+        } catch (RuntimeException exception) {
+            getLogger().warning("家具源 " + sourceName + " 监听注册异常: "
+                    + exception.getMessage());
+        }
     }
 
     private void installPublicApi() {
