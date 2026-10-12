@@ -6,6 +6,7 @@ import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
 import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
+import emaki.jiuwu.craft.structure.api.event.MultiblockTriggerEvent;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.generate.StructureFacing;
 import emaki.jiuwu.craft.structure.generate.TemplateTransform;
@@ -291,12 +292,35 @@ public final class MultiblockService {
                         Map.of("id", definition.id()));
                 return false;
             }
+            publishTriggerEvents(definition, player, instance.pose());
             executeActions(definition, player, placeholders);
             return true;
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("多方块触发失败 " + instance + ": "
                     + exception.getMessage());
             return false;
+        }
+    }
+
+    private void publishTriggerEvents(MultiblockDefinition definition, Player player,
+            StructurePose pose) {
+        try {
+            plugin.getServer().getPluginManager().callEvent(
+                    new MultiblockTriggerEvent(definition.id(), player,
+                    pose.worldName(), pose.anchorX(), pose.anchorY(), pose.anchorZ(),
+                    pose.facing().configValue()));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("多方块触发事件分发失败 " + definition.id() + ": "
+                    + exception.getMessage());
+        }
+        try {
+            EmakiCoreLibPlugin.lookup().eventBus().publish(new MultiblockTriggerEmakiEvent(
+                    definition.id(), player.getUniqueId(), player.getName(),
+                    pose.worldName(), pose.anchorX(), pose.anchorY(), pose.anchorZ(),
+                    pose.facing().configValue()));
+        } catch (RuntimeException | LinkageError exception) {
+            plugin.getLogger().warning("多方块触发总线事件发布失败 " + definition.id() + ": "
+                    + exception.getMessage());
         }
     }
 

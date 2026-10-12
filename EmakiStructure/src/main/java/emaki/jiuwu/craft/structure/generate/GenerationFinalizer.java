@@ -3,6 +3,13 @@ package emaki.jiuwu.craft.structure.generate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
+import emaki.jiuwu.craft.structure.furniture.FurnitureEntry;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarParser;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarRepository;
+import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.structure.integration.furniture.FurniturePlacer;
+import emaki.jiuwu.craft.structure.rollback.GenerationJournal;
+import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.spawn.SpawnContext;
 import emaki.jiuwu.craft.structure.spawn.SpawnEntry;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
@@ -39,6 +46,9 @@ public final class GenerationFinalizer {
     private final BlockEntityWriter blockEntityWriter;
     private final SpawnSidecarRepository spawnSidecars;
     private final SpawnExecutor spawnExecutor;
+    private final FurnitureSidecarRepository furnitureSidecars;
+    private final FurniturePlacer furniturePlacer;
+    private final RollbackService rollbackService;
     private final Supplier<AppConfig> config;
 
     public GenerationFinalizer(EmakiStructurePlugin plugin,
@@ -46,17 +56,27 @@ public final class GenerationFinalizer {
             BlockEntityWriter blockEntityWriter,
             SpawnSidecarRepository spawnSidecars,
             SpawnExecutor spawnExecutor,
+            FurnitureSidecarRepository furnitureSidecars,
+            FurniturePlacer furniturePlacer,
+            RollbackService rollbackService,
             Supplier<AppConfig> config) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.blockEntityWriter = blockEntityWriter;
         this.spawnSidecars = spawnSidecars;
         this.spawnExecutor = spawnExecutor;
+        this.furnitureSidecars = furnitureSidecars;
+        this.furniturePlacer = furniturePlacer;
+        this.rollbackService = rollbackService;
         this.config = config;
     }
 
     public void reportRejection(GenerationService.Request request, GenerationService.Rejection rejection) {
         plugin.messageService().send(request.initiator(), rejection.reasonKey(), rejection.placeholders());
+    }
+
+    private static java.util.UUID initiatorId(GenerationService.Request request) {
+        return request.initiator() instanceof Player player ? player.getUniqueId() : null;
     }
 
     public void onSettled(GenerationService.Request request, GenerationJob job,
@@ -66,16 +86,21 @@ public final class GenerationFinalizer {
                     job.abortReasonKey() == null ? "error.generate.failed" : job.abortReasonKey(),
                     Map.of("template", request.template().id(),
                             "reason", String.valueOf(job.abortDetail())));
+            plugin.debugLogger().log("structure", initiatorId(request), "generate_aborted", Map.of(
+                    "template", request.template().id(),
+                    "reason", String.valueOf(job.abortReasonKey()),
+                    "detail", String.valueOf(job.abortDetail()),
+                    "initiator", request.initiatorName()));
+            rollbackService.settle(job);
             return;
         }
         StructureTemplate template = request.template();
         long elapsedMillis = (System.nanoTime() - startedNanos) / 1_000_000L;
-        if (request.initiator() instanceof Player player) {
-            plugin.debugLogger().log("structure", player, "generate_complete", Map.of(
-                    "template", template.id(),
-                    "blocks", template.blockCount(),
-                    "millis", elapsedMillis));
-        }
+        plugin.debugLogger().log("structure", initiatorId(request), "generate_complete", Map.of(
+                "template", template.id(),
+                "blocks", template.blockCount(),
+                "millis", elapsedMillis,
+                "initiator", request.initiatorName()));
         plugin.messageService().send(request.initiator(), "command.place_done", Map.of(
                 "template", template.id(),
                 "facing", request.facing().configValue(),
@@ -83,10 +108,12 @@ public final class GenerationFinalizer {
                 "y", request.anchorY(),
                 "z", request.anchorZ(),
                 "overwritten", overwritten.get()));
-        runStageTwo(request);
+        runStageTwo(request, job);
+        rollbackService.settle(job);
     }
 
-    private void runStageTwo(GenerationService.Request request) {
+    private void runStageTwo(GenerationService.Request request, GenerationJob job) {
+        GenerationJournal journal = job.journal();
         StructureTemplate template = request.template();
         World world = request.world();
         for (Map.Entry<Long, List<BlockEntityWrite>> entry : groupBlockEntities(request).entrySet()) {
@@ -98,8 +125,9 @@ public final class GenerationFinalizer {
                 }
             });
         }
-        spawnTemplateEntities(request);
-        scheduleSidecarSpawns(request);
+        spawnTemplateEntities(request, journal);
+        restoreFurniture(request, journal);
+        scheduleSidecarSpawns(request, journal);
         int transformedX = TemplateTransform.transformedSizeX(template.sizeX(), template.sizeZ(), request.facing());
         int transformedZ = TemplateTransform.transformedSizeZ(template.sizeX(), template.sizeZ(), request.facing());
         int rescueX = request.anchorX();
@@ -139,7 +167,7 @@ public final class GenerationFinalizer {
         return grouped;
     }
 
-    private void spawnTemplateEntities(GenerationService.Request request) {
+    private void spawnTemplateEntities(GenerationService.Request request, GenerationJournal journal) {
         StructureTemplate template = request.template();
         AppConfig.EntityPolicy policy = config.get().generate().entityPolicy();
         if (policy == AppConfig.EntityPolicy.NONE) {
@@ -155,11 +183,12 @@ public final class GenerationFinalizer {
             float yaw = TemplateTransform.combinedYaw(entity.yaw(), request.facing());
             Location location = new Location(request.world(), worldX, worldY, worldZ, yaw, entity.pitch());
             dispatchAt(request.world(), (int) Math.floor(worldX), (int) Math.floor(worldY),
-                    (int) Math.floor(worldZ), () -> spawnTemplateEntity(location, entity, policy));
+                    (int) Math.floor(worldZ), () -> spawnTemplateEntity(location, entity, policy, journal));
         }
     }
 
-    private void spawnTemplateEntity(Location location, TemplateEntity entity, AppConfig.EntityPolicy policy) {
+    private void spawnTemplateEntity(Location location, TemplateEntity entity,
+            AppConfig.EntityPolicy policy, GenerationJournal journal) {
         if (location.getWorld() == null) {
             return;
         }
@@ -168,6 +197,11 @@ public final class GenerationFinalizer {
             if (policy == AppConfig.EntityPolicy.PASSIVE && spawned instanceof LivingEntity living
                     && VanillaSpawnBridge.isHostile(living)) {
                 living.remove();
+                return;
+            }
+            if (journal != null) {
+                journal.appendEntity(location.getWorld().getName(), spawned.getUniqueId(),
+                        location.getBlockX(), location.getBlockY(), location.getBlockZ());
             }
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("模板实体生成失败 " + entity.type() + ": " + exception.getMessage());
@@ -186,7 +220,70 @@ public final class GenerationFinalizer {
         return type;
     }
 
-    private void scheduleSidecarSpawns(GenerationService.Request request) {
+    private void restoreFurniture(GenerationService.Request request, GenerationJournal journal) {
+        StructureTemplate template = request.template();
+        FurnitureSidecarParser.Result sidecar = furnitureSidecars.resolve(template);
+        if (sidecar.fileRejected() || sidecar.entries().isEmpty()) {
+            return;
+        }
+        StructureFacing facing = request.facing();
+        int index = 0;
+        for (FurnitureEntry entry : sidecar.entries()) {
+            String namespace = FurnitureIdAdapter.namespaceOf(entry.id());
+            if (!furniturePlacer.sourcePresent(namespace)) {
+                plugin.messageService().warning("console.furniture_source_absent", Map.of(
+                        "template", template.id(),
+                        "index", index,
+                        "id", entry.id()));
+                index++;
+                continue;
+            }
+            Vector offset = TemplateTransform.localToWorld(entry.x(), entry.y(), entry.z(),
+                    template.sizeX(), template.sizeZ(), facing);
+            int worldX = request.anchorX() + offset.getBlockX();
+            int worldY = request.anchorY() + offset.getBlockY();
+            int worldZ = request.anchorZ() + offset.getBlockZ();
+            float yaw = (float) FurnitureSidecarParser.normalizeYaw(
+                    entry.yaw() + facing.yawDegrees());
+            Location location = new Location(request.world(),
+                    worldX + 0.5d, worldY + 1.0d, worldZ + 0.5d, yaw, 0.0f);
+            String id = entry.id();
+            int entryIndex = index;
+            dispatchAt(request.world(), worldX, worldY, worldZ,
+                    () -> placeFurniture(location, id, template.id(), entryIndex, journal));
+            index++;
+        }
+    }
+
+    private void placeFurniture(Location location, String id, String templateId,
+            int entryIndex, GenerationJournal journal) {
+        if (location.getWorld() == null) {
+            return;
+        }
+        try {
+            Entity placed = furniturePlacer.place(id, location);
+            if (placed == null) {
+                plugin.messageService().warning("console.furniture_place_failed", Map.of(
+                        "template", templateId,
+                        "index", entryIndex,
+                        "id", id));
+                return;
+            }
+            if (journal != null) {
+                Location entityLocation = placed.getLocation();
+                journal.appendEntity(location.getWorld().getName(), placed.getUniqueId(),
+                        entityLocation.getBlockX(), entityLocation.getBlockY(),
+                        entityLocation.getBlockZ());
+            }
+        } catch (RuntimeException exception) {
+            plugin.messageService().warning("console.furniture_place_failed", Map.of(
+                    "template", templateId,
+                    "index", entryIndex,
+                    "id", id));
+        }
+    }
+
+    private void scheduleSidecarSpawns(GenerationService.Request request, GenerationJournal journal) {
         StructureTemplate template = request.template();
         SpawnSidecarParser.Result sidecar = spawnSidecars.resolve(template);
         if (sidecar.fileRejected() || sidecar.entries().isEmpty()) {
@@ -197,7 +294,7 @@ public final class GenerationFinalizer {
                 request.facing().yawDegrees());
         int index = 0;
         for (SpawnEntry entry : sidecar.entries()) {
-            spawnExecutor.schedule(context, entry, index, template.id());
+            spawnExecutor.schedule(context, entry, index, template.id(), journal);
             index++;
         }
     }

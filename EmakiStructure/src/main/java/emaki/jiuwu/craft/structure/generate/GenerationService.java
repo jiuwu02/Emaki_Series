@@ -4,6 +4,8 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
+import emaki.jiuwu.craft.structure.rollback.GenerationJournal;
+import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -12,11 +14,13 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
@@ -45,21 +49,27 @@ public final class GenerationService {
     private final ExecutionDispatcher dispatcher;
     private final GenerationScheduler scheduler;
     private final GenerationFinalizer finalizer;
+    private final RollbackService rollbackService;
     private final Supplier<AppConfig> config;
 
     public GenerationService(EmakiStructurePlugin plugin,
             ExecutionDispatcher dispatcher,
             GenerationScheduler scheduler,
             GenerationFinalizer finalizer,
+            RollbackService rollbackService,
             Supplier<AppConfig> config) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.scheduler = scheduler;
         this.finalizer = finalizer;
+        this.rollbackService = rollbackService;
         this.config = config;
     }
 
     public Optional<Rejection> start(Request request) {
+        if (rollbackService.recovering()) {
+            return Optional.of(new Rejection("error.generate.recovering", Map.of()));
+        }
         AppConfig.GenerateSettings settings = config.get().generate();
         StructureTemplate template = request.template();
         World world = request.world();
@@ -194,10 +204,12 @@ public final class GenerationService {
                     submit(request, writes, regions);
                     return;
                 }
-                if (request.initiator() instanceof Player player) {
-                    plugin.debugLogger().log("structure", player, "ground_skipped",
-                            Map.of("columns", probedRegions));
-                }
+                UUID groundCheckId = request.initiator() instanceof Player player
+                        ? player.getUniqueId() : null;
+                plugin.debugLogger().log("structure", groundCheckId, "ground_skipped", Map.of(
+                        "columns", probedRegions,
+                        "template", request.template().id(),
+                        "initiator", request.initiatorName()));
                 finalizer.reportRejection(request, new Rejection(
                         "error.generate.ground_unsupported", Map.of()));
             });
@@ -217,6 +229,15 @@ public final class GenerationService {
     }
 
     private void submit(Request request, List<RegionBatch.Write> writes, Map<Long, List<RegionBatch.Write>> regions) {
+        GenerationJournal journal;
+        try {
+            journal = rollbackService.open(UUID.randomUUID().toString());
+        } catch (IOException exception) {
+            plugin.getLogger().warning("journal 创建失败: " + exception.getMessage());
+            finalizer.reportRejection(request, new Rejection("error.generate.journal_failed",
+                    Map.of("error", String.valueOf(exception.getMessage()))));
+            return;
+        }
         long startedNanos = System.nanoTime();
         AtomicLong overwritten = new AtomicLong();
         List<ChunkBatch> batches = new ArrayList<>();
@@ -228,20 +249,23 @@ public final class GenerationService {
                         Math.min(start + sliceSize, regionWrites.size()));
                 RegionBatch.Write head = slice.get(0);
                 Location location = new Location(request.world(), head.x(), head.y(), head.z());
-                batches.add(new RegionBatch(request.world(), location, List.copyOf(slice), overwritten));
+                batches.add(new RegionBatch(request.world(), location, List.copyOf(slice),
+                        overwritten, journal));
             }
         }
         GenerationJob job = new GenerationJob(request.template().id(), batches.size(),
                 settled -> finalizer.onSettled(request, settled, overwritten, startedNanos));
+        job.attachJournal(journal);
         scheduler.submit(job, batches);
-        if (request.initiator() instanceof Player player) {
-            plugin.debugLogger().log("structure", player, "generate_start", Map.of(
-                    "template", request.template().id(),
-                    "facing", request.facing().configValue(),
-                    "x", request.anchorX(),
-                    "y", request.anchorY(),
-                    "z", request.anchorZ(),
-                    "blocks", writes.size()));
-        }
+        UUID initiatorId = request.initiator() instanceof Player player
+                ? player.getUniqueId() : null;
+        plugin.debugLogger().log("structure", initiatorId, "generate_start", Map.of(
+                "template", request.template().id(),
+                "facing", request.facing().configValue(),
+                "x", request.anchorX(),
+                "y", request.anchorY(),
+                "z", request.anchorZ(),
+                "blocks", writes.size(),
+                "initiator", request.initiatorName()));
     }
 }

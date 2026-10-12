@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep placeholders noted beside each message group.
 # version is maintained by the resource sync flow to merge new default keys.
 
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -40,6 +40,22 @@ console:
   furniture_source_ready: "[loader] <gray>Furniture source connected: <aqua>%source%</aqua></gray>"
   # placeholders: %namespace%
   custom_block_source_ready: "[loader] <gray>Custom block namespace connected: <aqua>%namespace%</aqua></gray>"
+  # placeholders: %template%, %structure%
+  replace_template_missing: "[replace] <yellow>Template <white>%template%</white> referenced by a replace rule does not exist (structure %structure%), vanilla generation proceeds</yellow>"
+  # placeholders: %count%
+  rollback_recovering: "[rollback] <yellow>Detected %count% unfinished transactions, startup rollback in progress, generation is temporarily unavailable</yellow>"
+  # placeholders: %count%
+  rollback_recovered: "[rollback] <green>Startup rollback complete, %count% transactions</green>"
+  # placeholders: %file%
+  rollback_partial: "[rollback] <red>Transaction %file% could not be fully rolled back, marked rollback-partial (visible via /ems debug), it will not be retried automatically</red>"
+  # placeholders: %template%, %index%, %id%
+  furniture_source_absent: "[furniture] <yellow>Template %template% furniture entry #%index% (%id%) needs a furniture plugin that is not installed, skipped</yellow>"
+  # placeholders: %template%, %index%, %id%
+  furniture_place_failed: "[furniture] <yellow>Template %template% furniture entry #%index% (%id%) failed to place, entry skipped</yellow>"
+  # placeholders: %file%, %index%, %reason%
+  furniture_entry_issue: "[furniture] <yellow>Furniture point %file% entry #%index% skipped: %reason%</yellow>"
+  # placeholders: none
+  export_furniture_absent: "[export] <gray>0 furniture captured (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
 
 command:
   usage: "<gray>Usage: /ems <get|place|select|export> ...</gray>"
@@ -72,8 +88,8 @@ command:
   select_cleared: "<green>Cleared the current selection and highlight.</green>"
   # placeholders: %before%, %after%
   select_adjusted: "<green>Selection adjusted: <white>%before%</white> -> <white>%after%</white></green>"
-  # placeholders: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%
-  export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks (%size_x% x %size_y% x %size_z%), file %file%</green>"
+  # placeholders: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%, %furniture%, %furniture_skipped%
+  export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks (%size_x% x %size_y% x %size_z%), %furniture% furniture (%furniture_skipped% out of selection skipped), file %file%</green>"
 
 error:
   config:
@@ -156,6 +172,10 @@ error:
     failed: "<red>Generation failed: %reason%</red>"
     # placeholders: %count%
     player_trapped: "<yellow>%count% players are trapped inside newly placed blocks and could not be lifted, please move out on your own.</yellow>"
+    # placeholders: none
+    recovering: "<red>A transaction rollback recovery is in progress, structure generation is temporarily unavailable, try again shortly.</red>"
+    # placeholders: %error%
+    journal_failed: "<red>Could not create the rollback journal, this generation was rejected: %error%</red>"
   export:
     # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
     too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the export limit %limit_x% x %limit_y% x %limit_z%.</red>"
@@ -196,11 +216,30 @@ error:
     region_order: "<red>Entity <white>%type%</white> region min must be less than or equal to max.</red>"
     # placeholders: %type%, %size%
     region_out_of_bounds: "<red>Entity <white>%type%</white> region is outside the template size %size%.</red>"
+  furniture:
+    # placeholders: %file%, %reason%
+    rejected: "<red>Furniture point configuration rejected: <white>%file%</white> (%reason%)</red>"
+    # placeholders: %file%, %error%
+    read_failed: "<red>Failed to read furniture point file: <white>%file%</white> (%error%)</red>"
+    # placeholders: %file%, %value%
+    version_unsupported: "<red>Furniture point <white>%file%</white> has version=<white>%value%</white> which is not supported.</red>"
+    # placeholders: %file%
+    list_invalid: "<red>Furniture point <white>%file%</white> has a furniture section that is not a list.</red>"
+    # placeholders: none
+    entry_invalid: "<red>A furniture entry is malformed and was skipped.</red>"
+    # placeholders: %id%
+    id_prefix: "<red>Furniture <white>%id%</white> has an unsupported prefix, expected itemsadder/oraxen/nexo/craftengine.</red>"
+    # placeholders: %id%
+    pos_invalid: "<red>Furniture <white>%id%</white> pos is outside the template size.</red>"
+    # placeholders: %id%, %value%
+    yaw_invalid: "<red>Furniture <white>%id%</white> yaw %value% is invalid, expected 0.0-360.0.</red>"
   multiblock:
     # placeholders: %file%, %detail%
     parse_failed: "<red>Failed to parse multiblock definition <white>%file%</white>: %detail%</red>"
     # placeholders: %file%, %value%, %expected%
     version_unsupported: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is not supported, expected %expected%.</red>"
+    # placeholders: %file%, %value%, %expected%
+    version_outdated: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is outdated, current support is %expected%, please migrate it.</red>"
     # placeholders: %file%, %value%, %expected%
     id_mismatch: "<red>Multiblock definition <white>%file%</white> has id=<white>%value%</white> which does not match the file name, expected %expected%.</red>"
     # placeholders: %file%
@@ -247,15 +286,23 @@ error:
     write_failed: "<red>Failed to write multiblock definition <white>%id%</white>: %detail%</red>"
 
 debug:
-  # placeholders: %template%, %facing%, %x%, %y%, %z%, %blocks%
-  generate_start: "Starting generation of %template% at %x%,%y%,%z% facing %facing%, %blocks% blocks"
-  # placeholders: %template%, %blocks%, %millis%
-  generate_complete: "Generation of %template% finished: %blocks% blocks in %millis% ms"
-  # placeholders: %columns%
-  ground_skipped: "Aborted generation, %columns% columns lack support"
+  # placeholders: %template%, %facing%, %x%, %y%, %z%, %blocks%, %initiator%
+  generate_start: "Starting generation of %template% at %x%,%y%,%z% facing %facing%, %blocks% blocks, initiator %initiator%"
+  # placeholders: %template%, %blocks%, %millis%, %initiator%
+  generate_complete: "Generation of %template% finished: %blocks% blocks in %millis% ms, initiator %initiator%"
+  # placeholders: %template%, %reason%, %detail%, %initiator%
+  generate_aborted: "Generation of %template% aborted: %reason% (%detail%), initiator %initiator%"
+  # placeholders: %columns%, %template%, %initiator%
+  ground_skipped: "Aborted generation of %template%, %columns% columns lack support, initiator %initiator%"
   # placeholders: %reason%
   highlight_degraded: "Selection highlight degraded: %reason%"
   # placeholders: %used%, %limit%
   cold_hit_checked: "Cold hit consumed candidate budget %used%/%limit%"
   # placeholders: %millis%, %limit_ms%
   sweep_budget_exceeded: "Sweep cycle exceeded its time budget, this round was aborted: %millis% ms (limit %limit_ms% ms)"
+  # placeholders: %structure%, %template%, %x%, %y%, %z%
+  replace_started: "Vanilla structure %structure% replaced by template %template% at %x%,%y%,%z%"
+  # placeholders: %structure%, %template%, %key%
+  replace_rejected: "Replacement of vanilla structure %structure% was rejected (template %template%): %key%"
+  # placeholders: %file%
+  rollback_partial: "Transaction %file% could not be fully rolled back, marked rollback-partial"

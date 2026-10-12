@@ -8,14 +8,17 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.structure.command.StructureCommandRouter;
 import emaki.jiuwu.craft.structure.config.AppConfig;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarRepository;
 import emaki.jiuwu.craft.structure.generate.BlockEntityWriter;
 import emaki.jiuwu.craft.structure.generate.GenerationFinalizer;
 import emaki.jiuwu.craft.structure.generate.GenerationScheduler;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
+import emaki.jiuwu.craft.structure.generate.StructureReplaceListener;
 import emaki.jiuwu.craft.structure.integration.CustomBlockIdAdapter;
 import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
+import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
 import emaki.jiuwu.craft.structure.spawn.SpawnQueue;
@@ -39,11 +42,14 @@ record StructureRuntimeComponents(
         SelectionManager selectionManager,
         GenerationScheduler generationScheduler,
         BlockEntityWriter blockEntityWriter,
+        RollbackService rollbackService,
         GenerationFinalizer generationFinalizer,
         GenerationService generationService,
+        StructureReplaceListener replaceListener,
         StructureCommandRouter commandRouter,
         CustomBlockIdAdapter customBlockAdapter,
         FurnitureIdAdapter furnitureAdapter,
+        FurnitureSidecarRepository furnitureSidecars,
         MultiblockRepository multiblockRepository,
         MultiblockService multiblockService
 ) implements RuntimeComponents {

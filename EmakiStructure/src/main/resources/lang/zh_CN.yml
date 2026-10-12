@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.1"
+version: "1.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -40,6 +40,22 @@ console:
   furniture_source_ready: "[loader] <gray>已接入家具源: <aqua>%source%</aqua></gray>"
   # 占位符：%namespace%
   custom_block_source_ready: "[loader] <gray>已接入自定义方块命名空间: <aqua>%namespace%</aqua></gray>"
+  # 占位符：%template%、%structure%
+  replace_template_missing: "[replace] <yellow>替换规则引用的模板 <white>%template%</white> 不存在（结构 %structure%），已放行原版生成</yellow>"
+  # 占位符：%count%
+  rollback_recovering: "[rollback] <yellow>检测到 %count% 个未完成事务，启动期回滚进行中，生成能力暂不可用</yellow>"
+  # 占位符：%count%
+  rollback_recovered: "[rollback] <green>启动期回滚完成，共 %count% 个事务</green>"
+  # 占位符：%file%
+  rollback_partial: "[rollback] <red>事务 %file% 回滚未完全成功，已标记 rollback-partial（可用 /ems debug 查看），不再自动重试</red>"
+  # 占位符：%template%、%index%、%id%
+  furniture_source_absent: "[furniture] <yellow>模板 %template% 家具条目 #%index%（%id%）所需家具源未安装，已跳过</yellow>"
+  # 占位符：%template%、%index%、%id%
+  furniture_place_failed: "[furniture] <yellow>模板 %template% 家具条目 #%index%（%id%）放置失败，已跳过该条</yellow>"
+  # 占位符：%file%、%index%、%reason%
+  furniture_entry_issue: "[furniture] <yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
+  # 占位符：无
+  export_furniture_absent: "[export] <gray>家具 0 条（无家具插件在场），已有 furniture 侧车保持不变</gray>"
 
 command:
   usage: "<gray>用法：/ems <get|place|select|export> ...</gray>"
@@ -72,8 +88,8 @@ command:
   select_cleared: "<green>已清除当前选区与高亮。</green>"
   # 占位符：%before%、%after%
   select_adjusted: "<green>选区已调整：<white>%before%</white> → <white>%after%</white></green>"
-  # 占位符：%name%、%blocks%、%size_x%、%size_y%、%size_z%、%file%
-  export_saved: "<green>已导出模板 <white>%name%</white>：%blocks% 个方块（%size_x% × %size_y% × %size_z%），文件 %file%</green>"
+  # 占位符：%name%、%blocks%、%size_x%、%size_y%、%size_z%、%file%、%furniture%、%furniture_skipped%
+  export_saved: "<green>已导出模板 <white>%name%</white>：%blocks% 个方块（%size_x% × %size_y% × %size_z%），家具 %furniture% 条（越界跳过 %furniture_skipped%），文件 %file%</green>"
 
 error:
   config:
@@ -156,6 +172,10 @@ error:
     failed: "<red>生成失败：%reason%</red>"
     # 占位符：%count%
     player_trapped: "<yellow>%count% 名玩家被生成方块困住，无法自动移出，请自行离开。</yellow>"
+    # 占位符：无
+    recovering: "<red>事务回滚恢复进行中，暂时无法生成结构，请稍后再试。</red>"
+    # 占位符：%error%
+    journal_failed: "<red>无法创建回滚日志，已拒绝本次生成：%error%</red>"
   export:
     # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
     too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出导出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
@@ -196,11 +216,30 @@ error:
     region_order: "<red>生物 <white>%type%</white> 的 region min 必须小于等于 max。</red>"
     # 占位符：%type%、%size%
     region_out_of_bounds: "<red>生物 <white>%type%</white> 的 region 超出模板尺寸 %size%。</red>"
+  furniture:
+    # 占位符：%file%、%reason%
+    rejected: "<red>家具点位配置被拒绝：<white>%file%</white>（%reason%）</red>"
+    # 占位符：%file%、%error%
+    read_failed: "<red>读取家具点位文件失败：<white>%file%</white>（%error%）</red>"
+    # 占位符：%file%、%value%
+    version_unsupported: "<red>家具点位 <white>%file%</white> 的 version=<white>%value%</white> 不受支持。</red>"
+    # 占位符：%file%
+    list_invalid: "<red>家具点位 <white>%file%</white> 的 furniture 段不是列表。</red>"
+    # 占位符：无
+    entry_invalid: "<red>家具条目结构非法，已跳过。</red>"
+    # 占位符：%id%
+    id_prefix: "<red>家具 <white>%id%</white> 前缀不受支持，须为 itemsadder/oraxen/nexo/craftengine。</red>"
+    # 占位符：%id%
+    pos_invalid: "<red>家具 <white>%id%</white> 的 pos 超出模板尺寸。</red>"
+    # 占位符：%id%、%value%
+    yaw_invalid: "<red>家具 <white>%id%</white> 的 yaw 取值 %value% 非法，期望 0.0-360.0。</red>"
   multiblock:
     # 占位符：%file%、%detail%
     parse_failed: "<red>多方块定义 <white>%file%</white> 解析失败：%detail%</red>"
     # 占位符：%file%、%value%、%expected%
     version_unsupported: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 不受支持，期望 %expected%。</red>"
+    # 占位符：%file%、%value%、%expected%
+    version_outdated: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 过旧，当前支持 %expected%，请迁移后使用。</red>"
     # 占位符：%file%、%value%、%expected%
     id_mismatch: "<red>多方块定义 <white>%file%</white> 的 id=<white>%value%</white> 与文件名不一致，期望 %expected%。</red>"
     # 占位符：%file%
@@ -247,15 +286,23 @@ error:
     write_failed: "<red>写入多方块定义 <white>%id%</white> 失败：%detail%</red>"
 
 debug:
-  # 占位符：%template%、%facing%、%x%、%y%、%z%、%blocks%
-  generate_start: "开始生成模板 %template% 于 %x%,%y%,%z% 朝向 %facing%，方块 %blocks%"
-  # 占位符：%template%、%blocks%、%millis%
-  generate_complete: "模板 %template% 生成完成：%blocks% 方块，耗时 %millis% ms"
-  # 占位符：%columns%
-  ground_skipped: "支撑面不足，放弃生成：%columns% 列无支撑"
+  # 占位符：%template%、%facing%、%x%、%y%、%z%、%blocks%、%initiator%
+  generate_start: "开始生成模板 %template% 于 %x%,%y%,%z% 朝向 %facing%，方块 %blocks%，发起者 %initiator%"
+  # 占位符：%template%、%blocks%、%millis%、%initiator%
+  generate_complete: "模板 %template% 生成完成：%blocks% 方块，耗时 %millis% ms，发起者 %initiator%"
+  # 占位符：%template%、%reason%、%detail%、%initiator%
+  generate_aborted: "模板 %template% 生成中止：%reason%（%detail%），发起者 %initiator%"
+  # 占位符：%columns%、%template%、%initiator%
+  ground_skipped: "支撑面不足，放弃生成模板 %template%：%columns% 列无支撑，发起者 %initiator%"
   # 占位符：%reason%
   highlight_degraded: "选区高亮降级：%reason%"
   # 占位符：%used%、%limit%
   cold_hit_checked: "冷命中反推消耗候选预算 %used%/%limit%"
   # 占位符：%millis%、%limit_ms%
   sweep_budget_exceeded: "巡检单周期耗时超上限，本轮已中断：%millis% ms（上限 %limit_ms% ms）"
+  # 占位符：%structure%、%template%、%x%、%y%、%z%
+  replace_started: "原版结构 %structure% 已由模板 %template% 替换于 %x%,%y%,%z%"
+  # 占位符：%structure%、%template%、%key%
+  replace_rejected: "原版结构 %structure% 的替换被拒（模板 %template%）：%key%"
+  # 占位符：%file%
+  rollback_partial: "事务 %file% 回滚未完全成功，已标记 rollback-partial"

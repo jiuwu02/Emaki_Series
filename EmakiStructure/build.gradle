@@ -1,5 +1,5 @@
 // EmakiStructure（新增模块）。
-version = '1.0.1'
+version = '1.0.2'
 
 dependencies {
     shadeBundle project(':EmakiStructureApi')

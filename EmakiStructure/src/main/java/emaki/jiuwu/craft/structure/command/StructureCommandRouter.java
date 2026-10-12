@@ -4,6 +4,8 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.NameRules;
+import emaki.jiuwu.craft.structure.furniture.FurnitureEntry;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarParser;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.generate.StructureFacing;
 import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
@@ -55,6 +57,7 @@ public final class StructureCommandRouter {
     private final SelectionManager selectionManager;
     private final GenerationService generationService;
     private final TemplateRepository repository;
+    private final FurnitureIdAdapter furnitureAdapter;
     private final Supplier<AppConfig> config;
     private final Set<String> legacySkipWarnings = ConcurrentHashMap.newKeySet();
 
@@ -62,11 +65,13 @@ public final class StructureCommandRouter {
             SelectionManager selectionManager,
             GenerationService generationService,
             TemplateRepository repository,
+            FurnitureIdAdapter furnitureAdapter,
             Supplier<AppConfig> config) {
         this.plugin = plugin;
         this.selectionManager = selectionManager;
         this.generationService = generationService;
         this.repository = repository;
+        this.furnitureAdapter = furnitureAdapter;
         this.config = config;
     }
 
@@ -417,7 +422,9 @@ public final class StructureCommandRouter {
         Map<Long, SelectionBox> regions = splitRegions(box);
         List<StructureExporter.CapturedBlock> blocks = Collections.synchronizedList(new ArrayList<>());
         List<StructureExporter.CapturedEntity> entities = Collections.synchronizedList(new ArrayList<>());
+        List<StructureExporter.CapturedFurniture> furniture = Collections.synchronizedList(new ArrayList<>());
         List<String> failures = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger furnitureSkipped = new AtomicInteger();
         AtomicInteger remaining = new AtomicInteger(regions.size());
         for (SelectionBox region : regions.values()) {
             Location sliceOrigin = new Location(world, region.minX(), region.minY(), region.minZ());
@@ -427,12 +434,17 @@ public final class StructureCommandRouter {
                         .runAtLocation(plugin, sliceOrigin, () -> {
                             try {
                                 blocks.addAll(StructureExporter.captureBlocks(world, region, box));
-                                entities.addAll(StructureExporter.captureEntities(world, region, box));
+                                StructureExporter.EntityCapture capture =
+                                        StructureExporter.captureEntities(world, region, box, furnitureAdapter);
+                                entities.addAll(capture.entities());
+                                furniture.addAll(capture.furniture());
+                                furnitureSkipped.addAndGet(capture.outOfSelection());
                             } catch (RuntimeException exception) {
                                 failures.add(String.valueOf(exception.getMessage()));
                             } finally {
                                 if (remaining.decrementAndGet() == 0) {
-                                    finishExport(sender, exportName, world, box, blocks, entities, failures);
+                                    finishExport(sender, exportName, world, box, blocks, entities,
+                                            furniture, furnitureSkipped.get(), failures);
                                 }
                             }
                         });
@@ -442,7 +454,8 @@ public final class StructureCommandRouter {
                 failures.add(String.valueOf(exception.getMessage()));
             }
             if (!dispatched && remaining.decrementAndGet() == 0) {
-                finishExport(sender, exportName, world, box, blocks, entities, failures);
+                finishExport(sender, exportName, world, box, blocks, entities,
+                        furniture, furnitureSkipped.get(), failures);
             }
         }
     }
@@ -450,6 +463,8 @@ public final class StructureCommandRouter {
     private void finishExport(CommandSender sender, String name, World world, SelectionBox box,
             List<StructureExporter.CapturedBlock> blocks,
             List<StructureExporter.CapturedEntity> entities,
+            List<StructureExporter.CapturedFurniture> furniture,
+            int furnitureSkipped,
             List<String> failures) {
         plugin.executionDispatcher().runAsync(plugin, () -> {
             if (!failures.isEmpty()) {
@@ -480,6 +495,7 @@ public final class StructureCommandRouter {
                         "error", String.valueOf(exception.getMessage())));
                 return;
             }
+            int furnitureCount = writeFurnitureSidecar(sender, name, furniture);
             plugin.executionDispatcher().runGlobal(plugin, () -> {
                 repository.reload();
                 plugin.messageService().send(sender, "command.export_saved", Map.of(
@@ -488,9 +504,39 @@ public final class StructureCommandRouter {
                         "size_x", captured.sizeX(),
                         "size_y", captured.sizeY(),
                         "size_z", captured.sizeZ(),
-                        "file", target.getFileName().toString()));
+                        "file", target.getFileName().toString(),
+                        "furniture", furnitureCount,
+                        "furniture_skipped", furnitureSkipped));
+                if (!furnitureAdapter.anySourcePresent()) {
+                    plugin.messageService().send(sender, "console.export_furniture_absent");
+                }
             });
         });
+    }
+
+    private int writeFurnitureSidecar(CommandSender sender, String name,
+            List<StructureExporter.CapturedFurniture> furniture) {
+        if (!furnitureAdapter.anySourcePresent()) {
+            return 0;
+        }
+        List<FurnitureEntry> entries = new ArrayList<>(furniture.size());
+        for (StructureExporter.CapturedFurniture captured : furniture) {
+            entries.add(new FurnitureEntry(captured.id(), captured.x(), captured.y(),
+                    captured.z(), captured.yaw(), captured.facing()));
+        }
+        Path target = plugin.dataPath("furniture", name + ".yml");
+        try {
+            Files.createDirectories(target.getParent());
+            Path temporary = target.resolveSibling(name + ".yml.tmp");
+            Files.write(temporary, FurnitureSidecarParser.encode(entries).getBytes(StandardCharsets.UTF_8));
+            Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING,
+                    StandardCopyOption.ATOMIC_MOVE);
+        } catch (IOException exception) {
+            runGlobalMessage(sender, "error.export.write_failed", Map.of(
+                    "file", target.getFileName().toString(),
+                    "error", String.valueOf(exception.getMessage())));
+        }
+        return entries.size();
     }
 
     private void runGlobalMessage(CommandSender sender, String key, Map<String, Object> placeholders) {

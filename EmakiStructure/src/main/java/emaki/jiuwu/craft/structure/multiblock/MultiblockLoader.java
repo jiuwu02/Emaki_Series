@@ -64,7 +64,17 @@ public final class MultiblockLoader {
                     Map.of("value", fileName));
         }
         Integer version = section.getInt("version");
-        if (version == null || version.intValue() != SUPPORTED_VERSION) {
+        if (version == null) {
+            return LoadResult.rejected(fileName, "error.multiblock.version_unsupported",
+                    Map.of("file", fileName, "value", String.valueOf(version),
+                            "expected", String.valueOf(SUPPORTED_VERSION)));
+        }
+        if (version.intValue() < SUPPORTED_VERSION) {
+            return LoadResult.rejected(fileName, "error.multiblock.version_outdated",
+                    Map.of("file", fileName, "value", String.valueOf(version),
+                            "expected", String.valueOf(SUPPORTED_VERSION)));
+        }
+        if (version.intValue() > SUPPORTED_VERSION) {
             return LoadResult.rejected(fileName, "error.multiblock.version_unsupported",
                     Map.of("file", fileName, "value", String.valueOf(version),
                             "expected", String.valueOf(SUPPORTED_VERSION)));

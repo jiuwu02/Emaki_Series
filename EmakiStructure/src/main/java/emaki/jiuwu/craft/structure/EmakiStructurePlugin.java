@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.structure.integration.furniture.StructureFurnitureEvent
 import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
 import emaki.jiuwu.craft.structure.multiblock.listener.BlockChangeDetectListener;
 import emaki.jiuwu.craft.structure.multiblock.listener.MultiblockInteractListener;
+import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
@@ -96,6 +97,8 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
             return;
         }
         components.generationScheduler().close();
+        components.rollbackService().stop();
+        components.rollbackService().drainBestEffort();
         components.spawnQueue().close();
         components.selectionManager().close();
         components.multiblockService().clearAll();
@@ -162,6 +165,10 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
         return components == null ? null : components.multiblockService();
     }
 
+    public RollbackService rollbackService() {
+        return components == null ? null : components.rollbackService();
+    }
+
     public int reloadContent() {
         contentReady = false;
         int count = lifecycleCoordinator.reload(this);
@@ -177,6 +184,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(new SelectionQuitListener(this), this);
+        getServer().getPluginManager().registerEvents(components.replaceListener(), this);
         MultiblockService service = components.multiblockService();
         getServer().getPluginManager().registerEvents(new BlockChangeDetectListener(this, service), this);
         getServer().getPluginManager().registerEvents(new MultiblockInteractListener(this, service), this);

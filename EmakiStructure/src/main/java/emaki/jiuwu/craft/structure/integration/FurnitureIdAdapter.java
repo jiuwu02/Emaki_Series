@@ -68,6 +68,25 @@ public final class FurnitureIdAdapter {
                 craftEngine.identify(entity)));
     }
 
+    public Optional<String> identifySource(Entity entity) {
+        if (entity == null) {
+            return Optional.empty();
+        }
+        if (itemsAdder.identify(entity) != null) {
+            return Optional.of("ItemsAdder");
+        }
+        if (oraxen.identify(entity) != null) {
+            return Optional.of("Oraxen");
+        }
+        if (nexo.identify(entity) != null) {
+            return Optional.of("Nexo");
+        }
+        if (craftEngine.identify(entity) != null) {
+            return Optional.of("CraftEngine");
+        }
+        return Optional.empty();
+    }
+
     public Optional<String> identifyAt(Block block) {
         if (block == null) {
             return Optional.empty();

@@ -12,16 +12,21 @@ import emaki.jiuwu.craft.structure.command.StructureCommandRouter;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.AppConfigParser;
 import emaki.jiuwu.craft.structure.config.ConfigIssue;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarRepository;
 import emaki.jiuwu.craft.structure.generate.BlockEntityWriter;
 import emaki.jiuwu.craft.structure.generate.GenerationFinalizer;
 import emaki.jiuwu.craft.structure.generate.GenerationScheduler;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
+import emaki.jiuwu.craft.structure.generate.ReplaceMarkerStore;
+import emaki.jiuwu.craft.structure.generate.StructureReplaceListener;
 import emaki.jiuwu.craft.structure.integration.CustomBlockIdAdapter;
 import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.structure.integration.furniture.FurniturePlacer;
 import emaki.jiuwu.craft.structure.multiblock.InstanceRegistry;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
 import emaki.jiuwu.craft.structure.multiblock.TriggerCooldown;
+import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.selection.ParticleSelectionHighlighter;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
@@ -44,7 +49,7 @@ final class StructureLifecycleCoordinator
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of();
     private static final List<String> EXTRA_DIRECTORIES =
-            List.of("structures", "multiblocks", "spawns", "furniture", "journal");
+            List.of("structures", "multiblocks", "spawns", "furniture", "journal", "replaced");
 
     @Override
     public StructureRuntimeComponents initialize(EmakiStructurePlugin plugin) {
@@ -99,16 +104,29 @@ final class StructureLifecycleCoordinator
                 () -> appConfigLoader.current().generate().queueTimeout());
         generationScheduler.start();
 
-        var blockEntityWriter = new BlockEntityWriter();
-        var generationFinalizer = new GenerationFinalizer(plugin, executionDispatcher,
-                blockEntityWriter, spawnSidecars, spawnExecutor, appConfigLoader::current);
-        var generationService = new GenerationService(plugin, executionDispatcher,
-                generationScheduler, generationFinalizer, appConfigLoader::current);
-        var commandRouter = new StructureCommandRouter(plugin, selectionManager,
-                generationService, templateRepository, appConfigLoader::current);
-
         var customBlockAdapter = new CustomBlockIdAdapter();
         var furnitureAdapter = new FurnitureIdAdapter();
+        var furniturePlacer = new FurniturePlacer(furnitureAdapter);
+        var furnitureSidecars = new FurnitureSidecarRepository(plugin,
+                plugin.getDataFolder().toPath(),
+                () -> appConfigLoader.current().furniture());
+        var blockEntityWriter = new BlockEntityWriter();
+        var rollbackService = new RollbackService(plugin, executionDispatcher,
+                appConfigLoader::current, blockEntityWriter, furniturePlacer,
+                plugin.dataPath("journal"));
+        rollbackService.start();
+        rollbackService.recoverStartup();
+        var generationFinalizer = new GenerationFinalizer(plugin, executionDispatcher,
+                blockEntityWriter, spawnSidecars, spawnExecutor, furnitureSidecars,
+                furniturePlacer, rollbackService, appConfigLoader::current);
+        var generationService = new GenerationService(plugin, executionDispatcher,
+                generationScheduler, generationFinalizer, rollbackService, appConfigLoader::current);
+        var replaceMarkers = new ReplaceMarkerStore(plugin.dataPath("replaced"));
+        var replaceListener = new StructureReplaceListener(plugin, generationService,
+                templateRepository, replaceMarkers, appConfigLoader::current);
+        var commandRouter = new StructureCommandRouter(plugin, selectionManager,
+                generationService, templateRepository, furnitureAdapter, appConfigLoader::current);
+
         for (String source : furnitureAdapter.presentSources()) {
             messageService.info("console.furniture_source_ready", Map.of("source", source));
         }
@@ -131,9 +149,10 @@ final class StructureLifecycleCoordinator
         return new StructureRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 appConfigLoader, bootstrapService, templateRepository, templateCache,
                 spawnSidecars, spawnQueue, spawnExecutor, selectionManager,
-                generationScheduler, blockEntityWriter, generationFinalizer,
-                generationService, commandRouter,
-                customBlockAdapter, furnitureAdapter, multiblockRepository, multiblockService);
+                generationScheduler, blockEntityWriter, rollbackService, generationFinalizer,
+                generationService, replaceListener, commandRouter,
+                customBlockAdapter, furnitureAdapter, furnitureSidecars, multiblockRepository,
+                multiblockService);
     }
 
     int reload(EmakiStructurePlugin plugin) {
@@ -156,6 +175,7 @@ final class StructureLifecycleCoordinator
         components.selectionManager().clearAllSessions();
         components.multiblockService().clearIndex();
         components.spawnSidecars().reload();
+        components.furnitureSidecars().reload();
         components.templateCache().invalidateAll();
         components.templateRepository().reload();
         components.multiblockRepository().reload();

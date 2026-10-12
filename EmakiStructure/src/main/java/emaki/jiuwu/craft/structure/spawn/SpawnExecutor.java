@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.structure.spawn;
 
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
+import emaki.jiuwu.craft.structure.rollback.GenerationJournal;
 import org.bukkit.Location;
 import org.bukkit.entity.LivingEntity;
 
@@ -35,7 +36,8 @@ public final class SpawnExecutor {
         this.respectEntityPolicy = respectEntityPolicy;
     }
 
-    public int schedule(SpawnContext context, SpawnEntry entry, int entryIndex, String templateId) {
+    public int schedule(SpawnContext context, SpawnEntry entry, int entryIndex, String templateId,
+            GenerationJournal journal) {
         AppConfig.EntityPolicy policy = entityPolicy.get();
         if (policy == AppConfig.EntityPolicy.NONE) {
             return 0;
@@ -50,14 +52,14 @@ public final class SpawnExecutor {
             Location location = SpawnPointSampler.sample(context, entry);
             location.setYaw(SpawnPointSampler.combinedYaw(context, entry));
             queue.submit(location, () -> spawnOne(context, entry, entryIndex, templateId,
-                    location, passive, conservative));
+                    location, passive, conservative, journal));
             scheduled++;
         }
         return scheduled;
     }
 
     private void spawnOne(SpawnContext context, SpawnEntry entry, int entryIndex, String templateId,
-            Location location, boolean passive, boolean conservative) {
+            Location location, boolean passive, boolean conservative, GenerationJournal journal) {
         SpawnOutcome outcome = dispatch(location, entry, templateId, entryIndex, conservative);
         if (!outcome.spawned()) {
             plugin.messageService().warning("console.spawn_entry_failed", Map.of(
@@ -70,6 +72,13 @@ public final class SpawnExecutor {
         LivingEntity spawned = outcome.entity();
         if (passive && shouldFilter(entry, spawned, conservative)) {
             spawned.remove();
+            return;
+        }
+        if (journal != null) {
+            Location spawnedLocation = spawned.getLocation();
+            journal.appendEntity(spawnedLocation.getWorld().getName(), spawned.getUniqueId(),
+                    spawnedLocation.getBlockX(), spawnedLocation.getBlockY(),
+                    spawnedLocation.getBlockZ());
         }
     }
 

@@ -30,7 +30,11 @@ public record ConfigIssue(Kind kind, String reasonKey, Map<String, Object> place
         RETRIGGER_ON_REFORM,
         SAMPLE_RECHECK,
         COOLDOWN_GLOBAL,
-        COOLDOWN_PER_PLAYER
+        COOLDOWN_PER_PLAYER,
+        REPLACE_RULE,
+        ROLLBACK_ENABLED,
+        ROLLBACK_JOURNAL_MAX_BYTES,
+        FURNITURE_ENABLED
     }
 
     public ConfigIssue {

@@ -21,6 +21,7 @@ public final class AppConfigParser {
         List<ConfigIssue> issues = new ArrayList<>();
         String language = readString(section, "language", defaults.language());
         String version = readString(section, "version", defaults.version());
+        List<AppConfig.ReplaceRule> replaceRules = parseReplaceRules(section, defaults.replaceRules(), issues);
         return new AppConfig(language, version,
                 parseGenerate(section.getSection("generate"), defaults.generate(), issues),
                 parseCache(section.getSection("cache"), defaults.cache(), issues),
@@ -29,7 +30,135 @@ public final class AppConfigParser {
                 parseSpawn(section.getSection("spawn"), defaults.spawn(), issues),
                 parseDetection(section.getSection("detection"), defaults.detection(), issues),
                 parseCooldown(section.getSection("cooldown"), defaults.cooldown(), issues),
+                replaceRules,
+                parseRollback(section.getSection("rollback"), defaults.rollback(), issues),
+                parseFurniture(section.getSection("furniture"), defaults.furniture(), issues),
                 List.copyOf(issues));
+    }
+
+    private static List<AppConfig.ReplaceRule> parseReplaceRules(YamlSection section,
+            List<AppConfig.ReplaceRule> fallback, List<ConfigIssue> issues) {
+        if (section == null) {
+            return fallback;
+        }
+        Object raw = section.get("replace_rules");
+        if (raw == null) {
+            return fallback;
+        }
+        if (!(raw instanceof List<?> entries)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, "replace_rules", raw, "list"));
+            return List.of();
+        }
+        List<AppConfig.ReplaceRule> rules = new ArrayList<>();
+        for (int index = 0; index < entries.size(); index++) {
+            String path = "replace_rules[" + index + "]";
+            Object entry = entries.get(index);
+            if (!(entry instanceof Map<?, ?> map)) {
+                issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path, entry, "mapping"));
+                continue;
+            }
+            AppConfig.ReplaceRule rule = parseReplaceRule(path, map, issues);
+            if (rule != null) {
+                rules.add(rule);
+            }
+        }
+        return List.copyOf(rules);
+    }
+
+    private static AppConfig.ReplaceRule parseReplaceRule(String path, Map<?, ?> map,
+            List<ConfigIssue> issues) {
+        Object applyToExisting = map.get("apply_to_existing");
+        if (Boolean.TRUE.equals(applyToExisting)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".apply_to_existing",
+                    applyToExisting, "false"));
+            return null;
+        }
+        Object rawStructure = map.get("structure");
+        if (!(rawStructure instanceof String structure) || structure.isBlank()
+                || !structure.toLowerCase(Locale.ROOT).startsWith("minecraft:")) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".structure",
+                    rawStructure, "minecraft:<structure_id>"));
+            return null;
+        }
+        Object rawTemplate = map.get("template");
+        if (!(rawTemplate instanceof String template) || !NameRules.isValid(template)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".template",
+                    rawTemplate, "name"));
+            return null;
+        }
+        double chance = 1.0d;
+        Object rawChance = map.get("chance");
+        if (rawChance != null) {
+            if (!(rawChance instanceof Number number)) {
+                issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".chance",
+                        rawChance, "[0.0, 1.0]"));
+                return null;
+            }
+            chance = number.doubleValue();
+            if (!(chance >= 0.0d) || !(chance <= 1.0d)) {
+                issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".chance",
+                        rawChance, "[0.0, 1.0]"));
+                return null;
+            }
+        }
+        Object rawWorlds = map.get("worlds");
+        if (rawWorlds != null && !(rawWorlds instanceof List<?>)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".worlds",
+                    rawWorlds, "list"));
+            return null;
+        }
+        Object rawBiomes = map.get("biomes");
+        if (rawBiomes != null && !(rawBiomes instanceof List<?>)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".biomes",
+                    rawBiomes, "list"));
+            return null;
+        }
+        Object rawEnabled = map.get("enabled");
+        if (rawEnabled != null && !(rawEnabled instanceof Boolean)) {
+            issues.add(invalid(ConfigIssue.Kind.REPLACE_RULE, path + ".enabled",
+                    rawEnabled, "true|false"));
+            return null;
+        }
+        return new AppConfig.ReplaceRule(
+                structure.toLowerCase(Locale.ROOT), template, chance,
+                asStringList(rawWorlds), asStringList(rawBiomes),
+                !(rawEnabled instanceof Boolean flag) || flag);
+    }
+
+    private static List<String> asStringList(Object raw) {
+        if (!(raw instanceof List<?> values)) {
+            return List.of();
+        }
+        List<String> result = new ArrayList<>();
+        for (Object value : values) {
+            if (value instanceof String text && !text.isBlank()) {
+                result.add(text.trim());
+            }
+        }
+        return List.copyOf(result);
+    }
+
+    private static AppConfig.RollbackSettings parseRollback(YamlSection section,
+            AppConfig.RollbackSettings defaults, List<ConfigIssue> issues) {
+        if (section == null) {
+            return defaults;
+        }
+        boolean enabled = readBoolean(section, "enabled",
+                ConfigIssue.Kind.ROLLBACK_ENABLED, defaults.enabled(), issues);
+        long maxBytes = readBoundedLong(section, "journal_max_bytes",
+                ConfigIssue.Kind.ROLLBACK_JOURNAL_MAX_BYTES, defaults.journalMaxBytes(),
+                1048576L, Long.MAX_VALUE, issues);
+        return new AppConfig.RollbackSettings(enabled, maxBytes);
+    }
+
+    private static AppConfig.FurnitureSettings parseFurniture(YamlSection section,
+            AppConfig.FurnitureSettings defaults, List<ConfigIssue> issues) {
+        if (section == null) {
+            return defaults;
+        }
+        boolean enabled = readBoolean(section, "enabled",
+                ConfigIssue.Kind.FURNITURE_ENABLED, defaults.enabled(), issues);
+        return new AppConfig.FurnitureSettings(enabled);
     }
 
     private static AppConfig.DetectionSettings parseDetection(YamlSection section,

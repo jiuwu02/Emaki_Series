@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.structure.generate;
 
+import emaki.jiuwu.craft.structure.rollback.GenerationJournal;
+
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -20,6 +22,7 @@ public final class GenerationJob {
     private volatile String abortReasonKey;
     private volatile String abortDetail;
     private volatile Outcome outcome;
+    private volatile GenerationJournal journal;
     private final Consumer<GenerationJob> settledListener;
 
     public GenerationJob(String templateId, int batchCount) {
@@ -75,6 +78,14 @@ public final class GenerationJob {
 
     public Outcome outcome() {
         return outcome;
+    }
+
+    public GenerationJournal journal() {
+        return journal;
+    }
+
+    public void attachJournal(GenerationJournal journal) {
+        this.journal = journal;
     }
 
     public void recordBatchFinished() {

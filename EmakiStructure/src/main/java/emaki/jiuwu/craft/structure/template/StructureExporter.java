@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.structure.template;
 
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarParser;
+import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
 import emaki.jiuwu.craft.structure.selection.SelectionBox;
 import emaki.jiuwu.craft.structure.template.nbt.NbtIo;
 import emaki.jiuwu.craft.structure.template.nbt.NbtValue;
@@ -16,6 +18,7 @@ import org.bukkit.util.BoundingBox;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 public final class StructureExporter {
@@ -29,6 +32,14 @@ public final class StructureExporter {
     }
 
     public record CapturedEntity(String type, double x, double y, double z, float yaw, float pitch) {
+    }
+
+    public record CapturedFurniture(String id, int x, int y, int z, double yaw, String facing) {
+    }
+
+    public record EntityCapture(List<CapturedEntity> entities,
+                                List<CapturedFurniture> furniture,
+                                int outOfSelection) {
     }
 
     private StructureExporter() {
@@ -50,16 +61,42 @@ public final class StructureExporter {
         return blocks;
     }
 
-    public static List<CapturedEntity> captureEntities(World world, SelectionBox subBox, SelectionBox fullBox) {
-        List<CapturedEntity> captured = new ArrayList<>();
+    public static EntityCapture captureEntities(World world, SelectionBox subBox, SelectionBox fullBox,
+            FurnitureIdAdapter adapter) {
+        List<CapturedEntity> entities = new ArrayList<>();
+        List<CapturedFurniture> furniture = new ArrayList<>();
+        int outOfSelection = 0;
         BoundingBox bounds = new BoundingBox(subBox.minX(), subBox.minY(), subBox.minZ(),
                 subBox.maxX() + 1, subBox.maxY() + 1, subBox.maxZ() + 1);
+        boolean anySource = adapter.anySourcePresent();
         for (Entity entity : world.getNearbyEntities(bounds, candidate -> !(candidate instanceof Player))) {
             Location location = entity.getLocation();
             if (!withinSlice(location, subBox)) {
                 continue;
             }
-            captured.add(new CapturedEntity(
+            String furnitureId = anySource ? adapter.identify(entity).orElse(null) : null;
+            if (furnitureId != null) {
+                if (!withinSelection(entity.getBoundingBox(), fullBox)) {
+                    outOfSelection++;
+                    continue;
+                }
+                Block anchor = resolveAnchor(world, location);
+                if (!withinSelection(anchor, fullBox)) {
+                    outOfSelection++;
+                    continue;
+                }
+                double yaw = FurnitureSidecarParser.normalizeYaw(location.getYaw());
+                String canonical = canonicalId(furnitureId,
+                        adapter.identifySource(entity).orElse(null));
+                furniture.add(new CapturedFurniture(
+                        canonical.toLowerCase(Locale.ROOT),
+                        anchor.getX() - fullBox.minX(),
+                        anchor.getY() - fullBox.minY(),
+                        anchor.getZ() - fullBox.minZ(),
+                        yaw, FurnitureSidecarParser.facingOf(yaw)));
+                continue;
+            }
+            entities.add(new CapturedEntity(
                     entityTypeKey(entity),
                     location.getX() - fullBox.minX(),
                     location.getY() - fullBox.minY(),
@@ -67,7 +104,34 @@ public final class StructureExporter {
                     location.getYaw(),
                     location.getPitch()));
         }
-        return captured;
+        return new EntityCapture(entities, furniture, outOfSelection);
+    }
+
+    private static String canonicalId(String identified, String source) {
+        if (source == null) {
+            return identified;
+        }
+        String namespace = source.toLowerCase(Locale.ROOT);
+        if (identified.startsWith(namespace + ":")) {
+            return identified;
+        }
+        return namespace + ":" + identified;
+    }
+
+    private static Block resolveAnchor(World world, Location location) {
+        return world.getBlockAt(location.getBlockX(), location.getBlockY() - 1, location.getBlockZ());
+    }
+
+    private static boolean withinSelection(BoundingBox bounds, SelectionBox box) {
+        return bounds.getMinX() >= box.minX() && bounds.getMaxX() <= box.maxX() + 1
+                && bounds.getMinY() >= box.minY() && bounds.getMaxY() <= box.maxY() + 1
+                && bounds.getMinZ() >= box.minZ() && bounds.getMaxZ() <= box.maxZ() + 1;
+    }
+
+    private static boolean withinSelection(Block block, SelectionBox box) {
+        return block.getX() >= box.minX() && block.getX() <= box.maxX()
+                && block.getY() >= box.minY() && block.getY() <= box.maxY()
+                && block.getZ() >= box.minZ() && block.getZ() <= box.maxZ();
     }
 
     private static boolean withinSlice(Location location, SelectionBox subBox) {
@@ -84,7 +148,7 @@ public final class StructureExporter {
         return key.getNamespace() + ":" + key.getKey();
     }
 
-    private static NbtValue.CompoundTag readContainer(Block block) {
+    public static NbtValue.CompoundTag readContainer(Block block) {
         if (!(block.getState() instanceof Container container)) {
             return null;
         }
