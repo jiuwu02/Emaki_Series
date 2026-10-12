@@ -158,8 +158,7 @@ public final class CorePluginLifecycle {
         } catch (Throwable throwable) {
             failures.add(safeUnwrap(throwable));
         } finally {
-            // 关闭收尾必须始终完成: 任何阶段(含 catch 内的类加载)抛出时,
-            // 也要给出关闭报告, 避免关闭线程中断导致 whenComplete 永不触发。
+
             ShutdownReport report = new ShutdownReport(
                     drained,
                     schedulerTerminated,
@@ -174,7 +173,7 @@ public final class CorePluginLifecycle {
         try {
             return AsyncFailures.unwrap(throwable);
         } catch (Throwable failure) {
-            // 关闭阶段插件 jar 可能已被外部关闭, 解包类加载失败时退回原始异常
+
             return throwable;
         }
     }

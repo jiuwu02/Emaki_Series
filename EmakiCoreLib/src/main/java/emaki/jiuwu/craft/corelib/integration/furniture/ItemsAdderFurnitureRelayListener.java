@@ -17,10 +17,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 
-/**
- * Normalises ItemsAdder furniture events (simple and complex variants) for the relay. The anchor is
- * the base entity's block, matching both consuming modules' original behaviour.
- */
 final class ItemsAdderFurnitureRelayListener implements Listener {
 
     private static final String NAMESPACE = ItemsAdderFurnitureBridgeApi.NAMESPACE;

@@ -15,10 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
-/**
- * Normalises CraftEngine furniture events (including the hit event, raised as
- * {@link FurnitureEventType#HIT} so subscribers keep their own interpretations) for the relay.
- */
 final class CraftEngineFurnitureRelayListener implements Listener {
 
     private static final String NAMESPACE = CraftEngineFurnitureBridgeApi.NAMESPACE;

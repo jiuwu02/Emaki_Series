@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.cooking.legacy.CookingLegacyEntry;
 
-
 final class CookingCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_USE = CookingPermissions.USE;

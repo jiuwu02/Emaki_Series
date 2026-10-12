@@ -125,7 +125,6 @@ final class GemGuiSession implements GemPlayerGuiSession {
         this.returnTargetOnClose = returnTargetOnClose;
     }
 
-
     public void setTargetItemPreservingPending(ItemStack targetItem) {
         setTargetItem(targetItem, false);
     }

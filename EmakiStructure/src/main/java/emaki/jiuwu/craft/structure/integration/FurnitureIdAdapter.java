@@ -12,10 +12,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
-/**
- * Thin shell over CoreLib's furniture bridges: reverse look-up delegates to the shared bridges,
- * while the nearby-entity scan used by multiblock matching and the namespace helpers stay here.
- */
 public final class FurnitureIdAdapter {
 
     public static final List<String> KNOWN_SOURCES =

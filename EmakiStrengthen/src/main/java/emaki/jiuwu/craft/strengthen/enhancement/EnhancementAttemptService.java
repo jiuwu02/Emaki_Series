@@ -569,7 +569,6 @@ public final class EnhancementAttemptService {
         return (player == null ? "-" : player.getUniqueId().toString()) + ":" + operationId;
     }
 
-
     private int attemptFingerprint(@Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
             @Nullable List<ItemStack> supplied) {
@@ -579,7 +578,6 @@ public final class EnhancementAttemptService {
         return Objects.hash(recipe == null ? "" : recipe.id(), materialIdentities, target,
                 supplied == null ? List.of() : supplied);
     }
-
 
     private AttemptStart beginOperation(String journalKey, @Nullable UUID playerId, int fingerprint) {
         CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
@@ -613,7 +611,6 @@ public final class EnhancementAttemptService {
     private void finishInFlight(String journalKey) {
         operationJournal.release(journalKey);
     }
-
 
     private void pruneJournal() {
         operationJournal.prune(entry -> {
@@ -807,7 +804,6 @@ public final class EnhancementAttemptService {
         snapshot.enrichVariables(builder);
         return builder.build();
     }
-
 
     private @Nullable List<MaterialMatch> matchMaterials(EnhancementRecipe recipe,
             Player player,
@@ -1443,12 +1439,10 @@ public final class EnhancementAttemptService {
         }
     }
 
-
     private record AttemptStart(boolean started,
             @Nullable EnhancementAttemptResult existingResult,
             String errorKey) {
     }
-
 
     private record JournalEntry(int fingerprint, @Nullable EnhancementAttemptResult result) {
     }

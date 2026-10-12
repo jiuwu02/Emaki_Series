@@ -175,7 +175,6 @@ public final class OperationTemplateRenderer {
         return result;
     }
 
-    // 表达式产生的行尾段：registry 存在时交由 resolver 链 + PAPI，否则保持旧 renderPapi 直连
     private String renderTail(ActionContext context, String line, DebugLogger debugLogger, String source) {
         if (placeholderRegistry != null) {
             return placeholderRegistry.resolve(context, Map.of(), line);

@@ -19,10 +19,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
 
-/**
- * Oraxen custom-block (noteblock / stringblock) events. Furniture events are handled by CoreLib's
- * furniture relay; see {@code CookingFurnitureEventSubscriber}.
- */
 final class OraxenCookingStationListener implements Listener {
 
     private final CookingStationListener stationListener;

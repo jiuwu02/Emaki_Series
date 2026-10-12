@@ -21,15 +21,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEvent;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEventListener;
 
-/**
- * Single fan-out point for normalised furniture events.
- *
- * <p>The relay owns one Bukkit listener per furniture source (registered lazily, only while that
- * source plugin is enabled, because the listener classes link against the source plugin's event
- * classes) and fans each event out to every subscriber. Subscribers are dropped automatically when
- * their plugin is disabled, and a subscriber that throws never breaks the source event or the other
- * subscribers.
- */
 public final class FurnitureEventRelay implements Listener {
 
     private final JavaPlugin owner;
@@ -41,10 +32,6 @@ public final class FurnitureEventRelay implements Listener {
         this.owner = owner;
     }
 
-    /**
-     * Registers a subscriber and ensures source listeners exist for every already-enabled furniture
-     * source.
-     */
     public synchronized void subscribe(Plugin subscriber, FurnitureEventListener listener) {
         if (subscriber == null || listener == null) {
             return;
@@ -53,14 +40,12 @@ public final class FurnitureEventRelay implements Listener {
         ensureSourceListeners();
     }
 
-    /** Drops a subscriber; safe to call when it was never subscribed. */
     public synchronized void uninstall(Plugin subscriber) {
         if (subscriber != null) {
             subscribers.remove(subscriber);
         }
     }
 
-    /** Registers listeners for each enabled furniture source that is not registered yet. */
     public synchronized void ensureSourceListeners() {
         registerSource("ItemsAdder", () -> new ItemsAdderFurnitureRelayListener(this));
         registerSource("Oraxen", () -> new OraxenFurnitureRelayListener(this));
@@ -82,7 +67,6 @@ public final class FurnitureEventRelay implements Listener {
         uninstall(event.getPlugin());
     }
 
-    /** Dispatches one event; stops as soon as the underlying Bukkit event gets cancelled. */
     void dispatch(FurnitureEvent event, Cancellable bukkitEvent) {
         List<FurnitureEventListener> targets;
         synchronized (this) {
@@ -105,7 +89,6 @@ public final class FurnitureEventRelay implements Listener {
         }
     }
 
-    /** {@return the lower-cased {@code namespace:id} form, or null when the raw id is blank} */
     static String normalizedId(String namespace, String rawId) {
         if (rawId == null || rawId.isBlank()) {
             return null;

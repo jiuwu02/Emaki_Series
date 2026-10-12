@@ -107,8 +107,7 @@ public record SourceRuleConfig(String id,
                     string(map.get("exp_formula"), "0"),
                     declaresItemCondition(map)
                             ? ItemRequirement.fromConfig(map)
-                            // 来源规则允许无物品条件（按 entity/block 等维度判定），
-                            // 此时按空需求处理，不触发“未声明 item_sources/matcher”的预检拒绝。
+
                             : ItemRequirement.fromConfig(null)
             );
         }

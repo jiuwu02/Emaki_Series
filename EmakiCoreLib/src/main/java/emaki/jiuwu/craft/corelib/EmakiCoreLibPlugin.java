@@ -1091,10 +1091,6 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         return oraxenFurnitureBridge;
     }
 
-    /**
-     * {@return the single fan-out point for normalised furniture events; may be null very early in
-     * startup before {@link #onEnable()} finishes wiring}
-     */
     public FurnitureEventRelay furnitureEventRelay() {
         return furnitureEventRelay;
     }

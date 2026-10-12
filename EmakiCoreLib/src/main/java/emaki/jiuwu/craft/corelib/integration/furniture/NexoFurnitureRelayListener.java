@@ -14,11 +14,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.EquipmentSlot;
 
-/**
- * Normalises Nexo furniture events for the relay. The anchor prefers the base entity's block (the
- * furniture's occupied block, what EmakiCooking matched stations against) and falls back to the
- * interaction point (EmakiStructure's original preference).
- */
 final class NexoFurnitureRelayListener implements Listener {
 
     private static final String NAMESPACE = NexoFurnitureBridgeApi.NAMESPACE;

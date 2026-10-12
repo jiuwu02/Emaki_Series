@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
 
-
 final class ForgeCommandRouter implements TabExecutor {
 
     private static final String PERMISSION_ROOT = "emakiforge";

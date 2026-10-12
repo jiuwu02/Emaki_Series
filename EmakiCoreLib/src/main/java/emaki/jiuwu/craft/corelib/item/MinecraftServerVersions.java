@@ -4,19 +4,11 @@ import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Minecraft 服务器版本比较工具。
- *
- * <p>需要同时兼容两套版本命名：旧式 {@code 1.21.x} 与新式 {@code 26.x}（Mojang 在 1.21.11 之后
- * 改用年份式命名，{@code 26.1} 晚于 {@code 1.21.11}）。比较时统一按数字段逐段比较，缺失段补 0，
- * 因此 {@code 26.1 > 1.21.11} 会自动成立，无需为两套命名分别写分支。
- */
 public final class MinecraftServerVersions {
 
     private MinecraftServerVersions() {
     }
 
-    /** 当前运行服务器的 Minecraft 版本；无法获取时返回空串。 */
     public static String currentServerVersion() {
         try {
             return Bukkit.getServer() == null ? "" : Texts.toStringSafe(Bukkit.getServer().getMinecraftVersion());
@@ -25,10 +17,6 @@ public final class MinecraftServerVersions {
         }
     }
 
-    /**
-     * 判断服务器版本是否满足最低版本表达式（如 {@code ">=1.21.11"}）。
-     * 支持 {@code >= > <= < =} 前缀，裸版本号按 {@code >=} 处理；表达式为空或服务器版本未知时一律返回 true。
-     */
     public static boolean satisfies(String requirement, String serverVersion) {
         if (Texts.isBlank(requirement) || Texts.isBlank(serverVersion)) {
             return true;
@@ -55,7 +43,6 @@ public final class MinecraftServerVersions {
         };
     }
 
-    /** 比较两个版本号，返回负数/0/正数。 */
     public static int compare(String left, String right) {
         int[] a = segments(left);
         int[] b = segments(right);
@@ -83,7 +70,6 @@ public final class MinecraftServerVersions {
         return result;
     }
 
-    /** 去掉 {@code -R0.1-SNAPSHOT} 之类的后缀，仅保留版本号主体（数字与点）。 */
     private static String normalize(String version) {
         if (version == null) {
             return "";

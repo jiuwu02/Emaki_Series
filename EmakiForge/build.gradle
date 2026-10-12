@@ -22,7 +22,7 @@ dependencies {
     testImplementation libs.exp4j
     testImplementation libs.boosted.yaml
     testImplementation project(':EmakiAttribute')
-    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.5')
+    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.8')
     testImplementation libs.graalvm.polyglot
     testImplementation libs.mockbukkit
 }

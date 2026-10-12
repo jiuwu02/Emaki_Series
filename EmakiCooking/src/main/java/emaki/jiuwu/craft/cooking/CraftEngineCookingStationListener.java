@@ -15,10 +15,6 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
-/**
- * CraftEngine custom-block events. Furniture events (including hit) are handled by CoreLib's
- * furniture relay; see {@code CookingFurnitureEventSubscriber}.
- */
 final class CraftEngineCookingStationListener implements Listener {
 
     private final CookingStationListener stationListener;

@@ -1,6 +1,5 @@
 package emaki.jiuwu.craft.corelib.config.precheck;
 
-
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;

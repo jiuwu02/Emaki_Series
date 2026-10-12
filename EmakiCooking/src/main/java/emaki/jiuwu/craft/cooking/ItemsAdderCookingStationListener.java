@@ -14,10 +14,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
 
-/**
- * ItemsAdder custom-block events. Furniture events (simple and complex) are handled by CoreLib's
- * furniture relay; see {@code CookingFurnitureEventSubscriber}.
- */
 final class ItemsAdderCookingStationListener implements Listener {
 
     private final CookingStationListener stationListener;

@@ -19,6 +19,6 @@ dependencies {
     // 原 test 作用域。
     testImplementation libs.junit.jupiter
     testImplementation libs.boosted.yaml
-    testImplementation emakiDep(':EmakiStorage', 'emaki.jiuwu.craft:emaki-storage:1.1.2')
+    testImplementation emakiDep(':EmakiStorage', 'emaki.jiuwu.craft:emaki-storage:1.1.4')
     testImplementation libs.mockbukkit
 }

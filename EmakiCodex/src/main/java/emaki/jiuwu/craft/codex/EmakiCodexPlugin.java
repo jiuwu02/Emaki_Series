@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-
 import emaki.jiuwu.craft.codex.action.CodexStageRegistrar;
 import emaki.jiuwu.craft.codex.advancement.AdvancementJsonBuilder;
 import emaki.jiuwu.craft.codex.advancement.AdvancementListener;

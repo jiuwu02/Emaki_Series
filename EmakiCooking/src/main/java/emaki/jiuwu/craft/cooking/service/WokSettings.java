@@ -109,7 +109,7 @@ final class WokSettings {
     }
 
     String failureOutputSource() {
-        // failure 是输出节点，规范键为单数 item_source；复数 item_sources 为带 WARN 的读取回退。
+
         YamlSection configuration = this.configuration.get();
         Object raw = configuration.contains("stations.wok.failure.item_source")
                 ? configuration.get("stations.wok.failure.item_source")

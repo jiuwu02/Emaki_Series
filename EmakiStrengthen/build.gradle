@@ -23,8 +23,8 @@ dependencies {
     testImplementation libs.junit.jupiter
     testImplementation libs.boosted.yaml
     testImplementation project(':EmakiAttribute')
-    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.5')
-    testImplementation emakiDep(':EmakiItem', 'emaki.jiuwu.craft:emaki-item:2.8.13')
+    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.8')
+    testImplementation emakiDep(':EmakiItem', 'emaki.jiuwu.craft:emaki-item:2.8.16')
     testImplementation libs.graalvm.polyglot
     testImplementation libs.mockbukkit
 }

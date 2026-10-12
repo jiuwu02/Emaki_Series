@@ -6,11 +6,6 @@ import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEvent;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEventListener;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 
-/**
- * Bridges CoreLib's normalised furniture events into station dispatch. Replaces the four
- * per-source listeners that EmakiCooking used to register itself; placement is ignored (stations
- * only react to interaction and removal).
- */
 final class CookingFurnitureEventSubscriber implements FurnitureEventListener {
 
     private final CookingStationListener stationListener;
@@ -47,7 +42,7 @@ final class CookingFurnitureEventSubscriber implements FurnitureEventListener {
                     source
             ));
             case PLACE -> {
-                // Stations do not react to placement.
+
             }
         }
     }

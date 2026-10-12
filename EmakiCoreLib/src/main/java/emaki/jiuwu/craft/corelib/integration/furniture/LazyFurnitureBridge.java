@@ -9,11 +9,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * Lazy holder mirroring {@code LazyPluginBridge}: the delegate is created only once the backing
- * furniture plugin is enabled, and a {@link LinkageError} is logged once and degrades the bridge to
- * permanent absence.
- */
 abstract class LazyFurnitureBridge implements FurnitureBridge {
 
     private final JavaPlugin owner;
@@ -33,8 +28,7 @@ abstract class LazyFurnitureBridge implements FurnitureBridge {
         if (failed) {
             return false;
         }
-        // "available" means installed: callers use it for presence reporting at startup, when the
-        // source plugin may not be enabled yet. Actual queries still resolve only while enabled.
+
         return Bukkit.getPluginManager().getPlugin(pluginName) != null;
     }
 

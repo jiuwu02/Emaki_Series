@@ -283,8 +283,6 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         temporaryAttributeService.discardEntity(entityId);
     }
 
-
-
     long projectileTtlMs() {
         return PROJECTILE_TTL_MS;
     }

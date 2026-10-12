@@ -4,7 +4,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-
 import emaki.jiuwu.craft.accessory.config.AccessorySlotSourceConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfig;
 import emaki.jiuwu.craft.accessory.config.AppConfigParser;

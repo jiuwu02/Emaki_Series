@@ -13,10 +13,6 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.EquipmentSlot;
 
-/**
- * Normalises Oraxen furniture events for the relay. The anchor prefers the event's block and falls
- * back to the base entity's block, matching both consuming modules' original behaviour.
- */
 final class OraxenFurnitureRelayListener implements Listener {
 
     private static final String NAMESPACE = OraxenFurnitureBridgeApi.NAMESPACE;
