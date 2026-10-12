@@ -118,9 +118,21 @@ public final class BootstrapService {
     }
 
     private static String describeFailure(IOException exception) {
-        String message = exception.getMessage();
-        return exception.getClass().getSimpleName()
-                + (message == null || message.isBlank() ? "" : ": " + message);
+        StringBuilder builder = new StringBuilder();
+        appendDetail(builder, exception);
+        for (Throwable suppressed : exception.getSuppressed()) {
+            builder.append(" | ");
+            appendDetail(builder, suppressed);
+        }
+        return builder.toString();
+    }
+
+    private static void appendDetail(StringBuilder builder, Throwable throwable) {
+        builder.append(throwable.getClass().getSimpleName());
+        String message = throwable.getMessage();
+        if (message != null && !message.isBlank()) {
+            builder.append(": ").append(message);
+        }
     }
 
     private void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) {
