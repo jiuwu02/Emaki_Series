@@ -43,7 +43,7 @@ console:
   bootstrap_skip: "[loader] <gray>release_default_data=false, skipped default data file generation.</gray>"
   default_file_missing: "[loader] <yellow>Missing bundled default resource: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>Failed to save default resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>Failed to save versioned resource: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
   # Console: rebuilding the level leaderboard failed
   leaderboard_rebuild_failed: "Failed to rebuild level leaderboard"

@@ -43,7 +43,7 @@ console:
   bootstrap_skip: "[loader] <gray>release_default_data=false，跳过默认数据文件生成</gray>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存版本化资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
   # 控制台：重建等级排行榜失败
   leaderboard_rebuild_failed: "重建等级排行榜失败"

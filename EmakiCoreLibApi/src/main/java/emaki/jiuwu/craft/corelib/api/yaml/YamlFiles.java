@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -380,10 +379,31 @@ public final class YamlFiles {
     }
 
     private static void moveReplacing(Path source, Path target) throws IOException {
+        IOException atomicFailure;
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException _) {
+            return;
+        } catch (IOException exception) {
+            atomicFailure = exception;
+        }
+        IOException moveFailure;
+        try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
+            return;
+        } catch (IOException exception) {
+            moveFailure = exception;
+        }
+        try {
+            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
+        } catch (IOException copyFailure) {
+            copyFailure.addSuppressed(moveFailure);
+            copyFailure.addSuppressed(atomicFailure);
+            throw copyFailure;
+        }
+        try {
+            Files.deleteIfExists(source);
+        } catch (IOException cleanupFailure) {
+            moveFailure.addSuppressed(cleanupFailure);
         }
     }
 

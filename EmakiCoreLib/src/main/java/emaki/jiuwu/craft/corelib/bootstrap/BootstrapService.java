@@ -112,9 +112,15 @@ public final class BootstrapService {
         } catch (IOException exception) {
             warning("console.bootstrap_save_failed", Map.of(
                     "path", relativePath,
-                    "error", String.valueOf(exception.getMessage())
+                    "error", describeFailure(exception)
             ));
         }
+    }
+
+    private static String describeFailure(IOException exception) {
+        String message = exception.getMessage();
+        return exception.getClass().getSimpleName()
+                + (message == null || message.isBlank() ? "" : ": " + message);
     }
 
     private void logVersionUpdate(String relativePath, VersionedYamlFile versionedFile) {
