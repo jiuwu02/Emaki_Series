@@ -108,12 +108,12 @@ final class StructureLifecycleCoordinator
                 generationService, templateRepository, appConfigLoader::current);
 
         var customBlockAdapter = new CustomBlockIdAdapter();
-        var furnitureAdapter = new FurnitureIdAdapter(plugin);
-        for (String source : furnitureAdapter.absentSources()) {
-            messageService.warning("console.furniture_source_absent", Map.of("source", source));
+        var furnitureAdapter = new FurnitureIdAdapter();
+        for (String source : furnitureAdapter.presentSources()) {
+            messageService.info("console.furniture_source_ready", Map.of("source", source));
         }
-        for (String namespace : customBlockAdapter.unavailableKnownNamespaces()) {
-            messageService.warning("console.custom_block_source_absent",
+        for (String namespace : customBlockAdapter.availableKnownNamespaces()) {
+            messageService.info("console.custom_block_source_ready",
                     Map.of("namespace", namespace));
         }
         var multiblockRepository = new MultiblockRepository(plugin.dataPath("multiblocks"),

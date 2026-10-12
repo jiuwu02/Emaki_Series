@@ -6,20 +6,19 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import net.momirealms.craftengine.bukkit.api.event.CustomBlockBreakEvent;
 import net.momirealms.craftengine.bukkit.api.event.CustomBlockInteractEvent;
-import net.momirealms.craftengine.bukkit.api.event.FurnitureBreakEvent;
-import net.momirealms.craftengine.bukkit.api.event.FurnitureHitEvent;
-import net.momirealms.craftengine.bukkit.api.event.FurnitureInteractEvent;
-import net.momirealms.craftengine.bukkit.entity.furniture.BukkitFurniture;
 import net.momirealms.craftengine.core.block.BlockDefinition;
 import net.momirealms.craftengine.core.entity.player.InteractionHand;
 import net.momirealms.craftengine.core.util.Key;
-import org.bukkit.Location;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 
+/**
+ * CraftEngine custom-block events. Furniture events (including hit) are handled by CoreLib's
+ * furniture relay; see {@code CookingFurnitureEventSubscriber}.
+ */
 final class CraftEngineCookingStationListener implements Listener {
 
     private final CookingStationListener stationListener;
@@ -61,67 +60,6 @@ final class CraftEngineCookingStationListener implements Listener {
                 event::setCancelled,
                 source
         ));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCraftEngineFurnitureInteract(FurnitureInteractEvent event) {
-        Block block = anchorBlock(event.location());
-        ItemSourceRef source = craftEngineSource(event.furniture());
-        Player player = event.player();
-        if (player == null || block == null || source == null) {
-            return;
-        }
-        stationListener.dispatchInteraction(new StationInteraction(
-                player,
-                block,
-                false,
-                true,
-                event.hand() == InteractionHand.MAIN_HAND,
-                event::setCancelled,
-                source
-        ));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCraftEngineFurnitureHit(FurnitureHitEvent event) {
-        Block block = anchorBlock(event.location());
-        ItemSourceRef source = craftEngineSource(event.furniture());
-        Player player = event.player();
-        if (player == null || block == null || source == null) {
-            return;
-        }
-        stationListener.dispatchInteraction(new StationInteraction(
-                player,
-                block,
-                true,
-                false,
-                true,
-                event::setCancelled,
-                source
-        ));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onCraftEngineFurnitureBreak(FurnitureBreakEvent event) {
-        Block block = anchorBlock(event.location());
-        ItemSourceRef source = craftEngineSource(event.furniture());
-        if (block == null || source == null) {
-            return;
-        }
-        stationListener.dispatchBreak(new StationBreakContext(
-                event.player(),
-                block,
-                event::setCancelled,
-                source
-        ));
-    }
-
-    private Block anchorBlock(Location location) {
-        return location == null || location.getWorld() == null ? null : location.getBlock();
-    }
-
-    private ItemSourceRef craftEngineSource(BukkitFurniture furniture) {
-        return craftEngineSource(furniture == null ? null : furniture.id());
     }
 
     private ItemSourceRef craftEngineSource(BlockDefinition blockDefinition) {

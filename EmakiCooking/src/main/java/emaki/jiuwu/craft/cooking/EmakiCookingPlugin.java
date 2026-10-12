@@ -431,6 +431,8 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         registerItemsAdderEventHandlers();
         registerNexoEventHandlers();
         registerOraxenEventHandlers();
+        coreLib().furnitureEventRelay().subscribe(this,
+                new CookingFurnitureEventSubscriber(stationListener));
         registerNutritionEventHandlers();
     }
 

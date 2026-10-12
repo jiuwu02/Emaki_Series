@@ -128,11 +128,11 @@ public final class CustomBlockIdAdapter {
         return false;
     }
 
-    public List<String> unavailableKnownNamespaces() {
+    public List<String> availableKnownNamespaces() {
         return KNOWN_NAMESPACES.stream()
                 .filter(namespace -> {
                     CustomBlockBridge bridge = bridges.get(namespace);
-                    return bridge == null || !bridge.available();
+                    return bridge != null && bridge.available();
                 })
                 .toList();
     }

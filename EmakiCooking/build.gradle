@@ -1,5 +1,5 @@
 // EmakiCooking（原 EmakiCooking/pom.xml）。
-version = '4.3.7'
+version = '4.3.8'
 
 dependencies {
     // 原 shade artifactSet 白名单。

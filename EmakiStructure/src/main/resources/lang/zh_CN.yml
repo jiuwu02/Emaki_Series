@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.0"
+version: "1.0.1"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -37,9 +37,9 @@ console:
   # 占位符：%template%、%count%
   template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析，已按 legacy_policy 跳过</yellow>"
   # 占位符：%source%
-  furniture_source_absent: "[loader] <yellow>家具源 <white>%source%</white> 未安装：含该源家具成员的多方块定义将永不匹配</yellow>"
+  furniture_source_ready: "[loader] <gray>已接入家具源: <aqua>%source%</aqua></gray>"
   # 占位符：%namespace%
-  custom_block_source_absent: "[loader] <yellow>自定义方块命名空间 <white>%namespace%</white> 不可用：含该命名空间方块成员的多方块定义将永不匹配</yellow>"
+  custom_block_source_ready: "[loader] <gray>已接入自定义方块命名空间: <aqua>%namespace%</aqua></gray>"
 
 command:
   usage: "<gray>用法：/ems <get|place|select|export> ...</gray>"

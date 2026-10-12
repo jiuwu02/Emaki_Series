@@ -88,9 +88,15 @@ import emaki.jiuwu.craft.corelib.command.CoreLibCommandRouter;
 import emaki.jiuwu.craft.corelib.economy.EconomyManager;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.furniture.FurnitureBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.apiimpl.DefaultEmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.integration.CraftEngineBlockBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.furniture.CraftEngineFurnitureBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.furniture.FurnitureEventRelay;
+import emaki.jiuwu.craft.corelib.integration.furniture.ItemsAdderFurnitureBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.furniture.NexoFurnitureBridgeProvider;
+import emaki.jiuwu.craft.corelib.integration.furniture.OraxenFurnitureBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
 import emaki.jiuwu.craft.corelib.integration.ItemsAdderBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
@@ -210,6 +216,11 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     private final CustomBlockBridge nexoBlockBridge = new NexoBlockBridgeProvider(this);
     private final CustomBlockBridge oraxenBlockBridge = new OraxenBlockBridgeProvider(this);
     private final MythicMobBridge mythicMobBridge = new MythicMobBridgeProvider(this);
+    private final FurnitureBridge craftEngineFurnitureBridge = new CraftEngineFurnitureBridgeProvider(this);
+    private final FurnitureBridge itemsAdderFurnitureBridge = new ItemsAdderFurnitureBridgeProvider(this);
+    private final FurnitureBridge nexoFurnitureBridge = new NexoFurnitureBridgeProvider(this);
+    private final FurnitureBridge oraxenFurnitureBridge = new OraxenFurnitureBridgeProvider(this);
+    private FurnitureEventRelay furnitureEventRelay;
     private EmakiItemAssemblyService itemAssemblyService;
     private final EmakiEventBus eventBus
             = new EmakiEventBus();
@@ -236,6 +247,8 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         executionDispatcher = loadedExecution.dispatcher();
         threadOwnership = loadedExecution.ownership();
         coreLibApiBridge = new DefaultEmakiCoreLibApi(this);
+        furnitureEventRelay = new FurnitureEventRelay(this);
+        getServer().getPluginManager().registerEvents(furnitureEventRelay, this);
         ensureBundledFile("config.yml");
         configModel = loadConfigModel();
         initializeServices();
@@ -1062,6 +1075,30 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         return oraxenBlockBridge;
     }
 
+    public FurnitureBridge craftEngineFurnitureBridge() {
+        return craftEngineFurnitureBridge;
+    }
+
+    public FurnitureBridge itemsAdderFurnitureBridge() {
+        return itemsAdderFurnitureBridge;
+    }
+
+    public FurnitureBridge nexoFurnitureBridge() {
+        return nexoFurnitureBridge;
+    }
+
+    public FurnitureBridge oraxenFurnitureBridge() {
+        return oraxenFurnitureBridge;
+    }
+
+    /**
+     * {@return the single fan-out point for normalised furniture events; may be null very early in
+     * startup before {@link #onEnable()} finishes wiring}
+     */
+    public FurnitureEventRelay furnitureEventRelay() {
+        return furnitureEventRelay;
+    }
+
     @Override
     public DebugLogger debugLogger() {
         return debugLogger;
@@ -1097,6 +1134,11 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         registerService(NexoBlockBridgeProvider.class, (NexoBlockBridgeProvider) nexoBlockBridge);
         registerService(OraxenBlockBridgeProvider.class, (OraxenBlockBridgeProvider) oraxenBlockBridge);
         registerService(MythicMobBridge.class, mythicMobBridge);
+        registerService(CraftEngineFurnitureBridgeProvider.class, (CraftEngineFurnitureBridgeProvider) craftEngineFurnitureBridge);
+        registerService(ItemsAdderFurnitureBridgeProvider.class, (ItemsAdderFurnitureBridgeProvider) itemsAdderFurnitureBridge);
+        registerService(NexoFurnitureBridgeProvider.class, (NexoFurnitureBridgeProvider) nexoFurnitureBridge);
+        registerService(OraxenFurnitureBridgeProvider.class, (OraxenFurnitureBridgeProvider) oraxenFurnitureBridge);
+        registerService(FurnitureEventRelay.class, furnitureEventRelay);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
         registerService(EmakiEventBus.class, eventBus);
     }

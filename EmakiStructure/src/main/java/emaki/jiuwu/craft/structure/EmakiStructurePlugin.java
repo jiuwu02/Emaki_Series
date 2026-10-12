@@ -18,10 +18,7 @@ import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.StructureConfigPrecheckContributor;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.apiimpl.ServiceBackedStructureBridge;
-import emaki.jiuwu.craft.structure.integration.furniture.CraftEngineFurnitureListener;
-import emaki.jiuwu.craft.structure.integration.furniture.ItemsAdderFurnitureListener;
-import emaki.jiuwu.craft.structure.integration.furniture.NexoFurnitureListener;
-import emaki.jiuwu.craft.structure.integration.furniture.OraxenFurnitureListener;
+import emaki.jiuwu.craft.structure.integration.furniture.StructureFurnitureEventSubscriber;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
 import emaki.jiuwu.craft.structure.multiblock.listener.BlockChangeDetectListener;
 import emaki.jiuwu.craft.structure.multiblock.listener.MultiblockInteractListener;
@@ -29,7 +26,6 @@ import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
 import org.bukkit.event.HandlerList;
-import org.bukkit.event.Listener;
 
 import java.util.List;
 import java.util.Set;
@@ -42,12 +38,11 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
 
     private static final String STARTUP_ASCII = """
- _____       __             ____            _ __      __
-/ ___/____  / /___  ___    / __ \\____  ____ _(_) /_____/ /
-\\__ \\/ __ \\/ / __ \\/ _ \\  / /_/ / __ \\/ __ `/ / __/ __  /
-___/ / /_/ / / / /  __/ / ____/ /_/ / /_/ / / /_/ /_/ /
-/____/\\____/_/ /_/\\___/ /_/    \\____/\\__, /_/\\__/\\__,_/
-                                     /____/
+ ______  __    __  ______  __  __   __  ______  ______  ______  __  __  ______  ______  __  __  ______  ______
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  ___\\/\\__  _\\/\\  == \\/\\ \\/\\ \\/\\  ___\\/\\__  _\\/\\ \\/\\ \\/\\  == \\/\\  ___\\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\___  \\/_/\\ \\/\\ \\  __<\\ \\ \\_\\ \\ \\ \\___\\/_/\\ \\/\\ \\ \\_\\ \\ \\  __<\\ \\  __\\
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\ \\_____\\ \\_\\ \\_\\ \\_____\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_____/  \\/_/  \\/_____/\\/_/ /_/\\/_____/
 """;
     private static final int STARTUP_ASCII_START_COLOR = 0x86EFAC;
     private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
@@ -185,31 +180,8 @@ ___/ / /_/ / / / /  __/ / ____/ /_/ / /_/ / / /_/ /_/ /
         MultiblockService service = components.multiblockService();
         getServer().getPluginManager().registerEvents(new BlockChangeDetectListener(this, service), this);
         getServer().getPluginManager().registerEvents(new MultiblockInteractListener(this, service), this);
-        var furnitureAdapter = components.furnitureAdapter();
-        registerIfPresent(furnitureAdapter.sourcePresent("ItemsAdder"), "ItemsAdder",
-                () -> new ItemsAdderFurnitureListener(this, service));
-        registerIfPresent(furnitureAdapter.sourcePresent("Oraxen"), "Oraxen",
-                () -> new OraxenFurnitureListener(this, service));
-        registerIfPresent(furnitureAdapter.sourcePresent("Nexo"), "Nexo",
-                () -> new NexoFurnitureListener(this, service));
-        registerIfPresent(furnitureAdapter.sourcePresent("CraftEngine"), "CraftEngine",
-                () -> new CraftEngineFurnitureListener(this, service));
-    }
-
-    private void registerIfPresent(boolean present, String sourceName,
-            java.util.function.Supplier<Listener> factory) {
-        if (!present) {
-            return;
-        }
-        try {
-            getServer().getPluginManager().registerEvents(factory.get(), this);
-        } catch (LinkageError error) {
-            getLogger().warning("家具源 " + sourceName + " 监听注册失败，已跳过: "
-                    + error.getMessage());
-        } catch (RuntimeException exception) {
-            getLogger().warning("家具源 " + sourceName + " 监听注册异常: "
-                    + exception.getMessage());
-        }
+        EmakiCoreLibPlugin.lookup().furnitureEventRelay()
+                .subscribe(this, new StructureFurnitureEventSubscriber(service));
     }
 
     private void installPublicApi() {

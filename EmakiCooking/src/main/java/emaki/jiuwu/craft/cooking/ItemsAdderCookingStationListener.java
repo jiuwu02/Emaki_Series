@@ -1,20 +1,12 @@
 package emaki.jiuwu.craft.cooking;
 
-import java.util.function.Consumer;
-
-import dev.lone.itemsadder.api.CustomComplexFurniture;
-import dev.lone.itemsadder.api.Events.ComplexFurnitureBreakEvent;
-import dev.lone.itemsadder.api.Events.ComplexFurnitureInteractEvent;
 import dev.lone.itemsadder.api.Events.CustomBlockBreakEvent;
 import dev.lone.itemsadder.api.Events.CustomBlockInteractEvent;
-import dev.lone.itemsadder.api.Events.FurnitureBreakEvent;
-import dev.lone.itemsadder.api.Events.FurnitureInteractEvent;
 import emaki.jiuwu.craft.cooking.model.StationBreakContext;
 import emaki.jiuwu.craft.cooking.model.StationInteraction;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import org.bukkit.block.Block;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -22,6 +14,10 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.inventory.EquipmentSlot;
 
+/**
+ * ItemsAdder custom-block events. Furniture events (simple and complex) are handled by CoreLib's
+ * furniture relay; see {@code CookingFurnitureEventSubscriber}.
+ */
 final class ItemsAdderCookingStationListener implements Listener {
 
     private final CookingStationListener stationListener;
@@ -64,86 +60,6 @@ final class ItemsAdderCookingStationListener implements Listener {
                 event::setCancelled,
                 source
         ));
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onItemsAdderFurnitureInteract(FurnitureInteractEvent event) {
-        Player player = event.getPlayer();
-        Entity entity = event.getBukkitEntity();
-        ItemSourceRef source = itemsAdderSource(event.getNamespacedID());
-        dispatchFurnitureInteraction(player, entity, event.getAction(), event::setCancelled, source);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onItemsAdderFurnitureBreak(FurnitureBreakEvent event) {
-        Player player = event.getPlayer();
-        Entity entity = event.getBukkitEntity();
-        ItemSourceRef source = itemsAdderSource(event.getNamespacedID());
-        dispatchFurnitureBreak(player, entity, event::setCancelled, source);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onItemsAdderComplexFurnitureInteract(ComplexFurnitureInteractEvent event) {
-        CustomComplexFurniture furniture = event.getFurniture();
-        Entity entity = furniture == null ? null : furniture.getEntity();
-        ItemSourceRef source = itemsAdderSource(event.getNamespacedID());
-        dispatchFurnitureInteraction(event.getPlayer(), entity, event.getAction(), event::setCancelled, source);
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
-    public void onItemsAdderComplexFurnitureBreak(ComplexFurnitureBreakEvent event) {
-        CustomComplexFurniture furniture = event.getFurniture();
-        Entity entity = furniture == null ? null : furniture.getEntity();
-        ItemSourceRef source = itemsAdderSource(event.getNamespacedID());
-        dispatchFurnitureBreak(event.getPlayer(), entity, event::setCancelled, source);
-    }
-
-    private void dispatchFurnitureInteraction(Player player,
-            Entity entity,
-            Action action,
-            Consumer<Boolean> cancelConsumer,
-            ItemSourceRef source) {
-        Block block = anchorBlock(entity);
-        if (player == null || block == null || source == null) {
-            return;
-        }
-        stationListener.dispatchInteraction(new StationInteraction(
-                player,
-                block,
-                isLeftClick(action),
-                isRightClick(action),
-                true,
-                cancelConsumer,
-                source
-        ));
-    }
-
-    private void dispatchFurnitureBreak(Player player,
-            Entity entity,
-            Consumer<Boolean> cancelConsumer,
-            ItemSourceRef source) {
-        Block block = anchorBlock(entity);
-        if (block == null || source == null) {
-            return;
-        }
-        stationListener.dispatchBreak(new StationBreakContext(
-                player,
-                block,
-                cancelConsumer,
-                source
-        ));
-    }
-
-    private Block anchorBlock(Entity entity) {
-        return entity == null || entity.getWorld() == null ? null : entity.getLocation().getBlock();
-    }
-
-    private boolean isLeftClick(Action action) {
-        return action == Action.LEFT_CLICK_AIR || action == Action.LEFT_CLICK_BLOCK;
-    }
-
-    private boolean isRightClick(Action action) {
-        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
     private ItemSourceRef itemsAdderSource(String namespacedId) {

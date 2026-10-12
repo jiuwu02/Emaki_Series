@@ -1,8 +1,9 @@
 package emaki.jiuwu.craft.structure.integration;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.furniture.FurnitureBridge;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
-import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
 
 import java.util.ArrayList;
@@ -10,65 +11,52 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.function.Supplier;
 
+/**
+ * Thin shell over CoreLib's furniture bridges: reverse look-up delegates to the shared bridges,
+ * while the nearby-entity scan used by multiblock matching and the namespace helpers stay here.
+ */
 public final class FurnitureIdAdapter {
 
     public static final List<String> KNOWN_SOURCES =
             List.of("ItemsAdder", "Oraxen", "Nexo", "CraftEngine");
 
-    private final ItemsAdderFurnitureBridge itemsAdder;
-    private final OraxenFurnitureBridge oraxen;
-    private final NexoFurnitureBridge nexo;
-    private final CraftEngineFurnitureBridge craftEngine;
-    private final List<String> absentSources;
+    private final FurnitureBridge itemsAdder;
+    private final FurnitureBridge oraxen;
+    private final FurnitureBridge nexo;
+    private final FurnitureBridge craftEngine;
+    private final List<String> presentSources;
 
-    public FurnitureIdAdapter(Plugin plugin) {
-        this.itemsAdder = createIfPresent(plugin, "ItemsAdder", ItemsAdderFurnitureBridge::new);
-        this.oraxen = createIfPresent(plugin, "Oraxen", OraxenFurnitureBridge::new);
-        this.nexo = createIfPresent(plugin, "Nexo", NexoFurnitureBridge::new);
-        this.craftEngine = createIfPresent(plugin, "CraftEngine", CraftEngineFurnitureBridge::new);
-        List<String> absent = new ArrayList<>();
-        if (itemsAdder == null) {
-            absent.add("ItemsAdder");
+    public FurnitureIdAdapter() {
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        this.itemsAdder = coreLib.itemsAdderFurnitureBridge();
+        this.oraxen = coreLib.oraxenFurnitureBridge();
+        this.nexo = coreLib.nexoFurnitureBridge();
+        this.craftEngine = coreLib.craftEngineFurnitureBridge();
+        List<String> present = new ArrayList<>();
+        for (String source : KNOWN_SOURCES) {
+            if (sourcePresent(source)) {
+                present.add(source);
+            }
         }
-        if (oraxen == null) {
-            absent.add("Oraxen");
-        }
-        if (nexo == null) {
-            absent.add("Nexo");
-        }
-        if (craftEngine == null) {
-            absent.add("CraftEngine");
-        }
-        this.absentSources = List.copyOf(absent);
+        this.presentSources = List.copyOf(present);
     }
 
-    private static <T> T createIfPresent(Plugin plugin, String pluginName, Supplier<T> factory) {
-        if (plugin.getServer().getPluginManager().getPlugin(pluginName) == null) {
-            return null;
-        }
-        try {
-            return factory.get();
-        } catch (LinkageError error) {
-            return null;
-        }
-    }
-
-    public List<String> absentSources() {
-        return absentSources;
+    public List<String> presentSources() {
+        return presentSources;
     }
 
     public boolean anySourcePresent() {
-        return itemsAdder != null || oraxen != null || nexo != null || craftEngine != null;
+        return itemsAdder.available() || oraxen.available()
+                || nexo.available() || craftEngine.available();
     }
 
     public boolean sourcePresent(String sourceName) {
         return switch (sourceName) {
-            case "ItemsAdder" -> itemsAdder != null;
-            case "Oraxen" -> oraxen != null;
-            case "Nexo" -> nexo != null;
-            case "CraftEngine" -> craftEngine != null;
+            case "ItemsAdder" -> itemsAdder.available();
+            case "Oraxen" -> oraxen.available();
+            case "Nexo" -> nexo.available();
+            case "CraftEngine" -> craftEngine.available();
             default -> false;
         };
     }
@@ -77,24 +65,22 @@ public final class FurnitureIdAdapter {
         if (entity == null) {
             return Optional.empty();
         }
-        String resolved = firstNonNull(
-                itemsAdder == null ? null : safeIdentify(() -> itemsAdder.identify(entity)),
-                oraxen == null ? null : safeIdentify(() -> oraxen.identify(entity)),
-                nexo == null ? null : safeIdentify(() -> nexo.identify(entity)),
-                craftEngine == null ? null : safeIdentify(() -> craftEngine.identify(entity)));
-        return Optional.ofNullable(resolved);
+        return Optional.ofNullable(firstNonNull(
+                itemsAdder.identify(entity),
+                oraxen.identify(entity),
+                nexo.identify(entity),
+                craftEngine.identify(entity)));
     }
 
     public Optional<String> identifyAt(Block block) {
         if (block == null) {
             return Optional.empty();
         }
-        String resolved = firstNonNull(
-                itemsAdder == null ? null : safeIdentify(() -> itemsAdder.identifyAt(block)),
-                oraxen == null ? null : safeIdentify(() -> oraxen.identifyAt(block)),
-                nexo == null ? null : safeIdentify(() -> nexo.identifyAt(block)),
-                craftEngine == null ? null : safeIdentify(() -> craftEngine.identifyAt(block)));
-        return Optional.ofNullable(resolved);
+        return Optional.ofNullable(firstNonNull(
+                itemsAdder.identifyAt(block),
+                oraxen.identifyAt(block),
+                nexo.identifyAt(block),
+                craftEngine.identifyAt(block)));
     }
 
     public boolean matchesAt(Block anchor, String expectedId) {
@@ -102,7 +88,7 @@ public final class FurnitureIdAdapter {
             return false;
         }
         String wanted = expectedId.toLowerCase(Locale.ROOT);
-        if (wanted.equals(identifyAtValue(anchor))) {
+        if (wanted.equals(identifyAt(anchor).orElse(null))) {
             return true;
         }
         BoundingBox box = new BoundingBox(
@@ -115,31 +101,11 @@ public final class FurnitureIdAdapter {
             return false;
         }
         for (Entity entity : nearby) {
-            if (wanted.equals(identifyValue(entity))) {
+            if (wanted.equals(identify(entity).orElse(null))) {
                 return true;
             }
         }
         return false;
-    }
-
-    private String identifyAtValue(Block block) {
-        Optional<String> identified = identifyAt(block);
-        return identified.orElse(null);
-    }
-
-    private String identifyValue(Entity entity) {
-        Optional<String> identified = identify(entity);
-        return identified.orElse(null);
-    }
-
-    private static String safeIdentify(Supplier<String> supplier) {
-        try {
-            return supplier.get();
-        } catch (LinkageError error) {
-            return null;
-        } catch (RuntimeException exception) {
-            return null;
-        }
     }
 
     private static String firstNonNull(String... values) {
