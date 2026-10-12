@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.mobs.command;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.service.MobFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -122,6 +123,11 @@ public final class MobsCommandRouter {
         }
         if (target == null || !target.isOnline()) {
             plugin.messageService().send(sender, "command.spawn_no_target");
+            return;
+        }
+        MobSpec spec = plugin.mobRegistry().get().get(mobId);
+        if (spec != null && MobFactory.blockedByDifficulty(target.getWorld(), spec.entityType())) {
+            plugin.messageService().send(sender, "command.spawn_blocked", Map.of("mob_id", mobId));
             return;
         }
         var result = plugin.mobFactory().spawn(target.getLocation(), mobId);

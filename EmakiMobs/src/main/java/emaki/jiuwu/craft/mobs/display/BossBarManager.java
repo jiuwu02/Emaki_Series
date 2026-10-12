@@ -1,11 +1,14 @@
 package emaki.jiuwu.craft.mobs.display;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import net.kyori.adventure.bossbar.BossBar;
 import org.bukkit.Bukkit;
-import org.bukkit.boss.BossBar;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -41,22 +44,17 @@ public final class BossBarManager implements Listener {
 
     public void close() {
         distanceTask.cancel();
-        entityBars.values().forEach(bar -> {
-            bar.removeAll();
-            bar.setVisible(false);
-        });
+        entityBars.values().forEach(this::clearViewers);
         entityBars.clear();
     }
 
-    @SuppressWarnings("deprecation")
     public void registerIfConfigured(LivingEntity entity, String mobId) {
         MobSpec spec = registry.get().get(mobId);
         if (spec == null || spec.bossBarConfig() == null) return;
         var cfg = spec.bossBarConfig();
-        BossBar bar = Bukkit.createBossBar(cfg.title(), cfg.color(), cfg.style());
-        double maxHp = entity.getMaxHealth();
-        bar.setProgress(maxHp > 0 ? Math.min(1.0, entity.getHealth() / maxHp) : 1.0);
-        bar.setVisible(true);
+        // Adventure BossBar 以 Component 承载标题，MiniMessage 标签（含渐变）可完整渲染。
+        BossBar bar = BossBar.bossBar(MiniMessages.parse(cfg.title()), progress(entity),
+                toColor(cfg.color()), toOverlay(cfg.style()));
         entityBars.put(entity.getUniqueId(), bar);
     }
 
@@ -79,13 +77,47 @@ public final class BossBarManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         BossBar bar = entityBars.remove(event.getEntity().getUniqueId());
-        if (bar != null) { bar.removeAll(); bar.setVisible(false); }
+        if (bar != null) clearViewers(bar);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static float progress(LivingEntity entity) {
+        double maxHp = entity.getMaxHealth();
+        if (!(maxHp > 0)) return 1.0F;
+        double ratio = Math.min(1.0, Math.max(0.0, entity.getHealth() / maxHp));
+        if (Double.isNaN(ratio)) return 1.0F;
+        return (float) ratio;
     }
 
     private void updateBarProgress(LivingEntity entity, BossBar bar) {
         if (!entity.isValid()) return;
-        double maxHp = entity.getMaxHealth();
-        if (maxHp > 0) bar.setProgress(Math.min(1.0, Math.max(0.0, entity.getHealth() / maxHp)));
+        bar.progress(progress(entity));
+    }
+
+    private void clearViewers(BossBar bar) {
+        Bukkit.getOnlinePlayers().forEach(bar::removeViewer);
+    }
+
+    private static BossBar.Color toColor(BarColor color) {
+        return switch (color) {
+            case PINK -> BossBar.Color.PINK;
+            case BLUE -> BossBar.Color.BLUE;
+            case RED -> BossBar.Color.RED;
+            case GREEN -> BossBar.Color.GREEN;
+            case YELLOW -> BossBar.Color.YELLOW;
+            case PURPLE -> BossBar.Color.PURPLE;
+            case WHITE -> BossBar.Color.WHITE;
+        };
+    }
+
+    private static BossBar.Overlay toOverlay(BarStyle style) {
+        return switch (style) {
+            case SOLID -> BossBar.Overlay.PROGRESS;
+            case SEGMENTED_6 -> BossBar.Overlay.NOTCHED_6;
+            case SEGMENTED_10 -> BossBar.Overlay.NOTCHED_10;
+            case SEGMENTED_12 -> BossBar.Overlay.NOTCHED_12;
+            case SEGMENTED_20 -> BossBar.Overlay.NOTCHED_20;
+        };
     }
 
     private TaskToken scheduleDistanceCheck() {
@@ -93,7 +125,9 @@ public final class BossBarManager implements Listener {
             entityBars.forEach((uid, bar) -> {
                 var raw = Bukkit.getEntity(uid);
                 if (!(raw instanceof LivingEntity entity) || !entity.isValid()) {
-                    bar.removeAll(); entityBars.remove(uid); return;
+                    clearViewers(bar);
+                    entityBars.remove(uid);
+                    return;
                 }
                 executionDispatcher.runEntity(plugin, entity, () -> refreshViewers(entity, bar));
             });
@@ -111,12 +145,12 @@ public final class BossBarManager implements Listener {
         double range = spec.bossBarConfig().range();
         Bukkit.getOnlinePlayers().forEach(player -> {
             if (!player.getWorld().equals(entity.getWorld())) {
-                bar.removePlayer(player); return;
+                bar.removeViewer(player); return;
             }
             if (player.getLocation().distance(entity.getLocation()) <= range) {
-                bar.addPlayer(player);
+                bar.addViewer(player);
             } else {
-                bar.removePlayer(player);
+                bar.removeViewer(player);
             }
         });
     }

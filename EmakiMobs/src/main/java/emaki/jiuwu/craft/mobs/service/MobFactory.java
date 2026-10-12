@@ -6,9 +6,12 @@ import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Enemy;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -67,6 +70,9 @@ public final class MobFactory {
         if (world == null) {
             return Optional.empty();
         }
+        if (blockedByDifficulty(world, spec.entityType())) {
+            return Optional.empty();
+        }
         Entity spawned = world.spawnEntity(location, spec.entityType());
         if (!(spawned instanceof LivingEntity entity)) {
             spawned.remove();
@@ -86,6 +92,20 @@ public final class MobFactory {
         if (modelManager != null) modelManager.attachMob(entity, mobId);
         if (skillExecutor != null) skillExecutor.executeForTrigger(entity, mobId, "on_spawn");
         return Optional.of(entity);
+    }
+
+    /**
+     * 和平难度下服务端会拒绝生成敌对型实体并直接抛出
+     * {@code IllegalStateException: Cannot spawn monster for ... in Peaceful difficulty}
+     * （CraftRegionAccessor 按原版 EntityType#isAllowedInPeaceful 判定，覆盖全部怪物类）。
+     * 这里按同一口径提前拦截，让自然生成、命令生成与 summon 动作段静默跳过而不是抛堆栈。
+     */
+    public static boolean blockedByDifficulty(World world, EntityType entityType) {
+        if (world.getDifficulty() != Difficulty.PEACEFUL) {
+            return false;
+        }
+        Class<? extends Entity> entityClass = entityType.getEntityClass();
+        return entityClass != null && Enemy.class.isAssignableFrom(entityClass);
     }
 
     private void scheduleHealthTopUp(LivingEntity entity, MobSpec spec) {

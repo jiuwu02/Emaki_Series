@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.10"
+version: "1.0.11"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -108,6 +108,7 @@ loader:
 
 command:
   spawn_success: "<green>已在目标位置生成 <white>%mob_id%</white>。</green>"
+  spawn_blocked: "<red>和平难度下无法生成怪物型生物：<white>%mob_id%</white></red>"
   spawn_no_target: "<red>无法确定生成位置，请指定在线玩家。</red>"
   spawn_usage: "<gray>用法：/emakimobs spawn <mob_id> [玩家]</gray>"
   reload_success: "<green>重载完成，共 <white>%count%</white> 个生物定义。</green>"

@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.10"
+version: "1.0.11"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -108,6 +108,7 @@ loader:
 
 command:
   spawn_success: "<green>Spawned <white>%mob_id%</white> at target location.</green>"
+  spawn_blocked: "<red>Monster-type mob <white>%mob_id%</white> cannot be spawned in Peaceful difficulty.</red>"
   spawn_no_target: "<red>Could not determine a spawn location. Please specify an online player.</red>"
   spawn_usage: "<gray>Usage: /emakimobs spawn <mob_id> [player]</gray>"
   reload_success: "<green>Reloaded with <white>%count%</white> mob definition(s).</green>"
