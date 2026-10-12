@@ -6,6 +6,7 @@ import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -378,59 +379,11 @@ public final class YamlFiles {
         }
     }
 
-    private static final int REPLACE_ATTEMPTS = 4;
-    private static final long REPLACE_RETRY_DELAY_MILLIS = 250L;
-
     private static void moveReplacing(Path source, Path target) throws IOException {
-        IOException lastFailure = null;
-        for (int attempt = 0; attempt < REPLACE_ATTEMPTS; attempt++) {
-            if (attempt > 0) {
-                try {
-                    Thread.sleep(REPLACE_RETRY_DELAY_MILLIS);
-                } catch (InterruptedException interruptedException) {
-                    Thread.currentThread().interrupt();
-                    break;
-                }
-            }
-            try {
-                replaceOnce(source, target);
-                return;
-            } catch (IOException exception) {
-                lastFailure = exception;
-            }
-        }
-        if (lastFailure == null) {
-            throw new IOException("文件替换被中断: " + target);
-        }
-        throw lastFailure;
-    }
-
-    private static void replaceOnce(Path source, Path target) throws IOException {
-        IOException atomicFailure;
         try {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            return;
-        } catch (IOException exception) {
-            atomicFailure = exception;
-        }
-        IOException moveFailure;
-        try {
+        } catch (AtomicMoveNotSupportedException _) {
             Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-            return;
-        } catch (IOException exception) {
-            moveFailure = exception;
-        }
-        try {
-            Files.copy(source, target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException copyFailure) {
-            copyFailure.addSuppressed(moveFailure);
-            copyFailure.addSuppressed(atomicFailure);
-            throw copyFailure;
-        }
-        try {
-            Files.deleteIfExists(source);
-        } catch (IOException cleanupFailure) {
-            moveFailure.addSuppressed(cleanupFailure);
         }
     }
 
