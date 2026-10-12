@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "2.8.9"
+version: "2.8.10"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -414,6 +414,9 @@ gui_text:
     opener_placed_pending: "已放入，待选择槽位"
     slot_not_selected: "未选择"
 debug:
+  # 分类：调试镶嵌日志锚点；占位符：%entry%
+  journal:
+    transition: "日志 | %entry%"
   inlay:
     start: "开始镶嵌 | 玩家=%player% | 宝石=%gem% | 槽位=%slot%"
     check: "镶嵌检查 | 条件=%condition% | 结果=%result%"

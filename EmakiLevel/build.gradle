@@ -1,5 +1,5 @@
 // EmakiLevel（原 EmakiLevel/pom.xml）。
-version = '1.6.7'
+version = '1.6.8'
 
 dependencies {
     // 原 shade artifactSet 白名单。

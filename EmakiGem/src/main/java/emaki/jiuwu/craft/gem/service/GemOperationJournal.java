@@ -278,7 +278,9 @@ public final class GemOperationJournal {
         if (failure != null) {
             anchor.cause(AsyncFailures.unwrap(failure));
         }
-        plugin.debugLogger().logRaw(DEBUG_JOURNAL_MODULE, (UUID) null, "日志 " + anchor.render());
+        String entry = anchor.render();
+        plugin.debugLogger().log(DEBUG_JOURNAL_MODULE, (UUID) null, "journal.transition",
+                Map.of("entry", entry == null ? "" : entry));
     }
 
     public void compensationPending(String operationId, String error) {

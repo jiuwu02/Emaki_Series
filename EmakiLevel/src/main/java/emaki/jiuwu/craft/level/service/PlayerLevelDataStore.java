@@ -76,7 +76,8 @@ public final class PlayerLevelDataStore {
                         && plugin.debugLogger().shouldLog(DEBUG_SESSION_MODULE, (UUID) null),
                 fields -> {
                     if (plugin.debugLogger() != null) {
-                        plugin.debugLogger().logRaw(DEBUG_SESSION_MODULE, (UUID) null, "会话 " + fields);
+                        plugin.debugLogger().log(DEBUG_SESSION_MODULE, (UUID) null, "session_line",
+                                Map.of("fields", fields == null ? "" : fields));
                     }
                 }
         );

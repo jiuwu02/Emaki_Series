@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "2.8.9"
+version: "2.8.10"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
@@ -442,6 +442,9 @@ gui_text:
     opener_placed_pending: "Placed, waiting for slot selection"
     slot_not_selected: "Not selected"
 debug:
+  # Debug: gem journal anchor; placeholders: %entry%
+  journal:
+    transition: "Journal | %entry%"
   inlay:
     start: "Inlay start | Player=%player% | Gem=%gem% | Slot=%slot%"
     check: "Inlay check | Condition=%condition% | Result=%result%"
