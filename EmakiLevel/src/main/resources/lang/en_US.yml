@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.6.8"
+version: "1.6.9"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
@@ -72,11 +72,28 @@ command:
   type_not_found: "%prefix%<red>Level type not found: <white>%type%</white></red>"
   invalid_number: "%prefix%<red>Invalid number: <white>%value%</white></red>"
   reload_success: "%prefix%<green>Configuration reloaded.</green>"
-  usage: "%prefix%<gray>Usage: /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
-  # Command: edit subcommand help text
+  usage: "%prefix%<gray>Usage: /elv help for the list | /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
+  # Command: help header/footer/line; placeholders: %cmd%, %desc%
   help:
+    header: "<gold>========== EmakiLevel Help ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>/elv %cmd%</yellow> <gray>- %desc%</gray>"
+    # Command: edit subcommand help text
     desc:
       edit: "Open the in-game editor for a definition (no id opens the browser)"
+    commands:
+      info: "Show your own level and experience"
+      gui: "Open the level GUI"
+      levelup: "Level up the current type"
+      top: "Show the leaderboard as chat text"
+      topgui: "Open the leaderboard GUI"
+      edit: "Open the in-game editor for a definition (no id opens the browser)"
+      exp: "Add, remove or set a player's experience"
+      level: "Add, remove or set a player's level"
+      reset: "Reset a player's level progress"
+      reload: "Reload configuration and language"
+      convert_legacy: "Migrate legacy configuration"
+      debug: "Manage Debug mode and diagnostic output"
   # Command: leaderboard header; placeholder: %type%
   top_header: "<gold>===== EmakiLevel Top: %type% =====</gold>"
   # Command: leaderboard entry; placeholders: %rank%, %player%, %level%, %total_exp%

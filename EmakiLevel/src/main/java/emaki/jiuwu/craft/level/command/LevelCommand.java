@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.level.command;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,6 +44,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return handleInfo(sender, new String[0]);
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "help" -> handleHelp(sender);
             case "info" -> handleInfo(sender, tail(args));
             case "gui", "open" -> handleGui(sender, tail(args));
             case "edit" -> handleEdit(sender, tail(args));
@@ -64,6 +66,30 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 yield true;
             }
         };
+    }
+
+    private boolean handleHelp(CommandSender sender) {
+        var messages = plugin.messages();
+        messages.sendRaw(sender, messages.message("command.help.header"));
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("info [type]", messages.message("command.help.commands.info"));
+        lines.put("gui [type]", messages.message("command.help.commands.gui"));
+        lines.put("levelup <type>", messages.message("command.help.commands.levelup"));
+        lines.put("top [type]", messages.message("command.help.commands.top"));
+        lines.put("topgui [type]", messages.message("command.help.commands.topgui"));
+        lines.put("edit [id]", messages.message("command.help.commands.edit"));
+        lines.put("addexp|takeexp|setexp <player> <type> <amount>",
+                messages.message("command.help.commands.exp"));
+        lines.put("addlevel|takelevel|setlevel <player> <type> <amount>",
+                messages.message("command.help.commands.level"));
+        lines.put("reset <player> <type>", messages.message("command.help.commands.reset"));
+        lines.put("reload", messages.message("command.help.commands.reload"));
+        lines.put("convert-legacy", messages.message("command.help.commands.convert_legacy"));
+        lines.put("debug", messages.message("command.help.commands.debug"));
+        lines.forEach((usage, description) -> messages.sendRaw(sender,
+                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
+        messages.sendRaw(sender, messages.message("command.help.footer"));
+        return true;
     }
 
     private boolean handleInfo(CommandSender sender, String[] args) {
@@ -353,7 +379,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
+            for (String candidate : List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;

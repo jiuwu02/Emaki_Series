@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "1.0.11"
+version: "1.0.12"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -129,12 +129,24 @@ command:
   unknown_mob: "<red>Unknown mob ID: <white>%mob_id%</white></red>"
   debug_unavailable: "<red>The debug controller is currently unavailable.</red>"
   operation_failed: "<red>Command operation %operation% failed. Check the server log.</red>"
-  usage: "<gray>Usage: /emakimobs <spawn|reload|list|info|kill|count|debug|edit> ...</gray>"
+  usage: "<gray>Usage: /emakimobs &lt;help|spawn|reload|list|info|kill|count|debug|edit&gt; ... (run /emakimobs help for details)</gray>"
   no_permission: "<red>You do not have permission to run this command.</red>"
-  # Help description of the edit subcommand
   help:
+    header: "<gold>========== EmakiMobs Help ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>/emakimobs %cmd%</yellow> <gray>- %desc%</gray>"
+    # Help description of the edit subcommand
     desc:
       edit: "Open the in-game editor for a definition (no id opens the browser)"
+    commands:
+      spawn: "Spawn a managed mob (optionally for a target player)"
+      list: "List the loaded mob definitions page by page"
+      info: "Show a definition's type, components, loot and more"
+      count: "Count the current live managed mobs of an id"
+      kill: "Remove managed mobs of an id (optionally by radius)"
+      edit: "Open the in-game editor for a definition (no id opens the browser)"
+      reload: "Reload configuration and all mob definitions"
+      debug: "Manage Debug mode and diagnostic output"
 
 debug:
   target_selector_expression_failed: "Target selector expression %expression_id% failed: %error%"

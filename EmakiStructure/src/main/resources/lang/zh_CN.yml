@@ -9,7 +9,7 @@ general:
   no_permission: "<red>你没有权限执行此命令。</red>"
   player_only: "<red>此命令只能由玩家执行。</red>"
   invalid_args: "<red>参数错误。</red>"
-  unknown_command: "<red>未知命令，可用子命令：/ems get、place、select、export。</red>"
+  unknown_command: "<red>未知命令，请使用 /ems help 查看帮助。</red>"
 
 console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
@@ -58,12 +58,26 @@ console:
   export_furniture_absent: "[export] <gray>家具 0 条（无家具插件在场），已有 furniture 侧车保持不变</gray>"
 
 command:
-  usage: "<gray>用法：/ems <get|place|select|export> ...</gray>"
-  get_usage: "<gray>用法：/ems get <模板> [朝向]</gray>"
-  place_usage: "<gray>用法：/ems place <模板> <朝向></gray>"
+  usage: "<gray>用法：/ems <get|place|select|export|reload|multiblock|help> ...（输入 /ems help 查看完整帮助）</gray>"
+  help:
+    header: "<gold>========== EmakiStructure 帮助 ==========</gold>"
+    footer: "<gold>==========================================</gold>"
+    line: "<yellow>/ems %cmd%</yellow> <gray>- %desc%</gray>"
+    commands:
+      get: "在你面前 3 格处预览生成一个结构模板"
+      place: "在你当前位置放置结构模板（.nbt 文件），不涉及多方块"
+      select: "框选区域：pos1/pos2 设点、adjust 调整、clear 清除"
+      export: "把当前选区导出为结构模板 structures/<名称>.nbt"
+      record: "按选区记录多方块布局为 multiblocks/<id>.yml（仅记录，不会放置）"
+      list: "列出已加载的多方块定义"
+      validate: "手动校验多方块定义在现场的形状"
+      reload: "重载配置、语言与模板缓存"
+      debug: "管理 Debug 模式与诊断输出"
+  get_usage: "<gray>用法：/ems get <模板> [朝向] —— 在你面前 3 格处预览生成结构模板</gray>"
+  place_usage: "<gray>用法：/ems place <模板> <朝向> —— 在你当前位置放置结构模板（.nbt 文件）；多方块结构请用 /ems multiblock record 记录，不会被放置</gray>"
   select_usage: "<gray>用法：/ems select <pos1|pos2|adjust|clear> ...</gray>"
   adjust_usage: "<gray>用法：/ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
-  export_usage: "<gray>用法：/ems export <名称></gray>"
+  export_usage: "<gray>用法：/ems export <名称> —— 把当前选区导出为结构模板 structures/<名称>.nbt（非多方块文件）</gray>"
   multiblock_usage: "<gray>用法：/ems multiblock <record|list|validate> ...</gray>"
   multiblock_record_usage: "<gray>用法：/ems multiblock record <id> [force]</gray>"
   multiblock_validate_usage: "<gray>用法：/ems multiblock validate <id></gray>"
@@ -161,7 +175,7 @@ error:
     # 占位符：%detail%
     out_of_bounds: "<red>生成目标超出世界边界：%detail%</red>"
     # 占位符：无
-    ground_unsupported: "<red>支撑面不足，已放弃本次生成。</red>"
+    ground_unsupported: "<red>支撑面不足，已放弃本次生成（结构底面须有实心支撑，可在 config.yml 调整 generate.ground_mode）。</red>"
     # 占位符：%template%
     queue_timeout: "<red>模板 <white>%template%</white> 生成队列滞留超时，已中止。</red>"
     # 占位符：%template%

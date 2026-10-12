@@ -12,6 +12,7 @@ import org.bukkit.entity.Player;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -29,7 +30,7 @@ public final class MobsCommandRouter {
     private static final String PERMISSION_ADMIN = "emakimobs.admin";
     private static final int PAGE_SIZE = 10;
     private static final List<String> SUBCOMMANDS =
-            List.of("spawn", "reload", "list", "info", "kill", "count", "debug", "edit");
+            List.of("help", "spawn", "reload", "list", "info", "kill", "count", "debug", "edit");
 
     private final EmakiMobsPlugin plugin;
     private final ManagedMobCommandService managedMobService;
@@ -45,6 +46,7 @@ public final class MobsCommandRouter {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "help" -> sendHelp(sender);
             case "spawn" -> handleSpawn(sender, args);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
@@ -62,14 +64,15 @@ public final class MobsCommandRouter {
             String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
             for (String subcommand : SUBCOMMANDS) {
-                if (subcommand.startsWith(prefix) && sender.hasPermission(permissionFor(subcommand))) {
+                if (subcommand.startsWith(prefix) && ("help".equals(subcommand)
+                        || sender.hasPermission(permissionFor(subcommand)))) {
                     result.add(subcommand);
                 }
             }
             return result;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
-        if (!sender.hasPermission(permissionFor(subcommand))) {
+        if (!"help".equals(subcommand) && !sender.hasPermission(permissionFor(subcommand))) {
             return List.of();
         }
         if (("spawn".equals(subcommand) || "info".equals(subcommand)
@@ -343,6 +346,23 @@ public final class MobsCommandRouter {
                 .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix))
                 .sorted()
                 .toList();
+    }
+
+    private void sendHelp(CommandSender sender) {
+        var messages = plugin.messageService();
+        messages.sendRaw(sender, messages.message("command.help.header"));
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("spawn <mob_id> [玩家]", messages.message("command.help.commands.spawn"));
+        lines.put("list [页码]", messages.message("command.help.commands.list"));
+        lines.put("info <mob_id>", messages.message("command.help.commands.info"));
+        lines.put("count <mob_id>", messages.message("command.help.commands.count"));
+        lines.put("kill <mob_id> [半径]", messages.message("command.help.commands.kill"));
+        lines.put("edit [id]", messages.message("command.help.commands.edit"));
+        lines.put("reload", messages.message("command.help.commands.reload"));
+        lines.put("debug", messages.message("command.help.commands.debug"));
+        lines.forEach((usage, description) -> messages.sendRaw(sender,
+                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
+        messages.sendRaw(sender, messages.message("command.help.footer"));
     }
 
     private String permissionFor(String subcommand) {

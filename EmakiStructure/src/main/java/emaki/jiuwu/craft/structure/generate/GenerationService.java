@@ -142,16 +142,25 @@ public final class GenerationService {
     }
 
     private static List<ColumnProbe> collectProbes(List<RegionBatch.Write> writes) {
-        Map<Long, ColumnProbe> perColumn = new LinkedHashMap<>();
+        int bottomY = Integer.MAX_VALUE;
         for (RegionBatch.Write write : writes) {
             if (write.data().getMaterial().isAir()) {
                 continue;
             }
-            long key = ((long) write.x() << 32) | (write.z() & 0xFFFFFFFFL);
-            ColumnProbe existing = perColumn.get(key);
-            if (existing == null || write.y() < existing.surfaceY()) {
-                perColumn.put(key, new ColumnProbe(write.x(), write.z(), write.y()));
+            if (write.y() < bottomY) {
+                bottomY = write.y();
             }
+        }
+        if (bottomY == Integer.MAX_VALUE) {
+            return List.of();
+        }
+        Map<Long, ColumnProbe> perColumn = new LinkedHashMap<>();
+        for (RegionBatch.Write write : writes) {
+            if (write.data().getMaterial().isAir() || write.y() != bottomY) {
+                continue;
+            }
+            long key = ((long) write.x() << 32) | (write.z() & 0xFFFFFFFFL);
+            perColumn.putIfAbsent(key, new ColumnProbe(write.x(), write.z(), bottomY));
         }
         return new ArrayList<>(perColumn.values());
     }

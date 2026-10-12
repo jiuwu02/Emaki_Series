@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.11"
+version: "1.0.12"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -129,12 +129,24 @@ command:
   unknown_mob: "<red>未知生物 ID：<white>%mob_id%</white></red>"
   debug_unavailable: "<red>DEBUG 控制器当前不可用。</red>"
   operation_failed: "<red>命令操作 %operation% 执行失败，请查看服务器日志。</red>"
-  usage: "<gray>用法：/emakimobs <spawn|reload|list|info|kill|count|debug|edit> ...</gray>"
+  usage: "<gray>用法：/emakimobs <help|spawn|reload|list|info|kill|count|debug|edit> ...（输入 /emakimobs help 查看帮助）</gray>"
   no_permission: "<red>你没有权限执行此命令。</red>"
-  # edit 子命令帮助说明
   help:
+    header: "<gold>========== EmakiMobs 帮助 ==========</gold>"
+    footer: "<gold>========================================</gold>"
+    line: "<yellow>/emakimobs %cmd%</yellow> <gray>- %desc%</gray>"
+    # edit 子命令帮助说明
     desc:
       edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
+    commands:
+      spawn: "生成指定生物（可指定目标玩家）"
+      list: "分页列出已加载的生物定义"
+      info: "查看生物定义的类型、组件与掉落等详情"
+      count: "统计指定受管生物的当前数量"
+      kill: "移除指定受管生物（可按半径）"
+      edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
+      reload: "重载配置与全部生物定义"
+      debug: "管理 Debug 模式与诊断输出"
 
 debug:
   target_selector_expression_failed: "目标选择器表达式 %expression_id% 求值失败：%error%"

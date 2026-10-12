@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.6.8"
+version: "1.6.9"
 
 general:
   prefix: "<gray>[ <gradient:#A855F7:#F472B6>EmakiLevel</gradient> ]</gray>"
@@ -72,11 +72,28 @@ command:
   type_not_found: "%prefix%<red>经验类型不存在: <white>%type%</white></red>"
   invalid_number: "%prefix%<red>数字无效: <white>%value%</white></red>"
   reload_success: "%prefix%<green>配置已重载。</green>"
-  usage: "%prefix%<gray>用法: /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
-  # 命令：edit 子命令帮助说明
+  usage: "%prefix%<gray>用法: /elv help 查看帮助 | /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
+  # 命令：帮助头/尾/行模板；占位符：%cmd%、%desc%
   help:
+    header: "<gold>========== EmakiLevel 帮助 ==========</gold>"
+    footer: "<gold>=======================================</gold>"
+    line: "<yellow>/elv %cmd%</yellow> <gray>- %desc%</gray>"
+    # 命令：edit 子命令帮助说明
     desc:
       edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
+    commands:
+      info: "查看自己的等级与经验信息"
+      gui: "打开等级界面"
+      levelup: "提升当前等级"
+      top: "查看排行榜文本列表"
+      topgui: "打开排行榜界面"
+      edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
+      exp: "增加、扣除或设置玩家经验"
+      level: "增加、扣除或设置玩家等级"
+      reset: "重置玩家的等级进度"
+      reload: "重载配置与语言"
+      convert_legacy: "迁移旧版配置"
+      debug: "管理 Debug 模式与诊断输出"
   # 命令：排行榜标题；占位符：%type%
   top_header: "<gold>===== EmakiLevel 排行榜: %type% =====</gold>"
   # 命令：排行榜条目；占位符：%rank%、%player%、%level%、%total_exp%

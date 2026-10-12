@@ -69,7 +69,7 @@ public final class ParticleSelectionHighlighter implements SelectionHighlighter 
             return;
         }
         Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(0x86, 0xEF, 0xAC), 1.4f);
-        Location origin = new Location(player.getWorld(), box.minX(), box.minY(), box.minZ());
+        Location origin = new Location(player.getWorld(), 0.0d, 0.0d, 0.0d);
         for (Edge edge : edges(box)) {
             double length = edge.length();
             for (double offset = 0.0d; offset <= length + 0.001d; offset += STEP) {

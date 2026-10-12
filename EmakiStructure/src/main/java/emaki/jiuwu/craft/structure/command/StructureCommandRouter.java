@@ -28,6 +28,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
@@ -48,7 +49,7 @@ public final class StructureCommandRouter {
     public static final String PERMISSION_ADMIN = "emakistructure.admin";
 
     private static final List<String> TOP_LEVEL =
-            List.of("get", "place", "select", "export", "reload", "multiblock");
+            List.of("help", "get", "place", "select", "export", "reload", "multiblock", "debug");
     private static final List<String> SELECT_LEVEL = List.of("pos1", "pos2", "adjust", "clear");
     private static final List<String> ADJUST_OPERATIONS = List.of("add", "reduce");
     private static final List<String> MULTIBLOCK_LEVEL = List.of("record", "list", "validate");
@@ -81,12 +82,14 @@ public final class StructureCommandRouter {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "help" -> sendHelp(sender);
             case "get" -> handleGet(sender, args);
             case "place" -> handlePlace(sender, args);
             case "select" -> handleSelect(sender, args);
             case "export" -> handleExport(sender, args);
             case "reload" -> handleReload(sender);
             case "multiblock" -> handleMultiblock(sender, args);
+            case "debug" -> handleDebug(sender, args);
             default -> plugin.messageService().send(sender, "general.unknown_command");
         }
     }
@@ -106,7 +109,10 @@ public final class StructureCommandRouter {
             case "get", "place" -> suggestTemplateCommand(sender, args);
             case "select" -> suggestSelect(args);
             case "multiblock" -> suggestMultiblock(sender, args);
-            case "export", "reload" -> List.of();
+            case "export", "reload", "help" -> List.of();
+            case "debug" -> plugin.debugCommand() == null ? List.of()
+                    : plugin.debugCommand().tabComplete(
+                            Arrays.copyOfRange(args, 1, args.length));
             default -> List.of();
         };
     }
@@ -831,6 +837,36 @@ public final class StructureCommandRouter {
         }
     }
 
+    private void sendHelp(CommandSender sender) {
+        var messages = plugin.messageService();
+        messages.sendRaw(sender, messages.message("command.help.header"));
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("get <模板> [朝向]", messages.message("command.help.commands.get"));
+        lines.put("place <模板> <朝向>", messages.message("command.help.commands.place"));
+        lines.put("select pos1|pos2|adjust|clear", messages.message("command.help.commands.select"));
+        lines.put("export <名称>", messages.message("command.help.commands.export"));
+        lines.put("multiblock record <id> [force]", messages.message("command.help.commands.record"));
+        lines.put("multiblock list", messages.message("command.help.commands.list"));
+        lines.put("multiblock validate <id>", messages.message("command.help.commands.validate"));
+        lines.put("reload", messages.message("command.help.commands.reload"));
+        lines.put("debug", messages.message("command.help.commands.debug"));
+        lines.forEach((usage, description) -> messages.sendRaw(sender,
+                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
+        messages.sendRaw(sender, messages.message("command.help.footer"));
+    }
+
+    private void handleDebug(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_ADMIN)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return;
+        }
+        if (plugin.debugCommand() == null) {
+            return;
+        }
+        plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length),
+                plugin.messageService());
+    }
+
     private boolean requireTemplateExists(CommandSender sender, String templateName, String raw) {
         if (!NameRules.isValid(templateName)) {
             plugin.messageService().send(sender, "error.name.invalid", Map.of("value", raw));
@@ -892,6 +928,8 @@ public final class StructureCommandRouter {
 
     private boolean hasPermission(CommandSender sender, String subcommand) {
         return switch (subcommand) {
+            case "help" -> true;
+            case "debug" -> sender.hasPermission(PERMISSION_ADMIN);
             case "get" -> sender.hasPermission(PERMISSION_USE);
             case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
             case "multiblock" -> sender.hasPermission(PERMISSION_EDIT)

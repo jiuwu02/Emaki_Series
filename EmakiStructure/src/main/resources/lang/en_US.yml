@@ -9,7 +9,7 @@ general:
   no_permission: "<red>You do not have permission to run this command.</red>"
   player_only: "<red>This command can only be run by a player.</red>"
   invalid_args: "<red>Invalid arguments.</red>"
-  unknown_command: "<red>Unknown command, available subcommands: /ems get, place, select, export.</red>"
+  unknown_command: "<red>Unknown command, run /ems help for a list of commands.</red>"
 
 console:
   plugin_starting: "[startup] <gray>Starting...</gray>"
@@ -58,12 +58,26 @@ console:
   export_furniture_absent: "[export] <gray>0 furniture captured (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
 
 command:
-  usage: "<gray>Usage: /ems <get|place|select|export> ...</gray>"
-  get_usage: "<gray>Usage: /ems get &lt;template&gt; [facing]</gray>"
-  place_usage: "<gray>Usage: /ems place &lt;template&gt; &lt;facing&gt;</gray>"
+  usage: "<gray>Usage: /ems &lt;get|place|select|export|reload|multiblock|help&gt; ... (run /ems help for the full list)</gray>"
+  help:
+    header: "<gold>========== EmakiStructure Help ==========</gold>"
+    footer: "<gold>==========================================</gold>"
+    line: "<yellow>/ems %cmd%</yellow> <gray>- %desc%</gray>"
+    commands:
+      get: "Preview-generate a structure template 3 blocks in front of you"
+      place: "Place a structure template (.nbt file) at your position; not for multiblocks"
+      select: "Select a region: pos1/pos2 to set corners, adjust to resize, clear to reset"
+      export: "Export the current selection as structure template structures/&lt;name&gt;.nbt"
+      record: "Record the selection as multiblocks/&lt;id&gt;.yml (records only, never places)"
+      list: "List the loaded multiblock definitions"
+      validate: "Manually validate a multiblock definition against the world"
+      reload: "Reload configuration, language and template caches"
+      debug: "Manage Debug mode and diagnostic output"
+  get_usage: "<gray>Usage: /ems get &lt;template&gt; [facing] - preview-generate a structure template 3 blocks in front of you</gray>"
+  place_usage: "<gray>Usage: /ems place &lt;template&gt; &lt;facing&gt; - place a structure template (.nbt file) at your position; multiblocks are recorded with /ems multiblock record, never placed</gray>"
   select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
   adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
-  export_usage: "<gray>Usage: /ems export &lt;name&gt;</gray>"
+  export_usage: "<gray>Usage: /ems export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt (not a multiblock file)</gray>"
   multiblock_usage: "<gray>Usage: /ems multiblock &lt;record|list|validate&gt; ...</gray>"
   multiblock_record_usage: "<gray>Usage: /ems multiblock record &lt;id&gt; [force]</gray>"
   multiblock_validate_usage: "<gray>Usage: /ems multiblock validate &lt;id&gt;</gray>"
@@ -161,7 +175,7 @@ error:
     # placeholders: %detail%
     out_of_bounds: "<red>Generation target is outside the world bounds: %detail%</red>"
     # placeholders: none
-    ground_unsupported: "<red>Not enough support, this generation was aborted.</red>"
+    ground_unsupported: "<red>Not enough support, this generation was aborted (the structure bottom needs solid support; adjust generate.ground_mode in config.yml).</red>"
     # placeholders: %template%
     queue_timeout: "<red>Template <white>%template%</white> waited too long in the generation queue and was aborted.</red>"
     # placeholders: %template%
