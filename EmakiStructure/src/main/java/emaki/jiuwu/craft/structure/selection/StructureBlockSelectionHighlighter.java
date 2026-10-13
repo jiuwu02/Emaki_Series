@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.structure.selection;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import org.bukkit.Location;
@@ -10,22 +11,29 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.block.data.type.StructureBlock;
 import org.bukkit.block.structure.UsageMode;
 import org.bukkit.entity.Player;
+import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.util.BlockVector;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-public final class StructureBlockSelectionHighlighter implements SelectionHighlighter {
+public final class StructureBlockSelectionHighlighter
+        implements SelectionHighlighter, Listener {
 
     private static final int VANILLA_SIZE_LIMIT = 48;
+    private static final long RERENDER_PERIOD_TICKS = 20L;
 
-    private record AnchorRef(String world, int x, int y, int z) {
+    private record AnchorRef(String world, int x, int y, int z, SelectionBox box) {
     }
 
     private final EmakiStructurePlugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final Map<UUID, AnchorRef> anchors = new HashMap<>();
+    private final TaskToken rerenderTask;
     private DisplaySelectionHighlighter fallback;
     private boolean warned;
 
@@ -33,6 +41,9 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             ExecutionDispatcher dispatcher) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
+        plugin.getServer().getPluginManager().registerEvents(this, plugin);
+        this.rerenderTask = dispatcher.runGlobalTimer(plugin, this::rerenderAll,
+                RERENDER_PERIOD_TICKS, RERENDER_PERIOD_TICKS);
     }
 
     @Override
@@ -71,6 +82,53 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
         removeFrame(player, true);
     }
 
+    private void rerenderAll() {
+        for (Map.Entry<UUID, AnchorRef> entry : anchors.entrySet()) {
+            Player player = plugin.getServer().getPlayer(entry.getKey());
+            if (player == null) {
+                continue;
+            }
+            AnchorRef anchor = entry.getValue();
+            World world = plugin.getServer().getWorld(anchor.world());
+            if (world == null) {
+                continue;
+            }
+            try {
+                dispatcher.runAtLocation(plugin,
+                        new Location(world, anchor.x(), anchor.y(), anchor.z()),
+                        () -> sendWireframe(player, world, anchor.box()));
+            } catch (RuntimeException ignored) {
+            }
+        }
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        int x = event.getBlock().getX();
+        int y = event.getBlock().getY();
+        int z = event.getBlock().getZ();
+        String worldName = event.getBlock().getWorld().getName();
+        for (Map.Entry<UUID, AnchorRef> entry : anchors.entrySet()) {
+            AnchorRef anchor = entry.getValue();
+            if (!anchor.world().equals(worldName) || anchor.x() != x
+                    || anchor.y() != y || anchor.z() != z) {
+                continue;
+            }
+            event.setCancelled(true);
+            Player owner = plugin.getServer().getPlayer(entry.getKey());
+            if (owner != null) {
+                World world = plugin.getServer().getWorld(anchor.world());
+                if (world != null) {
+                    sendWireframe(owner, world, anchor.box());
+                }
+            }
+            debug(owner, "break_cancelled",
+                    "world=" + worldName + " at=" + x + "," + y + "," + z
+                            + " reRendered=" + (owner != null));
+            return;
+        }
+    }
+
     private void sendWireframe(Player player, World world, SelectionBox box) {
         try {
             Location anchor = new Location(world, box.minX() - 1, box.minY() - 1,
@@ -80,12 +138,12 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             player.sendBlockChange(anchor, data);
             var state = data.createBlockState();
             String sizeMode = "bukkit";
+            int sizeX = box.sizeX();
+            int sizeY = box.sizeY();
+            int sizeZ = box.sizeZ();
             if (state instanceof Structure structure) {
                 structure.setUsageMode(UsageMode.SAVE);
                 boolean reflected = false;
-                int sizeX = box.sizeX();
-                int sizeY = box.sizeY();
-                int sizeZ = box.sizeZ();
                 if (sizeX > VANILLA_SIZE_LIMIT || sizeY > VANILLA_SIZE_LIMIT
                         || sizeZ > VANILLA_SIZE_LIMIT) {
                     if (applyLargeSize(player, structure, sizeX, sizeY, sizeZ)) {
@@ -111,11 +169,11 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             }
             anchors.put(player.getUniqueId(),
                     new AnchorRef(world.getName(), anchor.getBlockX(), anchor.getBlockY(),
-                            anchor.getBlockZ()));
+                            anchor.getBlockZ(), box));
             debug(player, "first_render", "mode=SAVE sizeMode=" + sizeMode
                     + " anchor=" + anchor.getBlockX() + ","
                     + anchor.getBlockY() + "," + anchor.getBlockZ()
-                    + " size=" + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ()
+                    + " size=" + sizeX + "x" + sizeY + "x" + sizeZ
                     + " box=" + box.minX() + "," + box.minY() + "," + box.minZ()
                     + "->" + box.maxX() + "," + box.maxY() + "," + box.maxZ()
                     + " player=" + player.getLocation().getBlockX() + ","
@@ -129,20 +187,43 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
 
     private boolean applyLargeSize(Player player, Structure structure, int x, int y, int z) {
         try {
-            java.lang.reflect.Method getHandle = structure.getClass().getMethod("getHandle");
-            Object handle = getHandle.invoke(structure);
+            Object snapshot = resolveSnapshot(structure);
             Class<?> vec3iType = Class.forName("net.minecraft.core.Vec3i");
             Object sizeValue = newVec3i(vec3iType, x, y, z);
-            java.lang.reflect.Field sizeField = findField(handle.getClass(),
+            java.lang.reflect.Field sizeField = findField(snapshot.getClass(),
                     "structureSize", "size");
             sizeField.setAccessible(true);
-            sizeField.set(handle, sizeValue);
+            sizeField.set(snapshot, sizeValue);
             return true;
         } catch (ReflectiveOperationException | RuntimeException exception) {
             debug(player, "reflect_fallback",
-                    "type=" + exception.getClass().getSimpleName()
+                    "snapshot=" + resolveSnapshotType(structure)
+                            + " type=" + exception.getClass().getSimpleName()
                             + " message=" + exception.getMessage());
             return false;
+        }
+    }
+
+    private static Object resolveSnapshot(Structure structure)
+            throws ReflectiveOperationException {
+        ReflectiveOperationException last = null;
+        for (String name : new String[] { "getSnapshot", "getSnapshotNMS", "getHandle" }) {
+            try {
+                return structure.getClass().getMethod(name).invoke(structure);
+            } catch (NoSuchMethodException exception) {
+                last = exception;
+            }
+        }
+        throw last != null ? last
+                : new NoSuchMethodException("getSnapshot/getSnapshotNMS/getHandle");
+    }
+
+    private String resolveSnapshotType(Structure structure) {
+        try {
+            Object snapshot = resolveSnapshot(structure);
+            return snapshot.getClass().getName();
+        } catch (ReflectiveOperationException exception) {
+            return "resolve_failed(" + exception.getMessage() + ")";
         }
     }
 
@@ -211,10 +292,11 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
 
     private void debug(Player player, String step, String detail) {
         var logger = plugin.debugLogger();
-        if (logger == null || !logger.shouldLog("structure", player.getUniqueId())) {
+        if (logger == null || !logger.shouldLog("structure",
+                player == null ? null : player.getUniqueId())) {
             return;
         }
         plugin.getLogger().info("[DEBUG:structure:highlight:" + step + "] player="
-                + player.getName() + " " + detail);
+                + (player == null ? "(offline)" : player.getName()) + " " + detail);
     }
 }
