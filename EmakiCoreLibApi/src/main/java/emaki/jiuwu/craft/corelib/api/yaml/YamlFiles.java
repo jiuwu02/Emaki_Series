@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.net.JarURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.AtomicMoveNotSupportedException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
@@ -177,20 +176,7 @@ public final class YamlFiles {
     public static void saveText(File file, String content) throws IOException {
         Objects.requireNonNull(file, "file");
         ensureDirectory(file.toPath().getParent());
-        Path target = file.toPath();
-        Path parent = target.getParent();
-        Path tempDirectory = parent == null ? Path.of(".") : parent;
-        Path temp = Files.createTempFile(tempDirectory, target.getFileName().toString(), ".tmp");
-        boolean moved = false;
-        try {
-            Files.writeString(temp, content, StandardCharsets.UTF_8);
-            moveReplacing(temp, target);
-            moved = true;
-        } finally {
-            if (!moved) {
-                Files.deleteIfExists(temp);
-            }
-        }
+        Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
     public static String dump(Map<String, ?> values) {
@@ -376,14 +362,6 @@ public final class YamlFiles {
             return Integer.compare(Integer.parseInt(current), Integer.parseInt(latest));
         } catch (NumberFormatException ignored) {
             return Texts.toStringSafe(current).compareToIgnoreCase(Texts.toStringSafe(latest));
-        }
-    }
-
-    private static void moveReplacing(Path source, Path target) throws IOException {
-        try {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException _) {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
