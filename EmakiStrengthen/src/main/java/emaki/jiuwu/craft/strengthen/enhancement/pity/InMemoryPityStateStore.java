@@ -182,16 +182,9 @@ public final class InMemoryPityStateStore implements PityStateStore {
             Properties properties = new Properties();
             states.forEach((key, state) -> properties.setProperty(
                     encodeKey(key), state.getCounter() + "," + state.getLastTriggerTime() + "," + state.isTriggered()));
-            Path temporary = persistenceFile.resolveSibling(persistenceFile.getFileName() + ".tmp");
-            try (OutputStream output = Files.newOutputStream(temporary,
+            try (OutputStream output = Files.newOutputStream(persistenceFile,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE)) {
                 properties.store(output, "EmakiStrengthen pity state");
-            }
-            try {
-                Files.move(temporary, persistenceFile, StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException ignored) {
-                Files.move(temporary, persistenceFile, StandardCopyOption.REPLACE_EXISTING);
             }
             return true;
         } catch (IOException ignored) {

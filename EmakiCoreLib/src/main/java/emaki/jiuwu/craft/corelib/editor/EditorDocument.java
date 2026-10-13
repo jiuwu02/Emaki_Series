@@ -127,7 +127,7 @@ public final class EditorDocument {
             if (Files.exists(file)) {
                 writeBackup(backupRoot, Files.readString(file, StandardCharsets.UTF_8));
             }
-            writeAtomically(document.text());
+            writeDirect(document.text());
             if (YamlFiles.load(document.text()) == null) {
                 return new SaveResult(SaveStatus.IO_ERROR, expectedRevision, "post_write_unreadable");
             }
@@ -176,13 +176,7 @@ public final class EditorDocument {
         Files.writeString(target, text, StandardCharsets.UTF_8);
     }
 
-    private void writeAtomically(String text) throws IOException {
-        Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
-        Files.writeString(temporary, text, StandardCharsets.UTF_8);
-        try {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException failure) {
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING);
-        }
+    private void writeDirect(String text) throws IOException {
+        Files.writeString(file, text, StandardCharsets.UTF_8);
     }
 }

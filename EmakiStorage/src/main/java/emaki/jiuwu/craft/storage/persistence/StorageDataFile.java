@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.storage.persistence;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,7 +23,6 @@ import org.bukkit.inventory.ItemStack;
 public final class StorageDataFile {
 
     private static final String DATA_FILE_NAME = "storage.dat";
-    private static final String TEMP_SUFFIX = ".tmp";
     private static final DateTimeFormatter QUARANTINE_STAMP =
             DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss", Locale.ROOT);
 
@@ -156,73 +156,62 @@ public final class StorageDataFile {
         Path directory = playerDirectory(playerId);
         Files.createDirectories(directory);
         Path target = directory.resolve(DATA_FILE_NAME);
-        Path temp = directory.resolve(DATA_FILE_NAME + TEMP_SUFFIX);
         List<ReservationRecord> holds = reservations == null ? List.of() : reservations;
-        boolean replaced = false;
-        try {
-            try (OutputStream out = new BufferedOutputStream(Files.newOutputStream(temp))) {
-                StorageCodec.writeHeader(out);
-                StorageCodec.writeVarLong(out, records.size());
-                for (Record record : records) {
-                    StorageCodec.writeItem(out, record.template());
-                    StorageCodec.writeVarLong(out, Math.max(0L, record.amount()));
-                    StorageCodec.writeVarLong(out, Math.max(0L, record.stackLimit()));
-                }
-                StorageCodec.writeVarLong(out, holds.size());
-                for (ReservationRecord reservation : holds) {
-                    StorageCodec.writeUuid(out, reservation.reservationId());
-                    StorageCodec.writeVarLong(out, Math.max(0L, reservation.expiresAtMillis()));
-                    StorageCodec.writeVarLong(out, reservation.ops().size());
-                    for (ReservationOpRecord op : reservation.ops()) {
-                        StorageCodec.writeItem(out, op.template());
-                        out.write(op.delta() < 0L ? 1 : 0);
-                        StorageCodec.writeVarLong(out, Math.abs(op.delta()));
-                    }
-                }
-            }
-            verify(temp, records.size(), holds.size());
-            moveReplacing(temp, target);
-            replaced = true;
-        } finally {
-            if (!replaced) {
-                Files.deleteIfExists(temp);
+        ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+        StorageCodec.writeHeader(buffer);
+        StorageCodec.writeVarLong(buffer, records.size());
+        for (Record record : records) {
+            StorageCodec.writeItem(buffer, record.template());
+            StorageCodec.writeVarLong(buffer, Math.max(0L, record.amount()));
+            StorageCodec.writeVarLong(buffer, Math.max(0L, record.stackLimit()));
+        }
+        StorageCodec.writeVarLong(buffer, holds.size());
+        for (ReservationRecord reservation : holds) {
+            StorageCodec.writeUuid(buffer, reservation.reservationId());
+            StorageCodec.writeVarLong(buffer, Math.max(0L, reservation.expiresAtMillis()));
+            StorageCodec.writeVarLong(buffer, reservation.ops().size());
+            for (ReservationOpRecord op : reservation.ops()) {
+                StorageCodec.writeItem(buffer, op.template());
+                buffer.write(op.delta() < 0L ? 1 : 0);
+                StorageCodec.writeVarLong(buffer, Math.abs(op.delta()));
             }
         }
+        byte[] payload = buffer.toByteArray();
+        verify(new ByteArrayInputStream(payload), records.size(), holds.size());
+        Files.write(target, payload);
     }
 
-    private void verify(Path file, int expected, int expectedHolds) throws IOException {
-        try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
-            StorageCodec.readHeader(in);
-            long declared = StorageCodec.readVarLong(in);
-            if (declared != expected) {
-                throw new IOException("校验失败：文件头声明 " + declared
-                        + " 条记录，实际写入 " + expected + " 条");
-            }
-            for (long index = 0; index < declared; index++) {
+    private void verify(InputStream in, int expected, int expectedHolds) throws IOException {
+        StorageCodec.readHeader(in);
+        long declared = StorageCodec.readVarLong(in);
+        if (declared != expected) {
+            throw new IOException("校验失败：文件头声明 " + declared
+                    + " 条记录，实际写入 " + expected + " 条");
+        }
+        for (long index = 0; index < declared; index++) {
+            StorageCodec.readItemPayload(in);
+            StorageCodec.readVarLong(in);
+            StorageCodec.readVarLong(in);
+        }
+        long declaredHolds = StorageCodec.readVarLong(in);
+        if (declaredHolds != expectedHolds) {
+            throw new IOException("校验失败：文件头声明 " + declaredHolds
+                    + " 条预留，实际写入 " + expectedHolds + " 条");
+        }
+        for (long index = 0; index < declaredHolds; index++) {
+            StorageCodec.readUuid(in);
+            StorageCodec.readVarLong(in);
+            long opCount = StorageCodec.readVarLong(in);
+            for (long opIndex = 0; opIndex < opCount; opIndex++) {
                 StorageCodec.readItemPayload(in);
-                StorageCodec.readVarLong(in);
-                StorageCodec.readVarLong(in);
-            }
-            long declaredHolds = StorageCodec.readVarLong(in);
-            if (declaredHolds != expectedHolds) {
-                throw new IOException("校验失败：文件头声明 " + declaredHolds
-                        + " 条预留，实际写入 " + expectedHolds + " 条");
-            }
-            for (long index = 0; index < declaredHolds; index++) {
-                StorageCodec.readUuid(in);
-                StorageCodec.readVarLong(in);
-                long opCount = StorageCodec.readVarLong(in);
-                for (long opIndex = 0; opIndex < opCount; opIndex++) {
-                    StorageCodec.readItemPayload(in);
-                    if (in.read() < 0) {
-                        throw new IOException("校验失败：预留操作符号被截断");
-                    }
-                    StorageCodec.readVarLong(in);
+                if (in.read() < 0) {
+                    throw new IOException("校验失败：预留操作符号被截断");
                 }
+                StorageCodec.readVarLong(in);
             }
-            if (in.read() >= 0) {
-                throw new IOException("校验失败：在 " + declared + " 条记录之后存在多余字节");
-            }
+        }
+        if (in.read() >= 0) {
+            throw new IOException("校验失败：在 " + declared + " 条记录之后存在多余字节");
         }
     }
 
@@ -238,13 +227,5 @@ public final class StorageDataFile {
         }
         Files.write(target, buffer.toByteArray());
         return target;
-    }
-
-    private static void moveReplacing(Path source, Path target) throws IOException {
-        try {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (AtomicMoveNotSupportedException _) {
-            Files.move(source, target, StandardCopyOption.REPLACE_EXISTING);
-        }
     }
 }

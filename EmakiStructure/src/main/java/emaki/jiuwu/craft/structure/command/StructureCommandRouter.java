@@ -491,10 +491,7 @@ public final class StructureCommandRouter {
             try {
                 Path parent = target.getParent();
                 Files.createDirectories(parent);
-                Path temporary = parent.resolve(name + ".nbt.tmp");
-                Files.write(temporary, payload);
-                Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
+                Files.write(target, payload);
             } catch (IOException exception) {
                 runGlobalMessage(sender, "error.export.write_failed", Map.of(
                         "file", target.getFileName().toString(),
@@ -533,10 +530,7 @@ public final class StructureCommandRouter {
         Path target = plugin.dataPath("furniture", name + ".yml");
         try {
             Files.createDirectories(target.getParent());
-            Path temporary = target.resolveSibling(name + ".yml.tmp");
-            Files.write(temporary, FurnitureSidecarParser.encode(entries).getBytes(StandardCharsets.UTF_8));
-            Files.move(temporary, target, StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
+            Files.write(target, FurnitureSidecarParser.encode(entries).getBytes(StandardCharsets.UTF_8));
         } catch (IOException exception) {
             runGlobalMessage(sender, "error.export.write_failed", Map.of(
                     "file", target.getFileName().toString(),

@@ -245,17 +245,7 @@ public final class LegacyGemConfigRewriter {
     }
 
     private static void writeLines(Path file, List<String> lines) throws IOException {
-        Path temp = file.resolveSibling(file.getFileName() + ".converting.tmp");
-        boolean moved = false;
-        try {
-            Files.writeString(temp, String.join(System.lineSeparator(), lines) + System.lineSeparator(),
-                    StandardCharsets.UTF_8);
-            Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
-            moved = true;
-        } finally {
-            if (!moved) {
-                Files.deleteIfExists(temp);
-            }
-        }
+        Files.writeString(file, String.join(System.lineSeparator(), lines) + System.lineSeparator(),
+                StandardCharsets.UTF_8);
     }
 }

@@ -4,7 +4,7 @@
 # 修改后使用 /ems reload 热重载。
 # 文件位置：plugins/EmakiStructure/config.yml
 
-version: "1.0.2"
+version: "1.0.3"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"

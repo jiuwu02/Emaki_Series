@@ -97,13 +97,17 @@ public final class BootstrapService {
 
     private void mergeVersionedFile(String relativePath) {
         try {
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
-                    plugin,
-                    dataPath(relativePath).toFile(),
-                    relativePath,
-                    VERSION_KEY,
-                    document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
-            );
+            Path targetPath = dataPath(relativePath);
+            VersionedYamlFile cached = YamlFiles.pollStartupCache(targetPath.toFile());
+            VersionedYamlFile versionedFile = cached != null
+                    ? cached
+                    : YamlFiles.syncVersionedResource(
+                            plugin,
+                            targetPath.toFile(),
+                            relativePath,
+                            VERSION_KEY,
+                            document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
+                    );
             if (versionedFile == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
                 return;

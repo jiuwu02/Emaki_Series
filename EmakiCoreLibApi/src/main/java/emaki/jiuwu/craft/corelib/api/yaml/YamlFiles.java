@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
@@ -53,13 +54,35 @@ public final class YamlFiles {
             .setKeepAll(true)
             .setOptionSorting(UpdaterSettings.OptionSorting.SORT_BY_DEFAULTS)
             .build();
+    private static final Map<Path, VersionedYamlFile> STARTUP_HANDOFF = new ConcurrentHashMap<>();
 
     private YamlFiles() {
+    }
+
+    public static VersionedYamlFile pollStartupCache(File target) {
+        if (target == null) {
+            return null;
+        }
+        return STARTUP_HANDOFF.remove(normalizeKey(target));
+    }
+
+    private static Path normalizeKey(File target) {
+        return target.toPath().toAbsolutePath().normalize();
+    }
+
+    private static void rememberStartupCache(File target, VersionedYamlFile value) {
+        if (target != null && value != null && value.root() != null) {
+            STARTUP_HANDOFF.put(normalizeKey(target), value);
+        }
     }
 
     public static YamlSection load(File file) {
         if (file == null || !file.exists()) {
             return new MapYamlSection();
+        }
+        VersionedYamlFile cached = pollStartupCache(file);
+        if (cached != null && cached.root() != null) {
+            return cached.root().copy();
         }
         try (InputStream inputStream = Files.newInputStream(file.toPath())) {
             return BoostedYamlSupport.load(inputStream);
@@ -120,6 +143,11 @@ public final class YamlFiles {
             String resourcePath) throws IOException {
         if (target != null && !target.exists()) {
             copyResource(plugin, resourcePath, target, false);
+            return openVersioned(plugin, target, resourcePath);
+        }
+        VersionedYamlFile cached = pollStartupCache(target);
+        if (cached != null) {
+            return cached;
         }
         return openVersioned(plugin, target, resourcePath);
     }
@@ -132,6 +160,17 @@ public final class YamlFiles {
     }
 
     public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
+            File target,
+            String resourcePath,
+            String versionKey,
+            Consumer<VersionedYamlFile> afterUpdate) throws IOException {
+        VersionedYamlFile versionedFile = doSyncVersionedResource(plugin, target, resourcePath,
+                versionKey, afterUpdate);
+        rememberStartupCache(target, versionedFile);
+        return versionedFile;
+    }
+
+    private static VersionedYamlFile doSyncVersionedResource(JavaPlugin plugin,
             File target,
             String resourcePath,
             String versionKey,

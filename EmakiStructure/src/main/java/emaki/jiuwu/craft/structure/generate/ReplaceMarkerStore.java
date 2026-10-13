@@ -91,12 +91,9 @@ public final class ReplaceMarkerStore {
         markers.put(world, keptSet);
         order.put(world, new LinkedHashSet<>(kept));
         Path file = fileFor(world);
-        Path temporary = file.resolveSibling(file.getFileName() + ".tmp");
         try {
-            Files.write(temporary, kept, StandardCharsets.UTF_8,
+            Files.write(file, kept, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-            Files.move(temporary, file, StandardCopyOption.REPLACE_EXISTING,
-                    StandardCopyOption.ATOMIC_MOVE);
         } catch (IOException exception) {
         }
     }

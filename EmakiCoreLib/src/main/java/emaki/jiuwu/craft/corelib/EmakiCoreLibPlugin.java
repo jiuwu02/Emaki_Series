@@ -743,12 +743,15 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     private CoreLibConfig loadConfigModel() {
         try {
             File file = new File(getDataFolder(), "config.yml");
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
-                    this,
-                    file,
-                    "config.yml",
-                    "version"
-            );
+            VersionedYamlFile versionedFile = YamlFiles.pollStartupCache(file);
+            if (versionedFile == null) {
+                versionedFile = YamlFiles.syncVersionedResource(
+                        this,
+                        file,
+                        "config.yml",
+                        "version"
+                );
+            }
             logVersionUpdate("config.yml", versionedFile);
             return CoreLibConfig.fromConfig(versionedFile == null ? YamlFiles.load(file) : versionedFile.root());
         } catch (Exception exception) {

@@ -77,18 +77,11 @@ public final class VanillaLanguageDownloader {
     }
 
     private void writeCache(Path cacheFile, String body) {
-        Path temporary = cacheFile.resolveSibling(cacheFile.getFileName() + ".tmp");
         try {
             Files.createDirectories(cacheFile.getParent());
-            Files.writeString(temporary, body, StandardCharsets.UTF_8);
-            Files.move(temporary, cacheFile, StandardCopyOption.REPLACE_EXISTING);
+            Files.writeString(cacheFile, body, StandardCharsets.UTF_8);
         } catch (IOException exception) {
             logger.fine("[text] 缓存原版语言文件失败: " + exception.getMessage());
-            try {
-                Files.deleteIfExists(temporary);
-            } catch (IOException _) {
-
-            }
         }
     }
 

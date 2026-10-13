@@ -74,7 +74,7 @@ public final class LanguageLoader {
             try {
                 VersionedYamlFile versionedFile = syncVersionedLanguage(file, bundledResource, loggedUpdates);
                 YamlSection loaded = versionedFile == null || versionedFile.root() == null
-                        ? YamlFiles.load(file)
+                        ? emptySection()
                         : versionedFile.root().copy();
                 if (bundledFallback != null && fallbackLanguage.equals(langId)) {
                     YamlFiles.mergeMissingValues(loaded, bundledFallback);
@@ -82,7 +82,7 @@ public final class LanguageLoader {
                 languages.put(langId, loaded);
             } catch (IOException exception) {
                 warning("loader.bundled_language_load_failed", Map.of("error", Texts.toStringSafe(exception.getMessage())));
-                languages.put(langId, YamlFiles.load(file));
+                languages.put(langId, emptySection());
             }
             if (!file.exists()) {
                 warning("loader.bundled_resource_missing", Map.of(
@@ -122,8 +122,15 @@ public final class LanguageLoader {
         return targets;
     }
 
+    private static YamlSection emptySection() {
+        return new MapYamlSection();
+    }
+
     private VersionedYamlFile syncVersionedLanguage(File target, String bundledResource, Set<String> loggedUpdates) throws IOException {
-        VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(plugin, target, bundledResource, "version");
+        VersionedYamlFile cached = YamlFiles.pollStartupCache(target);
+        VersionedYamlFile versionedFile = cached != null
+                ? cached
+                : YamlFiles.syncVersionedResource(plugin, target, bundledResource, "version");
         logVersionUpdate(target, versionedFile, loggedUpdates);
         return versionedFile;
     }
