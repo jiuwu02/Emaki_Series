@@ -18,6 +18,8 @@ import java.util.UUID;
 
 public final class StructureBlockSelectionHighlighter implements SelectionHighlighter {
 
+    private static final int VANILLA_SIZE_LIMIT = 48;
+
     private record AnchorRef(String world, int x, int y, int z) {
     }
 
@@ -77,10 +79,32 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             ((StructureBlock) data).setMode(StructureBlock.Mode.SAVE);
             player.sendBlockChange(anchor, data);
             var state = data.createBlockState();
+            String sizeMode = "bukkit";
             if (state instanceof Structure structure) {
                 structure.setUsageMode(UsageMode.SAVE);
-                structure.setStructureSize(new BlockVector(box.sizeX(), box.sizeY(),
-                        box.sizeZ()));
+                boolean reflected = false;
+                int sizeX = box.sizeX();
+                int sizeY = box.sizeY();
+                int sizeZ = box.sizeZ();
+                if (sizeX > VANILLA_SIZE_LIMIT || sizeY > VANILLA_SIZE_LIMIT
+                        || sizeZ > VANILLA_SIZE_LIMIT) {
+                    if (applyLargeSize(player, structure, sizeX, sizeY, sizeZ)) {
+                        sizeMode = "reflect";
+                        reflected = true;
+                    } else {
+                        structure.setStructureSize(new BlockVector(
+                                Math.min(sizeX, VANILLA_SIZE_LIMIT),
+                                Math.min(sizeY, VANILLA_SIZE_LIMIT),
+                                Math.min(sizeZ, VANILLA_SIZE_LIMIT)));
+                        sizeMode = "clamped48";
+                    }
+                }
+                if (!reflected) {
+                    if (sizeX <= VANILLA_SIZE_LIMIT && sizeY <= VANILLA_SIZE_LIMIT
+                            && sizeZ <= VANILLA_SIZE_LIMIT) {
+                        structure.setStructureSize(new BlockVector(sizeX, sizeY, sizeZ));
+                    }
+                }
                 structure.setShowAir(false);
                 structure.setBoundingBoxVisible(true);
                 player.sendBlockUpdate(anchor, structure);
@@ -88,7 +112,8 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             anchors.put(player.getUniqueId(),
                     new AnchorRef(world.getName(), anchor.getBlockX(), anchor.getBlockY(),
                             anchor.getBlockZ()));
-            debug(player, "first_render", "mode=SAVE anchor=" + anchor.getBlockX() + ","
+            debug(player, "first_render", "mode=SAVE sizeMode=" + sizeMode
+                    + " anchor=" + anchor.getBlockX() + ","
                     + anchor.getBlockY() + "," + anchor.getBlockZ()
                     + " size=" + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ()
                     + " box=" + box.minX() + "," + box.minY() + "," + box.minZ()
@@ -100,6 +125,51 @@ public final class StructureBlockSelectionHighlighter implements SelectionHighli
             debug(player, "error", "type=" + exception.getClass().getSimpleName()
                     + " message=" + exception.getMessage());
         }
+    }
+
+    private boolean applyLargeSize(Player player, Structure structure, int x, int y, int z) {
+        try {
+            java.lang.reflect.Method getHandle = structure.getClass().getMethod("getHandle");
+            Object handle = getHandle.invoke(structure);
+            Class<?> vec3iType = Class.forName("net.minecraft.core.Vec3i");
+            Object sizeValue = newVec3i(vec3iType, x, y, z);
+            java.lang.reflect.Field sizeField = findField(handle.getClass(),
+                    "structureSize", "size");
+            sizeField.setAccessible(true);
+            sizeField.set(handle, sizeValue);
+            return true;
+        } catch (ReflectiveOperationException | RuntimeException exception) {
+            debug(player, "reflect_fallback",
+                    "type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage());
+            return false;
+        }
+    }
+
+    private static Object newVec3i(Class<?> vec3iType, int x, int y, int z)
+            throws ReflectiveOperationException {
+        try {
+            return vec3iType.getConstructor(int.class, int.class, int.class)
+                    .newInstance(x, y, z);
+        } catch (NoSuchMethodException ignored) {
+            return vec3iType.getConstructor(double.class, double.class, double.class)
+                    .newInstance((double) x, (double) y, (double) z);
+        }
+    }
+
+    private static java.lang.reflect.Field findField(Class<?> type, String... names)
+            throws NoSuchFieldException {
+        Class<?> current = type;
+        while (current != null) {
+            for (String name : names) {
+                try {
+                    return current.getDeclaredField(name);
+                } catch (NoSuchFieldException ignored) {
+                }
+            }
+            current = current.getSuperclass();
+        }
+        throw new NoSuchFieldException(String.join("/", names));
     }
 
     private void removeFrame(Player player, boolean log) {
