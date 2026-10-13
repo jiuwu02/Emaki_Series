@@ -4,6 +4,7 @@ import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import net.kyori.adventure.bossbar.BossBar;
@@ -17,7 +18,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityRegainHealthEvent;
-import org.bukkit.plugin.Plugin;
 
 import java.util.Map;
 import java.util.UUID;
@@ -27,13 +27,13 @@ import java.util.function.Supplier;
 public final class BossBarManager implements Listener {
 
     private final Map<UUID, BossBar> entityBars = new ConcurrentHashMap<>();
-    private final Plugin plugin;
+    private final EmakiMobsPlugin plugin;
     private final ExecutionDispatcher executionDispatcher;
     private final MobIdentifier mobIdentifier;
     private final Supplier<Map<String, MobSpec>> registry;
     private final TaskToken distanceTask;
 
-    public BossBarManager(Plugin plugin, ExecutionDispatcher executionDispatcher,
+    public BossBarManager(EmakiMobsPlugin plugin, ExecutionDispatcher executionDispatcher,
                            MobIdentifier mobIdentifier,
                            Supplier<Map<String, MobSpec>> registry) {
         this.plugin = plugin;
@@ -124,11 +124,19 @@ public final class BossBarManager implements Listener {
     }
 
     private void debug(String step, LivingEntity entity, String detail) {
+        var logger = plugin.debugLogger();
+        if (logger == null || !logger.shouldLog("mobs", entity.getUniqueId())) {
+            return;
+        }
         plugin.getLogger().info("[DEBUG:mobs:bossbar:" + step + "] entity=" + entity.getUniqueId()
                 + " type=" + entity.getType().getKey() + " " + detail);
     }
 
     private void debug(String step, UUID entityId, String detail) {
+        var logger = plugin.debugLogger();
+        if (logger == null || !logger.shouldLog("mobs", entityId)) {
+            return;
+        }
         plugin.getLogger().info("[DEBUG:mobs:bossbar:" + step + "] entity=" + entityId + " " + detail);
     }
 

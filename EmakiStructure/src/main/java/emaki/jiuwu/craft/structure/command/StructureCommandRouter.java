@@ -1036,6 +1036,10 @@ public final class StructureCommandRouter {
     }
 
     private void debug(String step, String detail) {
+        var logger = plugin.debugLogger();
+        if (logger == null || !logger.shouldLog("structure", (java.util.UUID) null)) {
+            return;
+        }
         plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
     }
 

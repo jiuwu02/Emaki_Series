@@ -324,6 +324,10 @@ public final class GenerationService {
     }
 
     private void debug(String step, String detail) {
+        var logger = plugin.debugLogger();
+        if (logger == null || !logger.shouldLog("structure", (UUID) null)) {
+            return;
+        }
         plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
     }
 }

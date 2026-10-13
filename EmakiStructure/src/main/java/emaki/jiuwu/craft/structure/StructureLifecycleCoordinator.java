@@ -27,7 +27,7 @@ import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockService;
 import emaki.jiuwu.craft.structure.multiblock.TriggerCooldown;
 import emaki.jiuwu.craft.structure.rollback.RollbackService;
-import emaki.jiuwu.craft.structure.selection.ParticleSelectionHighlighter;
+import emaki.jiuwu.craft.structure.selection.DisplaySelectionHighlighter;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnExecutor;
 import emaki.jiuwu.craft.structure.spawn.SpawnQueue;
@@ -93,7 +93,7 @@ final class StructureLifecycleCoordinator
                 () -> appConfigLoader.current().spawn().respectEntityPolicy());
         spawnQueue.start();
 
-        var highlighter = new ParticleSelectionHighlighter(plugin, executionDispatcher);
+        var highlighter = new DisplaySelectionHighlighter(plugin, executionDispatcher);
         var selectionManager = new SelectionManager(plugin, executionDispatcher,
                 () -> appConfigLoader.current().selection().sessionTimeout(), highlighter);
         selectionManager.startSweep();
