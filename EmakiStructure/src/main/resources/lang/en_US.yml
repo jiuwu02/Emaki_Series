@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep placeholders noted beside each message group.
 # version is maintained by the resource sync flow to merge new default keys.
 
-version: "1.0.3"
+version: "1.0.4"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -58,7 +58,7 @@ console:
   export_furniture_absent: "[export] <gray>0 furniture captured (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
 
 command:
-  usage: "<gray>Usage: /ems &lt;get|place|select|export|reload|multiblock|help&gt; ... (run /ems help for the full list)</gray>"
+  usage: "<gray>Usage: /ems &lt;get|select|structure|reload|multiblock|help&gt; ... (run /ems help for the full list)</gray>"
   help:
     header: "<gold>========== EmakiStructure Help ==========</gold>"
     footer: "<gold>==========================================</gold>"
@@ -68,18 +68,21 @@ command:
       place: "Place a structure template (.nbt file) at your position; not for multiblocks"
       select: "Select a region: pos1/pos2 to set corners, adjust to resize, clear to reset"
       export: "Export the current selection as structure template structures/&lt;name&gt;.nbt"
-      record: "Record the selection as multiblocks/&lt;id&gt;.yml (records only, never places)"
+      multiblock_export: "Export the selection as multiblocks/&lt;id&gt;.yml (exports only, never places)"
+      multiblock_place: "Place a multiblock definition at your position"
       list: "List the loaded multiblock definitions"
       validate: "Manually validate a multiblock definition against the world"
       reload: "Reload configuration, language and template caches"
       debug: "Manage Debug mode and diagnostic output"
   get_usage: "<gray>Usage: /ems get &lt;template&gt; [facing] - preview-generate a structure template 3 blocks in front of you</gray>"
-  place_usage: "<gray>Usage: /ems place &lt;template&gt; &lt;facing&gt; - place a structure template (.nbt file) at your position; multiblocks are recorded with /ems multiblock record, never placed</gray>"
+  structure_usage: "<gray>Usage: /ems structure &lt;export|place&gt; ... - export saves the selection as a structure template, place generates one at your position</gray>"
+  place_usage: "<gray>Usage: /ems structure place &lt;template&gt; &lt;facing&gt; - place a structure template (.nbt file) at your position; use /ems multiblock place for multiblocks or /ems multiblock export to record them</gray>"
   select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
   adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
-  export_usage: "<gray>Usage: /ems export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt (not a multiblock file)</gray>"
-  multiblock_usage: "<gray>Usage: /ems multiblock &lt;record|list|validate&gt; ...</gray>"
-  multiblock_record_usage: "<gray>Usage: /ems multiblock record &lt;id&gt; [force]</gray>"
+  export_usage: "<gray>Usage: /ems structure export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt (not a multiblock file)</gray>"
+  multiblock_usage: "<gray>Usage: /ems multiblock &lt;export|place|list|validate&gt; ...</gray>"
+  multiblock_export_usage: "<gray>Usage: /ems multiblock export &lt;id&gt; [force]</gray>"
+  multiblock_place_usage: "<gray>Usage: /ems multiblock place &lt;id&gt; [facing] - place a multiblock definition at your position</gray>"
   multiblock_validate_usage: "<gray>Usage: /ems multiblock validate &lt;id&gt;</gray>"
   # placeholders: %count%, %candidates%, %formed%
   multiblock_list_header: "<gray>Loaded <white>%count%</white> multiblock definitions, %candidates% in-progress instances, %formed% active instances.</gray>"
@@ -90,7 +93,11 @@ command:
   # placeholders: none
   multiblock_missing_none: "none"
   # placeholders: %id%, %members%, %file%
-  multiblock_record_saved: "<green>Recorded multiblock definition <white>%id%</white>: %members% members, file %file%</green>"
+  multiblock_export_saved: "<green>Exported multiblock definition <white>%id%</white>: %members% members, file %file%</green>"
+  # placeholders: %id%, %placed%, %failed%, %facing%, %x%, %y%, %z%
+  multiblock_place_done: "<green>Placed multiblock structure <white>%id%</white>: %placed% members placed, %failed% failed (facing <white>%facing%</white>), anchor <white>%x%, %y%, %z%</white></green>"
+  # placeholders: %detail%
+  multiblock_place_entry_failed: "<yellow>Failed to place multiblock member: %detail%</yellow>"
   # placeholders: %value%, %allowed%
   invalid_facing: "<red>Facing <white>%value%</white> is invalid, allowed: %allowed%</red>"
   # placeholders: %template%, %facing%, %x%, %y%, %z%, %overwritten%
@@ -291,11 +298,11 @@ error:
     # placeholders: %id%
     not_found: "<red>Multiblock definition <white>%id%</white> does not exist.</red>"
     # placeholders: %id%, %file%
-    already_exists: "<red>Multiblock definition <white>%id%</white> already exists (%file%), use record force to overwrite.</red>"
+    already_exists: "<red>Multiblock definition <white>%id%</white> already exists (%file%), use export force to overwrite.</red>"
     # placeholders: %id%
     verification_failed: "<red>Multiblock structure <white>%id%</white> failed shape verification and was downgraded to incomplete, inspect it and try again.</red>"
     # placeholders: %id%, %detail%
-    record_failed: "<red>Failed to record multiblock definition <white>%id%</white>: %detail%</red>"
+    export_failed: "<red>Failed to export multiblock definition <white>%id%</white>: %detail%</red>"
     # placeholders: %id%, %detail%
     write_failed: "<red>Failed to write multiblock definition <white>%id%</white>: %detail%</red>"
 

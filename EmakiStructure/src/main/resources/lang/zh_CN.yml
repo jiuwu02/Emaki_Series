@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.3"
+version: "1.0.4"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -58,7 +58,7 @@ console:
   export_furniture_absent: "[export] <gray>家具 0 条（无家具插件在场），已有 furniture 侧车保持不变</gray>"
 
 command:
-  usage: "<gray>用法：/ems <get|place|select|export|reload|multiblock|help> ...（输入 /ems help 查看完整帮助）</gray>"
+  usage: "<gray>用法：/ems <get|select|structure|reload|multiblock|help> ...（输入 /ems help 查看完整帮助）</gray>"
   help:
     header: "<gold>========== EmakiStructure 帮助 ==========</gold>"
     footer: "<gold>==========================================</gold>"
@@ -68,18 +68,21 @@ command:
       place: "在你当前位置放置结构模板（.nbt 文件），不涉及多方块"
       select: "框选区域：pos1/pos2 设点、adjust 调整、clear 清除"
       export: "把当前选区导出为结构模板 structures/<名称>.nbt"
-      record: "按选区记录多方块布局为 multiblocks/<id>.yml（仅记录，不会放置）"
+      multiblock_export: "按选区导出多方块布局为 multiblocks/<id>.yml（仅导出，不会放置）"
+      multiblock_place: "在你当前位置放置多方块结构定义"
       list: "列出已加载的多方块定义"
       validate: "手动校验多方块定义在现场的形状"
       reload: "重载配置、语言与模板缓存"
       debug: "管理 Debug 模式与诊断输出"
   get_usage: "<gray>用法：/ems get <模板> [朝向] —— 在你面前 3 格处预览生成结构模板</gray>"
-  place_usage: "<gray>用法：/ems place <模板> <朝向> —— 在你当前位置放置结构模板（.nbt 文件）；多方块结构请用 /ems multiblock record 记录，不会被放置</gray>"
+  structure_usage: "<gray>用法：/ems structure <export|place> ... —— export 导出选区为结构模板、place 放置结构模板</gray>"
+  place_usage: "<gray>用法：/ems structure place <模板> <朝向> —— 在你当前位置放置结构模板（.nbt 文件）；多方块结构请用 /ems multiblock place 放置或 /ems multiblock export 记录</gray>"
   select_usage: "<gray>用法：/ems select <pos1|pos2|adjust|clear> ...</gray>"
   adjust_usage: "<gray>用法：/ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
-  export_usage: "<gray>用法：/ems export <名称> —— 把当前选区导出为结构模板 structures/<名称>.nbt（非多方块文件）</gray>"
-  multiblock_usage: "<gray>用法：/ems multiblock <record|list|validate> ...</gray>"
-  multiblock_record_usage: "<gray>用法：/ems multiblock record <id> [force]</gray>"
+  export_usage: "<gray>用法：/ems structure export <名称> —— 把当前选区导出为结构模板 structures/<名称>.nbt（非多方块文件）</gray>"
+  multiblock_usage: "<gray>用法：/ems multiblock <export|place|list|validate> ...</gray>"
+  multiblock_export_usage: "<gray>用法：/ems multiblock export <id> [force]</gray>"
+  multiblock_place_usage: "<gray>用法：/ems multiblock place <id> [朝向] —— 在你当前位置放置多方块结构定义</gray>"
   multiblock_validate_usage: "<gray>用法：/ems multiblock validate <id></gray>"
   # 占位符：%count%、%candidates%、%formed%
   multiblock_list_header: "<gray>已加载 <white>%count%</white> 个多方块定义，进行中实例 %candidates%，活动实例 %formed%。</gray>"
@@ -90,7 +93,11 @@ command:
   # 占位符：无
   multiblock_missing_none: "无"
   # 占位符：%id%、%members%、%file%
-  multiblock_record_saved: "<green>已记录多方块定义 <white>%id%</white>：%members% 个成员，文件 %file%</green>"
+  multiblock_export_saved: "<green>已导出多方块定义 <white>%id%</white>：%members% 个成员，文件 %file%</green>"
+  # 占位符：%id%、%placed%、%failed%、%facing%、%x%、%y%、%z%
+  multiblock_place_done: "<green>已放置多方块结构 <white>%id%</white>：%placed% 个成员成功、%failed% 个失败（朝向 <white>%facing%</white>），锚点 <white>%x%, %y%, %z%</white></green>"
+  # 占位符：%detail%
+  multiblock_place_entry_failed: "<yellow>多方块成员放置失败：%detail%</yellow>"
   # 占位符：%value%、%allowed%
   invalid_facing: "<red>朝向 <white>%value%</white> 非法，可用：%allowed%</red>"
   # 占位符：%template%、%facing%、%x%、%y%、%z%、%overwritten%
@@ -291,11 +298,11 @@ error:
     # 占位符：%id%
     not_found: "<red>多方块定义 <white>%id%</white> 不存在。</red>"
     # 占位符：%id%、%file%
-    already_exists: "<red>多方块定义 <white>%id%</white> 已存在（%file%），如需覆盖请使用 record force。</red>"
+    already_exists: "<red>多方块定义 <white>%id%</white> 已存在（%file%），如需覆盖请使用 export force。</red>"
     # 占位符：%id%
     verification_failed: "<red>多方块结构 <white>%id%</white> 形状校验未通过，已降级为未完成状态，请检查结构后重试。</red>"
     # 占位符：%id%、%detail%
-    record_failed: "<red>记录多方块定义 <white>%id%</white> 失败：%detail%</red>"
+    export_failed: "<red>导出多方块定义 <white>%id%</white> 失败：%detail%</red>"
     # 占位符：%id%、%detail%
     write_failed: "<red>写入多方块定义 <white>%id%</white> 失败：%detail%</red>"
 

@@ -11,8 +11,6 @@ import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -44,19 +42,6 @@ public final class MobIdentifier implements Listener {
 
     public boolean isManaged(LivingEntity entity) {
         return entity.getPersistentDataContainer().has(mobIdKey, PersistentDataType.STRING);
-    }
-
-    public List<LivingEntity> trackedEntities() {
-        List<LivingEntity> entities = new ArrayList<>();
-        for (Map.Entry<UUID, WeakReference<LivingEntity>> entry : trackedEntities.entrySet()) {
-            LivingEntity entity = entry.getValue().get();
-            if (entity == null) {
-                trackedEntities.remove(entry.getKey(), entry.getValue());
-                continue;
-            }
-            entities.add(entity);
-        }
-        return List.copyOf(entities);
     }
 
     public LivingEntity trackedEntity(UUID entityId) {

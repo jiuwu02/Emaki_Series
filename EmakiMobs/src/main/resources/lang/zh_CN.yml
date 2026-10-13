@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "1.0.12"
+version: "1.0.13"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiMobs</gradient> ]</gray>"
@@ -122,14 +122,33 @@ command:
   value_yes: "是"
   value_no: "否"
   count_success: "<green>受管生物 <white>%mob_id%</white> 当前数量：<white>%count%</white>。</green>"
-  kill_usage: "<gray>用法：/emakimobs kill <mob_id> [半径]</gray>"
+  kill_usage: "<gray>用法：/emakimobs kill <mob_id|all> [半径] —— all 清理全部受管生物</gray>"
   kill_success: "<green>已移除 <white>%count%</white> 个 <white>%mob_id%</white> 受管生物。</green>"
+  kill_all_success: "<green>已移除全部受管生物，共 <white>%count%</white> 只。</green>"
+  find_usage: "<gray>用法：/emakimobs find <mob_id> [半径] —— 查找范围内指定受管生物并列出（点击条目可传送）</gray>"
+  # 占位符：%mob_id%、%count%、%radius%
+  find_header: "<gray>范围内受管生物 <white>%mob_id%</white>：<white>%count%</white> 只（半径 %radius%）：</gray>"
+  find_empty: "<yellow>范围内没有对应的受管生物。</yellow>"
+  # 占位符：%mob_id%、%uuid%、%health%、%max_health%
+  find_entry_hover: "<white>%mob_id%</white> <gray>UUID %uuid%</gray><newline><gray>生命 %health%/%max_health%</gray><newline><gray>点击传送至该生物</gray>"
+  # 占位符：%hover%、%uuid%、%mob_id%、%distance%、%world%、%x%、%y%、%z%
+  find_entry: "<dark_gray>-</dark_gray> <hover:show_text:'%hover%'><click:run_command:'/emakimobs tp %uuid%'><green>点击传送</green></click></hover> <white>%mob_id%</white> <gray>%world% %x%, %y%, %z%（%distance% 格）</gray>"
+  # 占位符：%count%
+  find_truncated: "<dark_gray>… 其余 %count% 只未显示</dark_gray>"
+  tp_usage: "<gray>用法：/emakimobs tp <uuid> —— 传送至对应受管生物（由 find 列表点击触发）</gray>"
+  # 占位符：%value%
+  tp_success: "<green>已传送到受管生物 <white>%value%</white> 的位置。</green>"
+  tp_failed: "<red>传送失败：目标已不可达。</red>"
+  # 占位符：%value%
+  tp_invalid: "<red>无效 UUID：<white>%value%</white></red>"
+  # 占位符：%value%
+  tp_not_managed: "<red>目标不存在或不是受管生物，拒绝传送：<white>%value%</white></red>"
   kill_radius_player_only: "<red>指定半径时必须由玩家执行，半径中心为执行者位置。</red>"
   invalid_radius: "<red>无效半径：<white>%radius%</white>。半径必须是非负有限数字。</red>"
   unknown_mob: "<red>未知生物 ID：<white>%mob_id%</white></red>"
   debug_unavailable: "<red>DEBUG 控制器当前不可用。</red>"
   operation_failed: "<red>命令操作 %operation% 执行失败，请查看服务器日志。</red>"
-  usage: "<gray>用法：/emakimobs <help|spawn|reload|list|info|kill|count|debug|edit> ...（输入 /emakimobs help 查看帮助）</gray>"
+  usage: "<gray>用法：/emakimobs <help|spawn|reload|list|info|kill|count|find|debug|edit> ...（输入 /emakimobs help 查看帮助）</gray>"
   no_permission: "<red>你没有权限执行此命令。</red>"
   help:
     header: "<gold>========== EmakiMobs 帮助 ==========</gold>"
@@ -143,7 +162,8 @@ command:
       list: "分页列出已加载的生物定义"
       info: "查看生物定义的类型、组件与掉落等详情"
       count: "统计指定受管生物的当前数量"
-      kill: "移除指定受管生物（可按半径）"
+      find: "查找范围内指定受管生物，列表可点击传送"
+      kill: "移除指定受管生物（all 清理全部，可按半径）"
       edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
       reload: "重载配置与全部生物定义"
       debug: "管理 Debug 模式与诊断输出"

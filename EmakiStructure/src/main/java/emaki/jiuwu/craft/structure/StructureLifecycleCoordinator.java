@@ -125,7 +125,8 @@ final class StructureLifecycleCoordinator
         var replaceListener = new StructureReplaceListener(plugin, generationService,
                 templateRepository, replaceMarkers, appConfigLoader::current);
         var commandRouter = new StructureCommandRouter(plugin, selectionManager,
-                generationService, templateRepository, furnitureAdapter, appConfigLoader::current);
+                generationService, templateRepository, furnitureAdapter, furniturePlacer,
+                appConfigLoader::current);
 
         for (String source : furnitureAdapter.presentSources()) {
             messageService.info("console.furniture_source_ready", Map.of("source", source));

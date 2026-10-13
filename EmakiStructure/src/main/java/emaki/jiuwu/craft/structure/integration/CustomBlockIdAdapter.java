@@ -14,10 +14,10 @@ public final class CustomBlockIdAdapter {
     public static final List<String> KNOWN_NAMESPACES =
             List.of("itemsadder", "oraxen", "nexo", "craftengine");
 
-    public record BlockHandle(String namespace, String normalizedId, boolean resolvable) {
+    public record BlockHandle(String namespace, String identifier, String rawId, boolean resolvable) {
 
-        public static BlockHandle unresolvable(String namespace, String normalizedId) {
-            return new BlockHandle(namespace, normalizedId, false);
+        public static BlockHandle unresolvable(String namespace, String identifier, String rawId) {
+            return new BlockHandle(namespace, identifier, rawId, false);
         }
     }
 
@@ -53,19 +53,33 @@ public final class CustomBlockIdAdapter {
     }
 
     public BlockHandle bind(String rawId) {
-        String normalizedId = normalize(rawId);
-        String namespace = namespaceOf(normalizedId);
-        if (namespace.isEmpty()) {
-            return new BlockHandle("", normalizedId, anyBridgeAvailable());
+        String normalized = normalize(rawId);
+        for (String source : KNOWN_NAMESPACES) {
+            if (!normalized.startsWith(source + "-")) {
+                continue;
+            }
+            String identifier = normalized.substring(source.length() + 1);
+            CustomBlockBridge bridge = bridges.get(source);
+            if (identifier.isEmpty() || bridge == null || !bridge.available()) {
+                return BlockHandle.unresolvable(source, identifier, normalized);
+            }
+            return new BlockHandle(source, identifier, normalized, true);
         }
-        if (!namespaceKnown(namespace)) {
-            return BlockHandle.unresolvable(namespace, normalizedId);
+        int colon = normalized.indexOf(':');
+        if (colon > 0) {
+            String head = normalized.substring(0, colon);
+            if (namespaceKnown(head)) {
+                CustomBlockBridge bridge = bridges.get(head);
+                String stripped = normalized.substring(colon + 1);
+                String identifier = stripped.isEmpty() ? normalized : stripped;
+                if (bridge == null || !bridge.available()) {
+                    return BlockHandle.unresolvable(head, identifier, normalized);
+                }
+                return new BlockHandle(head, identifier, normalized, true);
+            }
+            return new BlockHandle("", normalized, normalized, anyBridgeAvailable());
         }
-        CustomBlockBridge bridge = bridges.get(namespace);
-        if (bridge == null || !bridge.available()) {
-            return BlockHandle.unresolvable(namespace, normalizedId);
-        }
-        return new BlockHandle(namespace, normalizedId, true);
+        return new BlockHandle("", normalized, normalized, anyBridgeAvailable());
     }
 
     public boolean matches(Block block, BlockHandle handle) {
@@ -74,7 +88,8 @@ public final class CustomBlockIdAdapter {
         }
         if (handle.namespace().isEmpty()) {
             for (CustomBlockBridge bridge : bridges.values()) {
-                if (bridge != null && bridge.available() && bridge.matches(block, handle.normalizedId())) {
+                if (bridge != null && bridge.available()
+                        && bridge.matches(block, handle.identifier())) {
                     return true;
                 }
             }
@@ -85,7 +100,39 @@ public final class CustomBlockIdAdapter {
             return false;
         }
         try {
-            return bridge.matches(block, handle.normalizedId());
+            if (bridge.matches(block, handle.identifier())) {
+                return true;
+            }
+            return !handle.identifier().equals(handle.rawId())
+                    && bridge.matches(block, handle.rawId());
+        } catch (RuntimeException exception) {
+            return false;
+        }
+    }
+
+    public boolean place(Block block, BlockHandle handle) {
+        if (block == null || handle == null || !handle.resolvable()) {
+            return false;
+        }
+        if (handle.namespace().isEmpty()) {
+            for (CustomBlockBridge bridge : bridges.values()) {
+                if (bridge != null && bridge.available()
+                        && bridge.placeBlock(block, handle.identifier())) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        CustomBlockBridge bridge = bridges.get(handle.namespace());
+        if (bridge == null || !bridge.available()) {
+            return false;
+        }
+        try {
+            if (bridge.placeBlock(block, handle.identifier())) {
+                return true;
+            }
+            return !handle.identifier().equals(handle.rawId())
+                    && bridge.placeBlock(block, handle.rawId());
         } catch (RuntimeException exception) {
             return false;
         }
@@ -106,11 +153,7 @@ public final class CustomBlockIdAdapter {
                     if (identified == null || identified.isBlank()) {
                         continue;
                     }
-                    String normalized = identified.toLowerCase(Locale.ROOT);
-                    if (normalized.indexOf(':') < 0) {
-                        return entry.getKey() + ":" + normalized;
-                    }
-                    return normalized;
+                    return entry.getKey() + "-" + identified.toLowerCase(Locale.ROOT);
                 }
             } catch (RuntimeException exception) {
                 continue;

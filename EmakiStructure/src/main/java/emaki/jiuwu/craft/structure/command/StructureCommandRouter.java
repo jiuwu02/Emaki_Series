@@ -8,9 +8,12 @@ import emaki.jiuwu.craft.structure.furniture.FurnitureEntry;
 import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarParser;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.generate.StructureFacing;
+import emaki.jiuwu.craft.structure.generate.TemplateTransform;
 import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.structure.integration.furniture.FurniturePlacer;
 import emaki.jiuwu.craft.structure.selection.AdjustDirection;
 import emaki.jiuwu.craft.structure.selection.SelectionBox;
+import emaki.jiuwu.craft.structure.multiblock.MultiblockDefinition;
 import emaki.jiuwu.craft.structure.multiblock.MultiblockRepository;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.selection.SelectionSession;
@@ -19,8 +22,10 @@ import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -49,16 +54,18 @@ public final class StructureCommandRouter {
     public static final String PERMISSION_ADMIN = "emakistructure.admin";
 
     private static final List<String> TOP_LEVEL =
-            List.of("help", "get", "place", "select", "export", "reload", "multiblock", "debug");
+            List.of("help", "get", "select", "structure", "reload", "multiblock", "debug");
     private static final List<String> SELECT_LEVEL = List.of("pos1", "pos2", "adjust", "clear");
     private static final List<String> ADJUST_OPERATIONS = List.of("add", "reduce");
-    private static final List<String> MULTIBLOCK_LEVEL = List.of("record", "list", "validate");
+    private static final List<String> STRUCTURE_LEVEL = List.of("export", "place");
+    private static final List<String> MULTIBLOCK_LEVEL = List.of("export", "place", "list", "validate");
 
     private final EmakiStructurePlugin plugin;
     private final SelectionManager selectionManager;
     private final GenerationService generationService;
     private final TemplateRepository repository;
     private final FurnitureIdAdapter furnitureAdapter;
+    private final FurniturePlacer furniturePlacer;
     private final Supplier<AppConfig> config;
     private final Set<String> legacySkipWarnings = ConcurrentHashMap.newKeySet();
 
@@ -67,12 +74,14 @@ public final class StructureCommandRouter {
             GenerationService generationService,
             TemplateRepository repository,
             FurnitureIdAdapter furnitureAdapter,
+            FurniturePlacer furniturePlacer,
             Supplier<AppConfig> config) {
         this.plugin = plugin;
         this.selectionManager = selectionManager;
         this.generationService = generationService;
         this.repository = repository;
         this.furnitureAdapter = furnitureAdapter;
+        this.furniturePlacer = furniturePlacer;
         this.config = config;
     }
 
@@ -84,9 +93,8 @@ public final class StructureCommandRouter {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "help" -> sendHelp(sender);
             case "get" -> handleGet(sender, args);
-            case "place" -> handlePlace(sender, args);
             case "select" -> handleSelect(sender, args);
-            case "export" -> handleExport(sender, args);
+            case "structure" -> handleStructure(sender, args);
             case "reload" -> handleReload(sender);
             case "multiblock" -> handleMultiblock(sender, args);
             case "debug" -> handleDebug(sender, args);
@@ -106,15 +114,49 @@ public final class StructureCommandRouter {
             return result;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
-            case "get", "place" -> suggestTemplateCommand(sender, args);
+            case "get" -> suggestTemplateCommand(sender, args);
+            case "structure" -> suggestStructure(args);
             case "select" -> suggestSelect(args);
             case "multiblock" -> suggestMultiblock(sender, args);
-            case "export", "reload", "help" -> List.of();
+            case "reload", "help" -> List.of();
             case "debug" -> plugin.debugCommand() == null ? List.of()
                     : plugin.debugCommand().tabComplete(
                             Arrays.copyOfRange(args, 1, args.length));
             default -> List.of();
         };
+    }
+
+    private void handleStructure(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_EDIT)) {
+            return;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "command.structure_usage");
+            return;
+        }
+        String[] shifted = Arrays.copyOfRange(args, 1, args.length);
+        switch (args[1].toLowerCase(Locale.ROOT)) {
+            case "export" -> handleExport(sender, shifted);
+            case "place" -> handlePlace(sender, shifted);
+            default -> plugin.messageService().send(sender, "command.structure_usage");
+        }
+    }
+
+    private List<String> suggestStructure(String[] args) {
+        if (args.length == 2) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return STRUCTURE_LEVEL.stream().filter(value -> value.startsWith(prefix)).toList();
+        }
+        if (args.length == 3 && "place".equalsIgnoreCase(args[1])) {
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return repository.templateIds().stream().filter(id -> id.startsWith(prefix)).toList();
+        }
+        if (args.length == 4 && "place".equalsIgnoreCase(args[1])) {
+            String prefix = args[3].toLowerCase(Locale.ROOT);
+            return StructureFacing.configValues().stream().filter(value -> value.startsWith(prefix))
+                    .toList();
+        }
+        return List.of();
     }
 
     private List<String> suggestMultiblock(CommandSender sender, String[] args) {
@@ -131,15 +173,29 @@ public final class StructureCommandRouter {
                     .filter(id -> id.startsWith(prefix))
                     .toList();
         }
-        if (args.length == 3 && "record".equalsIgnoreCase(args[1])
+        if (args.length == 3 && "export".equalsIgnoreCase(args[1])
                 && sender.hasPermission(PERMISSION_EDIT)) {
             return List.of("force");
+        }
+        if (args.length == 3 && "place".equalsIgnoreCase(args[1])
+                && sender.hasPermission(PERMISSION_EDIT)) {
+            String prefix = args[2].toLowerCase(Locale.ROOT);
+            return plugin.multiblockService().repository().ids().stream()
+                    .filter(id -> id.startsWith(prefix))
+                    .toList();
+        }
+        if (args.length == 4 && "place".equalsIgnoreCase(args[1])
+                && sender.hasPermission(PERMISSION_EDIT)) {
+            String prefix = args[3].toLowerCase(Locale.ROOT);
+            return StructureFacing.configValues().stream()
+                    .filter(value -> value.startsWith(prefix))
+                    .toList();
         }
         return List.of();
     }
 
     private boolean hasMultiblockPermission(CommandSender sender, String subcommand) {
-        return "record".equals(subcommand)
+        return "export".equals(subcommand) || "place".equals(subcommand)
                 ? sender.hasPermission(PERMISSION_EDIT)
                 : sender.hasPermission(PERMISSION_ADMIN);
     }
@@ -224,15 +280,27 @@ public final class StructureCommandRouter {
 
     private void loadAndStart(CommandSender sender, String templateName, Location anchor,
             StructureFacing facing) {
+        debug("place.load", "template=" + templateName
+                + " anchor=" + anchor.getBlockX() + "," + anchor.getBlockY() + ","
+                        + anchor.getBlockZ()
+                + " world=" + (anchor.getWorld() == null ? "null" : anchor.getWorld().getName())
+                + " facing=" + facing.configValue()
+                + " known=" + repository.templateIds().contains(templateName));
         plugin.executionDispatcher().runAsync(plugin, () -> {
             Optional<StructureTemplate> loaded = repository.template(templateName);
             plugin.executionDispatcher().runGlobal(plugin, () -> {
                 if (loaded.isEmpty()) {
+                    debug("place.load", "template=" + templateName + " loaded=false");
                     plugin.messageService().send(sender, "error.template.not_found",
                             Map.of("template", templateName));
                     return;
                 }
                 StructureTemplate template = loaded.get();
+                debug("place.load", "template=" + templateName + " loaded=true size="
+                        + template.sizeX() + "x" + template.sizeY() + "x" + template.sizeZ()
+                        + " blocks=" + template.blockCount()
+                        + " entities=" + template.entities().size()
+                        + " skippedPalette=" + template.skippedPaletteEntries());
                 warnLegacySkip(template);
                 startGeneration(sender, template, anchor, facing);
             });
@@ -580,7 +648,8 @@ public final class StructureCommandRouter {
         switch (args[1].toLowerCase(Locale.ROOT)) {
             case "list" -> handleMultiblockList(sender);
             case "validate" -> handleMultiblockValidate(sender, args);
-            case "record" -> handleMultiblockRecord(sender, args);
+            case "export" -> handleMultiblockExport(sender, args);
+            case "place" -> handleMultiblockPlace(sender, args);
             default -> plugin.messageService().send(sender, "command.multiblock_usage");
         }
     }
@@ -665,7 +734,7 @@ public final class StructureCommandRouter {
         return count;
     }
 
-    private void handleMultiblockRecord(CommandSender sender, String[] args) {
+    private void handleMultiblockExport(CommandSender sender, String[] args) {
         if (!requirePermission(sender, PERMISSION_EDIT)) {
             return;
         }
@@ -674,7 +743,7 @@ public final class StructureCommandRouter {
             return;
         }
         if (args.length < 3) {
-            plugin.messageService().send(sender, "command.multiblock_record_usage");
+            plugin.messageService().send(sender, "command.multiblock_export_usage");
             return;
         }
         String rawId = args[2];
@@ -730,7 +799,7 @@ public final class StructureCommandRouter {
                                 failures.add(String.valueOf(exception.getMessage()));
                             } finally {
                                 if (remaining.decrementAndGet() == 0) {
-                                    finishRecord(sender, definitionId, world, box,
+                                    finishExport(sender, definitionId, world, box,
                                             positions, specs, failures);
                                 }
                             }
@@ -741,7 +810,7 @@ public final class StructureCommandRouter {
                 failures.add(String.valueOf(exception.getMessage()));
             }
             if (!dispatched && remaining.decrementAndGet() == 0) {
-                finishRecord(sender, definitionId, world, box, positions, specs, failures);
+                finishExport(sender, definitionId, world, box, positions, specs, failures);
             }
         }
     }
@@ -764,11 +833,11 @@ public final class StructureCommandRouter {
         }
     }
 
-    private void finishRecord(CommandSender sender, String id, World world, SelectionBox box,
+    private void finishExport(CommandSender sender, String id, World world, SelectionBox box,
             List<int[]> positions, List<String> specs, List<String> failures) {
         plugin.executionDispatcher().runAsync(plugin, () -> {
             if (!failures.isEmpty()) {
-                runGlobalMessage(sender, "error.multiblock.record_failed", Map.of(
+                runGlobalMessage(sender, "error.multiblock.export_failed", Map.of(
                         "id", id, "detail", failures.get(0)));
                 return;
             }
@@ -793,7 +862,7 @@ public final class StructureCommandRouter {
             plugin.executionDispatcher().runGlobal(plugin, () -> {
                 plugin.multiblockService().repository().reload();
                 reportMultiblockProblems(sender, plugin.multiblockService().repository());
-                plugin.messageService().send(sender, "command.multiblock_record_saved", Map.of(
+                plugin.messageService().send(sender, "command.multiblock_export_saved", Map.of(
                         "id", id,
                         "members", positions.size(),
                         "file", target.getFileName().toString()));
@@ -804,7 +873,7 @@ public final class StructureCommandRouter {
     public static String renderMultiblockYaml(String id, List<int[]> positions, List<String> specs) {
         StringBuilder builder = new StringBuilder();
         builder.append("# EmakiStructure 多方块结构定义。\n");
-        builder.append("# 由 /ems multiblock record 生成，可手工补充 trigger 与 cooldown。\n");
+        builder.append("# 由 /ems multiblock export 生成，可手工补充 trigger 与 cooldown。\n");
         builder.append("version: 1\n");
         builder.append("id: ").append(id).append('\n');
         builder.append("shape:\n");
@@ -825,6 +894,151 @@ public final class StructureCommandRouter {
         return value.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 
+    private void handleMultiblockPlace(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_EDIT)) {
+            return;
+        }
+        Player player = requirePlayer(sender);
+        if (player == null) {
+            return;
+        }
+        if (args.length < 3) {
+            plugin.messageService().send(sender, "command.multiblock_place_usage");
+            return;
+        }
+        String id = args[2].toLowerCase(Locale.ROOT);
+        var definition = plugin.multiblockService().repository().byId(id).orElse(null);
+        if (definition == null) {
+            plugin.messageService().send(sender, "error.multiblock.not_found", Map.of("id", id));
+            return;
+        }
+        StructureFacing requested = StructureFacing.SOUTH;
+        if (args.length >= 4) {
+            StructureFacing parsed = resolveFacing(sender, args[3]);
+            if (parsed == null) {
+                return;
+            }
+            if (definition.allowRotation()) {
+                requested = parsed;
+            }
+        }
+        StructureFacing facing = requested;
+        World world = player.getWorld();
+        Location anchor = player.getLocation();
+        int anchorX = anchor.getBlockX();
+        int anchorY = anchor.getBlockY();
+        int anchorZ = anchor.getBlockZ();
+        debug("multiblock.place", "id=" + id + " members=" + definition.members().size()
+                + " anchor=" + anchorX + "," + anchorY + "," + anchorZ
+                + " world=" + world.getName()
+                + " facing=" + facing.configValue()
+                + " allowRotation=" + definition.allowRotation());
+        AtomicInteger placed = new AtomicInteger();
+        AtomicInteger failed = new AtomicInteger();
+        List<String> failures = Collections.synchronizedList(new ArrayList<>());
+        AtomicInteger remaining = new AtomicInteger(definition.members().size());
+        for (var member : definition.members()) {
+            Vector offset = TemplateTransform.localToWorld(member.x(), member.y(),
+                    member.z(), definition.sizeX(), definition.sizeZ(), facing);
+            int worldX = anchorX + offset.getBlockX();
+            int worldY = anchorY + offset.getBlockY();
+            int worldZ = anchorZ + offset.getBlockZ();
+            Location target = new Location(world, worldX, worldY, worldZ);
+            boolean dispatched;
+            try {
+                TaskToken token = plugin.executionDispatcher().runAtLocation(plugin, target, () -> {
+                    try {
+                        if (placeMember(world, member, facing, worldX, worldY, worldZ)) {
+                            placed.incrementAndGet();
+                        } else {
+                            failed.incrementAndGet();
+                            failures.add(member.spec() + "@" + worldX + "," + worldY + "," + worldZ);
+                        }
+                    } catch (RuntimeException exception) {
+                        failed.incrementAndGet();
+                        failures.add(member.spec() + "@" + worldX + "," + worldY + "," + worldZ
+                                + ": " + exception.getMessage());
+                    } finally {
+                        if (remaining.decrementAndGet() == 0) {
+                            finishMultiblockPlace(sender, player, id, world,
+                                    anchorX, anchorY, anchorZ, facing,
+                                    placed.get(), failed.get(), failures);
+                        }
+                    }
+                });
+                dispatched = token != null && token != TaskToken.UNAVAILABLE;
+            } catch (RuntimeException exception) {
+                dispatched = false;
+                failed.incrementAndGet();
+                failures.add(member.spec() + ": " + exception.getMessage());
+            }
+            if (!dispatched && remaining.decrementAndGet() == 0) {
+                finishMultiblockPlace(sender, player, id, world,
+                        anchorX, anchorY, anchorZ, facing,
+                        placed.get(), failed.get(), failures);
+            }
+        }
+    }
+
+    private boolean placeMember(World world, MultiblockDefinition.Member member,
+            StructureFacing facing, int worldX, int worldY, int worldZ) {
+        Block block = world.getBlockAt(worldX, worldY, worldZ);
+        switch (member.kind()) {
+            case VANILLA_STATE -> block.setBlockData(
+                    TemplateTransform.apply(member.blockData(), facing), false);
+            case VANILLA_MATERIAL -> block.setType(member.material(), false);
+            case CUSTOM_BLOCK -> {
+                var adapter = plugin.multiblockService().engine().customBlocks();
+                if (adapter == null || !adapter.place(block, adapter.bind(member.namespaceId()))) {
+                    return false;
+                }
+            }
+            case FURNITURE -> {
+                Location spot = new Location(world, worldX + 0.5d, worldY + 1.0d, worldZ + 0.5d,
+                        (float) FurnitureSidecarParser.normalizeYaw(facing.yawDegrees()), 0.0f);
+                if (furniturePlacer.place(member.spec(), spot) == null) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    private void finishMultiblockPlace(CommandSender sender, Player player, String id, World world,
+            int anchorX, int anchorY, int anchorZ, StructureFacing facing,
+            int placed, int failed, List<String> failures) {
+        debug("multiblock.place_done", "id=" + id + " placed=" + placed + " failed=" + failed
+                + " anchor=" + anchorX + "," + anchorY + "," + anchorZ
+                + " firstFailures=" + failures.stream().limit(3).toList());
+        try {
+            plugin.executionDispatcher().runAtLocation(plugin,
+                    new Location(world, anchorX, anchorY, anchorZ),
+                    () -> plugin.multiblockService().onBlockPlaced(world, anchorX, anchorY,
+                            anchorZ, player.getUniqueId()));
+        } catch (RuntimeException exception) {
+            debug("multiblock.place_error", "step=detection type="
+                    + exception.getClass().getSimpleName() + " message=" + exception.getMessage());
+        }
+        plugin.executionDispatcher().runGlobal(plugin, () -> {
+            plugin.messageService().send(sender, "command.multiblock_place_done", Map.of(
+                    "id", id,
+                    "placed", placed,
+                    "failed", failed,
+                    "facing", facing.configValue(),
+                    "x", anchorX,
+                    "y", anchorY,
+                    "z", anchorZ));
+            for (int index = 0; index < Math.min(failures.size(), 5); index++) {
+                plugin.messageService().send(sender, "command.multiblock_place_entry_failed",
+                        Map.of("detail", failures.get(index)));
+            }
+        });
+    }
+
+    private void debug(String step, String detail) {
+        plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
+    }
+
     private void reportMultiblockProblems(CommandSender sender, MultiblockRepository repository) {
         for (var problem : repository.drainProblems()) {
             plugin.messageService().send(sender, problem.reasonKey(), problem.placeholders());
@@ -836,10 +1050,11 @@ public final class StructureCommandRouter {
         messages.sendRaw(sender, messages.message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("get <模板> [朝向]", messages.message("command.help.commands.get"));
-        lines.put("place <模板> <朝向>", messages.message("command.help.commands.place"));
+        lines.put("structure place <模板> <朝向>", messages.message("command.help.commands.place"));
+        lines.put("structure export <名称>", messages.message("command.help.commands.export"));
         lines.put("select pos1|pos2|adjust|clear", messages.message("command.help.commands.select"));
-        lines.put("export <名称>", messages.message("command.help.commands.export"));
-        lines.put("multiblock record <id> [force]", messages.message("command.help.commands.record"));
+        lines.put("multiblock export <id> [force]", messages.message("command.help.commands.multiblock_export"));
+        lines.put("multiblock place <id> [朝向]", messages.message("command.help.commands.multiblock_place"));
         lines.put("multiblock list", messages.message("command.help.commands.list"));
         lines.put("multiblock validate <id>", messages.message("command.help.commands.validate"));
         lines.put("reload", messages.message("command.help.commands.reload"));
@@ -926,6 +1141,7 @@ public final class StructureCommandRouter {
             case "debug" -> sender.hasPermission(PERMISSION_ADMIN);
             case "get" -> sender.hasPermission(PERMISSION_USE);
             case "reload" -> sender.hasPermission(PERMISSION_RELOAD);
+            case "structure" -> sender.hasPermission(PERMISSION_EDIT);
             case "multiblock" -> sender.hasPermission(PERMISSION_EDIT)
                     || sender.hasPermission(PERMISSION_ADMIN);
             default -> sender.hasPermission(PERMISSION_EDIT);

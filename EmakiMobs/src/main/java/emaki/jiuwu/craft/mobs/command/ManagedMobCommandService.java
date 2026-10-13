@@ -4,11 +4,16 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -43,7 +48,10 @@ final class ManagedMobCommandService {
         double radiusSquared = radius < 0D ? -1D : radius * radius;
         return inspect(entity -> {
             String managedId = mobIdentifier.readId(entity);
-            if (!mobId.equals(managedId)) {
+            if (managedId == null) {
+                return 0;
+            }
+            if (mobId != null && !mobId.equals(managedId)) {
                 return 0;
             }
             if (fixedCenter != null) {
@@ -58,8 +66,50 @@ final class ManagedMobCommandService {
         });
     }
 
+    record Match(UUID uuid, String mobId, Location location, double distanceSquared,
+                 String worldName, int blockX, int blockY, int blockZ,
+                 double health, double maxHealth) {
+    }
+
+    @SuppressWarnings("deprecation")
+    List<Match> find(String mobId, Location center, double radius) {
+        Location fixedCenter = center == null ? null : center.clone();
+        boolean filterByRadius = fixedCenter != null && radius >= 0D;
+        double radiusSquared = filterByRadius ? radius * radius : -1D;
+        List<Match> matches = new ArrayList<>();
+        for (LivingEntity entity : managedCandidates()) {
+            String managedId = mobIdentifier.readId(entity);
+            if (managedId == null || (mobId != null && !mobId.equals(managedId))) {
+                continue;
+            }
+            Location location = entity.getLocation();
+            boolean sameWorld = fixedCenter != null && location.getWorld() == fixedCenter.getWorld();
+            double distanceSquared = sameWorld ? location.distanceSquared(fixedCenter) : 0D;
+            if (filterByRadius && (!sameWorld || distanceSquared > radiusSquared)) {
+                continue;
+            }
+            matches.add(new Match(entity.getUniqueId(), managedId, location.clone(),
+                    distanceSquared, location.getWorld().getName(),
+                    location.getBlockX(), location.getBlockY(), location.getBlockZ(),
+                    entity.getHealth(), entity.getMaxHealth()));
+        }
+        return matches;
+    }
+
+    private List<LivingEntity> managedCandidates() {
+        List<LivingEntity> candidates = new ArrayList<>();
+        for (World world : Bukkit.getWorlds()) {
+            for (Entity entity : world.getEntities()) {
+                if (entity instanceof LivingEntity living && mobIdentifier.isManaged(living)) {
+                    candidates.add(living);
+                }
+            }
+        }
+        return candidates;
+    }
+
     private CompletableFuture<Integer> inspect(ToIntFunction<LivingEntity> operation) {
-        List<LivingEntity> candidates = mobIdentifier.trackedEntities();
+        List<LivingEntity> candidates = managedCandidates();
         if (candidates.isEmpty()) {
             return CompletableFuture.completedFuture(0);
         }

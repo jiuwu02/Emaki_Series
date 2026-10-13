@@ -10,7 +10,9 @@ import org.bukkit.entity.Player;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public final class ParticleSelectionHighlighter implements SelectionHighlighter {
 
@@ -21,6 +23,7 @@ public final class ParticleSelectionHighlighter implements SelectionHighlighter 
     private final ExecutionDispatcher dispatcher;
 
     private final Map<UUID, TaskToken> tasks = new HashMap<>();
+    private final Set<UUID> firstRenderLogged = ConcurrentHashMap.newKeySet();
 
     public ParticleSelectionHighlighter(EmakiStructurePlugin plugin, ExecutionDispatcher dispatcher) {
         this.plugin = plugin;
@@ -31,18 +34,26 @@ public final class ParticleSelectionHighlighter implements SelectionHighlighter 
     public void refresh(Player player, SelectionSession session) {
         destroy(player);
         if (!session.hasBothCorners()) {
+            debug(player, "refresh", "bothCorners=false world=" + session.worldName()
+                    + " box=absent task=skipped");
             return;
         }
+        firstRenderLogged.add(player.getUniqueId());
         TaskToken token = dispatcher.runGlobalTimer(plugin, () -> paint(player, session),
                 PERIOD_TICKS, PERIOD_TICKS);
         if (token != null) {
             tasks.put(player.getUniqueId(), token);
         }
+        debug(player, "refresh", "bothCorners=true world=" + session.worldName()
+                + " box=" + describeBox(session)
+                + " task=" + (token == null ? "null" : token == TaskToken.UNAVAILABLE
+                        ? "unavailable" : "scheduled"));
     }
 
     @Override
     public void destroy(Player player) {
         TaskToken token = tasks.remove(player.getUniqueId());
+        firstRenderLogged.remove(player.getUniqueId());
         if (token != null) {
             token.cancel();
         }
@@ -52,6 +63,8 @@ public final class ParticleSelectionHighlighter implements SelectionHighlighter 
         try {
             render(player, session);
         } catch (RuntimeException exception) {
+            debug(player, "error", "type=" + exception.getClass().getSimpleName()
+                    + " message=" + exception.getMessage());
             plugin.debugLogger().log("structure", player, "highlight_degraded",
                     Map.of("reason", String.valueOf(exception.getMessage())));
             destroy(player);
@@ -60,24 +73,72 @@ public final class ParticleSelectionHighlighter implements SelectionHighlighter 
 
     private void render(Player player, SelectionSession session) {
         if (!player.isOnline()) {
+            debug(player, "destroy", "reason=offline");
             destroy(player);
             return;
         }
         SelectionBox box = session.box().orElse(null);
-        if (box == null || !session.worldName().equals(player.getWorld().getName())) {
+        if (box == null) {
+            debug(player, "destroy", "reason=box_missing world=" + session.worldName());
             destroy(player);
             return;
         }
+        if (!session.worldName().equals(player.getWorld().getName())) {
+            debug(player, "destroy", "reason=world_mismatch expected=" + session.worldName()
+                    + " actual=" + player.getWorld().getName());
+            destroy(player);
+            return;
+        }
+        if (firstRenderLogged.remove(player.getUniqueId())) {
+            Location sample = boxCenter(box, player.getWorld());
+            debug(player, "first_render", "box=" + box.minX() + "," + box.minY() + "," + box.minZ()
+                    + "->" + box.maxX() + "," + box.maxY() + "," + box.maxZ()
+                    + " size=" + box.sizeX() + "x" + box.sizeY() + "x" + box.sizeZ()
+                    + " sample=" + sample.getBlockX() + "," + sample.getBlockY() + ","
+                    + sample.getBlockZ()
+                    + " player=" + player.getLocation().getBlockX() + ","
+                    + player.getLocation().getBlockY() + ","
+                    + player.getLocation().getBlockZ()
+                    + " viewDistance=" + plugin.getServer().getViewDistance());
+        }
         Particle.DustOptions dust = new Particle.DustOptions(Color.fromRGB(0x86, 0xEF, 0xAC), 1.4f);
         Location origin = new Location(player.getWorld(), 0.0d, 0.0d, 0.0d);
+        int points = 0;
         for (Edge edge : edges(box)) {
             double length = edge.length();
             for (double offset = 0.0d; offset <= length + 0.001d; offset += STEP) {
                 double ratio = length <= 0.0d ? 0.0d : offset / length;
                 Location point = edge.at(origin, ratio);
                 player.spawnParticle(Particle.DUST, point, 1, 0.0d, 0.0d, 0.0d, 0.0d, dust);
+                points++;
             }
         }
+        if (points == 0) {
+            debug(player, "error", "type=no_points box=" + box.sizeX() + "x" + box.sizeY()
+                    + "x" + box.sizeZ());
+            destroy(player);
+        }
+    }
+
+    private static Location boxCenter(SelectionBox box, org.bukkit.World world) {
+        return new Location(world,
+                (box.minX() + box.maxX() + 1) / 2.0d,
+                (box.minY() + box.maxY() + 1) / 2.0d,
+                (box.minZ() + box.maxZ() + 1) / 2.0d);
+    }
+
+    private static String describeBox(SelectionSession session) {
+        SelectionBox box = session.box().orElse(null);
+        if (box == null) {
+            return "absent";
+        }
+        return box.minX() + "," + box.minY() + "," + box.minZ()
+                + "->" + box.maxX() + "," + box.maxY() + "," + box.maxZ();
+    }
+
+    private void debug(Player player, String step, String detail) {
+        plugin.getLogger().info("[DEBUG:structure:highlight:" + step + "] player="
+                + player.getName() + " " + detail);
     }
 
     private record Edge(int x1, int y1, int z1, int x2, int y2, int z2) {

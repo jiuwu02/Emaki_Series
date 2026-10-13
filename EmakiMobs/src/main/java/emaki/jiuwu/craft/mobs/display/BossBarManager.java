@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs.display;
 
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -55,7 +56,15 @@ public final class BossBarManager implements Listener {
         // Adventure BossBar 以 Component 承载标题，MiniMessage 标签（含渐变）可完整渲染。
         BossBar bar = BossBar.bossBar(MiniMessages.parse(cfg.title()), progress(entity),
                 toColor(cfg.color()), toOverlay(cfg.style()));
-        entityBars.put(entity.getUniqueId(), bar);
+        BossBar previous = entityBars.put(entity.getUniqueId(), bar);
+        if (previous != null) {
+            debug("re-register", entity, "mobId=" + mobId + " previousCleared=true");
+            clearViewers(previous);
+        } else {
+            debug("register", entity, "mobId=" + mobId
+                    + " range=" + cfg.range()
+                    + " title=" + MiniMessages.plainText(MiniMessages.parse(cfg.title())));
+        }
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -77,7 +86,23 @@ public final class BossBarManager implements Listener {
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         BossBar bar = entityBars.remove(event.getEntity().getUniqueId());
-        if (bar != null) clearViewers(bar);
+        if (bar != null) {
+            debug("death_clear", event.getEntity(), "viewersCleared=true");
+            clearViewers(bar);
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityRemove(EntityRemoveFromWorldEvent event) {
+        if (!(event.getEntity() instanceof LivingEntity entity)) {
+            return;
+        }
+        BossBar bar = entityBars.remove(entity.getUniqueId());
+        if (bar != null) {
+            debug("remove_clear", entity,
+                    "reason=entity_left_world (kill/remove/chunk_unload/death)");
+            clearViewers(bar);
+        }
     }
 
     @SuppressWarnings("deprecation")
@@ -96,6 +121,15 @@ public final class BossBarManager implements Listener {
 
     private void clearViewers(BossBar bar) {
         Bukkit.getOnlinePlayers().forEach(bar::removeViewer);
+    }
+
+    private void debug(String step, LivingEntity entity, String detail) {
+        plugin.getLogger().info("[DEBUG:mobs:bossbar:" + step + "] entity=" + entity.getUniqueId()
+                + " type=" + entity.getType().getKey() + " " + detail);
+    }
+
+    private void debug(String step, UUID entityId, String detail) {
+        plugin.getLogger().info("[DEBUG:mobs:bossbar:" + step + "] entity=" + entityId + " " + detail);
     }
 
     private static BossBar.Color toColor(BarColor color) {
@@ -125,6 +159,8 @@ public final class BossBarManager implements Listener {
             entityBars.forEach((uid, bar) -> {
                 var raw = Bukkit.getEntity(uid);
                 if (!(raw instanceof LivingEntity entity) || !entity.isValid()) {
+                    debug("stale_clear", uid,
+                            "entityAbsentOrInvalid=true (expected: still tracked with a live entity)");
                     clearViewers(bar);
                     entityBars.remove(uid);
                     return;
