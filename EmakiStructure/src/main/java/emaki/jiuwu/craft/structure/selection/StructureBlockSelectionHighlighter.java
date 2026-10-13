@@ -131,8 +131,8 @@ public final class StructureBlockSelectionHighlighter
 
     private void sendWireframe(Player player, World world, SelectionBox box) {
         try {
-            Location anchor = new Location(world, box.minX() - 1, box.minY() - 1,
-                    box.minZ() - 1);
+            int anchorY = Math.max(world.getMinHeight() + 1, box.minY() - 16);
+            Location anchor = new Location(world, box.minX() - 1, anchorY, box.minZ() - 1);
             BlockData data = Material.STRUCTURE_BLOCK.createBlockData();
             ((StructureBlock) data).setMode(StructureBlock.Mode.SAVE);
             player.sendBlockChange(anchor, data);
@@ -143,6 +143,7 @@ public final class StructureBlockSelectionHighlighter
             int sizeZ = box.sizeZ();
             if (state instanceof Structure structure) {
                 structure.setUsageMode(UsageMode.SAVE);
+                structure.setRelativePosition(new BlockVector(0, anchorY - box.minY(), 0));
                 boolean reflected = false;
                 if (sizeX > VANILLA_SIZE_LIMIT || sizeY > VANILLA_SIZE_LIMIT
                         || sizeZ > VANILLA_SIZE_LIMIT) {
