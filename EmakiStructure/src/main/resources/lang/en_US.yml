@@ -57,7 +57,7 @@ console:
   # placeholders: none
   export_furniture_absent: "[export] <gray>0 furniture captured (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
   # placeholders: none
-  selection_wireframe_fallback: "[selection] <yellow>PacketEvents not detected; selection wireframe falls back to Display entities</yellow>"
+  selection_wireframe_fallback: "[selection] <yellow>Failed to build the structure-block wireframe; selection falls back to Display entities</yellow>"
 
 command:
   usage: "<gray>Usage: /ems &lt;get|select|structure|reload|multiblock|help&gt; ... (run /ems help for the full list)</gray>"
