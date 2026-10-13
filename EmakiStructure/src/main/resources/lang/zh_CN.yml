@@ -56,6 +56,8 @@ console:
   furniture_entry_issue: "[furniture] <yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
   # 占位符：无
   export_furniture_absent: "[export] <gray>家具 0 条（无家具插件在场），已有 furniture 侧车保持不变</gray>"
+  # 占位符：无
+  selection_wireframe_fallback: "[selection] <yellow>未检测到 PacketEvents，选区边框回退为 Display 实体线框</yellow>"
 
 command:
   usage: "<gray>用法：/ems <get|select|structure|reload|multiblock|help> ...（输入 /ems help 查看完整帮助）</gray>"
