@@ -23,7 +23,7 @@ import java.util.UUID;
 
 public final class StructureBlockSelectionHighlighter implements SelectionHighlighter {
 
-    private static final byte MODE_SAVE = 1;
+    private static final byte MODE_SAVE = 0;
 
     private final EmakiStructurePlugin plugin;
     private final ExecutionDispatcher dispatcher;
