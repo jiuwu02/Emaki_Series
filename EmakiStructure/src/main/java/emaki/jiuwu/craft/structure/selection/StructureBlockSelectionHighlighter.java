@@ -143,7 +143,7 @@ public final class StructureBlockSelectionHighlighter
             int sizeZ = box.sizeZ();
             if (state instanceof Structure structure) {
                 structure.setUsageMode(UsageMode.SAVE);
-                structure.setRelativePosition(new BlockVector(0, anchorY - box.minY(), 0));
+                structure.setRelativePosition(new BlockVector(1, box.minY() - anchorY, 1));
                 boolean reflected = false;
                 if (sizeX > VANILLA_SIZE_LIMIT || sizeY > VANILLA_SIZE_LIMIT
                         || sizeZ > VANILLA_SIZE_LIMIT) {
@@ -207,16 +207,29 @@ public final class StructureBlockSelectionHighlighter
 
     private static Object resolveSnapshot(Structure structure)
             throws ReflectiveOperationException {
-        ReflectiveOperationException last = null;
-        for (String name : new String[] { "getSnapshot", "getSnapshotNMS", "getHandle" }) {
-            try {
-                return structure.getClass().getMethod(name).invoke(structure);
-            } catch (NoSuchMethodException exception) {
-                last = exception;
+        Class<?> blockEntityType =
+                Class.forName("net.minecraft.world.level.block.entity.BlockEntity");
+        java.lang.reflect.Method fallback = null;
+        for (java.lang.reflect.Method method : structure.getClass().getMethods()) {
+            if (method.getParameterCount() != 0) {
+                continue;
+            }
+            String name = method.getName();
+            if (!"getSnapshot".equals(name) && !"getSnapshotNMS".equals(name)
+                    && !"getHandle".equals(name)) {
+                continue;
+            }
+            if (blockEntityType.isAssignableFrom(method.getReturnType())) {
+                return method.invoke(structure);
+            }
+            if (fallback == null) {
+                fallback = method;
             }
         }
-        throw last != null ? last
-                : new NoSuchMethodException("getSnapshot/getSnapshotNMS/getHandle");
+        if (fallback != null) {
+            return fallback.invoke(structure);
+        }
+        throw new NoSuchMethodException("getSnapshot/getSnapshotNMS/getHandle");
     }
 
     private String resolveSnapshotType(Structure structure) {
