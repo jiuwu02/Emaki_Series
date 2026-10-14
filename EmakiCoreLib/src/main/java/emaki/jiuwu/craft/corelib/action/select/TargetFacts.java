@@ -25,7 +25,13 @@ public record TargetFacts(
         Map<String, Boolean> states,
         Set<String> identitySystems,
         Map<String, CoreTargetIdentity> identities,
-        Function<String, Boolean> permissions) {
+        Function<String, Boolean> permissions,
+        long worldTime,
+        Map<String, Boolean> flags,
+        int chunkX,
+        int chunkZ,
+        String worldWeather,
+        Map<Integer, Boolean> slotEmpties) {
 
     public TargetFacts {
         entityType = entityType == null ? "" : entityType;
@@ -38,11 +44,50 @@ public record TargetFacts(
         identitySystems = identitySystems == null ? Set.of() : Set.copyOf(identitySystems);
         identities = identities == null ? Map.of() : Map.copyOf(identities);
         permissions = permissions == null ? node -> null : permissions;
+        flags = flags == null ? Map.of() : Map.copyOf(flags);
+        worldWeather = worldWeather == null ? "" : worldWeather;
+        slotEmpties = slotEmpties == null ? Map.of() : Map.copyOf(slotEmpties);
+    }
+
+    public TargetFacts(boolean present,
+            boolean living,
+            boolean player,
+            boolean dead,
+            String entityType,
+            String worldName,
+            String plainName,
+            double health,
+            double maxHealth,
+            double distance,
+            int experienceLevel,
+            int foodLevel,
+            String gameMode,
+            Set<String> scoreboardTags,
+            Map<String, Integer> potionEffects,
+            Map<String, Boolean> states,
+            Set<String> identitySystems,
+            Map<String, CoreTargetIdentity> identities,
+            Function<String, Boolean> permissions,
+            long worldTime,
+            Map<String, Boolean> flags) {
+        this(present, living, player, dead, entityType, worldName, plainName, health, maxHealth,
+                distance, experienceLevel, foodLevel, gameMode, scoreboardTags, potionEffects,
+                states, identitySystems, identities, permissions, worldTime, flags,
+                Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of());
     }
 
     public static TargetFacts absent() {
         return new TargetFacts(false, false, false, true, "", "", "",
-                0D, 0D, -1D, 0, 0, "", Set.of(), Map.of(), Map.of(), Set.of(), Map.of(), node -> null);
+                0D, 0D, -1D, 0, 0, "", Set.of(), Map.of(), Map.of(), Set.of(), Map.of(),
+                node -> null, 0L, Map.of(), Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of());
+    }
+
+    public Boolean flag(String key) {
+        return key == null ? null : flags.get(key);
+    }
+
+    public Boolean slotEmpty(int slot) {
+        return slotEmpties.get(slot);
     }
 
     public double healthPercent() {

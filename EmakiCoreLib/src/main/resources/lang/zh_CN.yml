@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.31"
+version: "4.8.32"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -248,6 +248,46 @@ action:
       unknown_source: "<red>[管道] 选择器 %selector% 引用的源段 %source% 未注册</red>"
       unknown_argument: "<red>[管道] 选择器 %selector% 引用的源段 %source% 没有参数 %argument%</red>"
       no_match: "<gray>[管道] select 未找到符合条件的目标</gray>"
+    all_players:
+      no_match: "<gray>[管道] all_players 未找到在线玩家</gray>"
+    world_players:
+      no_world: "<gray>[管道] world_players 找不到目标世界</gray>"
+      no_match: "<gray>[管道] world_players 在目标世界内未找到玩家</gray>"
+    ring:
+      no_origin: "<gray>[管道] ring 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] ring 在 [min_radius, max_radius] 区间内未找到实体</gray>"
+      unknown_entity_type: "<red>[管道] ring 的实体类型 %type% 未知</red>"
+    region:
+      no_origin: "<gray>[管道] region 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] region 在指定区域内未找到实体</gray>"
+      unknown_entity_type: "<red>[管道] region 的实体类型 %type% 未知</red>"
+    op_players:
+      no_match: "<gray>[管道] op_players 未找到在线 OP</gray>"
+    random:
+      no_pool: "<gray>[管道] random 抽取池为空</gray>"
+    faction_members:
+      no_members: "<red>[管道] faction_members 必须给出 member 列表</red>"
+      no_online: "<gray>[管道] faction_members 中没有在线成员</gray>"
+    party:
+      no_permission: "<red>[管道] party 必须给出 permission 节点</red>"
+      no_match: "<gray>[管道] party 未找到拥有该权限节点的在线玩家</gray>"
+    dropped_items:
+      no_origin: "<gray>[管道] dropped_items 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] dropped_items 未找到掉落物</gray>"
+    highest_block:
+      no_origin: "<gray>[管道] highest_block 源段没有可用的原点</gray>"
+      no_block: "<gray>[管道] highest_block 该列没有方块</gray>"
+    players_in_region:
+      no_origin: "<gray>[管道] players_in_region 源段没有可用的原点</gray>"
+      no_match: "<gray>[管道] players_in_region 区域内未找到玩家</gray>"
+    vertical_block:
+      no_origin: "<gray>[管道] vertical_block 源段没有可用的原点</gray>"
+    players_by_gamemode:
+      unknown_gamemode: "<red>[管道] players_by_gamemode 的游戏模式 %gamemode% 未知</red>"
+      no_match: "<gray>[管道] players_by_gamemode 未找到该模式的在线玩家</gray>"
+    players_with_material:
+      unknown_material: "<red>[管道] players_with_material 的材质 %material% 未知</red>"
+      no_match: "<gray>[管道] players_with_material 未找到持有该材质物品的在线玩家</gray>"
   gate:
     where:
       condition_required: "<red>[管道] where 必须给出条件</red>"
@@ -268,6 +308,14 @@ action:
       no_assignment: "<red>[管道] set 必须给出至少一个赋值</red>"
     stop:
       stopped: "<gray>[管道] 已由 stop 段终止</gray>"
+    sample:
+      invalid_count: "<red>[管道] sample 的数量必须是非负整数</red>"
+    distance_filter:
+      no_origin: "<gray>[管道] distance_filter 没有可用的原点</gray>"
+    where_any:
+      conditions_required: "<red>[管道] where_any 必须给出至少一个谓词</red>"
+    where_all:
+      conditions_required: "<red>[管道] where_all 必须给出至少一个谓词</red>"
   stage:
     common:
       not_entity: "<gray>[管道] 该段需要实体目标</gray>"
@@ -277,6 +325,35 @@ action:
       no_location: "<gray>[管道] 该段需要有位置的目标</gray>"
       invalid_amount: "<red>[管道] 数值 %amount% 不合法，必须是非负数字</red>"
       invalid_positive_amount: "<red>[管道] 数值 %amount% 不合法，必须大于 0</red>"
+    set_game_rule:
+      no_world: "<gray>[管道] set_game_rule 没有可用的世界</gray>"
+      unknown_rule: "<red>[管道] 未知游戏规则 %rule%</red>"
+      invalid_value: "<red>[管道] 游戏规则 %rule% 的值 %value% 不合法</red>"
+    set_world_time:
+      no_world: "<gray>[管道] set_world_time 没有可用的世界</gray>"
+      invalid_time: "<red>[管道] 时间 %time% 不合法</red>"
+    set_weather:
+      no_world: "<gray>[管道] set_weather 没有可用的世界</gray>"
+      unknown_weather: "<red>[管道] 未知天气 %weather%，应为 clear / rain / thunder</red>"
+    set_difficulty:
+      no_world: "<gray>[管道] set_difficulty 没有可用的世界</gray>"
+      unknown_difficulty: "<red>[管道] 未知难度 %difficulty%，应为 peaceful / easy / normal / hard</red>"
+    spawn_particle_at:
+      no_origin: "<gray>[管道] spawn_particle_at 没有可用的原点</gray>"
+      unknown_particle: "<red>[管道] 未知粒子 %particle%</red>"
+    set_item_cooldown:
+      unknown_material: "<red>[管道] 未知材质 %material%</red>"
+    set_gamemode:
+      unknown_gamemode: "<red>[管道] 未知游戏模式 %gamemode%</red>"
+    knockback:
+      no_caster: "<gray>[管道] knockback 没有施法者</gray>"
+      world_mismatch: "<gray>[管道] knockback 的施法者与目标不在同一世界</gray>"
+    set_world_spawn:
+      no_origin: "<gray>[管道] set_world_spawn 没有可用的原点</gray>"
+    set_bed_spawn:
+      no_origin: "<gray>[管道] set_bed_spawn 没有可用的原点</gray>"
+    set_compass_target:
+      no_origin: "<gray>[管道] set_compass_target 没有可用的原点</gray>"
     script:
       eval:
         empty_code: "<gray>[脚本] 脚本代码为空，已跳过</gray>"

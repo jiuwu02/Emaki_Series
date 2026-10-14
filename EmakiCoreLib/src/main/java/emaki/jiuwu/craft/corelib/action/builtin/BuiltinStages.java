@@ -11,25 +11,44 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.AfterGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.ChanceGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.CreateItemGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.DistanceFilterGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.EveryGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.FilterGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.KeepGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.LimitGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.SampleGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.SetGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.ShuffleGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.SortByGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.StopGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.WhereAllGate;
+import emaki.jiuwu.craft.corelib.action.builtin.gate.WhereAnyGate;
 import emaki.jiuwu.craft.corelib.action.builtin.gate.WhereGate;
 import emaki.jiuwu.craft.corelib.action.builtin.source.AtSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.AllPlayersSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.DroppedItemsSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.FactionMembersSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.HighestBlockSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.InheritedSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.LookingAtSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.NearbyPlayersSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.NearbySource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.OffsetSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.OpPlayersSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.OriginSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.PartySource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.PlayerByNameSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.PlayersByGameModeSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.PlayersInRegionSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.PlayersWithMaterialSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.RandomSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.RegionSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.RingSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.SelectSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.SelfSource;
 import emaki.jiuwu.craft.corelib.action.builtin.source.TriggerSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.VerticalOffsetBlockSource;
+import emaki.jiuwu.craft.corelib.action.builtin.source.WorldPlayersSource;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarHideStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarShowStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.BossBarStages;
@@ -73,6 +92,48 @@ import emaki.jiuwu.craft.corelib.action.builtin.stage.SetItemStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.SetMoneyStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnEntityStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnParticleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.AddScoreboardTagStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.AddVelocityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ClearInventoryStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.KnockbackStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.RemoveScoreboardTagStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.ResetTitleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetAbsorptionStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetAiStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetArrowsInBodyStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetBedSpawnStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetCanPickupItemsStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetCollidableStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetCompassTargetStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetDifficultyStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetExpToLevelStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetFireTicksStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetFlySpeedStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetGameModeStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetGameRuleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetGlowingStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetGravityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetInvulnerableStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SendTitleFadeStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetItemCooldownStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetLevelStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetMaximumNoDamageTicksStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetNameStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetNameVisibleStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetNoDamageTicksStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetPersistentStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetRemainingAirStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetRemoveWhenFarAwayStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetRotationStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetSaturationStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetSilentStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetVelocityStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetVisibleByDefaultStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetWalkSpeedStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetWeatherStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetWorldSpawnStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SetWorldTimeStage;
+import emaki.jiuwu.craft.corelib.action.builtin.stage.SpawnParticleAtStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.StartTaskStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.StopTaskStage;
 import emaki.jiuwu.craft.corelib.action.builtin.stage.TakeExpStage;
@@ -96,11 +157,11 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 
 public final class BuiltinStages {
 
-    public static final int SOURCE_COUNT = 11;
+    public static final int SOURCE_COUNT = 25;
 
-    public static final int GATE_COUNT = 11;
+    public static final int GATE_COUNT = 16;
 
-    public static final int ACTION_COUNT = 48;
+    public static final int ACTION_COUNT = 90;
 
     private BuiltinStages() {
     }
@@ -147,7 +208,21 @@ public final class BuiltinStages {
                 new AtSource(),
                 new PlayerByNameSource(),
                 new SelectSource(targetSelectors.selectors(), targetSelectors.factsReader(),
-                        targetSelectors.evaluator(), id -> sourceOf(registry, id)))) {
+                        targetSelectors.evaluator(), id -> sourceOf(registry, id)),
+                new AllPlayersSource(),
+                new WorldPlayersSource(),
+                new RingSource(),
+                new RegionSource(),
+                new OpPlayersSource(),
+                new RandomSource(),
+                new FactionMembersSource(),
+                new PartySource(),
+                new DroppedItemsSource(),
+                new HighestBlockSource(),
+                new PlayersInRegionSource(),
+                new VerticalOffsetBlockSource(),
+                new PlayersByGameModeSource(),
+                new PlayersWithMaterialSource())) {
             record(failures, source.id(), registry.registerSource(owner, source));
         }
     }
@@ -173,7 +248,12 @@ public final class BuiltinStages {
                 new StopGate(),
                 new CreateItemGate(itemSourceService),
                 new AfterGate(),
-                new EveryGate())) {
+                new EveryGate(),
+                new ShuffleGate(),
+                new SampleGate(),
+                new DistanceFilterGate(),
+                new WhereAnyGate(targetSelectors.factsReader(), targetSelectors.evaluator()),
+                new WhereAllGate(targetSelectors.factsReader(), targetSelectors.evaluator()))) {
             record(failures, gate.id(), registry.registerGate(owner, gate));
         }
     }
@@ -270,6 +350,52 @@ public final class BuiltinStages {
         stages.add(new JsComputeStage());
         stages.add(new JsEntityStage());
         stages.add(new JsLocationStage());
+
+        stages.add(new SetNameStage());
+        stages.add(new SetNameVisibleStage());
+        stages.add(new SetGlowingStage());
+        stages.add(new SetSilentStage());
+        stages.add(new SetAiStage());
+        stages.add(new SetInvulnerableStage());
+        stages.add(new SetGravityStage());
+        stages.add(new SetFireTicksStage());
+        stages.add(new SetPersistentStage());
+        stages.add(new SetCanPickupItemsStage());
+        stages.add(new SetRemoveWhenFarAwayStage());
+        stages.add(new SetVisibleByDefaultStage());
+        stages.add(new AddScoreboardTagStage());
+        stages.add(new RemoveScoreboardTagStage());
+        stages.add(new SetAbsorptionStage());
+        stages.add(new SetNoDamageTicksStage());
+        stages.add(new SetMaximumNoDamageTicksStage());
+        stages.add(new SetArrowsInBodyStage());
+        stages.add(new SetRemainingAirStage());
+        stages.add(new SendTitleFadeStage());
+        stages.add(new SetCollidableStage());
+
+        stages.add(new SetRotationStage());
+        stages.add(new SetVelocityStage());
+        stages.add(new AddVelocityStage());
+        stages.add(new KnockbackStage());
+
+        stages.add(new SetGameRuleStage());
+        stages.add(new SetWorldTimeStage());
+        stages.add(new SetWeatherStage());
+        stages.add(new SetDifficultyStage());
+        stages.add(new SetWorldSpawnStage());
+        stages.add(new SpawnParticleAtStage());
+
+        stages.add(new SetGameModeStage());
+        stages.add(new SetSaturationStage());
+        stages.add(new SetLevelStage());
+        stages.add(new SetItemCooldownStage());
+        stages.add(new ClearInventoryStage());
+        stages.add(new SetBedSpawnStage());
+        stages.add(new SetCompassTargetStage());
+        stages.add(new SetWalkSpeedStage());
+        stages.add(new SetFlySpeedStage());
+        stages.add(new SetExpToLevelStage());
+        stages.add(new ResetTitleStage());
         return List.copyOf(stages);
     }
 

@@ -40,6 +40,26 @@ public final class TargetFactsReader {
         return KNOWN_STATES;
     }
 
+    public static final String FLAG_ON_FIRE = "on_fire";
+    public static final String FLAG_INVULNERABLE = "invulnerable";
+    public static final String FLAG_SILENT = "silent";
+    public static final String FLAG_GLOWING = "glowing";
+    public static final String FLAG_HAS_GRAVITY = "has_gravity";
+    public static final String FLAG_TAMED = "tamed";
+    public static final String FLAG_BABY = "baby";
+    public static final String FLAG_LEASHED = "leashed";
+    public static final String FLAG_HAS_AI = "has_ai";
+    public static final String FLAG_BREATHING = "breathing";
+
+    private static final List<String> KNOWN_FLAGS = List.of(
+            FLAG_ON_FIRE, FLAG_INVULNERABLE, FLAG_SILENT, FLAG_GLOWING,
+            FLAG_HAS_GRAVITY, FLAG_TAMED, FLAG_BABY, FLAG_LEASHED,
+            FLAG_HAS_AI, FLAG_BREATHING);
+
+    public static List<String> knownFlags() {
+        return KNOWN_FLAGS;
+    }
+
     public TargetFacts read(CoreActionSubject subject, Location origin) {
         Entity entity = subject == null ? null : subject.entityOrNull();
         if (entity == null) {
@@ -66,7 +86,55 @@ public final class TargetFactsReader {
                 states(entity, player),
                 identities.systemIds(),
                 identities.identifyAll(living),
-                player == null ? node -> null : player::hasPermission);
+                player == null ? node -> null : player::hasPermission,
+                entity.getWorld() == null ? 0L : entity.getWorld().getTime(),
+                flags(entity, living),
+                entity.getLocation().getChunk().getX(),
+                entity.getLocation().getChunk().getZ(),
+                weather(entity),
+                slotEmpties(player));
+    }
+
+    private static String weather(Entity entity) {
+        if (entity.getWorld() == null) {
+            return "";
+        }
+        if (entity.getWorld().hasStorm()) {
+            return entity.getWorld().isThundering() ? "thunder" : "rain";
+        }
+        return "clear";
+    }
+
+    private static Map<Integer, Boolean> slotEmpties(Player player) {
+        if (player == null) {
+            return Map.of();
+        }
+        Map<Integer, Boolean> empties = new LinkedHashMap<>();
+        for (int slot = 0; slot < 36; slot++) {
+            empties.put(slot, player.getInventory().getItem(slot) == null);
+        }
+        return empties;
+    }
+
+    private static Map<String, Boolean> flags(Entity entity, LivingEntity living) {
+        Map<String, Boolean> flags = new LinkedHashMap<>();
+        flags.put(FLAG_ON_FIRE, entity.getFireTicks() > 0);
+        flags.put(FLAG_INVULNERABLE, entity.isInvulnerable());
+        flags.put(FLAG_SILENT, entity.isSilent());
+        flags.put(FLAG_GLOWING, entity.isGlowing());
+        flags.put(FLAG_HAS_GRAVITY, entity.hasGravity());
+        if (living != null) {
+            flags.put(FLAG_HAS_AI, living.hasAI());
+            flags.put(FLAG_BREATHING, living.getRemainingAir() > 0);
+            flags.put(FLAG_LEASHED, living.isLeashed());
+        }
+        if (entity instanceof org.bukkit.entity.Tameable tameable) {
+            flags.put(FLAG_TAMED, tameable.isTamed());
+        }
+        if (entity instanceof org.bukkit.entity.Ageable ageable) {
+            flags.put(FLAG_BABY, !ageable.isAdult());
+        }
+        return flags;
     }
 
     private static Map<String, Integer> effects(LivingEntity living) {

@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.31"
+version: "4.8.32"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -277,6 +277,46 @@ action:
       unknown_source: "<red>[Pipeline] Selector %selector% references source %source%, which is not registered</red>"
       unknown_argument: "<red>[Pipeline] Source %source% referenced by selector %selector% has no argument %argument%</red>"
       no_match: "<gray>[Pipeline] select found no matching target</gray>"
+    all_players:
+      no_match: "<gray>[Pipeline] all_players found no online player</gray>"
+    world_players:
+      no_world: "<gray>[Pipeline] world_players could not resolve the target world</gray>"
+      no_match: "<gray>[Pipeline] world_players found no player in the target world</gray>"
+    ring:
+      no_origin: "<gray>[Pipeline] The ring source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] ring found no entity within [min_radius, max_radius]</gray>"
+      unknown_entity_type: "<red>[Pipeline] ring entity type %type% is unknown</red>"
+    region:
+      no_origin: "<gray>[Pipeline] The region source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] region found no entity in the specified area</gray>"
+      unknown_entity_type: "<red>[Pipeline] region entity type %type% is unknown</red>"
+    op_players:
+      no_match: "<gray>[Pipeline] op_players found no online OP</gray>"
+    random:
+      no_pool: "<gray>[Pipeline] random has an empty pool to draw from</gray>"
+    faction_members:
+      no_members: "<red>[Pipeline] faction_members requires a member list</red>"
+      no_online: "<gray>[Pipeline] faction_members has no online member</gray>"
+    party:
+      no_permission: "<red>[Pipeline] party requires a permission node</red>"
+      no_match: "<gray>[Pipeline] party found no online player with that permission node</gray>"
+    dropped_items:
+      no_origin: "<gray>[Pipeline] The dropped_items source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] dropped_items found no item entity</gray>"
+    highest_block:
+      no_origin: "<gray>[Pipeline] The highest_block source has no usable origin</gray>"
+      no_block: "<gray>[Pipeline] highest_block found no block in that column</gray>"
+    players_in_region:
+      no_origin: "<gray>[Pipeline] The players_in_region source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] players_in_region found no player in the area</gray>"
+    vertical_block:
+      no_origin: "<gray>[Pipeline] The vertical_block source has no usable origin</gray>"
+    players_by_gamemode:
+      unknown_gamemode: "<red>[Pipeline] players_by_gamemode game mode %gamemode% is unknown</red>"
+      no_match: "<gray>[Pipeline] players_by_gamemode found no online player in that mode</gray>"
+    players_with_material:
+      unknown_material: "<red>[Pipeline] players_with_material material %material% is unknown</red>"
+      no_match: "<gray>[Pipeline] players_with_material found no online player holding that material</gray>"
   gate:
     where:
       condition_required: "<red>[Pipeline] where requires a condition</red>"
@@ -297,6 +337,14 @@ action:
       no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
     stop:
       stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
+    sample:
+      invalid_count: "<red>[Pipeline] sample count must be a non-negative integer</red>"
+    distance_filter:
+      no_origin: "<gray>[Pipeline] distance_filter has no usable origin</gray>"
+    where_any:
+      conditions_required: "<red>[Pipeline] where_any requires at least one predicate</red>"
+    where_all:
+      conditions_required: "<red>[Pipeline] where_all requires at least one predicate</red>"
   stage:
     common:
       not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
@@ -306,6 +354,35 @@ action:
       no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
       invalid_amount: "<red>[Pipeline] The amount %amount% is invalid; it must be a non-negative number</red>"
       invalid_positive_amount: "<red>[Pipeline] The amount %amount% is invalid; it must be greater than 0</red>"
+    set_game_rule:
+      no_world: "<gray>[Pipeline] set_game_rule has no usable world</gray>"
+      unknown_rule: "<red>[Pipeline] Unknown game rule %rule%</red>"
+      invalid_value: "<red>[Pipeline] Value %value% is invalid for game rule %rule%</red>"
+    set_world_time:
+      no_world: "<gray>[Pipeline] set_world_time has no usable world</gray>"
+      invalid_time: "<red>[Pipeline] Time %time% is invalid</red>"
+    set_weather:
+      no_world: "<gray>[Pipeline] set_weather has no usable world</gray>"
+      unknown_weather: "<red>[Pipeline] Unknown weather %weather%; expected clear / rain / thunder</red>"
+    set_difficulty:
+      no_world: "<gray>[Pipeline] set_difficulty has no usable world</gray>"
+      unknown_difficulty: "<red>[Pipeline] Unknown difficulty %difficulty%; expected peaceful / easy / normal / hard</red>"
+    spawn_particle_at:
+      no_origin: "<gray>[Pipeline] spawn_particle_at has no usable origin</gray>"
+      unknown_particle: "<red>[Pipeline] Unknown particle %particle%</red>"
+    set_item_cooldown:
+      unknown_material: "<red>[Pipeline] Unknown material %material%</red>"
+    set_gamemode:
+      unknown_gamemode: "<red>[Pipeline] Unknown game mode %gamemode%</red>"
+    knockback:
+      no_caster: "<gray>[Pipeline] knockback has no caster</gray>"
+      world_mismatch: "<gray>[Pipeline] knockback caster and target are in different worlds</gray>"
+    set_world_spawn:
+      no_origin: "<gray>[Pipeline] set_world_spawn has no usable origin</gray>"
+    set_bed_spawn:
+      no_origin: "<gray>[Pipeline] set_bed_spawn has no usable origin</gray>"
+    set_compass_target:
+      no_origin: "<gray>[Pipeline] set_compass_target has no usable origin</gray>"
     script:
       eval:
         empty_code: "<gray>[Script] Script code is empty, skipped</gray>"

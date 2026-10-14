@@ -96,7 +96,163 @@ public final class BuiltinTargetConditions {
                 "主体带有所列记分板标签之一。", BuiltinTargetConditions::scoreboardTag));
         definitions.put("state", new Definition("state",
                 "主体状态键等于期望的布尔值。", BuiltinTargetConditions::state));
+        definitions.put("on_fire", new Definition("on_fire",
+                "主体是否着火。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_ON_FIRE)));
+        definitions.put("invulnerable", new Definition("invulnerable",
+                "主体是否无敌。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_INVULNERABLE)));
+        definitions.put("glowing", new Definition("glowing",
+                "主体是否发光。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_GLOWING)));
+        definitions.put("silent", new Definition("silent",
+                "主体是否静音。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_SILENT)));
+        definitions.put("has_ai", new Definition("has_ai",
+                "主体是否启用 AI。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_HAS_AI)));
+        definitions.put("tamed", new Definition("tamed",
+                "主体是否已被驯服。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_TAMED)));
+        definitions.put("baby", new Definition("baby",
+                "主体是否为幼年体。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_BABY)));
+        definitions.put("has_gravity", new Definition("has_gravity",
+                "主体是否受重力影响。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_HAS_GRAVITY)));
+        definitions.put("leashed", new Definition("leashed",
+                "主体是否被拴绳系住。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_LEASHED)));
+        definitions.put("breathing", new Definition("breathing",
+                "主体是否仍有剩余呼吸值。", BuiltinTargetConditions.flag(TargetFactsReader.FLAG_BREATHING)));
+        definitions.put("world_time", new Definition("world_time",
+                "所在世界时间与 op/value 比较（tick，0-24000）。", BuiltinTargetConditions::worldTime));
+        definitions.put("name", new Definition("name",
+                "主体名称等于所列名称之一。", BuiltinTargetConditions::name));
+        definitions.put("chunk", new Definition("chunk",
+                "主体所在区块坐标（cx,cz）与 value 比较。", BuiltinTargetConditions::chunk));
+        definitions.put("weather", new Definition("weather",
+                "所在世界天气为所列天气之一。", BuiltinTargetConditions::weather));
+        definitions.put("is_day", new Definition("is_day",
+                "所在世界当前是否为白天。", BuiltinTargetConditions::isDay));
+        definitions.put("slot", new Definition("slot",
+                "玩家指定物品栏槽位是否为空。", BuiltinTargetConditions::slotEmpty));
         return Map.copyOf(definitions);
+    }
+
+    private static CoreTargetOutcome chunk(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.present() || facts.chunkX() == Integer.MIN_VALUE || facts.chunkZ() == Integer.MIN_VALUE) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        String expected = Texts.trim(arguments.string("value", ""));
+        if (expected.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        String[] parts = expected.split(",");
+        if (parts.length != 2) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        Integer expectedX = parseInteger(parts[0]);
+        Integer expectedZ = parseInteger(parts[1]);
+        if (expectedX == null || expectedZ == null) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        return facts.chunkX() == expectedX && facts.chunkZ() == expectedZ
+                ? CoreTargetOutcome.PASS
+                : CoreTargetOutcome.FAIL;
+    }
+
+    private static CoreTargetOutcome weather(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.present() || facts.worldName().isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        List<String> expected = arguments.strings("value").stream().map(Texts::lower).toList();
+        if (expected.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        String actual = Texts.lower(facts.worldWeather());
+        if (actual.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        return expected.contains(actual) ? CoreTargetOutcome.PASS : CoreTargetOutcome.FAIL;
+    }
+
+    private static CoreTargetOutcome isDay(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.present() || facts.worldName().isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        boolean day = facts.worldTime() >= 0L && facts.worldTime() <= 12000L;
+        Optional<Boolean> expected = arguments.booleanValue("value");
+        if (expected.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        return day == expected.get() ? CoreTargetOutcome.PASS : CoreTargetOutcome.FAIL;
+    }
+
+    private static CoreTargetOutcome slotEmpty(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.player()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        String rawSlot = Texts.trim(arguments.string("slot", ""));
+        if (rawSlot.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        Integer slot = parseInteger(rawSlot);
+        if (slot == null || slot < 0 || slot >= 36) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        Boolean empty = facts.slotEmpty(slot);
+        if (empty == null) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        Optional<Boolean> expected = arguments.booleanValue("value");
+        if (expected.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        return empty == expected.get() ? CoreTargetOutcome.PASS : CoreTargetOutcome.FAIL;
+    }
+
+    private static Integer parseInteger(String raw) {
+        String normalized = Texts.trim(raw);
+        if (normalized.isEmpty()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(normalized);
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
+    private static java.util.function.BiFunction<TargetFacts, CoreTargetConditionArguments, CoreTargetOutcome> flag(String key) {
+        return (facts, arguments) -> {
+            if (!facts.present()) {
+                return CoreTargetOutcome.UNKNOWN;
+            }
+            Boolean actual = facts.flag(key);
+            if (actual == null) {
+                return CoreTargetOutcome.UNKNOWN;
+            }
+            Optional<Boolean> expected = arguments.booleanValue("value");
+            if (expected.isEmpty()) {
+                return CoreTargetOutcome.UNKNOWN;
+            }
+            return actual == expected.get() ? CoreTargetOutcome.PASS : CoreTargetOutcome.FAIL;
+        };
+    }
+
+    private static CoreTargetOutcome worldTime(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.present()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        return compare(arguments, facts.worldTime());
+    }
+
+    private static CoreTargetOutcome name(TargetFacts facts, CoreTargetConditionArguments arguments) {
+        if (!facts.present()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        List<String> expected = arguments.strings("value");
+        if (expected.isEmpty()) {
+            return CoreTargetOutcome.UNKNOWN;
+        }
+        for (String candidate : expected) {
+            if (facts.plainName().equalsIgnoreCase(Texts.trim(candidate))) {
+                return CoreTargetOutcome.PASS;
+            }
+        }
+        return CoreTargetOutcome.FAIL;
     }
 
     private static CoreTargetOutcome entityType(TargetFacts facts, CoreTargetConditionArguments arguments) {
