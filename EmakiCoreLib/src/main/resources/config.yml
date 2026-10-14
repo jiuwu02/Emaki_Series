@@ -1,7 +1,7 @@
 # EmakiCoreLib 主配置
 # 为其他 Emaki 模块提供 GUI、展示实体、事件、动作、对话框与语言表能力。
 
-version: "4.8.30"
+version: "4.8.31"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
@@ -79,6 +79,8 @@ action:
     max_sequence_depth: 8
     # if 分支的最大嵌套深度。
     max_branch_depth: 16
+    # 单个段 retry= 允许的最大重试次数。
+    max_retry_times: 5
   # 长期循环任务的调度与数量限制。
   loop:
     enabled: true

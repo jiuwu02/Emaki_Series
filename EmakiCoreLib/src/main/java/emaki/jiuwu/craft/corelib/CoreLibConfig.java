@@ -242,10 +242,11 @@ public record CoreLibConfig(
         }
     }
 
-    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth) {
+    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth,
+            int maxRetryTimes) {
 
         public static PipelineConfig defaults() {
-            return new PipelineConfig(100, 8, 16);
+            return new PipelineConfig(100, 8, 16, PipelineLimits.DEFAULT_MAX_RETRY_TIMES);
         }
 
         public static PipelineConfig fromConfig(YamlSection section) {
@@ -256,13 +257,14 @@ public record CoreLibConfig(
             return new PipelineConfig(
                     section.getInt("max_repeat_times", defaults.maxRepeatTimes()),
                     section.getInt("max_sequence_depth", defaults.maxSequenceDepth()),
-                    section.getInt("max_branch_depth", defaults.maxBranchDepth())
+                    section.getInt("max_branch_depth", defaults.maxBranchDepth()),
+                    section.getInt("max_retry_times", defaults.maxRetryTimes())
             );
         }
 
         public PipelineLimits toLimits() {
             return new PipelineLimits(
-                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
+                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth, maxRetryTimes);
         }
     }
 

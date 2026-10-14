@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.30"
+version: "4.8.31"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -156,11 +156,17 @@ action:
     run_positional_parameter: "<red>[Pipeline] run parameters must be written as name=value; got the bare argument %token%</red>"
     duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
     stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form (%token%); a stage name cannot contain =</red>"
+    on_error_without_body: "<red>[Pipeline] on_error cannot stand alone as a stage; it must follow a stage and wrap its handler in [ ], for example damage amount=3 on_error [ send_message \"failed\" ]</red>"
   validate:
     empty_pipeline: "<red>[Pipeline] This line contains no stages; at least one stage is required</red>"
     missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source, which is
       currently unavailable; write an explicit source stage at the start of the line</red>"
     unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
+    nested_on_error: "<red>[Pipeline] An on_error handler cannot nest another on_error; split it into
+      separate pipelines or use retry instead</red>"
+    invalid_retry_times: "<red>[Pipeline] retry count is not a valid non-negative integer</red>"
+    retry_limit_exceeded: "<red>[Pipeline] retry count %value% exceeds the limit %maximum%;
+      adjust action.pipeline.max_retry_times</red>"
     stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
       which is currently disabled</red>"
     multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second</red>"
@@ -690,10 +696,37 @@ command:
   action_compile_failed: "<red>Action line failed to compile: <aqua>%line%</aqua> - %reason%</red>"
   action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</green>"
   action_execute_failed: "<red>Action line failed: stage <aqua>%stage%</aqua> - %error%</red>"
+  # Command: usage hint for /emaki debug action
+  action_debug_usage: "<yellow>Usage: debug action run [shadow|execute] <pipeline line>, or debug action check <pipeline line></yellow>"
+  # Command: debug action check passed; placeholders: %line%
+  action_debug_check_ok: "<green>Check passed: %line%</green>"
+  # Command: debug action check failed header; placeholders: %line%, %count%
+  action_debug_check_failed_header: "<red>Check failed (%count% problem(s)): %line%</red>"
+  # Command: debug action check failed item
+  action_debug_check_item: "<gray>- %reason%</gray>"
+  # Command: debug action run dry-run header; placeholder: %line%
+  action_debug_dry_run_header: "<aqua>[Dry run] Previewing the pipeline step by step:</aqua> <white>%line%</white>"
+  # Command: debug action run execute header; placeholder: %line%
+  action_debug_execute_header: "<aqua>[Execute] Running the pipeline for real with step-by-step output:</aqua> <white>%line%</white>"
+  # Command: debug action step output - source; placeholders: %stage%, %count%, %reason%
+  action_debug_source: "<gray>  Source <aqua>%stage%</aqua> matched <yellow>%count%</yellow> target(s) <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - gate; placeholders: %stage%, %inbound%, %outbound%, %reason%
+  action_debug_gate: "<gray>  Gate <aqua>%stage%</aqua> in <yellow>%inbound%</yellow> -> out <yellow>%outbound%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - action; placeholders: %stage%, %success%, %failure%, %skipped%, %reason%
+  action_debug_action: "<gray>  Action <aqua>%stage%</aqua> ok <green>%success%</green> fail <red>%failure%</red> skip <yellow>%skipped%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - control flow; placeholders: %keyword%, %detail%
+  action_debug_control: "<dark_gray>  Control flow <white>%keyword%</white> %detail%</dark_gray>"
+  # Command: debug action step output - retry; placeholders: %stage%, %attempt%, %max%, %reason%
+  action_debug_retry: "<yellow>  Retrying <aqua>%stage%</aqua> attempt %attempt%/%max%: %reason%</yellow>"
+  # Command: debug action step output - on_error fired; placeholders: %stage%, %kind%, %reason%
+  action_debug_on_error: "<red>  on_error fired, failure kind %kind%, reason %reason%</red>"
+  # Command: debug action summary; placeholders: %status%, %stages%
+  action_debug_summary: "<gray>Finished: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</gray>"
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
   help_action: "<green>%root% action [list|run <action line>]</green><gray> - List registered stages, or run one action line directly</gray>"
+  help_debug_action: "<green>%root% debug action [run|check] <pipeline line></green><gray> - Dry-run preview or statically check one action pipeline</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - Control global Debug for every Emaki module; config takes effect after reload</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel long-running pipeline tasks</gray>"
   help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - Convert legacy dotted PDC keys to flat keys</gray>"

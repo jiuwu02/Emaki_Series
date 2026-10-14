@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckFixResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.debug.ActionDebugRunner;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -39,7 +40,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> PDC_CONVERT_SCOPES = List.of("players", "containers", "entities", "all");
     private static final String DRY_RUN_FLAG = "--dry-run";
-    private static final List<String> DEBUG_MODES = List.of("loops", "all");
+    private static final List<String> DEBUG_MODES = List.of("loops", "all", "action");
+    private static final List<String> DEBUG_ACTION_MODES = List.of("run", "check");
+    private static final List<String> DEBUG_ACTION_RUN_MODES = List.of("shadow", "execute");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
 
@@ -105,6 +108,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[2], DEBUG_ALL_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {
             complete(args[2], LOOP_DEBUG_MODES, result);
+        } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "action".equalsIgnoreCase(args[1])) {
+            complete(args[2], DEBUG_ACTION_MODES, result);
+        } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "action".equalsIgnoreCase(args[1])
+                && "run".equalsIgnoreCase(args[2])) {
+            complete(args[3], DEBUG_ACTION_RUN_MODES, result);
         } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1]) && "player".equalsIgnoreCase(args[2])) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -392,6 +400,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
         if (args.length >= 2 && "all".equalsIgnoreCase(args[1])) {
             return handleGlobalDebug(sender, args);
         }
+        if (args.length >= 2 && "action".equalsIgnoreCase(args[1])) {
+            return handleDebugAction(sender, args);
+        }
         if (args.length < 2 || !"loops".equalsIgnoreCase(args[1])) {
             sendHelp(sender, "corelib");
             return true;
@@ -433,6 +444,29 @@ public final class CoreLibCommandRouter implements TabExecutor {
             }
             default -> sendTaskSnapshots(sender, tasks.snapshots());
         }
+        return true;
+    }
+
+    private boolean handleDebugAction(CommandSender sender, String[] args) {
+        ActionDebugRunner.MessageWriter writer =
+                ActionDebugRunner.MessageWriter.of(plugin.messageService(), sender);
+        String[] tail = args.length > 2
+                ? java.util.Arrays.copyOfRange(args, 2, args.length)
+                : new String[0];
+        ActionDebugRunner.Invocation invocation = ActionDebugRunner.parse(tail);
+        if (invocation == null) {
+            writer.send("command.action_debug_usage");
+            return true;
+        }
+        ActionEngine engine = plugin.actionEngine();
+        if (invocation.mode() == ActionDebugRunner.Mode.CHECK) {
+            ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
+            return true;
+        }
+        Player player = sender instanceof Player resolved ? resolved : null;
+        ActionDebugRunner.run(engine, plugin, player, sender, invocation.rawLine(),
+                invocation.mode() == ActionDebugRunner.Mode.SHADOW, writer,
+                task -> dispatchSender(sender, task));
         return true;
     }
 

@@ -21,6 +21,12 @@ public final class PipelineParser {
 
     public static final String WEIGHT = "weight";
 
+    public static final String ON_ERROR = "on_error";
+
+    public static final String RETRY = "retry";
+
+    public static final String RETRY_DELAY = "retry_delay";
+
     private final PipelineLexer lexer = new PipelineLexer();
 
     public @NotNull Result parse(@Nullable String line) {
@@ -107,6 +113,10 @@ public final class PipelineParser {
         }
         if (WEIGHT.equals(name) && !head.quoted()) {
             return parseWeighted(cursor);
+        }
+        if (ON_ERROR.equals(name) && !head.quoted()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.on_error_without_body", head));
+            return null;
         }
         return parseStage(cursor);
     }
@@ -245,11 +255,22 @@ public final class PipelineParser {
             return null;
         }
         Map<String, String> arguments = new LinkedHashMap<>();
+        Map<String, String> decorator = new LinkedHashMap<>();
         List<String> positional = new ArrayList<>();
         while (cursor.hasNext() && cursor.peek().kind() == PipelineToken.Kind.WORD) {
             PipelineToken token = cursor.peek();
             if (ELSE.equals(Texts.lower(token.text())) && !token.quoted()) {
                 break;
+            }
+            if (ON_ERROR.equals(Texts.lower(token.text())) && !token.quoted()) {
+                cursor.next();
+                List<ActionAst> handler = parseBracketBody(cursor, token);
+                if (handler == null) {
+                    return null;
+                }
+                ActionAst.Stage stage = new ActionAst.Stage(id, CoreStageKind.ACTION,
+                        arguments, positional, nameToken.column());
+                return new ActionAst.OnError(List.of(stage), handler, nameToken.column());
             }
             cursor.next();
             if (token.isKeyValue()) {
@@ -259,12 +280,27 @@ public final class PipelineParser {
                             Map.of("argument", key)));
                     return null;
                 }
+                if (RETRY.equals(key) || RETRY_DELAY.equals(key)) {
+                    decorator.put(key, token.value());
+                    continue;
+                }
                 arguments.put(key, token.value());
                 continue;
             }
             positional.add(token.text());
         }
-        return new ActionAst.Stage(id, CoreStageKind.ACTION, arguments, positional, nameToken.column());
+        int retryTimes = 0;
+        long retryDelayTicks = 0L;
+        String retryRaw = decorator.get(RETRY);
+        if (!Texts.isBlank(retryRaw)) {
+            retryTimes = ValueParsers.parseInt(retryRaw, -1);
+        }
+        String retryDelayRaw = decorator.get(RETRY_DELAY);
+        if (!Texts.isBlank(retryDelayRaw)) {
+            retryDelayTicks = ValueParsers.parseTicks(retryDelayRaw);
+        }
+        return new ActionAst.Stage(id, CoreStageKind.ACTION, arguments, positional,
+                nameToken.column(), retryTimes, retryDelayTicks);
     }
 
     private static final class Cursor {

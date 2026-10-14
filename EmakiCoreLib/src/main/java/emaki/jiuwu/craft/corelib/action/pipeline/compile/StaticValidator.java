@@ -118,6 +118,27 @@ public final class StaticValidator {
                 resolved.add(validateWeighted(weighted, weightToken, state, branchDepth));
                 continue;
             }
+            if (node instanceof ActionAst.OnError onError) {
+                if (branchDepth >= limits.maxBranchDepth()) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
+                            token(PipelineParser.ON_ERROR, onError.column()),
+                            Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
+                    continue;
+                }
+                List<ActionAst> body = validateNodes(onError.body(), state.fork(), inheritsInboundFlow,
+                        branchDepth + 1);
+                List<ActionAst> handler = validateNodes(onError.handler(), state.fork(), inheritsInboundFlow,
+                        branchDepth + 1);
+                if (containsOnError(handler)) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.nested_on_error",
+                            token(PipelineParser.ON_ERROR, onError.column())));
+                }
+                if (!body.isEmpty() && !handler.isEmpty()) {
+                    resolved.add(new ActionAst.OnError(body, handler, onError.column()));
+                }
+                flowAvailable = true;
+                continue;
+            }
             if (node instanceof ActionAst.SequenceCall call) {
                 for (Map.Entry<String, String> parameter : call.parameters().entrySet()) {
                     validateVariableReferences(parameter.getValue(), token(parameter.getKey(), call.column()),
@@ -180,6 +201,7 @@ public final class StaticValidator {
             validateRequiredContext(normalized, resolution.requiredContext(), state, state.diagnostics);
             validateParameterValues(normalized, resolution.parameters(), state.diagnostics);
             validateEvery(normalized, state.diagnostics);
+            validateRetry(normalized, state.diagnostics);
             resolved.add(normalized.withKind(kind));
             if (kind == CoreStageKind.GATE) {
                 state.provide(resolution.providedContext(), resolution.providedVariables());
@@ -302,7 +324,8 @@ public final class StaticValidator {
                         token(parameter.name(), stage.column()), Map.of("argument", parameter.name())));
             }
         }
-        return new ActionAst.Stage(stage.id(), stage.kind(), arguments, List.of(), stage.column());
+        return new ActionAst.Stage(stage.id(), stage.kind(), arguments, List.of(), stage.column(),
+                stage.retryTimes(), stage.retryDelayTicks());
     }
 
     private void normalizeEveryPositional(ActionAst.Stage stage,
@@ -432,6 +455,43 @@ public final class StaticValidator {
                                 "expected", parameter.type().name())));
             }
         }
+    }
+
+    private void validateRetry(ActionAst.Stage stage, List<CompileDiagnostic> diagnostics) {
+        if (stage.retryTimes() <= 0 && stage.retryDelayTicks() <= 0L) {
+            return;
+        }
+        if (stage.retryTimes() < 0) {
+            diagnostics.add(CompileDiagnostic.at("action.validate.invalid_retry_times",
+                    token(PipelineParser.RETRY, stage.column())));
+            return;
+        }
+        if (stage.retryTimes() > limits.maxRetryTimes()) {
+            diagnostics.add(CompileDiagnostic.at("action.validate.retry_limit_exceeded",
+                    token(PipelineParser.RETRY, stage.column()),
+                    Map.of("value", stage.retryTimes(), "maximum", limits.maxRetryTimes())));
+        }
+    }
+
+    private static boolean containsOnError(List<ActionAst> nodes) {
+        for (ActionAst node : nodes) {
+            if (node instanceof ActionAst.OnError) {
+                return true;
+            }
+            if (node instanceof ActionAst.Branch branch) {
+                if (containsOnError(branch.thenBranch()) || containsOnError(branch.elseBranch())) {
+                    return true;
+                }
+            }
+            if (node instanceof ActionAst.Weighted weighted) {
+                for (ActionAst.Weighted.Option option : weighted.options()) {
+                    if (containsOnError(option.body())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
     }
 
     private void validateEvery(ActionAst.Stage stage, List<CompileDiagnostic> diagnostics) {

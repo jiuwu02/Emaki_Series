@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.debug;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
@@ -56,6 +58,7 @@ public final class DebugCommand {
             }
             case "player" -> handlePlayer(sender, args, messageService);
             case "module" -> handleModule(sender, args, messageService);
+            case "action" -> handleAction(sender, args, messageService);
             default -> sendStatus(sender, messageService);
         }
         return true;
@@ -112,6 +115,48 @@ public final class DebugCommand {
         } else {
             messageService.sendRaw(sender, message(messageService, "debug.command.player_removed",
                     Map.of("player", target.getName())));
+        }
+    }
+
+    private void handleAction(CommandSender sender, String[] args, AbstractMessageService messageService) {
+        emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin coreLib = lookupCoreLib();
+        ActionDebugRunner.MessageWriter writer =
+                ActionDebugRunner.MessageWriter.of(messageService, sender);
+        String[] tail = args.length > 1
+                ? Arrays.copyOfRange(args, 1, args.length)
+                : new String[0];
+        ActionDebugRunner.Invocation invocation = ActionDebugRunner.parse(tail);
+        if (invocation == null) {
+            writer.send("command.action_debug_usage");
+            return;
+        }
+        emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine engine =
+                coreLib == null ? null : coreLib.actionEngine();
+        if (invocation.mode() == ActionDebugRunner.Mode.CHECK) {
+            ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
+            return;
+        }
+        if (coreLib == null) {
+            writer.send("command.action_unavailable");
+            return;
+        }
+        Consumer<Runnable> dispatch = task -> {
+            if (sender instanceof Player player) {
+                coreLib.executionDispatcher().runEntity(coreLib, player, task, () -> { });
+            } else {
+                coreLib.executionDispatcher().runGlobal(coreLib, task);
+            }
+        };
+        Player caster = sender instanceof Player resolved ? resolved : null;
+        ActionDebugRunner.run(engine, coreLib, caster, sender, invocation.rawLine(),
+                invocation.mode() == ActionDebugRunner.Mode.SHADOW, writer, dispatch);
+    }
+
+    private emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin lookupCoreLib() {
+        try {
+            return emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.lookup();
+        } catch (Exception exception) {
+            return null;
         }
     }
 

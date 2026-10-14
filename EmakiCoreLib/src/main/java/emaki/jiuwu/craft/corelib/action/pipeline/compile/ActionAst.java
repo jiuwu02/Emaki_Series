@@ -13,16 +13,27 @@ public sealed interface ActionAst {
             @NotNull CoreStageKind kind,
             @NotNull Map<String, String> arguments,
             @NotNull List<String> positional,
-            int column) implements ActionAst {
+            int column,
+            int retryTimes,
+            long retryDelayTicks) implements ActionAst {
 
         public Stage {
             id = id == null ? "" : id;
             arguments = arguments == null ? Map.of() : Map.copyOf(arguments);
             positional = positional == null ? List.of() : List.copyOf(positional);
+            retryDelayTicks = Math.max(0L, retryDelayTicks);
+        }
+
+        public Stage(@NotNull String id,
+                @NotNull CoreStageKind kind,
+                @NotNull Map<String, String> arguments,
+                @NotNull List<String> positional,
+                int column) {
+            this(id, kind, arguments, positional, column, 0, 0L);
         }
 
         public @NotNull Stage withKind(@NotNull CoreStageKind resolved) {
-            return new Stage(id, resolved, arguments, positional, column);
+            return new Stage(id, resolved, arguments, positional, column, retryTimes, retryDelayTicks);
         }
     }
 
@@ -64,6 +75,16 @@ public sealed interface ActionAst {
         public SequenceCall {
             sequence = sequence == null ? "" : sequence;
             parameters = parameters == null ? Map.of() : Map.copyOf(parameters);
+        }
+    }
+
+    record OnError(@NotNull List<ActionAst> body,
+            @NotNull List<ActionAst> handler,
+            int column) implements ActionAst {
+
+        public OnError {
+            body = body == null ? List.of() : List.copyOf(body);
+            handler = handler == null ? List.of() : List.copyOf(handler);
         }
     }
 

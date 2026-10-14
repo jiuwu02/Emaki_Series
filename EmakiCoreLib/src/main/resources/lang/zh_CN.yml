@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.30"
+version: "4.8.31"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -151,10 +151,14 @@ action:
     run_positional_parameter: "<red>[管道] run 的参数必须写成 名称=值，收到了无名参数 %token%</red>"
     duplicate_argument: "<red>[管道] 参数 %argument% 重复出现，同一段内每个参数只能写一次</red>"
     stage_name_is_argument: "<red>[管道] 段名位置写成了 %token% 这样的 名称=值 形式，段名不能带 =</red>"
+    on_error_without_body: "<red>[管道] on_error 不能单独作为一段，它必须跟在一个段之后并用 [ ] 包裹处理器，例如 damage amount=3 on_error [ send_message \"失败\" ]</red>"
   validate:
     empty_pipeline: "<red>[管道] 该行没有任何段，至少要写一个段才能执行</red>"
     missing_self_source: "<red>[管道] 省略源段时需要内置的 self 源段，但它当前不可用；请在行首显式写一个源段</red>"
     unknown_stage: "<red>[管道] 未知段 %token%</red>"
+    nested_on_error: "<red>[管道] on_error 处理器内不能再嵌套 on_error，请拆分为多条管道或改用 retry</red>"
+    invalid_retry_times: "<red>[管道] retry 的次数不是合法的非负整数</red>"
+    retry_limit_exceeded: "<red>[管道] retry 次数 %value% 超过上限 %maximum%，请调整 action.pipeline.max_retry_times</red>"
     stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
     multiple_sources: "<red>[管道] 一条管道只能有一个源段，%stage% 是第二个</red>"
     source_after_action: "<red>[管道] 源段 %stage% 不能出现在动作段之后，源段必须位于行首</red>"
@@ -659,10 +663,37 @@ command:
   action_compile_failed: "<red>动作行编译失败: <aqua>%line%</aqua> - %reason%</red>"
   action_execute_success: "<green>动作行执行完成：状态 <yellow>%status%</yellow>，共 <yellow>%stages%</yellow> 段</green>"
   action_execute_failed: "<red>动作行执行失败: 段 <aqua>%stage%</aqua> - %error%</red>"
+  # 命令：/emaki debug action 的用法提示
+  action_debug_usage: "<yellow>用法: debug action run [shadow|execute] <管道行> 或 debug action check <管道行></yellow>"
+  # 命令：debug action check 通过；占位符：%line%
+  action_debug_check_ok: "<green>检查通过：%line%</green>"
+  # 命令：debug action check 失败头；占位符：%line%、%count%
+  action_debug_check_failed_header: "<red>检查未通过（%count% 处问题）：%line%</red>"
+  # 命令：debug action check 失败项
+  action_debug_check_item: "<gray>- %reason%</gray>"
+  # 命令：debug action run 干跑头；占位符：%line%
+  action_debug_dry_run_header: "<aqua>[干跑] 逐步预演管道：</aqua> <white>%line%</white>"
+  # 命令：debug action run 真实执行头；占位符：%line%
+  action_debug_execute_header: "<aqua>[执行] 真实执行管道并逐步回显：</aqua> <white>%line%</white>"
+  # 命令：debug action 逐步回显-源段；占位符：%stage%、%count%、%reason%
+  action_debug_source: "<gray>  源段 <aqua>%stage%</aqua> 命中 <yellow>%count%</yellow> 个目标 <dark_gray>%reason%</dark_gray></gray>"
+  # 命令：debug action 逐步回显-闸门段；占位符：%stage%、%inbound%、%outbound%、%reason%
+  action_debug_gate: "<gray>  闸门 <aqua>%stage%</aqua> 输入 <yellow>%inbound%</yellow> → 输出 <yellow>%outbound%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # 命令：debug action 逐步回显-动作段；占位符：%stage%、%success%、%failure%、%skipped%、%reason%
+  action_debug_action: "<gray>  动作 <aqua>%stage%</aqua> 成功 <green>%success%</green> 失败 <red>%failure%</red> 跳过 <yellow>%skipped%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # 命令：debug action 逐步回显-控制流；占位符：%keyword%、%detail%
+  action_debug_control: "<dark_gray>  控制流 <white>%keyword%</white> %detail%</dark_gray>"
+  # 命令：debug action 逐步回显-重试；占位符：%stage%、%attempt%、%max%、%reason%
+  action_debug_retry: "<yellow>  重试 <aqua>%stage%</aqua> 第 %attempt%/%max% 次：%reason%</yellow>"
+  # 命令：debug action 逐步回显-on_error 触发；占位符：%stage%、%kind%、%reason%
+  action_debug_on_error: "<red>  on_error 触发，失败类型 %kind%，原因 %reason%</red>"
+  # 命令：debug action 结果汇总；占位符：%status%、%stages%
+  action_debug_summary: "<gray>执行结束：状态 <yellow>%status%</yellow>，共 <yellow>%stages%</yellow> 段</gray>"
   help_header: "<aqua>EmakiCoreLib 命令：</aqua>"
   help_reload: "<green>%root% reload</green><gray> - 重载 CoreLib 配置</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - 执行配置预检或查看最近报告</gray>"
   help_action: "<green>%root% action [list|run <动作行>]</green><gray> - 查看已注册段，或直接执行一条动作行</gray>"
+  help_debug_action: "<green>%root% debug action [run|check] <管道行></green><gray> - 干跑预演或静态体检一条动作管道</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - 控制所有 Emaki 模块的全局 Debug（重载后以配置为准）</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - 查看或取消长期管道任务</gray>"
   help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - 把历史带点 PDC 键转换为扁平键</gray>"
