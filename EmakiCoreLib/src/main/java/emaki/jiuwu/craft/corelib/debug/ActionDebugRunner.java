@@ -28,11 +28,48 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
  */
 public final class ActionDebugRunner {
 
-    public static final String[] MODES = {"run", "check"};
+    public static final String[] MODES = {"run", "check", "registry"};
 
     public static final String[] RUN_MODES = {"shadow", "execute"};
 
     private ActionDebugRunner() {
+    }
+
+    public static void registry(@Nullable emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry registry,
+            MessageWriter writer) {
+        if (registry == null) {
+            writer.send("command.action_unavailable");
+            return;
+        }
+        java.util.Map<emaki.jiuwu.craft.corelib.api.action.CoreStageKind, List<String>> byKind =
+                registry.allIds();
+        int total = byKind.values().stream().mapToInt(List::size).sum();
+        writer.send("command.action_list_header", Map.of("count", String.valueOf(total)));
+        if (total == 0) {
+            writer.send("command.action_list_empty");
+            return;
+        }
+        for (emaki.jiuwu.craft.corelib.api.action.CoreStageKind kind
+                : emaki.jiuwu.craft.corelib.api.action.CoreStageKind.values()) {
+            for (String id : byKind.getOrDefault(kind, List.of())) {
+                writer.send("command.action_list_item", Map.of(
+                        "id", id,
+                        "kind", Texts.lower(kind.name()),
+                        "owner", ownerNameOf(registry, kind, id)));
+            }
+        }
+    }
+
+    private static String ownerNameOf(
+            emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry registry,
+            emaki.jiuwu.craft.corelib.api.action.CoreStageKind kind,
+            String id) {
+        String owner = switch (kind) {
+            case SOURCE -> registry.sources().ownerNameOf(id);
+            case GATE -> registry.gates().ownerNameOf(id);
+            case ACTION -> registry.actions().ownerNameOf(id);
+        };
+        return Texts.isBlank(owner) ? "-" : owner;
     }
 
     public static void check(@Nullable ActionEngine engine,
@@ -126,6 +163,9 @@ public final class ActionDebugRunner {
         if ("check".equals(mode)) {
             return new Invocation(Mode.CHECK, joinTail(args, 1));
         }
+        if ("registry".equals(mode)) {
+            return new Invocation(Mode.REGISTRY, "");
+        }
         if ("run".equals(mode)) {
             String runMode = args.length >= 2 ? args[1].toLowerCase(Locale.ROOT) : "shadow";
             if (!"shadow".equals(runMode) && !"execute".equals(runMode)) {
@@ -139,6 +179,7 @@ public final class ActionDebugRunner {
 
     public enum Mode {
         CHECK,
+        REGISTRY,
         SHADOW,
         EXECUTE
     }

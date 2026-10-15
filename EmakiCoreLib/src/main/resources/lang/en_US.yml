@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups.
 # version is maintained by resource synchronization when default keys are merged.
 
-version: "4.8.32"
+version: "4.8.33"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -157,11 +157,19 @@ action:
     duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
     stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form (%token%); a stage name cannot contain =</red>"
     on_error_without_body: "<red>[Pipeline] on_error cannot stand alone as a stage; it must follow a stage and wrap its handler in [ ], for example damage amount=3 on_error [ send_message \"failed\" ]</red>"
+    alias_empty: "<red>[Pipeline] Alias %alias% expands to nothing</red>"
+    alias_cycle: "<red>[Pipeline] Alias %alias% expands past %max% levels; aliases likely reference each other in a cycle</red>"
+    union_empty: "<red>[Pipeline] union must wrap at least one source stage</red>"
+    union_only_sources: "<red>[Pipeline] Only source stages may appear inside union [ ]</red>"
+    parse_if_missing_condition: "<red>[Pipeline] parse_if is missing a condition; write it as parse_if <static condition> [ ... ]</red>"
+    parse_if_placeholder: "<red>[Pipeline] The parse_if condition %condition% contains a placeholder; parse_if is evaluated at compile time and cannot use runtime placeholders (use if instead)</red>"
+    parse_if_not_evaluable: "<red>[Pipeline] The parse_if condition %condition% cannot be evaluated at compile time</red>"
   validate:
     empty_pipeline: "<red>[Pipeline] This line contains no stages; at least one stage is required</red>"
     missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source, which is
       currently unavailable; write an explicit source stage at the start of the line</red>"
     unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
+    union_not_source: "<red>[Pipeline] %stage% inside union is not a source stage</red>"
     nested_on_error: "<red>[Pipeline] An on_error handler cannot nest another on_error; split it into
       separate pipelines or use retry instead</red>"
     invalid_retry_times: "<red>[Pipeline] retry count is not a valid non-negative integer</red>"
@@ -169,7 +177,7 @@ action:
       adjust action.pipeline.max_retry_times</red>"
     stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
       which is currently disabled</red>"
-    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second</red>"
+    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second. To combine several sources, write union [ ... ]</red>"
     source_after_action: "<red>[Pipeline] Source stage %stage% cannot follow an action stage; a source must
       come first on the line</red>"
     gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
@@ -774,7 +782,7 @@ command:
   action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</green>"
   action_execute_failed: "<red>Action line failed: stage <aqua>%stage%</aqua> - %error%</red>"
   # Command: usage hint for /emaki debug action
-  action_debug_usage: "<yellow>Usage: debug action run [shadow|execute] <pipeline line>, or debug action check <pipeline line></yellow>"
+  action_debug_usage: "<yellow>Usage: debug action run [shadow|execute] <pipeline line> | debug action check <pipeline line> | debug action registry</yellow>"
   # Command: debug action check passed; placeholders: %line%
   action_debug_check_ok: "<green>Check passed: %line%</green>"
   # Command: debug action check failed header; placeholders: %line%, %count%

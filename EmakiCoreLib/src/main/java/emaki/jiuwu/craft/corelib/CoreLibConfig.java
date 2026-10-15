@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 public record CoreLibConfig(
         String language,
         Map<String, List<String>> actionTemplates,
+        Map<String, String> actionAliases,
         List<SelectorDefinition> actionSelectors,
         LoopConfig loopConfig,
         PipelineConfig pipelineConfig,
@@ -27,7 +28,7 @@ public record CoreLibConfig(
 ) {
 
     public static CoreLibConfig defaults() {
-                return new CoreLibConfig("zh_CN", Map.of(), List.of(), LoopConfig.defaults(),
+                return new CoreLibConfig("zh_CN", Map.of(), Map.of(), List.of(), LoopConfig.defaults(),
                 PipelineConfig.defaults(), GuiConfig.defaults(),
  GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
@@ -47,9 +48,20 @@ public record CoreLibConfig(
                 templates.put(key, List.copyOf(templatesSection.getStringList(key)));
             }
         }
+        YamlSection aliasesSection = actionSection == null ? null : actionSection.getSection("aliases");
+        Map<String, String> aliases = new LinkedHashMap<>();
+        if (aliasesSection != null) {
+            for (String key : aliasesSection.getKeys(false)) {
+                String fragment = aliasesSection.getString(key, "");
+                if (!fragment.isBlank()) {
+                    aliases.put(key.toLowerCase(Locale.ROOT), fragment);
+                }
+            }
+        }
         return new CoreLibConfig(
                 language,
                 Map.copyOf(templates),
+                Map.copyOf(aliases),
                 SelectorDefinition.parseAll(actionSection == null ? null : actionSection.getSection("selectors")),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 PipelineConfig.fromConfig(actionSection == null ? null : actionSection.getSection("pipeline")),

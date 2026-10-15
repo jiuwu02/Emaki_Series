@@ -310,9 +310,48 @@ public final class ActionInterpreter {
             case ActionAst.Weighted weighted -> weighted(run, weighted, state, sequenceDepth);
             case ActionAst.SequenceCall call -> sequence(run, call, state, sequenceDepth);
             case ActionAst.OnError onError -> onError(run, onError, state, sequenceDepth);
+            case ActionAst.Union union -> runUnion(run, union, state);
+            case ActionAst.Inline inline -> runNested(run, inline.nodes(), state, sequenceDepth);
 
             case ActionAst.Stage stage -> runStageRun(run, List.of(stage), state);
         };
+    }
+
+    private CompletableFuture<State> runUnion(Run run,
+            ActionAst.Union node,
+            State state) {
+        List<CoreActionSubject> merged = new ArrayList<>();
+        CompletableFuture<State> chain = CompletableFuture.completedFuture(state);
+        for (ActionAst source : node.sources()) {
+            if (!(source instanceof ActionAst.Stage stage)) {
+                continue;
+            }
+            chain = chain.thenCompose(current -> {
+                if (current.terminal() && current.failureKind() != null) {
+                    return CompletableFuture.completedFuture(current);
+                }
+                State base = current.failureKind() == null ? current : current.recovered();
+                return applySource(run, stage.id(), stage.arguments(), base)
+                        .thenApply(after -> {
+                            if (after.failureKind() != null) {
+                                return after;
+                            }
+                            if (after.stoppedReason() != null) {
+                                return after.recovered();
+                            }
+                            merged.addAll(after.flow());
+                            return after;
+                        });
+            });
+        }
+        return chain.thenApply(current -> {
+            if (current.failureKind() != null) {
+                return current;
+            }
+            java.util.LinkedHashSet<CoreActionSubject> unique =
+                    new java.util.LinkedHashSet<>(merged);
+            return current.recovered().withFlow(new ArrayList<>(unique));
+        });
     }
 
     private CompletableFuture<State> onError(Run run,

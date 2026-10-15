@@ -136,6 +136,10 @@ public final class DebugCommand {
             ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
             return;
         }
+        if (invocation.mode() == ActionDebugRunner.Mode.REGISTRY) {
+            ActionDebugRunner.registry(coreLib == null ? null : coreLib.stageRegistry(), writer);
+            return;
+        }
         if (coreLib == null) {
             writer.send("command.action_unavailable");
             return;

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage；保留消息分组旁标明的占位符。
 # version 由资源同步流程维护，用于合并新增默认键。
 
-version: "4.8.32"
+version: "4.8.33"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -152,15 +152,23 @@ action:
     duplicate_argument: "<red>[管道] 参数 %argument% 重复出现，同一段内每个参数只能写一次</red>"
     stage_name_is_argument: "<red>[管道] 段名位置写成了 %token% 这样的 名称=值 形式，段名不能带 =</red>"
     on_error_without_body: "<red>[管道] on_error 不能单独作为一段，它必须跟在一个段之后并用 [ ] 包裹处理器，例如 damage amount=3 on_error [ send_message \"失败\" ]</red>"
+    alias_empty: "<red>[管道] 别名 %alias% 展开后为空</red>"
+    alias_cycle: "<red>[管道] 别名 %alias% 展开超过 %max% 层，疑似别名互相引用成环</red>"
+    union_empty: "<red>[管道] union 至少要包裹一个源段</red>"
+    union_only_sources: "<red>[管道] union [ ] 内只能放源段</red>"
+    parse_if_missing_condition: "<red>[管道] parse_if 缺少条件表达式，应写成 parse_if <静态条件> [ ... ]</red>"
+    parse_if_placeholder: "<red>[管道] parse_if 的条件 %condition% 含占位符；parse_if 在编译期求值，不能使用运行期占位符（请改用 if）</red>"
+    parse_if_not_evaluable: "<red>[管道] parse_if 的条件 %condition% 在编译期无法求值</red>"
   validate:
     empty_pipeline: "<red>[管道] 该行没有任何段，至少要写一个段才能执行</red>"
     missing_self_source: "<red>[管道] 省略源段时需要内置的 self 源段，但它当前不可用；请在行首显式写一个源段</red>"
     unknown_stage: "<red>[管道] 未知段 %token%</red>"
+    union_not_source: "<red>[管道] union 内的 %stage% 不是源段</red>"
     nested_on_error: "<red>[管道] on_error 处理器内不能再嵌套 on_error，请拆分为多条管道或改用 retry</red>"
     invalid_retry_times: "<red>[管道] retry 的次数不是合法的非负整数</red>"
     retry_limit_exceeded: "<red>[管道] retry 次数 %value% 超过上限 %maximum%，请调整 action.pipeline.max_retry_times</red>"
     stage_owner_disabled: "<red>[管道] 段 %stage% 由插件 %owner% 提供，该插件当前未启用</red>"
-    multiple_sources: "<red>[管道] 一条管道只能有一个源段，%stage% 是第二个</red>"
+    multiple_sources: "<red>[管道] 一条管道只能有一个源段，%stage% 是第二个；多个源请写成 union [ ... ] 合并</red>"
     source_after_action: "<red>[管道] 源段 %stage% 不能出现在动作段之后，源段必须位于行首</red>"
     gate_after_action: "<red>[管道] 闸门段 %stage% 不能出现在动作段之后，此时目标流已被消耗</red>"
     missing_required_argument: "<red>[管道] 缺少必填参数 %argument%</red>"
@@ -741,7 +749,7 @@ command:
   action_execute_success: "<green>动作行执行完成：状态 <yellow>%status%</yellow>，共 <yellow>%stages%</yellow> 段</green>"
   action_execute_failed: "<red>动作行执行失败: 段 <aqua>%stage%</aqua> - %error%</red>"
   # 命令：/emaki debug action 的用法提示
-  action_debug_usage: "<yellow>用法: debug action run [shadow|execute] <管道行> 或 debug action check <管道行></yellow>"
+  action_debug_usage: "<yellow>用法: debug action run [shadow|execute] <管道行> | debug action check <管道行> | debug action registry</yellow>"
   # 命令：debug action check 通过；占位符：%line%
   action_debug_check_ok: "<green>检查通过：%line%</green>"
   # 命令：debug action check 失败头；占位符：%line%、%count%

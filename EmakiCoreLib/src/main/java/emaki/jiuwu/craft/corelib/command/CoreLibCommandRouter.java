@@ -41,7 +41,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> PDC_CONVERT_SCOPES = List.of("players", "containers", "entities", "all");
     private static final String DRY_RUN_FLAG = "--dry-run";
     private static final List<String> DEBUG_MODES = List.of("loops", "all", "action");
-    private static final List<String> DEBUG_ACTION_MODES = List.of("run", "check");
+    private static final List<String> DEBUG_ACTION_MODES = List.of("run", "check", "registry");
     private static final List<String> DEBUG_ACTION_RUN_MODES = List.of("shadow", "execute");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
@@ -461,6 +461,10 @@ public final class CoreLibCommandRouter implements TabExecutor {
         ActionEngine engine = plugin.actionEngine();
         if (invocation.mode() == ActionDebugRunner.Mode.CHECK) {
             ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
+            return true;
+        }
+        if (invocation.mode() == ActionDebugRunner.Mode.REGISTRY) {
+            ActionDebugRunner.registry(plugin.stageRegistry(), writer);
             return true;
         }
         Player player = sender instanceof Player resolved ? resolved : null;

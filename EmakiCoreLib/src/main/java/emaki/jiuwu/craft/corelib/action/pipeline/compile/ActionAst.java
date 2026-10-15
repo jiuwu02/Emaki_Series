@@ -88,5 +88,19 @@ public sealed interface ActionAst {
         }
     }
 
+    record Union(@NotNull List<ActionAst> sources, int column) implements ActionAst {
+
+        public Union {
+            sources = sources == null ? List.of() : List.copyOf(sources);
+        }
+    }
+
+    record Inline(@NotNull List<ActionAst> nodes, int column) implements ActionAst {
+
+        public Inline {
+            nodes = nodes == null ? List.of() : List.copyOf(nodes);
+        }
+    }
+
     int column();
 }

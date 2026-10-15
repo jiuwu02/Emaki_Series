@@ -5,6 +5,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -473,6 +474,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (stageDispatcher == null) {
             stageDispatcher = new StageDispatcher(executionDispatcher, platformCapabilities);
         }
+        Map<String, String> aliases = validatedAliases(configModel.actionAliases());
         actionEngine = new ActionEngine(
                 new RegistryStageResolver(stageRegistry),
                 new RegistryStageInvoker(stageRegistry),
@@ -510,10 +512,29 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                         return live == null ? List.of() : live.names();
                     }
                 },
-                configModel.pipelineConfig().toLimits()
+                configModel.pipelineConfig().toLimits(),
+                aliases
         );
         animationPlaybackService.invalidateCompiledFrames();
         replayStageRegistrations();
+    }
+
+    private Map<String, String> validatedAliases(Map<String, String> declared) {
+        if (declared == null || declared.isEmpty()) {
+            return Map.of();
+        }
+        Map<String, String> accepted = new java.util.LinkedHashMap<>();
+        for (Map.Entry<String, String> entry : declared.entrySet()) {
+            String name = entry.getKey();
+            CoreStageKind kind = stageRegistry == null ? null : stageRegistry.kindOf(name);
+            if (kind != null) {
+                getLogger().warning("[pipeline] 动作别名 '" + name
+                        + "' 与已注册段 id 同名，已忽略该别名以免静默遮蔽原段");
+                continue;
+            }
+            accepted.put(name, entry.getValue());
+        }
+        return accepted.isEmpty() ? Map.of() : Map.copyOf(accepted);
     }
 
     private void replayStageRegistrations() {
