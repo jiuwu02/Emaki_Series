@@ -32,6 +32,7 @@ tools/
 release version/
 screenshot_guide/
 emaki_manager.py
+scripts/
 
 !README_EN.md
 
