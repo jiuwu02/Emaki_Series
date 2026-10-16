@@ -1,6 +1,6 @@
-# EmakiLevel 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiLevel 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "1.6.9"
 
@@ -21,7 +21,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "等级配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -35,112 +35,112 @@ console:
   actions_registered: "[integration] <gray>CoreLib Action 已注册</gray>"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   attribute_bridge_ready: "[integration] <gray>EmakiAttribute 属性贡献已接入</gray>"
-  attribute_bridge_unavailable: "[integration] <gray>EmakiAttribute 属性贡献不可用，已跳过</gray>"
+  attribute_bridge_unavailable: "[integration] <gray>EmakiAttribute 属性贡献不可用, 已跳过</gray>"
   mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false，跳过默认数据文件生成</gray>"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false, 跳过默认数据文件生成</gray>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存版本化资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存版本化资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  # 控制台：重建等级排行榜失败
+  # 控制台: 重建等级排行榜失败
   leaderboard_rebuild_failed: "重建等级排行榜失败"
-  # 控制台：EmakiAttribute 属性桥接注册失败；占位符：%cause%
+  # 控制台: EmakiAttribute 属性桥接注册失败; 占位符: %cause%
   attribute_bridge_register_failed: "[integration] 属性桥接注册失败: provider=EmakiAttribute, operation=register_attribute_bridge, cause=%cause%"
-  # 控制台：流程阶段注册失败；占位符：%stage%、%reason%
+  # 控制台: 流程阶段注册失败; 占位符: %stage%, %reason%
   stage_register_failed: "[registry] 注册流程阶段 '%stage%' 失败: %reason%"
-  # 控制台：玩家数据异步操作失败；占位符：%operation%、%player%
-  async_operation_failed: "异步 %operation% 操作失败，玩家 %player%"
-  # 控制台：经验来源规则需求判定抛出异常，按未匹配处理；占位符：%error%
-  source_rule_requirement_failed: "[matcher] 经验来源规则需求判定抛出异常，按未匹配处理: %error%"
-  # 控制台：无法打开编辑界面；占位符：%item%、%error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiLevel 编辑界面: %item% (%error%)</red>"
-  # 控制台：缺少编辑界面模板；占位符：%template%
+  # 控制台: 玩家数据异步操作失败; 占位符: %operation%, %player%
+  async_operation_failed: "异步 %operation% 操作失败, 玩家 %player%"
+  # 控制台: 经验来源规则需求判定抛出异常, 按未匹配处理; 占位符: %error%
+  source_rule_requirement_failed: "[matcher] 经验来源规则需求判定抛出异常, 按未匹配处理: %error%"
+  # 控制台: 无法打开编辑界面; 占位符: %item%, %error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiLevel 编辑界面: %item%  (%error%)</red>"
+  # 控制台: 缺少编辑界面模板; 占位符: %template%
   editor_template_missing: "[editor] <red>缺少 EmakiLevel 编辑界面模板: %template%</red>"
-  # 控制台：无法创建定义文件；占位符：%path%、%error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  # 控制台：无法删除定义文件；占位符：%path%、%error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  # 控制台：无法列举定义目录；占位符：%path%、%error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
+  # 控制台: 无法创建定义文件; 占位符: %path%, %error%
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  # 控制台: 无法删除定义文件; 占位符: %path%, %error%
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  # 控制台: 无法列举定义目录; 占位符: %path%, %error%
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
 command:
-  no_permission: "%prefix%<red>你没有权限执行该指令。</red>"
-  player_only: "%prefix%<red>该指令只能由玩家执行。</red>"
+  no_permission: "%prefix%<red>你没有权限执行该指令</red>"
+  player_only: "%prefix%<red>该指令只能由玩家执行</red>"
   player_not_found: "%prefix%<red>玩家不存在或不在线: <white>%player%</white></red>"
   type_not_found: "%prefix%<red>经验类型不存在: <white>%type%</white></red>"
   invalid_number: "%prefix%<red>数字无效: <white>%value%</white></red>"
-  reload_success: "%prefix%<green>配置已重载。</green>"
+  reload_success: "%prefix%<green>配置已重载</green>"
   usage: "%prefix%<gray>用法: /elv help 查看帮助 | /elv gui [type] | /elv info [type] | /elv levelup <type> | /elv topgui [type] | /elv edit [id]</gray>"
-  # 命令：帮助头/尾/行模板；占位符：%cmd%、%desc%
+  # 命令: 帮助头/尾/行模板; 占位符: %cmd%, %desc%
   help:
     header: "<gold>========== EmakiLevel 帮助 ==========</gold>"
     footer: "<gold>=======================================</gold>"
     line: "<yellow>/elv %cmd%</yellow> <gray>- %desc%</gray>"
-    # 命令：edit 子命令帮助说明
+    # 命令: edit 子命令帮助说明
     desc:
-      edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
+      edit: "打开定义的游戏内编辑界面 (无 ID 打开浏览列表)"
     commands:
       info: "查看自己的等级与经验信息"
       gui: "打开等级界面"
       levelup: "提升当前等级"
       top: "查看排行榜文本列表"
       topgui: "打开排行榜界面"
-      edit: "打开定义的游戏内编辑界面（无 ID 打开浏览列表）"
-      exp: "增加、扣除或设置玩家经验"
-      level: "增加、扣除或设置玩家等级"
+      edit: "打开定义的游戏内编辑界面 (无 ID 打开浏览列表)"
+      exp: "增加, 扣除或设置玩家经验"
+      level: "增加, 扣除或设置玩家等级"
       reset: "重置玩家的等级进度"
       reload: "重载配置与语言"
       convert_legacy: "迁移旧版配置"
       debug: "管理 Debug 模式与诊断输出"
-  # 命令：排行榜标题；占位符：%type%
+  # 命令: 排行榜标题; 占位符: %type%
   top_header: "<gold>===== EmakiLevel 排行榜: %type% =====</gold>"
-  # 命令：排行榜条目；占位符：%rank%、%player%、%level%、%total_exp%
+  # 命令: 排行榜条目; 占位符: %rank%, %player%, %level%, %total_exp%
   top_entry: "<yellow>#%rank%</yellow> <white>%player%</white> <gray>Lv.%level% / %total_exp% 总计</gray>"
-  # 命令：经验操作用法提示；占位符：%mode%
+  # 命令: 经验操作用法提示; 占位符: %mode%
   usage_exp: "<red>/elv %mode%exp <player> <type> <amount></red>"
-  # 命令：等级操作用法提示；占位符：%mode%
+  # 命令: 等级操作用法提示; 占位符: %mode%
   usage_level: "<red>/elv %mode%level <player> <type> <amount></red>"
-  # 命令：重置用法提示
+  # 命令: 重置用法提示
   usage_reset: "<red>/elv reset <player> <type></red>"
-  # 命令：重载耗时；占位符：%elapsed%
+  # 命令: 重载耗时; 占位符: %elapsed%
   reload_time: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
-  # 命令：升级经验需求调试输出；占位符：%type%、%level%、%required%、%source%
-  debug_requirement: "<gray>需求 %type% -> %level%: <yellow>%required%</yellow> <dark_gray>(%source%)</dark_gray></gray>"
-  # 命令：PDC 同步完成提示；占位符：%player%
-  debug_pdc_synced: "<green>已为 %player% 同步 PDC。</green>"
-  # 命令：操作成功反馈；占位符：%type%、%old_level%、%new_level%、%old_exp%、%new_exp%
+  # 命令: 升级经验需求调试输出; 占位符: %type%, %level%, %required%, %source%
+  debug_requirement: "<gray>需求 %type% -> %level%: <yellow>%required%</yellow> <dark_gray> (%source%)</dark_gray></gray>"
+  # 命令: PDC 同步完成提示; 占位符: %player%
+  debug_pdc_synced: "<green>已为 %player% 同步 PDC</green>"
+  # 命令: 操作成功反馈; 占位符: %type%, %old_level%, %new_level%, %old_exp%, %new_exp%
   operation_success: "<green>操作成功: %type% Lv.%old_level% → Lv.%new_level%, exp %old_exp% → %new_exp%</green>"
-  # 命令：操作失败反馈；占位符：%reason%
+  # 命令: 操作失败反馈; 占位符: %reason%
   operation_failed: "<red>操作失败: %reason%</red>"
   convert_legacy:
-    header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
+    header: "<gold>========== 旧 item_sources 转换 (%mode%, 共 %files% 个文件) ==========</gold>"
     mode:
       dry_run: "预演"
       apply: "写入"
     file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
     backup: "<gray>  已备份为 <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
-    breakdown: "<gray>其中：直接转为 matcher 并移除旧键 <white>%plain%</white> 处、与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处、补写 matcher 但保留旧键（仍用于取物、扣除或计数）<white>%duplicated%</white> 处。</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处、保留旧键 <white>%duplicated%</white> 处、直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakilevel convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    summary: "<gray>转换 %converted% 个, 无旧键 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
+    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
+    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
+    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakilevel convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置</gray>"
     status:
       converted: "可转换"
       no_legacy_block: "无旧键"
-      conflict: "键冲突，已保留原样"
-      unconvertible: "无等价写法，已保留原样"
-      failed: "转换失败，已保留原样"
+      conflict: "键冲突, 已保留原样"
+      unconvertible: "无等价写法, 已保留原样"
+      failed: "转换失败, 已保留原样"
 level:
-  info_line: "%prefix%%type_display_name% <gray>Lv.%level% %exp%/%required_exp% (%progress_percent%%)</gray>"
+  info_line: "%prefix%%type_display_name% <gray>Lv.%level% %exp%/%required_exp%  (%progress_percent%%)</gray>"
   exp_gain: "%prefix%<green>%type_display_name% 经验 +%amount%</green>"
-  levelup_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级。</green>"
+  levelup_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级</green>"
   levelup_failure: "%prefix%<red>升级失败: %failure_reason%</red>"
-  reset_success: "%prefix%<green>已重置 %player% 的 %type_display_name%。</green>"
+  reset_success: "%prefix%<green>已重置 %player% 的 %type_display_name%</green>"
 gui:
-  open_failed: "%prefix%<red>等级界面暂不可用，请联系管理员检查 GUI 模板。</red>"
+  open_failed: "%prefix%<red>等级界面暂不可用, 请联系管理员检查 GUI 模板</red>"
   level:
     unknown_type: "%prefix%<red>等级类型不存在: <white>%type%</white></red>"
     page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
@@ -148,8 +148,8 @@ gui:
     entry_name: "%type_display_name% <gray>Lv.%level%</gray>"
     top_button_name: "<gold>%type_display_name% 排行榜</gold>"
     top_button_lore: "<gray>点击查看当前选中等级类型的排行榜</gray>"
-    levelup_once_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级。</green>"
-    levelup_multi_success: "%prefix%<green>%type_display_name% 连续升级 <yellow>%count%</yellow> 次。</green>"
+    levelup_once_success: "%prefix%<green>%type_display_name% 提升到了 <yellow>%new_level%</yellow> 级</green>"
+    levelup_multi_success: "%prefix%<green>%type_display_name% 连续升级 <yellow>%count%</yellow> 次</green>"
     levelup_failed: "%prefix%<red>升级失败: %failure_reason%</red>"
     lore:
       level: "<gray>等级: <yellow>%level%</yellow><dark_gray>/</dark_gray><gold>%max_level%</gold></gray>"
@@ -172,7 +172,7 @@ gui:
     page_info_name: "<aqua>第 %current_page%/%total_pages% 页</aqua>"
     page_info_lore: "<gray>排行榜条目: <white>%entry_count%</white></gray>"
     type_info_name: "<gold>%type_display_name%</gold>"
-    type_info_lore: "<gray>等级类型: <white>%type%</white>，收录 <aqua>%entry_count%</aqua> 名玩家</gray>"
+    type_info_lore: "<gray>等级类型: <white>%type%</white>, 收录 <aqua>%entry_count%</aqua> 名玩家</gray>"
 failure:
   success: "成功"
   player_not_found: "玩家不存在"
@@ -210,26 +210,26 @@ editor:
     requirements: "升级需求配置"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     enabled: "启用"
     enabled_desc: "<dark_gray>控制该定义是否生效</dark_gray>"
     display_name: "显示名"
     display_name_desc: "<dark_gray>面板中展示的名称</dark_gray>"
     primary: "主等级标记"
-    primary_desc: "<dark_gray>true 表示该类型为主等级类型，按文本填写 true/false</dark_gray>"
+    primary_desc: "<dark_gray>true 表示该类型为主等级类型, 按文本填写 true/false</dark_gray>"
     start_level: "起始等级"
     start_level_desc: "<dark_gray>新玩家的初始等级</dark_gray>"
     max_level: "最高等级"
@@ -269,7 +269,7 @@ editor:
     rewards_items: "奖励物品列表"
     rewards_items_desc: "<dark_gray>升级奖励条目列表</dark_gray>"
     currency_provider: "货币提供方"
-    currency_provider_desc: "<dark_gray>经济提供方，auto 表示自动选择</dark_gray>"
+    currency_provider_desc: "<dark_gray>经济提供方, auto 表示自动选择</dark_gray>"
     currency_id: "货币 ID"
     currency_id_desc: "<dark_gray>货币标识</dark_gray>"
     base_cost: "基础花费"
@@ -351,45 +351,45 @@ editor:
     matcher: "匹配器"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"
 
 debug:
-  # 分类：调试会话落盘锚点；占位符：%fields%
+  # 分类: 调试会话落盘锚点; 占位符: %fields%
   session_line: "会话 | %fields%"

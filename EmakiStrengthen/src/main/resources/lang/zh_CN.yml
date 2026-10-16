@@ -1,20 +1,20 @@
-# EmakiStrengthen 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiStrengthen 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "4.8.9"
 
 general:
   prefix: "<gray>[ <gradient:#3636F5:#E02492>EmakiStrengthen</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此操作。</red>"
-  player_only: "<red>此命令只能由玩家执行。</red>"
-  player_not_found: "<red>未找到目标玩家。</red>"
-  unknown_command: "<red>未知命令。</red>"
-  invalid_args: "<red>参数错误。</red>"
+  no_permission: "<red>你没有权限执行此操作</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  player_not_found: "<red>未找到目标玩家</red>"
+  unknown_command: "<red>未知命令</red>"
+  invalid_args: "<red>参数错误</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  reload_success: "<green>配置已重载。</green>"
-  reload_summary: "<gray>已重载配方 %recipes% 个、材料 %materials% 个、GUI %guis% 个。</gray>"
-  # 玩家：重载耗时反馈；占位符：%elapsed%
+  reload_success: "<green>配置已重载</green>"
+  reload_summary: "<gray>已重载配方 %recipes% 个, 材料 %materials% 个, GUI %guis% 个</gray>"
+  # 玩家: 重载耗时反馈; 占位符: %elapsed%
   reload_elapsed: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
 
 command:
@@ -36,72 +36,72 @@ command:
       clearcrack: "清除主手物品强化值"
       givecatalyst: "发放强化材料"
       operation: "查询强化操作号与补偿状态"
-      pity: "查询、设置、清除与诊断保底计数"
+      pity: "查询, 设置, 清除与诊断保底计数"
       convert_legacy: "把 recipes/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 追踪"
   branch:
-    options: "<gold>该物品已到达分叉点，请选择一条强化路线：</gold>"
-    invalid: "<red>没有这条分支。可选路线如下：</red>"
+    options: "<gold>该物品已到达分叉点, 请选择一条强化路线:</gold>"
+    invalid: "<red>没有这条分支. 可选路线如下:</red>"
     option: "<yellow>%id%</yellow> <gray>- %name%</gray>"
-    success: "<green>已选择 <yellow>%name%</yellow> 路线（路径 <gray>%path%</gray>）。</green>"
+    success: "<green>已选择 <yellow>%name%</yellow> 路线 (路径 <gray>%path%</gray>)</green>"
   convert_legacy:
-    header: "<gold>========== 旧 match 块转换（%mode%，共 %files% 个文件） ==========</gold>"
+    header: "<gold>========== 旧 match 块转换 (%mode%, 共 %files% 个文件) ==========</gold>"
     mode:
       dry_run: "预演"
       apply: "写入"
     file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
     backup: "<gray>  已备份为 <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个、无旧块 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
-    breakdown: "<gray>其中：直接转为 matcher 并移除旧键 <white>%plain%</white> 处、与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处、补写 matcher 但保留旧键（仍用于取物、扣除或计数）<white>%duplicated%</white> 处。</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处、保留旧键 <white>%duplicated%</white> 处、直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakistrengthen convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    summary: "<gray>转换 %converted% 个, 无旧块 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
+    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
+    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
+    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakistrengthen convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置</gray>"
     status:
       converted: "可转换"
       no_legacy_block: "无旧块"
-      conflict: "键冲突，已保留原样"
-      unconvertible: "字段无等价写法，已保留原样"
-      failed: "转换失败，已保留原样"
+      conflict: "键冲突, 已保留原样"
+      unconvertible: "字段无等价写法, 已保留原样"
+      failed: "转换失败, 已保留原样"
   pity:
-    header: "<gold>========== 保底计数（%count% 条） ==========</gold>"
+    header: "<gold>========== 保底计数 (%count% 条) ==========</gold>"
     line: "<yellow>%group%</yellow> <gray>作用域=%scope% 键=%key% 计数=%counter% 已触发=%triggered%</gray>"
-    empty: "<gray>当前没有任何保底计数记录。</gray>"
-    unavailable: "<red>保底存储当前不可用。</red>"
-    not_found: "<red>未找到匹配的保底记录。</red>"
-    set_success: "<green>已将 <yellow>%group%</yellow> 的保底计数设为 <gold>%counter%</gold>。</green>"
-    clear_success: "<green>已清除 <gold>%count%</gold> 条保底记录。</green>"
-    invalid_scope: "<red>保底作用域只能是 <yellow>%legal%</yellow>。</red>"
+    empty: "<gray>当前没有任何保底计数记录</gray>"
+    unavailable: "<red>保底存储当前不可用</red>"
+    not_found: "<red>未找到匹配的保底记录</red>"
+    set_success: "<green>已将 <yellow>%group%</yellow> 的保底计数设为 <gold>%counter%</gold></green>"
+    clear_success: "<green>已清除 <gold>%count%</gold> 条保底记录</green>"
+    invalid_scope: "<red>保底作用域只能是 <yellow>%legal%</yellow></red>"
     diagnose_header: "<gold>========== 保底诊断 ==========</gold>"
     diagnose_line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   operation:
-    header: "<gold>========== 强化操作日志（%count% 条） ==========</gold>"
+    header: "<gold>========== 强化操作日志 (%count% 条) ==========</gold>"
     line: "<yellow>%operation_id%</yellow> <gray>玩家=%player% 阶段=%phase% 待补偿=%pending%</gray>"
-    empty: "<gray>当前没有保留中的强化操作。</gray>"
-    not_found: "<red>未找到操作号 <yellow>%operation_id%</yellow>，它可能已经结算并被清理。</red>"
-    unavailable: "<red>强化框架当前不可用，无法查询操作号。</red>"
+    empty: "<gray>当前没有保留中的强化操作</gray>"
+    not_found: "<red>未找到操作号 <yellow>%operation_id%</yellow>, 它可能已经结算并被清理</red>"
+    unavailable: "<red>强化框架当前不可用, 无法查询操作号</red>"
   inspect:
     header: "<gold>========== %player% 的强化状态 ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
   refresh:
-    success: "<green>已刷新 <aqua>%player%</aqua> 背包中的强化层。</green>"
+    success: "<green>已刷新 <aqua>%player%</aqua> 背包中的强化层</green>"
   affix:
-    no_recipe: "<red>当前没有任何 mode: affix 的词条强化配方。</red>"
-    recipe_not_found: "<red>未找到词条强化配方 <yellow>%recipe%</yellow>。</red>"
-    ambiguous_recipe: "<red>存在多个词条强化配方，请指定其中一个: <yellow>%recipes%</yellow></red>"
+    no_recipe: "<red>当前没有任何 mode: affix 的词条强化配方</red>"
+    recipe_not_found: "<red>未找到词条强化配方 <yellow>%recipe%</yellow></red>"
+    ambiguous_recipe: "<red>存在多个词条强化配方, 请指定其中一个: <yellow>%recipes%</yellow></red>"
   setstar:
-    success: "<green>主手物品已设置为 <gold>+%star%</gold>。</green>"
+    success: "<green>主手物品已设置为 <gold>+%star%</gold></green>"
   clearstate:
-    success: "<green>已清空主手物品上的强化层。</green>"
-    no_layer: "<yellow>主手物品当前没有可移除的强化层。</yellow>"
+    success: "<green>已清空主手物品上的强化层</green>"
+    no_layer: "<yellow>主手物品当前没有可移除的强化层</yellow>"
   clearcrack:
-    success: "<green>主手物品的强化值已清零。</green>"
+    success: "<green>主手物品的强化值已清零</green>"
   givecatalyst:
     success: "<green>已向 <aqua>%player%</aqua> 发放 <gold>%amount%</gold> 个
-      %material%。</green>"
-  catalyst_not_found: "<red>未找到该强化材料 ID。</red>"
-  catalyst_create_failed: "<red>无法创建该强化材料物品。</red>"
-  admin_state_failed: "<red>无法将主手物品写回强化状态。</red>"
+      %material%.</green>"
+  catalyst_not_found: "<red>未找到该强化材料 ID</red>"
+  catalyst_create_failed: "<red>无法创建该强化材料物品</red>"
+  admin_state_failed: "<red>无法将主手物品写回强化状态</red>"
 
 console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
@@ -118,7 +118,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "强化配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -127,72 +127,72 @@ console:
       required_directory_missing: "缺少必需目录"
       path_not_directory: "路径不是目录"
       directory_not_readable: "目录不可读"
-      # 控制台：强化配方材料槽 target_compare 未知；占位符：%recipe%、%index%、%token%、%legal%
-      enhancement_recipe_unknown_target_compare: "强化配方 %recipe% 的 material_%index% 声明了未知的 target_compare '%token%'；合法取值为 %legal%"
-      # 控制台：强化配方材料槽 required/optional 冲突；占位符：%recipe%、%index%
-      enhancement_recipe_required_optional_conflict: "强化配方 %recipe% 的 material_%index% 同时声明了 'required' 与 'optional'；以 'optional' 为准，'required' 会被忽略"
-      # 控制台：强化配方材料槽既无 matcher 也无 item_sources；占位符：%recipe%、%index%
-      enhancement_recipe_empty_matcher: "强化配方 %recipe% 的 material_%index% 既没有 matcher 也没有 item_sources，任意投入的物品都会满足该槽位"
-      # 控制台：强化配方无必需材料槽；占位符：%recipe%
-      enhancement_recipe_no_required_slot: "强化配方 %recipe% 有材料，但没有任何材料被标记为 required，这些槽位永远不会阻止强化"
-      # 控制台：强化配方保底轨道重复；占位符：%recipe%、%track%
-      enhancement_recipe_duplicate_pity_track: "强化配方 %recipe% 声明了重复的保底轨道 '%track%'；重复轨道共用同一计数器，会重复累计同一次强化"
-      # 控制台：强化配方保底轨道按等级隔离；占位符：%recipe%、%track%
-      enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离，目标等级变化时计数器会重置"
-      # 控制台：强化配方 mode 与目标 provider 不一致；占位符：%recipe%、%mode%、%provider%
-      enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%'，但目标 provider 为 '%provider%'；分发以 provider 为准，mode 只用于填充 enhancement_mode 占位符，两者不一致通常是配置错误"
-      # 控制台：forge 变量路径不在 forge 前缀下；占位符：%path%
+      # 控制台: 强化配方材料槽 target_compare 未知; 占位符: %recipe%, %index%, %token%, %legal%
+      enhancement_recipe_unknown_target_compare: "强化配方 %recipe% 的 material_%index% 声明了未知的 target_compare '%token%'; 合法取值为 %legal%"
+      # 控制台: 强化配方材料槽 required/optional 冲突; 占位符: %recipe%, %index%
+      enhancement_recipe_required_optional_conflict: "强化配方 %recipe% 的 material_%index% 同时声明了 'required' 与 'optional'; 以 'optional' 为准, 'required' 会被忽略"
+      # 控制台: 强化配方材料槽既无 matcher 也无 item_sources; 占位符: %recipe%, %index%
+      enhancement_recipe_empty_matcher: "强化配方 %recipe% 的 material_%index% 既没有 matcher 也没有 item_sources, 任意投入的物品都会满足该槽位"
+      # 控制台: 强化配方无必需材料槽; 占位符: %recipe%
+      enhancement_recipe_no_required_slot: "强化配方 %recipe% 有材料, 但没有任何材料被标记为 required, 这些槽位永远不会阻止强化"
+      # 控制台: 强化配方保底轨道重复; 占位符: %recipe%, %track%
+      enhancement_recipe_duplicate_pity_track: "强化配方 %recipe% 声明了重复的保底轨道 '%track%'; 重复轨道共用同一计数器, 会重复累计同一次强化"
+      # 控制台: 强化配方保底轨道按等级隔离; 占位符: %recipe%, %track%
+      enhancement_recipe_pity_level_isolation: "强化配方 %recipe% 的保底轨道 '%track%' 在 player 作用域下按等级隔离, 目标等级变化时计数器会重置"
+      # 控制台: 强化配方 mode 与目标 provider 不一致; 占位符: %recipe%, %mode%, %provider%
+      enhancement_recipe_mode_provider_mismatch: "强化配方 %recipe% 声明了 mode '%mode%', 但目标 provider 为 '%provider%'; 分发以 provider 为准, mode 只用于填充 enhancement_mode 占位符, 两者不一致通常是配置错误"
+      # 控制台: forge 变量路径不在 forge 前缀下; 占位符: %path%
       forge_variable_path_prefix: "forge 变量路径 '%path%' 必须位于 forge 前缀之下"
-      # 控制台：规范 forge 变量缺少别名来源；占位符：%variable%
+      # 控制台: 规范 forge 变量缺少别名来源; 占位符: %variable%
       forge_variable_canonical_missing: "规范 forge 变量 '%variable%' 未由任何别名路径产出"
-      # 控制台：旧版 forge 变量不再产出；占位符：%variable%
-      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出，会破坏既有配方"
-      # 控制台：forge PDC 命名空间不匹配；占位符：%namespace%
-      forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge'，实际为 '%namespace%'"
+      # 控制台: 旧版 forge 变量不再产出; 占位符: %variable%
+      forge_variable_legacy_missing: "旧版 forge 变量 '%variable%' 已不再产出, 会破坏既有配方"
+      # 控制台: forge PDC 命名空间不匹配; 占位符: %namespace%
+      forge_pdc_namespace_mismatch: "forge PDC 命名空间期望为 'emakiforge', 实际为 '%namespace%'"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  bootstrap_skip: "[loader] <yellow>release_default_data=false，已跳过默认数据生成</yellow>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_skip: "[loader] <yellow>release_default_data=false, 已跳过默认数据生成</yellow>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <yellow>读取强化配置失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  loader_config_load_error: "[loader] <yellow>读取强化配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   recipe_action_failed:
     "[attempt] <yellow>强化动作链执行失败: <red>%recipe%</red> <gray>阶段 %phase%
-    星级 %star% (%error%)</gray></yellow>"
+    星级 %star%  (%error%)</gray></yellow>"
   pdc_source_registered: "[integration] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
   recipes_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个强化配方</gray>"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiStrengthen 编辑界面: %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>无法打开 EmakiStrengthen 编辑界面: %item%  (%error%)</red>"
   editor_template_missing: "[editor] <red>缺少 EmakiStrengthen 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
-  # 控制台：重载进度提示
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  # 控制台: 重载进度提示
   reload_loading_files: "[reload] <gray>正在加载配置文件...</gray>"
   reload_loading_configs: "[reload] <gray>正在读取配置...</gray>"
   reload_applying: "[reload] <gray>正在应用配置...</gray>"
   reload_complete: "[reload] <green>重载完成</green>"
-  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  # 控制台: 重载阶段失败; 占位符: %stage%, %error%
   reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: %error%</yellow>"
-  # 控制台：强化尝试安全失败；占位符：%operation_id%、%error%
+  # 控制台: 强化尝试安全失败; 占位符: %operation_id%, %error%
   strengthen_attempt_failed_closed: "[attempt] <red>强化尝试安全失败 | operationId=%operation_id% | error=%error%</red>"
-  # 控制台：强化结果事件分发失败；占位符：%operation_id%、%error%
+  # 控制台: 强化结果事件分发失败; 占位符: %operation_id%, %error%
   strengthen_result_dispatch_failed: "[event] <yellow>强化结果事件分发失败 | operationId=%operation_id% | error=%error%</yellow>"
-  # 控制台：GUI 结果动作分发失败；占位符：%operation_id%、%error%
+  # 控制台: GUI 结果动作分发失败; 占位符: %operation_id%, %error%
   gui_result_action_dispatch_failed: "[gui] <yellow>强化结果动作分发失败 | operationId=%operation_id% | error=%error%</yellow>"
-  # 控制台：已提交结果归属者离线；占位符：%operation_id%
-  gui_owner_retired: "[gui] <yellow>强化已提交结果的归属者已离线，结算仍待处理 | operationId=%operation_id%</yellow>"
-  # 控制台：已提交结果调度被拒绝；占位符：%operation_id%
-  gui_schedule_rejected: "[gui] <red>强化已提交结果的调度被拒绝，结算仍待处理 | operationId=%operation_id%</red>"
-  # 控制台：已提交结果调度失败；占位符：%operation_id%、%error%
-  gui_schedule_failed: "[gui] <red>强化已提交结果的调度失败，结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
-  # 控制台：已提交结果结算失败将重试；占位符：%operation_id%、%error%
-  gui_settlement_retry: "[gui] <red>强化已提交结果的结算失败，将重试 | operationId=%operation_id% | error=%error%</red>"
-  # 控制台：结算后结果通知失败；占位符：%operation_id%、%error%
+  # 控制台: 已提交结果归属者离线; 占位符: %operation_id%
+  gui_owner_retired: "[gui] <yellow>强化已提交结果的归属者已离线, 结算仍待处理 | operationId=%operation_id%</yellow>"
+  # 控制台: 已提交结果调度被拒绝; 占位符: %operation_id%
+  gui_schedule_rejected: "[gui] <red>强化已提交结果的调度被拒绝, 结算仍待处理 | operationId=%operation_id%</red>"
+  # 控制台: 已提交结果调度失败; 占位符: %operation_id%, %error%
+  gui_schedule_failed: "[gui] <red>强化已提交结果的调度失败, 结算仍待处理 | operationId=%operation_id% | error=%error%</red>"
+  # 控制台: 已提交结果结算失败将重试; 占位符: %operation_id%, %error%
+  gui_settlement_retry: "[gui] <red>强化已提交结果的结算失败, 将重试 | operationId=%operation_id% | error=%error%</red>"
+  # 控制台: 结算后结果通知失败; 占位符: %operation_id%, %error%
   gui_notification_failed: "[gui] <yellow>结算后强化结果通知失败 | operationId=%operation_id% | error=%error%</yellow>"
-  # 控制台：背包已满通知失败；占位符：%error%
+  # 控制台: 背包已满通知失败; 占位符: %error%
   gui_inventory_full_notify_failed: "[gui] <yellow>背包已满通知失败 | error=%error%</yellow>"
 
 loader:
@@ -200,8 +200,8 @@ loader:
   bundled_language_load_failed: "[loader] <yellow>读取内置语言失败: <red>%error%</red></yellow>"
   directory_create_failed: "[loader] <yellow>无法创建 %type% 目录: <red>%path%</red></yellow>"
   invalid_blank_id: "[loader] <yellow>%type% ID 为空: <red>%file%</red></yellow>"
-  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>，来源 <gray>%file%</gray></yellow>"
-  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray>(%error%)</gray></yellow>"
+  duplicate_id: "[loader] <yellow>重复的 %type% ID <red>%id%</red>, 来源 <gray>%file%</gray></yellow>"
+  load_failed: "[loader] <yellow>读取 %type% 文件失败: <red>%file%</red> <gray> (%error%)</gray></yellow>"
   type:
     recipe: "强化配方"
 
@@ -211,64 +211,64 @@ strengthen:
     free_cost: "免费"
     unknown_material: "未知材料"
   error:
-    no_target: "<red>请先放入需要强化的物品。</red>"
-    state_read_failed: "<red>读取该物品的强化状态失败。</red>"
-    state_write_failed: "<red>写入该物品的强化状态失败。</red>"
-    no_source: "<red>该物品无法识别为 Emaki 物品来源。</red>"
-    no_recipe: "<red>当前物品未命中可用的强化配方。</red>"
-    already_max: "<red>该物品已经达到最高星级。</red>"
-    material_missing: "<red>GUI 中放入的强化材料不足。</red>"
-    invalid_optional_material: "<red>放入 GUI 的强化材料与当前星级配方不匹配。</red>"
+    no_target: "<red>请先放入需要强化的物品</red>"
+    state_read_failed: "<red>读取该物品的强化状态失败</red>"
+    state_write_failed: "<red>写入该物品的强化状态失败</red>"
+    no_source: "<red>该物品无法识别为 Emaki 物品来源</red>"
+    no_recipe: "<red>当前物品未命中可用的强化配方</red>"
+    already_max: "<red>该物品已经达到最高星级</red>"
+    material_missing: "<red>GUI 中放入的强化材料不足</red>"
+    invalid_optional_material: "<red>放入 GUI 的强化材料与当前星级配方不匹配</red>"
     insufficient_funds: "<red>本次强化所需费用不足: %costs%</red>"
-    economy_provider_unavailable: "<red>经济提供者当前不可用。</red>"
-    rebuild_failed: "<red>强化结果写回失败，未执行本次强化。</red>"
-    compensation_pending: "<red>本次强化已回滚，但费用返还尚未完成，请联系管理员并提供操作号 %operation_id%。</red>"
-    not_accepting: "<red>插件正在重载或关闭，暂时无法执行强化，请稍后再试。</red>"
-    operation_in_progress: "<yellow>上一次强化仍在处理中，请稍候。</yellow>"
-    operation_conflict: "<red>本次强化的物品或材料与原操作不一致，已拒绝执行。</red>"
-    condition_not_met: "<red>当前不满足该配方的强化条件。</red>"
-    internal: "<red>强化过程中发生内部错误，未完成本次强化。</red>"
+    economy_provider_unavailable: "<red>经济提供者当前不可用</red>"
+    rebuild_failed: "<red>强化结果写回失败, 未执行本次强化</red>"
+    compensation_pending: "<red>本次强化已回滚, 但费用返还尚未完成, 请联系管理员并提供操作号 %operation_id%</red>"
+    not_accepting: "<red>插件正在重载或关闭, 暂时无法执行强化, 请稍后再试</red>"
+    operation_in_progress: "<yellow>上一次强化仍在处理中, 请稍候</yellow>"
+    operation_conflict: "<red>本次强化的物品或材料与原操作不一致, 已拒绝执行</red>"
+    condition_not_met: "<red>当前不满足该配方的强化条件</red>"
+    internal: "<red>强化过程中发生内部错误, 未完成本次强化</red>"
   branch:
-    selection_required: "<yellow>该物品已到达分叉点，请先用 <white>/emakistrengthen branch</white> 选择一条强化路线。</yellow>"
-    not_branching: "<red>当前配方没有分支路线。</red>"
-    not_pending: "<red>当前星级不需要选择分支。</red>"
-    apply_failed: "<red>写入分支选择失败，未改动该物品。</red>"
+    selection_required: "<yellow>该物品已到达分叉点, 请先用 <white>/emakistrengthen branch</white> 选择一条强化路线</yellow>"
+    not_branching: "<red>当前配方没有分支路线</red>"
+    not_pending: "<red>当前星级不需要选择分支</red>"
+    apply_failed: "<red>写入分支选择失败, 未改动该物品</red>"
   enhancement:
-    no_player: "<red>需要玩家在线才能执行强化。</red>"
-    no_provider: "<red>未提供强化目标 Provider。</red>"
-    blank_provider_id: "<red>强化目标 Provider ID 不能为空。</red>"
-    provider_not_found: "<red>未找到该强化目标 Provider。</red>"
-    provider_rejected: "<red>注册强化目标 Provider 失败。</red>"
-    attribute_bridge_unavailable: "<red>属性系统当前不可用，本次强化未执行也未扣费。</red>"
-    refresh_failed: "<red>强化结果的属性与描述刷新失败，本次强化未执行也未扣费。</red>"
-    target_changed: "<red>目标物品在预览与确认之间发生变化，本次强化未执行也未扣费。</red>"
-    container_target_rejected: "<red>不能直接强化容器内的物品，请先将其放入自己的背包。</red>"
-    container_material_rejected: "<red>不能使用容器内的物品作为强化材料，请先将其放入自己的背包。</red>"
-    operation_not_found: "<red>未找到该操作号，它可能已经结算并被清理。</red>"
+    no_player: "<red>需要玩家在线才能执行强化</red>"
+    no_provider: "<red>未提供强化目标 Provider</red>"
+    blank_provider_id: "<red>强化目标 Provider ID 不能为空</red>"
+    provider_not_found: "<red>未找到该强化目标 Provider</red>"
+    provider_rejected: "<red>注册强化目标 Provider 失败</red>"
+    attribute_bridge_unavailable: "<red>属性系统当前不可用, 本次强化未执行也未扣费</red>"
+    refresh_failed: "<red>强化结果的属性与描述刷新失败, 本次强化未执行也未扣费</red>"
+    target_changed: "<red>目标物品在预览与确认之间发生变化, 本次强化未执行也未扣费</red>"
+    container_target_rejected: "<red>不能直接强化容器内的物品, 请先将其放入自己的背包</red>"
+    container_material_rejected: "<red>不能使用容器内的物品作为强化材料, 请先将其放入自己的背包</red>"
+    operation_not_found: "<red>未找到该操作号, 它可能已经结算并被清理</red>"
   mastery:
-    absent: "<yellow>该物品尚未记录熟练度。</yellow>"
+    absent: "<yellow>该物品尚未记录熟练度</yellow>"
   affix:
-    success: "<green>词条强化成功，等级提升至 <gold>%resulting_level%</gold>。</green>"
-    failure: "<yellow>词条强化失败，等级仍为 <gold>%resulting_level%</gold>。</yellow>"
+    success: "<green>词条强化成功, 等级提升至 <gold>%resulting_level%</gold></green>"
+    failure: "<yellow>词条强化失败, 等级仍为 <gold>%resulting_level%</gold></yellow>"
   preview:
-    failure_keep: "<gray>失败后保留当前星级，并累积强化值。</gray>"
-    failure_drop: "<red>失败后掉落 1 星，并累积强化值。</red>"
-    failure_drop_protected: "<gold>失败后消耗保护材料，不会掉星。</gold>"
+    failure_keep: "<gray>失败后保留当前星级, 并累积强化值</gray>"
+    failure_drop: "<red>失败后掉落 1 星, 并累积强化值</red>"
+    failure_drop_protected: "<gold>失败后消耗保护材料, 不会掉星</gold>"
   broadcast:
     local_reach: "<aqua>%player%</aqua> <yellow>将 %show_item% 强化到
-      <gold>+%star%</gold>。</yellow>"
+      <gold>+%star%</gold>.</yellow>"
     global_reach: "<aqua>%player%</aqua> <yellow>成功将 %show_item% 强化到
-      <gold>+%star%</gold>。</yellow>"
+      <gold>+%star%</gold>.</yellow>"
 
 gui:
-  open_failed: "<red>无法打开强化界面，请检查 GUI 模板是否加载成功。</red>"
-  attempt_success: "<green>强化成功，当前星级提升至 <gold>+%star%</gold>。</green>"
-  attempt_failed: "<yellow>强化失败，但仍维持在 <gold>+%star%</gold>。</yellow>"
-  attempt_failed_downgrade: "<red>强化失败，星级掉落至 <gold>+%star%</gold>。</red>"
-  inventory_full: "<yellow>背包空间不足，多余物品已掉落在脚边。</yellow>"
+  open_failed: "<red>无法打开强化界面, 请检查 GUI 模板是否加载成功</red>"
+  attempt_success: "<green>强化成功, 当前星级提升至 <gold>+%star%</gold></green>"
+  attempt_failed: "<yellow>强化失败, 但仍维持在 <gold>+%star%</gold></yellow>"
+  attempt_failed_downgrade: "<red>强化失败, 星级掉落至 <gold>+%star%</gold></red>"
+  inventory_full: "<yellow>背包空间不足, 多余物品已掉落在脚边</yellow>"
   preview:
     title: "<gold>强化预览</gold>"
-    hint_no_target_1: "<gray>放入待强化装备后显示成功率、材料与花费</gray>"
+    hint_no_target_1: "<gray>放入待强化装备后显示成功率, 材料与花费</gray>"
     hint_no_target_2: "<gray>所有强化材料都需要放入 GUI 才会计数与扣除</gray>"
     ineligible_title: "<red>强化条件未满足</red>"
     ineligible_hint: "<gray>当前无法强化</gray>"
@@ -278,7 +278,7 @@ gui:
     cost_free: "<gray>花费: <green>免费</green></gray>"
     cost_header: "<gray>花费:</gray>"
     cost_line: "<gold> - %amount% %name%</gold>"
-    required_materials_header: "<gray>阶段材料（GUI）:</gray>"
+    required_materials_header: "<gray>阶段材料 (GUI):</gray>"
     optional_materials_header: "<gray>已放入 GUI 材料:</gray>"
     delta_stats_header: "<gray>强化提升:</gray>"
     delta_stats_line: "<gold> - %id% +%value%</gold>"
@@ -286,7 +286,7 @@ gui:
     title: "<gold>强化值状态</gold>"
     current: "<gray>当前强化值: <gold>%temper%/%max%</gold></gray>"
     bonus: "<gray>本次额外强化值加成: <aqua>+%bonus%</aqua></gray>"
-    hint: "<gray>失败后会累积强化值，提高后续成功率</gray>"
+    hint: "<gray>失败后会累积强化值, 提高后续成功率</gray>"
   confirm:
     title: "<green>确认强化</green>"
     ineligible_title: "<red>无法强化</red>"
@@ -296,18 +296,18 @@ gui:
       title: "<gold>选择词条</gold>"
       hint_no_target: "<gray>先放入装备才能列出可强化词条</gray>"
       no_candidate: "<red>该装备没有可强化的词条</red>"
-      current: "<gray>当前词条: <yellow>%affix%</yellow> <dark_gray>(%index%/%total%)</dark_gray></gray>"
+      current: "<gray>当前词条: <yellow>%affix%</yellow> <dark_gray> (%index%/%total%)</dark_gray></gray>"
       next_hint: "<gray>左键: 切换到下一条</gray>"
       previous_hint: "<gray>右键: 切换到上一条</gray>"
     preview:
       title: "<gold>词条强化预览</gold>"
-      hint_no_target: "<gray>放入装备后显示前后值、容量、费用与概率</gray>"
+      hint_no_target: "<gray>放入装备后显示前后值, 容量, 费用与概率</gray>"
       unavailable: "<gray>暂无可用预览</gray>"
       affix: "<gray>词条: <yellow>%affix%</yellow></gray>"
       level: "<gray>等级: <gold>%previous%</gold> <dark_gray>-></dark_gray> <yellow>%resulting%</yellow></gray>"
-      capacity: "<gray>容量: <gold>%used%/%max%</gold> <dark_gray>(剩余 %remaining%)</dark_gray></gray>"
-      chance: "<gray>成功率: <green>%effective%%</green> <dark_gray>(基础 %base%%)</dark_gray></gray>"
-      pity_triggered: "<gold>保底已触发，本次强制成功 <dark_gray>(计数 %counter%)</dark_gray></gold>"
+      capacity: "<gray>容量: <gold>%used%/%max%</gold> <dark_gray> (剩余 %remaining%)</dark_gray></gray>"
+      chance: "<gray>成功率: <green>%effective%%</green> <dark_gray> (基础 %base%%)</dark_gray></gray>"
+      pity_triggered: "<gold>保底已触发, 本次强制成功 <dark_gray> (计数 %counter%)</dark_gray></gold>"
       cost_free: "<gray>花费: <green>免费</green></gray>"
       cost_header: "<gray>花费:</gray>"
       cost_line: "<gold> - %amount% %name%</gold>"
@@ -317,7 +317,7 @@ gui:
       title: "<green>确认词条强化</green>"
       hint: "<gray>点击执行本次词条强化</gray>"
       ineligible_title: "<red>无法强化该词条</red>"
-      ineligible_hint: "<gray>请检查词条选择、容量、材料与费用</gray>"
+      ineligible_hint: "<gray>请检查词条选择, 容量, 材料与费用</gray>"
 
 debug:
   affix:
@@ -349,7 +349,7 @@ debug:
     slot_update: "GUI 槽位更新 | 玩家=%player% | 槽位=%slot% | 物品=%item%"
     close: "关闭 GUI | 玩家=%player%"
 
-# 编辑器：游戏内定义编辑器（菜单/字段/浏览器/反馈）
+# 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:
   menu:
     home: "定义编辑"
@@ -374,26 +374,26 @@ editor:
     enhancement_recipes: "增强配方"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     schema_version: "配置版本"
-    schema_version_desc: "<dark_gray>配方结构版本号，需保持在支持范围内</dark_gray>"
+    schema_version_desc: "<dark_gray>配方结构版本号, 需保持在支持范围内</dark_gray>"
     display_name: "显示名"
     display_name_desc: "<dark_gray>配方在界面中展示的名称</dark_gray>"
     gui_template: "GUI 模板"
-    gui_template_desc: "<dark_gray>强化界面引用的 GUI 模板名（不含 .yml）</dark_gray>"
+    gui_template_desc: "<dark_gray>强化界面引用的 GUI 模板名 (不含 .yml)</dark_gray>"
     economy: "经济消耗"
     economy_desc: "<dark_gray>进入每次强化的扣费配置子菜单</dark_gray>"
     enabled: "启用扣费"
@@ -407,24 +407,24 @@ editor:
     max_temper: "最大强化值"
     max_temper_desc: "<dark_gray>失败时可累积的强化值上限</dark_gray>"
     temper_chance_bonus_per_level: "每级强化值成功率加成"
-    temper_chance_bonus_per_level_desc: "<dark_gray>每级强化值提供的成功率加成（百分比）</dark_gray>"
+    temper_chance_bonus_per_level_desc: "<dark_gray>每级强化值提供的成功率加成 (百分比)</dark_gray>"
     success_chance_cap: "成功率上限"
-    success_chance_cap_desc: "<dark_gray>含强化值加成后的成功率上限（百分比）</dark_gray>"
+    success_chance_cap_desc: "<dark_gray>含强化值加成后的成功率上限 (百分比)</dark_gray>"
     success_rates: "成功率表"
-    success_rates_desc: "<dark_gray>各星级的基础成功率，键为目标星级</dark_gray>"
+    success_rates_desc: "<dark_gray>各星级的基础成功率, 键为目标星级</dark_gray>"
     matcher: "识别条件"
-    matcher_desc: "<dark_gray>组件、PDC、Lore 等非物品源匹配条件</dark_gray>"
+    matcher_desc: "<dark_gray>组件, PDC, Lore 等非物品源匹配条件</dark_gray>"
     type: "类型"
-    type_desc: "<dark_gray>匹配器类型，物品源条件请写在物品源正则里</dark_gray>"
+    type_desc: "<dark_gray>匹配器类型, 物品源条件请写在物品源正则里</dark_gray>"
     component: "组件"
     component_desc: "<dark_gray>匹配器检查的组件 ID</dark_gray>"
     operator: "运算符"
     operator_desc: "<dark_gray>匹配器的比较运算符</dark_gray>"
     value_desc: "<dark_gray>匹配器比较的目标值</dark_gray>"
     slot_groups: "槽位组"
-    slot_groups_desc: "<dark_gray>粗粒度装备类型组，如 weapon / armor / offhand / generic</dark_gray>"
+    slot_groups_desc: "<dark_gray>粗粒度装备类型组, 如 weapon / armor / offhand / generic</dark_gray>"
     source_patterns: "物品源正则"
-    source_patterns_desc: "<dark_gray>物品源简写正则列表，部分匹配即命中</dark_gray>"
+    source_patterns_desc: "<dark_gray>物品源简写正则列表, 部分匹配即命中</dark_gray>"
     name_actions: "名称修改动作"
     name_actions_desc: "<dark_gray>强化成功后修改物品名称的动作列表</dark_gray>"
     lore_actions: "Lore 修改动作"
@@ -432,9 +432,9 @@ editor:
     stars: "星级阶段"
     stars_desc: "<dark_gray>进入各星级阶段配置</dark_gray>"
     star_entry: "星级阶段"
-    star_entry_desc: "<dark_gray>该星级的名称、效果、材料与动作</dark_gray>"
+    star_entry_desc: "<dark_gray>该星级的名称, 效果, 材料与动作</dark_gray>"
     branch_tree: "分支树"
-    branch_tree_desc: "<dark_gray>分叉路线定义，逐层进入子分支</dark_gray>"
+    branch_tree_desc: "<dark_gray>分叉路线定义, 逐层进入子分支</dark_gray>"
     name: "阶段名称"
     name_desc: "<dark_gray>该星级里程碑的展示名称</dark_gray>"
     effects: "效果列表"
@@ -444,9 +444,9 @@ editor:
     item_sources: "物品源"
     item_sources_desc: "<dark_gray>允许的物品源简写列表</dark_gray>"
     amount: "数量"
-    amount_desc: "<dark_gray>该条目数量，-1 表示只检测不消耗</dark_gray>"
+    amount_desc: "<dark_gray>该条目数量, -1 表示只检测不消耗</dark_gray>"
     material_id: "材料 ID"
-    material_id_desc: "<dark_gray>材料的唯一标识，用于规则引用</dark_gray>"
+    material_id_desc: "<dark_gray>材料的唯一标识, 用于规则引用</dark_gray>"
     count_key: "计数键"
     count_key_desc: "<dark_gray>统计持有数量时使用的键</dark_gray>"
     optional: "可选材料"
@@ -474,7 +474,7 @@ editor:
     base_cost: "基础费用"
     base_cost_desc: "<dark_gray>费用公式引用的基础价格</dark_gray>"
     cost_formula: "费用公式"
-    cost_formula_desc: "<dark_gray>支持 %base_cost%、%star% 等变量的表达式</dark_gray>"
+    cost_formula_desc: "<dark_gray>支持 %base_cost%, %star% 等变量的表达式</dark_gray>"
     chance: "成功率"
     chance_desc: "<dark_gray>标量成功率或 formula 表达式</dark_gray>"
     pity: "保底配置"
@@ -492,7 +492,7 @@ editor:
     condition: "进入条件"
     condition_desc: "<dark_gray>强化前判定的条件组</dark_gray>"
     required_count: "最少满足数"
-    required_count_desc: "<dark_gray>需要满足的最少条件条目数，0 表示全部</dark_gray>"
+    required_count_desc: "<dark_gray>需要满足的最少条件条目数, 0 表示全部</dark_gray>"
     invalid_as_failure: "解析失败视为不满足"
     invalid_as_failure_desc: "<dark_gray>条件解析失败时按不满足处理</dark_gray>"
     actions: "结果动作"
@@ -526,41 +526,41 @@ editor:
     max_target_star: "最高目标星级"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"

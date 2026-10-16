@@ -1,20 +1,20 @@
-# EmakiCooking English language resource.
-# Messages use MiniMessage; preserve placeholders documented beside message groups.
-# version is maintained by resource synchronization when default keys are merged.
+# EmakiCooking English language resource
+# Messages use MiniMessage; preserve placeholders documented beside message groups
+# version is maintained by resource synchronization when default keys are merged
 
 version: "4.3.8"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
-  no_permission: "<red>You do not have permission to perform this action.</red>"
-  player_only: "<red>This command can only be executed by a player.</red>"
-  unknown_command: "<red>Unknown command.</red>"
-  invalid_args: "<red>Invalid arguments.</red>"
-  no_item_in_hand: "<red>You are not holding an inspectable item in your main hand.</red>"
-  input_rejected: "<red>This item is not a valid recipe input for this station.</red>"
+  no_permission: "<red>You do not have permission to perform this action</red>"
+  player_only: "<red>This command can only be executed by a player</red>"
+  unknown_command: "<red>Unknown command</red>"
+  invalid_args: "<red>Invalid arguments</red>"
+  no_item_in_hand: "<red>You are not holding an inspectable item in your main hand</red>"
+  input_rejected: "<red>This item is not a valid recipe input for this station</red>"
   reloading: "<gray>Reloading configuration...</gray>"
-  reload_success: "<green>Configuration reloaded.</green>"
-  reload_summary: "<gray>Reloaded %recipes% recipes, %resources% GUI resources.</gray>"
+  reload_success: "<green>Configuration reloaded</green>"
+  reload_summary: "<gray>Reloaded %recipes% recipes, %resources% GUI resources</gray>"
 
 command:
   help:
@@ -32,18 +32,18 @@ command:
       "convert-legacy [confirm]": "Merge legacy item_sources match keys into matcher"
       debug: "Manage Debug mode"
   convert_legacy:
-    header: "<gold>========== Legacy item_sources conversion (%mode%, %files% files) ==========</gold>"
+    header: "<gold>========== Legacy item_sources conversion  (%mode%, %files% files) ==========</gold>"
     mode:
       dry_run: "dry run"
       apply: "apply"
     file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
     backup: "<gray>  Backed up as <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>Converted %converted%, no legacy key %skipped%, conflict %conflict%, unconvertible %unconvertible%, failed %failed%.</gray>"
-    breakdown: "<gray>Of those: <white>%plain%</white> turned straight into a matcher with the legacy key removed, <white>%merged%</white> folded together with an existing matcher into one all_of so the decision stays equivalent, <white>%duplicated%</white> given a matcher while keeping the legacy key it still needs for building, deducting or counting items.</gray>"
+    summary: "<gray>Converted %converted%, no legacy key %skipped%, conflict %conflict%, unconvertible %unconvertible%, failed %failed%</gray>"
+    breakdown: "<gray>Of those: <white>%plain%</white> turned straight into a matcher with the legacy key removed, <white>%merged%</white> folded together with an existing matcher into one all_of so the decision stays equivalent, <white>%duplicated%</white> given a matcher while keeping the legacy key it still needs for building, deducting or counting items</gray>"
     file_merged: "<gray>  <white>%merged%</white> merged into all_of, <white>%duplicated%</white> kept the legacy key, <white>%plain%</white> converted directly</gray>"
-    dry_run_hint: "<yellow>Dry run only, nothing was written. Run <white>/emakicooking convert-legacy confirm</white> to apply and back up the originals.</yellow>"
-    nothing_to_do: "<gray>Nothing to convert.</gray>"
+    dry_run_hint: "<yellow>Dry run only, nothing was written. Run <white>/emakicooking convert-legacy confirm</white> to apply and back up the originals</yellow>"
+    nothing_to_do: "<gray>Nothing to convert</gray>"
     status:
       converted: "convertible"
       no_legacy_block: "no legacy key"
@@ -54,23 +54,23 @@ command:
     header: "<gold>========== Held Item Inspection ==========</gold>"
     line: "<yellow>%key%</yellow> <gray>- %value%</gray>"
     # Player: no target block within 6 blocks when inspecting
-    no_target_block: "<gray>No target block within 6 blocks.</gray>"
+    no_target_block: "<gray>No target block within 6 blocks</gray>"
     # Player: station block inspection header
     block_header: "<gold>Station block inspect</gold>"
     # Player: station interaction disabled by world blacklist
-    interaction_disabled: "disabled (world blacklist)"
+    interaction_disabled: "disabled  (world blacklist)"
     # Player: station interaction enabled
     interaction_enabled: "enabled"
   # Player: station index rebuild feedback; placeholders: %legacy_yaml%, %loaded_pdc%, %total_indexed%
   station:
-    store_not_ready: "<red>Station state store is not ready.</red>"
+    store_not_ready: "<red>Station state store is not ready</red>"
     reindex_started: "<gray>Rebuilding station location index...</gray>"
     reindex_done: "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed%"
   # Player: reload elapsed time; placeholders: %elapsed_ms%
   reload_elapsed: "<gray>Reload took: <white>%elapsed_ms%ms</white></gray>"
 
 nutrition:
-  disabled: "<yellow>The nutrition system is currently disabled.</yellow>"
+  disabled: "<yellow>The nutrition system is currently disabled</yellow>"
   usage: "<gray>Usage: /ec nutrition get [player] [type] | set|add|remove <player> <type> <value></gray>"
   unknown_type: "<red>Unknown nutrition type: <yellow>%type%</yellow></red>"
   player_not_found: "<red>Online player not found: <yellow>%player%</yellow></red>"
@@ -85,8 +85,8 @@ console:
   plugin_starting: "[startup] <gray>Starting...</gray>"
   plugin_started: "[startup] <green>Started</green>"
   plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -96,40 +96,40 @@ console:
       error: "Error"
       warn: "Warning"
       info: "Info"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
-      passed: "Cooking config precheck passed."
-      required_file_missing: "Required file does not exist."
-      path_not_file: "Path is not a file."
-      file_not_readable: "File is not readable."
-      required_directory_missing: "Required directory does not exist."
-      path_not_directory: "Path is not a directory."
-      directory_not_readable: "Directory is not readable."
-      recipe_directory_missing: "Recipe directory does not exist."
-      recipe_directory_not_readable: "Recipe directory is not readable."
-      station_state_directory_missing: "Station state directory does not exist."
-      station_state_directory_not_readable: "Station state directory is not readable."
+      passed: "Cooking config precheck passed"
+      required_file_missing: "Required file does not exist"
+      path_not_file: "Path is not a file"
+      file_not_readable: "File is not readable"
+      required_directory_missing: "Required directory does not exist"
+      path_not_directory: "Path is not a directory"
+      directory_not_readable: "Directory is not readable"
+      recipe_directory_missing: "Recipe directory does not exist"
+      recipe_directory_not_readable: "Recipe directory is not readable"
+      station_state_directory_missing: "Station state directory does not exist"
+      station_state_directory_not_readable: "Station state directory is not readable"
       station_storage: "Station storage precheck: %station% source %source% -> %backend%"
-      station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station."
-      station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC."
-      station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState."
+      station_storage_inspect_anchor: "Backend depends on the actual anchor BlockState; inspect a placed station"
+      station_storage_block_pdc: "Placed vanilla %material% supports BLOCK_PDC"
+      station_storage_yaml_fallback: "YAML fallback unless the placed block is TileState"
   bootstrap_start: "[loader] <gray>Checking default files...</gray>"
-  bootstrap_complete: "[loader] <green>Default file check complete.</green>"
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_skip: "[loader] <yellow>Skipped default data generation.</yellow>"
+  bootstrap_complete: "[loader] <green>Default file check complete</green>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
-    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+    <red>%path%</red> <gray> (%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource:
-    <red>%path%</red> <gray>(%error%)</gray></yellow>"
+    <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>Failed to create directory: <red>%path%</red></yellow>"
   loader_config_load_error: "[loader] <yellow>Failed to load EmakiCooking config:
-    <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  station_recipes_loaded: "[loader] <gray>Loaded %station% <yellow>%count%</yellow> recipe(s)</gray>"
+    <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  station_recipes_loaded: "[loader] <gray>Loaded %station% <yellow>%count%</yellow> recipe (s)</gray>"
   block_source_bridge_ready: "[integration] <gray>Block source connected: <aqua>%provider%</aqua></gray>"
-  block_source_bridge_unavailable: "[integration] <yellow>Block source unavailable: %provider% (%error%)</yellow>"
+  block_source_bridge_unavailable: "[integration] <yellow>Block source unavailable: %provider%  (%error%)</yellow>"
   nutrition_bridge_ready: "[integration] <gray>Nutrition consume source connected: <aqua>%provider%</aqua></gray>"
-  nutrition_bridge_unavailable: "[integration] <yellow>Nutrition consume source unavailable: %provider% (%error%)</yellow>"
+  nutrition_bridge_unavailable: "[integration] <yellow>Nutrition consume source unavailable: %provider%  (%error%)</yellow>"
   # Console: station restore type mismatch; placeholders: %type%, %coordinate%
   station_restore_skipped_mismatch: "[persistence] <gray>Station restore report: skipped_mismatch type=%type% coordinate=%coordinate%</gray>"
   # Console: station block entity lost and replaced; placeholders: %type%, %coordinate%
@@ -139,7 +139,7 @@ console:
   # Console: reload progress - applying configuration
   reload_applying: "[reload] <gray>Applying configuration...</gray>"
   # Console: reload progress - complete
-  reload_complete: "[reload] <gray>Reload complete.</gray>"
+  reload_complete: "[reload] <gray>Reload complete</gray>"
   # Console: reload stage failed; placeholders: %stage%, %error%
   reload_stage_failed: "[reload] <yellow>Stage %stage% failed: %error%</yellow>"
   # Console: cooking completion recovery failed; placeholders: %error%
@@ -155,9 +155,9 @@ console:
   # Console: both assembly preview and direct creation returned null; placeholders: %source%, %type%, %id%
   reward_source_resolve_null: "[reward] <yellow>Both assembly preview and direct createItem returned null for source=%source% type=%type% id=%id%</yellow>"
   # Console: skipped nutrition threshold evaluation; placeholders: %player%
-  nutrition_threshold_skipped: "[scheduler] <yellow>Skipped nutrition threshold evaluation for %player%: caller thread does not own the player and no execution dispatcher is available.</yellow>"
+  nutrition_threshold_skipped: "[scheduler] <yellow>Skipped nutrition threshold evaluation for %player%: caller thread does not own the player and no execution dispatcher is available</yellow>"
   # Console: nutrition threshold evaluation reroute failed; placeholders: %player%
-  nutrition_threshold_reroute_failed: "[scheduler] <yellow>Failed to reroute nutrition threshold evaluation for %player%: entity task scheduling was rejected.</yellow>"
+  nutrition_threshold_reroute_failed: "[scheduler] <yellow>Failed to reroute nutrition threshold evaluation for %player%: entity task scheduling was rejected</yellow>"
   # Console: fermentation barrel restore state invalid; placeholders: %coordinate%
   station_restore_rejected_invalid_fermentation_state: "[persistence] <gray>Station restore report: rejected_invalid_fermentation_barrel_state coordinate=%coordinate%</gray>"
   # Console: fermentation barrel restore slot id migration rejected; placeholders: %coordinate%, %recipe%
@@ -177,11 +177,11 @@ console:
     juicer: "Juicer"
     fermentation_barrel: "Fermentation Barrel"
   # Console: editor open failure, missing template and browser create/delete failures
-  editor_open_failed: "[editor] <red>Could not open EmakiCooking editor for %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>Could not open EmakiCooking editor for %item%  (%error%)</red>"
   editor_template_missing: "[editor] <red>Missing EmakiCooking editor template: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>Could not create definition: %path% (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path% (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path% (%error%)</red>"
+  editor_browser_create_failed: "[editor] <red>Could not create definition: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "[editor] <red>Could not delete definition: %path%  (%error%)</red>"
+  editor_browser_list_failed: "[editor] <red>Could not list definition directory: %path%  (%error%)</red>"
 
 loader:
   type:
@@ -204,66 +204,66 @@ loader:
   duplicate_id: "[loader] <yellow>Duplicate %type% ID <red>%id%</red>, source
     <gray>%file%</gray></yellow>"
   load_failed: "[loader] <yellow>Failed to load %type% file: <red>%file%</red>
-    <gray>(%error%)</gray></yellow>"
+    <gray> (%error%)</gray></yellow>"
 
 chopping_board:
-  too_fast: "<yellow>Too fast, please wait a moment.</yellow>"
-  wrong_tool: "<yellow>You need to hold the configured kitchen knife to chop.</yellow>"
-  cannot_cut: "<red>The placed ingredient has no available chopping board recipe.</red>"
-  not_enough_input: "<yellow>Not enough ingredients on the board. Required <white>%required%</white>, current <white>%current%</white>.</yellow>"
+  too_fast: "<yellow>Too fast, please wait a moment</yellow>"
+  wrong_tool: "<yellow>You need to hold the configured kitchen knife to chop</yellow>"
+  cannot_cut: "<red>The placed ingredient has no available chopping board recipe</red>"
+  not_enough_input: "<yellow>Not enough ingredients on the board. Required <white>%required%</white>, current <white>%current%</white></yellow>"
   progress: "<gray>Chopping progress:
     <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
   completed: "<green>Chopping board processing complete:
     <yellow>%recipe%</yellow></green>"
-  item_placed: "<gray>Placed <yellow>%amount%</yellow> ingredient(s). Board now has <yellow>%total%</yellow>/<yellow>%required%</yellow>.</gray>"
-  item_returned: "<gray>Retrieved <yellow>%amount%</yellow> ingredient(s) from the chopping board.</gray>"
-  cut_hurt: "<red>You cut yourself, taking %damage% damage.</red>"
+  item_placed: "<gray>Placed <yellow>%amount%</yellow> ingredient (s). Board now has <yellow>%total%</yellow>/<yellow>%required%</yellow></gray>"
+  item_returned: "<gray>Retrieved <yellow>%amount%</yellow> ingredient (s) from the chopping board</gray>"
+  cut_hurt: "<red>You cut yourself, taking %damage% damage</red>"
 
 grinder:
-  busy: "<yellow>The grinder is running, please wait.</yellow>"
-  no_recipe: "<red>No matching grinder recipe for the current item.</red>"
+  busy: "<yellow>The grinder is running, please wait</yellow>"
+  no_recipe: "<red>No matching grinder recipe for the current item</red>"
   started: "<gray>Grinding started, estimated <yellow>%seconds%</yellow> seconds
     to complete.</gray>"
   completed: "<green>Grinding complete: <yellow>%recipe%</yellow></green>"
 
 wok:
-  no_item: "<yellow>There are no ingredients in the wok to work with.</yellow>"
-  no_heat: "<red>No valid heat source under the wok, cannot start cooking.</red>"
-  too_fast: "<yellow>Stirring too fast, please try again later.</yellow>"
+  no_item: "<yellow>There are no ingredients in the wok to work with</yellow>"
+  no_heat: "<red>No valid heat source under the wok, cannot start cooking</red>"
+  too_fast: "<yellow>Stirring too fast, please try again later</yellow>"
   wrong_tool:
     "<yellow>You need to hold the configured spatula to stir or inspect
     contents.</yellow>"
-  burnt_timeout: "<red>Heat was interrupted too long, the food is burnt.</red>"
+  burnt_timeout: "<red>Heat was interrupted too long, the food is burnt</red>"
   stir_count: "<gray>Stir count: <yellow>%count%</yellow></gray>"
   ingredient_added: "<gray>Added ingredient: <yellow>%item%</yellow></gray>"
   ingredient_returned: "<gray>Retrieved ingredient from wok: <yellow>%item%</yellow></gray>"
-  no_recipe: "<yellow>The current ingredient combination cannot be served yet.</yellow>"
+  no_recipe: "<yellow>The current ingredient combination cannot be served yet</yellow>"
   completed_success: "<green>Successfully served: <yellow>%recipe%</yellow></green>"
   completed_undercooked: "<yellow>Undercooked, produced a half-raw <white>%recipe%</white></yellow>"
   completed_overcooked: "<red>Overcooked, produced a burnt <white>%recipe%</white></red>"
-  completed_invalid: "<red>This dish is ruined.</red>"
-  scalded: "<red>You were scalded by the hot wok, taking %damage% damage.</red>"
+  completed_invalid: "<red>This dish is ruined</red>"
+  scalded: "<red>You were scalded by the hot wok, taking %damage% damage</red>"
   info_header: "<gold>========== Wok Contents =========="
   info_line: "<gray>%index%. %item% x%amount% | Stirs per item %stir%</gray>"
   info_footer: "<gray>Total stirs: <yellow>%count%</yellow> | Heat:
     <yellow>%heat%</yellow></gray>"
 
 oven:
-  in_use: "<yellow>This oven is being used by another player, please try again later.</yellow>"
-  open_failed: "<red>Failed to open oven GUI.</red>"
-  opened: "<gray>Oven opened.</gray>"
+  in_use: "<yellow>This oven is being used by another player, please try again later</yellow>"
+  open_failed: "<red>Failed to open oven GUI</red>"
+  opened: "<gray>Oven opened</gray>"
   add_fuel: "<gray>Added fuel <yellow>%item%</yellow>, estimated duration <yellow>%seconds%</yellow> seconds. Current heat: <yellow>%heat%</yellow></gray>"
   info: "<gray>Heat: <yellow>%heat%</yellow> | Burn time: <yellow>%burning_time%</yellow>s | Cooking progress: <yellow>%progress%</yellow></gray>"
   progress_not_started: "Not Started"
   progress_completed: "Completed"
 
 steamer:
-  no_heat_source: "<red>No valid heat source under the steamer, cannot open.</red>"
+  no_heat_source: "<red>No valid heat source under the steamer, cannot open</red>"
   in_use:
     "<yellow>This steamer is being used by another player, please try again
     later.</yellow>"
-  open_failed: "<red>Failed to open steamer GUI.</red>"
-  opened: "<gray>Steamer opened.</gray>"
+  open_failed: "<red>Failed to open steamer GUI</red>"
+  opened: "<gray>Steamer opened</gray>"
   add_fuel: "<gray>Added fuel <yellow>%item%</yellow>, estimated duration
     <yellow>%seconds%</yellow> seconds.</gray>"
   add_moisture: "<gray>Added moisture source <yellow>%item%</yellow>, added
@@ -276,40 +276,40 @@ steamer:
   progress_completed: "Completed"
 
 juicer:
-  in_use: "<yellow>This juicer is being used by another player, please try again later.</yellow>"
-  opened: "<gray>Juicer opened.</gray>"
-  open_failed: "<red>Failed to open juicer GUI.</red>"
-  no_item: "<yellow>There are no ingredients in the juicer.</yellow>"
-  no_recipe: "<red>No available juicer recipe for the current ingredient.</red>"
+  in_use: "<yellow>This juicer is being used by another player, please try again later</yellow>"
+  opened: "<gray>Juicer opened</gray>"
+  open_failed: "<red>Failed to open juicer GUI</red>"
+  no_item: "<yellow>There are no ingredients in the juicer</yellow>"
+  no_recipe: "<red>No available juicer recipe for the current ingredient</red>"
   pressed: "<gray>Juicing progress: <yellow>%current%</yellow>/<yellow>%required%</yellow></gray>"
-  need_container: "<yellow>You need to hold a container to collect juice.</yellow>"
+  need_container: "<yellow>You need to hold a container to collect juice</yellow>"
   completed: "<green>Juicing complete: <yellow>%recipe%</yellow></green>"
   info: "<gray>Juicing progress: <yellow>%progress%</yellow> | Fluid: <aqua>%fluid%</aqua></gray>"
   progress_not_started: "Not Started"
   fluid_none: "None"
-  fluid_added: "<aqua>Pressed %amount%ml of %fluid%, now %current%/%max%ml.</aqua>"
-  fluid_mismatch: "<red>The juicer already contains %current_fluid%; cannot add %new_fluid%.</red>"
-  fluid_full: "<yellow>The juicer does not have enough capacity, currently %current%/%max%ml.</yellow>"
-  fluid_empty: "<yellow>There is no fluid to serve.</yellow>"
-  fluid_not_enough: "<yellow>Not enough %fluid%; requires %required%ml, currently %current%ml.</yellow>"
-  served: "<green>Served %amount%ml of %fluid%, remaining %current%/%max%ml.</green>"
+  fluid_added: "<aqua>Pressed %amount%ml of %fluid%, now %current%/%max%ml</aqua>"
+  fluid_mismatch: "<red>The juicer already contains %current_fluid%; cannot add %new_fluid%</red>"
+  fluid_full: "<yellow>The juicer does not have enough capacity, currently %current%/%max%ml</yellow>"
+  fluid_empty: "<yellow>There is no fluid to serve</yellow>"
+  fluid_not_enough: "<yellow>Not enough %fluid%; requires %required%ml, currently %current%ml</yellow>"
+  served: "<green>Served %amount%ml of %fluid%, remaining %current%/%max%ml</green>"
 
 fermentation_barrel:
-  in_use: "<yellow>This fermentation barrel is being used by another player, please try again later.</yellow>"
-  opened: "<gray>Fermentation barrel opened.</gray>"
-  open_failed: "<red>Failed to open fermentation barrel GUI.</red>"
-  no_recipe: "<red>The current ingredient combination cannot ferment.</red>"
-  started: "<gray>Fermentation started, estimated <yellow>%seconds%</yellow> seconds to complete.</gray>"
-  fermenting: "<gray>Fermenting, <yellow>%seconds%</yellow> seconds remaining.</gray>"
-  collected: "<green>Collected fermented output.</green>"
+  in_use: "<yellow>This fermentation barrel is being used by another player, please try again later</yellow>"
+  opened: "<gray>Fermentation barrel opened</gray>"
+  open_failed: "<red>Failed to open fermentation barrel GUI</red>"
+  no_recipe: "<red>The current ingredient combination cannot ferment</red>"
+  started: "<gray>Fermentation started, estimated <yellow>%seconds%</yellow> seconds to complete</gray>"
+  fermenting: "<gray>Fermenting, <yellow>%seconds%</yellow> seconds remaining</gray>"
+  collected: "<green>Collected fermented output</green>"
   info: "<gray>Fermentation status: <yellow>%status%</yellow> | Remaining: <yellow>%seconds%</yellow>s | Progress: <yellow>%progress%</yellow></gray>"
   status_idle: "Idle"
   status_fermenting: "Fermenting"
   status_early_ready: "Early Collect Ready"
   status_completed: "Completed"
   status_over: "Over-fermented"
-  collected_early: "<yellow>Collected an early fermentation output.</yellow>"
-  collected_over: "<gold>Collected an over-fermented output.</gold>"
+  collected_early: "<yellow>Collected an early fermentation output</yellow>"
+  collected_over: "<gold>Collected an over-fermented output</gold>"
 
 text_display:
   chopping_board:
@@ -541,7 +541,7 @@ debug:
       save_completed: "Debug event: gui.fermentation barrel.save completed | coordinates=%coordinates% | station=%station%"
       save_started: "Debug event: gui.fermentation barrel.save started | coordinates=%coordinates% | station=%station%"
 
-# Editor: in-game definition editor (menus/fields/browser/feedback)
+# Editor: in-game definition editor  (menus/fields/browser/feedback)
 editor:
   menu:
     home: "Definition Editor"
@@ -624,15 +624,15 @@ editor:
     stir_total_max_desc: "<dark_gray>Upper bound of the total stir count range</dark_gray>"
     fault_tolerance: "Fault Tolerance"
     fault_tolerance_desc: "<dark_gray>Number of wrong stirs tolerated</dark_gray>"
-    grind_time_seconds: "Grind Time (seconds)"
+    grind_time_seconds: "Grind Time  (seconds)"
     grind_time_seconds_desc: "<dark_gray>Time needed to finish grinding</dark_gray>"
     required_steam: "Required Steam"
     required_steam_desc: "<dark_gray>Steam that must accumulate to finish steaming</dark_gray>"
-    bake_time_seconds: "Bake Time (seconds)"
+    bake_time_seconds: "Bake Time  (seconds)"
     bake_time_seconds_desc: "<dark_gray>Base baking time</dark_gray>"
     presses_required: "Presses Required"
     presses_required_desc: "<dark_gray>Number of presses needed to finish juicing</dark_gray>"
-    fermentation_time_seconds: "Fermentation Time (seconds)"
+    fermentation_time_seconds: "Fermentation Time  (seconds)"
     fermentation_time_seconds_desc: "<dark_gray>Time needed for normal fermentation</dark_gray>"
     nutrition_min: "Nutrition Min"
     nutrition_min_desc: "<dark_gray>Minimum value of this nutrition type</dark_gray>"
@@ -672,8 +672,8 @@ editor:
     z: "Z Axis"
     min: "Min"
     max: "Max"
-    amount_ml: "Fluid Amount (mL)"
-    serving_ml: "Container Capacity (mL)"
+    amount_ml: "Fluid Amount  (mL)"
+    serving_ml: "Container Capacity  (mL)"
     perfect_heat: "Perfect Heat Range"
     perfect_required_ratio: "Perfect Heat Ratio"
     overbake_seconds: "Overbake Seconds"
@@ -682,8 +682,8 @@ editor:
     min_progress_ratio: "Min Progress Ratio"
   modified: "<green>Successfully modified %item%</green>"
   reset_ok: "<green>Successfully reset %item%</green>"
-  modify_failed: "<red>Failed to modify %item% (%reason%)</red>"
-  modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details.</red>"
+  modify_failed: "<red>Failed to modify %item%  (%reason%)</red>"
+  modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
     chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
@@ -691,15 +691,15 @@ editor:
   map:
     bad_entry: "<red>Bad format, use \"key=value\"</red>"
   value:
-    unset: "Not set (empty)"
+    unset: "Not set  (empty)"
     integer: "Integer"
     decimal: "Decimal"
     boolean: "Boolean"
     text: "Text"
-    list_header: "List (%count% items)"
-    map_header: "Map (%count% entries)"
+    list_header: "List  (%count% items)"
+    map_header: "Map  (%count% entries)"
     scalar: "%type%: %value%"
-    more: "… %count% more"
+    more: "... %count% more"
   browser:
     title: "<dark_gray>Definition Browser</dark_gray>"
     roots: "<dark_gray>Choose a category</dark_gray>"
@@ -713,7 +713,7 @@ editor:
     no_create_root: "<yellow>No category supports creating definitions</yellow>"
     delete_title: "Confirm deletion of %id%"
     delete_body: "Are you sure you want to delete this definition?"
-    delete_body_irreversible: "<red>This cannot be undone.</red> A backup is written to edit-backups first."
+    delete_body_irreversible: "<red>This cannot be undone.</red> A backup is written to edit-backups first"
     delete_confirm_button: "Delete"
     delete_cancel_button: "Cancel"
     delete_cancelled: "<gray>Deletion cancelled, definition kept</gray>"

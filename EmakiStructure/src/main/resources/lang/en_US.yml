@@ -1,15 +1,15 @@
-# EmakiStructure English language resource.
-# Messages use MiniMessage; keep placeholders noted beside each message group.
-# version is maintained by the resource sync flow to merge new default keys.
+# EmakiStructure English language resource
+# Messages use MiniMessage; keep placeholders noted beside each message group
+# version is maintained by the resource sync flow to merge new default keys
 
 version: "1.0.4"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
-  no_permission: "<red>You do not have permission to run this command.</red>"
-  player_only: "<red>This command can only be run by a player.</red>"
-  invalid_args: "<red>Invalid arguments.</red>"
-  unknown_command: "<red>Unknown command, run /ems help for a list of commands.</red>"
+  no_permission: "<red>You do not have permission to run this command</red>"
+  player_only: "<red>This command can only be run by a player</red>"
+  invalid_args: "<red>Invalid arguments</red>"
+  unknown_command: "<red>Unknown command, run /ems help for a list of commands</red>"
 
 console:
   plugin_starting: "[startup] <gray>Starting...</gray>"
@@ -18,12 +18,12 @@ console:
   bootstrap_start: "[loader] <gray>Synchronising bundled resources...</gray>"
   bootstrap_skip: "[loader] Skipped default data installation as configured"
   bootstrap_complete: "[loader] Bundled resource sync complete"
-  bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path% (%error%)"
-  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path% (%error%)"
+  bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path%  (%error%)"
+  bootstrap_save_failed: "[loader] Failed to save versioned resource: %path%  (%error%)"
   # placeholders: %count%
   templates_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
   # placeholders: %path%, %value%, %expected%
-  config_issue: "[config] <yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid (expected <white>%expected%</white>), a valid value was applied</yellow>"
+  config_issue: "[config] <yellow>Config key <white>%path%</white> value <white>%value%</white> is invalid  (expected <white>%expected%</white>), a valid value was applied</yellow>"
   # placeholders: %template%
   cache_rejected: "[cache] <yellow>Template <white>%template%</white> exceeds the cache size limit, it will not be cached</yellow>"
   # placeholders: %count%
@@ -41,35 +41,35 @@ console:
   # placeholders: %namespace%
   custom_block_source_ready: "[loader] <gray>Custom block namespace connected: <aqua>%namespace%</aqua></gray>"
   # placeholders: %template%, %structure%
-  replace_template_missing: "[replace] <yellow>Template <white>%template%</white> referenced by a replace rule does not exist (structure %structure%), vanilla generation proceeds</yellow>"
+  replace_template_missing: "[replace] <yellow>Template <white>%template%</white> referenced by a replace rule does not exist  (structure %structure%), vanilla generation proceeds</yellow>"
   # placeholders: %count%
   rollback_recovering: "[rollback] <yellow>Detected %count% unfinished transactions, startup rollback in progress, generation is temporarily unavailable</yellow>"
   # placeholders: %count%
   rollback_recovered: "[rollback] <green>Startup rollback complete, %count% transactions</green>"
   # placeholders: %file%
-  rollback_partial: "[rollback] <red>Transaction %file% could not be fully rolled back, marked rollback-partial (visible via /ems debug), it will not be retried automatically</red>"
+  rollback_partial: "[rollback] <red>Transaction %file% could not be fully rolled back, marked rollback-partial  (visible via /ems debug), it will not be retried automatically</red>"
   # placeholders: %template%, %index%, %id%
-  furniture_source_absent: "[furniture] <yellow>Template %template% furniture entry #%index% (%id%) needs a furniture plugin that is not installed, skipped</yellow>"
+  furniture_source_absent: "[furniture] <yellow>Template %template% furniture entry #%index%  (%id%) needs a furniture plugin that is not installed, skipped</yellow>"
   # placeholders: %template%, %index%, %id%
-  furniture_place_failed: "[furniture] <yellow>Template %template% furniture entry #%index% (%id%) failed to place, entry skipped</yellow>"
+  furniture_place_failed: "[furniture] <yellow>Template %template% furniture entry #%index%  (%id%) failed to place, entry skipped</yellow>"
   # placeholders: %file%, %index%, %reason%
   furniture_entry_issue: "[furniture] <yellow>Furniture point %file% entry #%index% skipped: %reason%</yellow>"
   # placeholders: none
-  export_furniture_absent: "[export] <gray>0 furniture captured (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
+  export_furniture_absent: "[export] <gray>0 furniture captured  (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
   # placeholders: none
 
 command:
-  usage: "<gray>Usage: /ems &lt;get|select|structure|reload|multiblock|help&gt; ... (run /ems help for the full list)</gray>"
+  usage: "<gray>Usage: /ems &lt;get|select|structure|reload|multiblock|help&gt; ...  (run /ems help for the full list)</gray>"
   help:
     header: "<gold>========== EmakiStructure Help ==========</gold>"
     footer: "<gold>==========================================</gold>"
     line: "<yellow>/ems %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       get: "Preview-generate a structure template 3 blocks in front of you"
-      place: "Place a structure template (.nbt file) at your position; not for multiblocks"
+      place: "Place a structure template  (.nbt file) at your position; not for multiblocks"
       select: "Select a region: pos1/pos2 to set corners, adjust to resize, clear to reset"
       export: "Export the current selection as structure template structures/&lt;name&gt;.nbt"
-      multiblock_export: "Export the selection as multiblocks/&lt;id&gt;.yml (exports only, never places)"
+      multiblock_export: "Export the selection as multiblocks/&lt;id&gt;.yml  (exports only, never places)"
       multiblock_place: "Place a multiblock definition at your position"
       list: "List the loaded multiblock definitions"
       validate: "Manually validate a multiblock definition against the world"
@@ -77,41 +77,41 @@ command:
       debug: "Manage Debug mode and diagnostic output"
   get_usage: "<gray>Usage: /ems get &lt;template&gt; [facing] - preview-generate a structure template 3 blocks in front of you</gray>"
   structure_usage: "<gray>Usage: /ems structure &lt;export|place&gt; ... - export saves the selection as a structure template, place generates one at your position</gray>"
-  place_usage: "<gray>Usage: /ems structure place &lt;template&gt; &lt;facing&gt; - place a structure template (.nbt file) at your position; use /ems multiblock place for multiblocks or /ems multiblock export to record them</gray>"
+  place_usage: "<gray>Usage: /ems structure place &lt;template&gt; &lt;facing&gt; - place a structure template  (.nbt file) at your position; use /ems multiblock place for multiblocks or /ems multiblock export to record them</gray>"
   select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
   adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
-  export_usage: "<gray>Usage: /ems structure export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt (not a multiblock file)</gray>"
+  export_usage: "<gray>Usage: /ems structure export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt  (not a multiblock file)</gray>"
   multiblock_usage: "<gray>Usage: /ems multiblock &lt;export|place|list|validate&gt; ...</gray>"
   multiblock_export_usage: "<gray>Usage: /ems multiblock export &lt;id&gt; [force]</gray>"
   multiblock_place_usage: "<gray>Usage: /ems multiblock place &lt;id&gt; [facing] - place a multiblock definition at your position</gray>"
   multiblock_validate_usage: "<gray>Usage: /ems multiblock validate &lt;id&gt;</gray>"
   # placeholders: %count%, %candidates%, %formed%
-  multiblock_list_header: "<gray>Loaded <white>%count%</white> multiblock definitions, %candidates% in-progress instances, %formed% active instances.</gray>"
+  multiblock_list_header: "<gray>Loaded <white>%count%</white> multiblock definitions, %candidates% in-progress instances, %formed% active instances</gray>"
   # placeholders: %id%, %members%, %rotation%
   multiblock_list_entry: "<white>%id%</white> <gray>members %members%, rotation %rotation%</gray>"
   # placeholders: %id%, %members%, %unresolvable%, %furniture_missing%, %candidates%, %formed%
-  multiblock_validate_result: "<gray>Definition <white>%id%</white>: members %members%, unresolvable custom blocks %unresolvable%, missing furniture sources: %furniture_missing%, in-progress %candidates%, active %formed%.</gray>"
+  multiblock_validate_result: "<gray>Definition <white>%id%</white>: members %members%, unresolvable custom blocks %unresolvable%, missing furniture sources: %furniture_missing%, in-progress %candidates%, active %formed%</gray>"
   # placeholders: none
   multiblock_missing_none: "none"
   # placeholders: %id%, %members%, %file%
   multiblock_export_saved: "<green>Exported multiblock definition <white>%id%</white>: %members% members, file %file%</green>"
   # placeholders: %id%, %placed%, %failed%, %facing%, %x%, %y%, %z%
-  multiblock_place_done: "<green>Placed multiblock structure <white>%id%</white>: %placed% members placed, %failed% failed (facing <white>%facing%</white>), anchor <white>%x%, %y%, %z%</white></green>"
+  multiblock_place_done: "<green>Placed multiblock structure <white>%id%</white>: %placed% members placed, %failed% failed  (facing <white>%facing%</white>), anchor <white>%x%, %y%, %z%</white></green>"
   # placeholders: %detail%
   multiblock_place_entry_failed: "<yellow>Failed to place multiblock member: %detail%</yellow>"
   # placeholders: %value%, %allowed%
   invalid_facing: "<red>Facing <white>%value%</white> is invalid, allowed: %allowed%</red>"
   # placeholders: %template%, %facing%, %x%, %y%, %z%, %overwritten%
-  place_done: "<green>Generated template <white>%template%</white> (facing <white>%facing%</white>) at <white>%x%, %y%, %z%</white>, overwrote <white>%overwritten%</white> blocks</green>"
+  place_done: "<green>Generated template <white>%template%</white>  (facing <white>%facing%</white>) at <white>%x%, %y%, %z%</white>, overwrote <white>%overwritten%</white> blocks</green>"
   # placeholders: %label%, %pos%
   select_pos_set: "<green>Set <white>%label%</white>: <white>%pos%</white></green>"
   # placeholders: %pos1%, %pos2%, %size_x%, %size_y%, %size_z%
-  select_ready: "<green>Selection ready: <white>%pos1%</white> -> <white>%pos2%</white> (%size_x% x %size_y% x %size_z%)</green>"
-  select_cleared: "<green>Cleared the current selection and highlight.</green>"
+  select_ready: "<green>Selection ready: <white>%pos1%</white> -> <white>%pos2%</white>  (%size_x% x %size_y% x %size_z%)</green>"
+  select_cleared: "<green>Cleared the current selection and highlight</green>"
   # placeholders: %before%, %after%
   select_adjusted: "<green>Selection adjusted: <white>%before%</white> -> <white>%after%</white></green>"
   # placeholders: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%, %furniture%, %furniture_skipped%
-  export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks (%size_x% x %size_y% x %size_z%), %furniture% furniture (%furniture_skipped% out of selection skipped), file %file%</green>"
+  export_saved: "<green>Exported template <white>%name%</white>: %blocks% blocks  (%size_x% x %size_y% x %size_z%), %furniture% furniture  (%furniture_skipped% out of selection skipped), file %file%</green>"
 
 error:
   config:
@@ -119,189 +119,189 @@ error:
     invalid: "<red>Config key <white>%path%</white> value <white>%value%</white> is invalid, expected <white>%expected%</white></red>"
   name:
     # placeholders: %value%
-    invalid: "<red>Name <white>%value%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64.</red>"
+    invalid: "<red>Name <white>%value%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64</red>"
   template:
     # placeholders: %template%
-    not_found: "<red>Template <white>%template%</white> does not exist.</red>"
+    not_found: "<red>Template <white>%template%</white> does not exist</red>"
     # placeholders: %file%, %reason%
-    rejected: "<red>Template import rejected: <white>%file%</white> (%reason%)</red>"
+    rejected: "<red>Template import rejected: <white>%file%</white>  (%reason%)</red>"
     # placeholders: %file%, %error%
-    read_failed: "<red>Failed to read template file: <white>%file%</white> (%error%)</red>"
+    read_failed: "<red>Failed to read template file: <white>%file%</white>  (%error%)</red>"
     # placeholders: %id%
-    invalid_id: "<red>Template id <white>%id%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64.</red>"
+    invalid_id: "<red>Template id <white>%id%</white> is invalid: lowercase letters, digits, underscore and hyphen only, must start with a letter or digit, maximum length 64</red>"
     # placeholders: %file%
-    invalid_name: "<red>Template file name <white>%file%</white> is invalid and was skipped.</red>"
+    invalid_name: "<red>Template file name <white>%file%</white> is invalid and was skipped</red>"
     # placeholders: %file%, %detail%
-    scan_failed: "<red>Failed to scan the template directory: <white>%file%</white> (%detail%)</red>"
+    scan_failed: "<red>Failed to scan the template directory: <white>%file%</white>  (%detail%)</red>"
     # placeholders: %file%, %detail%
     parse_failed: "<red>Failed to parse template <white>%file%</white>: %detail%</red>"
     # placeholders: %file%, %limit%, %actual%
-    file_too_large: "<red>Template <white>%file%</white> is %actual% bytes raw, above the %limit% byte limit.</red>"
+    file_too_large: "<red>Template <white>%file%</white> is %actual% bytes raw, above the %limit% byte limit</red>"
     # placeholders: %file%, %code%
-    not_gzip: "<red>Template <white>%file%</white> is not a gzip compressed file.</red>"
+    not_gzip: "<red>Template <white>%file%</white> is not a gzip compressed file</red>"
     # placeholders: %file%, %limit%, %code%
-    output_too_large: "<red>Template <white>%file%</white> decompressed output exceeds the %limit% byte limit.</red>"
+    output_too_large: "<red>Template <white>%file%</white> decompressed output exceeds the %limit% byte limit</red>"
     # placeholders: %file%, %code%
-    depth_exceeded: "<red>Template <white>%file%</white> exceeds the NBT nesting depth limit.</red>"
+    depth_exceeded: "<red>Template <white>%file%</white> exceeds the NBT nesting depth limit</red>"
     # placeholders: %file%, %code%
-    bad_root_type: "<red>The NBT root node of template <white>%file%</white> is not a compound.</red>"
+    bad_root_type: "<red>The NBT root node of template <white>%file%</white> is not a compound</red>"
     # placeholders: %file%, %detail%
     size_invalid: "<red>Template <white>%file%</white> has an invalid size: %detail%</red>"
     # placeholders: %file%
-    blocks_empty: "<red>Template <white>%file%</white> contains no block entries and is treated as corrupt.</red>"
+    blocks_empty: "<red>Template <white>%file%</white> contains no block entries and is treated as corrupt</red>"
     # placeholders: %file%, %limit%, %actual%
-    total_blocks_exceeded: "<red>Template <white>%file%</white> has %actual% blocks, above the %limit% limit.</red>"
+    total_blocks_exceeded: "<red>Template <white>%file%</white> has %actual% blocks, above the %limit% limit</red>"
     # placeholders: %file%, %limit%, %actual%
-    palette_exceeded: "<red>Template <white>%file%</white> has %actual% palette entries, above the %limit% limit.</red>"
+    palette_exceeded: "<red>Template <white>%file%</white> has %actual% palette entries, above the %limit% limit</red>"
     # placeholders: %file%, %index%
-    state_index_out_of_range: "<red>Template <white>%file%</white> contains an out of range block state index %index%.</red>"
+    state_index_out_of_range: "<red>Template <white>%file%</white> contains an out of range block state index %index%</red>"
     # placeholders: %file%, %pos%, %size%
-    block_pos_out_of_range: "<red>Template <white>%file%</white> block coordinate %pos% is outside the size %size%.</red>"
+    block_pos_out_of_range: "<red>Template <white>%file%</white> block coordinate %pos% is outside the size %size%</red>"
     # placeholders: %file%, %pos%
-    block_pos_duplicate: "<red>Template <white>%file%</white> has a duplicate block coordinate %pos%.</red>"
+    block_pos_duplicate: "<red>Template <white>%file%</white> has a duplicate block coordinate %pos%</red>"
     # placeholders: %file%, %block%
-    legacy_block_rejected: "<red>Template <white>%file%</white> contains block <white>%block%</white> that cannot be parsed by the current version, import rejected.</red>"
+    legacy_block_rejected: "<red>Template <white>%file%</white> contains block <white>%block%</white> that cannot be parsed by the current version, import rejected</red>"
     # placeholders: %file%, %pos%, %limit%, %actual%
-    block_entity_too_large: "<red>Template <white>%file%</white> block entity payload at %pos% is %actual% bytes, above the %limit% byte limit.</red>"
+    block_entity_too_large: "<red>Template <white>%file%</white> block entity payload at %pos% is %actual% bytes, above the %limit% byte limit</red>"
   selection:
     # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
-    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the limit %limit_x% x %limit_y% x %limit_z%.</red>"
+    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the limit %limit_x% x %limit_y% x %limit_z%</red>"
     # placeholders: none
-    world_mismatch: "<red>The two selection points are in different worlds.</red>"
+    world_mismatch: "<red>The two selection points are in different worlds</red>"
   select:
     # placeholders: none
-    not_set: "<red>There is no active selection.</red>"
+    not_set: "<red>There is no active selection</red>"
     # placeholders: %value%
-    invalid_operation: "<red>Operation <white>%value%</white> is invalid, allowed: add, reduce.</red>"
+    invalid_operation: "<red>Operation <white>%value%</white> is invalid, allowed: add, reduce</red>"
     # placeholders: %value%, %allowed%
     invalid_direction: "<red>Direction <white>%value%</white> is invalid, allowed: %allowed%</red>"
     # placeholders: %value%
-    invalid_amount: "<red>Amount <white>%value%</white> is invalid, it must be a positive integer.</red>"
+    invalid_amount: "<red>Amount <white>%value%</white> is invalid, it must be a positive integer</red>"
     # placeholders: %axis%, %size%
-    shrink_too_far: "<red>Too much shrink: axis <white>%axis%</white> would drop below 1 block (current %size%).</red>"
+    shrink_too_far: "<red>Too much shrink: axis <white>%axis%</white> would drop below 1 block  (current %size%)</red>"
   generate:
     # placeholders: %detail%
     out_of_bounds: "<red>Generation target is outside the world bounds: %detail%</red>"
     # placeholders: none
-    ground_unsupported: "<red>Not enough support, this generation was aborted (the structure bottom needs solid support; adjust generate.ground_mode in config.yml).</red>"
+    ground_unsupported: "<red>Not enough support, this generation was aborted  (the structure bottom needs solid support; adjust generate.ground_mode in config.yml)</red>"
     # placeholders: %template%
-    queue_timeout: "<red>Template <white>%template%</white> waited too long in the generation queue and was aborted.</red>"
+    queue_timeout: "<red>Template <white>%template%</white> waited too long in the generation queue and was aborted</red>"
     # placeholders: %template%
-    cancelled: "<red>Generation of template <white>%template%</white> was cancelled.</red>"
+    cancelled: "<red>Generation of template <white>%template%</white> was cancelled</red>"
     # placeholders: %template%
-    rejected_by_limit: "<red>Template <white>%template%</white> exceeds the configured size limit.</red>"
+    rejected_by_limit: "<red>Template <white>%template%</white> exceeds the configured size limit</red>"
     # placeholders: %reason%
     failed: "<red>Generation failed: %reason%</red>"
     # placeholders: %count%
-    player_trapped: "<yellow>%count% players are trapped inside newly placed blocks and could not be lifted, please move out on your own.</yellow>"
+    player_trapped: "<yellow>%count% players are trapped inside newly placed blocks and could not be lifted, please move out on your own</yellow>"
     # placeholders: none
-    recovering: "<red>A transaction rollback recovery is in progress, structure generation is temporarily unavailable, try again shortly.</red>"
+    recovering: "<red>A transaction rollback recovery is in progress, structure generation is temporarily unavailable, try again shortly</red>"
     # placeholders: %error%
     journal_failed: "<red>Could not create the rollback journal, this generation was rejected: %error%</red>"
   export:
     # placeholders: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
-    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the export limit %limit_x% x %limit_y% x %limit_z%.</red>"
+    too_large: "<red>Selection %size_x% x %size_y% x %size_z% exceeds the export limit %limit_x% x %limit_y% x %limit_z%</red>"
     # placeholders: %file%, %error%
-    write_failed: "<red>Failed to write template file: <white>%file%</white> (%error%)</red>"
+    write_failed: "<red>Failed to write template file: <white>%file%</white>  (%error%)</red>"
     # placeholders: %count%
-    no_blocks: "<red>The selection contains no exportable blocks (%count%).</red>"
+    no_blocks: "<red>The selection contains no exportable blocks  (%count%)</red>"
   spawn:
     # placeholders: %file%, %reason%
-    rejected: "<red>Spawn point configuration rejected: <white>%file%</white> (%reason%)</red>"
+    rejected: "<red>Spawn point configuration rejected: <white>%file%</white>  (%reason%)</red>"
     # placeholders: %template%, %type%, %error%
     entry_failed: "<yellow>Failed to spawn <white>%type%</white> for template <white>%template%</white>: %error%</yellow>"
     # placeholders: %total%, %limit%
-    total_exceeded: "<red>Spawn points request %total% entities, above the per generation limit %limit%.</red>"
+    total_exceeded: "<red>Spawn points request %total% entities, above the per generation limit %limit%</red>"
     # placeholders: none
-    type_missing: "<red>An entry is missing the type field.</red>"
+    type_missing: "<red>An entry is missing the type field</red>"
     # placeholders: %type%, %allowed%
     type_prefix: "<red>Entity <white>%type%</white> must carry a namespace prefix: %allowed%</red>"
     # placeholders: %type%
-    pos_region_exclusive: "<red>Entity <white>%type%</white> must provide exactly one of pos and region.</red>"
+    pos_region_exclusive: "<red>Entity <white>%type%</white> must provide exactly one of pos and region</red>"
     # placeholders: %type%, %value%, %expected%
-    count_range: "<red>Entity <white>%type%</white> count %value% is invalid, expected %expected%.</red>"
+    count_range: "<red>Entity <white>%type%</white> count %value% is invalid, expected %expected%</red>"
     # placeholders: %type%, %value%
-    chance_range: "<red>Entity <white>%type%</white> chance %value% is invalid, expected 0.0-1.0.</red>"
+    chance_range: "<red>Entity <white>%type%</white> chance %value% is invalid, expected 0.0-1.0</red>"
     # placeholders: %type%, %value%, %allowed%
     facing_invalid: "<red>Entity <white>%type%</white> facing %value% is invalid, allowed: %allowed%</red>"
     # placeholders: %type%
-    pos_invalid: "<red>Entity <white>%type%</white> has an invalid pos coordinate.</red>"
+    pos_invalid: "<red>Entity <white>%type%</white> has an invalid pos coordinate</red>"
     # placeholders: %type%, %size%
-    pos_out_of_bounds: "<red>Entity <white>%type%</white> pos is outside the template size %size%.</red>"
+    pos_out_of_bounds: "<red>Entity <white>%type%</white> pos is outside the template size %size%</red>"
     # placeholders: %type%, %value%, %expected%
-    radius_range: "<red>Entity <white>%type%</white> radius %value% is invalid, expected %expected%.</red>"
+    radius_range: "<red>Entity <white>%type%</white> radius %value% is invalid, expected %expected%</red>"
     # placeholders: %type%, %radius%
-    radius_out_of_bounds: "<red>Entity <white>%type%</white> radius %radius% sphere leaves the template bounds.</red>"
+    radius_out_of_bounds: "<red>Entity <white>%type%</white> radius %radius% sphere leaves the template bounds</red>"
     # placeholders: %type%
-    region_invalid: "<red>Entity <white>%type%</white> region definition is invalid.</red>"
+    region_invalid: "<red>Entity <white>%type%</white> region definition is invalid</red>"
     # placeholders: %type%
-    region_order: "<red>Entity <white>%type%</white> region min must be less than or equal to max.</red>"
+    region_order: "<red>Entity <white>%type%</white> region min must be less than or equal to max</red>"
     # placeholders: %type%, %size%
-    region_out_of_bounds: "<red>Entity <white>%type%</white> region is outside the template size %size%.</red>"
+    region_out_of_bounds: "<red>Entity <white>%type%</white> region is outside the template size %size%</red>"
   furniture:
     # placeholders: %file%, %reason%
-    rejected: "<red>Furniture point configuration rejected: <white>%file%</white> (%reason%)</red>"
+    rejected: "<red>Furniture point configuration rejected: <white>%file%</white>  (%reason%)</red>"
     # placeholders: %file%, %error%
-    read_failed: "<red>Failed to read furniture point file: <white>%file%</white> (%error%)</red>"
+    read_failed: "<red>Failed to read furniture point file: <white>%file%</white>  (%error%)</red>"
     # placeholders: %file%, %value%
-    version_unsupported: "<red>Furniture point <white>%file%</white> has version=<white>%value%</white> which is not supported.</red>"
+    version_unsupported: "<red>Furniture point <white>%file%</white> has version=<white>%value%</white> which is not supported</red>"
     # placeholders: %file%
-    list_invalid: "<red>Furniture point <white>%file%</white> has a furniture section that is not a list.</red>"
+    list_invalid: "<red>Furniture point <white>%file%</white> has a furniture section that is not a list</red>"
     # placeholders: none
-    entry_invalid: "<red>A furniture entry is malformed and was skipped.</red>"
+    entry_invalid: "<red>A furniture entry is malformed and was skipped</red>"
     # placeholders: %id%
-    id_prefix: "<red>Furniture <white>%id%</white> has an unsupported prefix, expected itemsadder/oraxen/nexo/craftengine.</red>"
+    id_prefix: "<red>Furniture <white>%id%</white> has an unsupported prefix, expected itemsadder/oraxen/nexo/craftengine</red>"
     # placeholders: %id%
-    pos_invalid: "<red>Furniture <white>%id%</white> pos is outside the template size.</red>"
+    pos_invalid: "<red>Furniture <white>%id%</white> pos is outside the template size</red>"
     # placeholders: %id%, %value%
-    yaw_invalid: "<red>Furniture <white>%id%</white> yaw %value% is invalid, expected 0.0-360.0.</red>"
+    yaw_invalid: "<red>Furniture <white>%id%</white> yaw %value% is invalid, expected 0.0-360.0</red>"
   multiblock:
     # placeholders: %file%, %detail%
     parse_failed: "<red>Failed to parse multiblock definition <white>%file%</white>: %detail%</red>"
     # placeholders: %file%, %value%, %expected%
-    version_unsupported: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is not supported, expected %expected%.</red>"
+    version_unsupported: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is not supported, expected %expected%</red>"
     # placeholders: %file%, %value%, %expected%
-    version_outdated: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is outdated, current support is %expected%, please migrate it.</red>"
+    version_outdated: "<red>Multiblock definition <white>%file%</white> has version=<white>%value%</white> which is outdated, current support is %expected%, please migrate it</red>"
     # placeholders: %file%, %value%, %expected%
-    id_mismatch: "<red>Multiblock definition <white>%file%</white> has id=<white>%value%</white> which does not match the file name, expected %expected%.</red>"
+    id_mismatch: "<red>Multiblock definition <white>%file%</white> has id=<white>%value%</white> which does not match the file name, expected %expected%</red>"
     # placeholders: %file%
-    shape_missing: "<red>Multiblock definition <white>%file%</white> is missing the shape section.</red>"
+    shape_missing: "<red>Multiblock definition <white>%file%</white> is missing the shape section</red>"
     # placeholders: %file%, %value%
-    core_block_invalid: "<red>Multiblock definition <white>%file%</white> has an invalid core_block value %value%.</red>"
+    core_block_invalid: "<red>Multiblock definition <white>%file%</white> has an invalid core_block value %value%</red>"
     # placeholders: %file%
-    trigger_missing: "<red>Multiblock definition <white>%file%</white> is missing the trigger section.</red>"
+    trigger_missing: "<red>Multiblock definition <white>%file%</white> is missing the trigger section</red>"
     # placeholders: %file%, %value%, %allowed%
     targets_invalid: "<red>Multiblock definition <white>%file%</white> has targets=<white>%value%</white> which is invalid, allowed: %allowed%</red>"
     # placeholders: %file%
-    positions_missing: "<red>Multiblock definition <white>%file%</white> uses targets=specific but has no positions.</red>"
+    positions_missing: "<red>Multiblock definition <white>%file%</white> uses targets=specific but has no positions</red>"
     # placeholders: %file%, %value%
-    positions_invalid: "<red>Multiblock definition <white>%file%</white> contains an invalid position %value%.</red>"
+    positions_invalid: "<red>Multiblock definition <white>%file%</white> contains an invalid position %value%</red>"
     # placeholders: %file%
-    blocks_empty: "<red>Multiblock definition <white>%file%</white> has no valid block members.</red>"
+    blocks_empty: "<red>Multiblock definition <white>%file%</white> has no valid block members</red>"
     # placeholders: %file%, %value%, %index%
-    pos_invalid: "<red>Multiblock definition <white>%file%</white> entry #%index% has an invalid pos=%value%.</red>"
+    pos_invalid: "<red>Multiblock definition <white>%file%</white> entry #%index% has an invalid pos=%value%</red>"
     # placeholders: %file%, %value%, %index%
-    pos_duplicate: "<red>Multiblock definition <white>%file%</white> entry #%index% duplicates coordinate %value%.</red>"
+    pos_duplicate: "<red>Multiblock definition <white>%file%</white> entry #%index% duplicates coordinate %value%</red>"
     # placeholders: %file%, %value%, %index%
-    member_exclusive: "<red>Multiblock definition <white>%file%</white> entry #%index% at %value% declares both block and furniture, only one is allowed.</red>"
+    member_exclusive: "<red>Multiblock definition <white>%file%</white> entry #%index% at %value% declares both block and furniture, only one is allowed</red>"
     # placeholders: %file%, %value%, %allowed%, %index%
     furniture_prefix: "<red>Multiblock definition <white>%file%</white> entry #%index% furniture <white>%value%</white> has an unsupported prefix, allowed: %allowed%</red>"
     # placeholders: %file%, %value%, %index%
-    block_missing: "<red>Multiblock definition <white>%file%</white> entry #%index% has a missing or empty block=%value%.</red>"
+    block_missing: "<red>Multiblock definition <white>%file%</white> entry #%index% has a missing or empty block=%value%</red>"
     # placeholders: %file%, %value%, %index%
-    custom_block_state: "<red>Multiblock definition <white>%file%</white> entry #%index% custom block <white>%value%</white> must not carry a block state section.</red>"
+    custom_block_state: "<red>Multiblock definition <white>%file%</white> entry #%index% custom block <white>%value%</white> must not carry a block state section</red>"
     # placeholders: %file%, %value%, %detail%, %index%
     block_state_invalid: "<red>Multiblock definition <white>%file%</white> entry #%index% block state <white>%value%</white> failed to parse: %detail%</red>"
     # placeholders: %file%, %detail%
-    scan_failed: "<red>Failed to scan the multiblock definition directory: <white>%file%</white> (%detail%)</red>"
+    scan_failed: "<red>Failed to scan the multiblock definition directory: <white>%file%</white>  (%detail%)</red>"
     # placeholders: %file%, %id%
-    duplicate_id: "<red>Duplicate multiblock id <white>%id%</white> (<white>%file%</white>), the later file was not loaded.</red>"
+    duplicate_id: "<red>Duplicate multiblock id <white>%id%</white>  (<white>%file%</white>), the later file was not loaded</red>"
     # placeholders: %id%
-    not_found: "<red>Multiblock definition <white>%id%</white> does not exist.</red>"
+    not_found: "<red>Multiblock definition <white>%id%</white> does not exist</red>"
     # placeholders: %id%, %file%
-    already_exists: "<red>Multiblock definition <white>%id%</white> already exists (%file%), use export force to overwrite.</red>"
+    already_exists: "<red>Multiblock definition <white>%id%</white> already exists  (%file%), use export force to overwrite</red>"
     # placeholders: %id%
-    verification_failed: "<red>Multiblock structure <white>%id%</white> failed shape verification and was downgraded to incomplete, inspect it and try again.</red>"
+    verification_failed: "<red>Multiblock structure <white>%id%</white> failed shape verification and was downgraded to incomplete, inspect it and try again</red>"
     # placeholders: %id%, %detail%
     export_failed: "<red>Failed to export multiblock definition <white>%id%</white>: %detail%</red>"
     # placeholders: %id%, %detail%
@@ -309,11 +309,11 @@ error:
 
 debug:
   # placeholders: %template%, %facing%, %x%, %y%, %z%, %blocks%, %initiator%
-  generate_start: "Starting generation of %template% at %x%,%y%,%z% facing %facing%, %blocks% blocks, initiator %initiator%"
+  generate_start: "Starting generation of %template% at %x%, %y%, %z% facing %facing%, %blocks% blocks, initiator %initiator%"
   # placeholders: %template%, %blocks%, %millis%, %initiator%
   generate_complete: "Generation of %template% finished: %blocks% blocks in %millis% ms, initiator %initiator%"
   # placeholders: %template%, %reason%, %detail%, %initiator%
-  generate_aborted: "Generation of %template% aborted: %reason% (%detail%), initiator %initiator%"
+  generate_aborted: "Generation of %template% aborted: %reason%  (%detail%), initiator %initiator%"
   # placeholders: %columns%, %template%, %initiator%
   ground_skipped: "Aborted generation of %template%, %columns% columns lack support, initiator %initiator%"
   # placeholders: %reason%
@@ -321,10 +321,10 @@ debug:
   # placeholders: %used%, %limit%
   cold_hit_checked: "Cold hit consumed candidate budget %used%/%limit%"
   # placeholders: %millis%, %limit_ms%
-  sweep_budget_exceeded: "Sweep cycle exceeded its time budget, this round was aborted: %millis% ms (limit %limit_ms% ms)"
+  sweep_budget_exceeded: "Sweep cycle exceeded its time budget, this round was aborted: %millis% ms  (limit %limit_ms% ms)"
   # placeholders: %structure%, %template%, %x%, %y%, %z%
-  replace_started: "Vanilla structure %structure% replaced by template %template% at %x%,%y%,%z%"
+  replace_started: "Vanilla structure %structure% replaced by template %template% at %x%, %y%, %z%"
   # placeholders: %structure%, %template%, %key%
-  replace_rejected: "Replacement of vanilla structure %structure% was rejected (template %template%): %key%"
+  replace_rejected: "Replacement of vanilla structure %structure% was rejected  (template %template%): %key%"
   # placeholders: %file%
   rollback_partial: "Transaction %file% could not be fully rolled back, marked rollback-partial"

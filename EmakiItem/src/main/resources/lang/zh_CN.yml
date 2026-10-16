@@ -1,26 +1,26 @@
-# EmakiItem 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiItem 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "2.8.16"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行这个命令。</red>"
-  player_only: "<red>这个命令只能由玩家执行。</red>"
-  player_not_found: "<red>找不到目标玩家。</red>"
-  invalid_args: "<red>参数不正确。</red>"
-  unknown_command: "<red>未知子命令。</red>"
+  no_permission: "<red>你没有权限执行这个命令</red>"
+  player_only: "<red>这个命令只能由玩家执行</red>"
+  player_not_found: "<red>找不到目标玩家</red>"
+  invalid_args: "<red>参数不正确</red>"
+  unknown_command: "<red>未知子命令</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  reload_success: "<green>EmakiItem 已重载。</green>"
-  reload_summary: "<gray>已加载 <white>%items%</white> 个物品定义。</gray>"
-  # 命令：重载耗时提示；占位符：%elapsed_ms%
+  reload_success: "<green>EmakiItem 已重载</green>"
+  reload_summary: "<gray>已加载 <white>%items%</white> 个物品定义</gray>"
+  # 命令: 重载耗时提示; 占位符: %elapsed_ms%
   reload_elapsed: "<gray>重载耗时: <white>%elapsed_ms%</white>ms</gray>"
   item_not_found: "<red>找不到物品定义: <white>%id%</white></red>"
-  give_success: "<green>已给予 <aqua>%player%</aqua> <gold>%id%</gold> x%amount%。</green>"
+  give_success: "<green>已给予 <aqua>%player%</aqua> <gold>%id%</gold> x%amount%</green>"
   update_success:
-    "<green>已刷新 <aqua>%player%</aqua> 的物品更新与套装 Lore，共处理
-    <white>%count%</white> 件。</green>"
+    "<green>已刷新 <aqua>%player%</aqua> 的物品更新与套装 Lore, 共处理
+    <white>%count%</white> 件.</green>"
 console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
   plugin_started: "[startup] <green>启动完成</green>"
@@ -37,7 +37,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "物品配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -50,33 +50,33 @@ console:
   sets_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个套装</gray>"
   bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
   bootstrap_complete: "[loader] 默认资源同步完成"
-  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
   default_file_missing: "[loader] 内置资源不存在: %path%"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
-  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path%  (%error%)"
   directory_create_failed: "[loader] 创建目录失败: %path%"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   mythic_drops_registered: "[integration] <gray>MythicMobs Drops 已注册</gray>"
   item_state_unknown_sound: "[config] <yellow>item_state 阈值音效无法解析: <white>%sound%</white></yellow>"
-  # 控制台：物品 ID alias 加载数量；占位符：%count%
+  # 控制台: 物品 ID alias 加载数量; 占位符: %count%
   aliases_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个 alias</gray>"
-  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  # 控制台: 重载阶段失败; 占位符: %stage%, %error%
   reload_stage_failed: "[reload] <red>重载阶段 %stage% 失败: %error%</red>"
-  # 控制台：打开编辑界面失败；占位符：%item%、%error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiItem 编辑界面: %item% (%error%)</red>"
-  # 控制台：创建物品定义失败；占位符：%path%、%error%
-  editor_create_failed: "[editor] <red>无法创建 EmakiItem 定义: %path% (%error%)</red>"
-  # 控制台：编辑界面模板缺失；占位符：%template%
+  # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiItem 编辑界面: %item%  (%error%)</red>"
+  # 控制台: 创建物品定义失败; 占位符: %path%, %error%
+  editor_create_failed: "[editor] <red>无法创建 EmakiItem 定义: %path%  (%error%)</red>"
+  # 控制台: 编辑界面模板缺失; 占位符: %template%
   editor_template_missing: "[editor] <red>缺少 EmakiItem 编辑界面模板: %template%</red>"
-  # 控制台：打开套装定义失败；占位符：%file%、%error%
-  editor_set_open_failed: "[editor] <red>无法打开 EmakiItem 套装定义: %file% (%error%)</red>"
-  # 控制台：删除物品定义失败；占位符：%error%
+  # 控制台: 打开套装定义失败; 占位符: %file%, %error%
+  editor_set_open_failed: "[editor] <red>无法打开 EmakiItem 套装定义: %file%  (%error%)</red>"
+  # 控制台: 删除物品定义失败; 占位符: %error%
   editor_delete_failed: "[editor] <red>无法删除 EmakiItem 定义: %error%</red>"
   scripts:
-    engine_unavailable: "[script] <yellow>GraalJS 运行库不可用，脚本扩展已禁用，其余功能不受影响</yellow>"
-    disabled: "[script] <gray>脚本扩展已在配置中关闭，本次不加载脚本</gray>"
-    loaded: "[script] <gray>脚本加载完成: <yellow>%loaded%</yellow> 个文件，<yellow>%errors%</yellow> 个错误</gray>"
+    engine_unavailable: "[script] <yellow>GraalJS 运行库不可用, 脚本扩展已禁用, 其余功能不受影响</yellow>"
+    disabled: "[script] <gray>脚本扩展已在配置中关闭, 本次不加载脚本</gray>"
+    loaded: "[script] <gray>脚本加载完成: <yellow>%loaded%</yellow> 个文件,<yellow>%errors%</yellow> 个错误</gray>"
     file_error: "[script] <red>脚本加载失败: <white>%file%</white> -> %error%</red>"
     register_error: "[script] <red>脚本效果类型注册失败: <white>%id%</white> -> %error%</red>"
 command:
@@ -91,129 +91,129 @@ command:
       edit: "打开物品的游戏内编辑界面"
       give: "给予玩家物品"
       inspect: "检查主手 EmakiItem"
-      components: "输出主手物品组件（默认 JSON，可选 yaml）"
+      components: "输出主手物品组件 (默认 JSON, 可选 yaml)"
       repair: "打开物品修复界面"
-      state: "查询、修复或重算主手物品自定义状态"
+      state: "查询, 修复或重算主手物品自定义状态"
       update: "刷新玩家物品更新和套装 Lore"
       alias: "管理物品 ID alias"
       migrate: "预览或执行物品 ID 迁移"
       reload: "重载配置和物品定义"
       debug: "管理 Debug 模式"
   list:
-    header: "<gold>EmakiItem 物品列表</gold> <gray>(%page%/%pages%, 共 %count% 个)</gray>"
+    header: "<gold>EmakiItem 物品列表</gold> <gray> (%page%/%pages%, 共 %count% 个)</gray>"
     line: "<gray>- <white>%id%</white> <dark_gray>%name%</dark_gray>"
   inspect:
     header: "<aqua>%player%</aqua><gray> 主手物品</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
   components:
-    header: "<aqua>%player%</aqua><gray> 主手物品组件</gray> <dark_gray>(%count% 个)</dark_gray>"
-    no_item: "<red><white>%player%</white> 主手没有物品。</red>"
-    empty: "<yellow><white>%player%</white> 主手物品没有可展示组件。</yellow>"
+    header: "<aqua>%player%</aqua><gray> 主手物品组件</gray> <dark_gray> (%count% 个)</dark_gray>"
+    no_item: "<red><white>%player%</white> 主手没有物品</red>"
+    empty: "<yellow><white>%player%</white> 主手物品没有可展示组件</yellow>"
     not_found: "<red>找不到组件: <white>%id%</white></red>"
   state:
-    usage: "<red>用法：</red> <yellow>/ei state query|repair|recompute [player]</yellow>"
-    no_item: "<red><white>%player%</white> 主手没有物品。</red>"
-    header: "<aqua>%player%</aqua><gray> 主手物品状态</gray> <dark_gray>(%count% 个字段)</dark_gray>"
+    usage: "<red>用法:</red> <yellow>/ei state query|repair|recompute [player]</yellow>"
+    no_item: "<red><white>%player%</white> 主手没有物品</red>"
+    header: "<aqua>%player%</aqua><gray> 主手物品状态</gray> <dark_gray> (%count% 个字段)</dark_gray>"
     meta: "<gray>schema=<white>%schema%</white> revision=<white>%revision%</white> instance=<white>%instance%</white> valid=<white>%valid%</white></gray>"
-    line: "<gray>- <white>%key%</white> <dark_gray>(%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
-    repaired: "<green>已修复 <aqua>%player%</aqua> 主手物品状态元数据（schema=<white>%schema%</white>, valid=<white>%valid%</white>）。</green>"
-    recomputed: "<green>已重算 <aqua>%player%</aqua> 的状态派生，共处理 <white>%count%</white> 件。</green>"
+    line: "<gray>- <white>%key%</white> <dark_gray> (%type%)</dark_gray> = <aqua>%value%</aqua></gray>"
+    repaired: "<green>已修复 <aqua>%player%</aqua> 主手物品状态元数据 (schema=<white>%schema%</white>, valid=<white>%valid%</white>)</green>"
+    recomputed: "<green>已重算 <aqua>%player%</aqua> 的状态派生, 共处理 <white>%count%</white> 件</green>"
   alias:
-    # 命令：alias 列表标题；占位符：%count%
+    # 命令: alias 列表标题; 占位符: %count%
     header: "<gray>EmakiItem alias 列表: <white>%count%</white></gray>"
-    # 命令：alias 列表行；占位符：%old_id%、%target_id%
+    # 命令: alias 列表行; 占位符: %old_id%, %target_id%
     line: "<gray>- <aqua>%old_id%</aqua> -> <green>%target_id%</green></gray>"
-    # 命令：添加 alias 成功；占位符：%old_id%、%new_id%
-    added: "<green>Alias 已添加：</green> <aqua>%old_id%</aqua> -> <green>%new_id%</green>"
-    # 命令：删除 alias 成功；占位符：%old_id%
-    removed: "<green>Alias 已删除：</green> <aqua>%old_id%</aqua>"
-    # 命令：alias 不存在；占位符：%old_id%
-    missing: "<yellow>Alias 不存在：</yellow> <aqua>%old_id%</aqua>"
-    # 命令：alias 用法
-    usage: "<red>用法：</red> <yellow>/ei alias list | add <old> <new> | remove <old></yellow>"
+    # 命令: 添加 alias 成功; 占位符: %old_id%, %new_id%
+    added: "<green>Alias 已添加:</green> <aqua>%old_id%</aqua> -> <green>%new_id%</green>"
+    # 命令: 删除 alias 成功; 占位符: %old_id%
+    removed: "<green>Alias 已删除:</green> <aqua>%old_id%</aqua>"
+    # 命令: alias 不存在; 占位符: %old_id%
+    missing: "<yellow>Alias 不存在:</yellow> <aqua>%old_id%</aqua>"
+    # 命令: alias 用法
+    usage: "<red>用法:</red> <yellow>/ei alias list | add <old> <new> | remove <old></yellow>"
   migrate:
-    # 命令：迁移预览；占位符：%old_id%、%new_id%、%count%
-    preview: "<gray>迁移预览：<aqua>%old_id%</aqua> -> <green>%new_id%</green>，替换数 <white>%count%</white></gray>"
-    # 命令：迁移预览文件行；占位符：%file%
+    # 命令: 迁移预览; 占位符: %old_id%, %new_id%, %count%
+    preview: "<gray>迁移预览:<aqua>%old_id%</aqua> -> <green>%new_id%</green>, 替换数 <white>%count%</white></gray>"
+    # 命令: 迁移预览文件行; 占位符: %file%
     preview_file: "<gray>- %file%</gray>"
-    # 命令：迁移完成；占位符：%count%
-    applied: "<green>迁移完成：</green> 替换数 <white>%count%</white>，并保留 alias。"
-    # 命令：迁移失败；占位符：%error%
-    failed: "<red>迁移失败：</red> %error%"
-    # 命令：在线玩家背包迁移完成；占位符：%count%
-    inventory_all_done: "<green>在线玩家背包迁移完成：</green> %count% 件物品。"
-    # 命令：背包迁移完成；占位符：%player%、%count%
-    inventory_done: "<green>背包迁移完成：</green> %player% / %count% 件物品。"
-    # 命令：迁移用法
-    usage: "<red>用法：</red> <yellow>/ei migrate id <old> <new> --dry-run|--apply</yellow> 或 <yellow>/ei migrate inventory <player|all></yellow>"
+    # 命令: 迁移完成; 占位符: %count%
+    applied: "<green>迁移完成:</green> 替换数 <white>%count%</white>, 并保留 alias"
+    # 命令: 迁移失败; 占位符: %error%
+    failed: "<red>迁移失败:</red> %error%"
+    # 命令: 在线玩家背包迁移完成; 占位符: %count%
+    inventory_all_done: "<green>在线玩家背包迁移完成:</green> %count% 件物品"
+    # 命令: 背包迁移完成; 占位符: %player%, %count%
+    inventory_done: "<green>背包迁移完成:</green> %player% / %count% 件物品"
+    # 命令: 迁移用法
+    usage: "<red>用法:</red> <yellow>/ei migrate id <old> <new> --dry-run|--apply</yellow> 或 <yellow>/ei migrate inventory <player|all></yellow>"
   debug:
     stats:
-      # 命令：刷新统计输出；占位符：%events%、%skipped%、%batches%、%rejected%、%coalesced%、%requested_local%、%requested_full%、%update_local%、%update_full%、%set_local%、%set_full%
+      # 命令: 刷新统计输出; 占位符: %events%, %skipped%, %batches%, %rejected%, %coalesced%, %requested_local%, %requested_full%, %update_local%, %update_full%, %set_local%, %set_full%
       refresh: "<gray>EmakiItem 刷新统计:</gray> <white>events=%events% skipped=%skipped% batches=%batches% rejected=%rejected% coalesced=%coalesced% requested_local=%requested_local% requested_full=%requested_full% update_local=%update_local% update_full=%update_full% set_local=%set_local% set_full=%set_full%</white>"
-      # 命令：刷新工作统计输出；占位符：%cache_hits%、%cache_invalid%、%update_scanned%、%set_scanned%、%scanned%、%changed%、%conflicts%、%ledger_decodes%、%set_compiles%、%elapsed_ms%、%full_reasons%
+      # 命令: 刷新工作统计输出; 占位符: %cache_hits%, %cache_invalid%, %update_scanned%, %set_scanned%, %scanned%, %changed%, %conflicts%, %ledger_decodes%, %set_compiles%, %elapsed_ms%, %full_reasons%
       work: "<gray>刷新工作:</gray> <white>cache_hits=%cache_hits% cache_invalid=%cache_invalid% update_scanned=%update_scanned% set_scanned=%set_scanned% scanned=%scanned% changed=%changed% conflicts=%conflicts% ledger_decodes=%ledger_decodes% set_compiles=%set_compiles% elapsed_ms=%elapsed_ms% full_reasons=%full_reasons%</white>"
 repair:
-  gui_open_failed: "<red>修复界面不可用，请检查 gui/repair_gui.yml。</red>"
-  inventory_full: "<yellow>背包空间不足，剩余物品已掉落在脚下。</yellow>"
-  success: "<green>修复完成，恢复 <white>%restore%</white> 点耐久。</green>"
+  gui_open_failed: "<red>修复界面不可用, 请检查 gui/repair_gui.yml</red>"
+  inventory_full: "<yellow>背包空间不足, 剩余物品已掉落在脚下</yellow>"
+  success: "<green>修复完成, 恢复 <white>%restore%</white> 点耐久</green>"
   error:
-    invalid_item: "<red>请先放入可修复的 EmakiItem 装备。</red>"
-    insufficient_materials: "<red>修复材料不足。</red>"
-    invalid_restore: "<red>修复恢复值无效。</red>"
-    already_repaired: "<yellow>该物品无需修复。</yellow>"
-    cancelled: "<yellow>本次修复已被取消。</yellow>"
-    economy_disabled: "<red>该物品未启用经济修复。</red>"
-    not_repairable: "<red>该物品没有可修复耐久。</red>"
-    economy_provider_unavailable: "<red>经济服务不可用：<white>%provider%</white> / <white>%currency%</white></red>"
-    invalid_cost: "<red>经济修复未配置有效花费。</red>"
-    insufficient_funds: "<red><white>%name%</white> 不足，需要 <white>%required%</white>，当前 <white>%available%</white>。</red>"
+    invalid_item: "<red>请先放入可修复的 EmakiItem 装备</red>"
+    insufficient_materials: "<red>修复材料不足</red>"
+    invalid_restore: "<red>修复恢复值无效</red>"
+    already_repaired: "<yellow>该物品无需修复</yellow>"
+    cancelled: "<yellow>本次修复已被取消</yellow>"
+    economy_disabled: "<red>该物品未启用经济修复</red>"
+    not_repairable: "<red>该物品没有可修复耐久</red>"
+    economy_provider_unavailable: "<red>经济服务不可用:<white>%provider%</white> / <white>%currency%</white></red>"
+    invalid_cost: "<red>经济修复未配置有效花费</red>"
+    insufficient_funds: "<red><white>%name%</white> 不足, 需要 <white>%required%</white>, 当前 <white>%available%</white></red>"
   preview:
     title: "<gold>修复预览</gold>"
-    no_target_1: "<gray>将待修复装备放入左侧槽位。</gray>"
-    no_target_2: "<gray>材料修复和经济修复会在这里显示状态。</gray>"
+    no_target_1: "<gray>将待修复装备放入左侧槽位</gray>"
+    no_target_2: "<gray>材料修复和经济修复会在这里显示状态</gray>"
     invalid_title: "<red>无法修复</red>"
-    invalid_item: "<red>该物品不是可修复的 EmakiItem。</red>"
-    repair_disabled: "<red>该物品未启用 repair 配置。</red>"
-    not_repairable: "<red>该物品没有耐久组件。</red>"
+    invalid_item: "<red>该物品不是可修复的 EmakiItem</red>"
+    repair_disabled: "<red>该物品未启用 repair 配置</red>"
+    not_repairable: "<red>该物品没有耐久组件</red>"
     item: "<gray>物品: <white>%id%</white></gray>"
     damage: "<gray>损伤: <white>%damage%</white>/<white>%max%</white></gray>"
     disabled: "<red>状态: 已损坏</red>"
     enabled: "<green>状态: 可用</green>"
-    already_repaired: "<yellow>当前耐久已满。</yellow>"
-    materials_empty: "<dark_gray>未配置材料修复。</dark_gray>"
+    already_repaired: "<yellow>当前耐久已满</yellow>"
+    materials_empty: "<dark_gray>未配置材料修复</dark_gray>"
     materials_header: "<yellow>材料修复:</yellow>"
-    material_line_ready: "<green>✔ %material% x%required%（已有 %available%，恢复 %restore%）</green>"
-    material_line_missing: "<red>✘ %material% x%required%（已有 %available%，恢复 %restore%）</red>"
-    economy_disabled: "<dark_gray>未配置经济修复。</dark_gray>"
+    material_line_ready: "<green>✔ %material% x%required% (已有 %available%, 恢复 %restore%)</green>"
+    material_line_missing: "<red>✘ %material% x%required% (已有 %available%, 恢复 %restore%)</red>"
+    economy_disabled: "<dark_gray>未配置经济修复</dark_gray>"
     economy_header: "<yellow>经济修复:</yellow>"
-    economy_line_ready: "<green>✔ %name% %required%（余额 %available%）</green>"
-    economy_line_missing: "<red>✘ %name% %required%（余额 %available%）</red>"
+    economy_line_ready: "<green>✔ %name% %required% (余额 %available%)</green>"
+    economy_line_missing: "<red>✘ %name% %required% (余额 %available%)</red>"
   material_button:
     ready: "<green>材料修复</green>"
     blocked: "<red>材料修复不可用</red>"
-    no_target: "<gray>请先放入可修复装备。</gray>"
-    need_material: "<gray>请放入足够修复材料。</gray>"
-    material: "<gray>消耗 <white>%material%</white> x%amount%，恢复 <white>%restore%</white>。</gray>"
+    no_target: "<gray>请先放入可修复装备</gray>"
+    need_material: "<gray>请放入足够修复材料</gray>"
+    material: "<gray>消耗 <white>%material%</white> x%amount%, 恢复 <white>%restore%</white></gray>"
   economy_button:
     ready: "<green>经济修复</green>"
     blocked: "<red>经济修复不可用</red>"
-    disabled: "<gray>该物品未配置经济修复。</gray>"
-    restore: "<gray>恢复 <white>%restore%</white> 点耐久。</gray>"
-    cost: "<gray>消耗 <white>%name%</white> <white>%required%</white>（余额 <white>%available%</white>）。</gray>"
+    disabled: "<gray>该物品未配置经济修复</gray>"
+    restore: "<gray>恢复 <white>%restore%</white> 点耐久</gray>"
+    cost: "<gray>消耗 <white>%name%</white> <white>%required%</white> (余额 <white>%available%</white>)</gray>"
 
 browser:
-  gui_open_failed: "<red>浏览界面不可用，请检查 gui/pack_browser_gui.yml 与 gui/item_browser_gui.yml。</red>"
+  gui_open_failed: "<red>浏览界面不可用, 请检查 gui/pack_browser_gui.yml 与 gui/item_browser_gui.yml</red>"
   default_pack_name: "<gray>未分包</gray>"
   pack_lore_fallback: "<gray>共 <white>%count%</white> 件物品</gray>"
   pack_click_hint: "<yellow>点击查看</yellow>"
   page_info_title: "<gray>第 <white>%current_page%</white>/<white>%total_pages%</white> 页</gray>"
-  take_success: "<green>已取出 <white>%name%</white> <dark_gray>(%id%)</dark_gray> x<white>%amount%</white>。</green>"
+  take_success: "<green>已取出 <white>%name%</white> <dark_gray> (%id%)</dark_gray> x<white>%amount%</white></green>"
   take_failed: "<red>无法取出物品: <white>%id%</white></red>"
-  inventory_full: "<yellow>背包空间不足，<white>%count%</white> 件物品已掉落在脚下。</yellow>"
+  inventory_full: "<yellow>背包空间不足,<white>%count%</white> 件物品已掉落在脚下</yellow>"
   item_hint:
-    take: "<yellow>左键：取出 x1</yellow>"
-    take_stack: "<yellow>Shift+左键：取出一整叠</yellow>"
-    edit: "<gold>右键：打开游戏内编辑器</gold>"
+    take: "<yellow>左键: 取出 x1</yellow>"
+    take_stack: "<yellow>Shift+左键: 取出一整叠</yellow>"
+    edit: "<gold>右键: 打开游戏内编辑器</gold>"
 
 debug:
   create:
@@ -274,28 +274,28 @@ editor:
     list_entries: "条目编辑"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     equip_slot: "生效槽位"
-    equip_slot_desc: "<dark_gray>决定物品在哪些槽位生效，all 表示所有槽位</dark_gray>"
+    equip_slot_desc: "<dark_gray>决定物品在哪些槽位生效, all 表示所有槽位</dark_gray>"
     item_source: "物品来源"
-    item_source_desc: "<dark_gray>基础物品来源简写，例如 minecraft-stone</dark_gray>"
+    item_source_desc: "<dark_gray>基础物品来源简写, 例如 minecraft-stone</dark_gray>"
     update_enabled: "启用自动更新"
     update_enabled_desc: "<dark_gray>配置变更后自动重写玩家身上的既有物品</dark_gray>"
     update_version: "配置版本号"
-    update_version_desc: "<dark_gray>配置版本号，递增后才会触发既有物品更新</dark_gray>"
+    update_version_desc: "<dark_gray>配置版本号, 递增后才会触发既有物品更新</dark_gray>"
     preserve_amount: "更新时保留数量"
     preserve_amount_desc: "<dark_gray>更新时保留物品原有的数量</dark_gray>"
     preserve_damage: "更新时保留损坏值"
@@ -318,7 +318,7 @@ editor:
       command: "更新触发: 指令"
       command_desc: "<dark_gray>执行指令时检查并更新物品</dark_gray>"
     set_id: "套装 ID"
-    set_id_desc: "<dark_gray>该物品归属的套装 ID，留空表示不属于套装</dark_gray>"
+    set_id_desc: "<dark_gray>该物品归属的套装 ID, 留空表示不属于套装</dark_gray>"
     set_piece: "套装部件"
     set_piece_desc: "<dark_gray>该物品在套装中的部件标识</dark_gray>"
     manage_sets: "管理套装定义"
@@ -342,9 +342,9 @@ editor:
     set_lore_separator: "Lore 模板: 分隔符"
     set_lore_separator_desc: "<dark_gray>套装 Lore 各段之间的分隔行</dark_gray>"
     condition_type: "条件组合方式"
-    condition_type_desc: "<dark_gray>all_of 需全部满足，any_of 满足其一即可</dark_gray>"
+    condition_type_desc: "<dark_gray>all_of 需全部满足, any_of 满足其一即可</dark_gray>"
     condition_required_count: "需要满足的最少条件数"
-    condition_required_count_desc: "<dark_gray>需要满足的最少条目数，0 表示全部</dark_gray>"
+    condition_required_count_desc: "<dark_gray>需要满足的最少条目数, 0 表示全部</dark_gray>"
     condition_invalid: "解析失败视为不满足"
     condition_invalid_desc: "<dark_gray>条目解析失败时按不满足处理</dark_gray>"
     condition_fail_message: "不满足时提示"
@@ -374,16 +374,16 @@ editor:
     repair_economy_enabled: "启用经济修复"
     repair_economy_enabled_desc: "<dark_gray>是否启用按货币扣费的修复</dark_gray>"
     repair_economy_restore: "经济修复恢复量"
-    repair_economy_restore_desc: "<dark_gray>每次经济修复恢复的耐久量，支持百分比</dark_gray>"
+    repair_economy_restore_desc: "<dark_gray>每次经济修复恢复的耐久量, 支持百分比</dark_gray>"
     repair_currencies: "货币设置"
     repair_currencies_desc: "<dark_gray>经济修复使用的货币与价格列表</dark_gray>"
     component_search: "搜索组件"
     component_search_desc: "<dark_gray>按显示名或组件 ID 过滤组件列表</dark_gray>"
     component_search_value: "<dark_gray>当前筛选: <white>%filter%</white></dark_gray>"
     skin_edit: "头颅皮肤"
-    skin_edit_desc: "<dark_gray>设置头颅皮肤：玩家名 / 纹理 URL / 纹理 base64</dark_gray>"
+    skin_edit_desc: "<dark_gray>设置头颅皮肤: 玩家名 / 纹理 URL / 纹理 base64</dark_gray>"
     effect_type: "效果类型"
-    effect_type_desc: "<dark_gray>效果类型：变量/属性/技能/饰品槽/展示动作</dark_gray>"
+    effect_type_desc: "<dark_gray>效果类型: 变量/属性/技能/饰品槽/展示动作</dark_gray>"
     effect_variables: "变量映射"
     effect_variables_desc: "<dark_gray>暴露给动作系统使用的变量映射</dark_gray>"
     effect_attributes: "属性映射"
@@ -405,7 +405,7 @@ editor:
     mat_item_sources: "材料来源"
     mat_item_sources_desc: "<dark_gray>可作为修复材料的物品来源列表</dark_gray>"
     mat_matcher_type: "匹配器类型"
-    mat_matcher_type_desc: "<dark_gray>材料的附加匹配器类型，可留空</dark_gray>"
+    mat_matcher_type_desc: "<dark_gray>材料的附加匹配器类型, 可留空</dark_gray>"
     mat_matcher_component: "匹配器组件"
     mat_matcher_component_desc: "<dark_gray>匹配器检查的组件 ID</dark_gray>"
     mat_matcher_operator: "匹配器运算符"
@@ -413,7 +413,7 @@ editor:
     mat_matcher_value: "匹配器取值"
     mat_matcher_value_desc: "<dark_gray>匹配器比较的目标值</dark_gray>"
     cond_type: "条目类型"
-    cond_type_desc: "<dark_gray>条目类型：expression 表达式 / group 嵌套组</dark_gray>"
+    cond_type_desc: "<dark_gray>条目类型: expression 表达式 / group 嵌套组</dark_gray>"
     cond_expression: "条件表达式"
     cond_expression_desc: "<dark_gray>条件表达式文本</dark_gray>"
     cond_required_count: "子条件最少满足数"
@@ -426,20 +426,20 @@ editor:
     actions_list_desc: "<dark_gray>触发器与动作行的映射列表</dark_gray>"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   dialog:
     confirm: "确认"
     cancel: "取消"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    skin: "<yellow>请在聊天栏输入玩家名 / 皮肤纹理 URL / 纹理 base64，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    skin: "<yellow>请在聊天栏输入玩家名 / 皮肤纹理 URL / 纹理 base64, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   skin:
-    invalid: "<red>皮肤输入无效，请给出玩家名、纹理 URL 或纹理 base64</red>"
+    invalid: "<red>皮肤输入无效, 请给出玩家名, 纹理 URL 或纹理 base64</red>"
   set:
     missing: "<red>找不到套装定义 %id%</red>"
   action:
@@ -450,43 +450,43 @@ editor:
     missing_argument: "<red>动作行缺少必填参数</red>"
   hint:
     format: "<gray>值格式: %format%</gray>"
-    action_generic: "<gray>动作行格式: 段 [参数=值 ...]，多段用 | 连接</gray>"
-    action_parameters: "<gray>动作段 %stage% 参数: %params%（* 为必填）</gray>"
+    action_generic: "<gray>动作行格式: 段 [参数=值 ...], 多段用 | 连接</gray>"
+    action_parameters: "<gray>动作段 %stage% 参数: %params% (* 为必填)</gray>"
     skin: "<gray>三种输入均可: 玩家名 / 皮肤纹理 URL / 纹理 base64</gray>"
-    component_search: "<gray>输入关键词过滤组件列表，留空则清除筛选</gray>"
-    new_item_id: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
+    component_search: "<gray>输入关键词过滤组件列表, 留空则清除筛选</gray>"
+    new_item_id: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
   component:
     search_empty: "(未筛选)"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
     version: "<dark_gray>需要版本 %version%</dark_gray>"
   get_item:
     success: "<green>已获得物品 %id%</green>"
   delete:
     title: "确认删除物品 %id%"
-    body: "确定要删除此物品吗？"
-    body_irreversible: "<red>此操作不可撤销</red>；已发放到玩家背包的物品不会被回收。"
+    body: "确定要删除此物品吗?"
+    body_irreversible: "<red>此操作不可撤销</red>; 已发放到玩家背包的物品不会被回收"
     confirm_button: "确认删除"
     cancel_button: "取消"
-    cancelled: "<gray>已取消删除，物品数据保留</gray>"
+    cancelled: "<gray>已取消删除, 物品数据保留</gray>"
     references: "<yellow>以下配置仍在引用该物品: %refs%</yellow>"
-    confirm: "<red>再次点击「删除物品」以确认删除</red>"
+    confirm: "<red>再次点击\"删除物品\"以确认删除</red>"
     success: "<green>已删除物品 %id%</green>"
-    failed: "<red>删除失败，详见控制台</red>"
+    failed: "<red>删除失败, 详见控制台</red>"
   create:
-    prompt: "<yellow>请在聊天栏输入新物品的 ID（小写字母/数字/下划线），输入 cancel 取消</yellow>"
-    invalid_id: "<red>物品 ID 非法，只允许小写字母、数字与下划线</red>"
+    prompt: "<yellow>请在聊天栏输入新物品的 ID (小写字母/数字/下划线), 输入 cancel 取消</yellow>"
+    invalid_id: "<red>物品 ID 非法, 只允许小写字母, 数字与下划线</red>"
     duplicate_id: "<red>物品 ID %id% 已存在</red>"
     success: "<green>已创建物品 %id%</green>"
-    failed: "<red>创建失败，详见控制台</red>"
+    failed: "<red>创建失败, 详见控制台</red>"
   command:
     usage: "<gray>用法: /ei edit <物品ID></gray>"
     unknown_item: "<red>找不到物品 %id%</red>"

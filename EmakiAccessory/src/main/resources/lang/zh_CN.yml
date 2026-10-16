@@ -1,6 +1,6 @@
-# EmakiAccessory 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiAccessory 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 version: "1.1.8"
 
 console:
@@ -10,9 +10,9 @@ console:
   bootstrap_start: "[loader] <gray>正在检查配置文件...</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
   bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
   config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
@@ -26,7 +26,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "EmakiAccessory 配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -35,34 +35,34 @@ console:
       required_directory_missing: "缺少必需目录"
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
-  # 控制台：打开编辑界面失败；占位符：%item%、%error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiAccessory 编辑界面: %item% (%error%)</red>"
-  # 控制台：编辑界面模板缺失；占位符：%template%
+  # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiAccessory 编辑界面: %item%  (%error%)</red>"
+  # 控制台: 编辑界面模板缺失; 占位符: %template%
   editor_template_missing: "[editor] <red>缺少 EmakiAccessory 编辑界面模板: %template%</red>"
-  # 控制台：创建定义失败；占位符：%path%、%error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  # 控制台：删除定义失败；占位符：%path%、%error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  # 控制台：列举定义目录失败；占位符：%path%、%error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
+  # 控制台: 创建定义失败; 占位符: %path%, %error%
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  # 控制台: 删除定义失败; 占位符: %path%, %error%
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  # 控制台: 列举定义目录失败; 占位符: %path%, %error%
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
 
 general:
   prefix: "<gray>[ <gradient:#F472B6:#C084FC>EmakiAccessory</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行这个操作</red>"
   players_only: "<red>这个命令只能由玩家执行</red>"
-  data_loading: "<yellow>饰品数据还在加载，请稍后再试</yellow>"
+  data_loading: "<yellow>饰品数据还在加载, 请稍后再试</yellow>"
 
 gui:
-  read_only: "<red>你只能查看，不能修改这些饰品</red>"
-  orphan_read_only: "<yellow>这件饰品所在的槽位已被移除，只能取出</yellow>"
-  orphan_hint: "<dark_gray>槽位已移除，取出后无法放回</dark_gray>"
+  read_only: "<red>你只能查看, 不能修改这些饰品</red>"
+  orphan_read_only: "<yellow>这件饰品所在的槽位已被移除, 只能取出</yellow>"
+  orphan_hint: "<dark_gray>槽位已移除, 取出后无法放回</dark_gray>"
   click_unsupported: "<red>饰品栏不支持这种点击方式</red>"
-  transfer_unsupported: "<red>饰品栏不支持这种搬运方式，请逐格放取</red>"
-  slot_mismatch: "<red>这件饰品只能戴在 <white>%required%</white>，放不进 <white>%slot%</white></red>"
-  not_declared: "<red>这件物品没有声明任何饰品槽，无法放入饰品栏</red>"
-  invalid_returned: "<red><white>%slot%</white> 里的物品不是本槽位的有效饰品，已退回你的背包</red>"
-  condition_unmet: "<red>装备条件未满足：属性与技能已失效</red>"
-  durability_broken: "<red>耐久已耗尽：属性与技能已失效</red>"
+  transfer_unsupported: "<red>饰品栏不支持这种搬运方式, 请逐格放取</red>"
+  slot_mismatch: "<red>这件饰品只能戴在 <white>%required%</white>, 放不进 <white>%slot%</white></red>"
+  not_declared: "<red>这件物品没有声明任何饰品槽, 无法放入饰品栏</red>"
+  invalid_returned: "<red><white>%slot%</white> 里的物品不是本槽位的有效饰品, 已退回你的背包</red>"
+  condition_unmet: "<red>装备条件未满足: 属性与技能已失效</red>"
+  durability_broken: "<red>耐久已耗尽: 属性与技能已失效</red>"
   unique_conflict: "<red>你已经在同一页的 <white>%conflict%</white> 戴了同一件饰品</red>"
   page_enable_lore: "<dark_gray>点击将本页设为生效页</dark_gray>"
   page_enabled_lore: "<green>本页正在生效</green>"
@@ -70,78 +70,78 @@ gui:
   page_already_enabled: "<yellow>本页已经是生效页了</yellow>"
   page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
   page_no_permission: "<red>你没有权限使用饰品页 <white>%page%</white></red>"
-  session_stale: "<red>饰品数据已重新加载，请关闭并重新打开饰品栏</red>"
+  session_stale: "<red>饰品数据已重新加载, 请关闭并重新打开饰品栏</red>"
 
 durability:
-  broken_notify: "<red><white>%slot%</white> 的饰品耐久已耗尽，属性与技能不再生效</red>"
+  broken_notify: "<red><white>%slot%</white> 的饰品耐久已耗尽, 属性与技能不再生效</red>"
 
 command:
   help: |
     <gold>EmakiAccessory 指令</gold>
-    <yellow>/eacc open [页]</yellow> <gray>- 打开饰品栏，不带页时打开生效页</gray>
+    <yellow>/eacc open [页]</yellow> <gray>- 打开饰品栏, 不带页时打开生效页</gray>
     <yellow>/eacc list</yellow> <gray>- 列出生效页的饰品槽</gray>
     <yellow>/eacc pages</yellow> <gray>- 列出所有饰品页</gray>
-    <yellow>/eacc retrieve <页></yellow> <gray>- 取回该页全部饰品，主要用于没有权限的页</gray>
-    <yellow>/eacc edit [id]</yellow> <gray>- 打开定义编辑器，不带 id 时打开浏览界面</gray>
-    <yellow>/eacc reload</yellow> <gray>- 重载配置、部位、套装与饰品页</gray>
+    <yellow>/eacc retrieve <页></yellow> <gray>- 取回该页全部饰品, 主要用于没有权限的页</gray>
+    <yellow>/eacc edit [id]</yellow> <gray>- 打开定义编辑器, 不带 id 时打开浏览界面</gray>
+    <yellow>/eacc reload</yellow> <gray>- 重载配置, 部位, 套装与饰品页</gray>
     <yellow>/eacc debug</yellow> <gray>- 调试开关</gray>
     <yellow>/eacc admin</yellow> <gray>- 管理指令</gray>
   admin_usage: |
     <gold>管理指令</gold>
-    <yellow>/eacc admin view <玩家></yellow> <gray>- 查看饰品（只读）</gray>
-    <yellow>/eacc admin edit <玩家></yellow> <gray>- 编辑饰品（仅在线玩家）</gray>
-    <yellow>/eacc admin clear <玩家></yellow> <gray>- 清空饰品（不可撤销，会记入日志）</gray>
+    <yellow>/eacc admin view <玩家></yellow> <gray>- 查看饰品 (只读)</gray>
+    <yellow>/eacc admin edit <玩家></yellow> <gray>- 编辑饰品 (仅在线玩家)</gray>
+    <yellow>/eacc admin clear <玩家></yellow> <gray>- 清空饰品 (不可撤销, 会记入日志)</gray>
     <yellow>/eacc admin save</yellow> <gray>- 立刻保存所有饰品数据</gray>
-  open_failed: "<red>无法打开饰品栏，请检查界面布局配置</red>"
-  list_header: "<gold>饰品槽</gold> <gray>页 <white>%page%</white>，已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
+  open_failed: "<red>无法打开饰品栏, 请检查界面布局配置</red>"
+  list_header: "<gold>饰品槽</gold> <gray>页 <white>%page%</white>, 已用 <yellow>%used%</yellow> / <yellow>%max%</yellow></gray>"
   list_entry_filled: "<gray>- <white>%slot%</white> <green>已装备</green></gray>"
   list_entry_empty: "<gray>- <white>%slot%</white> <dark_gray>空</dark_gray></gray>"
   pages_header: "<gold>饰品页</gold> <gray>共 <yellow>%count%</yellow> 页</gray>"
-  pages_entry: "<gray>- <white>%page%</white> %name% <gray>(<yellow>%count%</yellow> 件)</gray></gray>"
-  pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>生效中</green> <gray>(<yellow>%count%</yellow> 件)</gray></gray>"
-  pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>无权限</red> <gray>(<yellow>%count%</yellow> 件，可用 retrieve 取回)</gray></gray>"
+  pages_entry: "<gray>- <white>%page%</white> %name% <gray> (<yellow>%count%</yellow> 件)</gray></gray>"
+  pages_entry_enabled: "<gray>- <white>%page%</white> %name% <green>生效中</green> <gray> (<yellow>%count%</yellow> 件)</gray></gray>"
+  pages_entry_locked: "<gray>- <white>%page%</white> %name% <red>无权限</red> <gray> (<yellow>%count%</yellow> 件, 可用 retrieve 取回)</gray></gray>"
   page_unknown: "<red>找不到饰品页 <white>%page%</white></red>"
-  page_no_permission: "<red>你没有权限打开饰品页 <white>%page%</white>，可用 <white>/eacc retrieve %page%</white> 取回其中饰品</red>"
-  retrieve_usage: "<yellow>用法：/eacc retrieve <页></yellow> <gray>取回该页全部饰品，主要用于没有权限的页</gray>"
-  retrieve_done: "<green>已取回饰品页 <white>%page%</white></green> <gray>共 <yellow>%count%</yellow> 件，背包放不下的已掉在脚下</gray>"
+  page_no_permission: "<red>你没有权限打开饰品页 <white>%page%</white>, 可用 <white>/eacc retrieve %page%</white> 取回其中饰品</red>"
+  retrieve_usage: "<yellow>用法: /eacc retrieve <页></yellow> <gray>取回该页全部饰品, 主要用于没有权限的页</gray>"
+  retrieve_done: "<green>已取回饰品页 <white>%page%</white></green> <gray>共 <yellow>%count%</yellow> 件, 背包放不下的已掉在脚下</gray>"
   retrieve_empty: "<yellow>饰品页 <white>%page%</white> 里没有饰品</yellow>"
   retrieve_unknown_page: "<red>找不到饰品页 <white>%page%</white></red>"
-  retrieve_busy: "<red>正有其他人在编辑你的饰品，请稍后再试</red>"
-  reload_done: "<green>重载完成</green> <gray>槽位 <yellow>%slots%</yellow>，套装 <yellow>%sets%</yellow>，问题 <yellow>%issues%</yellow></gray>"
-  # 命令：重载耗时提示；占位符：%elapsed_ms%
+  retrieve_busy: "<red>正有其他人在编辑你的饰品, 请稍后再试</red>"
+  reload_done: "<green>重载完成</green> <gray>槽位 <yellow>%slots%</yellow>, 套装 <yellow>%sets%</yellow>, 问题 <yellow>%issues%</yellow></gray>"
+  # 命令: 重载耗时提示; 占位符: %elapsed_ms%
   reload_elapsed: "<gray>重载耗时: <white>%elapsed_ms%ms</white></gray>"
   unknown_player: "<red>找不到玩家 <white>%player%</white></red>"
-  admin_target_offline: "<red>该玩家不在线，无法执行这个操作</red>"
+  admin_target_offline: "<red>该玩家不在线, 无法执行这个操作</red>"
   admin_target_busy: "<red>已有其他人正在编辑这个玩家的饰品</red>"
   admin_load_failed: "<red>读取 <white>%player%</white> 的饰品数据失败</red>"
   admin_clear_done: "<green>已清空 <white>%player%</white> 的饰品</green> <gray>共 <yellow>%count%</yellow> 件</gray>"
-  admin_clear_failed: "<red>清空 <white>%player%</white> 的饰品失败，数据可能未加载</red>"
+  admin_clear_failed: "<red>清空 <white>%player%</white> 的饰品失败, 数据可能未加载</red>"
   admin_save_done: "<green>已保存 <yellow>%count%</yellow> 份饰品数据</green>"
   debug_unavailable: "<red>调试功能当前不可用</red>"
 
 accessory:
   parts_load_failed: "[loader] 读取 %file% 失败: %error%"
-  parts_section_missing: "[loader] %file% 缺少 parts 段，没有任何饰品部位生效"
-  part_id_illegal: "[loader] 部位 id 不合法，已跳过: %part% (只能用小写字母、数字、下划线，且不能以 _<数字> 结尾)"
-  part_count_invalid: "[loader] 部位 %part% 的 count 不合法 (%count%)，已跳过"
-  part_instance_conflict: "[loader] 部位 %part% 展开出的槽位 %slot% 与已有槽位重名，该部位已跳过"
-  gui_template_missing: "[gui] 缺少界面布局 %template%，饰品栏无法打开"
-  gui_slot_multi_cell: "[gui] 槽位 %slot% 占了 %count% 格，只有第一格生效"
-  gui_cell_conflict: "[gui] 槽位 %slot% 想占用第 %cell% 格，但该格已被占用，已跳过"
-  gui_slot_unplaced: "[gui] 饰品页 %page% 的槽位 %slot% 没有在界面布局里摆放，玩家无法使用"
-  pages_missing: "[loader] pages 目录里没有任何有效的饰品页，饰品栏无法打开"
-  page_without_parts: "[loader] %file% 里的饰品页 %page% 没有列出任何部位，已跳过"
-  page_unknown_part: "[loader] 饰品页 %page% 引用了未定义的部位 %part%，该部位不会出现在本页"
-  invalid_slot_pattern: "[loader] 槽位 Lore 正则 %pattern% 编译失败，已跳过: %error%"
-  set_without_pieces: "[loader] %file% 里的套装 %set% 没有任何成员，已跳过"
-  set_piece_invalid: "[loader] %file% 里套装 %set% 的成员 %piece% 缺少 item，已跳过"
-  set_threshold_not_numeric: "[loader] %file% 里套装 %set% 的阈值 %threshold% 不是整数，已跳过"
-  set_threshold_out_of_range: "[loader] %file% 里套装 %set% 的阈值 %threshold% 超出范围 (成员总数 %total%)，已跳过"
+  parts_section_missing: "[loader] %file% 缺少 parts 段, 没有任何饰品部位生效"
+  part_id_illegal: "[loader] 部位 id 不合法, 已跳过: %part%  (只能用小写字母, 数字, 下划线, 且不能以 _<数字> 结尾)"
+  part_count_invalid: "[loader] 部位 %part% 的 count 不合法  (%count%), 已跳过"
+  part_instance_conflict: "[loader] 部位 %part% 展开出的槽位 %slot% 与已有槽位重名, 该部位已跳过"
+  gui_template_missing: "[gui] 缺少界面布局 %template%, 饰品栏无法打开"
+  gui_slot_multi_cell: "[gui] 槽位 %slot% 占了 %count% 格, 只有第一格生效"
+  gui_cell_conflict: "[gui] 槽位 %slot% 想占用第 %cell% 格, 但该格已被占用, 已跳过"
+  gui_slot_unplaced: "[gui] 饰品页 %page% 的槽位 %slot% 没有在界面布局里摆放, 玩家无法使用"
+  pages_missing: "[loader] pages 目录里没有任何有效的饰品页, 饰品栏无法打开"
+  page_without_parts: "[loader] %file% 里的饰品页 %page% 没有列出任何部位, 已跳过"
+  page_unknown_part: "[loader] 饰品页 %page% 引用了未定义的部位 %part%, 该部位不会出现在本页"
+  invalid_slot_pattern: "[loader] 槽位 Lore 正则 %pattern% 编译失败, 已跳过: %error%"
+  set_without_pieces: "[loader] %file% 里的套装 %set% 没有任何成员, 已跳过"
+  set_piece_invalid: "[loader] %file% 里套装 %set% 的成员 %piece% 缺少 item, 已跳过"
+  set_threshold_not_numeric: "[loader] %file% 里套装 %set% 的阈值 %threshold% 不是整数, 已跳过"
+  set_threshold_out_of_range: "[loader] %file% 里套装 %set% 的阈值 %threshold% 超出范围  (成员总数 %total%), 已跳过"
 
 debug:
   accessory:
-    recompute: "<gray>[DEBUG][Accessory] 玩家 <player> 饰品贡献重算完成：属性 <attributes> 项，技能 <skills> 项，套装 <sets> 组</gray>"
-    inactive_slot: "<gray>[DEBUG][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献：条件满足 <condition>，耐久完好 <durability_intact></gray>"
+    recompute: "<gray>[DEBUG][Accessory] 玩家 <player> 饰品贡献重算完成: 属性 <attributes> 项, 技能 <skills> 项, 套装 <sets> 组</gray>"
+    inactive_slot: "<gray>[DEBUG][Accessory] 玩家 <player> 的槽位 <slot> 不参与贡献: 条件满足 <condition>, 耐久完好 <durability_intact></gray>"
 
 editor:
   menu:
@@ -154,22 +154,22 @@ editor:
     pages: "饰品页"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     nav_parts: "饰品部位"
-    nav_parts_desc: "<dark_gray>进入部位定义，编辑各部位的数量与展示</dark_gray>"
+    nav_parts_desc: "<dark_gray>进入部位定义, 编辑各部位的数量与展示</dark_gray>"
     set_display_name: "套装显示名"
     set_display_name_desc: "<dark_gray>套装整体显示的名称</dark_gray>"
     set_pieces: "套装成员"
@@ -177,19 +177,19 @@ editor:
     set_thresholds: "件数阈值"
     set_thresholds_desc: "<dark_gray>按已装备件数激活的阈值奖励</dark_gray>"
     page_id: "饰品页 ID"
-    page_id_desc: "<dark_gray>饰品页唯一标识，与文件名无关</dark_gray>"
+    page_id_desc: "<dark_gray>饰品页唯一标识, 与文件名无关</dark_gray>"
     page_display_name: "饰品页显示名"
     page_display_name_desc: "<dark_gray>饰品页在界面中显示的名称</dark_gray>"
     page_order: "排序值"
-    page_order_desc: "<dark_gray>升序显示，最小值为默认启用页</dark_gray>"
+    page_order_desc: "<dark_gray>升序显示, 最小值为默认启用页</dark_gray>"
     page_gui_template: "界面布局"
     page_gui_template_desc: "<dark_gray>饰品页使用的界面布局模板 ID</dark_gray>"
     page_permission: "使用权限"
-    page_permission_desc: "<dark_gray>打开该页所需的权限节点，留空不限制</dark_gray>"
+    page_permission_desc: "<dark_gray>打开该页所需的权限节点, 留空不限制</dark_gray>"
     page_parts: "包含部位"
     page_parts_desc: "<dark_gray>该页引用的部位列表</dark_gray>"
     count: "数量"
-    count_desc: "<dark_gray>该部位展开的槽位数量，修改后按新序号保留数据</dark_gray>"
+    count_desc: "<dark_gray>该部位展开的槽位数量, 修改后按新序号保留数据</dark_gray>"
     display_name: "展示名称"
     display_name_desc: "<dark_gray>部位在界面里展示的名称</dark_gray>"
     icon: "图标材质"
@@ -197,11 +197,11 @@ editor:
     durability_deduction: "扣除耐久"
     durability_deduction_desc: "<dark_gray>该部位是否允许扣除耐久度</dark_gray>"
     id: "定义 ID"
-    id_desc: "<dark_gray>定义唯一标识，不可修改</dark_gray>"
+    id_desc: "<dark_gray>定义唯一标识, 不可修改</dark_gray>"
     item: "物品 ID"
     item_desc: "<dark_gray>成员引用的 EmakiItem 物品 ID</dark_gray>"
     slot: "部位限制"
-    slot_desc: "<dark_gray>成员可装备的部位或槽位，留空表示任意饰品槽</dark_gray>"
+    slot_desc: "<dark_gray>成员可装备的部位或槽位, 留空表示任意饰品槽</dark_gray>"
     display: "成员展示名"
     display_desc: "<dark_gray>成员在套装展示中使用的名称</dark_gray>"
     effects: "阈值效果"
@@ -220,41 +220,41 @@ editor:
     "3_desc": "<dark_gray>已装备 3 件时激活的阈值效果</dark_gray>"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"

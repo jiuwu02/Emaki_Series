@@ -1,19 +1,19 @@
-# EmakiGem 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiGem 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "2.8.11"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#A855F7>EmakiGem</gradient> ]</gray>"
-  unknown_command: "<red>未知命令，请使用 <yellow>/emakigem help</yellow> 查看帮助。</red>"
-  player_only: "<red>这个命令只能由玩家执行。</red>"
-  no_permission: "<red>你没有权限执行这个命令。</red>"
-  invalid_args: "<red>参数错误，请检查命令格式。</red>"
-  player_not_found: "<red>找不到目标玩家。</red>"
+  unknown_command: "<red>未知命令, 请使用 <yellow>/emakigem help</yellow> 查看帮助</red>"
+  player_only: "<red>这个命令只能由玩家执行</red>"
+  no_permission: "<red>你没有权限执行这个命令</red>"
+  invalid_args: "<red>参数错误, 请检查命令格式</red>"
+  player_not_found: "<red>找不到目标玩家</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  reload_success: "<green>配置已重载。</green>"
-  reload_summary: "<gray>已加载宝石 %gems% 个、装备 %items% 个、GUI 模板 %guis% 个。</gray>"
+  reload_success: "<green>配置已重载</green>"
+  reload_summary: "<gray>已加载宝石 %gems% 个, 装备 %items% 个, GUI 模板 %guis% 个</gray>"
 
 console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
@@ -29,7 +29,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "EmakiGem 配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -39,21 +39,21 @@ console:
       path_not_directory: "指定路径不是目录"
       directory_not_readable: "目录不可读"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false，跳过默认数据文件生成</gray>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false, 跳过默认数据文件生成</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  default_file_missing: "[loader] <yellow>缺少内置默认资源，已跳过: <red>%path%</red></yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  default_file_missing: "[loader] <yellow>缺少内置默认资源, 已跳过: <red>%path%</red></yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   directory_create_failed: "[loader] <yellow>无法创建目录: <red>%path%</red></yellow>"
-  loader_config_load_error: "[loader] <red>加载配置失败: %path% (%error%)</red>"
+  loader_config_load_error: "[loader] <red>加载配置失败: %path%  (%error%)</red>"
   pdc_source_registered: "[loader] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
   gems_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个宝石</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiGem 编辑界面: %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>无法打开 EmakiGem 编辑界面: %item%  (%error%)</red>"
   editor_template_missing: "[editor] <red>缺少 EmakiGem 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   reroll_refresh_degraded: "[persistence] <yellow>洗炼写回后的宝石刷新未生效 | 操作号=%operation_id% | 实例=%instance_id% | 刷新结果=%outcome% | 原因=%reason% | 期望指纹=%expected_fingerprint% | 实际指纹=%presented_fingerprint%</yellow>"
 
@@ -64,48 +64,48 @@ loader:
     resonance: "共鸣"
   lang_directory_create_failed: "[loader] <red>无法创建语言目录: %path%</red>"
   bundled_language_load_failed: "[loader] <red>读取内置语言失败: %error%</red>"
-  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%，无法写入 %path%</red>"
+  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%, 无法写入 %path%</red>"
   directory_create_failed: "[loader] <red>无法创建目录: %path%</red>"
   invalid_blank_id: "[loader] <red>%type% 文件 %file% 缺少有效 ID</red>"
   duplicate_id: "[loader] <red>%type% 文件 %file% 出现重复 ID: %id%</red>"
   load_failed: "[loader] <red>加载 %type% 文件 %file% 失败: %error%</red>"
-  invalid_config: "[loader] <red>%type% 文件 %file% 配置无效，已跳过加载</red>"
-  gem_legacy_item_sources: "[loader] <yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材，将来请改为 base_item_source: %id%</yellow>"
-  gem_missing_item_source: "[loader] <red>宝石文件 %file% 的 item_sources 缺失或无效，已拒绝加载: %id%，当前值: %item_sources%</red>"
-  gem_relationship_self_reference: "[loader] <red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身，已拒绝加载: %id%</red>"
-  gem_relationship_conflict: "[loader] <red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突，已拒绝加载: %id%</red>"
+  invalid_config: "[loader] <red>%type% 文件 %file% 配置无效, 已跳过加载</red>"
+  gem_legacy_item_sources: "[loader] <yellow>宝石文件 %file% 使用已废弃的顶层 item_sources 作为构造底材, 将来请改为 base_item_source: %id%</yellow>"
+  gem_missing_item_source: "[loader] <red>宝石文件 %file% 的 item_sources 缺失或无效, 已拒绝加载: %id%, 当前值: %item_sources%</red>"
+  gem_relationship_self_reference: "[loader] <red>宝石文件 %file% 在 required_gems 或 conflicting_gems 中引用自身, 已拒绝加载: %id%</red>"
+  gem_relationship_conflict: "[loader] <red>宝石文件 %file% 同时将 %related_gem% 声明为依赖与冲突, 已拒绝加载: %id%</red>"
 
 gem:
   error:
-    condition_not_met: "<red>当前不满足该操作的条件要求。</red>"
-    invalid_equipment: "<red>%player% 的物品不是可镶嵌装备。</red>"
-    insufficient_cost: "<red>所需货币或材料不足。</red>"
-    insufficient_currency: "<red>货币不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
-    insufficient_material: "<red>材料不足：缺少 <yellow>%display_name%</yellow>，需要 <gold>%required%</gold>，当前 <gray>%available%</gray>。</red>"
-    player_required: "<red>必须由玩家执行该操作。</red>"
+    condition_not_met: "<red>当前不满足该操作的条件要求</red>"
+    invalid_equipment: "<red>%player% 的物品不是可镶嵌装备</red>"
+    insufficient_cost: "<red>所需货币或材料不足</red>"
+    insufficient_currency: "<red>货币不足: 缺少 <yellow>%display_name%</yellow>, 需要 <gold>%required%</gold>, 当前 <gray>%available%</gray></red>"
+    insufficient_material: "<red>材料不足: 缺少 <yellow>%display_name%</yellow>, 需要 <gold>%required%</gold>, 当前 <gray>%available%</gray></red>"
+    player_required: "<red>必须由玩家执行该操作</red>"
   operation:
-    cancelled: "<yellow>该操作已被其他插件取消。</yellow>"
+    cancelled: "<yellow>该操作已被其他插件取消</yellow>"
   reroll:
-    player_required: "<red>必须由玩家执行洗炼操作。</red>"
-    wrong_thread: "<red>当前线程无法操作该玩家，请稍后重试。</red>"
-    gem_required: "<red>请将要洗炼的宝石拿在主手。</red>"
-    disabled: "<red>该宝石未启用洗炼功能。</red>"
-    pool_empty: "<red>该宝石的洗炼词条池为空，无法生成候选。</red>"
-    pool_invalid: "<red>该宝石的洗炼词条池配置非法。</red>"
-    no_affixes: "<red>该宝石当前没有可重算数值的词条。</red>"
-    affix_not_configured: "<red>该宝石存在未在词条池中配置的词条，无法重算数值。</red>"
-    session_missing: "<yellow>当前没有待确认的洗炼候选。</yellow>"
-    session_closed: "<yellow>该洗炼候选已结束，请重新发起。</yellow>"
-    instance_changed: "<red>主手宝石已发生变化，洗炼候选已作废并退还费用。</red>"
-    config_incompatible: "<red>洗炼配置已变更，候选已作废并退还费用。</red>"
-    write_failed: "<red>洗炼结果写回失败，已退还费用。</red>"
-    opened: "<green>洗炼候选已生成</green><gray>（%operation_type%），使用 <yellow>/emakigem reroll confirm</yellow> 接受。</gray>"
-    cancelled: "<yellow>已放弃当前洗炼候选。</yellow>"
-    status: "<gray>洗炼 <yellow>%operation_type%</yellow>：词条 <yellow>%original_count%</yellow> → <green>%candidate_count%</green>，剩余 <gold>%expires_in%</gold> 秒。</gray>"
+    player_required: "<red>必须由玩家执行洗炼操作</red>"
+    wrong_thread: "<red>当前线程无法操作该玩家, 请稍后重试</red>"
+    gem_required: "<red>请将要洗炼的宝石拿在主手</red>"
+    disabled: "<red>该宝石未启用洗炼功能</red>"
+    pool_empty: "<red>该宝石的洗炼词条池为空, 无法生成候选</red>"
+    pool_invalid: "<red>该宝石的洗炼词条池配置非法</red>"
+    no_affixes: "<red>该宝石当前没有可重算数值的词条</red>"
+    affix_not_configured: "<red>该宝石存在未在词条池中配置的词条, 无法重算数值</red>"
+    session_missing: "<yellow>当前没有待确认的洗炼候选</yellow>"
+    session_closed: "<yellow>该洗炼候选已结束, 请重新发起</yellow>"
+    instance_changed: "<red>主手宝石已发生变化, 洗炼候选已作废并退还费用</red>"
+    config_incompatible: "<red>洗炼配置已变更, 候选已作废并退还费用</red>"
+    write_failed: "<red>洗炼结果写回失败, 已退还费用</red>"
+    opened: "<green>洗炼候选已生成</green><gray> (%operation_type%), 使用 <yellow>/emakigem reroll confirm</yellow> 接受</gray>"
+    cancelled: "<yellow>已放弃当前洗炼候选</yellow>"
+    status: "<gray>洗炼 <yellow>%operation_type%</yellow>: 词条 <yellow>%original_count%</yellow> → <green>%candidate_count%</green>, 剩余 <gold>%expires_in%</gold> 秒</gray>"
     usage: "<gray>用法: /emakigem reroll <full|value|confirm|cancel|status></gray>"
-    unavailable: "<red>洗炼服务当前不可用。</red>"
+    unavailable: "<red>洗炼服务当前不可用</red>"
   item:
-    # 物品：宝石物品词条 lore 标题
+    # 物品: 宝石物品词条 lore 标题
     affixes_header: "<gray>词条</gray>"
 
 command:
@@ -114,38 +114,38 @@ command:
     line: "<gray>/emakigem <yellow>%cmd%</yellow> <dark_gray>-</dark_gray>
       %desc%</gray>"
     footer: "<dark_gray>镶嵌/取出和开孔界面请使用 <gray>/emakigem gui
-      [inlay|open]</gray> 打开。</dark_gray>"
+      [inlay|open]</gray> 打开.</dark_gray>"
     desc:
       help: "显示帮助信息"
       gui: "打开对应的宝石 GUI"
       edit: "打开定义的游戏内编辑界面"
       reload: "重载宝石配置与资源"
       inspect: "查看主手装备的宝石状态"
-      # 命令：reroll 子命令帮助描述
+      # 命令: reroll 子命令帮助描述
       reroll: "生成或接受主手宝石的洗炼候选"
       clearstate: "移除主手物品上的宝石层"
       convert_legacy: "把 items/ 的旧 match 块转换为 matcher 与顶层字段"
       debug: "管理 Debug 模式"
 
   convert_legacy:
-    header: "<gold>========== 旧 match 块转换（%mode%，共 %files% 个文件） ==========</gold>"
+    header: "<gold>========== 旧 match 块转换 (%mode%, 共 %files% 个文件) ==========</gold>"
     mode:
       dry_run: "预演"
       apply: "写入"
     file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
     backup: "<gray>  已备份为 <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个、无旧块 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
-    breakdown: "<gray>其中：直接转为 matcher 并移除旧键 <white>%plain%</white> 处、与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处、补写 matcher 但保留旧键（仍用于取物、扣除或计数）<white>%duplicated%</white> 处。</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处、保留旧键 <white>%duplicated%</white> 处、直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakigem convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    summary: "<gray>转换 %converted% 个, 无旧块 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
+    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
+    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
+    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakigem convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置</gray>"
     status:
       converted: "可转换"
       no_legacy_block: "无旧块"
-      conflict: "键冲突，已保留原样"
-      unconvertible: "字段无等价写法，已保留原样"
-      failed: "转换失败，已保留原样"
+      conflict: "键冲突, 已保留原样"
+      unconvertible: "字段无等价写法, 已保留原样"
+      failed: "转换失败, 已保留原样"
 
   inspect:
     header: "<gold>宝石状态检查 - %player%</gold>"
@@ -153,72 +153,72 @@ command:
 
   open:
     opener_not_found: "<red>未找到可用的开孔器配置: %opener%</red>"
-    hold_opener: "<red>请提供有效的 <yellow>%opener%</yellow> 开孔器。</red>"
-    no_available_slot: "<red>没有可开启的插槽了。</red>"
-    slot_already_opened: "<yellow>当前孔位已开启。</yellow>"
-    slot_unavailable: "<red>指定插槽当前不可开启。</red>"
-    apply_failed: "<red>开孔失败，无法写回装备状态。</red>"
-    success: "<green>已为 <aqua>%player%</aqua> 开启插槽 <gold>#%slot%</gold>。</green>"
+    hold_opener: "<red>请提供有效的 <yellow>%opener%</yellow> 开孔器</red>"
+    no_available_slot: "<red>没有可开启的插槽了</red>"
+    slot_already_opened: "<yellow>当前孔位已开启</yellow>"
+    slot_unavailable: "<red>指定插槽当前不可开启</red>"
+    apply_failed: "<red>开孔失败, 无法写回装备状态</red>"
+    success: "<green>已为 <aqua>%player%</aqua> 开启插槽 <gold>#%slot%</gold></green>"
 
   inlay:
-    slot_not_found: "<red>找不到插槽 #%slot%。</red>"
-    slot_not_opened: "<red>插槽 #%slot% 尚未开孔。</red>"
-    slot_occupied: "<red>插槽 #%slot% 已经镶嵌了宝石。</red>"
-    hold_gem: "<red>请提供有效的宝石物品。</red>"
-    gem_type_blocked: "<red>该装备不允许镶嵌类型为 <yellow>%type%</yellow> 的宝石。</red>"
-    socket_incompatible: "<red>宝石与插槽 #%slot% 的类型 <yellow>%type%</yellow> 不兼容。</red>"
+    slot_not_found: "<red>找不到插槽 #%slot%</red>"
+    slot_not_opened: "<red>插槽 #%slot% 尚未开孔</red>"
+    slot_occupied: "<red>插槽 #%slot% 已经镶嵌了宝石</red>"
+    hold_gem: "<red>请提供有效的宝石物品</red>"
+    gem_type_blocked: "<red>该装备不允许镶嵌类型为 <yellow>%type%</yellow> 的宝石</red>"
+    socket_incompatible: "<red>宝石与插槽 #%slot% 的类型 <yellow>%type%</yellow> 不兼容</red>"
     max_same_type: "<red>该装备已达到同类型宝石上限: %type%</red>"
     max_same_id: "<red>该装备已达到同 ID 宝石上限: %gem%</red>"
-    dependency_missing: "<red>无法镶嵌 <yellow>%gem%</yellow>：装备中缺少依赖宝石 <gold>%required_gem%</gold>。</red>"
-    gem_conflict: "<red>无法镶嵌 <yellow>%gem%</yellow>：它与已镶嵌的 <gold>%conflict_gem%</gold> 冲突。</red>"
-    chance_failed: "<red>镶嵌失败，本次未写入装备。</red>"
-    apply_failed: "<red>镶嵌失败，无法写回装备状态。</red>"
-    success: "<green>已将 <yellow>%gem%</yellow> 镶嵌到插槽 <gold>#%slot%</gold>。</green>"
+    dependency_missing: "<red>无法镶嵌 <yellow>%gem%</yellow>: 装备中缺少依赖宝石 <gold>%required_gem%</gold></red>"
+    gem_conflict: "<red>无法镶嵌 <yellow>%gem%</yellow>: 它与已镶嵌的 <gold>%conflict_gem%</gold> 冲突</red>"
+    chance_failed: "<red>镶嵌失败, 本次未写入装备</red>"
+    apply_failed: "<red>镶嵌失败, 无法写回装备状态</red>"
+    success: "<green>已将 <yellow>%gem%</yellow> 镶嵌到插槽 <gold>#%slot%</gold></green>"
 
   extract:
-    slot_empty: "<red>插槽 #%slot% 中没有可取出的宝石。</red>"
-    dependency_required: "<red>无法取出 <yellow>%gem%</yellow>：已镶嵌的 <gold>%dependent_gem%</gold> 仍依赖它。</red>"
-    apply_failed: "<red>拆卸失败，无法写回装备状态。</red>"
-    success: "<green>已从插槽 <gold>#%slot%</gold> 取出 <yellow>%gem%</yellow>。</green>"
+    slot_empty: "<red>插槽 #%slot% 中没有可取出的宝石</red>"
+    dependency_required: "<red>无法取出 <yellow>%gem%</yellow>: 已镶嵌的 <gold>%dependent_gem%</gold> 仍依赖它</red>"
+    apply_failed: "<red>拆卸失败, 无法写回装备状态</red>"
+    success: "<green>已从插槽 <gold>#%slot%</gold> 取出 <yellow>%gem%</yellow></green>"
 
   clearstate:
-    no_layer: "<yellow>主手物品当前没有可移除的宝石层。</yellow>"
-    apply_failed: "<red>清空宝石层失败，无法写回装备状态。</red>"
-    success: "<green>已清空主手物品上的宝石层。</green>"
+    no_layer: "<yellow>主手物品当前没有可移除的宝石层</yellow>"
+    apply_failed: "<red>清空宝石层失败, 无法写回装备状态</red>"
+    success: "<green>已清空主手物品上的宝石层</green>"
 
 gui:
-  open_failed: "<red>无法打开宝石主界面，请检查 GUI 模板是否存在。</red>"
-  open_socket_failed: "<red>无法打开开孔界面，请检查 GUI 模板是否存在。</red>"
+  open_failed: "<red>无法打开宝石主界面, 请检查 GUI 模板是否存在</red>"
+  open_socket_failed: "<red>无法打开开孔界面, 请检查 GUI 模板是否存在</red>"
   gem:
-    target_required: "<red>请先在左侧槽位放入一件可镶嵌装备。</red>"
-    invalid_target: "<red>放入的物品不是可镶嵌宝石的装备。</red>"
-    hold_gem: "<red>请将宝石物品拿到光标后点击空槽。</red>"
-    hold_opener: "<red>请将开孔器拿到光标后点击锁定槽位。</red>"
-    open_via_open_gui: "<yellow>该插槽尚未开孔，请使用 <gold>/emakigem gui open</gold> 处理。</yellow>"
-    no_pending_action: "<red>当前没有待确认的操作。</red>"
-    upgrade_target_required: "<red>请先放入一颗启用 stages 配置的宝石。</red>"
-    upgrade_invalid_target: "<red>该物品不是可升级宝石，或没有启用 stages。</red>"
-    upgrade_unavailable: "<red>Strengthen 当前不可用，暂时无法升级宝石。</red>"
-    upgrade_recipe_missing: "<red>未找到该宝石对应的强化配方。</red>"
-    upgrade_materials_invalid: "<red>强化材料不足或不匹配。</red>"
-    upgrade_insufficient_funds: "<red>强化费用不足。</red>"
-    upgrade_economy_unavailable: "<red>经济服务当前不可用，未扣除任何费用。</red>"
-    upgrade_write_failed: "<red>宝石阶段写回失败，未扣除任何费用。</red>"
-    upgrade_compensation_pending: "<red>强化发生部分扣费，补偿待处理。操作号: %operation_id%</red>"
-    upgrade_failed: "<red>宝石升级失败：%reason%</red>"
-    upgrade_roll_failed: "<yellow>宝石升级判定失败，当前等级保持为 Lv.%resulting_level%。</yellow>"
-    upgrade_success: "<green>宝石升级成功：Lv.%previous_level% → Lv.%resulting_level%。</green>"
-    upgrade_max_level: "<yellow>该宝石已达最高等级 <gold>Lv.%max_level%</gold>，当前 <gray>Lv.%level%</gray>。</yellow>"
-    reroll_confirmed: "<green>洗炼结果已写入主手宝石。操作号: %operation_id%</green>"
-    reroll_restart_confirm: "<yellow>上一轮洗炼已完成。再次点击确认将<red>开启新一轮并再次扣费</red>；如不需要请关闭界面。</yellow>"
-    reroll_failed: "<red>洗炼确认失败。</red>"
-    reroll_unavailable: "<red>洗炼服务当前不可用。</red>"
+    target_required: "<red>请先在左侧槽位放入一件可镶嵌装备</red>"
+    invalid_target: "<red>放入的物品不是可镶嵌宝石的装备</red>"
+    hold_gem: "<red>请将宝石物品拿到光标后点击空槽</red>"
+    hold_opener: "<red>请将开孔器拿到光标后点击锁定槽位</red>"
+    open_via_open_gui: "<yellow>该插槽尚未开孔, 请使用 <gold>/emakigem gui open</gold> 处理</yellow>"
+    no_pending_action: "<red>当前没有待确认的操作</red>"
+    upgrade_target_required: "<red>请先放入一颗启用 stages 配置的宝石</red>"
+    upgrade_invalid_target: "<red>该物品不是可升级宝石, 或没有启用 stages</red>"
+    upgrade_unavailable: "<red>Strengthen 当前不可用, 暂时无法升级宝石</red>"
+    upgrade_recipe_missing: "<red>未找到该宝石对应的强化配方</red>"
+    upgrade_materials_invalid: "<red>强化材料不足或不匹配</red>"
+    upgrade_insufficient_funds: "<red>强化费用不足</red>"
+    upgrade_economy_unavailable: "<red>经济服务当前不可用, 未扣除任何费用</red>"
+    upgrade_write_failed: "<red>宝石阶段写回失败, 未扣除任何费用</red>"
+    upgrade_compensation_pending: "<red>强化发生部分扣费, 补偿待处理. 操作号: %operation_id%</red>"
+    upgrade_failed: "<red>宝石升级失败: %reason%</red>"
+    upgrade_roll_failed: "<yellow>宝石升级判定失败, 当前等级保持为 Lv.%resulting_level%</yellow>"
+    upgrade_success: "<green>宝石升级成功: Lv.%previous_level% → Lv.%resulting_level%</green>"
+    upgrade_max_level: "<yellow>该宝石已达最高等级 <gold>Lv.%max_level%</gold>, 当前 <gray>Lv.%level%</gray></yellow>"
+    reroll_confirmed: "<green>洗炼结果已写入主手宝石. 操作号: %operation_id%</green>"
+    reroll_restart_confirm: "<yellow>上一轮洗炼已完成. 再次点击确认将<red>开启新一轮并再次扣费</red>; 如不需要请关闭界面</yellow>"
+    reroll_failed: "<red>洗炼确认失败</red>"
+    reroll_unavailable: "<red>洗炼服务当前不可用</red>"
   open:
-    target_required: "<red>请先放入一件可开孔装备。</red>"
-    invalid_target: "<red>放入的物品不是可开孔的装备。</red>"
-    invalid_opener: "<red>放入的物品不是有效的开孔器。</red>"
-    hold_opener: "<red>请先放入一个可用的开孔器。</red>"
-    no_slot_selected: "<red>请先选择一个要开启的锁定槽位。</red>"
+    target_required: "<red>请先放入一件可开孔装备</red>"
+    invalid_target: "<red>放入的物品不是可开孔的装备</red>"
+    invalid_opener: "<red>放入的物品不是有效的开孔器</red>"
+    hold_opener: "<red>请先放入一个可用的开孔器</red>"
+    no_slot_selected: "<red>请先选择一个要开启的锁定槽位</red>"
 
 gui_text:
   common:
@@ -228,10 +228,10 @@ gui_text:
     none: "无"
     active: "<green>当前已启用</green>"
     click_switch: "<dark_gray>点击切换到该模式</dark_gray>"
-    click_take_back: "<gray>支持从光标放入，也可点击取回</gray>"
+    click_take_back: "<gray>支持从光标放入, 也可点击取回</gray>"
     selected: "<green>已加入待确认操作</green>"
     socket_type: "<gray>槽位类型: <yellow>%type%</yellow></gray>"
-    slot_title: "<white>%name% <gray>(#%slot% %state%)</gray></white>"
+    slot_title: "<white>%name% <gray> (#%slot% %state%)</gray></white>"
   gem:
     target_empty_name: "<aqua>放入装备</aqua>"
     target_empty_lore_1: "<gray>将可镶嵌宝石的装备放入此槽</gray>"
@@ -240,8 +240,8 @@ gui_text:
     no_target_line_1: "<red>尚未放入有效装备</red>"
     no_target_line_2: "<gray>请先将装备放入左侧槽位</gray>"
     equipment_definition: "<gray>装备定义: <gold>%item%</gold></gray>"
-    inlay_help: "<gray>拖着宝石点击已开孔空槽，可进入镶嵌预览</gray>"
-    extract_help: "<gray>点击已镶嵌宝石槽，可进入取出确认</gray>"
+    inlay_help: "<gray>拖着宝石点击已开孔空槽, 可进入镶嵌预览</gray>"
+    extract_help: "<gray>点击已镶嵌宝石槽, 可进入取出确认</gray>"
     default_help: "<gray>当前界面使用装备宝石操作模式</gray>"
     unopened_help: "<gray>未开孔槽位请使用独立开孔 GUI 处理</gray>"
     summary_name: "<gold>宝石槽统计</gold>"
@@ -288,7 +288,7 @@ gui_text:
     mode_upgrade_title: "升级模式"
     mode_extract_title: "取出模式"
     mode_inlay_desc: "拖着宝石点击已开孔的空槽进入镶嵌预览"
-    mode_upgrade_desc: "放入宝石与配方材料，交由 Strengthen 执行升级"
+    mode_upgrade_desc: "放入宝石与配方材料, 交由 Strengthen 执行升级"
     mode_extract_desc: "点击已镶嵌的宝石槽进入取出确认"
     upgrade_target_empty_name: "<light_purple>放入宝石</light_purple>"
     upgrade_target_empty_lore_1: "<gray>将启用 stages 的宝石放入此槽</gray>"
@@ -319,63 +319,63 @@ gui_text:
     upgrade_confirm_inactive_lore: "<dark_gray>请先放入未达到上限的宝石</dark_gray>"
     pending_inlay_text: "镶嵌宝石"
     pending_extract_text: "取出宝石"
-    # GUI：洗炼模式按钮标题
+    # GUI: 洗炼模式按钮标题
     mode_reroll_full_title: "洗炼模式"
-    # GUI：洗炼模式按钮描述
+    # GUI: 洗炼模式按钮描述
     mode_reroll_full_desc: "将宝石拿在主手并重掷全部词条"
-    # GUI：重算模式按钮标题
+    # GUI: 重算模式按钮标题
     mode_reroll_value_title: "重算模式"
-    # GUI：重算模式按钮描述
+    # GUI: 重算模式按钮描述
     mode_reroll_value_desc: "将宝石拿在主手并重算词条数值"
-    # GUI：洗炼目标槽位名称
+    # GUI: 洗炼目标槽位名称
     reroll_target_name: "<light_purple>主手宝石</light_purple>"
-    # GUI：洗炼目标槽位说明
+    # GUI: 洗炼目标槽位说明
     reroll_target_lore_1: "<gray>洗炼始终以主手宝石为目标</gray>"
-    # GUI：洗炼目标槽位说明
+    # GUI: 洗炼目标槽位说明
     reroll_target_lore_2: "<dark_gray>此槽位不接受任何物品</dark_gray>"
-    # GUI：升级模式名称
+    # GUI: 升级模式名称
     mode_upgrade: "升级"
-    # GUI：洗炼模式名称
+    # GUI: 洗炼模式名称
     mode_reroll_full: "洗炼"
-    # GUI：重算模式名称
+    # GUI: 重算模式名称
     mode_reroll_value: "重算"
-    # GUI：洗炼信息提示
+    # GUI: 洗炼信息提示
     reroll_full_help: "<gray>查看洗炼候选后点击确认</gray>"
-    # GUI：重算信息提示
+    # GUI: 重算信息提示
     reroll_value_help: "<gray>查看重算后的数值后点击确认</gray>"
-    # GUI：洗炼操作提示
+    # GUI: 洗炼操作提示
     reroll_hold_hint: "<gray>请将宝石拿在主手</gray>"
-    # GUI：洗炼操作提示
+    # GUI: 洗炼操作提示
     reroll_generate_hint: "<green>点击确认生成候选</green>"
-    # GUI：洗炼候选状态提示
+    # GUI: 洗炼候选状态提示
     reroll_candidate_open: "<green>已有候选等待确认</green>"
-    # GUI：洗炼候选剩余时间；占位符：%seconds%
+    # GUI: 洗炼候选剩余时间; 占位符: %seconds%
     reroll_expires_in: "<gray>剩余时间: <gold>%seconds%s</gold></gray>"
-    # GUI：洗炼操作提示
+    # GUI: 洗炼操作提示
     reroll_confirm_hint: "<gray>点击确认写入宝石</gray>"
-    # GUI：洗炼操作提示
+    # GUI: 洗炼操作提示
     reroll_cancel_hint: "<dark_gray>切换模式或关闭界面将退还费用</dark_gray>"
-    # GUI：洗炼对比标题
+    # GUI: 洗炼对比标题
     reroll_summary_name: "<gold>洗炼对比</gold>"
-    # GUI：洗炼对比空状态
+    # GUI: 洗炼对比空状态
     reroll_summary_empty: "<gray>生成候选后将显示对比</gray>"
-    # GUI：洗炼原词条标题
+    # GUI: 洗炼原词条标题
     reroll_original_header: "<gray>当前词条:</gray>"
-    # GUI：洗炼原词条行；占位符：%affix%
+    # GUI: 洗炼原词条行; 占位符: %affix%
     reroll_original_line: "<dark_gray>- %affix%</dark_gray>"
-    # GUI：洗炼空词条行
+    # GUI: 洗炼空词条行
     reroll_none_line: "<dark_gray>- 无</dark_gray>"
-    # GUI：洗炼候选词条标题
+    # GUI: 洗炼候选词条标题
     reroll_candidate_header: "<gray>候选词条:</gray>"
-    # GUI：洗炼候选词条行；占位符：%affix%
+    # GUI: 洗炼候选词条行; 占位符: %affix%
     reroll_candidate_line: "<green>+ %affix%</green>"
-    # GUI：确认洗炼按钮名称
+    # GUI: 确认洗炼按钮名称
     reroll_confirm_name_active: "<green>确认洗炼</green>"
-    # GUI：生成洗炼候选按钮名称
+    # GUI: 生成洗炼候选按钮名称
     reroll_generate_name: "<light_purple>生成候选</light_purple>"
-    # GUI：确认洗炼按钮说明
+    # GUI: 确认洗炼按钮说明
     reroll_confirm_active_lore: "<gray>点击将候选写入主手宝石</gray>"
-    # GUI：生成洗炼候选按钮说明
+    # GUI: 生成洗炼候选按钮说明
     reroll_generate_lore: "<gray>点击消耗费用并生成候选</gray>"
   open:
     target_empty_name: "<aqua>放入装备</aqua>"
@@ -386,7 +386,7 @@ gui_text:
     equipment_definition: "<gray>装备定义: <gold>%item%</gold></gray>"
     opened_count: "<gray>已开孔: <green>%opened%</green>/<yellow>%total%</yellow></gray>"
     locked_count: "<gray>未开孔: <yellow>%locked%</yellow></gray>"
-    info_hint: "<gray>先放入开孔器，再点击下方锁定槽位</gray>"
+    info_hint: "<gray>先放入开孔器, 再点击下方锁定槽位</gray>"
     opener_empty_name: "<light_purple>放入开孔器</light_purple>"
     opener_empty_lore_1: "<gray>将开孔器放入此槽</gray>"
     unused_slot_name: "<dark_gray>未使用插槽</dark_gray>"
@@ -408,13 +408,13 @@ gui_text:
     preview_hint: "<gray>确认后会为该锁定槽位执行一次开孔</gray>"
     confirm_name_inactive: "<gray>确认开孔</gray>"
     confirm_name_active: "<green>确认开孔</green>"
-    confirm_inactive_lore: "<dark_gray>请先放入装备、开孔器，并选择一个锁定槽位</dark_gray>"
+    confirm_inactive_lore: "<dark_gray>请先放入装备, 开孔器, 并选择一个锁定槽位</dark_gray>"
     confirm_active_lore: "<gray>点击执行当前预览中的开孔操作</gray>"
     opener_not_placed: "未放入"
-    opener_placed_pending: "已放入，待选择槽位"
+    opener_placed_pending: "已放入, 待选择槽位"
     slot_not_selected: "未选择"
 debug:
-  # 分类：调试镶嵌日志锚点；占位符：%entry%
+  # 分类: 调试镶嵌日志锚点; 占位符: %entry%
   journal:
     transition: "日志 | %entry%"
   inlay:
@@ -437,7 +437,7 @@ debug:
     click: "GUI 点击 | 玩家=%player% | 槽位=%slot% | 动作=%action%"
     close: "关闭 GUI | 玩家=%player%"
 
-# 编辑器：游戏内定义编辑器（菜单/字段/浏览器/反馈）
+# 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:
   menu:
     home: "定义编辑"
@@ -455,32 +455,32 @@ editor:
     resonances: "共鸣定义"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     display_name: "显示名"
     display_name_desc: "<dark_gray>定义在界面中展示的名称</dark_gray>"
     gem_type: "宝石类型"
     gem_type_desc: "<dark_gray>镶嵌匹配使用的宝石类型</dark_gray>"
     level: "基础等级"
-    level_desc: "<dark_gray>宝石的基础等级，升级后递增</dark_gray>"
+    level_desc: "<dark_gray>宝石的基础等级, 升级后递增</dark_gray>"
     base_item_source: "构造底材"
-    base_item_source_desc: "<dark_gray>发放宝石时造出实物的物品源，格式: 提供者-物品ID</dark_gray>"
+    base_item_source_desc: "<dark_gray>发放宝石时造出实物的物品源, 格式: 提供者-物品ID</dark_gray>"
     effects: "效果列表"
     effects_desc: "<dark_gray>该定义携带的效果条目列表</dark_gray>"
     socket_compatibility: "插槽兼容类型"
-    socket_compatibility_desc: "<dark_gray>允许镶嵌的插槽类型列表，留空表示不限</dark_gray>"
+    socket_compatibility_desc: "<dark_gray>允许镶嵌的插槽类型列表, 留空表示不限</dark_gray>"
     inlay_cost: "镶嵌费用"
     inlay_cost_desc: "<dark_gray>进入镶嵌费用配置子菜单</dark_gray>"
     extract_cost: "拆卸费用"
@@ -494,31 +494,31 @@ editor:
     stages_levels: "等级配置"
     stages_levels_desc: "<dark_gray>各等级的显示名与效果配置</dark_gray>"
     item_sources: "物品源"
-    item_sources_desc: "<dark_gray>允许匹配的物品源列表，留空表示不限</dark_gray>"
+    item_sources_desc: "<dark_gray>允许匹配的物品源列表, 留空表示不限</dark_gray>"
     slots: "插槽定义"
     slots_desc: "<dark_gray>此物品拥有的宝石插槽列表</dark_gray>"
     slot_groups: "槽位组"
-    slot_groups_desc: "<dark_gray>按装备槽位组匹配，留空表示不限制</dark_gray>"
+    slot_groups_desc: "<dark_gray>按装备槽位组匹配, 留空表示不限制</dark_gray>"
     default_open_slots: "默认开放插槽"
     default_open_slots_desc: "<dark_gray>物品初始已开放的插槽索引</dark_gray>"
     allowed_gem_types: "允许宝石类型"
-    allowed_gem_types_desc: "<dark_gray>允许镶嵌的宝石类型白名单，留空表示不限</dark_gray>"
+    allowed_gem_types_desc: "<dark_gray>允许镶嵌的宝石类型白名单, 留空表示不限</dark_gray>"
     max_same_type: "同类型上限"
-    max_same_type_desc: "<dark_gray>同类型宝石最大数量，0 表示不限制</dark_gray>"
+    max_same_type_desc: "<dark_gray>同类型宝石最大数量, 0 表示不限制</dark_gray>"
     max_same_id: "同 ID 上限"
     max_same_id_desc: "<dark_gray>同 ID 宝石最大数量</dark_gray>"
     obtain: "获得配置"
     obtain_desc: "<dark_gray>获得装备时的外观与动作</dark_gray>"
     slot_index: "插槽索引"
-    slot_index_desc: "<dark_gray>插槽索引，从 0 开始且唯一</dark_gray>"
+    slot_index_desc: "<dark_gray>插槽索引, 从 0 开始且唯一</dark_gray>"
     slot_type: "插槽类型"
-    slot_type_desc: "<dark_gray>插槽类型，决定哪些宝石可以镶嵌</dark_gray>"
+    slot_type_desc: "<dark_gray>插槽类型, 决定哪些宝石可以镶嵌</dark_gray>"
     slot_display_name: "插槽显示名"
     slot_display_name_desc: "<dark_gray>插槽在 GUI 中的显示名称</dark_gray>"
     priority: "优先级"
     priority_desc: "<dark_gray>越高越优先匹配</dark_gray>"
     exclusive_group: "互斥组"
-    exclusive_group_desc: "<dark_gray>同组内只有优先级最高的共鸣会激活，留空表示不互斥</dark_gray>"
+    exclusive_group_desc: "<dark_gray>同组内只有优先级最高的共鸣会激活, 留空表示不互斥</dark_gray>"
     chain: "共鸣链"
     chain_desc: "<dark_gray>触发此共鸣所需的宝石组合条件</dark_gray>"
     chain_mode: "匹配模式"
@@ -548,41 +548,41 @@ editor:
     lore: "Lore 文本"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"

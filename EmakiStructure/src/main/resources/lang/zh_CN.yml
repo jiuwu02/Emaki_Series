@@ -1,15 +1,15 @@
-# EmakiStructure 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiStructure 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "1.0.4"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此命令。</red>"
-  player_only: "<red>此命令只能由玩家执行。</red>"
-  invalid_args: "<red>参数错误。</red>"
-  unknown_command: "<red>未知命令，请使用 /ems help 查看帮助。</red>"
+  no_permission: "<red>你没有权限执行此命令</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  invalid_args: "<red>参数错误</red>"
+  unknown_command: "<red>未知命令, 请使用 /ems help 查看帮助</red>"
 
 console:
   plugin_starting: "[startup] <gray>正在启动...</gray>"
@@ -18,313 +18,313 @@ console:
   bootstrap_start: "[loader] <gray>正在同步默认资源...</gray>"
   bootstrap_skip: "[loader] 已按配置跳过默认数据释放"
   bootstrap_complete: "[loader] 默认资源同步完成"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
-  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path% (%error%)"
-  # 占位符：%count%
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "[loader] 保存版本化资源失败: %path%  (%error%)"
+  # 占位符: %count%
   templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
-  # 占位符：%path%、%value%、%expected%
-  config_issue: "[config] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法（期望 <white>%expected%</white>），已按合法值处理</yellow>"
-  # 占位符：%template%
-  cache_rejected: "[cache] <yellow>模板 <white>%template%</white> 估算体积超出缓存上限，本次用完即弃</yellow>"
-  # 占位符：%count%
-  reload_complete: "[reload] <green>重载完成，共 <white>%count%</white> 个结构模板</green>"
-  # 占位符：%template%、%index%、%type%、%error%
+  # 占位符: %path%, %value%, %expected%
+  config_issue: "[config] <yellow>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法 (期望 <white>%expected%</white>), 已按合法值处理</yellow>"
+  # 占位符: %template%
+  cache_rejected: "[cache] <yellow>模板 <white>%template%</white> 估算体积超出缓存上限, 本次用完即弃</yellow>"
+  # 占位符: %count%
+  reload_complete: "[reload] <green>重载完成, 共 <white>%count%</white> 个结构模板</green>"
+  # 占位符: %template%, %index%, %type%, %error%
   spawn_entry_failed: "[spawn] <yellow>模板 %template% 条目 #%index% 生物 %type% 生成失败: %error%</yellow>"
-  # 占位符：%file%、%index%、%reason%
+  # 占位符: %file%, %index%, %reason%
   spawn_entry_issue: "[spawn] <yellow>生物点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
-  # 占位符：%file%、%error%
-  config_reload_failed: "[reload] <red>配置文件 %file% 解析失败，保留旧配置继续运行: %error%</red>"
-  # 占位符：%template%、%count%
-  template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析，已按 legacy_policy 跳过</yellow>"
-  # 占位符：%source%
+  # 占位符: %file%, %error%
+  config_reload_failed: "[reload] <red>配置文件 %file% 解析失败, 保留旧配置继续运行: %error%</red>"
+  # 占位符: %template%, %count%
+  template_legacy_skipped: "[loader] <yellow>模板 <white>%template%</white> 有 %count% 个方块状态无法在当前版本解析, 已按 legacy_policy 跳过</yellow>"
+  # 占位符: %source%
   furniture_source_ready: "[loader] <gray>已接入家具源: <aqua>%source%</aqua></gray>"
-  # 占位符：%namespace%
+  # 占位符: %namespace%
   custom_block_source_ready: "[loader] <gray>已接入自定义方块命名空间: <aqua>%namespace%</aqua></gray>"
-  # 占位符：%template%、%structure%
-  replace_template_missing: "[replace] <yellow>替换规则引用的模板 <white>%template%</white> 不存在（结构 %structure%），已放行原版生成</yellow>"
-  # 占位符：%count%
-  rollback_recovering: "[rollback] <yellow>检测到 %count% 个未完成事务，启动期回滚进行中，生成能力暂不可用</yellow>"
-  # 占位符：%count%
-  rollback_recovered: "[rollback] <green>启动期回滚完成，共 %count% 个事务</green>"
-  # 占位符：%file%
-  rollback_partial: "[rollback] <red>事务 %file% 回滚未完全成功，已标记 rollback-partial（可用 /ems debug 查看），不再自动重试</red>"
-  # 占位符：%template%、%index%、%id%
-  furniture_source_absent: "[furniture] <yellow>模板 %template% 家具条目 #%index%（%id%）所需家具源未安装，已跳过</yellow>"
-  # 占位符：%template%、%index%、%id%
-  furniture_place_failed: "[furniture] <yellow>模板 %template% 家具条目 #%index%（%id%）放置失败，已跳过该条</yellow>"
-  # 占位符：%file%、%index%、%reason%
+  # 占位符: %template%, %structure%
+  replace_template_missing: "[replace] <yellow>替换规则引用的模板 <white>%template%</white> 不存在 (结构 %structure%), 已放行原版生成</yellow>"
+  # 占位符: %count%
+  rollback_recovering: "[rollback] <yellow>检测到 %count% 个未完成事务, 启动期回滚进行中, 生成能力暂不可用</yellow>"
+  # 占位符: %count%
+  rollback_recovered: "[rollback] <green>启动期回滚完成, 共 %count% 个事务</green>"
+  # 占位符: %file%
+  rollback_partial: "[rollback] <red>事务 %file% 回滚未完全成功, 已标记 rollback-partial (可用 /ems debug 查看), 不再自动重试</red>"
+  # 占位符: %template%, %index%, %id%
+  furniture_source_absent: "[furniture] <yellow>模板 %template% 家具条目 #%index% (%id%) 所需家具源未安装, 已跳过</yellow>"
+  # 占位符: %template%, %index%, %id%
+  furniture_place_failed: "[furniture] <yellow>模板 %template% 家具条目 #%index% (%id%) 放置失败, 已跳过该条</yellow>"
+  # 占位符: %file%, %index%, %reason%
   furniture_entry_issue: "[furniture] <yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
-  # 占位符：无
-  export_furniture_absent: "[export] <gray>家具 0 条（无家具插件在场），已有 furniture 侧车保持不变</gray>"
-  # 占位符：无
+  # 占位符: 无
+  export_furniture_absent: "[export] <gray>家具 0 条 (无家具插件在场), 已有 furniture 侧车保持不变</gray>"
+  # 占位符: 无
 
 command:
-  usage: "<gray>用法：/ems <get|select|structure|reload|multiblock|help> ...（输入 /ems help 查看完整帮助）</gray>"
+  usage: "<gray>用法: /ems <get|select|structure|reload|multiblock|help> ... (输入 /ems help 查看完整帮助)</gray>"
   help:
     header: "<gold>========== EmakiStructure 帮助 ==========</gold>"
     footer: "<gold>==========================================</gold>"
     line: "<yellow>/ems %cmd%</yellow> <gray>- %desc%</gray>"
     commands:
       get: "在你面前 3 格处预览生成一个结构模板"
-      place: "在你当前位置放置结构模板（.nbt 文件），不涉及多方块"
-      select: "框选区域：pos1/pos2 设点、adjust 调整、clear 清除"
+      place: "在你当前位置放置结构模板 (.nbt 文件), 不涉及多方块"
+      select: "框选区域: pos1/pos2 设点, adjust 调整, clear 清除"
       export: "把当前选区导出为结构模板 structures/<名称>.nbt"
-      multiblock_export: "按选区导出多方块布局为 multiblocks/<id>.yml（仅导出，不会放置）"
+      multiblock_export: "按选区导出多方块布局为 multiblocks/<id>.yml (仅导出, 不会放置)"
       multiblock_place: "在你当前位置放置多方块结构定义"
       list: "列出已加载的多方块定义"
       validate: "手动校验多方块定义在现场的形状"
-      reload: "重载配置、语言与模板缓存"
+      reload: "重载配置, 语言与模板缓存"
       debug: "管理 Debug 模式与诊断输出"
-  get_usage: "<gray>用法：/ems get <模板> [朝向] —— 在你面前 3 格处预览生成结构模板</gray>"
-  structure_usage: "<gray>用法：/ems structure <export|place> ... —— export 导出选区为结构模板、place 放置结构模板</gray>"
-  place_usage: "<gray>用法：/ems structure place <模板> <朝向> —— 在你当前位置放置结构模板（.nbt 文件）；多方块结构请用 /ems multiblock place 放置或 /ems multiblock export 记录</gray>"
-  select_usage: "<gray>用法：/ems select <pos1|pos2|adjust|clear> ...</gray>"
-  adjust_usage: "<gray>用法：/ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
-  export_usage: "<gray>用法：/ems structure export <名称> —— 把当前选区导出为结构模板 structures/<名称>.nbt（非多方块文件）</gray>"
-  multiblock_usage: "<gray>用法：/ems multiblock <export|place|list|validate> ...</gray>"
-  multiblock_export_usage: "<gray>用法：/ems multiblock export <id> [force]</gray>"
-  multiblock_place_usage: "<gray>用法：/ems multiblock place <id> [朝向] —— 在你当前位置放置多方块结构定义</gray>"
-  multiblock_validate_usage: "<gray>用法：/ems multiblock validate <id></gray>"
-  # 占位符：%count%、%candidates%、%formed%
-  multiblock_list_header: "<gray>已加载 <white>%count%</white> 个多方块定义，进行中实例 %candidates%，活动实例 %formed%。</gray>"
-  # 占位符：%id%、%members%、%rotation%
-  multiblock_list_entry: "<white>%id%</white> <gray>成员 %members%，旋转 %rotation%</gray>"
-  # 占位符：%id%、%members%、%unresolvable%、%furniture_missing%、%candidates%、%formed%
-  multiblock_validate_result: "<gray>定义 <white>%id%</white>：成员 %members%，无法解析的自定义方块 %unresolvable%，缺失家具源：%furniture_missing%，进行中实例 %candidates%，活动实例 %formed%。</gray>"
-  # 占位符：无
+  get_usage: "<gray>用法: /ems get <模板> [朝向]  -- 在你面前 3 格处预览生成结构模板</gray>"
+  structure_usage: "<gray>用法: /ems structure <export|place> ...  -- export 导出选区为结构模板, place 放置结构模板</gray>"
+  place_usage: "<gray>用法: /ems structure place <模板> <朝向>  -- 在你当前位置放置结构模板 (.nbt 文件); 多方块结构请用 /ems multiblock place 放置或 /ems multiblock export 记录</gray>"
+  select_usage: "<gray>用法: /ems select <pos1|pos2|adjust|clear> ...</gray>"
+  adjust_usage: "<gray>用法: /ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
+  export_usage: "<gray>用法: /ems structure export <名称>  -- 把当前选区导出为结构模板 structures/<名称>.nbt (非多方块文件)</gray>"
+  multiblock_usage: "<gray>用法: /ems multiblock <export|place|list|validate> ...</gray>"
+  multiblock_export_usage: "<gray>用法: /ems multiblock export <id> [force]</gray>"
+  multiblock_place_usage: "<gray>用法: /ems multiblock place <id> [朝向]  -- 在你当前位置放置多方块结构定义</gray>"
+  multiblock_validate_usage: "<gray>用法: /ems multiblock validate <id></gray>"
+  # 占位符: %count%, %candidates%, %formed%
+  multiblock_list_header: "<gray>已加载 <white>%count%</white> 个多方块定义, 进行中实例 %candidates%, 活动实例 %formed%</gray>"
+  # 占位符: %id%, %members%, %rotation%
+  multiblock_list_entry: "<white>%id%</white> <gray>成员 %members%, 旋转 %rotation%</gray>"
+  # 占位符: %id%, %members%, %unresolvable%, %furniture_missing%, %candidates%, %formed%
+  multiblock_validate_result: "<gray>定义 <white>%id%</white>: 成员 %members%, 无法解析的自定义方块 %unresolvable%, 缺失家具源: %furniture_missing%, 进行中实例 %candidates%, 活动实例 %formed%</gray>"
+  # 占位符: 无
   multiblock_missing_none: "无"
-  # 占位符：%id%、%members%、%file%
-  multiblock_export_saved: "<green>已导出多方块定义 <white>%id%</white>：%members% 个成员，文件 %file%</green>"
-  # 占位符：%id%、%placed%、%failed%、%facing%、%x%、%y%、%z%
-  multiblock_place_done: "<green>已放置多方块结构 <white>%id%</white>：%placed% 个成员成功、%failed% 个失败（朝向 <white>%facing%</white>），锚点 <white>%x%, %y%, %z%</white></green>"
-  # 占位符：%detail%
-  multiblock_place_entry_failed: "<yellow>多方块成员放置失败：%detail%</yellow>"
-  # 占位符：%value%、%allowed%
-  invalid_facing: "<red>朝向 <white>%value%</white> 非法，可用：%allowed%</red>"
-  # 占位符：%template%、%facing%、%x%、%y%、%z%、%overwritten%
-  place_done: "<green>已生成模板 <white>%template%</white>（朝向 <white>%facing%</white>）于 <white>%x%, %y%, %z%</white>，覆盖方块 <white>%overwritten%</white></green>"
-  # 占位符：%label%、%pos%
-  select_pos_set: "<green>已设置 <white>%label%</white>：<white>%pos%</white></green>"
-  # 占位符：%pos1%、%pos2%、%size_x%、%size_y%、%size_z%
-  select_ready: "<green>选区已就绪：<white>%pos1%</white> → <white>%pos2%</white>（%size_x% × %size_y% × %size_z%）</green>"
-  select_cleared: "<green>已清除当前选区与高亮。</green>"
-  # 占位符：%before%、%after%
-  select_adjusted: "<green>选区已调整：<white>%before%</white> → <white>%after%</white></green>"
-  # 占位符：%name%、%blocks%、%size_x%、%size_y%、%size_z%、%file%、%furniture%、%furniture_skipped%
-  export_saved: "<green>已导出模板 <white>%name%</white>：%blocks% 个方块（%size_x% × %size_y% × %size_z%），家具 %furniture% 条（越界跳过 %furniture_skipped%），文件 %file%</green>"
+  # 占位符: %id%, %members%, %file%
+  multiblock_export_saved: "<green>已导出多方块定义 <white>%id%</white>: %members% 个成员, 文件 %file%</green>"
+  # 占位符: %id%, %placed%, %failed%, %facing%, %x%, %y%, %z%
+  multiblock_place_done: "<green>已放置多方块结构 <white>%id%</white>: %placed% 个成员成功, %failed% 个失败 (朝向 <white>%facing%</white>), 锚点 <white>%x%, %y%, %z%</white></green>"
+  # 占位符: %detail%
+  multiblock_place_entry_failed: "<yellow>多方块成员放置失败: %detail%</yellow>"
+  # 占位符: %value%, %allowed%
+  invalid_facing: "<red>朝向 <white>%value%</white> 非法, 可用: %allowed%</red>"
+  # 占位符: %template%, %facing%, %x%, %y%, %z%, %overwritten%
+  place_done: "<green>已生成模板 <white>%template%</white> (朝向 <white>%facing%</white>) 于 <white>%x%, %y%, %z%</white>, 覆盖方块 <white>%overwritten%</white></green>"
+  # 占位符: %label%, %pos%
+  select_pos_set: "<green>已设置 <white>%label%</white>:<white>%pos%</white></green>"
+  # 占位符: %pos1%, %pos2%, %size_x%, %size_y%, %size_z%
+  select_ready: "<green>选区已就绪:<white>%pos1%</white> → <white>%pos2%</white> (%size_x% × %size_y% × %size_z%)</green>"
+  select_cleared: "<green>已清除当前选区与高亮</green>"
+  # 占位符: %before%, %after%
+  select_adjusted: "<green>选区已调整:<white>%before%</white> → <white>%after%</white></green>"
+  # 占位符: %name%, %blocks%, %size_x%, %size_y%, %size_z%, %file%, %furniture%, %furniture_skipped%
+  export_saved: "<green>已导出模板 <white>%name%</white>: %blocks% 个方块 (%size_x% × %size_y% × %size_z%), 家具 %furniture% 条 (越界跳过 %furniture_skipped%), 文件 %file%</green>"
 
 error:
   config:
-    # 占位符：%path%、%value%、%expected%
-    invalid: "<red>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法，期望 <white>%expected%</white></red>"
+    # 占位符: %path%, %value%, %expected%
+    invalid: "<red>配置项 <white>%path%</white> 取值 <white>%value%</white> 非法, 期望 <white>%expected%</white></red>"
   name:
-    # 占位符：%value%
-    invalid: "<red>名称 <white>%value%</white> 不合法：仅允许小写字母、数字、下划线与连字符，且以字母或数字开头、长度不超过 64。</red>"
+    # 占位符: %value%
+    invalid: "<red>名称 <white>%value%</white> 不合法: 仅允许小写字母, 数字, 下划线与连字符, 且以字母或数字开头, 长度不超过 64</red>"
   template:
-    # 占位符：%template%
-    not_found: "<red>模板 <white>%template%</white> 不存在。</red>"
-    # 占位符：%file%、%reason%
-    rejected: "<red>模板导入被拒绝：<white>%file%</white>（%reason%）</red>"
-    # 占位符：%file%、%error%
-    read_failed: "<red>读取模板文件失败：<white>%file%</white>（%error%）</red>"
-    # 占位符：%id%
-    invalid_id: "<red>模板 id <white>%id%</white> 不合法：仅允许小写字母、数字、下划线与连字符，且以字母或数字开头、长度不超过 64。</red>"
-    # 占位符：%file%
-    invalid_name: "<red>模板文件名 <white>%file%</white> 不合法，已跳过。</red>"
-    # 占位符：%file%、%detail%
-    scan_failed: "<red>扫描模板目录失败：<white>%file%</white>（%detail%）</red>"
-    # 占位符：%file%、%detail%
-    parse_failed: "<red>模板 <white>%file%</white> 解析失败：%detail%</red>"
-    # 占位符：%file%、%limit%、%actual%
-    file_too_large: "<red>模板 <white>%file%</white> 原始体积 %actual% 字节，超过上限 %limit% 字节。</red>"
-    # 占位符：%file%、%code%
-    not_gzip: "<red>模板 <white>%file%</white> 不是 gzip 压缩文件。</red>"
-    # 占位符：%file%、%limit%、%code%
-    output_too_large: "<red>模板 <white>%file%</white> 解压输出超过上限 %limit% 字节。</red>"
-    # 占位符：%file%、%code%
-    depth_exceeded: "<red>模板 <white>%file%</white> NBT 嵌套深度超过上限。</red>"
-    # 占位符：%file%、%code%
-    bad_root_type: "<red>模板 <white>%file%</white> 的 NBT 根节点不是复合类型。</red>"
-    # 占位符：%file%、%detail%
-    size_invalid: "<red>模板 <white>%file%</white> 的 size 非法：%detail%</red>"
-    # 占位符：%file%
-    blocks_empty: "<red>模板 <white>%file%</white> 不含任何方块条目，视为损坏。</red>"
-    # 占位符：%file%、%limit%、%actual%
-    total_blocks_exceeded: "<red>模板 <white>%file%</white> 方块数 %actual%，超过上限 %limit%。</red>"
-    # 占位符：%file%、%limit%、%actual%
-    palette_exceeded: "<red>模板 <white>%file%</white> 调色板条目 %actual%，超过上限 %limit%。</red>"
-    # 占位符：%file%、%index%
-    state_index_out_of_range: "<red>模板 <white>%file%</white> 存在越界的方块状态索引 %index%。</red>"
-    # 占位符：%file%、%pos%、%size%
-    block_pos_out_of_range: "<red>模板 <white>%file%</white> 方块坐标 %pos% 越出尺寸 %size%。</red>"
-    # 占位符：%file%、%pos%
-    block_pos_duplicate: "<red>模板 <white>%file%</white> 方块坐标 %pos% 重复。</red>"
-    # 占位符：%file%、%block%
-    legacy_block_rejected: "<red>模板 <white>%file%</white> 含当前版本无法解析的方块 <white>%block%</white>，已拒绝导入。</red>"
-    # 占位符：%file%、%pos%、%limit%、%actual%
-    block_entity_too_large: "<red>模板 <white>%file%</white> 位于 %pos% 的方块实体载荷 %actual% 字节，超过上限 %limit% 字节。</red>"
+    # 占位符: %template%
+    not_found: "<red>模板 <white>%template%</white> 不存在</red>"
+    # 占位符: %file%, %reason%
+    rejected: "<red>模板导入被拒绝:<white>%file%</white> (%reason%)</red>"
+    # 占位符: %file%, %error%
+    read_failed: "<red>读取模板文件失败:<white>%file%</white> (%error%)</red>"
+    # 占位符: %id%
+    invalid_id: "<red>模板 id <white>%id%</white> 不合法: 仅允许小写字母, 数字, 下划线与连字符, 且以字母或数字开头, 长度不超过 64</red>"
+    # 占位符: %file%
+    invalid_name: "<red>模板文件名 <white>%file%</white> 不合法, 已跳过</red>"
+    # 占位符: %file%, %detail%
+    scan_failed: "<red>扫描模板目录失败:<white>%file%</white> (%detail%)</red>"
+    # 占位符: %file%, %detail%
+    parse_failed: "<red>模板 <white>%file%</white> 解析失败: %detail%</red>"
+    # 占位符: %file%, %limit%, %actual%
+    file_too_large: "<red>模板 <white>%file%</white> 原始体积 %actual% 字节, 超过上限 %limit% 字节</red>"
+    # 占位符: %file%, %code%
+    not_gzip: "<red>模板 <white>%file%</white> 不是 gzip 压缩文件</red>"
+    # 占位符: %file%, %limit%, %code%
+    output_too_large: "<red>模板 <white>%file%</white> 解压输出超过上限 %limit% 字节</red>"
+    # 占位符: %file%, %code%
+    depth_exceeded: "<red>模板 <white>%file%</white> NBT 嵌套深度超过上限</red>"
+    # 占位符: %file%, %code%
+    bad_root_type: "<red>模板 <white>%file%</white> 的 NBT 根节点不是复合类型</red>"
+    # 占位符: %file%, %detail%
+    size_invalid: "<red>模板 <white>%file%</white> 的 size 非法: %detail%</red>"
+    # 占位符: %file%
+    blocks_empty: "<red>模板 <white>%file%</white> 不含任何方块条目, 视为损坏</red>"
+    # 占位符: %file%, %limit%, %actual%
+    total_blocks_exceeded: "<red>模板 <white>%file%</white> 方块数 %actual%, 超过上限 %limit%</red>"
+    # 占位符: %file%, %limit%, %actual%
+    palette_exceeded: "<red>模板 <white>%file%</white> 调色板条目 %actual%, 超过上限 %limit%</red>"
+    # 占位符: %file%, %index%
+    state_index_out_of_range: "<red>模板 <white>%file%</white> 存在越界的方块状态索引 %index%</red>"
+    # 占位符: %file%, %pos%, %size%
+    block_pos_out_of_range: "<red>模板 <white>%file%</white> 方块坐标 %pos% 越出尺寸 %size%</red>"
+    # 占位符: %file%, %pos%
+    block_pos_duplicate: "<red>模板 <white>%file%</white> 方块坐标 %pos% 重复</red>"
+    # 占位符: %file%, %block%
+    legacy_block_rejected: "<red>模板 <white>%file%</white> 含当前版本无法解析的方块 <white>%block%</white>, 已拒绝导入</red>"
+    # 占位符: %file%, %pos%, %limit%, %actual%
+    block_entity_too_large: "<red>模板 <white>%file%</white> 位于 %pos% 的方块实体载荷 %actual% 字节, 超过上限 %limit% 字节</red>"
   selection:
-    # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
-    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
-    # 占位符：无
-    world_mismatch: "<red>两个选点不在同一世界。</red>"
+    # 占位符: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
+    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出上限 %limit_x% × %limit_y% × %limit_z%</red>"
+    # 占位符: 无
+    world_mismatch: "<red>两个选点不在同一世界</red>"
   select:
-    # 占位符：无
-    not_set: "<red>当前没有选区。</red>"
-    # 占位符：%value%
-    invalid_operation: "<red>操作 <white>%value%</white> 非法，可用：add、reduce。</red>"
-    # 占位符：%value%、%allowed%
-    invalid_direction: "<red>方向 <white>%value%</white> 非法，可用：%allowed%</red>"
-    # 占位符：%value%
-    invalid_amount: "<red>数值 <white>%value%</white> 非法，须为正整数。</red>"
-    # 占位符：%axis%、%size%
-    shrink_too_far: "<red>收缩过多：<white>%axis%</white> 轴将不足 1 格（当前 %size% 格）。</red>"
+    # 占位符: 无
+    not_set: "<red>当前没有选区</red>"
+    # 占位符: %value%
+    invalid_operation: "<red>操作 <white>%value%</white> 非法, 可用: add, reduce</red>"
+    # 占位符: %value%, %allowed%
+    invalid_direction: "<red>方向 <white>%value%</white> 非法, 可用: %allowed%</red>"
+    # 占位符: %value%
+    invalid_amount: "<red>数值 <white>%value%</white> 非法, 须为正整数</red>"
+    # 占位符: %axis%, %size%
+    shrink_too_far: "<red>收缩过多:<white>%axis%</white> 轴将不足 1 格 (当前 %size% 格)</red>"
   generate:
-    # 占位符：%detail%
-    out_of_bounds: "<red>生成目标超出世界边界：%detail%</red>"
-    # 占位符：无
-    ground_unsupported: "<red>支撑面不足，已放弃本次生成（结构底面须有实心支撑，可在 config.yml 调整 generate.ground_mode）。</red>"
-    # 占位符：%template%
-    queue_timeout: "<red>模板 <white>%template%</white> 生成队列滞留超时，已中止。</red>"
-    # 占位符：%template%
-    cancelled: "<red>模板 <white>%template%</white> 生成已取消。</red>"
-    # 占位符：%template%
-    rejected_by_limit: "<red>模板 <white>%template%</white> 尺寸超出配置上限。</red>"
-    # 占位符：%reason%
-    failed: "<red>生成失败：%reason%</red>"
-    # 占位符：%count%
-    player_trapped: "<yellow>%count% 名玩家被生成方块困住，无法自动移出，请自行离开。</yellow>"
-    # 占位符：无
-    recovering: "<red>事务回滚恢复进行中，暂时无法生成结构，请稍后再试。</red>"
-    # 占位符：%error%
-    journal_failed: "<red>无法创建回滚日志，已拒绝本次生成：%error%</red>"
+    # 占位符: %detail%
+    out_of_bounds: "<red>生成目标超出世界边界: %detail%</red>"
+    # 占位符: 无
+    ground_unsupported: "<red>支撑面不足, 已放弃本次生成 (结构底面须有实心支撑, 可在 config.yml 调整 generate.ground_mode)</red>"
+    # 占位符: %template%
+    queue_timeout: "<red>模板 <white>%template%</white> 生成队列滞留超时, 已中止</red>"
+    # 占位符: %template%
+    cancelled: "<red>模板 <white>%template%</white> 生成已取消</red>"
+    # 占位符: %template%
+    rejected_by_limit: "<red>模板 <white>%template%</white> 尺寸超出配置上限</red>"
+    # 占位符: %reason%
+    failed: "<red>生成失败: %reason%</red>"
+    # 占位符: %count%
+    player_trapped: "<yellow>%count% 名玩家被生成方块困住, 无法自动移出, 请自行离开</yellow>"
+    # 占位符: 无
+    recovering: "<red>事务回滚恢复进行中, 暂时无法生成结构, 请稍后再试</red>"
+    # 占位符: %error%
+    journal_failed: "<red>无法创建回滚日志, 已拒绝本次生成: %error%</red>"
   export:
-    # 占位符：%size_x%、%size_y%、%size_z%、%limit_x%、%limit_y%、%limit_z%
-    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出导出上限 %limit_x% × %limit_y% × %limit_z%。</red>"
-    # 占位符：%file%、%error%
-    write_failed: "<red>写入模板文件失败：<white>%file%</white>（%error%）</red>"
-    # 占位符：%count%
-    no_blocks: "<red>选区内没有可导出的方块（%count%）。</red>"
+    # 占位符: %size_x%, %size_y%, %size_z%, %limit_x%, %limit_y%, %limit_z%
+    too_large: "<red>选区 %size_x% × %size_y% × %size_z% 超出导出上限 %limit_x% × %limit_y% × %limit_z%</red>"
+    # 占位符: %file%, %error%
+    write_failed: "<red>写入模板文件失败:<white>%file%</white> (%error%)</red>"
+    # 占位符: %count%
+    no_blocks: "<red>选区内没有可导出的方块 (%count%)</red>"
   spawn:
-    # 占位符：%file%、%reason%
-    rejected: "<red>生物点位配置被拒绝：<white>%file%</white>（%reason%）</red>"
-    # 占位符：%template%、%type%、%error%
-    entry_failed: "<yellow>模板 <white>%template%</white> 的生物 <white>%type%</white> 生成失败：%error%</yellow>"
-    # 占位符：%total%、%limit%
-    total_exceeded: "<red>生物点位合计 %total% 只，超过单次生成上限 %limit%。</red>"
-    # 占位符：无
-    type_missing: "<red>条目缺少 type 字段。</red>"
-    # 占位符：%type%、%allowed%
-    type_prefix: "<red>生物 <white>%type%</white> 必须带命名空间前缀：%allowed%</red>"
-    # 占位符：%type%
-    pos_region_exclusive: "<red>生物 <white>%type%</white> 的 pos 与 region 必须且只能提供一个。</red>"
-    # 占位符：%type%、%value%、%expected%
-    count_range: "<red>生物 <white>%type%</white> 的 count 取值 %value% 非法，期望 %expected%。</red>"
-    # 占位符：%type%、%value%
-    chance_range: "<red>生物 <white>%type%</white> 的 chance 取值 %value% 非法，期望 0.0-1.0。</red>"
-    # 占位符：%type%、%value%、%allowed%
-    facing_invalid: "<red>生物 <white>%type%</white> 的 facing 取值 %value% 非法，可用：%allowed%</red>"
-    # 占位符：%type%
-    pos_invalid: "<red>生物 <white>%type%</white> 的 pos 坐标非法。</red>"
-    # 占位符：%type%、%size%
-    pos_out_of_bounds: "<red>生物 <white>%type%</white> 的 pos 超出模板尺寸 %size%。</red>"
-    # 占位符：%type%、%value%、%expected%
-    radius_range: "<red>生物 <white>%type%</white> 的 radius 取值 %value% 非法，期望 %expected%。</red>"
-    # 占位符：%type%、%radius%
-    radius_out_of_bounds: "<red>生物 <white>%type%</white> 的半径 %radius% 球体超出模板边界。</red>"
-    # 占位符：%type%
-    region_invalid: "<red>生物 <white>%type%</white> 的 region 定义非法。</red>"
-    # 占位符：%type%
-    region_order: "<red>生物 <white>%type%</white> 的 region min 必须小于等于 max。</red>"
-    # 占位符：%type%、%size%
-    region_out_of_bounds: "<red>生物 <white>%type%</white> 的 region 超出模板尺寸 %size%。</red>"
+    # 占位符: %file%, %reason%
+    rejected: "<red>生物点位配置被拒绝:<white>%file%</white> (%reason%)</red>"
+    # 占位符: %template%, %type%, %error%
+    entry_failed: "<yellow>模板 <white>%template%</white> 的生物 <white>%type%</white> 生成失败: %error%</yellow>"
+    # 占位符: %total%, %limit%
+    total_exceeded: "<red>生物点位合计 %total% 只, 超过单次生成上限 %limit%</red>"
+    # 占位符: 无
+    type_missing: "<red>条目缺少 type 字段</red>"
+    # 占位符: %type%, %allowed%
+    type_prefix: "<red>生物 <white>%type%</white> 必须带命名空间前缀: %allowed%</red>"
+    # 占位符: %type%
+    pos_region_exclusive: "<red>生物 <white>%type%</white> 的 pos 与 region 必须且只能提供一个</red>"
+    # 占位符: %type%, %value%, %expected%
+    count_range: "<red>生物 <white>%type%</white> 的 count 取值 %value% 非法, 期望 %expected%</red>"
+    # 占位符: %type%, %value%
+    chance_range: "<red>生物 <white>%type%</white> 的 chance 取值 %value% 非法, 期望 0.0-1.0</red>"
+    # 占位符: %type%, %value%, %allowed%
+    facing_invalid: "<red>生物 <white>%type%</white> 的 facing 取值 %value% 非法, 可用: %allowed%</red>"
+    # 占位符: %type%
+    pos_invalid: "<red>生物 <white>%type%</white> 的 pos 坐标非法</red>"
+    # 占位符: %type%, %size%
+    pos_out_of_bounds: "<red>生物 <white>%type%</white> 的 pos 超出模板尺寸 %size%</red>"
+    # 占位符: %type%, %value%, %expected%
+    radius_range: "<red>生物 <white>%type%</white> 的 radius 取值 %value% 非法, 期望 %expected%</red>"
+    # 占位符: %type%, %radius%
+    radius_out_of_bounds: "<red>生物 <white>%type%</white> 的半径 %radius% 球体超出模板边界</red>"
+    # 占位符: %type%
+    region_invalid: "<red>生物 <white>%type%</white> 的 region 定义非法</red>"
+    # 占位符: %type%
+    region_order: "<red>生物 <white>%type%</white> 的 region min 必须小于等于 max</red>"
+    # 占位符: %type%, %size%
+    region_out_of_bounds: "<red>生物 <white>%type%</white> 的 region 超出模板尺寸 %size%</red>"
   furniture:
-    # 占位符：%file%、%reason%
-    rejected: "<red>家具点位配置被拒绝：<white>%file%</white>（%reason%）</red>"
-    # 占位符：%file%、%error%
-    read_failed: "<red>读取家具点位文件失败：<white>%file%</white>（%error%）</red>"
-    # 占位符：%file%、%value%
-    version_unsupported: "<red>家具点位 <white>%file%</white> 的 version=<white>%value%</white> 不受支持。</red>"
-    # 占位符：%file%
-    list_invalid: "<red>家具点位 <white>%file%</white> 的 furniture 段不是列表。</red>"
-    # 占位符：无
-    entry_invalid: "<red>家具条目结构非法，已跳过。</red>"
-    # 占位符：%id%
-    id_prefix: "<red>家具 <white>%id%</white> 前缀不受支持，须为 itemsadder/oraxen/nexo/craftengine。</red>"
-    # 占位符：%id%
-    pos_invalid: "<red>家具 <white>%id%</white> 的 pos 超出模板尺寸。</red>"
-    # 占位符：%id%、%value%
-    yaw_invalid: "<red>家具 <white>%id%</white> 的 yaw 取值 %value% 非法，期望 0.0-360.0。</red>"
+    # 占位符: %file%, %reason%
+    rejected: "<red>家具点位配置被拒绝:<white>%file%</white> (%reason%)</red>"
+    # 占位符: %file%, %error%
+    read_failed: "<red>读取家具点位文件失败:<white>%file%</white> (%error%)</red>"
+    # 占位符: %file%, %value%
+    version_unsupported: "<red>家具点位 <white>%file%</white> 的 version=<white>%value%</white> 不受支持</red>"
+    # 占位符: %file%
+    list_invalid: "<red>家具点位 <white>%file%</white> 的 furniture 段不是列表</red>"
+    # 占位符: 无
+    entry_invalid: "<red>家具条目结构非法, 已跳过</red>"
+    # 占位符: %id%
+    id_prefix: "<red>家具 <white>%id%</white> 前缀不受支持, 须为 itemsadder/oraxen/nexo/craftengine</red>"
+    # 占位符: %id%
+    pos_invalid: "<red>家具 <white>%id%</white> 的 pos 超出模板尺寸</red>"
+    # 占位符: %id%, %value%
+    yaw_invalid: "<red>家具 <white>%id%</white> 的 yaw 取值 %value% 非法, 期望 0.0-360.0</red>"
   multiblock:
-    # 占位符：%file%、%detail%
-    parse_failed: "<red>多方块定义 <white>%file%</white> 解析失败：%detail%</red>"
-    # 占位符：%file%、%value%、%expected%
-    version_unsupported: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 不受支持，期望 %expected%。</red>"
-    # 占位符：%file%、%value%、%expected%
-    version_outdated: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 过旧，当前支持 %expected%，请迁移后使用。</red>"
-    # 占位符：%file%、%value%、%expected%
-    id_mismatch: "<red>多方块定义 <white>%file%</white> 的 id=<white>%value%</white> 与文件名不一致，期望 %expected%。</red>"
-    # 占位符：%file%
-    shape_missing: "<red>多方块定义 <white>%file%</white> 缺少 shape 段。</red>"
-    # 占位符：%file%、%value%
-    core_block_invalid: "<red>多方块定义 <white>%file%</white> 的 core_block 取值 %value% 非法。</red>"
-    # 占位符：%file%
-    trigger_missing: "<red>多方块定义 <white>%file%</white> 缺少 trigger 段。</red>"
-    # 占位符：%file%、%value%、%allowed%
-    targets_invalid: "<red>多方块定义 <white>%file%</white> 的 targets=<white>%value%</white> 非法，可用：%allowed%</red>"
-    # 占位符：%file%
-    positions_missing: "<red>多方块定义 <white>%file%</white> 的 targets=specific 但缺少 positions。</red>"
-    # 占位符：%file%、%value%
-    positions_invalid: "<red>多方块定义 <white>%file%</white> 的 positions 含非法坐标 %value%。</red>"
-    # 占位符：%file%
-    blocks_empty: "<red>多方块定义 <white>%file%</white> 不含有效方块成员。</red>"
-    # 占位符：%file%、%value%、%index%
-    pos_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 pos=%value% 非法。</red>"
-    # 占位符：%file%、%value%、%index%
-    pos_duplicate: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的坐标 %value% 重复。</red>"
-    # 占位符：%file%、%value%、%index%
-    member_exclusive: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 %value% 同时声明了 block 与 furniture，二者只能择一。</red>"
-    # 占位符：%file%、%value%、%allowed%、%index%
-    furniture_prefix: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的家具 <white>%value%</white> 前缀不受支持，可用：%allowed%</red>"
-    # 占位符：%file%、%value%、%index%
-    block_missing: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 block=%value% 缺失或为空。</red>"
-    # 占位符：%file%、%value%、%index%
-    custom_block_state: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的自定义方块 <white>%value%</white> 不允许携带方块状态段。</red>"
-    # 占位符：%file%、%value%、%detail%、%index%
-    block_state_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的方块状态 <white>%value%</white> 解析失败：%detail%</red>"
-    # 占位符：%file%、%detail%
-    scan_failed: "<red>扫描多方块定义目录失败：<white>%file%</white>（%detail%）</red>"
-    # 占位符：%file%、%id%
-    duplicate_id: "<red>多方块定义 id <white>%id%</white> 重复（<white>%file%</white>），后者未加载。</red>"
-    # 占位符：%id%
-    not_found: "<red>多方块定义 <white>%id%</white> 不存在。</red>"
-    # 占位符：%id%、%file%
-    already_exists: "<red>多方块定义 <white>%id%</white> 已存在（%file%），如需覆盖请使用 export force。</red>"
-    # 占位符：%id%
-    verification_failed: "<red>多方块结构 <white>%id%</white> 形状校验未通过，已降级为未完成状态，请检查结构后重试。</red>"
-    # 占位符：%id%、%detail%
-    export_failed: "<red>导出多方块定义 <white>%id%</white> 失败：%detail%</red>"
-    # 占位符：%id%、%detail%
-    write_failed: "<red>写入多方块定义 <white>%id%</white> 失败：%detail%</red>"
+    # 占位符: %file%, %detail%
+    parse_failed: "<red>多方块定义 <white>%file%</white> 解析失败: %detail%</red>"
+    # 占位符: %file%, %value%, %expected%
+    version_unsupported: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 不受支持, 期望 %expected%</red>"
+    # 占位符: %file%, %value%, %expected%
+    version_outdated: "<red>多方块定义 <white>%file%</white> 的 version=<white>%value%</white> 过旧, 当前支持 %expected%, 请迁移后使用</red>"
+    # 占位符: %file%, %value%, %expected%
+    id_mismatch: "<red>多方块定义 <white>%file%</white> 的 id=<white>%value%</white> 与文件名不一致, 期望 %expected%</red>"
+    # 占位符: %file%
+    shape_missing: "<red>多方块定义 <white>%file%</white> 缺少 shape 段</red>"
+    # 占位符: %file%, %value%
+    core_block_invalid: "<red>多方块定义 <white>%file%</white> 的 core_block 取值 %value% 非法</red>"
+    # 占位符: %file%
+    trigger_missing: "<red>多方块定义 <white>%file%</white> 缺少 trigger 段</red>"
+    # 占位符: %file%, %value%, %allowed%
+    targets_invalid: "<red>多方块定义 <white>%file%</white> 的 targets=<white>%value%</white> 非法, 可用: %allowed%</red>"
+    # 占位符: %file%
+    positions_missing: "<red>多方块定义 <white>%file%</white> 的 targets=specific 但缺少 positions</red>"
+    # 占位符: %file%, %value%
+    positions_invalid: "<red>多方块定义 <white>%file%</white> 的 positions 含非法坐标 %value%</red>"
+    # 占位符: %file%
+    blocks_empty: "<red>多方块定义 <white>%file%</white> 不含有效方块成员</red>"
+    # 占位符: %file%, %value%, %index%
+    pos_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 pos=%value% 非法</red>"
+    # 占位符: %file%, %value%, %index%
+    pos_duplicate: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的坐标 %value% 重复</red>"
+    # 占位符: %file%, %value%, %index%
+    member_exclusive: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 %value% 同时声明了 block 与 furniture, 二者只能择一</red>"
+    # 占位符: %file%, %value%, %allowed%, %index%
+    furniture_prefix: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的家具 <white>%value%</white> 前缀不受支持, 可用: %allowed%</red>"
+    # 占位符: %file%, %value%, %index%
+    block_missing: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的 block=%value% 缺失或为空</red>"
+    # 占位符: %file%, %value%, %index%
+    custom_block_state: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的自定义方块 <white>%value%</white> 不允许携带方块状态段</red>"
+    # 占位符: %file%, %value%, %detail%, %index%
+    block_state_invalid: "<red>多方块定义 <white>%file%</white> 条目 #%index% 的方块状态 <white>%value%</white> 解析失败: %detail%</red>"
+    # 占位符: %file%, %detail%
+    scan_failed: "<red>扫描多方块定义目录失败:<white>%file%</white> (%detail%)</red>"
+    # 占位符: %file%, %id%
+    duplicate_id: "<red>多方块定义 id <white>%id%</white> 重复 (<white>%file%</white>), 后者未加载</red>"
+    # 占位符: %id%
+    not_found: "<red>多方块定义 <white>%id%</white> 不存在</red>"
+    # 占位符: %id%, %file%
+    already_exists: "<red>多方块定义 <white>%id%</white> 已存在 (%file%), 如需覆盖请使用 export force</red>"
+    # 占位符: %id%
+    verification_failed: "<red>多方块结构 <white>%id%</white> 形状校验未通过, 已降级为未完成状态, 请检查结构后重试</red>"
+    # 占位符: %id%, %detail%
+    export_failed: "<red>导出多方块定义 <white>%id%</white> 失败: %detail%</red>"
+    # 占位符: %id%, %detail%
+    write_failed: "<red>写入多方块定义 <white>%id%</white> 失败: %detail%</red>"
 
 debug:
-  # 占位符：%template%、%facing%、%x%、%y%、%z%、%blocks%、%initiator%
-  generate_start: "开始生成模板 %template% 于 %x%,%y%,%z% 朝向 %facing%，方块 %blocks%，发起者 %initiator%"
-  # 占位符：%template%、%blocks%、%millis%、%initiator%
-  generate_complete: "模板 %template% 生成完成：%blocks% 方块，耗时 %millis% ms，发起者 %initiator%"
-  # 占位符：%template%、%reason%、%detail%、%initiator%
-  generate_aborted: "模板 %template% 生成中止：%reason%（%detail%），发起者 %initiator%"
-  # 占位符：%columns%、%template%、%initiator%
-  ground_skipped: "支撑面不足，放弃生成模板 %template%：%columns% 列无支撑，发起者 %initiator%"
-  # 占位符：%reason%
-  highlight_degraded: "选区高亮降级：%reason%"
-  # 占位符：%used%、%limit%
+  # 占位符: %template%, %facing%, %x%, %y%, %z%, %blocks%, %initiator%
+  generate_start: "开始生成模板 %template% 于 %x%, %y%, %z% 朝向 %facing%, 方块 %blocks%, 发起者 %initiator%"
+  # 占位符: %template%, %blocks%, %millis%, %initiator%
+  generate_complete: "模板 %template% 生成完成: %blocks% 方块, 耗时 %millis% ms, 发起者 %initiator%"
+  # 占位符: %template%, %reason%, %detail%, %initiator%
+  generate_aborted: "模板 %template% 生成中止: %reason% (%detail%), 发起者 %initiator%"
+  # 占位符: %columns%, %template%, %initiator%
+  ground_skipped: "支撑面不足, 放弃生成模板 %template%: %columns% 列无支撑, 发起者 %initiator%"
+  # 占位符: %reason%
+  highlight_degraded: "选区高亮降级: %reason%"
+  # 占位符: %used%, %limit%
   cold_hit_checked: "冷命中反推消耗候选预算 %used%/%limit%"
-  # 占位符：%millis%、%limit_ms%
-  sweep_budget_exceeded: "巡检单周期耗时超上限，本轮已中断：%millis% ms（上限 %limit_ms% ms）"
-  # 占位符：%structure%、%template%、%x%、%y%、%z%
-  replace_started: "原版结构 %structure% 已由模板 %template% 替换于 %x%,%y%,%z%"
-  # 占位符：%structure%、%template%、%key%
-  replace_rejected: "原版结构 %structure% 的替换被拒（模板 %template%）：%key%"
-  # 占位符：%file%
-  rollback_partial: "事务 %file% 回滚未完全成功，已标记 rollback-partial"
+  # 占位符: %millis%, %limit_ms%
+  sweep_budget_exceeded: "巡检单周期耗时超上限, 本轮已中断: %millis% ms (上限 %limit_ms% ms)"
+  # 占位符: %structure%, %template%, %x%, %y%, %z%
+  replace_started: "原版结构 %structure% 已由模板 %template% 替换于 %x%, %y%, %z%"
+  # 占位符: %structure%, %template%, %key%
+  replace_rejected: "原版结构 %structure% 的替换被拒 (模板 %template%): %key%"
+  # 占位符: %file%
+  rollback_partial: "事务 %file% 回滚未完全成功, 已标记 rollback-partial"

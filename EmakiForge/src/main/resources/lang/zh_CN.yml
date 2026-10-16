@@ -1,19 +1,19 @@
-# EmakiForge 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiForge 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "4.8.7"
 
 general:
   prefix: "<gray>[ <gradient:#F59E0B:#EF4444>EmakiForge</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此操作。</red>"
-  player_only: "<red>此命令只能由玩家执行。</red>"
-  unknown_command: "<red>未知命令。</red>"
-  invalid_args: "<red>参数错误。</red>"
+  no_permission: "<red>你没有权限执行此操作</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  unknown_command: "<red>未知命令</red>"
+  invalid_args: "<red>参数错误</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  reload_success: "<green>配置已重载。</green>"
-  reload_fail: "<red>配置重载失败。</red>"
-  reload_summary: "<gray>已重载配方 %recipes% 个，GUI %guis% 个。</gray>"
+  reload_success: "<green>配置已重载</green>"
+  reload_fail: "<red>配置重载失败</red>"
+  reload_summary: "<gray>已重载配方 %recipes% 个, GUI %guis% 个</gray>"
 
 command:
   help:
@@ -29,42 +29,42 @@ command:
       debug: "管理 Debug 模式"
       "convert-legacy [confirm]": "把 recipes/ 的旧 item_sources 转换为 matcher"
       editor: "打开锻造资源编辑器"
-      "edit recipe <id>": "编辑指定配方，省略 ID 打开定义浏览器"
+      "edit recipe <id>": "编辑指定配方, 省略 ID 打开定义浏览器"
       "create recipe [id]": "在定义浏览器中创建新配方"
       "delete recipe <id>": "在定义浏览器中删除配方"
   debug:
-    # 命令：锻造运行状态调试输出；占位符：%status%、%generation%、%gui%、%recipes%、%issues%、%source_states%、%reload_candidates%、%reload_installed%、%reload_failed%、%reload_stale%、%gui_stale%、%execution_stale%、%settlement_failures%、%last_ms%
+    # 命令: 锻造运行状态调试输出; 占位符: %status%, %generation%, %gui%, %recipes%, %issues%, %source_states%, %reload_candidates%, %reload_installed%, %reload_failed%, %reload_stale%, %gui_stale%, %execution_stale%, %settlement_failures%, %last_ms%
     runtime: "<gray>EmakiForge 运行状态:</gray> <white>status=%status% generation=%generation% gui=%gui% recipes=%recipes% issues=%issues% source_states=%source_states% reload_candidates=%reload_candidates% reload_installed=%reload_installed% reload_failed=%reload_failed% reload_stale=%reload_stale% gui_stale=%gui_stale% execution_stale=%execution_stale% settlement_failures=%settlement_failures% last_ms=%last_ms%</white>"
-    # 命令：配方加载报告调试输出；占位符：%generation%、%files%、%parsed%、%skipped%、%registered%、%duplicates%、%executable%、%gui_visible%、%issues%、%warnings%、%hash%、%duration_ms%、%source_statuses%
+    # 命令: 配方加载报告调试输出; 占位符: %generation%, %files%, %parsed%, %skipped%, %registered%, %duplicates%, %executable%, %gui_visible%, %issues%, %warnings%, %hash%, %duration_ms%, %source_statuses%
     recipe_load: "<gray>EmakiForge 配方加载:</gray> <white>generation=%generation% files=%files% parsed=%parsed% skipped=%skipped% registered=%registered% duplicates=%duplicates% executable=%executable% gui_visible=%gui_visible% issues=%issues% warnings=%warnings% hash=%hash% duration_ms=%duration_ms% source_statuses=%source_statuses%</white>"
   convert_legacy:
-    header: "<gold>========== 旧 item_sources 转换（%mode%，共 %files% 个文件） ==========</gold>"
+    header: "<gold>========== 旧 item_sources 转换 (%mode%, 共 %files% 个文件) ==========</gold>"
     mode:
       dry_run: "预演"
       apply: "写入"
     file: "<yellow>%file%</yellow> <gray>- %status% %detail%</gray>"
     backup: "<gray>  已备份为 <white>%backup%</white></gray>"
     diff_line: "<gray>  %line%</gray>"
-    summary: "<gray>转换 %converted% 个、无旧键 %skipped% 个、键冲突 %conflict% 个、无法转换 %unconvertible% 个、失败 %failed% 个。</gray>"
-    breakdown: "<gray>其中：直接转为 matcher 并移除旧键 <white>%plain%</white> 处、与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处、补写 matcher 但保留旧键（仍用于取物、扣除或计数）<white>%duplicated%</white> 处。</gray>"
-    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处、保留旧键 <white>%duplicated%</white> 处、直接转换 <white>%plain%</white> 处</gray>"
-    dry_run_hint: "<yellow>以上为预演结果，未写入任何文件。执行 <white>/emakiforge convert-legacy confirm</white> 才会写入并备份原文件。</yellow>"
-    nothing_to_do: "<gray>没有需要转换的配置。</gray>"
+    summary: "<gray>转换 %converted% 个, 无旧键 %skipped% 个, 键冲突 %conflict% 个, 无法转换 %unconvertible% 个, 失败 %failed% 个</gray>"
+    breakdown: "<gray>其中: 直接转为 matcher 并移除旧键 <white>%plain%</white> 处, 与原有 matcher 合并为 all_of 以保持判定等价 <white>%merged%</white> 处, 补写 matcher 但保留旧键 (仍用于取物, 扣除或计数)<white>%duplicated%</white> 处</gray>"
+    file_merged: "<gray>  合并为 all_of <white>%merged%</white> 处, 保留旧键 <white>%duplicated%</white> 处, 直接转换 <white>%plain%</white> 处</gray>"
+    dry_run_hint: "<yellow>以上为预演结果, 未写入任何文件. 执行 <white>/emakiforge convert-legacy confirm</white> 才会写入并备份原文件</yellow>"
+    nothing_to_do: "<gray>没有需要转换的配置</gray>"
     status:
       converted: "可转换"
       no_legacy_block: "无旧键"
-      conflict: "键冲突，已保留原样"
-      unconvertible: "无等价写法，已保留原样"
-      failed: "转换失败，已保留原样"
+      conflict: "键冲突, 已保留原样"
+      unconvertible: "无等价写法, 已保留原样"
+      failed: "转换失败, 已保留原样"
   list:
     header: "<gold>========== %type% 列表 ==========</gold>"
-    recipes_header: "<gold>========== 配方列表 (共 %count% 条) ==========</gold>"
-    blueprints_header: "<gold>========== 图纸列表 (共 %count% 条) ==========</gold>"
-    materials_header: "<gold>========== 材料列表 (共 %count% 条) ==========</gold>"
+    recipes_header: "<gold>========== 配方列表  (共 %count% 条) ==========</gold>"
+    blueprints_header: "<gold>========== 图纸列表  (共 %count% 条) ==========</gold>"
+    materials_header: "<gold>========== 材料列表  (共 %count% 条) ==========</gold>"
     recipe_line: "<yellow>%id%</yellow> <gray>- %name%</gray>"
     blueprint_line: "<yellow>%id%</yellow> <gray>- %name%</gray>"
     material_line:
-      "<yellow>%id%</yellow> <gray>- %name% (消耗: %capacity%, 加成:
+      "<yellow>%id%</yellow> <gray>- %name%  (消耗: %capacity%, 加成:
       +%bonus%)</gray>"
 
 console:
@@ -83,7 +83,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "EmakiForge 配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -94,7 +94,7 @@ console:
       directory_not_readable: "目录不可读"
   config_load_failed: "[config] <red>配置读取失败: %error%</red>"
   checking_config: "[loader] <gray>正在检查默认配置文件...</gray>"
-  data_folder_error: "[loader] <yellow>无法获取数据目录，已跳过默认文件检查</yellow>"
+  data_folder_error: "[loader] <yellow>无法获取数据目录, 已跳过默认文件检查</yellow>"
   data_folder_failed: "[loader] <yellow>获取数据文件夹失败: <red>%error%</red>"
   loading_configs: "[config] <gray>正在加载配置文件...</gray>"
   config_loaded: "[config] <green>配置文件加载完成</green>"
@@ -107,66 +107,66 @@ console:
   saving_player_data: "[persistence] <gray>正在保存玩家数据...</gray>"
   player_data_saved: "[persistence] <gray>已保存 %count% 份玩家数据</gray>"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
-  bootstrap_skip: "[loader] <gray>release_default_data=false，已跳过默认数据生成</gray>"
+  bootstrap_skip: "[loader] <gray>release_default_data=false, 已跳过默认数据生成</gray>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_config_read_error: "[loader] <yellow>读取或更新配置失败，将使用默认值: <red>%error%</red>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_config_read_error: "[loader] <yellow>读取或更新配置失败, 将使用默认值: <red>%error%</red>"
   directory_created: "[loader] <green>创建目录 <yellow>%path%</yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败 <red>%path%</red>"
-  config_exists: "[loader] <gray>config.yml 已存在，跳过创建</gray>"
-  lang_exists: "[loader] <gray>lang/zh_CN.yml 已存在，跳过创建</gray>"
-  gui_forge_exists: "[loader] <gray>gui/forge_gui.yml 已存在，跳过创建</gray>"
-  gui_book_exists: "[loader] <gray>gui/recipe_book.yml 已存在，跳过创建</gray>"
-  blueprint_weapon_exists: "[loader] <gray>blueprints/weapon_sword.yml 已存在，跳过创建</gray>"
-  blueprint_universal_exists: "[loader] <gray>blueprints/universal_blueprint.yml 已存在，跳过创建</gray>"
-  material_iron_exists: "[loader] <gray>materials/iron_essence.yml 已存在，跳过创建</gray>"
-  material_flame_exists: "[loader] <gray>materials/flame_crystal.yml 已存在，跳过创建</gray>"
-  recipe_example_exists: "[loader] <gray>recipes/example_recipe.yml 已存在，跳过创建</gray>"
+  config_exists: "[loader] <gray>config.yml 已存在, 跳过创建</gray>"
+  lang_exists: "[loader] <gray>lang/zh_CN.yml 已存在, 跳过创建</gray>"
+  gui_forge_exists: "[loader] <gray>gui/forge_gui.yml 已存在, 跳过创建</gray>"
+  gui_book_exists: "[loader] <gray>gui/recipe_book.yml 已存在, 跳过创建</gray>"
+  blueprint_weapon_exists: "[loader] <gray>blueprints/weapon_sword.yml 已存在, 跳过创建</gray>"
+  blueprint_universal_exists: "[loader] <gray>blueprints/universal_blueprint.yml 已存在, 跳过创建</gray>"
+  material_iron_exists: "[loader] <gray>materials/iron_essence.yml 已存在, 跳过创建</gray>"
+  material_flame_exists: "[loader] <gray>materials/flame_crystal.yml 已存在, 跳过创建</gray>"
+  recipe_example_exists: "[loader] <gray>recipes/example_recipe.yml 已存在, 跳过创建</gray>"
   file_created_success: "[loader] <green>成功创建 <yellow>%name%</yellow>"
   file_create_failed: "[loader] <yellow>创建 <red>%name%</red> <yellow>失败: <red>%error%</red>"
   file_create_failed_ext: "[loader] <yellow>创建 <red>%name%</red> <yellow>失败: <red>%error%</red>"
-  default_file_missing: "[loader] <yellow>内置资源不存在，已跳过: <red>%path%</red>"
+  default_file_missing: "[loader] <yellow>内置资源不存在, 已跳过: <red>%path%</red>"
   data_folder_not_init: "[loader] <yellow>数据目录尚未初始化</yellow>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并后的配置失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并后的配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   pdc_source_registered: "[loader] <gray>PDC 属性源已注册: <aqua>%source%</aqua></gray>"
   recipes_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个配方</gray>"
   guis_loaded: "[gui] <gray>已加载 <yellow>%count%</yellow> 个 GUI 模板</gray>"
   player_data_directory_create_failed: "[persistence] <yellow>无法创建玩家数据目录: <red>%path%</red></yellow>"
-  player_data_save_failed: "[persistence] <yellow>保存玩家数据失败: <red>%uuid%</red> <gray>(%error%)</gray></yellow>"
+  player_data_save_failed: "[persistence] <yellow>保存玩家数据失败: <red>%uuid%</red> <gray> (%error%)</gray></yellow>"
   item_unknown_vanilla_material_source: "[integration] <yellow>未知的原版材料来源: <red>%identifier%</red></yellow>"
   external_item_source_unavailable:
     "[integration] <yellow>外部物品来源不可用: <gray>依赖=%dependency%,
     场景=%context%, 来源=%source%, 详情=%detail%</gray></yellow>"
   item_bridge_unavailable: "[integration] <yellow>%dependency% API 桥接不可用: <red>%error%</red></yellow>"
-  # 控制台：物品来源不可用；占位符：%source%、%location%、%provider%、%status%、%detail%
+  # 控制台: 物品来源不可用; 占位符: %source%, %location%, %provider%, %status%, %detail%
   item_source_unavailable: "[integration] <yellow>物品来源不可用: <gray>来源=%source%, 位置=%location%, 提供者=%provider%, 状态=%status%, 详情=%detail%</gray></yellow>"
-  # 控制台：物品来源解析失败；占位符：%source%、%operation%
+  # 控制台: 物品来源解析失败; 占位符: %source%, %operation%
   item_source_resolve_failed: "[integration] <yellow>物品来源解析失败: <gray>来源=%source%, 操作=%operation%</gray></yellow>"
-  # 控制台：重载代次失败；占位符：%generation%、%error%
+  # 控制台: 重载代次失败; 占位符: %generation%, %error%
   reload_generation_failed: "[reload] 代次 %generation% 重载失败: %error%"
-  # 控制台：重载被拒绝；占位符：%generation%、%summary%
+  # 控制台: 重载被拒绝; 占位符: %generation%, %summary%
   reload_rejected: "[reload] 已拒绝代次 %generation%: %summary%"
-  forge_execution_failed: "[action] <yellow>锻造执行失败: 配方 <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
+  forge_execution_failed: "[action] <yellow>锻造执行失败: 配方 <red>%recipe%</red> <gray> (%error%)</gray></yellow>"
   forge_phase_execution_failed:
-    "[action] <yellow>锻造阶段执行失败: 阶段 <red>%phase%</red>，配方
-    <red>%recipe%</red> <gray>(%error%)</gray></yellow>"
-  forge_phase_failed: "[action] <yellow>锻造阶段失败: 阶段 <red>%phase%</red>，配方
-    <red>%recipe%</red> <gray>(%reason%)</gray></yellow>"
-  forge_quality_execution_failed: "[action] <yellow>品质动作执行失败: 品质 <red>%tier%</red> <gray>(%error%)</gray></yellow>"
-  forge_quality_failed: "[action] <yellow>品质动作失败: 品质 <red>%tier%</red> <gray>(%reason%)</gray></yellow>"
+    "[action] <yellow>锻造阶段执行失败: 阶段 <red>%phase%</red>, 配方
+    <red>%recipe%</red> <gray> (%error%)</gray></yellow>"
+  forge_phase_failed: "[action] <yellow>锻造阶段失败: 阶段 <red>%phase%</red>, 配方
+    <red>%recipe%</red> <gray> (%reason%)</gray></yellow>"
+  forge_quality_execution_failed: "[action] <yellow>品质动作执行失败: 品质 <red>%tier%</red> <gray> (%error%)</gray></yellow>"
+  forge_quality_failed: "[action] <yellow>品质动作失败: 品质 <red>%tier%</red> <gray> (%reason%)</gray></yellow>"
   forge_refresh_failed: "[refresh] <yellow>刷新锻造物品失败: 配方 <red>%recipe%</red></yellow>"
   forge_refresh_invalid_audit: "[refresh] <yellow>检测到无法刷新的锻造审计数据: <red>%reason%</red></yellow>"
   forge_refresh_missing_recipe: "[refresh] <yellow>刷新锻造物品时未找到配方: <red>%recipe%</red></yellow>"
   forge_refresh_missing_material:
-    "[refresh] <yellow>刷新锻造物品时未找到材料: 配方 <red>%recipe%</red>，材料
+    "[refresh] <yellow>刷新锻造物品时未找到材料: 配方 <red>%recipe%</red>, 材料
     <red>%material%</red></yellow>"
   forge_refresh_invalid_quality:
-    "[refresh] <yellow>刷新锻造物品时发现无效品质: 配方 <red>%recipe%</red>，品质
+    "[refresh] <yellow>刷新锻造物品时发现无效品质: 配方 <red>%recipe%</red>, 品质
     <red>%quality%</red></yellow>"
   pdc_write_skipped_primary_thread: "[persistence] <yellow>跳过锻造 PDC 写入: 不在主线程</yellow>"
   pdc_write_failed: "[persistence] <yellow>写入锻造 PDC 数据失败: 配方 <red>%recipe%</red>
-    <gray>(%error%)</gray></yellow>"
+    <gray> (%error%)</gray></yellow>"
   pdc_corrupted_data_detected: "[persistence] <yellow>检测到损坏的锻造 PDC 数据: <red>%reason%</red></yellow>"
   pdc_deserialize_failed: "[persistence] <yellow>反序列化锻造材料数据失败: <red>%error%</red></yellow>"
   pdc_deserialize_unexpected_error: "[persistence] <yellow>反序列化锻造材料数据时发生未知错误: <red>%error%</red></yellow>"
@@ -182,22 +182,22 @@ console:
     "[action] <yellow>%category%消耗数量异常 <gray>配方=%recipe%, 标识=%id%,
     需求=%required%, 实扣=%removed%</gray>"
   lore_search_not_found:
-    "[matcher] <yellow>Lore 搜索插入未找到目标: 来源 <red>%source%</red>，动作
-    <red>%action%</red>，匹配 <red>%pattern%</red></yellow>"
+    "[matcher] <yellow>Lore 搜索插入未找到目标: 来源 <red>%source%</red>, 动作
+    <red>%action%</red>, 匹配 <red>%pattern%</red></yellow>"
   lore_invalid_action_name:
-    "[matcher] <yellow>Lore 搜索操作名无效: 来源 <red>%source%</red>，动作
-    <red>%action%</red> <gray>(%error%)</gray></yellow>"
-  lore_invalid_regex: "[matcher] <yellow>Lore 搜索正则无效: 来源 <red>%source%</red>，动作
-    <red>%action%</red>，表达式 <red>%pattern%</red>
-    <gray>(%error%)</gray></yellow>"
+    "[matcher] <yellow>Lore 搜索操作名无效: 来源 <red>%source%</red>, 动作
+    <red>%action%</red> <gray> (%error%)</gray></yellow>"
+  lore_invalid_regex: "[matcher] <yellow>Lore 搜索正则无效: 来源 <red>%source%</red>, 动作
+    <red>%action%</red>, 表达式 <red>%pattern%</red>
+    <gray> (%error%)</gray></yellow>"
   lore_invalid_search_insert_config: "[matcher] <yellow>Lore 搜索插入配置无效: 来源
-    <red>%source%</red>，动作 <red>%action%</red> <gray>(%error%)</gray></yellow>"
+    <red>%source%</red>, 动作 <red>%action%</red> <gray> (%error%)</gray></yellow>"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
-  editor_open_failed: "[editor] <red>无法打开 EmakiForge 编辑界面: %item% (%error%)</red>"
+  editor_open_failed: "[editor] <red>无法打开 EmakiForge 编辑界面: %item%  (%error%)</red>"
   editor_template_missing: "[editor] <red>缺少 EmakiForge 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
 
 debug:
   recipe:
@@ -275,20 +275,20 @@ debug:
       close:
         handled: "关闭已处理 | 图纸=%blueprints% | 已完成=%completed% | 光标=%cursor% | 可选材料=%optional% | 必需材料=%required%"
         ignored_processing: "处理期间忽略关闭"
-        ignored_settlement_already_claimed: "结算已领取，忽略关闭"
+        ignored_settlement_already_claimed: "结算已领取, 忽略关闭"
       confirm:
         recipe_resolved: "确认时解析配方 | 配方=%recipe%"
-        rejected_capacity_exceeded: "确认被拒绝：容量超限 | 当前=%current% | 上限=%max%"
-        rejected_player_owner_unavailable: "确认被拒绝：玩家所有者不可用 | 配方=%recipe%"
-        rejected_prepare_failed: "确认被拒绝：准备失败 | 配方=%recipe%"
-        rejected_recipe_mismatch: "确认被拒绝：配方不匹配 | 错误键=%error_key%"
-        rejected_runtime_generation_changed: "确认被拒绝：运行时代次已变化 | 配方=%recipe%"
-        rejected_start_event_cancelled: "确认被拒绝：开始事件已取消 | 配方=%recipe%"
-        rejected_state: "确认被拒绝：状态无效 | 原因=%reason%"
+        rejected_capacity_exceeded: "确认被拒绝: 容量超限 | 当前=%current% | 上限=%max%"
+        rejected_player_owner_unavailable: "确认被拒绝: 玩家所有者不可用 | 配方=%recipe%"
+        rejected_prepare_failed: "确认被拒绝: 准备失败 | 配方=%recipe%"
+        rejected_recipe_mismatch: "确认被拒绝: 配方不匹配 | 错误键=%error_key%"
+        rejected_runtime_generation_changed: "确认被拒绝: 运行时代次已变化 | 配方=%recipe%"
+        rejected_start_event_cancelled: "确认被拒绝: 开始事件已取消 | 配方=%recipe%"
+        rejected_state: "确认被拒绝: 状态无效 | 原因=%reason%"
         requested: "请求确认 | 图纸=%blueprints% | 当前容量=%current_capacity% | 最大容量=%max_capacity% | 可选材料=%optional% | 必需材料=%required%"
       drag_placement:
         accepted: "接受拖拽放置 | 当前光标=%cursor_now% | 物品=%item% | 槽位=%slot% | 槽位类型=%slot_type%"
-        rejected_occupied: "拖拽放置被拒绝：槽位已占用 | 物品=%item% | 槽位=%slot% | 槽位类型=%slot_type%"
+        rejected_occupied: "拖拽放置被拒绝: 槽位已占用 | 物品=%item% | 槽位=%slot% | 槽位类型=%slot_type%"
         rejected_validation: "拖拽放置校验失败 | 物品=%item% | 槽位=%slot% | 槽位类型=%slot_type%"
       player_inventory_click:
         blocked_processing: "处理期间阻止玩家背包点击 | 点击=%click% | 当前物品=%current% | 光标=%cursor%"
@@ -303,7 +303,7 @@ debug:
       shift_transfer:
         accepted: "接受 Shift 转移 | 物品=%item% | 材料=%material% | 槽位=%slot% | 槽位类型=%slot_type%"
         ignored_empty: "忽略空物品 Shift 转移"
-        rejected_no_free_slot: "Shift 转移被拒绝：无空闲槽位 | 物品=%item% | 材料=%material% | 槽位类型=%slot_type%"
+        rejected_no_free_slot: "Shift 转移被拒绝: 无空闲槽位 | 物品=%item% | 材料=%material% | 槽位类型=%slot_type%"
         rejected_validation: "Shift 转移校验失败 | 物品=%item% | 材料=%material%"
       slot_click:
         blocked_processing: "处理期间阻止槽位点击 | 点击=%click% | 当前物品=%current% | 光标=%cursor%"
@@ -327,67 +327,67 @@ loader:
     recipe: "配方"
   lang_directory_create_failed: "[loader] <red>无法创建语言目录: %path%</red>"
   bundled_language_load_failed: "[loader] <red>读取内置语言失败: %error%</red>"
-  invalid_config: "<yellow>%type% 文件 %file% 配置无效，已跳过加载。</yellow>"
-  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%，无法写入 %path%</red>"
+  invalid_config: "<yellow>%type% 文件 %file% 配置无效, 已跳过加载</yellow>"
+  bundled_resource_missing: "[loader] <red>内置资源缺失: %resource%, 无法写入 %path%</red>"
   directory_create_failed: "[loader] <red>无法创建%type%目录: %path%</red>"
   invalid_blank_id: "[loader] <red>%type% 文件 %file% 的 ID 不能为空</red>"
   duplicate_id: "[loader] <red>%type% 文件 %file% 出现重复 ID: %id%</red>"
   load_failed: "[loader] <red>加载 %type% 文件 %file% 失败: %error%</red>"
-  recipe_action_validation_skipped: "<yellow>跳过配方 %file% 的操作校验，因为 EmakiCoreLib 不可用。</yellow>"
+  recipe_action_validation_skipped: "<yellow>跳过配方 %file% 的操作校验, 因为 EmakiCoreLib 不可用</yellow>"
   recipe_invalid_action_syntax:
-    "<yellow>配方 %recipe% 的操作语法无效: %file%，阶段 %phase%，第
-    %line% 行 <gray>(%error%)</gray></yellow>"
+    "<yellow>配方 %recipe% 的操作语法无效: %file%, 阶段 %phase%, 第
+    %line% 行 <gray> (%error%)</gray></yellow>"
   recipe_unknown_action:
     "<yellow>配方 %recipe% 中存在未知操作 <red>%action%</red>:
-    %file%，阶段 %phase%，第 %line% 行%suggestion%</yellow>"
+    %file%, 阶段 %phase%, 第 %line% 行%suggestion%</yellow>"
   recipe_invalid_action_arguments:
-    "<yellow>配方 %recipe% 中的操作参数无效: %file%，阶段
-    %phase%，第 %line% 行 <gray>(%error%)</gray></yellow>"
+    "<yellow>配方 %recipe% 中的操作参数无效: %file%, 阶段
+    %phase%, 第 %line% 行 <gray> (%error%)</gray></yellow>"
   recipe_unknown_action_template: "<yellow>配方 %recipe% 中存在未知模板
-    <red>%template%</red>: %file%，阶段 %phase%，第 %line% 行</yellow>"
+    <red>%template%</red>: %file%, 阶段 %phase%, 第 %line% 行</yellow>"
   recipe_invalid_condition_mode:
     "<yellow>配方 %recipe% 的 condition.type 非法: %file%
-    -> <red>%value%</red>。允许值: <gray>%allowed%</gray>，已拒绝加载。</yellow>"
+    -> <red>%value%</red>. 允许值: <gray>%allowed%</gray>, 已拒绝加载.</yellow>"
 
 forge:
   fallback_item_name: "物品"
   error:
-    no_recipe: "<red>未找到配方。</red>"
-    permission_denied: "<red>你没有权限使用该配方。</red>"
-    condition_not_met: "<red>锻造条件未满足。</red>"
-    no_target_item: "<red>请放入目标物品。</red>"
-    invalid_target_item: "<red>目标物品不匹配。</red>"
-    capacity_exceeded: "<red>锻造容量超限：当前 %current%/%max%</red>"
-    material_not_allowed: "<red>该材料不在允许列表中。</red>"
-    material_blacklisted: "<red>该材料被禁止使用。</red>"
-    blueprint_required: "<red>缺少所需图纸。</red>"
-    material_required: "<red>缺少所需材料。</red>"
-    material_count_exceeded: "<red>可选材料数量超限。</red>"
-    item_create: "<red>无法创建结果物品。</red>"
+    no_recipe: "<red>未找到配方</red>"
+    permission_denied: "<red>你没有权限使用该配方</red>"
+    condition_not_met: "<red>锻造条件未满足</red>"
+    no_target_item: "<red>请放入目标物品</red>"
+    invalid_target_item: "<red>目标物品不匹配</red>"
+    capacity_exceeded: "<red>锻造容量超限: 当前 %current%/%max%</red>"
+    material_not_allowed: "<red>该材料不在允许列表中</red>"
+    material_blacklisted: "<red>该材料被禁止使用</red>"
+    blueprint_required: "<red>缺少所需图纸</red>"
+    material_required: "<red>缺少所需材料</red>"
+    material_count_exceeded: "<red>可选材料数量超限</red>"
+    item_create: "<red>无法创建结果物品</red>"
     action_failed: "<red>锻造操作执行失败: %reason%</red>"
-    runtime_unavailable: "<red>锻造系统当前不可用（状态：%state%）。</red>"
+    runtime_unavailable: "<red>锻造系统当前不可用 (状态: %state%)</red>"
     runtime:
-      reloading: "<yellow>锻造系统正在重载，请稍后再试。</yellow>"
-      no_recipes: "<red>当前没有可用的锻造配方。</red>"
-      load_failed: "<red>锻造配置加载失败，请联系管理员。</red>"
-      capability_missing: "<red>锻造依赖的物品来源能力当前不可用。</red>"
-      index_unavailable: "<red>锻造索引尚未就绪，请稍后再试。</red>"
-      closed: "<red>锻造系统已关闭。</red>"
-      stale_session: "<yellow>此锻造界面属于旧配置，已自动关闭。</yellow>"
+      reloading: "<yellow>锻造系统正在重载, 请稍后再试</yellow>"
+      no_recipes: "<red>当前没有可用的锻造配方</red>"
+      load_failed: "<red>锻造配置加载失败, 请联系管理员</red>"
+      capability_missing: "<red>锻造依赖的物品来源能力当前不可用</red>"
+      index_unavailable: "<red>锻造索引尚未就绪, 请稍后再试</red>"
+      closed: "<red>锻造系统已关闭</red>"
+      stale_session: "<yellow>此锻造界面属于旧配置, 已自动关闭</yellow>"
     lore_search_not_found: "<red>未找到 Lore 搜索插入目标: %pattern%</red>"
     lore_invalid_action_name: "<red>Lore 搜索操作无效: %action%</red>"
     lore_invalid_regex: "<red>Lore 搜索正则无效: %pattern%</red>"
 
   success:
-    crafted: "<green>锻造成功，获得 %item%</green>"
-    quality: "<gold>品质: %quality% (倍率: %multiplier%x)</gold>"
-    first_craft: "<green>首次完成该配方锻造。</green>"
+    crafted: "<green>锻造成功, 获得 %item%</green>"
+    quality: "<gold>品质: %quality%  (倍率: %multiplier%x)</gold>"
+    first_craft: "<green>首次完成该配方锻造</green>"
 
 blueprint:
-  count_not_enough: "<red>图纸数量不足。</red>"
+  count_not_enough: "<red>图纸数量不足</red>"
 
 material:
-  count_not_enough: "<red>材料数量不足。</red>"
+  count_not_enough: "<red>材料数量不足</red>"
 
 gui:
   title:
@@ -397,12 +397,12 @@ gui:
   slot:
     blueprint: "<gray>放入图纸</gray>"
     target: "<aqua>放入目标物品</aqua>"
-    required: "<gold>放入材料(任意槽位)</gold>"
-    optional: "<green>放入材料(任意槽位)</green>"
+    required: "<gold>放入材料 (任意槽位)</gold>"
+    optional: "<green>放入材料 (任意槽位)</green>"
 
   blueprint:
     no_recipe: "<gray>配方会按图纸物品源自动匹配"
-    recipe_group_header: "<gold>【%recipe%】</gold>"
+    recipe_group_header: "<gold>[%recipe%]</gold>"
     requirement_satisfied: "<green>  ✔ %material% %placed%/%required%</green>"
     requirement_missing: "<red>  ✘ %material% %placed%/%required%</red>"
     more_recipes: "<dark_gray>还有 %count% 个配方</dark_gray>"
@@ -414,8 +414,8 @@ gui:
 
   display:
     capacity: "<gray>锻造容量: <yellow>%current%/%max%</yellow></gray>"
-    capacity_warning: "<gold>锻造容量: %current%/%max% (接近上限)</gold>"
-    capacity_exceeded: "<red>锻造容量: %current%/%max% (已超限)</red>"
+    capacity_warning: "<gold>锻造容量: %current%/%max%  (接近上限)</gold>"
+    capacity_exceeded: "<red>锻造容量: %current%/%max%  (已超限)</red>"
     capacity_pending: "<gray>锻造容量: 点击确认后匹配配方</gray>"
 
   button:
@@ -425,7 +425,7 @@ gui:
     next_page: "<gray>下一页</gray>"
     close: "<red>关闭</red>"
 
-# 编辑器：游戏内定义编辑器（菜单/字段/浏览器/反馈）
+# 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:
   menu:
     home: "定义编辑"
@@ -438,36 +438,36 @@ editor:
     recipes: "配方定义"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     display_name: "配方名称"
     display_name_desc: "<dark_gray>配方在界面中展示的名称</dark_gray>"
     forge_capacity: "锻造容量"
     forge_capacity_desc: "<dark_gray>所有材料 capacity_cost 总和不能超过此值</dark_gray>"
     blueprint_requirements: "图纸需求"
-    blueprint_requirements_desc: "<dark_gray>锻造前必须拥有的图纸条目列表（不消耗，仅检测持有）</dark_gray>"
+    blueprint_requirements_desc: "<dark_gray>锻造前必须拥有的图纸条目列表 (不消耗, 仅检测持有)</dark_gray>"
     materials: "材料列表"
     materials_desc: "<dark_gray>该配方可投入的材料条目列表</dark_gray>"
     material_id: "材料 ID"
-    material_id_desc: "<dark_gray>选择、GUI 与查询使用的稳定身份</dark_gray>"
+    material_id_desc: "<dark_gray>选择, GUI 与查询使用的稳定身份</dark_gray>"
     count_key: "计数键"
-    count_key_desc: "<dark_gray>数量聚合与消耗身份，不同材料可共享同一计数键</dark_gray>"
+    count_key_desc: "<dark_gray>数量聚合与消耗身份, 不同材料可共享同一计数键</dark_gray>"
     audit_id: "审计 ID"
     audit_id_desc: "<dark_gray>成品审计与刷新使用的身份</dark_gray>"
     item_sources: "物品源"
-    item_sources_desc: "<dark_gray>允许匹配的物品源列表，格式: 提供者-物品ID</dark_gray>"
+    item_sources_desc: "<dark_gray>允许匹配的物品源列表, 格式: 提供者-物品ID</dark_gray>"
     amount: "数量"
     amount_desc: "<dark_gray>该条目需要的数量</dark_gray>"
     capacity_cost: "容量占用"
@@ -491,7 +491,7 @@ editor:
     result: "锻造结果"
     result_desc: "<dark_gray>进入锻造成功结果配置子菜单</dark_gray>"
     outputs: "产物列表"
-    outputs_desc: "<dark_gray>成功分支产出的物品列表，第一项为主产物</dark_gray>"
+    outputs_desc: "<dark_gray>成功分支产出的物品列表, 第一项为主产物</dark_gray>"
     name_actions: "名称动作"
     name_actions_desc: "<dark_gray>对结果物品名称执行的动作链</dark_gray>"
     lore_actions: "Lore 动作"
@@ -514,41 +514,41 @@ editor:
     matcher: "识别条件"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"

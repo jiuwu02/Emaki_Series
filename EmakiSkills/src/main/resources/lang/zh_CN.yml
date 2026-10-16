@@ -1,22 +1,22 @@
-# EmakiSkills 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiSkills 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "2.8.8"
 
 general:
   prefix: "<gray>[ <gradient:#3B82F6:#7C3AED>EmakiSkills</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此操作。</red>"
-  player_only: "<red>此命令只能由玩家执行。</red>"
-  player_not_found: "<red>未找到目标玩家。</red>"
-  unknown_command: "<red>未知命令，请使用 /eskills help 查看帮助。</red>"
-  invalid_args: "<red>参数错误。</red>"
+  no_permission: "<red>你没有权限执行此操作</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  player_not_found: "<red>未找到目标玩家</red>"
+  unknown_command: "<red>未知命令, 请使用 /eskills help 查看帮助</red>"
+  invalid_args: "<red>参数错误</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  # 玩家：配置重载失败提示
-  reload_failed: "<red>配置重载失败。</red>"
-  # 玩家：配置重载耗时提示；占位符：%elapsed%
+  # 玩家: 配置重载失败提示
+  reload_failed: "<red>配置重载失败</red>"
+  # 玩家: 配置重载耗时提示; 占位符: %elapsed%
   reload_elapsed: "<gray>重载耗时: <white>%elapsed%ms</white></gray>"
-  reload_success: "<green>配置已重载。</green>"
+  reload_success: "<green>配置已重载</green>"
   reload_summary: "<gray>技能: %skills% | 资源: %resources% | GUI: %guis%</gray>"
 
 console:
@@ -33,7 +33,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "技能配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -42,7 +42,7 @@ console:
       required_directory_missing: "缺少必需目录"
       path_not_directory: "路径不是目录"
       directory_not_readable: "目录不可读"
-      skill_sources_disabled: "Lore 与 PDC 技能来源均已关闭，装备不会解锁技能"
+      skill_sources_disabled: "Lore 与 PDC 技能来源均已关闭, 装备不会解锁技能"
       skill_sources_match_requires_both: "严格 Lore/PDC 匹配要求同时启用两个技能来源"
       script_action_unknown: "技能 %skill% 第 %line% 行使用了不存在的动作 '%action%'"
       script_syntax_error: "技能 %skill% 第 %line% 行脚本语法错误: %detail%"
@@ -53,164 +53,164 @@ console:
   reload_complete: "[reload] <green>重载完成</green>"
   bootstrap_start: "[loader] <gray>开始检查默认文件...</gray>"
   bootstrap_complete: "[loader] 默认文件检查完成"
-  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   bootstrap_skip: "[loader] 已跳过默认数据写入"
-  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path% (%error%)"
-  bootstrap_save_failed: "[loader] 保存默认资源失败: %path% (%error%)"
+  bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
+  bootstrap_save_failed: "[loader] 保存默认资源失败: %path%  (%error%)"
   default_file_missing: "[loader] 缺少内置默认资源: %path%"
   directory_create_failed: "[loader] 创建目录失败: %path%"
-  loader_config_load_error: "[loader] 读取 EmakiSkills 配置失败: %path% (%error%)"
-  ea_bridge_unavailable: "[integration] 未检测到 EmakiAttribute，已禁用属性桥接"
-  ea_bridge_service_unregistered: "[integration] EmakiAttribute 已加载，但未暴露技能桥接服务，已禁用属性桥接"
-  ea_bridge_ready: "[integration] EmakiAttribute 桥接已就绪，接入方式: %mode%"
+  loader_config_load_error: "[loader] 读取 EmakiSkills 配置失败: %path%  (%error%)"
+  ea_bridge_unavailable: "[integration] 未检测到 EmakiAttribute, 已禁用属性桥接"
+  ea_bridge_service_unregistered: "[integration] EmakiAttribute 已加载, 但未暴露技能桥接服务, 已禁用属性桥接"
+  ea_bridge_ready: "[integration] EmakiAttribute 桥接已就绪, 接入方式: %mode%"
   ea_bridge_init_failed: "[integration] 初始化 EmakiAttribute 桥接失败: %error%"
-  ea_bridge_read_resource_current_failed: "[integration] 读取 EmakiAttribute 资源当前值失败: %resource% (%error%)"
-  ea_bridge_read_resource_max_failed: "[integration] 读取 EmakiAttribute 资源上限失败: %resource% (%error%)"
-  ea_bridge_consume_failed: "[integration] 扣除 EmakiAttribute 资源失败: %resource% (%error%)"
-  ea_bridge_attribute_read_failed: "[integration] 读取 EmakiAttribute 属性失败: %attribute% (%error%)"
-  # 控制台：应用 EmakiAttribute 伤害失败；占位符：%damage_type%、%error%
-  ea_bridge_apply_damage_failed: "[integration] 应用 EmakiAttribute 伤害失败: %damage_type% (%error%)"
-  auraskills_mana_unavailable: "[integration] 未检测到可用的 AuraSkills 法力接口，AuraSkills 法力消耗将阻止施法"
-  auraskills_mana_ready: "[integration] AuraSkills 法力桥接已就绪，接入方式: %mode%"
+  ea_bridge_read_resource_current_failed: "[integration] 读取 EmakiAttribute 资源当前值失败: %resource%  (%error%)"
+  ea_bridge_read_resource_max_failed: "[integration] 读取 EmakiAttribute 资源上限失败: %resource%  (%error%)"
+  ea_bridge_consume_failed: "[integration] 扣除 EmakiAttribute 资源失败: %resource%  (%error%)"
+  ea_bridge_attribute_read_failed: "[integration] 读取 EmakiAttribute 属性失败: %attribute%  (%error%)"
+  # 控制台: 应用 EmakiAttribute 伤害失败; 占位符: %damage_type%, %error%
+  ea_bridge_apply_damage_failed: "[integration] 应用 EmakiAttribute 伤害失败: %damage_type%  (%error%)"
+  auraskills_mana_unavailable: "[integration] 未检测到可用的 AuraSkills 法力接口, AuraSkills 法力消耗将阻止施法"
+  auraskills_mana_ready: "[integration] AuraSkills 法力桥接已就绪, 接入方式: %mode%"
   auraskills_mana_init_failed: "[integration] 初始化 AuraSkills 法力桥接失败: %error%"
   auraskills_mana_read_failed: "[integration] 读取 AuraSkills 法力值失败: %error%"
   auraskills_mana_consume_failed: "[integration] 扣除 AuraSkills 法力值失败: %error%"
-  mythic_mana_unavailable: "[integration] 未检测到可用的 MythicLib/MMOCore 法力接口，MMOCore 法力消耗将阻止施法"
-  mythic_mana_ready: "[integration] MythicLib/MMOCore 法力桥接已就绪，接入方式: %mode%"
+  mythic_mana_unavailable: "[integration] 未检测到可用的 MythicLib/MMOCore 法力接口, MMOCore 法力消耗将阻止施法"
+  mythic_mana_ready: "[integration] MythicLib/MMOCore 法力桥接已就绪, 接入方式: %mode%"
   mythic_mana_init_failed: "[integration] 初始化 MythicLib/MMOCore 法力桥接失败: %error%"
   mythic_mana_read_failed: "[integration] 读取 MythicLib/MMOCore 法力值失败: %error%"
   mythic_mana_consume_failed: "[integration] 扣除 MythicLib/MMOCore 法力值失败: %error%"
-  mythic_bridge_unavailable: "[integration] 未检测到 MythicMobs，已禁用 Mythic 技能桥接"
-  mythic_bridge_class_unavailable: "[integration] MythicMobs 类不可用，已禁用 Mythic 技能桥接"
+  mythic_bridge_unavailable: "[integration] 未检测到 MythicMobs, 已禁用 Mythic 技能桥接"
+  mythic_bridge_class_unavailable: "[integration] MythicMobs 类不可用, 已禁用 Mythic 技能桥接"
   mythic_bridge_ready: "[integration] MythicMobs 技能桥接已就绪"
   mythic_bridge_init_failed: "[integration] 初始化 MythicMobs 技能桥接失败: %error%"
-  mythic_bridge_skill_lookup_failed: "[integration] 查询 Mythic 技能失败: %skill% (%error%)"
-  mythic_bridge_cast_failed: "[integration] 释放 Mythic 技能失败: %skill% (%error%)"
-  trigger_legacy_cancelled_dispatch_deprecated: "[event] <yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>，已被其他插件 (如 WorldGuard、领地保护)取消的事件仍会触发技能，该开关仅保留一个次版本周期，下一个主版本将移除，请尽快关闭并改用默认行为</gray>"
+  mythic_bridge_skill_lookup_failed: "[integration] 查询 Mythic 技能失败: %skill%  (%error%)"
+  mythic_bridge_cast_failed: "[integration] 释放 Mythic 技能失败: %skill%  (%error%)"
+  trigger_legacy_cancelled_dispatch_deprecated: "[event] <yellow>[弃用]</yellow> <gray>触发器 <yellow>%source%</yellow> 正在使用兼容开关 <white>trigger_settings.legacy_dispatch_cancelled_events</white>, 已被其他插件  (如 WorldGuard, 领地保护) 取消的事件仍会触发技能, 该开关仅保留一个次版本周期, 下一个主版本将移除, 请尽快关闭并改用默认行为</gray>"
   skills_loaded: "[loader] <gray>已加载 <yellow>%skills%</yellow> 个技能, <yellow>%triggers%</yellow> 个触发器</gray>"
   papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   scripts:
-    disabled: "[script] JS 技能脚本扩展未启用 (scripts.enabled: false)，不扫描不加载脚本"
-    engine_unavailable: "[script] <yellow>未检测到 GraalJS 运行库，JS 技能脚本扩展不可用，其余功能不受影响</yellow>"
-    loaded: "[script] <gray>JS 技能脚本加载完成: <yellow>%files%</yellow> 个文件成功，<yellow>%errors%</yellow> 个错误</gray>"
+    disabled: "[script] JS 技能脚本扩展未启用  (scripts.enabled: false), 不扫描不加载脚本"
+    engine_unavailable: "[script] <yellow>未检测到 GraalJS 运行库, JS 技能脚本扩展不可用, 其余功能不受影响</yellow>"
+    loaded: "[script] <gray>JS 技能脚本加载完成: <yellow>%files%</yellow> 个文件成功,<yellow>%errors%</yellow> 个错误</gray>"
     file_error: "[script] <red>JS 技能脚本 <yellow>%file%</yellow> 加载失败: %error%</red>"
     register_error: "[script] <red>JS 技能注册失败 [<yellow>%id%</yellow>]: %error%</red>"
-    example_release_failed: "[script] 释放 JS 技能示例脚本失败: %path% (%error%)"
-    # 控制台：JS 技能脚本注册失败原因（无占位符）
+    example_release_failed: "[script] 释放 JS 技能示例脚本失败: %path%  (%error%)"
+    # 控制台: JS 技能脚本注册失败原因 (无占位符)
     reason:
       blank_id: "ID 为空或缺失"
       registry_inactive: "EmakiSkills 注册表未激活"
       registration_rejected: "注册被拒绝"
-  # 控制台：命令授予/收回技能失败；占位符：%error%
+  # 控制台: 命令授予/收回技能失败; 占位符: %error%
   command_grant_revoke_failed: "[command] 技能授予/收回失败: %error%"
-  # 控制台：命令重置技能失败；占位符：%error%
+  # 控制台: 命令重置技能失败; 占位符: %error%
   command_reset_failed: "[command] 技能重置失败: %error%"
-  # 控制台：等级命令执行失败；占位符：%error%
+  # 控制台: 等级命令执行失败; 占位符: %error%
   command_level_failed: "[command] 等级命令执行失败: %error%"
-  # 控制台：调度命令响应失败；占位符：%error%
+  # 控制台: 调度命令响应失败; 占位符: %error%
   command_schedule_failed: "[command] 调度命令响应失败: %error%"
-  # 控制台：异步重载失败；占位符：%error%
+  # 控制台: 异步重载失败; 占位符: %error%
   reload_async_failed: "[reload] 异步重载失败: %error%"
-  # 控制台：重载阶段失败；占位符：%stage%、%error%
+  # 控制台: 重载阶段失败; 占位符: %stage%, %error%
   reload_stage_failed: "[reload] 阶段 %stage% 失败: %error%"
-  # 控制台：注册管线阶段失败；占位符：%stage%、%reason%
+  # 控制台: 注册管线阶段失败; 占位符: %stage%, %reason%
   stage_register_failed: "[startup] 注册管线阶段 '%stage%' 失败: %reason%"
-  # 控制台：未找到 GUI 模板；占位符：%template%
+  # 控制台: 未找到 GUI 模板; 占位符: %template%
   gui_template_not_found: "[gui] 未找到模板 '%template%'"
-  # 控制台：技能声明的升级模板不存在并回退；占位符：%skill%、%template%、%fallback%
-  gui_upgrade_template_missing: "[gui] 技能 '%skill%' 声明的升级模板 '%template%' 不存在；回退到 '%fallback%'"
-  # 控制台：关闭技能 GUI 会话失败；占位符：%error%
+  # 控制台: 技能声明的升级模板不存在并回退; 占位符: %skill%, %template%, %fallback%
+  gui_upgrade_template_missing: "[gui] 技能 '%skill%' 声明的升级模板 '%template%' 不存在; 回退到 '%fallback%'"
+  # 控制台: 关闭技能 GUI 会话失败; 占位符: %error%
   gui_close_failed: "[gui] 关闭技能 GUI 会话失败: %error%"
-  # 控制台：技能升级材料需求判定异常并按零计入；占位符：%error%
-  gui_material_requirement_failed: "[gui] 技能升级材料需求判定抛出异常，按零计入: %error%"
-  # 控制台：ActionBar 刷新失败；占位符：%player%、%error%
+  # 控制台: 技能升级材料需求判定异常并按零计入; 占位符: %error%
+  gui_material_requirement_failed: "[gui] 技能升级材料需求判定抛出异常, 按零计入: %error%"
+  # 控制台: ActionBar 刷新失败; 占位符: %player%, %error%
   actionbar_refresh_failed: "[actionbar] 为 %player% 刷新失败: %error%"
-  # 控制台：ActionBar 调度刷新失败；占位符：%player%、%error%
+  # 控制台: ActionBar 调度刷新失败; 占位符: %player%, %error%
   actionbar_schedule_failed: "[actionbar] 为 %player% 调度刷新失败: %error%"
-  # 控制台：技能通过触发器释放失败；占位符：%skill%、%trigger%、%kind%、%detail%
+  # 控制台: 技能通过触发器释放失败; 占位符: %skill%, %trigger%, %kind%, %detail%
   skill_cast_failed: "[cast] 技能 '%skill%' 通过触发器 '%trigger%' 释放失败: %kind% - %detail%"
-  # 控制台：定义编辑器打开、模板缺失与浏览器创建/删除/列举失败提示
-  editor_open_failed: "[editor] <red>无法打开 EmakiSkills 编辑界面: %item% (%error%)</red>"
+  # 控制台: 定义编辑器打开, 模板缺失与浏览器创建/删除/列举失败提示
+  editor_open_failed: "[editor] <red>无法打开 EmakiSkills 编辑界面: %item%  (%error%)</red>"
   editor_template_missing: "[editor] <red>缺少 EmakiSkills 编辑界面模板: %template%</red>"
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
 
 loader:
   lang_directory_create_failed: "[loader] 无法创建语言目录: %path%"
   bundled_language_load_failed: "[loader] 读取内置语言文件失败: %error%"
-  bundled_resource_missing: "[loader] 内置资源缺失: %resource%，无法写入 %path%"
+  bundled_resource_missing: "[loader] 内置资源缺失: %resource%, 无法写入 %path%"
   directory_create_failed: "[loader] 无法创建 %type% 目录: %path%"
   invalid_blank_id: "[loader] %type% ID 为空: %file%"
-  duplicate_id: "[loader] 重复的 %type% ID %id%，来源 %file%"
-  load_failed: "[loader] 读取 %type% 文件失败: %file% (%error%)"
+  duplicate_id: "[loader] 重复的 %type% ID %id%, 来源 %file%"
+  load_failed: "[loader] 读取 %type% 文件失败: %file%  (%error%)"
   invalid_config: "[loader] %type% 配置无效: %file%"
   type:
     skill: "技能"
     resource: "本地资源"
 
 cast_mode:
-  enabled: "<green>已进入施法模式。</green>"
-  disabled: "<yellow>已退出施法模式。</yellow>"
-  already_enabled: "<gray>你已经处于施法模式中。</gray>"
-  already_disabled: "<gray>你当前不在施法模式中。</gray>"
+  enabled: "<green>已进入施法模式</green>"
+  disabled: "<yellow>已退出施法模式</yellow>"
+  already_enabled: "<gray>你已经处于施法模式中</gray>"
+  already_disabled: "<gray>你当前不在施法模式中</gray>"
 
 skill:
-  equipped: "<green>已将 <white>%skill%</white> 装配到槽位 %slot%。</green>"
-  unequipped: "<yellow>已从槽位 %slot% 卸下技能。</yellow>"
-  source_lost: "<red>技能 <white>%skill%</white> 的来源已失效，已自动卸下。</red>"
+  equipped: "<green>已将 <white>%skill%</white> 装配到槽位 %slot%</green>"
+  unequipped: "<yellow>已从槽位 %slot% 卸下技能</yellow>"
+  source_lost: "<red>技能 <white>%skill%</white> 的来源已失效, 已自动卸下</red>"
   not_found: "<red>找不到技能: %skill_id%</red>"
-  not_unlocked: "<red>你尚未解锁该技能。</red>"
-  script_unavailable: "<red>技能脚本当前不可用。</red>"
-  script_phase_condition_failed: "<gray>脚本阶段条件未通过。</gray>"
-  mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
-  mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%。</red>"
-  mythic_rejected: "<red>MythicMobs 拒绝了该技能释放。</red>"
+  not_unlocked: "<red>你尚未解锁该技能</red>"
+  script_unavailable: "<red>技能脚本当前不可用</red>"
+  script_phase_condition_failed: "<gray>脚本阶段条件未通过</gray>"
+  mythic_not_configured: "<red>技能未配置 Mythic 映射</red>"
+  mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%</red>"
+  mythic_rejected: "<red>MythicMobs 拒绝了该技能释放</red>"
 
 trigger:
-  bound: "<green>已将触发器 <white>%trigger%</white> 绑定到槽位 %slot%。</green>"
+  bound: "<green>已将触发器 <white>%trigger%</white> 绑定到槽位 %slot%</green>"
   conflict: "<red>触发器 <white>%trigger%</white> 与槽位 %conflict_slot% 的
-    <white>%conflict_trigger%</white> 冲突。</red>"
-  disabled: "<red>触发器 <white>%trigger%</white> 已被禁用。</red>"
-  conflict_auto_fix: "<yellow>触发器冲突已自动修正：已清除槽位 %slot% 的绑定。</yellow>"
+    <white>%conflict_trigger%</white> 冲突.</red>"
+  disabled: "<red>触发器 <white>%trigger%</white> 已被禁用</red>"
+  conflict_auto_fix: "<yellow>触发器冲突已自动修正: 已清除槽位 %slot% 的绑定</yellow>"
 
 cast:
-  invalid_input: "<red>无效的施法输入。</red>"
-  not_in_cast_mode: "<red>当前未处于施法模式。</red>"
-  no_profile: "<red>玩家数据尚未加载。</red>"
-  no_binding: "<red>该触发器未绑定技能。</red>"
-  forced_delay: "<red>全局施法延迟中，剩余 %remaining%s。</red>"
-  global_cooldown: "<red>公共冷却中，剩余 %remaining%s。</red>"
-  skill_cooldown: "<red>技能 <white>%skill%</white> 冷却中，剩余 %remaining%s。</red>"
+  invalid_input: "<red>无效的施法输入</red>"
+  not_in_cast_mode: "<red>当前未处于施法模式</red>"
+  no_profile: "<red>玩家数据尚未加载</red>"
+  no_binding: "<red>该触发器未绑定技能</red>"
+  forced_delay: "<red>全局施法延迟中, 剩余 %remaining%s</red>"
+  global_cooldown: "<red>公共冷却中, 剩余 %remaining%s</red>"
+  skill_cooldown: "<red>技能 <white>%skill%</white> 冷却中, 剩余 %remaining%s</red>"
   resource_insufficient: "<red>%message%</red>"
-  condition_not_met: "<red>技能条件未满足。</red>"
-  cancelled: "<yellow>技能释放已取消。</yellow>"
-  skill_execute_failed: "<red>技能执行失败。</red>"
-  script_action_not_found: "<red>技能 <white>%skill%</white> 的脚本使用了不存在的动作，请检查配置。</red>"
-  script_syntax_error: "<red>技能 <white>%skill%</white> 的脚本语法有误，请检查配置。</red>"
-  script_invalid_argument: "<red>技能 <white>%skill%</white> 的脚本参数有误，请检查配置。</red>"
-  script_provider_unavailable: "<red>技能 <white>%skill%</white> 依赖的功能当前不可用。</red>"
-  script_timeout: "<red>技能 <white>%skill%</white> 执行超时。</red>"
-  mythic_not_configured: "<red>技能未配置 Mythic 映射。</red>"
-  mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%。</red>"
-  mythic_failed: "<red>技能释放失败。</red>"
+  condition_not_met: "<red>技能条件未满足</red>"
+  cancelled: "<yellow>技能释放已取消</yellow>"
+  skill_execute_failed: "<red>技能执行失败</red>"
+  script_action_not_found: "<red>技能 <white>%skill%</white> 的脚本使用了不存在的动作, 请检查配置</red>"
+  script_syntax_error: "<red>技能 <white>%skill%</white> 的脚本语法有误, 请检查配置</red>"
+  script_invalid_argument: "<red>技能 <white>%skill%</white> 的脚本参数有误, 请检查配置</red>"
+  script_provider_unavailable: "<red>技能 <white>%skill%</white> 依赖的功能当前不可用</red>"
+  script_timeout: "<red>技能 <white>%skill%</white> 执行超时</red>"
+  mythic_not_configured: "<red>技能未配置 Mythic 映射</red>"
+  mythic_not_found: "<red>未找到 Mythic 技能 %mythic_skill%</red>"
+  mythic_failed: "<red>技能释放失败</red>"
   success: ""
 
 gui:
-  open_failed: "<red>无法打开技能界面。</red>"
-  skill_equip_failed: "<red>技能装配失败：依赖、冲突、槽位显示或标签数量限制未满足。</red>"
-  skill_equipped: "<green>已装配 <white>%skill%</white> 到槽位 %slot%。</green><yellow>还需绑定触发器才能释放：在该技能槽上 Shift+左键。</yellow>"
-  skill_unequipped: "<yellow>已卸下技能。</yellow>"
-  skill_already_equipped: "<red>该技能已装配在其他槽位。</red>"
-  slots_full: "<red>技能槽已满，请先卸下一个技能。</red>"
-  trigger_bound: "<green>已绑定触发器 <white>%trigger%</white>。</green>"
-  trigger_conflict: "<red>触发器 <white>%trigger%</white> 与已有绑定冲突：%reason%</red>"
-  trigger_bind_failed: "<red>触发器绑定失败。</red>"
+  open_failed: "<red>无法打开技能界面</red>"
+  skill_equip_failed: "<red>技能装配失败: 依赖, 冲突, 槽位显示或标签数量限制未满足</red>"
+  skill_equipped: "<green>已装配 <white>%skill%</white> 到槽位 %slot%.</green><yellow>还需绑定触发器才能释放: 在该技能槽上 Shift+左键</yellow>"
+  skill_unequipped: "<yellow>已卸下技能</yellow>"
+  skill_already_equipped: "<red>该技能已装配在其他槽位</red>"
+  slots_full: "<red>技能槽已满, 请先卸下一个技能</red>"
+  trigger_bound: "<green>已绑定触发器 <white>%trigger%</white></green>"
+  trigger_conflict: "<red>触发器 <white>%trigger%</white> 与已有绑定冲突: %reason%</red>"
+  trigger_bind_failed: "<red>触发器绑定失败</red>"
   trigger_unbound: "<red>未绑定</red>"
   trigger_unbound_short: "<red>[未绑定]</red>"
-  cast_mode_enabled: "<green>已进入施法模式。</green>"
-  cast_mode_disabled: "<yellow>已退出施法模式。</yellow>"
-  refreshed: "<green>技能池已刷新。</green>"
+  cast_mode_enabled: "<green>已进入施法模式</green>"
+  cast_mode_disabled: "<yellow>已退出施法模式</yellow>"
+  refreshed: "<green>技能池已刷新</green>"
   title: "主动技能"
   slot_empty: "<gray>空技能槽</gray>"
   slot_empty_short: "<gray>[空]</gray>"
@@ -237,7 +237,7 @@ gui:
   page_prev: "<gray>上一页</gray>"
   page_next: "<gray>下一页</gray>"
   page_info: "<gray>第 %current%/%total% 页</gray>"
-  # 货币、材料与参数清单会将一个占位符展开为每项一行。
+  # 货币, 材料与参数清单会将一个占位符展开为每项一行
   upgrade_cost_free: "<green>无</green>"
   upgrade_currency_title: "<gold>货币消耗</gold>"
   upgrade_currency_entry: "<yellow>%display_name% %amount%</yellow>"
@@ -251,7 +251,7 @@ gui:
   upgrade_confirm_title: "<green>确认升级</green>"
   upgrade_confirm_status: "<gray>点击后将扣除货币与材料</gray>"
   upgrade_insufficient_title: "<red>材料不足</red>"
-  upgrade_insufficient_status: "<red>缺少所需材料，无法升级</red>"
+  upgrade_insufficient_status: "<red>缺少所需材料, 无法升级</red>"
   upgrade_unavailable_title: "<dark_gray>无法升级</dark_gray>"
   upgrade_max_level_status: "<yellow>已达到最高等级 %max_level%</yellow>"
   upgrade_disabled_status: "<red>该技能未开启升级</red>"
@@ -291,55 +291,55 @@ command:
     header: "<gray>===== 玩家 <aqua>%player%</aqua> 技能状态 =====</gray>"
     line: "<gray>%key%: <white>%value%</white></gray>"
     empty_slot: "[空]"
-    # 命令：玩家档案未加载时显示的取值
+    # 命令: 玩家档案未加载时显示的取值
     not_loaded: "未加载"
   castmode:
-    enabled: "<green>施法模式已开启。</green>"
-    disabled: "<yellow>施法模式已关闭。</yellow>"
+    enabled: "<green>施法模式已开启</green>"
+    disabled: "<yellow>施法模式已关闭</yellow>"
   clearslot:
-    success: "<green>已清除指定技能槽。</green>"
-    failed: "<red>清除技能槽失败。</red>"
+    success: "<green>已清除指定技能槽</green>"
+    failed: "<red>清除技能槽失败</red>"
   resync:
-    success: "<green>已重新同步玩家技能池。</green>"
+    success: "<green>已重新同步玩家技能池</green>"
   grant:
-    success: "<green>已为玩家 <aqua>%player%</aqua> 授予技能 <white>%skill%</white>。</green>"
-    failed: "<yellow>玩家 <aqua>%player%</aqua> 已拥有技能 <white>%skill%</white>。</yellow>"
+    success: "<green>已为玩家 <aqua>%player%</aqua> 授予技能 <white>%skill%</white></green>"
+    failed: "<yellow>玩家 <aqua>%player%</aqua> 已拥有技能 <white>%skill%</white></yellow>"
   revoke:
-    success: "<green>已收回玩家 <aqua>%player%</aqua> 的技能 <white>%skill%</white>。</green>"
-    failed: "<yellow>玩家 <aqua>%player%</aqua> 未拥有技能 <white>%skill%</white>。</yellow>"
+    success: "<green>已收回玩家 <aqua>%player%</aqua> 的技能 <white>%skill%</white></green>"
+    failed: "<yellow>玩家 <aqua>%player%</aqua> 未拥有技能 <white>%skill%</white></yellow>"
   list:
     header: "<gray>===== 玩家 <aqua>%player%</aqua> 技能列表 =====</gray>"
     learned: "<gray>已学习: <white>%skill_id%</white></gray>"
-    empty: "<gray>该玩家没有已学习的技能。</gray>"
+    empty: "<gray>该玩家没有已学习的技能</gray>"
     slot: "<gray>槽位 %slot%: <white>%skill_id%</white> -> <white>%trigger_id%</white></gray>"
   reset:
-    success: "<green>已清空玩家 <aqua>%player%</aqua> 的 <gold>%count%</gold> 个已学习技能（技能槽位绑定未受影响）。</green>"
+    success: "<green>已清空玩家 <aqua>%player%</aqua> 的 <gold>%count%</gold> 个已学习技能 (技能槽位绑定未受影响)</green>"
   level:
     get: "<gray>玩家 <aqua>%player%</aqua> 的 <white>%skill%</white> 等级为
-      <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>。\
+      <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>. \
       </gray>"
     changed:
       "<green>已将玩家 <aqua>%player%</aqua> 的 <white>%skill%</white> 等级设置为
-      <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>。\
+      <gold>%level%</gold><dark_gray>/</dark_gray><yellow>%max_level%</yellow>. \
       </green>"
 
 upgrade:
-  player_required: "<red>升级技能需要指定在线玩家。</red>"
-  invalid: "<red>技能升级数据无效。</red>"
-  disabled: "<red>技能 <white>%skill%</white> 未开启升级。</red>"
-  not_unlocked: "<red>你尚未解锁技能 <white>%skill%</white>。</red>"
+  player_required: "<red>升级技能需要指定在线玩家</red>"
+  invalid: "<red>技能升级数据无效</red>"
+  disabled: "<red>技能 <white>%skill%</white> 未开启升级</red>"
+  not_unlocked: "<red>你尚未解锁技能 <white>%skill%</white></red>"
   max_level: "<yellow>技能 <white>%skill%</white> 已达到最高等级
-    <gold>%max_level%</gold>。</yellow>"
-  condition_not_met: "<red>技能 <white>%skill%</white> 的升级条件未满足。</red>"
-  economy_unavailable: "<red>经济服务不可用，无法扣除 %cost%。</red>"
-  commit_failed: "<red>技能升级状态提交失败，已尝试补偿全部消耗。原因：%reason%。</red>"
-  insufficient_funds: "<red>金币不足，需要 %cost%。</red>"
-  insufficient_materials: "<red>材料不足，需要 <white>%material%</white> x%required%，当前 %available%。</red>"
+    <gold>%max_level%</gold>.</yellow>"
+  condition_not_met: "<red>技能 <white>%skill%</white> 的升级条件未满足</red>"
+  economy_unavailable: "<red>经济服务不可用, 无法扣除 %cost%</red>"
+  commit_failed: "<red>技能升级状态提交失败, 已尝试补偿全部消耗. 原因: %reason%</red>"
+  insufficient_funds: "<red>金币不足, 需要 %cost%</red>"
+  insufficient_materials: "<red>材料不足, 需要 <white>%material%</white> x%required%, 当前 %available%</red>"
   success:
     "<green>技能 <white>%skill%</white> 已升级至 <gold>%target_level%</gold>
-    级。</green>"
-  failed: "<red>技能 <white>%skill%</white> 升级失败，成功率 %success_rate%%。</red>"
-  cancelled: "<yellow>本次技能升级已被取消。</yellow>"
+    级.</green>"
+  failed: "<red>技能 <white>%skill%</white> 升级失败, 成功率 %success_rate%%</red>"
+  cancelled: "<yellow>本次技能升级已被取消</yellow>"
 
 debug:
   common:
@@ -364,7 +364,7 @@ debug:
     bind: "槽位绑定 | 玩家=%player% | 槽位=%slot% | 技能=%skill% | 触发器=%trigger%"
     unbind: "槽位解绑 | 玩家=%player% | 槽位=%slot%"
 
-# 编辑器：游戏内定义编辑器（菜单/字段/浏览器/反馈）
+# 编辑器: 游戏内定义编辑器 (菜单/字段/浏览器/反馈)
 editor:
   menu:
     home: "定义编辑"
@@ -381,36 +381,36 @@ editor:
     resources: "本地资源"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     display_name: "显示名"
     display_name_desc: "<dark_gray>定义在界面中展示的名称</dark_gray>"
     description: "技能描述"
-    description_desc: "<dark_gray>技能描述文本，逐行显示在 GUI 中</dark_gray>"
+    description_desc: "<dark_gray>技能描述文本, 逐行显示在 GUI 中</dark_gray>"
     icon_material: "图标材质"
-    icon_material_desc: "<dark_gray>GUI 中显示的物品材质名，如 fire_charge</dark_gray>"
+    icon_material_desc: "<dark_gray>GUI 中显示的物品材质名, 如 fire_charge</dark_gray>"
     trigger_type: "触发类型"
     trigger_type_desc: "<dark_gray>active 主动释放 / passive 由事件触发</dark_gray>"
     cooldown_ticks: "冷却时间"
-    cooldown_ticks_desc: "<dark_gray>技能冷却（tick，20 tick = 1 秒）</dark_gray>"
+    cooldown_ticks_desc: "<dark_gray>技能冷却 (tick, 20 tick = 1 秒)</dark_gray>"
     global_cooldown_ticks: "全局冷却"
-    global_cooldown_ticks_desc: "<dark_gray>释放后所有技能共享的冷却（tick）</dark_gray>"
+    global_cooldown_ticks_desc: "<dark_gray>释放后所有技能共享的冷却 (tick)</dark_gray>"
     lore_aliases: "Lore 别名"
     lore_aliases_desc: "<dark_gray>物品 Lore 中用于识别该技能的别名列表</dark_gray>"
     tags: "标签"
-    tags_desc: "<dark_gray>技能标签，用于检索与条件判定</dark_gray>"
+    tags_desc: "<dark_gray>技能标签, 用于检索与条件判定</dark_gray>"
     tab_tags: "页签标签"
     tab_tags_desc: "<dark_gray>技能 GUI 页签分类标签</dark_gray>"
     conflicting_skills: "冲突技能"
@@ -428,7 +428,7 @@ editor:
     condition: "释放条件"
     condition_desc: "<dark_gray>进入释放条件配置子菜单</dark_gray>"
     resource_costs: "资源消耗"
-    resource_costs_desc: "<dark_gray>释放技能消耗的资源列表，Shift+左键编辑条目</dark_gray>"
+    resource_costs_desc: "<dark_gray>释放技能消耗的资源列表, Shift+左键编辑条目</dark_gray>"
     variables: "技能变量"
     variables_desc: "<dark_gray>进入技能变量配置子菜单</dark_gray>"
     script: "技能脚本"
@@ -442,15 +442,15 @@ editor:
     regen_amount: "回复量"
     regen_amount_desc: "<dark_gray>每次自然回复增加的数值</dark_gray>"
     regen_interval_ticks: "回复间隔"
-    regen_interval_ticks_desc: "<dark_gray>自然回复间隔（tick，20 tick = 1 秒）</dark_gray>"
+    regen_interval_ticks_desc: "<dark_gray>自然回复间隔 (tick, 20 tick = 1 秒)</dark_gray>"
     clamp_min: "下限"
     clamp_min_desc: "<dark_gray>当前值不会低于此值</dark_gray>"
     clamp_max: "上限"
-    clamp_max_desc: "<dark_gray>当前值不会超过此值；小于等于 0 时回退到资源上限</dark_gray>"
+    clamp_max_desc: "<dark_gray>当前值不会超过此值; 小于等于 0 时回退到资源上限</dark_gray>"
     type: "类型"
     type_desc: "<dark_gray>条件组合方式或消耗的资源类型</dark_gray>"
     entries: "条件列表"
-    entries_desc: "<dark_gray>条件表达式列表，逐条判定</dark_gray>"
+    entries_desc: "<dark_gray>条件表达式列表, 逐条判定</dark_gray>"
     mode: "脚本模式"
     mode_desc: "<dark_gray>native 原生管道 / mythic MythicMobs / hybrid 两者</dark_gray>"
     stop_on_failure: "失败即停"
@@ -460,13 +460,13 @@ editor:
     max_level: "最高等级"
     max_level_desc: "<dark_gray>该技能允许升到的最高等级</dark_gray>"
     gui_template: "升级界面模板"
-    gui_template_desc: "<dark_gray>升级 GUI 模板 id，缺省时回退 upgrade_gui</dark_gray>"
+    gui_template_desc: "<dark_gray>升级 GUI 模板 id, 缺省时回退 upgrade_gui</dark_gray>"
     failure_penalty: "失败惩罚"
-    failure_penalty_desc: "<dark_gray>升级失败后的惩罚：none / downgrade / reset</dark_gray>"
+    failure_penalty_desc: "<dark_gray>升级失败后的惩罚: none / downgrade / reset</dark_gray>"
     economy: "经济消耗"
     economy_desc: "<dark_gray>升级所需货币配置</dark_gray>"
     target_id: "目标资源"
-    target_id_desc: "<dark_gray>消耗的资源 ID，如 mana</dark_gray>"
+    target_id_desc: "<dark_gray>消耗的资源 ID, 如 mana</dark_gray>"
     amount: "消耗数值"
     amount_desc: "<dark_gray>每次释放消耗的数量</dark_gray>"
     operation: "消耗方式"
@@ -492,41 +492,41 @@ editor:
     decimals: "小数位数"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"

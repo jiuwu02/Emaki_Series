@@ -1,48 +1,48 @@
-# EmakiStorage 简体中文语言资源。
-# 消息使用 MiniMessage；保留消息分组旁标明的占位符。
-# version 由资源同步流程维护，用于合并新增默认键。
+# EmakiStorage 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
 
 version: "1.1.5"
 
 general:
   prefix: "<gray>[ <gradient:#4DA6FF:#FFD166>EmakiStorage</gradient> ]</gray>"
-  no_permission: "<red>你没有权限执行此操作。</red>"
-  player_only: "<red>此命令只能由玩家执行。</red>"
-  player_not_found: "<red>找不到玩家 %player%。</red>"
-  unknown_command: "<red>未知命令，输入 /estorage help 查看帮助。</red>"
-  invalid_args: "<red>参数错误，输入 /estorage help 查看用法。</red>"
+  no_permission: "<red>你没有权限执行此操作</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  player_not_found: "<red>找不到玩家 %player%</red>"
+  unknown_command: "<red>未知命令, 输入 /estorage help 查看帮助</red>"
+  invalid_args: "<red>参数错误, 输入 /estorage help 查看用法</red>"
   reloading: "<gray>正在重载配置...</gray>"
-  reload_success: "<green>配置已重载。</green>"
-  reload_summary: "<gray>已加载界面模板 %templates% 个。</gray>"
-  data_loading: "<yellow>仓库数据仍在加载，请稍后再试。</yellow>"
-  session_expired: "<red>本次会话已失效，请重新打开仓库。</red>"
-  storage_unavailable: "<red>仓库服务当前不可用。</red>"
-  open_failed: "<red>仓库界面打开失败，请检查控制台日志。</red>"
+  reload_success: "<green>配置已重载</green>"
+  reload_summary: "<gray>已加载界面模板 %templates% 个</gray>"
+  data_loading: "<yellow>仓库数据仍在加载, 请稍后再试</yellow>"
+  session_expired: "<red>本次会话已失效, 请重新打开仓库</red>"
+  storage_unavailable: "<red>仓库服务当前不可用</red>"
+  open_failed: "<red>仓库界面打开失败, 请检查控制台日志</red>"
 
 gui:
   locked:
     name: "<dark_gray>未解锁槽位</dark_gray>"
     lore: "<gray>扩容后即可使用此槽位</gray>"
   entry:
-    amount_with_limit: "<gray>数量: <white>%amount%</white> / <white>%limit%</white> <dark_gray>(%percent%%)</dark_gray></gray>"
-    amount_unlimited: "<gray>数量: <white>%amount%</white> <dark_gray>(无上限)</dark_gray></gray>"
+    amount_with_limit: "<gray>数量: <white>%amount%</white> / <white>%limit%</white> <dark_gray> (%percent%%)</dark_gray></gray>"
+    amount_unlimited: "<gray>数量: <white>%amount%</white> <dark_gray> (无上限)</dark_gray></gray>"
     exact: "<dark_gray>精确: %exact%</dark_gray>"
-    span_total: "<aqua>跨 %slots% 格存储（第 %slot% 格）| 总计 <white>%total%</white></aqua>"
+    span_total: "<aqua>跨 %slots% 格存储 (第 %slot% 格)| 总计 <white>%total%</white></aqua>"
     withdraw_hint: "<yellow>左键取 %left% | 右键 %right% | Shift+左键 %shift_left% | Shift+右键 %shift_right%</yellow>"
     custom_hint: "<yellow>中键指定自定义数量</yellow>"
-    overflow_locked: "<red>超出当前容量：只可取出，不可存入</red>"
-    search_readonly: "<gold>搜索状态：展示区禁止存入，请使用投入口</gold>"
+    overflow_locked: "<red>超出当前容量: 只可取出, 不可存入</red>"
+    search_readonly: "<gold>搜索状态: 展示区禁止存入, 请使用投入口</gold>"
   page_info:
     name: "<gold>第 %current_page% / %total_pages% 页</gold>"
-    capacity: "<gray>已用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位（剩余 %free_slots%）</gray>"
-    searching: "<gold>搜索中: <white>%query%</white>（命中 %visible% 条）</gold>"
-    overflow: "<red>有 %count% 条目超出容量，处于只读状态</red>"
+    capacity: "<gray>已用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位 (剩余 %free_slots%)</gray>"
+    searching: "<gold>搜索中: <white>%query%</white> (命中 %visible% 条)</gold>"
+    overflow: "<red>有 %count% 条目超出容量, 处于只读状态</red>"
   sort:
     name: "<aqua>整理</aqua>"
     current: "<gray>当前排序: <white>%mode%</white></gray>"
     hint: "<yellow>点击切换维度 | Shift+点击反转方向</yellow>"
-    changed: "<green>排序已切换为 %mode%。</green>"
-    disabled: "<red>服务器未开放玩家自定义排序。</red>"
+    changed: "<green>排序已切换为 %mode%</green>"
+    disabled: "<red>服务器未开放玩家自定义排序</red>"
     modes:
       material_asc: "材质 升序"
       material_desc: "材质 降序"
@@ -56,80 +56,80 @@ gui:
     current: "<gray>当前条件: <white>%query%</white></gray>"
     hint: "<yellow>左键输入搜索关键词</yellow>"
     clear_hint: "<yellow>右键清除搜索条件</yellow>"
-    disabled: "<red>搜索功能已被关闭。</red>"
+    disabled: "<red>搜索功能已被关闭</red>"
   unlock:
     name: "<green>扩容</green>"
-    status: "<gray>当前容量 <white>%total_slots%</white>（已购买 %purchased_slots%，上限 %max_slots%）</gray>"
+    status: "<gray>当前容量 <white>%total_slots%</white> (已购买 %purchased_slots%, 上限 %max_slots%)</gray>"
     hint: "<yellow>点击购买槽位</yellow>"
     at_ceiling: "<red>已达槽位上限</red>"
     unlimited: "无限"
   deposit:
-    success: "<green>已存入 %amount% 个。</green>"
-    partial: "<gold>已存入 %amount% 个，剩余 %remaining% 个未能存入。</gold>"
-    bulk_success: "<green>一键存入完成，共 %amount% 个。</green>"
-    bulk_empty: "<yellow>背包中没有可存入的物品。</yellow>"
-    cancelled: "<red>存入被其他插件取消。</red>"
-    failed: "<red>存入失败。</red>"
-    filtered: "<red>该物品被存入过滤规则拒绝。</red>"
-    unique_rejected: "<red>服务器不允许存入带唯一标记的物品。</red>"
-    no_free_slot: "<red>没有空闲槽位可容纳新的物品种类。</red>"
-    slot_full: "<red>该槽位已达单槽上限。</red>"
-    inventory_conflict: "<red>背包内容发生变化，本次存入已取消。</red>"
-    search_blocked: "<red>搜索状态下展示区禁止存入，请使用投入口。</red>"
-    port_empty: "<yellow>请先把物品拿到光标上，再点击投入口。</yellow>"
-    cursor_guard: "<yellow>已开启光标保护：光标有物品时展示区不接受存入，请使用投入口。</yellow>"
+    success: "<green>已存入 %amount% 个</green>"
+    partial: "<gold>已存入 %amount% 个, 剩余 %remaining% 个未能存入</gold>"
+    bulk_success: "<green>一键存入完成, 共 %amount% 个</green>"
+    bulk_empty: "<yellow>背包中没有可存入的物品</yellow>"
+    cancelled: "<red>存入被其他插件取消</red>"
+    failed: "<red>存入失败</red>"
+    filtered: "<red>该物品被存入过滤规则拒绝</red>"
+    unique_rejected: "<red>服务器不允许存入带唯一标记的物品</red>"
+    no_free_slot: "<red>没有空闲槽位可容纳新的物品种类</red>"
+    slot_full: "<red>该槽位已达单槽上限</red>"
+    inventory_conflict: "<red>背包内容发生变化, 本次存入已取消</red>"
+    search_blocked: "<red>搜索状态下展示区禁止存入, 请使用投入口</red>"
+    port_empty: "<yellow>请先把物品拿到光标上, 再点击投入口</yellow>"
+    cursor_guard: "<yellow>已开启光标保护: 光标有物品时展示区不接受存入, 请使用投入口</yellow>"
   withdraw:
-    partial: "<gold>已取出 %amount% 个，%remaining% 个因背包空间不足未取出。</gold>"
-    cancelled: "<red>取出被其他插件取消。</red>"
-    failed: "<red>取出失败。</red>"
+    partial: "<gold>已取出 %amount% 个, %remaining% 个因背包空间不足未取出</gold>"
+    cancelled: "<red>取出被其他插件取消</red>"
+    failed: "<red>取出失败</red>"
   click:
-    unsupported: "<red>该操作方式在仓库中不受支持。</red>"
+    unsupported: "<red>该操作方式在仓库中不受支持</red>"
 
 dialog:
   confirm: "<green>确认</green>"
-  unavailable: "<red>当前无法打开输入界面，请联系管理员检查配置。</red>"
+  unavailable: "<red>当前无法打开输入界面, 请联系管理员检查配置</red>"
   withdraw:
     title: "<dark_gray>取出数量</dark_gray>"
-    body: "<gray>支持 k/m/b 等后缀，也可填 all 或 max 取出全部。</gray>"
+    body: "<gray>支持 k/m/b 等后缀, 也可填 all 或 max 取出全部</gray>"
     label: "<white>数量</white>"
   search:
     title: "<dark_gray>搜索物品</dark_gray>"
-    body: "<gray>可用前缀：%name% 名称、%lore% 描述、%id% ID、%exclude% 排除。留空清除搜索。</gray>"
+    body: "<gray>可用前缀: %name% 名称, %lore% 描述, %id% ID, %exclude% 排除. 留空清除搜索</gray>"
     label: "<white>关键词</white>"
 
 auto_pickup:
-  enabled: "<green>自动拾取已开启，掉落物将直接进入仓库。</green>"
-  turned_off: "<yellow>自动拾取已关闭。</yellow>"
-  disabled: "<red>本服未启用自动拾取功能。</red>"
-  rejected: "<yellow>仓库暂时放不下，拾取的物品已进入背包。</yellow>"
+  enabled: "<green>自动拾取已开启, 掉落物将直接进入仓库</green>"
+  turned_off: "<yellow>自动拾取已关闭</yellow>"
+  disabled: "<red>本服未启用自动拾取功能</red>"
+  rejected: "<yellow>仓库暂时放不下, 拾取的物品已进入背包</yellow>"
 
 chat:
   input:
-    cancelled: "<gray>已取消输入。</gray>"
-    timeout: "<gray>输入超时，已取消。</gray>"
+    cancelled: "<gray>已取消输入</gray>"
+    timeout: "<gray>输入超时, 已取消</gray>"
   withdraw:
-    prompt: "<aqua>请在聊天栏输入取出数量</aqua><gray>（支持 10K / 1M / all，输入 %cancel% 取消）</gray>"
+    prompt: "<aqua>请在聊天栏输入取出数量</aqua><gray> (支持 10K / 1M / all, 输入 %cancel% 取消)</gray>"
     invalid: "<red>无法识别的数量: %input%</red>"
-    done: "<green>已取出 %amount% 个。</green>"
+    done: "<green>已取出 %amount% 个</green>"
   search:
-    prompt: "<aqua>请在聊天栏输入搜索条件</aqua><gray>（%name% 仅名称，%lore% 仅描述，%id% 仅 ID，%exclude% 排除，空格 = 且；输入 %cancel% 取消）</gray>"
-    applied: "<green>搜索条件已应用: %query%（命中 %count% 条）</green>"
-    cleared: "<gray>已清除搜索条件。</gray>"
+    prompt: "<aqua>请在聊天栏输入搜索条件</aqua><gray> (%name% 仅名称, %lore% 仅描述, %id% 仅 ID, %exclude% 排除, 空格 = 且; 输入 %cancel% 取消)</gray>"
+    applied: "<green>搜索条件已应用: %query% (命中 %count% 条)</green>"
+    cleared: "<gray>已清除搜索条件</gray>"
 
 unlock:
-  disabled: "<red>服务器未开放付费扩容。</red>"
-  success: "<green>已购买 %slots% 个槽位，花费 %cost%。</green>"
-  failed: "<red>扩容失败。</red>"
-  no_price: "<red>未配置有效的扩容价格，无法购买。</red>"
-  at_ceiling: "<red>已达槽位上限，无法继续扩容。</red>"
-  price_invalid: "<red>扩容价格超出配置上限，请联系管理员检查 unlock_costs.yml。</red>"
-  insufficient_currency: "<red>货币不足。</red>"
-  insufficient_items: "<red>所需物品不足。</red>"
-  unknown_item: "<red>扩容价格中的物品来源无法解析，请联系管理员。</red>"
-  cancelled: "<red>扩容被其他插件取消。</red>"
+  disabled: "<red>服务器未开放付费扩容</red>"
+  success: "<green>已购买 %slots% 个槽位, 花费 %cost%</green>"
+  failed: "<red>扩容失败</red>"
+  no_price: "<red>未配置有效的扩容价格, 无法购买</red>"
+  at_ceiling: "<red>已达槽位上限, 无法继续扩容</red>"
+  price_invalid: "<red>扩容价格超出配置上限, 请联系管理员检查 unlock_costs.yml</red>"
+  insufficient_currency: "<red>货币不足</red>"
+  insufficient_items: "<red>所需物品不足</red>"
+  unknown_item: "<red>扩容价格中的物品来源无法解析, 请联系管理员</red>"
+  cancelled: "<red>扩容被其他插件取消</red>"
 
 command:
-  target_offline: "<red>玩家 %player% 当前离线，无法执行该写操作。</red>"
+  target_offline: "<red>玩家 %player% 当前离线, 无法执行该写操作</red>"
   help:
     header: "<gold>========== EmakiStorage 帮助 ==========</gold>"
     footer: "<gold>=======================================</gold>"
@@ -140,29 +140,29 @@ command:
       open_self: "打开自己的仓库"
       autopickup: "开关自动拾取"
       open: "打开他人仓库"
-      slot: "授予或回收槽位（可为负数）"
+      slot: "授予或回收槽位 (可为负数)"
       stacklimit_player: "设置玩家默认单槽上限"
       stacklimit_slot: "设置指定槽位上限"
-      info: "查看容量、占用与各来源明细"
+      info: "查看容量, 占用与各来源明细"
       export: "导出可读 YAML 供人工排查"
-      reload: "重载配置、语言与界面模板"
+      reload: "重载配置, 语言与界面模板"
       debug: "管理 Debug 模式"
   slot:
-    granted: "<green>已为 %player% 调整槽位 %amount%，当前授予值 %granted%。</green>"
+    granted: "<green>已为 %player% 调整槽位 %amount%, 当前授予值 %granted%</green>"
     invalid_amount: "<red>无法识别的槽位数量: %input%</red>"
   stacklimit:
-    player_set: "<green>已将 %player% 的默认单槽上限设为 %limit%。</green>"
-    slot_set: "<green>已将 %player% 第 %slot% 槽的上限设为 %limit%。</green>"
-    slot_empty: "<red>第 %slot% 槽当前没有条目。</red>"
-    invalid: "<red>无法识别的上限值: %input%（支持 10M / 1B / max）</red>"
+    player_set: "<green>已将 %player% 的默认单槽上限设为 %limit%</green>"
+    slot_set: "<green>已将 %player% 第 %slot% 槽的上限设为 %limit%</green>"
+    slot_empty: "<red>第 %slot% 槽当前没有条目</red>"
+    invalid: "<red>无法识别的上限值: %input% (支持 10M / 1B / max)</red>"
   info:
-    header: "<gold>—— %player% 的仓库 ——</gold>"
-    capacity: "<gray>占用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位，共 %pages% 页，总数量 %total_amount%</gray>"
-    sources: "<gray>来源明细: 默认 %base_slots% + 权限 %permission_slots% + 授予 %granted_slots% + 购买 %purchased_slots%（上限 %max_slots%）</gray>"
-    limits: "<gray>默认单槽上限 %stack_limit%，排序 %sort_mode%</gray>"
+    header: "<gold> -- %player% 的仓库 --</gold>"
+    capacity: "<gray>占用 <white>%used_slots%</white> / <white>%total_slots%</white> 槽位, 共 %pages% 页, 总数量 %total_amount%</gray>"
+    sources: "<gray>来源明细: 默认 %base_slots% + 权限 %permission_slots% + 授予 %granted_slots% + 购买 %purchased_slots% (上限 %max_slots%)</gray>"
+    limits: "<gray>默认单槽上限 %stack_limit%, 排序 %sort_mode%</gray>"
   export:
-    done: "<green>已导出 %player% 的仓库到 %file%。</green>"
-    failed: "<red>导出 %player% 的仓库失败，请检查控制台日志。</red>"
+    done: "<green>已导出 %player% 的仓库到 %file%</green>"
+    failed: "<red>导出 %player% 的仓库失败, 请检查控制台日志</red>"
 
 console:
   plugin_starting: "[startup] 正在启动 EmakiStorage..."
@@ -170,42 +170,42 @@ console:
   bootstrap_start: "[loader] <gray>正在释放默认资源...</gray>"
   bootstrap_skip: "[loader] <yellow>已跳过默认数据写入</yellow>"
   bootstrap_complete: "[loader] <green>默认文件检查完成</green>"
-  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
-  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray>(%error%)</gray></yellow>"
+  versioned_file_updated: "[config] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  bootstrap_copy_failed: "[loader] <yellow>复制默认资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
+  bootstrap_save_failed: "[loader] <yellow>保存合并资源失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>缺少内置默认资源: <red>%path%</red></yellow>"
   directory_create_failed: "[loader] <yellow>创建目录失败: <red>%path%</red></yellow>"
-  # 控制台：能力发布被拒绝；占位符：%reason%
+  # 控制台: 能力发布被拒绝; 占位符: %reason%
   capability_refused: "[integration] 能力发布被拒绝: %reason%"
-  # 控制台：PlaceholderAPI 扩展注册被拒绝
+  # 控制台: PlaceholderAPI 扩展注册被拒绝
   papi_registration_refused: "[integration] PlaceholderAPI 扩展注册被拒绝"
-  # 控制台：PlaceholderAPI 扩展不可用；占位符：%reason%
+  # 控制台: PlaceholderAPI 扩展不可用; 占位符: %reason%
   papi_unavailable: "[integration] PlaceholderAPI 扩展不可用: %reason%"
-  # 控制台：为玩家导出仓库失败；占位符：%player%、%error%
+  # 控制台: 为玩家导出仓库失败; 占位符: %player%, %error%
   export_failed: "[command] 为玩家 %player% 导出仓库失败: %error%"
-  # 控制台：界面模板加载问题；占位符：%issue%
+  # 控制台: 界面模板加载问题; 占位符: %issue%
   gui_issue: "%issue%"
-  # 控制台：付费扩容成本文件缺失；占位符：%file%
-  cost_file_missing: "[economy] %file% 缺失或为空；在提供之前付费扩容已禁用"
-  # 控制台：解锁档位 count_range 无效；占位符：%range%
+  # 控制台: 付费扩容成本文件缺失; 占位符: %file%
+  cost_file_missing: "[economy] %file% 缺失或为空; 在提供之前付费扩容已禁用"
+  # 控制台: 解锁档位 count_range 无效; 占位符: %range%
   unlock_tier_invalid_range: "[economy] 跳过 count_range 无效的解锁档位: %range%"
-  # 控制台：解锁档位缺少价格；占位符：%range%
+  # 控制台: 解锁档位缺少价格; 占位符: %range%
   unlock_tier_no_price: "[economy] 跳过没有配置价格的解锁档位 %range%"
-  # 控制台：unlock_costs.yml 回退配置缺少正的 max_amount 保护值
-  unlock_fallback_invalid: "[economy] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值；超出既定档位的付费扩容已禁用"
-  # 控制台：打开编辑界面失败；占位符：%item%、%error%
-  editor_open_failed: "[editor] <red>无法打开 EmakiStorage 编辑界面: %item% (%error%)</red>"
-  # 控制台：编辑界面模板缺失；占位符：%template%
+  # 控制台: unlock_costs.yml 回退配置缺少正的 max_amount 保护值
+  unlock_fallback_invalid: "[economy] unlock_costs.yml 回退配置需要一个正的 max_amount 保护值; 超出既定档位的付费扩容已禁用"
+  # 控制台: 打开编辑界面失败; 占位符: %item%, %error%
+  editor_open_failed: "[editor] <red>无法打开 EmakiStorage 编辑界面: %item%  (%error%)</red>"
+  # 控制台: 编辑界面模板缺失; 占位符: %template%
   editor_template_missing: "[editor] <red>缺少 EmakiStorage 编辑界面模板: %template%</red>"
-  # 控制台：创建定义失败；占位符：%path%、%error%
-  editor_browser_create_failed: "[editor] <red>无法创建定义: %path% (%error%)</red>"
-  # 控制台：删除定义失败；占位符：%path%、%error%
-  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path% (%error%)</red>"
-  # 控制台：列举定义目录失败；占位符：%path%、%error%
-  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path% (%error%)</red>"
-  # 控制台：为玩家加载仓库失败；占位符：%player%、%reason%
+  # 控制台: 创建定义失败; 占位符: %path%, %error%
+  editor_browser_create_failed: "[editor] <red>无法创建定义: %path%  (%error%)</red>"
+  # 控制台: 删除定义失败; 占位符: %path%, %error%
+  editor_browser_delete_failed: "[editor] <red>无法删除定义: %path%  (%error%)</red>"
+  # 控制台: 列举定义目录失败; 占位符: %path%, %error%
+  editor_browser_list_failed: "[editor] <red>无法列举定义目录: %path%  (%error%)</red>"
+  # 控制台: 为玩家加载仓库失败; 占位符: %player%, %reason%
   storage_load_failed: "[persistence] 为玩家 %player% 加载仓库失败: %reason%"
-  # 控制台：注册流水线阶段失败；占位符：%stage%、%reason%
+  # 控制台: 注册流水线阶段失败; 占位符: %stage%, %reason%
   stage_register_failed: "[registry] 注册流水线阶段 '%stage%' 失败: %reason%"
   config_precheck_passed: "[config] <gray>配置预检通过: <yellow>%issues%</yellow> 个提示</gray>"
   config_precheck_failed: "[config] <red>配置预检失败: <yellow>%issues%</yellow> 个问题</red>"
@@ -218,7 +218,7 @@ console:
       error: "错误"
       warn: "警告"
       info: "信息"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
       passed: "EmakiStorage 配置预检通过"
       required_file_missing: "缺少必需文件"
@@ -244,40 +244,40 @@ editor:
     list_entries: "条目编辑"
   field:
     entry: "条目"
-    entry_desc: "<dark_gray>左键编辑该条目，Shift+左键删除该条目</dark_gray>"
-    reset_empty: "<yellow>该字段尚无配置，无需重置</yellow>"
+    entry_desc: "<dark_gray>左键编辑该条目, Shift+左键删除该条目</dark_gray>"
+    reset_empty: "<yellow>该字段尚无配置, 无需重置</yellow>"
     value: "当前值: <white>%value%</white>"
     disabled: "<red>该字段不可编辑</red>"
     hint:
-      toggle: "<gray>左键切换 开/关，右键重置</gray>"
-      cycle: "<gray>左键切换到下一个取值，右键重置</gray>"
-      number: "<gray>左键输入数值，右键重置</gray>"
-      text: "<gray>左键输入文本，右键重置</gray>"
+      toggle: "<gray>左键切换 开/关, 右键重置</gray>"
+      cycle: "<gray>左键切换到下一个取值, 右键重置</gray>"
+      number: "<gray>左键输入数值, 右键重置</gray>"
+      text: "<gray>左键输入文本, 右键重置</gray>"
       navigate: "<gray>左键进入子菜单</gray>"
       list: "<gray>左键查看列表</gray>"
-      list_seq: "<gray>左键添加一行，Shift+左键编辑条目，右键删除最后一行，Shift+右键清空</gray>"
-      list_map: "<gray>左键编辑条目，右键重置整个节点</gray>"
+      list_seq: "<gray>左键添加一行, Shift+左键编辑条目, 右键删除最后一行, Shift+右键清空</gray>"
+      list_map: "<gray>左键编辑条目, 右键重置整个节点</gray>"
       command: "<gray>左键编辑该项</gray>"
     tiers: "价格档位列表"
-    tiers_desc: "<dark_gray>按格数区间计价的档位列表，越靠前的档位越优先</dark_gray>"
+    tiers_desc: "<dark_gray>按格数区间计价的档位列表, 越靠前的档位越优先</dark_gray>"
     nav_fallback: "兜底价格"
     nav_fallback_desc: "<dark_gray>超出所有档位后每一格的价格</dark_gray>"
     nav_batch: "批量购买设置"
     nav_batch_desc: "<dark_gray>批量购买的开关与数量选项</dark_gray>"
     count_range: "格数区间"
-    count_range_desc: "<dark_gray>档位覆盖的格数区间，例如 1-9 或单个数字</dark_gray>"
+    count_range_desc: "<dark_gray>档位覆盖的格数区间, 例如 1-9 或单个数字</dark_gray>"
     currency_type: "货币类型"
-    currency_type_desc: "<dark_gray>货币提供方：vault 或 excellent</dark_gray>"
+    currency_type_desc: "<dark_gray>货币提供方: vault 或 excellent</dark_gray>"
     currency_amount: "货币价格"
-    currency_amount_desc: "<dark_gray>每格的货币价格，支持含 count 的数学表达式</dark_gray>"
+    currency_amount_desc: "<dark_gray>每格的货币价格, 支持含 count 的数学表达式</dark_gray>"
     currency_id: "货币 ID"
-    currency_id_desc: "<dark_gray>多货币环境下指定的货币 ID，可留空</dark_gray>"
+    currency_id_desc: "<dark_gray>多货币环境下指定的货币 ID, 可留空</dark_gray>"
     item_source: "物品来源"
-    item_source_desc: "<dark_gray>用于支付的物品来源 token，例如 diamond</dark_gray>"
+    item_source_desc: "<dark_gray>用于支付的物品来源 token, 例如 diamond</dark_gray>"
     item_amount: "物品数量"
     item_amount_desc: "<dark_gray>每格需支付的物品数量</dark_gray>"
     max_amount: "价格上限"
-    max_amount_desc: "<dark_gray>兜底价格的保护上限，防止表达式溢出，必须为正数</dark_gray>"
+    max_amount_desc: "<dark_gray>兜底价格的保护上限, 防止表达式溢出, 必须为正数</dark_gray>"
     batch_enabled: "启用批量购买"
     batch_enabled_desc: "<dark_gray>是否允许玩家一次购买多格</dark_gray>"
     options: "数量选项"
@@ -286,49 +286,49 @@ editor:
     option_value_desc: "<dark_gray>单个批量购买数量选项</dark_gray>"
   modified: "<green>成功修改了 %item%</green>"
   reset_ok: "<green>成功重置了 %item%</green>"
-  modify_failed: "<red>%item% 修改未成功（%reason%）</red>"
-  modify_failed_parse: "<red>%item% 修改未成功：definition_parse_failed，请前往控制台查看详细错误原因</red>"
+  modify_failed: "<red>%item% 修改未成功 (%reason%)</red>"
+  modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入「%label%」的内容，输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入「键=值」新增一条映射，输入 cancel 取消</yellow>"
+    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
   map:
-    bad_entry: "<red>格式错误，请按「键=值」输入</red>"
+    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
   tier:
-    create_hint: "<gray>输入新档位的格数区间，例如 1-9 或 50，输入 cancel 取消</gray>"
-    bad_range: "<red>格数区间无效，请输入如 1-9 或 50 的正整数区间</red>"
+    create_hint: "<gray>输入新档位的格数区间, 例如 1-9 或 50, 输入 cancel 取消</gray>"
+    bad_range: "<red>格数区间无效, 请输入如 1-9 或 50 的正整数区间</red>"
   option:
-    create_hint: "<gray>输入新的数量选项（正整数），输入 cancel 取消</gray>"
+    create_hint: "<gray>输入新的数量选项 (正整数), 输入 cancel 取消</gray>"
     bad_value: "<red>数量选项必须是正整数</red>"
   root:
     unlock_costs: "扩容价格文件"
   browser:
     title: "<dark_gray>定义浏览</dark_gray>"
     roots: "<dark_gray>选择新建分类</dark_gray>"
-    new_hint: "<gray>ID 只允许小写字母、数字与下划线，例如 my_sword</gray>"
-    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID，输入 cancel 取消</yellow>"
-    invalid_id: "<red>ID 非法，只允许小写字母、数字与下划线</red>"
+    new_hint: "<gray>ID 只允许小写字母, 数字与下划线, 例如 my_sword</gray>"
+    new_prompt: "<yellow>请在聊天栏输入 %root% 下新定义的 ID, 输入 cancel 取消</yellow>"
+    invalid_id: "<red>ID 非法, 只允许小写字母, 数字与下划线</red>"
     no_skeleton: "<red>该分类不支持新建定义</red>"
     duplicate_id: "<red>ID %id% 已存在</red>"
     create_success: "<green>已创建定义 %id%</green>"
-    create_failed: "<red>创建失败，详见控制台</red>"
+    create_failed: "<red>创建失败, 详见控制台</red>"
     no_create_root: "<yellow>没有可新建定义的分类</yellow>"
     delete_title: "确认删除定义 %id%"
-    delete_body: "确定要删除此定义吗？"
-    delete_body_irreversible: "<red>此操作不可撤销</red>；删除前会自动写入 edit-backups 备份。"
+    delete_body: "确定要删除此定义吗?"
+    delete_body_irreversible: "<red>此操作不可撤销</red>; 删除前会自动写入 edit-backups 备份"
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
-    delete_cancelled: "<gray>已取消删除，定义数据保留</gray>"
-    delete_confirm: "<red>再次点击「删除」以确认删除</red>"
+    delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
+    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
     delete_success: "<green>已删除定义 %id%</green>"
-    delete_failed: "<red>删除失败，详见控制台</red>"
+    delete_failed: "<red>删除失败, 详见控制台</red>"
   value:
-    unset: "未设置（空）"
+    unset: "未设置 (空)"
     integer: "整数"
     decimal: "小数"
     boolean: "布尔"
     text: "文本"
-    list_header: "列表（%count% 项）"
-    map_header: "字典（%count% 项）"
+    list_header: "列表 (%count% 项)"
+    map_header: "字典 (%count% 项)"
     scalar: "%type%: %value%"
-    more: "… 其余 %count% 项"
+    more: "... 其余 %count% 项"

@@ -1,6 +1,6 @@
-# EmakiCoreLib English language resource.
-# Messages use MiniMessage; preserve placeholders documented beside message groups.
-# version is maintained by resource synchronization when default keys are merged.
+# EmakiCoreLib English language resource
+# Messages use MiniMessage; preserve placeholders documented beside message groups
+# version is maintained by resource synchronization when default keys are merged
 
 version: "4.8.33"
 
@@ -9,15 +9,15 @@ general:
 
 gui:
   backend:
-    packet_backend_missing: "[gui] <yellow>Menu backend is set to packet, but PacketEvents is not installed (or the packet backend failed to register); falling back to the Bukkit (entity) backend.</yellow>"
-    unknown_value: "[gui] <yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit (entity) backend.</yellow>"
+    packet_backend_missing: "[gui] <yellow>Menu backend is set to packet, but PacketEvents is not installed  (or the packet backend failed to register); falling back to the Bukkit  (entity) backend</yellow>"
+    unknown_value: "[gui] <yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit  (entity) backend</yellow>"
 
 console:
   plugin_starting: "[startup] <gray>Starting...</gray>"
   plugin_started: "[startup] <green>Started</green>"
   plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
-  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
   config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
   config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
   config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
@@ -27,78 +27,78 @@ console:
       error: "Error"
       warn: "Warning"
       info: "Info"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
-      passed: "CoreLib config precheck passed."
-      required_file_missing: "Required file does not exist."
-      path_not_file: "Path is not a file."
-      file_not_readable: "File is not readable."
-      required_directory_missing: "Required directory does not exist."
-      path_not_directory: "Path is not a directory."
-      directory_not_readable: "Directory is not readable."
-      config_keys_missing: "Missing %count% bundled default key(s)."
+      passed: "CoreLib config precheck passed"
+      required_file_missing: "Required file does not exist"
+      path_not_file: "Path is not a file"
+      file_not_readable: "File is not readable"
+      required_directory_missing: "Required directory does not exist"
+      path_not_directory: "Path is not a directory"
+      directory_not_readable: "Directory is not readable"
+      config_keys_missing: "Missing %count% bundled default key (s)"
       fixable_hint: "run check --fix to repair automatically"
-      fix_failed: "Auto-fix failed: %path% (%kind%): %error%"
+      fix_failed: "Auto-fix failed: %path%  (%kind%): %error%"
       unknown_module: "Unknown config precheck module. Available modules: %modules%"
       contributor_failed: "Config precheck contributor failed: %error%"
-      loop_max_times_invalid: "max_times must be greater than 0."
-      loop_min_sync_interval_invalid: "min_sync_interval cannot be lower than 1 tick."
-      loop_min_async_interval_invalid: "min_async_interval cannot be lower than 1 tick."
-      loop_active_limits_invalid: "Active loop limits must be greater than 0."
-      template_blank_id: "Template ID cannot be blank."
+      loop_max_times_invalid: "max_times must be greater than 0"
+      loop_min_sync_interval_invalid: "min_sync_interval cannot be lower than 1 tick"
+      loop_min_async_interval_invalid: "min_async_interval cannot be lower than 1 tick"
+      loop_active_limits_invalid: "Active loop limits must be greater than 0"
+      template_blank_id: "Template ID cannot be blank"
       template_action_unregistered: "Action is not registered during precheck: %action%"
       template_invalid_syntax: "Invalid action syntax at line %line%: %error%"
       template_missing_reference: "Template references a missing template: %template%"
-      selector_missing_source: "Selector %selector% has no source."
-      selector_recursive_source: "Selector %selector% cannot use select as its own source."
-      selector_unknown_source: "Selector %selector% references source %source%, which is not registered; when another module provides it, check that the module is installed."
-      selector_condition_missing_field: "Condition %type% requires field %field%."
+      selector_missing_source: "Selector %selector% has no source"
+      selector_recursive_source: "Selector %selector% cannot use select as its own source"
+      selector_unknown_source: "Selector %selector% references source %source%, which is not registered; when another module provides it, check that the module is installed"
+      selector_condition_missing_field: "Condition %type% requires field %field%"
       selector_condition_invalid_state: "State condition names an unknown state %state%; valid values: %states%"
-      loop_template_required: "%action% requires template."
+      loop_template_required: "%action% requires template"
       loop_template_missing: "%action% references a missing template: %template%"
-      loop_times_numeric: "%action% requires numeric times."
-      loop_times_positive: "%action% times must be greater than 0."
-      loop_times_exceeds_max: "%action% times exceeds max_times."
-      loop_interval_invalid: "%action% requires a valid interval."
-      loop_interval_below_min: "%action% interval is lower than the configured minimum."
-      loop_initial_delay_invalid: "%action% initial_delay is invalid."
+      loop_times_numeric: "%action% requires numeric times"
+      loop_times_positive: "%action% times must be greater than 0"
+      loop_times_exceeds_max: "%action% times exceeds max_times"
+      loop_interval_invalid: "%action% requires a valid interval"
+      loop_interval_below_min: "%action% interval is lower than the configured minimum"
+      loop_initial_delay_invalid: "%action% initial_delay is invalid"
       loop_async_nested_template: "loopasync template cannot include nested usetemplate: %template%"
       loop_async_unsafe_action: "loopasync template contains a non-async-safe action: %action%"
       loop_async_invalid_syntax: "Invalid loopasync template syntax at line %line%: %error%"
-      cancel_loop_key_required: "cancelloop requires key."
-      cancel_loop_match_invalid: "cancelloop match must be exact or prefix."
-      cancel_loop_silent_invalid: "cancelloop silent must be boolean."
-      loop_mode_invalid: "%action% mode must be replace, refresh, ignore, or allow_duplicate."
-      loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean."
-      loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean."
-      loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean."
-  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
+      cancel_loop_key_required: "cancelloop requires key"
+      cancel_loop_match_invalid: "cancelloop match must be exact or prefix"
+      cancel_loop_silent_invalid: "cancelloop silent must be boolean"
+      loop_mode_invalid: "%action% mode must be replace, refresh, ignore, or allow_duplicate"
+      loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean"
+      loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean"
+      loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   economy_bridge_ready: "[integration] <gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
   block_source_bridge_ready: "[integration] <gray>Block source connected: <aqua>%provider%</aqua></gray>"
-  bstats_registered: "[metrics] <gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
-  bstats_register_failed: "[metrics] <yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_registered: "[metrics] <gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray> (pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "[metrics] <yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray> (pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
   bstats_closed: "[metrics] <gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
-  bstats_close_failed: "[metrics] <yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
+  bstats_close_failed: "[metrics] <yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray> (%error%)</dark_gray></yellow>"
   bstats_config_directory_create_failed: "[config] <yellow>Failed to create bStats config directory: %path%</yellow>"
-  bstats_config_write_failed: "[config] <yellow>Failed to write bStats config: %path% (%error%)</yellow>"
+  bstats_config_write_failed: "[config] <yellow>Failed to write bStats config: %path%  (%error%)</yellow>"
   action_config_load_failed: "[config] <red>Failed to load action config: %error%</red>"
   item_source_bridge_ready: "[integration] <gray>Item source connected: <aqua>%library%</aqua></gray>"
   item_source_bridge_waiting: "[integration] <gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
   item_source_bridge_incompatible: "[integration] <yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
   item_source:
     waiting_detail:
-      itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete."
-      craftengine: "The plugin is enabled, but its item table has not finished reloading. Wait for its reload event to complete."
-      neigeitems: "The plugin is enabled, but its item library has not finished refreshing. Wait for its reload to complete."
-      nexo: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
-      oraxen: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
-      ecoitems: "The plugin is enabled, but its item registry is not ready yet. Wait for its loading to complete."
-      default: "External item registration has not finished. Wait for the dependency plugin to finish loading."
-    incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter."
+      itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete"
+      craftengine: "The plugin is enabled, but its item table has not finished reloading. Wait for its reload event to complete"
+      neigeitems: "The plugin is enabled, but its item library has not finished refreshing. Wait for its reload to complete"
+      nexo: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete"
+      oraxen: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete"
+      ecoitems: "The plugin is enabled, but its item registry is not ready yet. Wait for its loading to complete"
+      default: "External item registration has not finished. Wait for the dependency plugin to finish loading"
+    incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter"
   scripts:
     engine_unavailable: "[script] <red>Script extensions are unavailable; script loading was skipped: %reason%</red>"
-    disabled: "[script] <gray>Script extensions are disabled in the config; no scripts were loaded.</gray>"
-    loaded: "[script] <gray>Script loading finished: <green>%loaded%</green> file(s) loaded, <yellow>%skipped%</yellow> skipped.</gray>"
+    disabled: "[script] <gray>Script extensions are disabled in the config; no scripts were loaded</gray>"
+    loaded: "[script] <gray>Script loading finished: <green>%loaded%</green> file (s) loaded, <yellow>%skipped%</yellow> skipped</gray>"
     file_error: "[script] <red>Script file failed to load: <yellow>%file%</yellow> -> %error%</red>"
     register_error: "[script] <red>Script registration was rejected: %error%</red>"
 
@@ -106,9 +106,9 @@ loader:
   lang_directory_create_failed: "[loader] <red>Failed to create language directory: %path%</red>"
   bundled_language_load_failed: "[loader] <red>Failed to load bundled language: %error%</red>"
   bundled_resource_missing: "[loader] <red>Bundled resource missing: %resource%, cannot write to %path%</red>"
-  bundled_resource_write_failed: "[loader] <red>Failed to write bundled resource: %path% (%error%)</red>"
+  bundled_resource_write_failed: "[loader] <red>Failed to write bundled resource: %path%  (%error%)</red>"
   directory_create_failed: "[loader] <red>Failed to create directory: %path%</red>"
-  invalid_blank_id: "[loader] <red>%type% file %file% has a blank ID.</red>"
+  invalid_blank_id: "[loader] <red>%type% file %file% has a blank ID</red>"
   duplicate_id: "[loader] <red>Skipped duplicate %type% ID %id%: %file%</red>"
   load_failed: "[loader] <red>Failed to load %type% file %file%: %error%</red>"
 
@@ -129,11 +129,11 @@ action:
   selector:
     condition_conflict: "<red>[Pipeline] Selector %selector% writes both %field% and entries under condition; use only one</red>"
   diagnostic:
-    at_column: "<gray>(column %column%)</gray>"
-    at_file: "<gray>(%file% at %key_path%, line %line% column %column%)</gray>"
+    at_column: "<gray> (column %column%)</gray>"
+    at_file: "<gray> (%file% at %key_path%, line %line% column %column%)</gray>"
     candidates: "<gray> Valid values: <white>%candidates%</white></gray>"
-    more_problems: "<gray> This line has <yellow>%count%</yellow> more problem(s); they will be reported once this one is fixed.</gray>"
-    unknown_reason: "<red>[Pipeline] Validation failed (diagnostic key %reason% has no message yet; please report this key)</red>"
+    more_problems: "<gray> This line has <yellow>%count%</yellow> more problem (s); they will be reported once this one is fixed</gray>"
+    unknown_reason: "<red>[Pipeline] Validation failed  (diagnostic key %reason% has no message yet; please report this key)</red>"
   lex:
     unclosed_quote: "<red>[Pipeline] Unclosed quote; the quote opened at column %column% has no closing quote</red>"
   parse:
@@ -155,14 +155,14 @@ action:
     run_missing_sequence: "<red>[Pipeline] run has no sequence name; write it as run <sequence> name=value</red>"
     run_positional_parameter: "<red>[Pipeline] run parameters must be written as name=value; got the bare argument %token%</red>"
     duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
-    stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form (%token%); a stage name cannot contain =</red>"
+    stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form  (%token%); a stage name cannot contain =</red>"
     on_error_without_body: "<red>[Pipeline] on_error cannot stand alone as a stage; it must follow a stage and wrap its handler in [ ], for example damage amount=3 on_error [ send_message \"failed\" ]</red>"
     alias_empty: "<red>[Pipeline] Alias %alias% expands to nothing</red>"
     alias_cycle: "<red>[Pipeline] Alias %alias% expands past %max% levels; aliases likely reference each other in a cycle</red>"
     union_empty: "<red>[Pipeline] union must wrap at least one source stage</red>"
     union_only_sources: "<red>[Pipeline] Only source stages may appear inside union [ ]</red>"
     parse_if_missing_condition: "<red>[Pipeline] parse_if is missing a condition; write it as parse_if <static condition> [ ... ]</red>"
-    parse_if_placeholder: "<red>[Pipeline] The parse_if condition %condition% contains a placeholder; parse_if is evaluated at compile time and cannot use runtime placeholders (use if instead)</red>"
+    parse_if_placeholder: "<red>[Pipeline] The parse_if condition %condition% contains a placeholder; parse_if is evaluated at compile time and cannot use runtime placeholders  (use if instead)</red>"
     parse_if_not_evaluable: "<red>[Pipeline] The parse_if condition %condition% cannot be evaluated at compile time</red>"
   validate:
     empty_pipeline: "<red>[Pipeline] This line contains no stages; at least one stage is required</red>"
@@ -192,7 +192,7 @@ action:
       got %actual%</red>"
     argument_both_named_and_positional: "<red>[Pipeline] Argument %token% was given both named
       and bare</red>"
-    missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key%(%type%),
+    missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key% (%type%),
       which phase %phase% does not provide</red>"
     missing_variable: "<red>[Pipeline] Variable %variable% is not provided by phase %phase% or an earlier stage</red>"
     bare_variable_reference: "<red>[Pipeline] Variable %variable% must be written as %expected%, not as a bare placeholder</red>"
@@ -208,7 +208,7 @@ action:
     invalid_weight: "<red>[Pipeline] Weight %value% is not a valid number; a weight must be a
       non-negative number, expression, or placeholder</red>"
     negative_weight: "<red>[Pipeline] Weight %value% is negative; a weight must be greater than or
-      equal to 0 (use 0 to disable that branch)</red>"
+      equal to 0  (use 0 to disable that branch)</red>"
     weight_total_not_positive: "<red>[Pipeline] The weight total is %total%; at least one branch must
       have a weight above 0, otherwise this stage can never select a branch</red>"
     unknown_sequence: "<red>[Pipeline] Unknown sequence %token%</red>"
@@ -217,7 +217,7 @@ action:
     sequence_cycle: "<red>[Pipeline] Sequence calls form a cycle: %path%</red>"
     thread_domain_undeclared: "<red>[Pipeline] Stage %stage% declared no thread domain</red>"
     async_stage_requires_target: "<red>[Pipeline] Stage %stage% declares the async domain but
-      requires a target (%requirement%)</red>"
+      requires a target  (%requirement%)</red>"
   run:
     empty_pipeline: "<gray>[Pipeline] This pipeline has no executable stages</gray>"
     stage_unavailable: "<red>[Pipeline] Stage is currently unavailable</red>"
@@ -246,7 +246,7 @@ action:
     player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
     plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
     exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
-  # Builtin source-stage diagnostics.
+  # Builtin source-stage diagnostics
   source:
     self:
       no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
@@ -331,7 +331,7 @@ action:
       invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
     filter:
       condition_required: "<red>[Pipeline] filter requires predicates</red>"
-      invalid_condition: "<red>[Pipeline] The filter predicates %condition% cannot be parsed at %token% (column %position%); available keys: %keys%</red>"
+      invalid_condition: "<red>[Pipeline] The filter predicates %condition% cannot be parsed at %token%  (column %position%); available keys: %keys%</red>"
     chance:
       chance_required: "<red>[Pipeline] chance requires a probability</red>"
       invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"
@@ -441,7 +441,7 @@ action:
       no_durability: "<gray>[Pipeline] That item has no durability</gray>"
       already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
       zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
-       # EmakiItem stages share this namespace with builtin item stages.
+       # EmakiItem stages share this namespace with builtin item stages
       inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
       empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
       no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
@@ -488,7 +488,7 @@ action:
     food:
       insufficient: "<gray>[Pipeline] Not enough food: %required% required, only %current% available</gray>"
     exp:
-      insufficient: "<gray>[Pipeline] Not enough experience: %required% required (%mode%), only %current% available</gray>"
+      insufficient: "<gray>[Pipeline] Not enough experience: %required% required  (%mode%), only %current% available</gray>"
     money:
       service_unavailable: "<red>[Pipeline] The economy service is currently unavailable</red>"
       provider_unavailable: "<red>[Pipeline] The economy provider is unavailable: %error%</red>"
@@ -585,7 +585,7 @@ action:
       refresh_interrupted: "<red>[Pipeline] The server-wide forged item refresh was interrupted</red>"
       refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
       generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
-      partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
+      partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player (s)</red>"
 
 capability:
   publish:
@@ -593,12 +593,12 @@ capability:
     empty: "<red>[Capability] The capability set is empty; publication refused</red>"
     duplicate: "<red>[Capability] That capability identifier is already taken; publication refused</red>"
 
-# Material allocation shortage; wording is combined, not single-slot attribution.
+# Material allocation shortage; wording is combined, not single-slot attribution
 allocation:
   shortage:
-    combined: "<red>This material set cannot be satisfied: <yellow>%slots%</yellow> slot(s) are short <yellow>%missing%</yellow> matching item(s) in total</red>"
+    combined: "<red>This material set cannot be satisfied: <yellow>%slots%</yellow> slot (s) are short <yellow>%missing%</yellow> matching item (s) in total</red>"
     slot_detail: "<gray>- Slot <aqua>%slot%</aqua> needs <yellow>%required%</yellow>, currently allocatable <yellow>%allocated%</yellow></gray>"
-    hint: "<gray>Note: several slots may compete for the same items, so topping up one slot may not clear the shortage. Prepare the combined amount above.</gray>"
+    hint: "<gray>Note: several slots may compete for the same items, so topping up one slot may not clear the shortage. Prepare the combined amount above</gray>"
 
 debug:
   common:
@@ -733,9 +733,9 @@ debug:
     player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
-    all_enabled: "<green>Current-module debug enabled (all players + all modules)</green>"
+    all_enabled: "<green>Current-module debug enabled  (all players + all modules)</green>"
     all_disabled: "<yellow>All current-module debug tracking disabled</yellow>"
-    global_all_enabled: "<green>CoreLib global debug enabled (all Emaki modules)</green>"
+    global_all_enabled: "<green>CoreLib global debug enabled  (all Emaki modules)</green>"
     global_all_disabled: "<yellow>CoreLib global debug disabled</yellow>"
     player_not_found: "<red>Online player not found: %player%</red>"
     available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
@@ -762,31 +762,31 @@ command:
   reload_success: "<green>EmakiCoreLib has been reloaded</green>"
   reload_failed_precheck: "<red>EmakiCoreLib precheck failed. Reload was cancelled and the previous config is still active</red>"
   check_no_report: "<yellow>No precheck report is available. Run /corelib check first</yellow>"
-  check_fix_none: "<gray>No automatically fixable issues were found.</gray>"
-  check_fix_summary: "<green>Fixed <yellow>%fixed%</yellow> issue(s), <yellow>%failed%</yellow> failed; re-check results:</green>"
-  check_fix_reload_hint: "<gray>Hint: reload the affected module or restart the server for fixed files to take effect.</gray>"
+  check_fix_none: "<gray>No automatically fixable issues were found</gray>"
+  check_fix_summary: "<green>Fixed <yellow>%fixed%</yellow> issue (s), <yellow>%failed%</yellow> failed; re-check results:</green>"
+  check_fix_reload_hint: "<gray>Hint: reload the affected module or restart the server for fixed files to take effect</gray>"
   loop_empty: "<gray>There are no active long-running tasks</gray>"
   loop_header: "<aqua>Active long-running tasks: </aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>Cancelled long-running task: <aqua>%key%</aqua></green>"
   loop_not_found: "<red>No long-running task matches that key: <aqua>%key%</aqua></red>"
-  loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> long-running task(s) for <aqua>%player%</aqua></green>"
+  loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> long-running task (s) for <aqua>%player%</aqua></green>"
   # Command: debug long-running task list entry; placeholders: %key%, %plugin%, %index%, %times%, %interval_ticks%, %player%
   loop_task_entry: "<gray>- key=<aqua>%key%</aqua> plugin=<yellow>%plugin%</yellow> index=<white>%index%/%times%</white> interval=<white>%interval_ticks%t</white> player=<gray>%player%</gray></gray>"
-  action_unavailable: "<red>The action pipeline is not ready yet.</red>"
+  action_unavailable: "<red>The action pipeline is not ready yet</red>"
   action_usage: "<yellow>Usage: /corelib action run <action line></yellow>"
   action_list_header: "<aqua>Currently registered stages: </aqua><yellow>%count%</yellow>"
   action_list_empty: "<gray>No stages are currently registered</gray>"
   action_list_item: "<gray>- <aqua>%id%</aqua> <dark_gray>[%kind%]</dark_gray> owner=<yellow>%owner%</yellow></gray>"
   action_execute_started: "<gray>Executing action line: <aqua>%line%</aqua></gray>"
   action_compile_failed: "<red>Action line failed to compile: <aqua>%line%</aqua> - %reason%</red>"
-  action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</green>"
+  action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage (s)</green>"
   action_execute_failed: "<red>Action line failed: stage <aqua>%stage%</aqua> - %error%</red>"
   # Command: usage hint for /emaki debug action
   action_debug_usage: "<yellow>Usage: debug action run [shadow|execute] <pipeline line> | debug action check <pipeline line> | debug action registry</yellow>"
   # Command: debug action check passed; placeholders: %line%
   action_debug_check_ok: "<green>Check passed: %line%</green>"
   # Command: debug action check failed header; placeholders: %line%, %count%
-  action_debug_check_failed_header: "<red>Check failed (%count% problem(s)): %line%</red>"
+  action_debug_check_failed_header: "<red>Check failed  (%count% problem (s)): %line%</red>"
   # Command: debug action check failed item
   action_debug_check_item: "<gray>- %reason%</gray>"
   # Command: debug action run dry-run header; placeholder: %line%
@@ -794,7 +794,7 @@ command:
   # Command: debug action run execute header; placeholder: %line%
   action_debug_execute_header: "<aqua>[Execute] Running the pipeline for real with step-by-step output:</aqua> <white>%line%</white>"
   # Command: debug action step output - source; placeholders: %stage%, %count%, %reason%
-  action_debug_source: "<gray>  Source <aqua>%stage%</aqua> matched <yellow>%count%</yellow> target(s) <dark_gray>%reason%</dark_gray></gray>"
+  action_debug_source: "<gray>  Source <aqua>%stage%</aqua> matched <yellow>%count%</yellow> target (s) <dark_gray>%reason%</dark_gray></gray>"
   # Command: debug action step output - gate; placeholders: %stage%, %inbound%, %outbound%, %reason%
   action_debug_gate: "<gray>  Gate <aqua>%stage%</aqua> in <yellow>%inbound%</yellow> -> out <yellow>%outbound%</yellow> <dark_gray>%reason%</dark_gray></gray>"
   # Command: debug action step output - action; placeholders: %stage%, %success%, %failure%, %skipped%, %reason%
@@ -806,7 +806,7 @@ command:
   # Command: debug action step output - on_error fired; placeholders: %stage%, %kind%, %reason%
   action_debug_on_error: "<red>  on_error fired, failure kind %kind%, reason %reason%</red>"
   # Command: debug action summary; placeholders: %status%, %stages%
-  action_debug_summary: "<gray>Finished: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</gray>"
+  action_debug_summary: "<gray>Finished: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage (s)</gray>"
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
@@ -817,9 +817,9 @@ command:
   help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - Convert legacy dotted PDC keys to flat keys</gray>"
   pdc_convert_usage: "<yellow>Usage: /corelib pdc-convert <%scopes%> [--dry-run]</yellow>"
   pdc_convert_started: "<gray>Converting legacy PDC keys, scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
-  pdc_convert_started_dry_run: "<gray>Starting dry run (no data is written), scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
+  pdc_convert_started_dry_run: "<gray>Starting dry run  (no data is written), scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
   pdc_convert_header: "<aqua>Legacy PDC key conversion result:</aqua>"
-  pdc_convert_header_dry_run: "<aqua>Legacy PDC key dry-run result (nothing was written):</aqua>"
+  pdc_convert_header_dry_run: "<aqua>Legacy PDC key dry-run result  (nothing was written):</aqua>"
   pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> scanned=<white>%scanned%</white> keys=<yellow>%migrated%</yellow> skipped=<gray>%skipped%</gray> failed=<red>%failed%</red></gray>"
-  pdc_convert_total: "<green>Converted <yellow>%migrated%</yellow> keys. Offline players and unloaded chunks are handled by lazy conversion on read; no manual action is required.</green>"
+  pdc_convert_total: "<green>Converted <yellow>%migrated%</yellow> keys. Offline players and unloaded chunks are handled by lazy conversion on read; no manual action is required</green>"
   pdc_convert_failed: "<red>Legacy PDC key conversion failed: %error%</red>"
