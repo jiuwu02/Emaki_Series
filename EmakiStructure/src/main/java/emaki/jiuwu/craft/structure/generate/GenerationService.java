@@ -71,25 +71,31 @@ public final class GenerationService {
         World world = request.world();
         int newSizeX = TemplateTransform.transformedSizeX(template.sizeX(), template.sizeZ(), request.facing());
         int newSizeZ = TemplateTransform.transformedSizeZ(template.sizeX(), template.sizeZ(), request.facing());
-        debug("place.start", "template=" + template.id()
-                + " templateSize=" + template.sizeX() + "x" + template.sizeY() + "x" + template.sizeZ()
-                + " transformedSize=" + newSizeX + "x" + template.sizeY() + "x" + newSizeZ
-                + " anchor=" + request.anchorX() + "," + request.anchorY() + "," + request.anchorZ()
-                + " facing=" + request.facing().configValue()
-                + " world=" + (world == null ? "null" : world.getName())
-                + " groundMode=" + config.get().generate().groundMode()
-                + " recovering=" + rollbackService.recovering());
+        debug("place_start", Map.of(
+                "template", template.id(),
+                "template_size", template.sizeX() + "x" + template.sizeY() + "x" + template.sizeZ(),
+                "transformed_size", newSizeX + "x" + template.sizeY() + "x" + newSizeZ,
+                "anchor", request.anchorX() + "," + request.anchorY() + "," + request.anchorZ(),
+                "facing", request.facing().configValue(),
+                "world", world == null ? "null" : world.getName(),
+                "ground_mode", String.valueOf(config.get().generate().groundMode()),
+                "recovering", rollbackService.recovering()));
         if (rollbackService.recovering()) {
-            debug("place.rejected", "reason=error.generate.recovering template=" + template.id());
+            debug("place_rejected", Map.of(
+                    "template", template.id(),
+                    "reason", "error.generate.recovering",
+                    "detail", "-"));
             return Optional.of(new Rejection("error.generate.recovering", Map.of()));
         }
         AppConfig.GenerateSettings settings = config.get().generate();
         if (newSizeX > settings.sizeLimitX() || template.sizeY() > settings.sizeLimitY()
                 || newSizeZ > settings.sizeLimitZ()) {
-            debug("place.rejected", "reason=error.generate.rejected_by_limit template="
-                    + template.id() + " transformed=" + newSizeX + "x" + template.sizeY() + "x"
-                    + newSizeZ + " limit=" + settings.sizeLimitX() + "x" + settings.sizeLimitY()
-                    + "x" + settings.sizeLimitZ());
+            debug("place_rejected", Map.of(
+                    "template", template.id(),
+                    "reason", "error.generate.rejected_by_limit",
+                    "detail", "transformed=" + newSizeX + "x" + template.sizeY() + "x"
+                            + newSizeZ + " limit=" + settings.sizeLimitX() + "x"
+                            + settings.sizeLimitY() + "x" + settings.sizeLimitZ()));
             return Optional.of(new Rejection("error.generate.rejected_by_limit",
                     Map.of("template", template.id())));
         }
@@ -98,26 +104,34 @@ public final class GenerationService {
                         request.anchorX() + newSizeX - 1,
                         request.anchorY() + template.sizeY() - 1,
                         request.anchorZ() + newSizeZ - 1)) {
-            debug("place.rejected", "reason=error.generate.out_of_bounds template=" + template.id()
-                    + " anchor=" + request.anchorX() + "," + request.anchorY() + ","
-                    + request.anchorZ() + " farCorner=" + (request.anchorX() + newSizeX - 1) + ","
-                    + (request.anchorY() + template.sizeY() - 1) + ","
-                    + (request.anchorZ() + newSizeZ - 1)
-                    + " detail=" + WorldBounds.describe(world, request.anchorX(),
-                            request.anchorY(), request.anchorZ()));
+            debug("place_rejected", Map.of(
+                    "template", template.id(),
+                    "reason", "error.generate.out_of_bounds",
+                    "detail", "anchor=" + request.anchorX() + "," + request.anchorY() + ","
+                            + request.anchorZ()
+                            + " farCorner=" + (request.anchorX() + newSizeX - 1) + ","
+                            + (request.anchorY() + template.sizeY() - 1) + ","
+                            + (request.anchorZ() + newSizeZ - 1)
+                            + " detail=" + WorldBounds.describe(world, request.anchorX(),
+                                    request.anchorY(), request.anchorZ())));
             return Optional.of(new Rejection("error.generate.out_of_bounds",
                     Map.of("detail", WorldBounds.describe(world, request.anchorX(),
                             request.anchorY(), request.anchorZ()))));
         }
         List<RegionBatch.Write> writes = planWrites(template, request);
         if (writes.isEmpty()) {
-            debug("place.rejected", "reason=error.export.no_blocks template=" + template.id()
-                    + " volume=" + template.volume() + " blockCount=" + template.blockCount());
+            debug("place_rejected", Map.of(
+                    "template", template.id(),
+                    "reason", "error.export.no_blocks",
+                    "detail", "volume=" + template.volume()
+                            + " blockCount=" + template.blockCount()));
             return Optional.of(new Rejection("error.export.no_blocks", Map.of("count", 0)));
         }
         Map<Long, List<RegionBatch.Write>> regions = groupByRegion(writes);
-        debug("place.planned", "template=" + template.id() + " writes=" + writes.size()
-                + " regions=" + regions.size());
+        debug("place_planned", Map.of(
+                "template", template.id(),
+                "writes", writes.size(),
+                "regions", regions.size()));
         if (settings.groundMode() == AppConfig.GroundMode.KEEP) {
             submit(request, writes, regions);
             return Optional.empty();
@@ -231,11 +245,13 @@ public final class GenerationService {
             int probedRegions) {
         boolean supported = failure == null && checks.stream()
                 .allMatch(future -> Boolean.TRUE.equals(future.getNow(Boolean.FALSE)));
-        debug("place.ground", "template=" + request.template().id()
-                + " supported=" + supported + " probedRegions=" + probedRegions
-                + " failedChecks=" + checks.stream()
-                        .filter(future -> !Boolean.TRUE.equals(future.getNow(Boolean.FALSE))).count()
-                + " failure=" + (failure == null ? "none" : failure.getMessage()));
+        debug("place_ground", Map.of(
+                "template", request.template().id(),
+                "supported", supported,
+                "probed_regions", probedRegions,
+                "failed_checks", checks.stream()
+                        .filter(future -> !Boolean.TRUE.equals(future.getNow(Boolean.FALSE))).count(),
+                "failure", failure == null ? "none" : String.valueOf(failure.getMessage())));
         try {
             dispatcher.runGlobal(plugin, () -> {
                 if (supported) {
@@ -252,8 +268,10 @@ public final class GenerationService {
                         "error.generate.ground_unsupported", Map.of()));
             });
         } catch (RuntimeException exception) {
-            debug("place.error", "step=settleGround type=" + exception.getClass().getSimpleName()
-                    + " message=" + exception.getMessage());
+            debug("place_error", Map.of(
+                    "step", "settleGround",
+                    "detail", "type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage()));
             plugin.getLogger().warning("生成预检回调提交失败: " + exception.getMessage());
         }
     }
@@ -263,14 +281,18 @@ public final class GenerationService {
             var token = dispatcher.runAtLocation(plugin, location, task);
             boolean dispatched = token != null && token != TaskToken.UNAVAILABLE;
             if (!dispatched) {
-                debug("place.error", "step=ground_dispatch location=" + location.getBlockX() + ","
-                        + location.getBlockY() + "," + location.getBlockZ()
-                        + " token=" + (token == null ? "null" : "unavailable"));
+                debug("place_error", Map.of(
+                        "step", "ground_dispatch",
+                        "detail", "location=" + location.getBlockX() + "," + location.getBlockY()
+                                + "," + location.getBlockZ()
+                                + " token=" + (token == null ? "null" : "unavailable")));
             }
             return dispatched;
         } catch (RuntimeException exception) {
-            debug("place.error", "step=ground_dispatch type=" + exception.getClass().getSimpleName()
-                    + " message=" + exception.getMessage());
+            debug("place_error", Map.of(
+                    "step", "ground_dispatch",
+                    "detail", "type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage()));
             plugin.getLogger().warning("生成预检任务提交失败: " + exception.getMessage());
             return false;
         }
@@ -281,9 +303,11 @@ public final class GenerationService {
         try {
             journal = rollbackService.open(UUID.randomUUID().toString());
         } catch (IOException exception) {
-            debug("place.error", "step=journal_open template=" + request.template().id()
-                    + " type=" + exception.getClass().getSimpleName()
-                    + " message=" + exception.getMessage());
+            debug("place_error", Map.of(
+                    "step", "journal_open",
+                    "detail", "template=" + request.template().id()
+                            + " type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage()));
             plugin.getLogger().warning("journal 创建失败: " + exception.getMessage());
             finalizer.reportRejection(request, new Rejection("error.generate.journal_failed",
                     Map.of("error", String.valueOf(exception.getMessage()))));
@@ -308,9 +332,12 @@ public final class GenerationService {
                 settled -> finalizer.onSettled(request, settled, overwritten, startedNanos));
         job.attachJournal(journal);
         scheduler.submit(job, batches);
-        debug("place.submit", "template=" + request.template().id()
-                + " batches=" + batches.size() + " sliceSize=" + sliceSize
-                + " regions=" + regions.size() + " writes=" + writes.size());
+        debug("place_submit", Map.of(
+                "template", request.template().id(),
+                "batches", batches.size(),
+                "slice_size", sliceSize,
+                "regions", regions.size(),
+                "writes", writes.size()));
         UUID initiatorId = request.initiator() instanceof Player player
                 ? player.getUniqueId() : null;
         plugin.debugLogger().log("structure", initiatorId, "generate_start", Map.of(
@@ -323,11 +350,11 @@ public final class GenerationService {
                 "initiator", request.initiatorName()));
     }
 
-    private void debug(String step, String detail) {
+    private void debug(String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
         if (logger == null || !logger.shouldLog("structure", (UUID) null)) {
             return;
         }
-        plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
+        logger.log("structure", (UUID) null, langKey, replacements);
     }
 }

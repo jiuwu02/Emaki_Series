@@ -70,24 +70,34 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
     public void refresh(Player player, SelectionSession session) {
         removeFrame(player, false);
         if (!session.hasBothCorners()) {
-            debug(player, "refresh", "bothCorners=false world=" + session.worldName()
-                    + " box=absent frame=skipped");
+            debug(player, "highlight_refresh", Map.of(
+                    "player", player.getName(),
+                    "both_corners", false,
+                    "world", session.worldName(),
+                    "box", "absent",
+                    "frame", "skipped"));
             return;
         }
         SelectionBox box = session.box().orElse(null);
         var world = plugin.getServer().getWorld(session.worldName());
         if (box == null || world == null) {
-            debug(player, "refresh", "bothCorners=true but "
-                    + (box == null ? "box=absent" : "world=" + session.worldName() + " missing")
-                    + " frame=skipped");
+            debug(player, "highlight_refresh", Map.of(
+                    "player", player.getName(),
+                    "both_corners", true,
+                    "world", world == null ? session.worldName() + " missing" : session.worldName(),
+                    "box", "absent",
+                    "frame", "skipped"));
             return;
         }
         Location anchor = new Location(world, box.minX(), box.minY(), box.minZ());
         boolean scheduled = schedule(player, session, world, box, anchor);
-        debug(player, "refresh", "bothCorners=true world=" + session.worldName()
-                + " box=" + box.minX() + "," + box.minY() + "," + box.minZ()
-                + "->" + box.maxX() + "," + box.maxY() + "," + box.maxZ()
-                + " frame=" + (scheduled ? "scheduled" : "schedule_failed"));
+        debug(player, "highlight_refresh", Map.of(
+                "player", player.getName(),
+                "both_corners", true,
+                "world", session.worldName(),
+                "box", box.minX() + "," + box.minY() + "," + box.minZ()
+                        + "->" + box.maxX() + "," + box.maxY() + "," + box.maxZ(),
+                "frame", scheduled ? "scheduled" : "schedule_failed"));
     }
 
     @Override
@@ -104,8 +114,11 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
             edge.remove();
         }
         if (log) {
-            debug(player, "destroy", "reason=cleared edges=" + frame.edges().size()
-                    + " box=" + frame.box() + " world=" + frame.world());
+            debug(player, "highlight_destroy", Map.of(
+                    "player", player.getName(),
+                    "edges", frame.edges().size(),
+                    "box", frame.box(),
+                    "world", frame.world()));
         }
     }
 
@@ -141,18 +154,21 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
                         current.minX() + "," + current.minY() + "," + current.minZ()
                                 + "->" + current.maxX() + "," + current.maxY() + "," + current.maxZ(),
                         world.getName()));
-                debug(player, "first_render", "edges=" + edges.size()
-                        + " box=" + current.minX() + "," + current.minY() + "," + current.minZ()
-                        + "->" + current.maxX() + "," + current.maxY() + "," + current.maxZ()
-                        + " player=" + player.getLocation().getBlockX() + ","
-                        + player.getLocation().getBlockY() + ","
-                        + player.getLocation().getBlockZ()
-                        + " viewDistance=" + plugin.getServer().getViewDistance());
+                debug(player, "highlight_first_render", Map.of(
+                        "player", player.getName(),
+                        "edges", edges.size(),
+                        "box", current.minX() + "," + current.minY() + "," + current.minZ()
+                                + "->" + current.maxX() + "," + current.maxY() + "," + current.maxZ(),
+                        "player_position", player.getLocation().getBlockX() + ","
+                                + player.getLocation().getBlockY() + ","
+                                + player.getLocation().getBlockZ(),
+                        "view_distance", plugin.getServer().getViewDistance()));
             });
             return token != null;
         } catch (RuntimeException exception) {
-            debug(player, "error", "type=" + exception.getClass().getSimpleName()
-                    + " message=" + exception.getMessage());
+            debug(player, "highlight_degraded", Map.of(
+                    "reason", "type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage()));
             plugin.getLogger().warning("选区线框创建失败: " + exception.getMessage());
             return false;
         }
@@ -166,13 +182,12 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
         }
     }
 
-    private void debug(Player player, String step, String detail) {
+    private void debug(Player player, String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
         if (logger == null || !logger.shouldLog("structure", player.getUniqueId())) {
             return;
         }
-        plugin.getLogger().info("[DEBUG:structure:highlight:" + step + "] player="
-                + player.getName() + " " + detail);
+        logger.log("structure", player.getUniqueId(), langKey, replacements);
     }
 
     private static Transformation lineTransformation(Edge edge) {

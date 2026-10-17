@@ -156,6 +156,10 @@ public final class StructureCommandRouter {
             return StructureFacing.configValues().stream().filter(value -> value.startsWith(prefix))
                     .toList();
         }
+        if (args.length == 4 && "export".equalsIgnoreCase(args[1]) && !args[2].isBlank()) {
+            String prefix = args[3].toLowerCase(Locale.ROOT);
+            return "entities".startsWith(prefix) ? List.of("entities") : List.of();
+        }
         return List.of();
     }
 
@@ -173,9 +177,10 @@ public final class StructureCommandRouter {
                     .filter(id -> id.startsWith(prefix))
                     .toList();
         }
-        if (args.length == 3 && "export".equalsIgnoreCase(args[1])
-                && sender.hasPermission(PERMISSION_EDIT)) {
-            return List.of("force");
+        if (args.length == 4 && "export".equalsIgnoreCase(args[1])
+                && sender.hasPermission(PERMISSION_EDIT) && !args[2].isBlank()) {
+            String prefix = args[3].toLowerCase(Locale.ROOT);
+            return "force".startsWith(prefix) ? List.of("force") : List.of();
         }
         if (args.length == 3 && "place".equalsIgnoreCase(args[1])
                 && sender.hasPermission(PERMISSION_EDIT)) {
@@ -280,27 +285,28 @@ public final class StructureCommandRouter {
 
     private void loadAndStart(CommandSender sender, String templateName, Location anchor,
             StructureFacing facing) {
-        debug("place.load", "template=" + templateName
-                + " anchor=" + anchor.getBlockX() + "," + anchor.getBlockY() + ","
-                        + anchor.getBlockZ()
-                + " world=" + (anchor.getWorld() == null ? "null" : anchor.getWorld().getName())
-                + " facing=" + facing.configValue()
-                + " known=" + repository.templateIds().contains(templateName));
+        debug("place_load_request", Map.of(
+                "template", templateName,
+                "anchor", anchor.getBlockX() + "," + anchor.getBlockY() + "," + anchor.getBlockZ(),
+                "world", anchor.getWorld() == null ? "null" : anchor.getWorld().getName(),
+                "facing", facing.configValue(),
+                "known", repository.templateIds().contains(templateName)));
         plugin.executionDispatcher().runAsync(plugin, () -> {
             Optional<StructureTemplate> loaded = repository.template(templateName);
             plugin.executionDispatcher().runGlobal(plugin, () -> {
                 if (loaded.isEmpty()) {
-                    debug("place.load", "template=" + templateName + " loaded=false");
+                    debug("place_load_missing", Map.of("template", templateName));
                     plugin.messageService().send(sender, "error.template.not_found",
                             Map.of("template", templateName));
                     return;
                 }
                 StructureTemplate template = loaded.get();
-                debug("place.load", "template=" + templateName + " loaded=true size="
-                        + template.sizeX() + "x" + template.sizeY() + "x" + template.sizeZ()
-                        + " blocks=" + template.blockCount()
-                        + " entities=" + template.entities().size()
-                        + " skippedPalette=" + template.skippedPaletteEntries());
+                debug("place_load_done", Map.of(
+                        "template", templateName,
+                        "size", template.sizeX() + "x" + template.sizeY() + "x" + template.sizeZ(),
+                        "blocks", template.blockCount(),
+                        "entities", template.entities().size(),
+                        "skipped_palette", template.skippedPaletteEntries()));
                 warnLegacySkip(template);
                 startGeneration(sender, template, anchor, facing);
             });
@@ -472,6 +478,7 @@ public final class StructureCommandRouter {
             plugin.messageService().send(sender, "command.export_usage");
             return;
         }
+        boolean includeEntities = args.length >= 3 && "entities".equalsIgnoreCase(args[2]);
         String name = args[1].toLowerCase(Locale.ROOT);
         if (!NameRules.isValid(name)) {
             plugin.messageService().send(sender, "error.name.invalid", Map.of("value", args[1]));
@@ -510,7 +517,9 @@ public final class StructureCommandRouter {
                                 blocks.addAll(StructureExporter.captureBlocks(world, region, box));
                                 StructureExporter.EntityCapture capture =
                                         StructureExporter.captureEntities(world, region, box, furnitureAdapter);
-                                entities.addAll(capture.entities());
+                                if (includeEntities) {
+                                    entities.addAll(capture.entities());
+                                }
                                 furniture.addAll(capture.furniture());
                                 furnitureSkipped.addAndGet(capture.outOfSelection());
                             } catch (RuntimeException exception) {
@@ -928,11 +937,13 @@ public final class StructureCommandRouter {
         int anchorX = anchor.getBlockX();
         int anchorY = anchor.getBlockY();
         int anchorZ = anchor.getBlockZ();
-        debug("multiblock.place", "id=" + id + " members=" + definition.members().size()
-                + " anchor=" + anchorX + "," + anchorY + "," + anchorZ
-                + " world=" + world.getName()
-                + " facing=" + facing.configValue()
-                + " allowRotation=" + definition.allowRotation());
+        debug("multiblock_place", Map.of(
+                "id", id,
+                "members", definition.members().size(),
+                "anchor", anchorX + "," + anchorY + "," + anchorZ,
+                "world", world.getName(),
+                "facing", facing.configValue(),
+                "allow_rotation", definition.allowRotation()));
         AtomicInteger placed = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
         List<String> failures = Collections.synchronizedList(new ArrayList<>());
@@ -1007,17 +1018,22 @@ public final class StructureCommandRouter {
     private void finishMultiblockPlace(CommandSender sender, Player player, String id, World world,
             int anchorX, int anchorY, int anchorZ, StructureFacing facing,
             int placed, int failed, List<String> failures) {
-        debug("multiblock.place_done", "id=" + id + " placed=" + placed + " failed=" + failed
-                + " anchor=" + anchorX + "," + anchorY + "," + anchorZ
-                + " firstFailures=" + failures.stream().limit(3).toList());
+        debug("multiblock_place_done", Map.of(
+                "id", id,
+                "placed", placed,
+                "failed", failed,
+                "anchor", anchorX + "," + anchorY + "," + anchorZ,
+                "first_failures", failures.stream().limit(3).toList()));
         try {
             plugin.executionDispatcher().runAtLocation(plugin,
                     new Location(world, anchorX, anchorY, anchorZ),
                     () -> plugin.multiblockService().onBlockPlaced(world, anchorX, anchorY,
                             anchorZ, player.getUniqueId()));
         } catch (RuntimeException exception) {
-            debug("multiblock.place_error", "step=detection type="
-                    + exception.getClass().getSimpleName() + " message=" + exception.getMessage());
+            debug("multiblock_place_error", Map.of(
+                    "step", "detection",
+                    "detail", "type=" + exception.getClass().getSimpleName()
+                            + " message=" + exception.getMessage()));
         }
         plugin.executionDispatcher().runGlobal(plugin, () -> {
             plugin.messageService().send(sender, "command.multiblock_place_done", Map.of(
@@ -1035,12 +1051,12 @@ public final class StructureCommandRouter {
         });
     }
 
-    private void debug(String step, String detail) {
+    private void debug(String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
         if (logger == null || !logger.shouldLog("structure", (java.util.UUID) null)) {
             return;
         }
-        plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
+        logger.log("structure", (java.util.UUID) null, langKey, replacements);
     }
 
     private void reportMultiblockProblems(CommandSender sender, MultiblockRepository repository) {
@@ -1055,7 +1071,7 @@ public final class StructureCommandRouter {
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("get <模板> [朝向]", messages.message("command.help.commands.get"));
         lines.put("structure place <模板> <朝向>", messages.message("command.help.commands.place"));
-        lines.put("structure export <名称>", messages.message("command.help.commands.export"));
+        lines.put("structure export <名称> [entities]", messages.message("command.help.commands.export"));
         lines.put("select pos1|pos2|adjust|clear", messages.message("command.help.commands.select"));
         lines.put("multiblock export <id> [force]", messages.message("command.help.commands.multiblock_export"));
         lines.put("multiblock place <id> [朝向]", messages.message("command.help.commands.multiblock_place"));

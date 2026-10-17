@@ -79,22 +79,23 @@ public final class GenerationFinalizer {
         return request.initiator() instanceof Player player ? player.getUniqueId() : null;
     }
 
-    private void debug(String step, String detail) {
+    private void debug(String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
         if (logger == null || !logger.shouldLog("structure", (java.util.UUID) null)) {
             return;
         }
-        plugin.getLogger().info("[DEBUG:structure:" + step + "] " + detail);
+        logger.log("structure", (java.util.UUID) null, langKey, replacements);
     }
 
     public void onSettled(GenerationService.Request request, GenerationJob job,
             AtomicLong overwritten, long startedNanos) {
         if (job.outcome() != GenerationJob.Outcome.COMPLETED) {
-            debug("place.settled", "outcome=" + job.outcome()
-                    + " template=" + request.template().id()
-                    + " reason=" + job.abortReasonKey()
-                    + " detail=" + job.abortDetail()
-                    + " overwritten=" + overwritten.get());
+            debug("place_settled_failed", Map.of(
+                    "template", request.template().id(),
+                    "outcome", String.valueOf(job.outcome()),
+                    "reason", String.valueOf(job.abortReasonKey()),
+                    "detail", String.valueOf(job.abortDetail()),
+                    "overwritten", overwritten.get()));
             plugin.messageService().send(request.initiator(),
                     job.abortReasonKey() == null ? "error.generate.failed" : job.abortReasonKey(),
                     Map.of("template", request.template().id(),
@@ -109,11 +110,12 @@ public final class GenerationFinalizer {
         }
         StructureTemplate template = request.template();
         long elapsedMillis = (System.nanoTime() - startedNanos) / 1_000_000L;
-        debug("place.settled", "outcome=COMPLETED template=" + template.id()
-                + " blocks=" + template.blockCount()
-                + " overwritten=" + overwritten.get()
-                + " millis=" + elapsedMillis
-                + " journal=" + (job.journal() == null ? "none" : "present"));
+        debug("place_settled_done", Map.of(
+                "template", template.id(),
+                "blocks", template.blockCount(),
+                "overwritten", overwritten.get(),
+                "millis", elapsedMillis,
+                "journal", job.journal() == null ? "none" : "present"));
         plugin.debugLogger().log("structure", initiatorId(request), "generate_complete", Map.of(
                 "template", template.id(),
                 "blocks", template.blockCount(),

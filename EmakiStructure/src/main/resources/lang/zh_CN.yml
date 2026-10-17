@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -80,7 +80,7 @@ command:
   place_usage: "<gray>用法: /ems structure place <模板> <朝向>  -- 在你当前位置放置结构模板 (.nbt 文件); 多方块结构请用 /ems multiblock place 放置或 /ems multiblock export 记录</gray>"
   select_usage: "<gray>用法: /ems select <pos1|pos2|adjust|clear> ...</gray>"
   adjust_usage: "<gray>用法: /ems select adjust <add|reduce> <front|back|left|right|up|down> <数值></gray>"
-  export_usage: "<gray>用法: /ems structure export <名称>  -- 把当前选区导出为结构模板 structures/<名称>.nbt (非多方块文件)</gray>"
+  export_usage: "<gray>用法: /ems structure export <名称> [entities]  -- 把当前选区导出为结构模板 structures/<名称>.nbt (非多方块文件, 默认不保存实体, 需要实体时追加 entities)</gray>"
   multiblock_usage: "<gray>用法: /ems multiblock <export|place|list|validate> ...</gray>"
   multiblock_export_usage: "<gray>用法: /ems multiblock export <id> [force]</gray>"
   multiblock_place_usage: "<gray>用法: /ems multiblock place <id> [朝向]  -- 在你当前位置放置多方块结构定义</gray>"
@@ -328,3 +328,37 @@ debug:
   replace_rejected: "原版结构 %structure% 的替换被拒 (模板 %template%): %key%"
   # 占位符: %file%
   rollback_partial: "事务 %file% 回滚未完全成功, 已标记 rollback-partial"
+  # 占位符: %template%, %anchor%, %world%, %facing%, %known%
+  place_load_request: "生成加载请求: 模板 %template%, 锚点 %anchor%, 世界 %world%, 朝向 %facing%, 已注册 %known%"
+  # 占位符: %template%
+  place_load_missing: "模板 %template% 加载失败: 文件不存在或不可读"
+  # 占位符: %template%, %size%, %blocks%, %entities%, %skipped_palette%
+  place_load_done: "模板 %template% 加载完成: 尺寸 %size%, 方块 %blocks%, 实体 %entities%, 跳过调色板条目 %skipped_palette%"
+  # 占位符: %template%, %template_size%, %transformed_size%, %anchor%, %facing%, %world%, %ground_mode%, %recovering%
+  place_start: "生成开始: 模板 %template%, 模板尺寸 %template_size%, 变换尺寸 %transformed_size%, 锚点 %anchor%, 朝向 %facing%, 世界 %world%, 地面模式 %ground_mode%, 恢复中 %recovering%"
+  # 占位符: %template%, %reason%, %detail%
+  place_rejected: "生成被拒: 模板 %template%, 原因 %reason%, %detail%"
+  # 占位符: %template%, %writes%, %regions%
+  place_planned: "生成规划完成: 模板 %template%, 写入 %writes%, 分区 %regions%"
+  # 占位符: %template%, %supported%, %probed_regions%, %failed_checks%, %failure%
+  place_ground: "地面预检: 模板 %template%, 支撑 %supported%, 探测分区 %probed_regions%, 失败检查 %failed_checks%, 异常 %failure%"
+  # 占位符: %step%, %detail%
+  place_error: "生成链路异常: 环节 %step%, %detail%"
+  # 占位符: %template%, %batches%, %slice_size%, %regions%, %writes%
+  place_submit: "生成批次提交: 模板 %template%, 批次 %batches%, 切片大小 %slice_size%, 分区 %regions%, 写入 %writes%"
+  # 占位符: %template%, %outcome%, %reason%, %detail%, %overwritten%
+  place_settled_failed: "生成结算未完成: 模板 %template%, 结果 %outcome%, 中止原因 %reason%, 详情 %detail%, 覆写 %overwritten%"
+  # 占位符: %template%, %blocks%, %overwritten%, %millis%, %journal%
+  place_settled_done: "生成结算完成: 模板 %template%, 方块 %blocks%, 覆写 %overwritten%, 耗时 %millis% ms, 回滚日志 %journal%"
+  # 占位符: %id%, %members%, %anchor%, %world%, %facing%, %allow_rotation%
+  multiblock_place: "多方块放置: id %id%, 成员 %members%, 锚点 %anchor%, 世界 %world%, 朝向 %facing%, 允许旋转 %allow_rotation%"
+  # 占位符: %id%, %placed%, %failed%, %anchor%, %first_failures%
+  multiblock_place_done: "多方块放置完成: id %id%, 成功 %placed%, 失败 %failed%, 锚点 %anchor%, 首批失败项 %first_failures%"
+  # 占位符: %step%, %detail%
+  multiblock_place_error: "多方块放置后检测异常: 环节 %step%, %detail%"
+  # 占位符: %player%, %both_corners%, %world%, %box%, %frame%
+  highlight_refresh: "选区高亮刷新: 玩家 %player%, 双角 %both_corners%, 世界 %world%, 边框 %box%, 框架 %frame%"
+  # 占位符: %player%, %edges%, %box%, %world%
+  highlight_destroy: "选区高亮清除: 玩家 %player%, 边数 %edges%, 边框 %box%, 世界 %world%"
+  # 占位符: %player%, %edges%, %box%, %player_position%, %view_distance%
+  highlight_first_render: "选区高亮首次渲染: 玩家 %player%, 边数 %edges%, 边框 %box%, 玩家位置 %player_position%, 视距 %view_distance%"

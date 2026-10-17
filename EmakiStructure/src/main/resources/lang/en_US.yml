@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep placeholders noted beside each message group
 # version is maintained by the resource sync flow to merge new default keys
 
-version: "1.0.4"
+version: "1.0.5"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"
@@ -80,7 +80,7 @@ command:
   place_usage: "<gray>Usage: /ems structure place &lt;template&gt; &lt;facing&gt; - place a structure template  (.nbt file) at your position; use /ems multiblock place for multiblocks or /ems multiblock export to record them</gray>"
   select_usage: "<gray>Usage: /ems select &lt;pos1|pos2|adjust|clear&gt; ...</gray>"
   adjust_usage: "<gray>Usage: /ems select adjust &lt;add|reduce&gt; &lt;front|back|left|right|up|down&gt; &lt;amount&gt;</gray>"
-  export_usage: "<gray>Usage: /ems structure export &lt;name&gt; - export the current selection as structure template structures/&lt;name&gt;.nbt  (not a multiblock file)</gray>"
+  export_usage: "<gray>Usage: /ems structure export &lt;name&gt; [entities] - export the current selection as structure template structures/&lt;name&gt;.nbt  (not a multiblock file; entities are skipped unless entities is given)</gray>"
   multiblock_usage: "<gray>Usage: /ems multiblock &lt;export|place|list|validate&gt; ...</gray>"
   multiblock_export_usage: "<gray>Usage: /ems multiblock export &lt;id&gt; [force]</gray>"
   multiblock_place_usage: "<gray>Usage: /ems multiblock place &lt;id&gt; [facing] - place a multiblock definition at your position</gray>"
@@ -328,3 +328,37 @@ debug:
   replace_rejected: "Replacement of vanilla structure %structure% was rejected  (template %template%): %key%"
   # placeholders: %file%
   rollback_partial: "Transaction %file% could not be fully rolled back, marked rollback-partial"
+  # placeholders: %template%, %anchor%, %world%, %facing%, %known%
+  place_load_request: "Generation load requested: template %template%, anchor %anchor%, world %world%, facing %facing%, registered %known%"
+  # placeholders: %template%
+  place_load_missing: "Failed to load template %template%: file missing or unreadable"
+  # placeholders: %template%, %size%, %blocks%, %entities%, %skipped_palette%
+  place_load_done: "Template %template% loaded: size %size%, %blocks% blocks, %entities% entities, %skipped_palette% skipped palette entries"
+  # placeholders: %template%, %template_size%, %transformed_size%, %anchor%, %facing%, %world%, %ground_mode%, %recovering%
+  place_start: "Generation started: template %template%, template size %template_size%, transformed size %transformed_size%, anchor %anchor%, facing %facing%, world %world%, ground mode %ground_mode%, recovering %recovering%"
+  # placeholders: %template%, %reason%, %detail%
+  place_rejected: "Generation rejected: template %template%, reason %reason%, %detail%"
+  # placeholders: %template%, %writes%, %regions%
+  place_planned: "Generation planned: template %template%, %writes% writes, %regions% regions"
+  # placeholders: %template%, %supported%, %probed_regions%, %failed_checks%, %failure%
+  place_ground: "Ground check for template %template%: supported %supported%, %probed_regions% regions probed, %failed_checks% checks failed, failure %failure%"
+  # placeholders: %step%, %detail%
+  place_error: "Generation pipeline error: step %step%, %detail%"
+  # placeholders: %template%, %batches%, %slice_size%, %regions%, %writes%
+  place_submit: "Generation batches submitted: template %template%, %batches% batches, slice size %slice_size%, %regions% regions, %writes% writes"
+  # placeholders: %template%, %outcome%, %reason%, %detail%, %overwritten%
+  place_settled_failed: "Generation settled uncompleted: template %template%, outcome %outcome%, abort reason %reason%, detail %detail%, overwritten %overwritten%"
+  # placeholders: %template%, %blocks%, %overwritten%, %millis%, %journal%
+  place_settled_done: "Generation settled completed: template %template%, %blocks% blocks, %overwritten% overwritten, %millis% ms elapsed, journal %journal%"
+  # placeholders: %id%, %members%, %anchor%, %world%, %facing%, %allow_rotation%
+  multiblock_place: "Multiblock placement: id %id%, %members% members, anchor %anchor%, world %world%, facing %facing%, allow rotation %allow_rotation%"
+  # placeholders: %id%, %placed%, %failed%, %anchor%, %first_failures%
+  multiblock_place_done: "Multiblock placement finished: id %id%, %placed% placed, %failed% failed, anchor %anchor%, first failures %first_failures%"
+  # placeholders: %step%, %detail%
+  multiblock_place_error: "Post-placement detection error: step %step%, %detail%"
+  # placeholders: %player%, %both_corners%, %world%, %box%, %frame%
+  highlight_refresh: "Selection highlight refreshed: player %player%, both corners %both_corners%, world %world%, box %box%, frame %frame%"
+  # placeholders: %player%, %edges%, %box%, %world%
+  highlight_destroy: "Selection highlight cleared: player %player%, %edges% edges, box %box%, world %world%"
+  # placeholders: %player%, %edges%, %box%, %player_position%, %view_distance%
+  highlight_first_render: "Selection highlight first render: player %player%, %edges% edges, box %box%, player position %player_position%, view distance %view_distance%"
