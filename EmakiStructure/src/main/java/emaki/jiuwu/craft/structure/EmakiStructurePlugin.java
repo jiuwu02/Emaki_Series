@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.structure.command.StructureCommandAdapter;
 import emaki.jiuwu.craft.structure.command.StructureCommandRouter;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.config.StructureConfigPrecheckContributor;
+import emaki.jiuwu.craft.structure.furniture.FurnitureSidecarRepository;
 import emaki.jiuwu.craft.structure.generate.GenerationService;
 import emaki.jiuwu.craft.structure.apiimpl.ServiceBackedStructureBridge;
 import emaki.jiuwu.craft.structure.integration.furniture.StructureFurnitureEventSubscriber;
@@ -24,6 +25,7 @@ import emaki.jiuwu.craft.structure.multiblock.listener.BlockChangeDetectListener
 import emaki.jiuwu.craft.structure.multiblock.listener.MultiblockInteractListener;
 import emaki.jiuwu.craft.structure.rollback.RollbackService;
 import emaki.jiuwu.craft.structure.selection.SelectionManager;
+import emaki.jiuwu.craft.structure.spawn.SpawnSidecarRepository;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
 import org.bukkit.event.HandlerList;
@@ -143,6 +145,14 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     public TemplateRepository templateRepository() {
         return components == null ? null : components.templateRepository();
+    }
+
+    public SpawnSidecarRepository spawnSidecars() {
+        return components == null ? null : components.spawnSidecars();
+    }
+
+    public FurnitureSidecarRepository furnitureSidecars() {
+        return components == null ? null : components.furnitureSidecars();
     }
 
     public StructureTemplateCache templateCache() {

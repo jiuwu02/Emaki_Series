@@ -55,7 +55,7 @@ console:
   # 占位符: %file%, %index%, %reason%
   furniture_entry_issue: "[furniture] <yellow>家具点位 %file% 条目 #%index% 被跳过: %reason%</yellow>"
   # 占位符: 无
-  export_furniture_absent: "[export] <gray>家具 0 条 (无家具插件在场), 已有 furniture 侧车保持不变</gray>"
+  export_furniture_absent: "[export] <gray>家具 0 条 (无家具插件在场), 已有家具附属配置保持不变</gray>"
   # 占位符: 无
 
 command:

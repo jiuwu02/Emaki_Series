@@ -55,7 +55,7 @@ console:
   # placeholders: %file%, %index%, %reason%
   furniture_entry_issue: "[furniture] <yellow>Furniture point %file% entry #%index% skipped: %reason%</yellow>"
   # placeholders: none
-  export_furniture_absent: "[export] <gray>0 furniture captured  (no furniture plugin present), any existing furniture sidecar was left untouched</gray>"
+  export_furniture_absent: "[export] <gray>0 furniture captured  (no furniture plugin present), any existing furniture companion file was left untouched</gray>"
   # placeholders: none
 
 command:

@@ -578,6 +578,8 @@ public final class StructureCommandRouter {
             int furnitureCount = writeFurnitureSidecar(sender, name, furniture);
             plugin.executionDispatcher().runGlobal(plugin, () -> {
                 repository.reload();
+                plugin.spawnSidecars().reload();
+                plugin.furnitureSidecars().reload();
                 plugin.messageService().send(sender, "command.export_saved", Map.of(
                         "name", name,
                         "blocks", captured.blocks().size(),
