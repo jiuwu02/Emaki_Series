@@ -33,6 +33,7 @@ public final class InstanceCoordinator {
     private final InstancesStore store;
     private final MessageService messages;
     private final DebugLogger debug;
+    private final java.util.function.Consumer<DungeonInstance> evacuator;
 
     private volatile boolean shuttingDown;
     private TaskToken inspectionTask = TaskToken.UNAVAILABLE;
@@ -46,7 +47,8 @@ public final class InstanceCoordinator {
             DestroyArbiter arbiter,
             InstancesStore store,
             MessageService messages,
-            DebugLogger debug) {
+            DebugLogger debug,
+            java.util.function.Consumer<DungeonInstance> evacuator) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.pool = pool;
@@ -57,6 +59,7 @@ public final class InstanceCoordinator {
         this.store = store;
         this.messages = messages;
         this.debug = debug;
+        this.evacuator = evacuator;
     }
 
     public void startupScan() {
@@ -142,6 +145,12 @@ public final class InstanceCoordinator {
                 "trigger", trigger
         ));
         pool.dropFromReserves(instance.dungeonId(), instanceId);
+        if (evacuator != null) {
+            try {
+                evacuator.accept(instance);
+            } catch (RuntimeException ignored) {
+            }
+        }
         instance.closeLoop();
         String dungeonId = instance.dungeonId();
         disposer.dispose(instanceId).whenComplete((result, error) -> {

@@ -110,7 +110,7 @@ public final class InstancesStore {
                         entrySection.getString("state", ""),
                         entrySection.getString("party", ""),
                         entrySection.getStringList("players"),
-                        entrySection.getInt("created-at", 0)
+                        entrySection.getDouble("created-at", 0.0D).longValue()
                 );
                 snapshot.put(worldName, entry);
             }

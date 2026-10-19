@@ -29,6 +29,99 @@ command:
     <gray>/edg editor <dungeonId></gray> <white>Open the in-world editor</white>
     <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>Admin commands</white>
   unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
+  list:
+    empty: "<yellow>No dungeons available</yellow>"
+    header: "<gray>Available dungeons:</gray>"
+    entry: "<gray>- </gray><white><dungeon></white>"
+  enter:
+    usage: "<red>Usage: /edg enter <dungeonId></red>"
+  leave:
+    no_instance: "<red>You are not inside a dungeon instance</red>"
+    confirm_hint: "<yellow>Type confirm to leave this dungeon, or cancel to stay</yellow>"
+    aborted: "<gray>Leave cancelled</gray>"
+  party:
+    usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
+  denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
+
+challenge:
+  entered: "<green>Entered dungeon <dungeon> (<instance>)</green>"
+  preparing: "<yellow>Prepare confirmation started, run /edg ready or click the confirm button (within <seconds>s)</yellow>"
+  preparing_expired: "<red>Prepare confirmation timed out, challenge cancelled</red>"
+  member_ready: "<gray><player> is ready (<ready>/<total>)</gray>"
+  cancelled: "<yellow>Challenge cancelled (reason: <reason>)</yellow>"
+  wait:
+    bossbar: "Preparing dungeon world: <dungeon> (any member may cancel with /edg cancel)"
+    chat: "<yellow>Preparing dungeon world: <dungeon>, any member may cancel with /edg cancel, wait timeout auto-cancels</yellow>"
+    sidebar: "Entering wait: <dungeon>"
+  enter:
+    dungeon_missing: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
+    no_dungeon_permission: "<red>You lack permission to enter dungeon <dungeon></red>"
+    party_error: "<red>Failed to create party: <code></red>"
+    not_leader: "<red>Only the leader can start a challenge</red>"
+    already_started: "<yellow>Your party already has a challenge in progress</yellow>"
+    party_busy: "<yellow>Your party already has an active dungeon challenge</yellow>"
+    invalid_difficulty: "<red>Invalid difficulty: <difficulty></red>"
+    invalid_mode: "<red>Invalid drop mode: <mode></red>"
+    party_missing: "<red>Party data missing, challenge cancelled</red>"
+    member_offline: "<red>A party member is offline, cannot start the challenge</red>"
+    dungeon_full: "<yellow>Dungeon is full right now, retry after existing parties finish</yellow>"
+    full: "<yellow>Dungeon is full (pool or global limit reached), retry after existing parties finish</yellow>"
+  cancel:
+    no_session: "<yellow>No active challenge to cancel</yellow>"
+
+gui:
+  difficulty:
+    title: "Select Difficulty"
+    name: "<white>Difficulty: <option></white>"
+    lore: "<gray>Click to pick this difficulty</gray>"
+  mode:
+    title: "Select Drop Mode"
+    name: "<white>Drop mode: <option></white>"
+    lore: "<gray>Click to pick this mode</gray>"
+  confirm:
+    title: "Prepare Confirmation"
+    name: "<green>Click to ready up</green>"
+    lore: "<gray>Click to confirm entering the dungeon</gray>"
+  wait:
+    title: "Entering Wait"
+    cancel_name: "<red>Cancel Entry</red>"
+    cancel_lore: "<gray>Click to cancel this challenge</gray>"
+
+party:
+  chat_format: "<gradient:#93C5FD:#60A5FA>[Party]</gradient> <gold><player></gold>: <white><message></white>"
+  invite_sent: "<yellow>Invited <player> to the party</yellow>"
+  invite_received: "<yellow><player> invited you to a party, /edg party accept to join, /edg party deny to refuse</yellow>"
+  apply_received: "<yellow><player> asked to join your party, /edg party accept to approve, /edg party deny to refuse</yellow>"
+  apply_denied: "<yellow><player> declined your join request</yellow>"
+  kicked: "<red>You were removed from the party by <player></red>"
+  leader_transferred: "<yellow>Leadership transferred to <player></yellow>"
+  member_joined: "<green><player> joined the party</green>"
+  chat_enabled: "<green>Party channel enabled, your messages are visible to the party only</green>"
+  chat_disabled: "<yellow>Party channel disabled</yellow>"
+  result:
+    already_in_party: "<red>You are already in a party</red>"
+    target_in_party: "<red>The target player is already in another party</red>"
+    target_busy: "<red>The target player is in a dungeon challenge</red>"
+    party_full: "<red>The party is full</red>"
+    not_leader: "<red>Only the leader can do this</red>"
+    not_in_party: "<red>You are not in a party</red>"
+    mode_denied: "<red>Invite mode is invite-only, you must be invited first</red>"
+    invalid_target: "<red>Target player is offline or invalid: <player></red>"
+    busy_party: "<yellow>Your party is in a dungeon challenge, new members are not accepted</yellow>"
+
+recovery:
+  reconnected: "<green>Reconnected, returned to dungeon instance (<instance>)</green>"
+  orphan_restored: "<yellow>Instance has ended, restored inventory and state from the entry snapshot and returned you to your origin</yellow>"
+  exited: "<green>Left the dungeon and restored your state (<instance>)</green>"
+  evacuated: "<yellow>Dungeon ended, restored from snapshot and returned you to your origin</yellow>"
+
+snapshot:
+  missing: "<red>Snapshot missing, cannot restore (<instance>)</red>"
+
+guard:
+  teleport_blocked: "<red>Teleporting out of this world is not allowed inside a dungeon</red>"
+  boundary_pullback: "<yellow>You crossed the dungeon boundary, pulled back to spawn</yellow>"
 
 console:
   plugin_starting: "EmakiDungeon is starting"
@@ -42,9 +135,26 @@ console:
   pool_reserve_invalidated: "Reserve world failed inspection and will be rebuilt from template | dungeon=%dungeon% | world=%world%"
   dungeon_config_invalid: "Invalid dungeon config, skipped | dungeon=%dungeon% | error=%error%"
   world_command_deferred: "World command dual-limit deferral | world=%world% | total=%count%"
+  parties_load_failed: "Failed to load parties.yml, party snapshots not restored | error=%error%"
+  command_map_wrap_failed: "CommandMap wrap failed, plugin-dispatch interception entry inactive | error=%error%"
 
 debug:
   instance_created: "Instance created | world=%instance%"
   instance_destroyed: "Instance destroyed | world=%instance% | trigger=%trigger%"
   pool_reserve: "Pool reserve | dungeon=%dungeon% | active=%active%"
   player_entered: "Player entered instance | player=%player% -> world=%instance%"
+  party_created: "Party created | party=%party%"
+  party_invite_sent: "Party invite sent | party=%party% | target=%target%"
+  party_apply_sent: "Party join apply sent | party=%party% | target=%target%"
+  party_join: "Player joined party | party=%party% | player=%player%"
+  party_leave: "Player left party | party=%party% | player=%player%"
+  challenge_opened: "Challenge opened | dungeon=%dungeon% | party=%party%"
+  challenge_start: "Difficulty and mode picked | dungeon=%dungeon% | difficulty=%difficulty% | mode=%mode%"
+  ready_all: "All members ready | dungeon=%dungeon% | party=%party%"
+  instance_full: "Dungeon full, denied | dungeon=%dungeon%"
+  instance_assigned: "Reserve world assigned | world=%instance% | dungeon=%dungeon%"
+  command_denied: "Command denied | command=%command% | source=%source%"
+  snapshot_repacked: "Snapshot repacked | instance=%instance%"
+  reconnected_instance: "Reconnected into instance | instance=%instance%"
+  orphan_restored: "Orphan snapshot restored | instance=%instance%"
+  exit_restored: "Exit restored | instance=%instance% | reason=%reason%"

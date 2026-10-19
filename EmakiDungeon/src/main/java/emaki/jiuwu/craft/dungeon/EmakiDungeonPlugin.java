@@ -8,27 +8,44 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.dungeon.api.EmakiDungeonApi;
 import emaki.jiuwu.craft.dungeon.apiimpl.ServiceBackedDungeonBridge;
+import emaki.jiuwu.craft.dungeon.challenge.ChallengeGuiService;
+import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
 import emaki.jiuwu.craft.dungeon.command.DungeonCommandAdapter;
 import emaki.jiuwu.craft.dungeon.command.DungeonCommandRouter;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
+import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.guard.BoundaryGuard;
+import emaki.jiuwu.craft.dungeon.guard.CommandGuard;
+import emaki.jiuwu.craft.dungeon.guard.TeleportGuard;
+import emaki.jiuwu.craft.dungeon.listener.DungeonChatListener;
+import emaki.jiuwu.craft.dungeon.listener.DungeonLifecycleListener;
 import emaki.jiuwu.craft.dungeon.orchestration.DestroyArbiter;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
+import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.party.PartiesStore;
+import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
+import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.snapshot.SnapshotsStore;
 import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
@@ -52,6 +69,16 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private ServiceBackedDungeonBridge bridge;
     private DebugCommand debugCommand;
     private InstanceCoordinator coordinator;
+    private ChallengeService challenge;
+    private PartyService parties;
+    private RecoveryService recovery;
+    private SnapshotManager snapshots;
+    private CommandGuard commandGuard;
+    private BoundaryGuard boundaryGuard;
+    private TeleportGuard teleportGuard;
+    private ChatInputService chatInputService;
+    private GuiService guiService;
+    private DungeonCommandRouter router;
     private boolean runtimeInitialized;
 
     public EmakiDungeonPlugin() {
@@ -68,9 +95,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(EmakiCoreLibPlugin.lookup().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
+        bootstrapInstanceRuntime();
         registerCommandHandler();
         installPublicApi();
-        coordinator = bootstrapInstanceRuntime();
         runtimeInitialized = true;
         messageService.info("console.plugin_starting");
         messageService.info("console.plugin_started");
@@ -81,10 +108,40 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        if (challenge != null) {
+            challenge.shutdown();
+            challenge = null;
+        }
+        if (boundaryGuard != null) {
+            boundaryGuard.shutdown();
+            boundaryGuard = null;
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+            chatInputService = null;
+        }
+        if (guiService != null) {
+            guiService.closeAll();
+            guiService = null;
+        }
+        if (parties != null) {
+            parties.shutdown();
+            parties = null;
+        }
+        if (commandGuard != null) {
+            commandGuard.restoreCommandMap();
+            commandGuard = null;
+        }
         if (coordinator != null) {
             coordinator.shutdown();
             coordinator = null;
         }
+        if (teleportGuard != null) {
+            teleportGuard = null;
+        }
+        recovery = null;
+        snapshots = null;
+        router = null;
         if (bridge != null) {
             EmakiDungeonApi.uninstall(bridge);
             bridge = null;
@@ -117,12 +174,23 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return coordinator;
     }
 
+    public ChallengeService challengeService() {
+        return challenge;
+    }
+
+    public PartyService partyService() {
+        return parties;
+    }
+
+    public RecoveryService recoveryService() {
+        return recovery;
+    }
+
     public boolean runtimeInitialized() {
         return runtimeInitialized;
     }
 
     private void registerCommandHandler() {
-        DungeonCommandRouter router = new DungeonCommandRouter(this);
         registerCommand(ROOT_COMMAND, "EmakiDungeon 命令", List.of("dungeon", "edungeon"),
                 new DungeonCommandAdapter(router, "emakidungeon.play"));
     }
@@ -133,19 +201,21 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EmakiDungeonApi.install(bridge);
     }
 
-    private InstanceCoordinator bootstrapInstanceRuntime() {
+    private void bootstrapInstanceRuntime() {
         AppConfig appConfig = appConfigLoader.current();
         if (appConfig.debugEnabled()) {
             debugLogger().enableAll();
         }
-        ExecutionDispatcher dispatcher = EmakiCoreLibPlugin.lookup().executionDispatcher();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        ExecutionDispatcher dispatcher = coreLib.executionDispatcher();
         File worldContainer = Bukkit.getWorldContainer();
         TemplateRepository templates = new TemplateRepository(getDataFolder());
-        Map<String, Integer> poolMaxCache = new ConcurrentHashMap<>();
+
+        Map<String, DungeonConfig> configCache = new ConcurrentHashMap<>();
         List<String> dungeons = new ArrayList<>();
         for (String dungeonId : templates.discoverDungeons()) {
             try {
-                poolMaxCache.put(dungeonId, templates.loadConfig(dungeonId).poolMaxWorlds());
+                configCache.put(dungeonId, templates.loadConfig(dungeonId));
                 dungeons.add(dungeonId);
             } catch (RuntimeException exception) {
                 messageService.warning("console.dungeon_config_invalid", Map.of(
@@ -154,7 +224,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 ));
             }
         }
-        Function<String, Integer> poolMaxOf = poolMaxCache::get;
+        Function<String, DungeonConfig> configOf = configCache::get;
+        Function<String, Integer> poolMaxOf = dungeonId -> {
+            DungeonConfig config = configCache.get(dungeonId);
+            return config == null ? null : config.poolMaxWorlds();
+        };
+        Supplier<AppConfig> appConfigSupplier = appConfigLoader::current;
+
         InstanceSlotAllocator allocator = new InstanceSlotAllocator(
                 appConfig.maxInstances(),
                 foliaDetected(),
@@ -169,12 +245,52 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         WorldDisposer disposer = new WorldDisposer(this, dispatcher, worldContainer);
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
                 allocator, registry, store, poolMaxOf, messageService);
-        InstanceCoordinator instanceCoordinator = new InstanceCoordinator(this, dispatcher, pool, disposer,
-                allocator, registry, arbiter, store, messageService, debugLogger());
-        instanceCoordinator.startupScan();
-        instanceCoordinator.warmupAll(dungeons);
-        instanceCoordinator.startInspection();
-        return instanceCoordinator;
+
+        teleportGuard = new TeleportGuard(messageService, registry);
+        SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
+        PlayersDataStore playersDataStore = new PlayersDataStore(this, dispatcher, getDataFolder(),
+                appConfig.globalChatDefault());
+        snapshots = new SnapshotManager(snapshotsStore, playersDataStore, messageService);
+
+        PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
+        parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
+                appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
+        parties.start();
+
+        recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
+                configOf, teleportGuard::permit);
+
+        coordinator = new InstanceCoordinator(this, dispatcher, pool, disposer, allocator, registry, arbiter,
+                store, messageService, debugLogger(), recovery::evacuate);
+
+        guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
+                coreLib.performanceMonitor(), coreLib.guiBackend());
+        chatInputService = new ChatInputService(this, dispatcher);
+        ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
+        challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
+                parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
+        challenge.start();
+
+        commandGuard = new CommandGuard(this, messageService, debugLogger(), registry,
+                appConfigSupplier, configOf);
+        commandGuard.installCommandMap();
+
+        boundaryGuard = new BoundaryGuard(this, dispatcher, registry, teleportGuard, messageService);
+        boundaryGuard.start();
+
+        router = new DungeonCommandRouter(this, messageService, challenge, parties, recovery, snapshots,
+                chatInputService, templates, coordinator, registry);
+
+        getServer().getPluginManager().registerEvents(
+                new DungeonLifecycleListener(recovery, parties), this);
+        getServer().getPluginManager().registerEvents(
+                new DungeonChatListener(parties, languageLoader.getMessage("party.chat_format")), this);
+        getServer().getPluginManager().registerEvents(commandGuard, this);
+        getServer().getPluginManager().registerEvents(teleportGuard, this);
+
+        coordinator.startupScan();
+        coordinator.warmupAll(dungeons);
+        coordinator.startInspection();
     }
 
     private static boolean foliaDetected() {

@@ -29,6 +29,99 @@ command:
     <gray>/edg editor <副本ID></gray> <white>打开地图内编辑器</white>
     <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>管理命令</white>
   unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
+  list:
+    empty: "<yellow>暂无可用副本</yellow>"
+    header: "<gray>可用副本:</gray>"
+    entry: "<gray>- </gray><white><dungeon></white>"
+  enter:
+    usage: "<red>用法: /edg enter <副本ID></red>"
+  leave:
+    no_instance: "<red>你当前不在副本实例中</red>"
+    confirm_hint: "<yellow>输入 确认 退出本次副本, 输入 取消 放弃</yellow>"
+    aborted: "<gray>已取消退出</gray>"
+  party:
+    usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
+  denied_mode: "<red>该命令在本副本受限 (命令管控): <command></red>"
+
+challenge:
+  entered: "<green>已进入副本 <dungeon> (<instance>)</green>"
+  preparing: "<yellow>准备确认开始, 输入 /edg ready 或点击确认按钮 (<seconds> 秒内)</yellow>"
+  preparing_expired: "<red>准备确认超时, 挑战作废</red>"
+  member_ready: "<gray><player> 已准备 (<ready>/<total>)</gray>"
+  cancelled: "<yellow>挑战已作废 (原因: <reason>)</yellow>"
+  wait:
+    bossbar: "正在准备副本世界: <dungeon> (任一队员可 /edg cancel 取消)"
+    chat: "<yellow>正在准备副本世界: <dungeon>, 任一队员可 /edg cancel 取消, 等待超时自动作废</yellow>"
+    sidebar: "进入等待: <dungeon>"
+  enter:
+    dungeon_missing: "<red>副本不存在或配置无效: <dungeon></red>"
+    no_dungeon_permission: "<red>你没有进入副本 <dungeon> 的权限</red>"
+    party_error: "<red>队伍创建失败: <code></red>"
+    not_leader: "<red>仅队长可发起挑战</red>"
+    already_started: "<yellow>本队伍已有进行中的挑战流程</yellow>"
+    party_busy: "<yellow>本队伍已有进行中的副本挑战</yellow>"
+    invalid_difficulty: "<red>无效的难度: <difficulty></red>"
+    invalid_mode: "<red>无效的掉落分配模式: <mode></red>"
+    party_missing: "<red>队伍信息丢失, 挑战作废</red>"
+    member_offline: "<red>有队员不在线, 无法发起挑战</red>"
+    dungeon_full: "<yellow>副本当前满载, 请等待已有队伍结束后重试</yellow>"
+    full: "<yellow>副本当前满载 (已达池或全局上限), 请等待已有队伍结束后重试</yellow>"
+  cancel:
+    no_session: "<yellow>当前没有可取消的挑战</yellow>"
+
+gui:
+  difficulty:
+    title: "选择难度"
+    name: "<white>难度: <option></white>"
+    lore: "<gray>点击选择该难度</gray>"
+  mode:
+    title: "选择掉落分配模式"
+    name: "<white>分配模式: <option></white>"
+    lore: "<gray>点击选择该模式</gray>"
+  confirm:
+    title: "准备确认"
+    name: "<green>点击准备</green>"
+    lore: "<gray>点击确认进入副本</gray>"
+  wait:
+    title: "进入等待"
+    cancel_name: "<red>取消进入</red>"
+    cancel_lore: "<gray>点击取消本次挑战</gray>"
+
+party:
+  chat_format: "<gradient:#93C5FD:#60A5FA>[队伍]</gradient> <gold><player></gold>: <white><message></white>"
+  invite_sent: "<yellow>已邀请 <player> 加入队伍</yellow>"
+  invite_received: "<yellow><player> 邀请你加入队伍, /edg party accept 接受, /edg party deny 拒绝</yellow>"
+  apply_received: "<yellow><player> 申请加入你的队伍, /edg party accept 批准, /edg party deny 拒绝</yellow>"
+  apply_denied: "<yellow><player> 拒绝了你的入队申请</yellow>"
+  kicked: "<red>你已被 <player> 移出队伍</red>"
+  leader_transferred: "<yellow>队长已移交给 <player></yellow>"
+  member_joined: "<green><player> 加入了队伍</green>"
+  chat_enabled: "<green>已开启队伍频道, 你的消息仅队伍可见</green>"
+  chat_disabled: "<yellow>已关闭队伍频道</yellow>"
+  result:
+    already_in_party: "<red>你已在队伍中</red>"
+    target_in_party: "<red>目标玩家已在其他队伍中</red>"
+    target_busy: "<red>目标玩家正在副本挑战中</red>"
+    party_full: "<red>队伍已满员</red>"
+    not_leader: "<red>仅队长可执行此操作</red>"
+    not_in_party: "<red>你不在队伍中</red>"
+    mode_denied: "<red>当前邀请模式为仅邀请, 需先被邀请才能加入</red>"
+    invalid_target: "<red>目标玩家不在线或无效: <player></red>"
+    busy_party: "<yellow>本队伍正在副本挑战中, 暂不接纳新成员</yellow>"
+
+recovery:
+  reconnected: "<green>重连成功, 已回到副本实例 (<instance>)</green>"
+  orphan_restored: "<yellow>实例已结束, 已按进入快照恢复背包与状态并送回原位置</yellow>"
+  exited: "<green>已退出副本并还原状态 (<instance>)</green>"
+  evacuated: "<yellow>副本已结束, 已按快照还原并送回原位置</yellow>"
+
+snapshot:
+  missing: "<red>快照缺失, 无法还原 (<instance>)</red>"
+
+guard:
+  teleport_blocked: "<red>副本内禁止传送出该世界</red>"
+  boundary_pullback: "<yellow>已超出副本边界, 已拉回出生点</yellow>"
 
 console:
   plugin_starting: "EmakiDungeon 正在启动"
@@ -42,9 +135,26 @@ console:
   pool_reserve_invalidated: "补位世界巡检作废, 将按模板重建 | 副本=%dungeon% | 世界=%world%"
   dungeon_config_invalid: "副本配置非法, 已跳过 | 副本=%dungeon% | 错误=%error%"
   world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
+  parties_load_failed: "parties.yml 加载失败, 队伍快照未恢复 | 错误=%error%"
+  command_map_wrap_failed: "CommandMap 包装失败, 插件代执行拦截入口未生效 | 错误=%error%"
 
 debug:
   instance_created: "实例已创建 | 世界=%instance%"
   instance_destroyed: "实例已销毁 | 世界=%instance% | 触发=%trigger%"
   pool_reserve: "池额度占位 | 副本=%dungeon% | 活跃=%active%"
   player_entered: "玩家进入实例 | 玩家=%player% -> 世界=%instance%"
+  party_created: "队伍已创建 | 队伍=%party%"
+  party_invite_sent: "队伍邀请已发送 | 队伍=%party% | 目标=%target%"
+  party_apply_sent: "入队申请已发送 | 队伍=%party% | 目标=%target%"
+  party_join: "玩家入队 | 队伍=%party% | 玩家=%player%"
+  party_leave: "玩家离队 | 队伍=%party% | 玩家=%player%"
+  challenge_opened: "挑战发起 | 副本=%dungeon% | 队伍=%party%"
+  challenge_start: "难度与模式选定 | 副本=%dungeon% | 难度=%difficulty% | 模式=%mode%"
+  ready_all: "全员准备就绪 | 副本=%dungeon% | 队伍=%party%"
+  instance_full: "副本满载拒绝 | 副本=%dungeon%"
+  instance_assigned: "补位世界分配 | 世界=%instance% | 副本=%dungeon%"
+  command_denied: "命令被拒绝 | 命令=%command% | 来源=%source%"
+  snapshot_repacked: "快照已重拍 | 实例=%instance%"
+  reconnected_instance: "断线重连回实例 | 实例=%instance%"
+  orphan_restored: "孤儿快照还原 | 实例=%instance%"
+  exit_restored: "退出还原 | 实例=%instance% | 原因=%reason%"
