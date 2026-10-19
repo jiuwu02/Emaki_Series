@@ -1,0 +1,40 @@
+# EmakiDungeon English language resource
+# Messages use MiniMessage; keep the placeholders noted next to each group
+# version is maintained by the resource sync flow for merging new default keys
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#93C5FD:#60A5FA>EmakiDungeon</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to run this command</red>"
+  player_only: "<red>This command can only be executed by a player</red>"
+  invalid_args: "<red>Invalid arguments</red>"
+  unknown_command: "<red>Unknown command, use /edg help for help</red>"
+  reloading: "<gray>Reloading configuration...</gray>"
+  reload_success: "<green>Configuration reloaded</green>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#93C5FD:#60A5FA>EmakiDungeon Commands</gradient><gray> ==========</gray>
+    <gray>/edg help</gray> <white>Show command help</white>
+    <gray>/edg list</gray> <white>List dungeons</white>
+    <gray>/edg enter <dungeonId></gray> <white>Enter a dungeon (party leader starts a challenge)</white>
+    <gray>/edg leave</gray> <white>Leave the current dungeon</white>
+    <gray>/edg cancel</gray> <white>Cancel entering wait</white>
+    <gray>/edg ready</gray> <white>Confirm ready</white>
+    <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>Party actions</white>
+    <gray>/edg stats [player] [dungeonId]</gray> <white>Query limits and records</white>
+    <gray>/edg rank <dungeonId></gray> <white>Show leaderboard</white>
+    <gray>/edg globalchat <on|off></gray> <white>Toggle global chat listening</white>
+    <gray>/edg editor <dungeonId></gray> <white>Open the in-world editor</white>
+    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>Admin commands</white>
+  unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
+
+console:
+  plugin_starting: "EmakiDungeon is starting"
+  plugin_stopped: "EmakiDungeon has stopped"
+
+debug:
+  instance_created: "Instance created <instance>"
+  pool_reserve: "Pool reserve <dungeon> active=<active>"
+  player_entered: "Player entered instance <player> -> <instance>"

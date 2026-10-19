@@ -32,7 +32,7 @@ dependencyResolutionManagement {
 
 rootProject.name = 'emaki-parent'
 
-// 默认参与构建的 25 个模块（原 <modules> 列表 + EmakiStructure 一组）。
+// 默认参与构建的 26 个模块（原 <modules> 列表 + EmakiStructure 一组 + EmakiDungeon 一组）。
 def defaultModules = [
         'EmakiCoreLibApi', 'EmakiCoreLib',
         'EmakiItemApi',
@@ -42,6 +42,7 @@ def defaultModules = [
         'EmakiMobsApi', 'EmakiStructureApi',
         'EmakiForge', 'EmakiStrengthen', 'EmakiCooking', 'EmakiAttribute',
         'EmakiLevel', 'EmakiCodex', 'EmakiStation', 'EmakiMobs',
+        'EmakiDungeonApi', 'EmakiDungeon',
 ]
 defaultModules.each { include it }
 

@@ -1,0 +1,38 @@
+name: EmakiDungeon
+main: emaki.jiuwu.craft.dungeon.EmakiDungeonPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    MythicMobs:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    WorldGuard:
+      load: BEFORE
+      required: false
+      join-classpath: true
+commands:
+  edg:
+    description: EmakiDungeon 命令
+    usage: /edg help
+    permission: emakidungeon.play
+    aliases: [dungeon, edungeon]
+permissions:
+  emakidungeon.play:
+    default: true
+  emakidungeon.bypass.limit:
+    default: op
+  emakidungeon.bypass.escape:
+    default: op
+  emakidungeon.script:
+    default: op
+  emakidungeon.editor:
+    default: op
+  emakidungeon.admin:
+    default: op

@@ -1,0 +1,12 @@
+// EmakiDungeon.
+version = '1.0.0'
+
+dependencies {
+    shadeBundle project(':EmakiDungeonApi')
+
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiDungeonApi')
+
+    provided libs.paper.api
+}

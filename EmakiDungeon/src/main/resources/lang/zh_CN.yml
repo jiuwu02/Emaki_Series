@@ -1,0 +1,40 @@
+# EmakiDungeon 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#93C5FD:#60A5FA>EmakiDungeon</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此命令</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  invalid_args: "<red>参数错误</red>"
+  unknown_command: "<red>未知命令, 请使用 /edg help 查看帮助</red>"
+  reloading: "<gray>正在重载配置...</gray>"
+  reload_success: "<green>配置已重载</green>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#93C5FD:#60A5FA>EmakiDungeon 命令</gradient><gray> ==========</gray>
+    <gray>/edg help</gray> <white>查看命令帮助</white>
+    <gray>/edg list</gray> <white>查看副本列表</white>
+    <gray>/edg enter <副本ID></gray> <white>进入副本 (组队时由队长发起)</white>
+    <gray>/edg leave</gray> <white>退出当前副本</white>
+    <gray>/edg cancel</gray> <white>取消进入等待</white>
+    <gray>/edg ready</gray> <white>确认准备</white>
+    <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>组队操作</white>
+    <gray>/edg stats [玩家] [副本ID]</gray> <white>查询次数与成绩</white>
+    <gray>/edg rank <副本ID></gray> <white>查看排行榜</white>
+    <gray>/edg globalchat <on|off></gray> <white>切换全局消息收听</white>
+    <gray>/edg editor <副本ID></gray> <white>打开地图内编辑器</white>
+    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>管理命令</white>
+  unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
+
+console:
+  plugin_starting: "EmakiDungeon 正在启动"
+  plugin_stopped: "EmakiDungeon 已停止"
+
+debug:
+  instance_created: "实例已创建 <instance>"
+  pool_reserve: "池额度占位 <dungeon> active=<active>"
+  player_entered: "玩家进入实例 <player> -> <instance>"

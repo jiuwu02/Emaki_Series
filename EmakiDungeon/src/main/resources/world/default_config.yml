@@ -1,0 +1,103 @@
+# EmakiDungeon 副本默认配置模板
+#
+# 重载时复制到各副本世界文件夹生成 config.yml (已存在不覆盖), 承载副本元数据与副本级规则。
+# 不提供 schema 版本兼容, 加载期按当前结构严格校验。
+# 文件位置: plugins/EmakiDungeon/world/<副本ID>/config.yml
+
+version: "1.0.0"
+language: "zh_CN"
+
+# 副本元数据。
+display-name: "示例副本"
+description: "一份用于演示的线性副本配置"
+difficulty-group: "default"
+
+# 进入与失败判定。
+enter:
+  timeout-seconds: 1800
+  prepare-window-seconds: 10
+  wait-channel: bossbar
+  wait-timeout-seconds: 60
+
+# 该副本实例世界占用上限 (含补位态世界), 达上限提示等待重试。
+pool:
+  max-worlds: 5
+
+# 复合次数限制: 每日 / 每周指定周几 / 每月可组合。
+limits:
+  daily: 1
+  weekly:
+  #  5: 2
+  #  6: 2
+  monthly: 0
+  cooldown-seconds: 0
+
+# 背包隔离开关 (默认关闭): 开启则退出/失败时回滚到进入前背包。
+inventory:
+  isolation-enabled: false
+
+# 副本实例的仿真距离与实体上限, 各实例世界独立生效。
+world:
+  simulation-distance: 6
+  entity-limit: 0
+
+# 难度动态调整三项: 怪物属性倍率、掉落数量倍率、玩家剩余重生次数。
+difficulty:
+  normal:
+    mob-multiplier: 1.0
+    drop-multiplier: 1.0
+    respawn-count: 3
+  hard:
+    mob-multiplier: 1.5
+    drop-multiplier: 1.2
+    respawn-count: 1
+
+# 贡献评分五项权重与满分 (完成时间权重暂不计入)。
+score:
+  damage-weight: 1.0
+  kill-weight: 1.0
+  heal-weight: 1.0
+  death-weight: 1.0
+  defense-weight: 1.0
+  max: 100.0
+
+# 掉落等级定义与队长可选分配模式 (五种: free / roll / killer / score / share)。
+# drop.levels 仅在评分贡献模式下参与分配权重。
+drop:
+  levels:
+    common: 1
+    rare: 3
+    epic: 5
+  default-mode: free
+  mode-allowed:
+    - free
+    - roll
+    - killer
+    - score
+    - share
+
+# 副本级命令放行条目 (语法同全局 commands.rules): 可豁免常规模式判定, 不可豁免逃逸黑名单。
+commands:
+  allow:
+  #  - "/home"
+
+# 交互白名单: 容器与漏斗行为, 漏斗默认关闭。
+interaction:
+  containers: true
+  hoppers: false
+
+# 倒计时档位秒数, 触发 CoreLib 发送消息 Action。
+timer:
+  messages:
+    - 300
+    - 60
+    - 10
+
+# 命令链结算步骤, 可引用 EmakiItem/EmakiLevel。
+settlement:
+  commands:
+  #  - "emakiitem give %player% reward_key 1"
+
+# 榜单条数上限与超限淘汰。
+leaderboard:
+  max-entries: 100

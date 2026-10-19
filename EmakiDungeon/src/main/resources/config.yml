@@ -1,0 +1,52 @@
+# EmakiDungeon 主配置
+#
+# 控制副本实例、组队、命令拦截、消息隔离与全局限流。
+# 重载不会中断运行中实例, 仅对新创建的副本生效。
+# 文件位置: plugins/EmakiDungeon/config.yml
+
+version: "1.0.0"
+language: "zh_CN"
+
+# DEBUG 锚日志开关与审计保留天数 (按日切分)。
+debug:
+  enabled: false
+  retention-days: 30
+
+# 全局并发实例世界上限 (含补位态世界)。
+limit:
+  max-instances: 20
+
+# 副本内命令管控: 白名单/黑名单模式与参数级规则列表。
+# 规则 = 命令根 + 参数模式, 玩家名统一写 player 占位。
+commands:
+  mode: blacklist
+  rules:
+  #  - "/tpa player"
+  #  - "/tpa accept"
+
+# 逃逸命令黑名单 (支持通配符), 判定优先级最高, 不可被副本放行条目豁免。
+escape:
+  blacklist:
+  #  - "/tp *"
+  #  - "/back"
+
+# 队伍人数上限与默认邀请模式 (public / apply / invite)。
+party:
+  max-size: 4
+  invite-mode: public
+
+# 全局收听默认值 (每玩家可用 /edg globalchat 覆盖)。
+isolation:
+  global-chat-default: false
+
+# 次数限制的默认时区, 留空表示使用服务器时区。
+general:
+  timezone: ""
+
+# bStats 本期不接入, 接口就绪后经 CoreLib 统一接入。
+storage:
+  bstats: disabled
+
+# Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收。
+folia:
+  held-worlds-max: 10
