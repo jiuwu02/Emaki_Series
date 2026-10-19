@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
  * facades. The M0 skeleton only installs the availability bridge; the five
  * domain facades are delivered in later phases. Accessors never return
  * {@code null}: while EmakiDungeon is absent the facade reports
- * {@link ApiStatus#notInstalled()}.
+ * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()}.
  *
  * <p>Resolve accessors at the point of use rather than caching them in a field,
  * because the backing bridge is replaced across a reload.

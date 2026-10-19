@@ -33,8 +33,18 @@ command:
 console:
   plugin_starting: "EmakiDungeon 正在启动"
   plugin_stopped: "EmakiDungeon 已停止"
+  world_create_failed: "创建实例世界失败 | 副本=%dungeon% | 世界=%world%, 30 秒后重试"
+  world_dispose_held: "实例世界卸载删除失败, 已挂起待重启清理 | 副本=%dungeon% | 世界=%world%"
+  instances_load_failed: "instances.yml 加载失败, 跳过启动残留自检 | 错误=%error%"
+  residual_delete_failed: "启动自检删除残留目录失败 | 世界=%world%"
+  residual_cleaned: "启动自检已清理残留世界 | 数量=%count%"
+  active_world_missing: "有人挑战实例的世界句柄丢失, 转入销毁回收 | 副本=%dungeon% | 世界=%world%"
+  pool_reserve_invalidated: "补位世界巡检作废, 将按模板重建 | 副本=%dungeon% | 世界=%world%"
+  dungeon_config_invalid: "副本配置非法, 已跳过 | 副本=%dungeon% | 错误=%error%"
+  world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
 
 debug:
-  instance_created: "实例已创建 <instance>"
-  pool_reserve: "池额度占位 <dungeon> active=<active>"
-  player_entered: "玩家进入实例 <player> -> <instance>"
+  instance_created: "实例已创建 | 世界=%instance%"
+  instance_destroyed: "实例已销毁 | 世界=%instance% | 触发=%trigger%"
+  pool_reserve: "池额度占位 | 副本=%dungeon% | 活跃=%active%"
+  player_entered: "玩家进入实例 | 玩家=%player% -> 世界=%instance%"

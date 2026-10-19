@@ -1,0 +1,243 @@
+package emaki.jiuwu.craft.dungeon.world;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
+
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.WorldCreator;
+import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.instance.InstanceState;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
+import emaki.jiuwu.craft.dungeon.orchestration.PoolReservation;
+import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
+import emaki.jiuwu.craft.dungeon.storage.InstancesStore.Entry;
+
+public final class WorldPool {
+
+    private static final long CREATE_RETRY_DELAY_SECONDS = 30L;
+
+    private static final class PoolState {
+
+        private final ConcurrentLinkedQueue<String> reserves = new ConcurrentLinkedQueue<>();
+    }
+
+    private final Plugin plugin;
+    private final ExecutionDispatcher dispatcher;
+    private final File worldContainer;
+    private final TemplateRepository templates;
+    private final WorldNames names;
+    private final WorldCloner cloner;
+    private final WorldDisposer disposer;
+    private final InstanceSlotAllocator allocator;
+    private final InstanceRegistry registry;
+    private final InstancesStore store;
+    private final Function<String, Integer> poolMaxOf;
+    private final MessageService messages;
+
+    private final Map<String, PoolState> pools = new ConcurrentHashMap<>();
+    private volatile boolean stopping;
+
+    public WorldPool(Plugin plugin,
+            ExecutionDispatcher dispatcher,
+            File worldContainer,
+            TemplateRepository templates,
+            WorldNames names,
+            WorldCloner cloner,
+            WorldDisposer disposer,
+            InstanceSlotAllocator allocator,
+            InstanceRegistry registry,
+            InstancesStore store,
+            Function<String, Integer> poolMaxOf,
+            MessageService messages) {
+        this.plugin = plugin;
+        this.dispatcher = dispatcher;
+        this.worldContainer = worldContainer;
+        this.templates = templates;
+        this.names = names;
+        this.cloner = cloner;
+        this.disposer = disposer;
+        this.allocator = allocator;
+        this.registry = registry;
+        this.store = store;
+        this.poolMaxOf = poolMaxOf;
+        this.messages = messages;
+    }
+
+    public void stopNewWork() {
+        stopping = true;
+    }
+
+    public void ensureReserve(String dungeonId) {
+        if (stopping || dungeonId == null) {
+            return;
+        }
+        PoolState state = pool(dungeonId);
+        synchronized (state) {
+            if (stopping) {
+                return;
+            }
+            int active = registry.countActive(dungeonId);
+            int target = Math.min(active + 1, poolMax(dungeonId));
+            if (allocator.worldsOf(dungeonId) >= target) {
+                return;
+            }
+            String worldName = names.next(dungeonId);
+            PoolReservation reservation = allocator.tryReservePool(dungeonId, worldName);
+            if (reservation == null) {
+                return;
+            }
+            DungeonInstance instance = new DungeonInstance(worldName, dungeonId, newWorldQueue(worldName));
+            if (!registry.register(instance)) {
+                allocator.cancelPool(reservation);
+                return;
+            }
+            store.put(worldName, new Entry(dungeonId, InstanceState.CREATING.name(), "", List.of(), System.currentTimeMillis()));
+            store.saveAsync();
+            File template = templates.templateDir(dungeonId).orElse(null);
+            if (template == null) {
+                rollbackCreate(worldName, instance, reservation, false);
+                return;
+            }
+            cloner.cloneAsync(template, worldName).whenComplete((ignored, error) -> {
+                if (error != null) {
+                    rollbackCreate(worldName, instance, reservation, true);
+                    return;
+                }
+                dispatcher.runGlobal(plugin, () -> mount(worldName, dungeonId, instance, reservation));
+            });
+        }
+    }
+
+    private void mount(String worldName, String dungeonId, DungeonInstance instance, PoolReservation reservation) {
+        if (stopping || !instance.transition(InstanceState.CREATING, InstanceState.MOUNTING)) {
+            rollbackCreate(worldName, instance, reservation, false);
+            return;
+        }
+        try {
+            World world = Bukkit.createWorld(new WorldCreator(worldName));
+            if (world == null) {
+                throw new IllegalStateException("createWorld returned null");
+            }
+        } catch (Throwable throwable) {
+            rollbackCreate(worldName, instance, reservation, true);
+            return;
+        }
+        if (!instance.transition(InstanceState.MOUNTING, InstanceState.IDLE)) {
+            rollbackCreate(worldName, instance, reservation, false);
+            return;
+        }
+        allocator.confirmPool(reservation);
+        pool(dungeonId).reserves.add(worldName);
+        store.put(worldName, new Entry(dungeonId, InstanceState.IDLE.name(), "", List.of(), System.currentTimeMillis()));
+        store.saveAsync();
+        dispatcher.runGlobal(plugin, () -> ensureReserve(dungeonId));
+    }
+
+    private void rollbackCreate(String worldName, DungeonInstance instance, PoolReservation reservation, boolean retry) {
+        allocator.cancelPool(reservation);
+        registry.unregister(worldName);
+        store.remove(worldName);
+        store.saveAsync();
+        dispatcher.runAsync(plugin, () -> disposer.deleteResidual(worldName));
+        messages.warning("console.world_create_failed", Map.of(
+                "dungeon", instance.dungeonId(),
+                "world", worldName
+        ));
+        if (retry && !stopping) {
+            dispatcher.runAsyncLater(plugin, () -> ensureReserve(instance.dungeonId()),
+                    CREATE_RETRY_DELAY_SECONDS, TimeUnit.SECONDS);
+        }
+    }
+
+    public String takeReserve(String dungeonId) {
+        PoolState state = pool(dungeonId);
+        String worldName = state.reserves.poll();
+        if (worldName == null) {
+            return null;
+        }
+        DungeonInstance instance = registry.get(worldName);
+        if (instance == null || !instance.transition(InstanceState.IDLE, InstanceState.RUNNING)) {
+            invalidateReserve(dungeonId, worldName);
+            return null;
+        }
+        ensureReserve(dungeonId);
+        return worldName;
+    }
+
+    public void dropFromReserves(String dungeonId, String worldName) {
+        pool(dungeonId).reserves.remove(worldName);
+    }
+
+    public List<String> reservesOf(String dungeonId) {
+        return new ArrayList<>(pool(dungeonId).reserves);
+    }
+
+    public int reserveCount(String dungeonId) {
+        return pool(dungeonId).reserves.size();
+    }
+
+    public void invalidateReserve(String dungeonId, String worldName) {
+        PoolState state = pool(dungeonId);
+        synchronized (state) {
+            state.reserves.remove(worldName);
+            DungeonInstance instance = registry.unregister(worldName);
+            if (instance != null) {
+                instance.closeLoop();
+            }
+            store.remove(worldName);
+            store.saveAsync();
+            allocator.releaseWorld(dungeonId);
+            dispatcher.runAsync(plugin, () -> disposer.deleteResidual(worldName));
+        }
+        messages.warning("console.pool_reserve_invalidated", Map.of(
+                "dungeon", dungeonId,
+                "world", worldName
+        ));
+        dispatcher.runAsync(plugin, () -> ensureReserve(dungeonId));
+    }
+
+    public boolean inspectReserves() {
+        boolean healthy = true;
+        for (Map.Entry<String, PoolState> pair : pools.entrySet()) {
+            String dungeonId = pair.getKey();
+            for (String worldName : pair.getValue().reserves) {
+                World world = Bukkit.getWorld(worldName);
+                File directory = new File(worldContainer, worldName);
+                if (world == null || !directory.isDirectory()) {
+                    invalidateReserve(dungeonId, worldName);
+                    healthy = false;
+                }
+            }
+        }
+        return healthy;
+    }
+
+    private WorldCommandQueue newWorldQueue(String worldName) {
+        return new WorldCommandQueue(total -> messages.warning("console.world_command_deferred", Map.of(
+                "world", worldName,
+                "count", String.valueOf(total)
+        )));
+    }
+
+    private PoolState pool(String dungeonId) {
+        return pools.computeIfAbsent(dungeonId, key -> new PoolState());
+    }
+
+    private int poolMax(String dungeonId) {
+        Integer poolMax = poolMaxOf.apply(dungeonId);
+        return poolMax == null || poolMax < 1 ? 1 : poolMax;
+    }
+}

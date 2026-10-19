@@ -33,8 +33,18 @@ command:
 console:
   plugin_starting: "EmakiDungeon is starting"
   plugin_stopped: "EmakiDungeon has stopped"
+  world_create_failed: "Instance world creation failed | dungeon=%dungeon% | world=%world%, retrying in 30s"
+  world_dispose_held: "Instance world unload or delete failed, held for cleanup on restart | dungeon=%dungeon% | world=%world%"
+  instances_load_failed: "Failed to load instances.yml, startup residual scan skipped | error=%error%"
+  residual_delete_failed: "Startup scan failed to delete residual directory | world=%world%"
+  residual_cleaned: "Startup scan cleaned residual worlds | count=%count%"
+  active_world_missing: "Running instance lost its world handle, scheduled for disposal | dungeon=%dungeon% | world=%world%"
+  pool_reserve_invalidated: "Reserve world failed inspection and will be rebuilt from template | dungeon=%dungeon% | world=%world%"
+  dungeon_config_invalid: "Invalid dungeon config, skipped | dungeon=%dungeon% | error=%error%"
+  world_command_deferred: "World command dual-limit deferral | world=%world% | total=%count%"
 
 debug:
-  instance_created: "Instance created <instance>"
-  pool_reserve: "Pool reserve <dungeon> active=<active>"
-  player_entered: "Player entered instance <player> -> <instance>"
+  instance_created: "Instance created | world=%instance%"
+  instance_destroyed: "Instance destroyed | world=%instance% | trigger=%trigger%"
+  pool_reserve: "Pool reserve | dungeon=%dungeon% | active=%active%"
+  player_entered: "Player entered instance | player=%player% -> world=%instance%"
