@@ -1,0 +1,721 @@
+package emaki.jiuwu.craft.dungeon.flow;
+
+import java.util.Map;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
+import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+
+public final class FlowRuntime {
+
+    private final DungeonInstance instance;
+    private final FlowDefinition definition;
+    private final Adjudicator adjudicator;
+    private final MessageService messages;
+    private final java.util.function.Consumer<UUID> teleportPermit;
+    private volatile FlowControllers controllers;
+    private volatile PlayerStateHook stateHook;
+
+    private final Map<String, Object> facts = new ConcurrentHashMap<>();
+    private final Set<String> openedGates = ConcurrentHashMap.newKeySet();
+    private final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
+    private volatile int currentRoomOrder = Integer.MIN_VALUE;
+    private volatile String checkpointId = "";
+
+    public FlowRuntime(DungeonInstance instance,
+            FlowDefinition definition,
+            Adjudicator adjudicator,
+            MessageService messages,
+            java.util.function.Consumer<UUID> teleportPermit) {
+        this.instance = instance;
+        this.definition = definition;
+        this.adjudicator = adjudicator;
+        this.messages = messages;
+        this.teleportPermit = teleportPermit;
+        if (!definition.rooms().isEmpty()) {
+            this.currentRoomOrder = definition.rooms().get(0).order() - 1;
+        }
+    }
+
+    public void bindControllers(FlowControllers controllers) {
+        this.controllers = controllers;
+    }
+
+    public void bindStateHook(PlayerStateHook stateHook) {
+        this.stateHook = stateHook;
+    }
+
+    public FlowDefinition definition() {
+        return definition;
+    }
+
+    public Adjudicator adjudicator() {
+        return adjudicator;
+    }
+
+    public DungeonInstance instance() {
+        return instance;
+    }
+
+    public void setFact(String key, Object value) {
+        if (value == null) {
+            facts.remove(key);
+        } else {
+            facts.put(key, value);
+        }
+    }
+
+    public Object fact(String key) {
+        return facts.get(key);
+    }
+
+    public Map<String, Object> factsView() {
+        return Map.copyOf(facts);
+    }
+
+    public int factInt(String key, int fallback) {
+        Object value = facts.get(key);
+        if (value instanceof Number number) {
+            return number.intValue();
+        }
+        return value == null ? fallback : Integer.parseInt(String.valueOf(value));
+    }
+
+    public boolean factFlag(String key) {
+        return Boolean.TRUE.equals(facts.get(key));
+    }
+
+    public boolean isGateOpened(String gateId) {
+        return openedGates.contains(gateId);
+    }
+
+    public boolean hasTriggeredSpawn(String spawnId) {
+        return triggeredSpawns.contains(spawnId);
+    }
+
+    public void markSpawnTriggered(String spawnId) {
+        triggeredSpawns.add(spawnId);
+    }
+
+    public int currentRoomOrder() {
+        return currentRoomOrder;
+    }
+
+    public String checkpointId() {
+        return checkpointId;
+    }
+
+    public void onEvent(IngressEvent event) {
+        if (event == null) {
+            return;
+        }
+        switch (event.trigger()) {
+            case EventIngressKeys.ZONE -> onZone(event);
+            case EventIngressKeys.RANGE -> onRange(event);
+            case EventIngressKeys.BLOCK -> onBlockClick(event);
+            case EventIngressKeys.ITEM -> onItemInteract(event);
+            case EventIngressKeys.DEATH -> onEntityDeath(event);
+            case EventIngressKeys.ACTIVATE -> onActivate(event);
+            case EventIngressKeys.REDSTONE -> onRedstone(event);
+            case EventIngressKeys.PLAYER_STATE -> {
+                if (stateHook != null && "death".equals(event.payload().get("kind"))) {
+                    stateHook.onPlayerDeath(instance, EventIngressKeys.player(event.payload()));
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    private void onZone(IngressEvent event) {
+        String zoneId = event.sourceId();
+        Map<String, Object> payload = event.payload();
+        UUID playerId = EventIngressKeys.player(payload);
+        EvalContext context = new EvalContext(playerId, payload);
+
+        FlowModules.TriggerZoneDef triggerZone = definition.triggerZones().get(zoneId);
+        if (triggerZone != null && triggerZone.head().enabled()) {
+            adjudicator.adjudicate(triggerZone.head(), triggerZone.conditions(), context, playerId);
+        }
+
+        FlowModules.CheckpointDef checkpoint = definition.checkpoints().get(zoneId);
+        if (checkpoint != null && checkpoint.head().enabled() && checkpoint.region() != null
+                && payload.get(Facts.REGION_ENTERED) != null) {
+            EvalContext checkpointContext = new EvalContext(playerId, payload);
+            if (adjudicator.adjudicate(checkpoint.head(), java.util.List.of(), checkpointContext, playerId).allowed()) {
+                checkpointId = checkpoint.recordId();
+            }
+        }
+
+        FlowModules.TeleportZoneDef teleportZone = definition.teleportZones().get(zoneId);
+        if (teleportZone != null && teleportZone.head().enabled()
+                && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
+            EvalContext zoneContext = new EvalContext(playerId, payload);
+            if (adjudicator.adjudicate(teleportZone.head(), teleportZone.conditions(), zoneContext, playerId).allowed()) {
+                submitTeleport(playerId, teleportZone.target());
+            }
+        }
+
+        FlowModules.BoundaryZoneDef boundaryZone = definition.boundaryZones().get(zoneId);
+        if (boundaryZone != null && boundaryZone.head().enabled()
+                && Boolean.TRUE.equals(payload.get(Facts.REGION_LEFT))) {
+            submitTeleport(playerId, boundaryZone.pullback() != null
+                    ? boundaryZone.pullback()
+                    : boundaryZone.region().center());
+        }
+
+        FlowModules.RoomTimerDef roomTimer = definition.roomTimers().get(zoneId);
+        if (roomTimer != null && roomTimer.head().enabled()
+                && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
+            EvalContext timerContext = new EvalContext(playerId, payload);
+            if (adjudicator.adjudicate(roomTimer.head(), java.util.List.of(), timerContext, playerId).allowed()) {
+                scheduleRoomTimer(roomTimer, playerId);
+            }
+        }
+
+        handleRoomZone(zoneId, playerId, payload);
+
+        FlowModules.EffectZoneDef effectZone = definition.effectZones().get(zoneId);
+        if (effectZone != null && effectZone.head().enabled()
+                && Boolean.TRUE.equals(payload.get("effect_tick"))) {
+            if (adjudicator.adjudicate(effectZone.head(), java.util.List.of(), context, playerId).allowed()) {
+                applyEffects(effectZone, playerId);
+            }
+        }
+
+        FlowModules.OptionDef option = definition.options().get(zoneId);
+        if (option != null && option.head().enabled()
+                && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
+            EvalContext optionContext = new EvalContext(playerId, payload);
+            if (adjudicator.adjudicate(option.head(), option.conditions(), optionContext, playerId).allowed()
+                    && controllers != null && playerId != null) {
+                controllers.handleOptionTrigger(this, option.optionId(), playerId);
+            }
+        }
+    }
+
+    private void handleRoomZone(String roomId, UUID playerId, Map<String, Object> payload) {
+        for (FlowModules.RoomDef room : definition.rooms()) {
+            if (!room.id().equals(roomId)) {
+                return;
+            }
+            boolean entered = Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED));
+            if (!entered) {
+                return;
+            }
+            if (currentRoomOrder == Integer.MIN_VALUE) {
+                currentRoomOrder = room.order();
+                notifyRoomEntered(room.id(), playerId);
+                return;
+            }
+            if (room.order() == currentRoomOrder + 1) {
+                String previousRoomId = currentRoomId();
+                currentRoomOrder = room.order();
+                notifyRoomEntered(room.id(), playerId);
+                syncStragglers(previousRoomId, playerId);
+            }
+            return;
+        }
+    }
+
+    private String currentRoomId() {
+        for (FlowModules.RoomDef room : definition.rooms()) {
+            if (room.order() == currentRoomOrder) {
+                return room.id();
+            }
+        }
+        return "";
+    }
+
+    private void notifyRoomEntered(String roomId, UUID playerId) {
+        if (controllers != null) {
+            controllers.handleRoomEntered(this, roomId, playerId);
+        }
+    }
+
+    private void syncStragglers(String previousRoomId, UUID arrivingPlayer) {
+        if (previousRoomId.isEmpty() || arrivingPlayer == null) {
+            return;
+        }
+        FlowModules.RoomDef previousRoom = null;
+        for (FlowModules.RoomDef room : definition.rooms()) {
+            if (room.id().equals(previousRoomId)) {
+                previousRoom = room;
+                break;
+            }
+        }
+        if (previousRoom == null || previousRoom.region() == null) {
+            return;
+        }
+        Player arriving = Bukkit.getPlayer(arrivingPlayer);
+        if (arriving == null) {
+            return;
+        }
+        Location target = arriving.getLocation().clone();
+        FlowRegion region = previousRoom.region();
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                World world = target.getWorld();
+                if (world == null) {
+                    return;
+                }
+                for (Player member : world.getPlayers()) {
+                    if (member.getUniqueId().equals(arrivingPlayer)) {
+                        continue;
+                    }
+                    Location location = member.getLocation();
+                    if (region.contains(location.getX(), location.getY(), location.getZ())) {
+                        teleportPermit.accept(member.getUniqueId());
+                        member.teleport(target);
+                    }
+                }
+            }
+        });
+    }
+
+    private void onRange(IngressEvent event) {
+        String spawnId = event.sourceId();
+        FlowModules.SpawnPointModuleDef spawnPoint = definition.spawnPoints().get(spawnId);
+        if (spawnPoint == null || !spawnPoint.head().enabled()) {
+            return;
+        }
+        if (spawnPoint.once() && hasTriggeredSpawn(spawnId)) {
+            return;
+        }
+        int playersInRange = event.payload().get(Facts.RANGE_PLAYERS) instanceof Number number
+                ? number.intValue() : 0;
+        if (playersInRange < spawnPoint.minPlayers()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(spawnPoint.head(), java.util.List.of(), context, playerId).allowed()) {
+            return;
+        }
+        markSpawnTriggered(spawnId);
+        if (controllers != null && !spawnPoint.waves().isEmpty()) {
+            controllers.spawnWave(this, spawnId, 0, playerId);
+        }
+    }
+
+    private void onBlockClick(IngressEvent event) {
+        FlowModules.BlockInteractionDef interaction = definition.blockInteractions().get(event.sourceId());
+        if (interaction == null || !interaction.head().enabled()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(interaction.head(), interaction.conditions(), context, playerId).allowed()) {
+            return;
+        }
+        executeActions(interaction.actions(), context, playerId);
+    }
+
+    private void onItemInteract(IngressEvent event) {
+        FlowModules.ItemInteractionDef interaction = definition.itemInteractions().get(event.sourceId());
+        if (interaction == null || !interaction.head().enabled()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(interaction.head(), interaction.conditions(), context, playerId).allowed()) {
+            return;
+        }
+        executeActions(interaction.actions(), context, playerId);
+    }
+
+    private void onEntityDeath(IngressEvent event) {
+        String mobId = String.valueOf(event.payload().getOrDefault("mob", ""));
+        if (!mobId.isEmpty()) {
+            String key = Facts.killCount(mobId);
+            setFact(key, factInt(key, 0) + 1);
+        }
+        if (controllers != null) {
+            controllers.handleMobDeath(this, EventIngressKeys.entity(event.payload()));
+        }
+        evaluateKillTargets(mobId, EventIngressKeys.player(event.payload()));
+        evaluateGates(EventIngressKeys.player(event.payload()));
+    }
+
+    private void evaluateKillTargets(String mobId, UUID playerId) {
+        if (mobId.isEmpty()) {
+            return;
+        }
+        EvalContext context = new EvalContext(playerId, facts);
+        for (Map.Entry<String, FlowModules.KillTargetDef> entry : definition.killTargets().entrySet()) {
+            FlowModules.KillTargetDef killTarget = entry.getValue();
+            if (!killTarget.head().enabled() || !mobId.equals(killTarget.target())) {
+                continue;
+            }
+            String countKey = Facts.killCount(killTarget.target());
+            if (factInt(countKey, 0) < killTarget.count()) {
+                continue;
+            }
+            if (!triggeredSpawns.add("kill_target:" + entry.getKey())) {
+                continue;
+            }
+            if (adjudicator.adjudicate(killTarget.head(), java.util.List.of(), context, playerId).allowed()) {
+                executeActions(killTarget.actions(), context, playerId);
+            }
+        }
+    }
+
+    private void onActivate(IngressEvent event) {
+        FlowModules.MechanismDef mechanism = definition.mechanisms().get(event.sourceId());
+        if (mechanism == null || !mechanism.head().enabled()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
+            return;
+        }
+        for (FlowModules.BlockStateTarget target : mechanism.targets()) {
+            submitSetBlock(playerId, target);
+        }
+    }
+
+    private void onRedstone(IngressEvent event) {
+        FlowModules.MechanismDef mechanism = definition.mechanisms().get(event.sourceId());
+        if (mechanism == null || !mechanism.head().enabled()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
+            return;
+        }
+        for (FlowModules.BlockStateTarget target : mechanism.targets()) {
+            submitSetBlock(playerId, target);
+        }
+    }
+
+    public void evaluateGates(UUID playerId) {
+        EvalContext context = new EvalContext(playerId, facts);
+        for (FlowModules.GateDef gate : definition.gates().values()) {
+            if (!gate.head().enabled() || isGateOpened(gate.gateId())) {
+                continue;
+            }
+            if (!adjudicator.evaluator().evaluateAll(gate.conditions(), gate.logic(), context)) {
+                continue;
+            }
+            if (adjudicator.counter().check(gate.head(), playerId) != TriggerCounter.ExhaustedTier.NONE) {
+                continue;
+            }
+            openedGates.add(gate.gateId());
+            if (controllers != null) {
+                controllers.openGate(this, gate.gateId(), playerId);
+            }
+        }
+        if (controllers != null) {
+            controllers.syncBossPoints(this);
+        }
+    }
+
+    private void scheduleRoomTimer(FlowModules.RoomTimerDef roomTimer, UUID playerId) {
+        String key = "room_timer:" + roomTimer.head().id();
+        if (factFlag(key)) {
+            return;
+        }
+        setFact(key, true);
+        long deadline = System.currentTimeMillis() + roomTimer.seconds() * 1000L;
+        Bukkit.getScheduler().runTaskLater(
+                org.bukkit.Bukkit.getPluginManager().getPlugin("EmakiDungeon"),
+                () -> {
+                    if (instance.commands() == null) {
+                        return;
+                    }
+                    setFact(Facts.timerMark(roomTimer.head().id()), true);
+                    setFact(Facts.TIMER_REMAINING, 0);
+                    executeActions(java.util.List.of(roomTimer.onZero()),
+                            new EvalContext(playerId, Map.of()), playerId);
+                },
+                roomTimer.seconds() * 20L);
+        setFact(key + ":deadline", deadline);
+    }
+
+    public void executeActions(java.util.List<FlowActionDef> actions, EvalContext context, UUID playerId) {
+        for (FlowActionDef action : actions) {
+            executeAction(action, context, playerId);
+        }
+    }
+
+    private void executeAction(FlowActionDef action, EvalContext context, UUID playerId) {
+        switch (action.type()) {
+            case "hint" -> submitHint(playerId, action.param("text", ""), action.param("channel", "chat"));
+            case "message" -> submitMessage(playerId, action.param("key", ""), action.param("channel", "chat"));
+            case "command" -> submitConsoleCommand(replacePlayer(action.param("command", ""), playerId));
+            case "teleport" -> submitTeleport(playerId, new FlowPoint(
+                    action.paramDouble("x", 0.0D),
+                    action.paramDouble("y", 64.0D),
+                    action.paramDouble("z", 0.0D),
+                    (float) action.paramDouble("yaw", 0.0D),
+                    (float) action.paramDouble("pitch", 0.0D)));
+            case "fx" -> submitFx(action);
+            case "set_block" -> {
+                FlowPoint point = new FlowPoint(
+                        action.paramDouble("x", 0.0D),
+                        action.paramDouble("y", 64.0D),
+                        action.paramDouble("z", 0.0D),
+                        0.0F, 0.0F);
+                submitSetBlock(playerId, new FlowModules.BlockStateTarget(point, action.param("block_data", "")));
+            }
+            case "open_gate" -> {
+                if (controllers != null) {
+                    controllers.openGate(this, action.param("gate", ""), playerId);
+                }
+            }
+            case "spawn_wave" -> {
+                if (controllers != null) {
+                    controllers.spawnWave(this, action.param("spawn", ""),
+                            action.paramInt("wave", 0), playerId);
+                }
+            }
+            case "fail" -> {
+                if (controllers != null) {
+                    controllers.triggerFail(this, action.param("reason", "scripted"));
+                }
+            }
+            case "give_temp_item" -> {
+                if (controllers != null) {
+                    controllers.giveTempItem(this, action.param("item", ""), action.paramInt("amount", 1));
+                }
+            }
+            default -> {
+            }
+        }
+    }
+
+    private void applyEffects(FlowModules.EffectZoneDef effectZone, UUID playerId) {
+        if (playerId == null || effectZone.effects().isEmpty()) {
+            return;
+        }
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null) {
+                    return;
+                }
+                for (String raw : effectZone.effects()) {
+                    String[] parts = raw.split(":");
+                    if (parts.length == 0 || parts[0].isBlank()) {
+                        continue;
+                    }
+                    try {
+                        org.bukkit.potion.PotionEffectType type =
+                                org.bukkit.potion.PotionEffectType.getByName(parts[0].toUpperCase(java.util.Locale.ROOT));
+                        if (type == null) {
+                            continue;
+                        }
+                        int amplifier = parts.length > 1 ? parseSafe(parts[1], 0) : 0;
+                        int duration = parts.length > 2 ? parseSafe(parts[2], 100) : 100;
+                        boolean clear = "clear".equalsIgnoreCase(parts[0]);
+                        if (clear) {
+                            player.removePotionEffect(type);
+                        } else {
+                            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
+                                    type, duration, amplifier, true, true));
+                        }
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        });
+    }
+
+    private static int parseSafe(String raw, int fallback) {
+        try {
+            return Integer.parseInt(raw.trim());
+        } catch (NumberFormatException exception) {
+            return fallback;
+        }
+    }
+
+    private void submitHint(UUID playerId, String text, String channel) {
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return;
+                }
+                var component = MiniMessages.parse(text);
+                for (Player player : world.getPlayers()) {
+                    if ("title".equals(channel)) {
+                        player.showTitle(net.kyori.adventure.title.Title.title(
+                                component, net.kyori.adventure.text.Component.empty(),
+                                net.kyori.adventure.title.Title.Times.times(
+                                java.time.Duration.ofMillis(100),
+                                java.time.Duration.ofMillis(600),
+                                java.time.Duration.ofMillis(100))));
+                    } else if ("actionbar".equals(channel)) {
+                        player.sendActionBar(component);
+                    } else {
+                        player.sendMessage(component);
+                    }
+                }
+            }
+        });
+    }
+
+    private void submitMessage(UUID playerId, String key, String channel) {
+        if (key.isEmpty()) {
+            return;
+        }
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return;
+                }
+                for (Player player : world.getPlayers()) {
+                    messages.send(player, key, Map.of());
+                }
+            }
+        });
+    }
+
+    private void submitConsoleCommand(String commandLine) {
+        if (commandLine.isBlank()) {
+            return;
+        }
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), commandLine);
+            }
+        });
+    }
+
+    private void submitTeleport(UUID playerId, FlowPoint point) {
+        if (playerId == null || point == null) {
+            return;
+        }
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                Player player = Bukkit.getPlayer(playerId);
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (player == null || world == null) {
+                    return;
+                }
+                teleportPermit.accept(playerId);
+                player.teleport(new Location(world, point.x(), point.y(), point.z(),
+                        point.yaw(), point.pitch()));
+            }
+        });
+    }
+
+    private void submitFx(FlowActionDef action) {
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public void execute() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return;
+                }
+                String sound = action.param("sound", "");
+                if (!sound.isBlank()) {
+                    try {
+                        world.playSound(world.getSpawnLocation(),
+                                org.bukkit.Sound.valueOf(sound.toUpperCase(java.util.Locale.ROOT)),
+                                1.0F, 1.0F);
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+                String particle = action.param("particle", "");
+                if (!particle.isBlank()) {
+                    try {
+                        world.spawnParticle(org.bukkit.Particle.valueOf(
+                                particle.toUpperCase(java.util.Locale.ROOT)),
+                                world.getSpawnLocation(), 20);
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        });
+    }
+
+    private void submitSetBlock(UUID playerId, FlowModules.BlockStateTarget target) {
+        if (target == null || target.blockData().isBlank()) {
+            return;
+        }
+        FlowPoint point = target.point();
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 1;
+            }
+
+            @Override
+            public void execute() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return;
+                }
+                var blockData = org.bukkit.Bukkit.createBlockData(target.blockData());
+                world.getBlockAt((int) Math.floor(point.x()),
+                        (int) Math.floor(point.y()),
+                        (int) Math.floor(point.z())).setBlockData(blockData, false);
+            }
+        });
+    }
+
+    private String replacePlayer(String commandLine, UUID playerId) {
+        if (playerId == null) {
+            return commandLine;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        String name = player == null ? "" : player.getName();
+        return commandLine.replace("%player%", name);
+    }
+}

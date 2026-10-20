@@ -26,6 +26,16 @@ public final class RecoveryService {
     private final DebugLogger debug;
     private final Function<String, DungeonConfig> configOf;
     private final Consumer<UUID> teleportPermit;
+    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
+
+    public void bindTempItems(emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems) {
+        this.tempItems = tempItems;
+    }
+
+    public String pointerOf(UUID playerId) {
+        return snapshots.pointerOf(playerId);
+    }
 
     public RecoveryService(SnapshotManager snapshots,
             InstanceRegistry registry,
@@ -41,6 +51,10 @@ public final class RecoveryService {
         this.debug = debug;
         this.configOf = configOf;
         this.teleportPermit = teleportPermit;
+    }
+
+    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+        this.actionBridge = actionBridge;
     }
 
     public void onQuit(Player player) {
@@ -71,6 +85,9 @@ public final class RecoveryService {
             return;
         }
         teleportPermit.accept(playerId);
+        if (tempItems != null) {
+            tempItems.removeAll(pointer, player);
+        }
         snapshots.restoreOrigin(player, pointer, true);
         snapshots.clearPointerAndSnapshot(playerId, pointer);
         messages.send(player, "recovery.orphan_restored", Map.of("instance", pointer));
@@ -84,6 +101,9 @@ public final class RecoveryService {
             return;
         }
         boolean rollbackInventory = rollbackInventoryOf(pointer);
+        if (tempItems != null) {
+            tempItems.removeAll(pointer, player);
+        }
         teleportPermit.accept(playerId);
         snapshots.restoreOrigin(player, pointer, rollbackInventory);
         snapshots.clearPointerAndSnapshot(playerId, pointer);
@@ -95,6 +115,13 @@ public final class RecoveryService {
                 "instance", pointer,
                 "reason", reason
         ));
+        if (actionBridge != null) {
+            actionBridge.dispatch("dungeon_exit", playerId, Map.of(
+                    "instanceId", pointer,
+                    "player", player.getName(),
+                    "reason", reason
+            ));
+        }
     }
 
     public void evacuate(DungeonInstance instance) {
@@ -117,10 +144,20 @@ public final class RecoveryService {
                 continue;
             }
             boolean rollbackInventory = rollbackInventoryOf(instanceId);
+            if (tempItems != null) {
+                tempItems.removeAll(instanceId, member);
+            }
             teleportPermit.accept(memberId);
             snapshots.restoreOrigin(member, instanceId, rollbackInventory);
             snapshots.clearPointerAndSnapshot(memberId, instanceId);
             messages.send(member, "recovery.evacuated", Map.of("instance", instanceId));
+            if (actionBridge != null) {
+                actionBridge.dispatch("dungeon_exit", memberId, Map.of(
+                        "instanceId", instanceId,
+                        "player", member.getName(),
+                        "reason", "dispose"
+                ));
+            }
         }
     }
 

@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.flow.FlowModules;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.DenyReason;
@@ -59,6 +60,11 @@ public final class ChallengeService {
     private final Map<UUID, ChallengeSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, String> scoreboardObjective = new ConcurrentHashMap<>();
     private TaskToken tickTask = TaskToken.UNAVAILABLE;
+    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile java.util.function.Function<DungeonInstance,
+            emaki.jiuwu.craft.dungeon.flow.FlowRuntime> runtimeFactory;
+    private volatile emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService;
+    private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
 
     public ChallengeService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -90,6 +96,20 @@ public final class ChallengeService {
 
     public void start() {
         tickTask = dispatcher.runGlobalTimer(plugin, this::tick, TICK_PERIOD, TICK_PERIOD);
+    }
+
+    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+        this.actionBridge = actionBridge;
+    }
+
+    public void bindInstanceHooks(
+            java.util.function.Function<DungeonInstance,
+                    emaki.jiuwu.craft.dungeon.flow.FlowRuntime> runtimeFactory,
+            emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService,
+            emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems) {
+        this.runtimeFactory = runtimeFactory;
+        this.stateService = stateService;
+        this.tempItems = tempItems;
     }
 
     public void shutdown() {
@@ -397,6 +417,29 @@ public final class ChallengeService {
             return;
         }
         instance.setPartyId(party.id());
+        instance.setDifficulty(session.difficulty());
+        if (runtimeFactory != null) {
+            var runtime = runtimeFactory.apply(instance);
+            if (runtime != null) {
+                instance.setFlowRuntime(runtime);
+            }
+        }
+        if (stateService != null) {
+            stateService.register(instance);
+        }
+        if (instance.flowRuntime() != null) {
+            var flowRuntime = instance.flowRuntime();
+            instance.startLoop(plugin, dispatcher, flowRuntime::onEvent, () -> {
+            }, throwable -> {
+                messages.warning("console.instance_crashed", Map.of(
+                        "instance", instance.instanceId(),
+                        "error", String.valueOf(throwable.getMessage())
+                ));
+                if (stateService != null) {
+                    stateService.fail(instance, "crash");
+                }
+            });
+        }
         String instanceId = instance.instanceId();
         for (UUID memberId : party.members()) {
             Player member = Bukkit.getPlayer(memberId);
@@ -414,6 +457,27 @@ public final class ChallengeService {
                     "dungeonId", session.dungeonId(),
                     "instanceId", instanceId
             )));
+            if (actionBridge != null) {
+                actionBridge.dispatch("dungeon_enter", memberId, Map.of(
+                        "instanceId", instanceId,
+                        "dungeonId", session.dungeonId(),
+                        "player", member.getName(),
+                        "partyId", String.valueOf(party.id())
+                ));
+            }
+        }
+        if (tempItems != null && instance.flowRuntime() != null) {
+            for (FlowModules.TempItemDef tempItem : instance.flowRuntime().definition().tempItems().values()) {
+                if (!tempItem.head().enabled() || !"entry".equals(tempItem.timing())) {
+                    continue;
+                }
+                for (UUID memberId : party.members()) {
+                    Player member = Bukkit.getPlayer(memberId);
+                    if (member != null) {
+                        tempItems.grant(instanceId, member, tempItem.itemId(), tempItem.amount());
+                    }
+                }
+            }
         }
         debug.log("dungeon", Bukkit.getPlayer(session.leaderId()), "instance_assigned", Map.of(
                 "instance", instanceId,

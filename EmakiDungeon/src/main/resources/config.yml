@@ -50,3 +50,11 @@ storage:
 # Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收。
 folia:
   held-worlds-max: 10
+
+# 副本生命周期 Action 管道 (经 CoreLib Action 段派发, 段 id 即键名)。
+# 支持: dungeon_enter、dungeon_exit、dungeon_room_clear、dungeon_gate_open、
+# dungeon_wave_start、dungeon_score、dungeon_complete、dungeon_fail、
+# dungeon_reward、dungeon_ending、dungeon_destroy
+action:
+  # dungeon_enter:
+  #   - 'self | send_message text="<green>进入副本</green>"'

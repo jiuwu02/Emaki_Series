@@ -18,7 +18,9 @@ public final class DungeonInstance {
     private final WorldCommandQueue commands;
 
     private volatile UUID partyId;
+    private volatile String difficulty = "normal";
     private volatile InstanceLoop loop;
+    private volatile emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime;
 
     public DungeonInstance(String instanceId, String dungeonId, WorldCommandQueue commands) {
         this.instanceId = instanceId;
@@ -46,8 +48,24 @@ public final class DungeonInstance {
         this.partyId = partyId;
     }
 
+    public String difficulty() {
+        return difficulty;
+    }
+
+    public void setDifficulty(String difficulty) {
+        this.difficulty = difficulty == null ? "normal" : difficulty;
+    }
+
     public EventIngress ingress() {
         return ingress;
+    }
+
+    public emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime() {
+        return flowRuntime;
+    }
+
+    public void setFlowRuntime(emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime) {
+        this.flowRuntime = flowRuntime;
     }
 
     public WorldCommandQueue commands() {

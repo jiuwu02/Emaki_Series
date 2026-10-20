@@ -47,6 +47,7 @@ public final class DungeonCommandRouter {
     private final TemplateRepository templates;
     private final InstanceCoordinator coordinator;
     private final InstanceRegistry registry;
+    private final emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation;
 
     public DungeonCommandRouter(org.bukkit.plugin.Plugin plugin,
             MessageService messages,
@@ -57,7 +58,8 @@ public final class DungeonCommandRouter {
             ChatInputService chatInput,
             TemplateRepository templates,
             InstanceCoordinator coordinator,
-            InstanceRegistry registry) {
+            InstanceRegistry registry,
+            emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation) {
         this.plugin = plugin;
         this.messages = messages;
         this.challenge = challenge;
@@ -68,6 +70,7 @@ public final class DungeonCommandRouter {
         this.templates = templates;
         this.coordinator = coordinator;
         this.registry = registry;
+        this.isolation = isolation;
     }
 
     public void route(@NotNull CommandSender sender, @NotNull String[] args) {
@@ -90,6 +93,7 @@ public final class DungeonCommandRouter {
             case "cancel" -> challenge.cancelBy(player, "member_cancel");
             case "ready" -> challenge.readyBy(player);
             case "party" -> routeParty(player, args);
+            case "globalchat" -> routeGlobalChat(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }
     }
@@ -173,6 +177,28 @@ public final class DungeonCommandRouter {
             }
         }
         return true;
+    }
+
+    private void routeGlobalChat(Player player, String[] args) {
+        if (args.length < 2) {
+            messages.send(player, "command.globalchat.usage");
+            return;
+        }
+        String sub = Texts.lower(args[1]);
+        boolean current = isolation.globalListen(player.getUniqueId());
+        boolean target = switch (sub) {
+            case "on" -> true;
+            case "off" -> false;
+            default -> current;
+        };
+        if (!"on".equals(sub) && !"off".equals(sub)) {
+            messages.send(player, "command.globalchat.usage");
+            return;
+        }
+        if (current != target) {
+            isolation.toggleGlobal(player);
+        }
+        isolation.sendToggleFeedback(player, target);
     }
 
     private void routeParty(Player player, String[] args) {

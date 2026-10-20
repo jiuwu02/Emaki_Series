@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.dungeon.config;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
@@ -15,7 +17,10 @@ public record DungeonConfig(
         List<String> difficulties,
         List<String> dropModeAllowed,
         boolean inventoryIsolation,
-        List<String> commandsAllow
+        List<String> commandsAllow,
+        Map<String, Integer> respawnCounts,
+        int timeoutSeconds,
+        List<Integer> timerMessages
 ) {
 
     private static final List<String> DEFAULT_DIFFICULTIES = List.of("normal", "hard");
@@ -31,7 +36,10 @@ public record DungeonConfig(
                 DEFAULT_DIFFICULTIES,
                 DEFAULT_MODES,
                 false,
-                List.of()
+                List.of(),
+                Map.of("normal", 3, "hard", 1),
+                1800,
+                List.of(300, 60, 10)
         );
     }
 
@@ -77,6 +85,30 @@ public record DungeonConfig(
             modeValidated = DEFAULT_MODES;
         }
         List<String> commandsAllow = section.getStringList("commands.allow");
+        Map<String, Integer> respawnCounts = new LinkedHashMap<>();
+        YamlSection difficultyEntries = section.getSection("difficulty");
+        if (difficultyEntries != null) {
+            for (String difficulty : difficultyEntries.getKeys(false)) {
+                YamlSection difficultyEntry = difficultyEntries.getSection(difficulty);
+                if (difficultyEntry != null) {
+                    respawnCounts.put(difficulty, difficultyEntry.getInt("respawn-count", 3));
+                }
+            }
+        }
+        if (respawnCounts.isEmpty()) {
+            respawnCounts.put("normal", 3);
+            respawnCounts.put("hard", 1);
+        }
+        Integer timeoutSeconds = section.getInt("enter.timeout-seconds", 1800);
+        List<Integer> timerMessages = new ArrayList<>();
+        for (Object raw : section.getList("timer.messages", List.of(300, 60, 10))) {
+            if (raw instanceof Number number) {
+                timerMessages.add(number.intValue());
+            }
+        }
+        if (timerMessages.isEmpty()) {
+            timerMessages = new ArrayList<>(List.of(300, 60, 10));
+        }
         return new DungeonConfig(
                 section.getString("display-name", "dungeon"),
                 poolMaxWorlds,
@@ -86,7 +118,10 @@ public record DungeonConfig(
                 List.copyOf(difficulties),
                 List.copyOf(modeValidated),
                 section.getBoolean("inventory.isolation-enabled", false),
-                List.copyOf(commandsAllow)
+                List.copyOf(commandsAllow),
+                Map.copyOf(respawnCounts),
+                timeoutSeconds == null || timeoutSeconds < 30 ? 1800 : timeoutSeconds,
+                List.copyOf(timerMessages)
         );
     }
 

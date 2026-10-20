@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dungeon.config;
 
 import java.util.List;
+import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
@@ -18,7 +19,8 @@ public record AppConfig(
         boolean globalChatDefault,
         String timezone,
         String bstats,
-        int foliaHeldWorldsMax
+        int foliaHeldWorldsMax,
+        Map<String, List<String>> actionPipelines
 ) {
     static final String CURRENT_VERSION = "1.0.0";
 
@@ -37,12 +39,26 @@ public record AppConfig(
                 false,
                 "",
                 "disabled",
-                10
+                10,
+                Map.of()
         );
     }
 
     public static AppConfig parse(YamlSection section) {
         AppConfig defaults = defaults();
+        Map<String, List<String>> actionPipelines = new java.util.LinkedHashMap<>();
+        YamlSection action = section.getSection("action");
+        if (action != null) {
+            for (String segment : action.getKeys(false)) {
+                List<String> lines = new java.util.ArrayList<>();
+                for (Object raw : action.getList(segment)) {
+                    lines.add(String.valueOf(raw));
+                }
+                if (!lines.isEmpty()) {
+                    actionPipelines.put(segment, List.copyOf(lines));
+                }
+            }
+        }
         return new AppConfig(
                 section.getString("language", defaults.language()),
                 section.getString("version", defaults.version()),
@@ -57,7 +73,8 @@ public record AppConfig(
                 section.getBoolean("isolation.global-chat-default", defaults.globalChatDefault()),
                 section.getString("general.timezone", defaults.timezone()),
                 section.getString("storage.bstats", defaults.bstats()),
-                section.getInt("folia.held-worlds-max", defaults.foliaHeldWorldsMax())
+                section.getInt("folia.held-worlds-max", defaults.foliaHeldWorldsMax()),
+                Map.copyOf(actionPipelines)
         );
     }
 }

@@ -13,40 +13,43 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 
 public final class DungeonChatListener implements Listener {
 
     private final PartyService parties;
+    private final MessageIsolation isolation;
     private final String format;
 
-    public DungeonChatListener(PartyService parties, String format) {
+    public DungeonChatListener(PartyService parties, MessageIsolation isolation, String format) {
         this.parties = parties;
+        this.isolation = isolation;
         this.format = format;
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onChat(AsyncChatEvent event) {
         Player player = event.getPlayer();
-        if (!parties.inChatChannel(player.getUniqueId())) {
-            return;
-        }
-        Party party = parties.partyOf(player.getUniqueId());
-        if (party == null) {
-            return;
-        }
-        event.setCancelled(true);
-        String rendered = Texts.formatTemplate(format, Map.of(
-                "player", player.getName(),
-                "message", MiniMessages.plainText(event.message())
-        ));
-        var component = MiniMessages.parse(rendered);
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null) {
-                member.sendMessage(component);
+        if (parties.inChatChannel(player.getUniqueId())) {
+            Party party = parties.partyOf(player.getUniqueId());
+            if (party != null) {
+                event.setCancelled(true);
+                String rendered = Texts.formatTemplate(format, Map.of(
+                        "player", player.getName(),
+                        "message", MiniMessages.plainText(event.message())
+                ));
+                var component = MiniMessages.parse(rendered);
+                for (UUID memberId : party.members()) {
+                    Player member = Bukkit.getPlayer(memberId);
+                    if (member != null) {
+                        member.sendMessage(component);
+                    }
+                }
+                return;
             }
         }
+        isolation.applyChatViewers(event, player);
     }
 }

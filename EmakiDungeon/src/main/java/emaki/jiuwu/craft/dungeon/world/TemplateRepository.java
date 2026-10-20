@@ -13,9 +13,11 @@ import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 
 public final class TemplateRepository {
 
+    private final org.bukkit.plugin.java.JavaPlugin plugin;
     private final File templateRoot;
 
-    public TemplateRepository(File dataFolder) {
+    public TemplateRepository(org.bukkit.plugin.java.JavaPlugin plugin, File dataFolder) {
+        this.plugin = plugin;
         this.templateRoot = new File(dataFolder, "world");
     }
 
@@ -64,5 +66,14 @@ public final class TemplateRepository {
         } catch (RuntimeException exception) {
             return null;
         }
+    }
+
+    public File ensureFlowFile(String dungeonId) throws java.io.IOException {
+        File flowFile = new File(new File(templateRoot, dungeonId), "flow.yml");
+        if (!flowFile.isFile()) {
+            emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.copyResourceIfMissing(
+                    plugin, "world/flow.yml", flowFile);
+        }
+        return flowFile;
     }
 }

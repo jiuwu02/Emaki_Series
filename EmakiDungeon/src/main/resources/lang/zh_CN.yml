@@ -41,6 +41,8 @@ command:
     aborted: "<gray>已取消退出</gray>"
   party:
     usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  globalchat:
+    usage: "<red>用法: /edg globalchat <on|off></red>"
   denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
   denied_mode: "<red>该命令在本副本受限 (命令管控): <command></red>"
 
@@ -123,6 +125,27 @@ guard:
   teleport_blocked: "<red>副本内禁止传送出该世界</red>"
   boundary_pullback: "<yellow>已超出副本边界, 已拉回出生点</yellow>"
 
+globalchat:
+  enabled: "<green>已开启全局消息收听, 实例内外互通</green>"
+  disabled: "<yellow>已关闭全局消息收听, 消息仅实例内闭环</yellow>"
+
+flow:
+  option:
+    prompt: "<yellow>请选择: </yellow><gray>%options%</gray><yellow> (输入序号或标识)</yellow>"
+    expired: "<yellow>选择超时, 未做出选择</yellow>"
+    invalid: "<red>无效的选择</red>"
+  spectator:
+    entered: "<yellow>重生次数已用尽, 已转入观战模式</yellow>"
+  fail:
+    returned: "<red>副本失败 (%reason%), 已送回进入前位置</red>"
+  temp_item:
+    full: "<yellow>背包已满, 部分临时物品 <item> 未能发放</yellow>"
+  timer:
+    warning: "<yellow>剩余 <seconds> 秒</yellow>"
+
+player:
+  died: "<red>%player% 阵亡, 剩余重生次数: %remaining%</red>"
+
 console:
   plugin_starting: "EmakiDungeon 正在启动"
   plugin_stopped: "EmakiDungeon 已停止"
@@ -137,6 +160,11 @@ console:
   world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
   parties_load_failed: "parties.yml 加载失败, 队伍快照未恢复 | 错误=%error%"
   command_map_wrap_failed: "CommandMap 包装失败, 插件代执行拦截入口未生效 | 错误=%error%"
+  action_corelib_unavailable: "CoreLib Action 接口不可用, 段注册跳过"
+  action_dispatch_failed: "Action 段派发失败 | 段=%segment% | 错误=%error%"
+  instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
+  flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
+  flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
 
 debug:
   instance_created: "实例已创建 | 世界=%instance%"
@@ -158,3 +186,6 @@ debug:
   reconnected_instance: "断线重连回实例 | 实例=%instance%"
   orphan_restored: "孤儿快照还原 | 实例=%instance%"
   exit_restored: "退出还原 | 实例=%instance% | 原因=%reason%"
+  temp_item_granted: "临时物品发放 | 实例=%instance% | 物品=%item% | 数量=%amount%"
+  temp_item_removed: "临时物品收回 | 实例=%instance% | 物品=%items%"
+  player_died: "玩家阵亡 | 玩家=%player% | 实例=%instance% | 剩余=%remaining%"

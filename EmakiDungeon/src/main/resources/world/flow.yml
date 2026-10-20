@@ -1,0 +1,17 @@
+# EmakiDungeon 副本流程功能模块定义 (flow.yml)
+#
+# 承载放置的流程功能模块、房间拓扑、波次、门禁、触发器与选项节点。
+# 模块 ID 在副本内唯一, 加载期校验重复与越界定义。
+# 文件位置: plugins/EmakiDungeon/world/<副本ID>/flow.yml
+
+version: "1.0.0"
+
+spawn_point:
+  id: entry
+  location:
+    x: 0.5
+    y: 65
+    z: 0.5
+    yaw: 0.0
+
+rooms: {}

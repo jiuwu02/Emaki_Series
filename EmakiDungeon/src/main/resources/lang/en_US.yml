@@ -41,6 +41,8 @@ command:
     aborted: "<gray>Leave cancelled</gray>"
   party:
     usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  globalchat:
+    usage: "<red>Usage: /edg globalchat <on|off></red>"
   denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
   denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
 
@@ -123,6 +125,27 @@ guard:
   teleport_blocked: "<red>Teleporting out of this world is not allowed inside a dungeon</red>"
   boundary_pullback: "<yellow>You crossed the dungeon boundary, pulled back to spawn</yellow>"
 
+globalchat:
+  enabled: "<green>Global chat listening enabled, messages reach inside and outside the dungeon</green>"
+  disabled: "<yellow>Global chat listening disabled, messages stay inside the instance</yellow>"
+
+flow:
+  option:
+    prompt: "<yellow>Pick an option: </yellow><gray>%options%</gray><yellow> (type a number or id)</yellow>"
+    expired: "<yellow>Selection timed out, nothing chosen</yellow>"
+    invalid: "<red>Invalid selection</red>"
+  spectator:
+    entered: "<yellow>No respawn charges left, switched to spectator mode</yellow>"
+  fail:
+    returned: "<red>Dungeon failed (%reason%), returned to your origin</red>"
+  temp_item:
+    full: "<yellow>Inventory full, some temp items (<item>) could not be granted</yellow>"
+  timer:
+    warning: "<yellow><seconds> seconds remaining</yellow>"
+
+player:
+  died: "<red>%player% died, respawn charges left: %remaining%</red>"
+
 console:
   plugin_starting: "EmakiDungeon is starting"
   plugin_stopped: "EmakiDungeon has stopped"
@@ -137,6 +160,11 @@ console:
   world_command_deferred: "World command dual-limit deferral | world=%world% | total=%count%"
   parties_load_failed: "Failed to load parties.yml, party snapshots not restored | error=%error%"
   command_map_wrap_failed: "CommandMap wrap failed, plugin-dispatch interception entry inactive | error=%error%"
+  action_corelib_unavailable: "CoreLib Action API unavailable, segment registration skipped"
+  action_dispatch_failed: "Action segment dispatch failed | segment=%segment% | error=%error%"
+  instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
+  flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
+  flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
 
 debug:
   instance_created: "Instance created | world=%instance%"
@@ -158,3 +186,6 @@ debug:
   reconnected_instance: "Reconnected into instance | instance=%instance%"
   orphan_restored: "Orphan snapshot restored | instance=%instance%"
   exit_restored: "Exit restored | instance=%instance% | reason=%reason%"
+  temp_item_granted: "Temp item granted | instance=%instance% | item=%item% | amount=%amount%"
+  temp_item_removed: "Temp item removed | instance=%instance% | items=%items%"
+  player_died: "Player died | player=%player% | instance=%instance% | remaining=%remaining%"

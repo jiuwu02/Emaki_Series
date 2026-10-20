@@ -9,4 +9,6 @@ dependencies {
     api project(':EmakiDungeonApi')
 
     provided libs.paper.api
+    provided libs.mythic.dist
+    provided project(':EmakiMobsApi')
 }

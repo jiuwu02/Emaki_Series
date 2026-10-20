@@ -34,6 +34,7 @@ public final class InstanceCoordinator {
     private final MessageService messages;
     private final DebugLogger debug;
     private final java.util.function.Consumer<DungeonInstance> evacuator;
+    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
 
     private volatile boolean shuttingDown;
     private TaskToken inspectionTask = TaskToken.UNAVAILABLE;
@@ -60,6 +61,10 @@ public final class InstanceCoordinator {
         this.messages = messages;
         this.debug = debug;
         this.evacuator = evacuator;
+    }
+
+    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+        this.actionBridge = actionBridge;
     }
 
     public void startupScan() {
@@ -182,6 +187,13 @@ public final class InstanceCoordinator {
         }
         store.saveAsync();
         instance.transition(InstanceState.DISPOSING, InstanceState.DISPOSED);
+        if (actionBridge != null) {
+            actionBridge.dispatch("dungeon_destroy", null, Map.of(
+                    "instanceId", instanceId,
+                    "dungeonId", instance.dungeonId(),
+                    "outcome", held ? "held" : "disposed"
+            ));
+        }
         pool.ensureReserve(instance.dungeonId());
     }
 
