@@ -113,7 +113,11 @@ public final class DungeonCommandRouter {
             case "rank" -> routeRank(player, args);
             case "rewards" -> {
                 if (rewardBoxGui != null) {
-                    rewardBoxGui.open(player, 0);
+                    if (!rewardBoxGui.serviceEnabled()) {
+                        messages.send(player, "rewardbox.disabled", Map.of());
+                    } else {
+                        rewardBoxGui.open(player, 0);
+                    }
                 }
             }
             case "globalchat" -> routeGlobalChat(player, args);

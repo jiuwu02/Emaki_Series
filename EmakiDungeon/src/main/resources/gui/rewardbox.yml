@@ -1,0 +1,10 @@
+# 奖励箱 GUI 配置
+#
+# 文件位置: plugins/EmakiDungeon/gui/rewardbox.yml
+# 仅允许配置默认页数与容量槽, 布局结构不可配置。
+
+# 默认页数: 玩家无更高页数权限时的基础可见页数。
+default-pages: 1
+
+# 容量槽: 奖励箱总容量 (物品格总数), 达到即视为箱满。
+capacity-slots: 135

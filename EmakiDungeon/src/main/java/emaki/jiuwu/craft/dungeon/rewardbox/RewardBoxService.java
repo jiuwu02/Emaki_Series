@@ -1,59 +1,151 @@
 package emaki.jiuwu.craft.dungeon.rewardbox;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.config.AppConfig;
 
 public final class RewardBoxService {
+
+    public static final NamespacedKey DROP_OWNER_KEY = new NamespacedKey("emakidungeon", "drop_owner");
+    public static final String OWNER_DISCARD = "discard";
 
     private static final int MAX_PAGE_NODES = 32;
     private static final int CONTENT_SLOTS = 45;
 
     private final RewardBoxStore store;
     private final MessageService messages;
+    private final java.util.function.Supplier<AppConfig> appConfig;
 
-    public RewardBoxService(RewardBoxStore store, MessageService messages) {
+    private volatile int defaultPages = 1;
+    private volatile int capacitySlots = 135;
+
+    public RewardBoxService(RewardBoxStore store,
+            MessageService messages,
+            java.util.function.Supplier<AppConfig> appConfig) {
         this.store = store;
         this.messages = messages;
+        this.appConfig = appConfig;
+    }
+
+    public void loadGuiConfig(org.bukkit.plugin.java.JavaPlugin plugin) {
+        File file = new File(plugin.getDataFolder(), "gui" + File.separator + "rewardbox.yml");
+        try {
+            YamlFiles.copyResourceIfMissing(plugin, "gui/rewardbox.yml", file);
+        } catch (IOException ignored) {
+        }
+        if (!file.isFile()) {
+            return;
+        }
+        YamlSection section = YamlFiles.load(file);
+        if (section == null) {
+            return;
+        }
+        Integer pages = section.getInt("default-pages", 1);
+        Integer capacity = section.getInt("capacity-slots", 135);
+        defaultPages = pages == null || pages < 1 ? 1 : pages;
+        capacitySlots = capacity == null || capacity < 1 ? 135 : capacity;
     }
 
     public RewardBoxStore store() {
         return store;
     }
 
-    public void deposit(UUID playerId, List<ItemStack> items) {
-        if (playerId == null || items == null || items.isEmpty()) {
-            return;
+    public boolean enabled() {
+        return appConfig.get().rewardboxEnabled();
+    }
+
+    public int capacitySlots() {
+        return capacitySlots;
+    }
+
+    public boolean isFull(UUID playerId) {
+        return store.load(playerId).items().size() >= capacitySlots;
+    }
+
+    public int remainingSlots(UUID playerId) {
+        return Math.max(0, capacitySlots - store.load(playerId).items().size());
+    }
+
+    public void storeBox(UUID playerId, List<ItemStack> items) {
+        RewardBoxStore.Box box = store.load(playerId);
+        append(playerId, box, items);
+    }
+
+    public List<ItemStack> deposit(UUID playerId, List<ItemStack> items) {
+        List<ItemStack> accepted = new ArrayList<>();
+        for (ItemStack stack : items) {
+            if (stack != null && stack.getAmount() > 0) {
+                accepted.add(stack);
+            }
+        }
+        if (accepted.isEmpty()) {
+            return List.of();
         }
         RewardBoxStore.Box box = store.load(playerId);
+        boolean direct = enabled() ? box.autoFlow() : true;
         Player player = Bukkit.getPlayer(playerId);
-        if (box.autoFlow() && player != null) {
+        if (direct && player == null) {
+            return accepted;
+        }
+        if (direct) {
             List<ItemStack> leftover = new ArrayList<>();
-            for (ItemStack stack : items) {
-                if (stack == null || stack.getAmount() <= 0) {
-                    continue;
-                }
+            for (ItemStack stack : accepted) {
                 for (ItemStack rest : player.getInventory().addItem(stack).values()) {
                     leftover.add(rest);
                 }
             }
-            box.items().addAll(leftover);
+            if (!enabled()) {
+                return leftover;
+            }
+            List<ItemStack> still = append(playerId, box, leftover);
+            return still;
+        }
+        return append(playerId, box, accepted);
+    }
+
+    private List<ItemStack> append(UUID playerId, RewardBoxStore.Box box, List<ItemStack> items) {
+        List<ItemStack> rejected = new ArrayList<>();
+        for (ItemStack stack : items) {
+            if (box.items().size() >= capacitySlots) {
+                rejected.add(stack);
+                continue;
+            }
+            box.items().add(stack);
+        }
+        if (rejected.size() != items.size()) {
             store.saveAsync(playerId, box);
+        }
+        return rejected;
+    }
+
+    public void deliverOrDrop(UUID playerId, List<ItemStack> items,
+            org.bukkit.World fallbackWorld, org.bukkit.Location fallbackLocation) {
+        if (items == null || items.isEmpty()) {
             return;
         }
-        for (ItemStack stack : items) {
-            if (stack != null && stack.getAmount() > 0) {
-                box.items().add(stack);
-            }
+        List<ItemStack> leftover = deposit(playerId, items);
+        if (leftover.isEmpty() || fallbackWorld == null || fallbackLocation == null) {
+            return;
         }
-        store.saveAsync(playerId, box);
+        for (ItemStack stack : leftover) {
+            Item dropped = fallbackWorld.dropItemNaturally(fallbackLocation, stack);
+            dropped.getPersistentDataContainer().set(DROP_OWNER_KEY,
+                    org.bukkit.persistence.PersistentDataType.STRING, OWNER_DISCARD);
+        }
     }
 
     public boolean isAutoFlow(UUID playerId) {
@@ -67,16 +159,19 @@ public final class RewardBoxService {
     }
 
     public int maxPages(Player player) {
-        for (int pages = MAX_PAGE_NODES; pages > 1; pages--) {
-            if (player.hasPermission("emakidungeon.rewardbox.pages." + pages)) {
-                return pages;
+        int pages = Math.max(1, defaultPages);
+        for (int candidate = MAX_PAGE_NODES; candidate > pages; candidate--) {
+            if (player.hasPermission("emakidungeon.rewardbox.pages." + candidate)) {
+                pages = candidate;
+                break;
             }
         }
-        return 1;
+        int capacityPages = (capacitySlots + CONTENT_SLOTS - 1) / CONTENT_SLOTS;
+        return Math.min(pages, Math.max(1, capacityPages));
     }
 
     public int visibleCapacity(Player player) {
-        return maxPages(player) * CONTENT_SLOTS;
+        return Math.min(maxPages(player) * CONTENT_SLOTS, capacitySlots);
     }
 
     public int contentSlots() {

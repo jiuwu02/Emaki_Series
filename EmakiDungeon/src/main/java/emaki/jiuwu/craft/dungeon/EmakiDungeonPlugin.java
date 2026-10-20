@@ -323,7 +323,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
                 new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),
-                messageService);
+                messageService, appConfigSupplier);
+        rewardBox.loadGuiConfig(this);
         rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);
         emaki.jiuwu.craft.dungeon.drop.DropRouter dropRouter =
                 new emaki.jiuwu.craft.dungeon.drop.DropRouter(registry, parties, messageService,

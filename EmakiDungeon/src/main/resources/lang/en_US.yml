@@ -154,6 +154,7 @@ drop:
     distributed: "<gray>This drop batch was auto-rolled (<count> items)</gray>"
 
 rewardbox:
+  disabled: "<yellow>The reward box is disabled, dungeon rewards go straight to your inventory</yellow>"
   gui:
     title: "<gradient:#93C5FD:#60A5FA>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
     prev: "<white>Previous page</white>"

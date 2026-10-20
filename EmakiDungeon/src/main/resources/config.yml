@@ -43,6 +43,10 @@ isolation:
 general:
   timezone: ""
 
+# 个人奖励箱: 启用后副本产出进入奖励箱 (/edg rewards), 关闭则副本产出直接进入玩家背包。
+rewardbox:
+  enabled: true
+
 # bStats 本期不接入, 接口就绪后经 CoreLib 统一接入。
 storage:
   bstats: disabled

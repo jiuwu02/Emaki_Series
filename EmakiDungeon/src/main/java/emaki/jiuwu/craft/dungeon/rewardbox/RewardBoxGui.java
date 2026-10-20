@@ -60,6 +60,10 @@ public final class RewardBoxGui implements Listener {
         this.messages = messages;
     }
 
+    public boolean serviceEnabled() {
+        return service.enabled();
+    }
+
     public void open(Player player, int page) {
         RewardBoxStore.Box box = service.store().load(player.getUniqueId());
         int capacity = service.visibleCapacity(player);

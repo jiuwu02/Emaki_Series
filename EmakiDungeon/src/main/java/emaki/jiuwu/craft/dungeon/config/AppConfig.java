@@ -20,6 +20,7 @@ public record AppConfig(
         String timezone,
         String bstats,
         int foliaHeldWorldsMax,
+        boolean rewardboxEnabled,
         Map<String, List<String>> actionPipelines
 ) {
     static final String CURRENT_VERSION = "1.0.0";
@@ -40,6 +41,7 @@ public record AppConfig(
                 "",
                 "disabled",
                 10,
+                true,
                 Map.of()
         );
     }
@@ -74,6 +76,7 @@ public record AppConfig(
                 section.getString("general.timezone", defaults.timezone()),
                 section.getString("storage.bstats", defaults.bstats()),
                 section.getInt("folia.held-worlds-max", defaults.foliaHeldWorldsMax()),
+                section.getBoolean("rewardbox.enabled", defaults.rewardboxEnabled()),
                 Map.copyOf(actionPipelines)
         );
     }

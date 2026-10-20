@@ -154,6 +154,7 @@ drop:
     distributed: "<gray>本批掉落已自动 ROLL 分配 (<count> 件)</gray>"
 
 rewardbox:
+  disabled: "<yellow>奖励箱功能当前未启用, 副本奖励将直接进入背包</yellow>"
   gui:
     title: "<gradient:#93C5FD:#60A5FA>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
     prev: "<white>上一页</white>"

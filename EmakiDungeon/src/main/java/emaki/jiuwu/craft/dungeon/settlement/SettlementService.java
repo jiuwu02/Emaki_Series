@@ -257,7 +257,13 @@ public final class SettlementService {
         Map<UUID, List<org.bukkit.inventory.ItemStack>> allocation = DropAllocator.allocate(
                 pool, scores, config == null ? Map.of() : config.dropLevels(), members);
         for (Map.Entry<UUID, List<org.bukkit.inventory.ItemStack>> entry : allocation.entrySet()) {
-            rewardBox.deposit(entry.getKey(), entry.getValue());
+            List<org.bukkit.inventory.ItemStack> leftover =
+                    rewardBox.deposit(entry.getKey(), entry.getValue());
+            if (!leftover.isEmpty()) {
+                org.bukkit.World world = Bukkit.getWorld(instanceId);
+                rewardBox.deliverOrDrop(entry.getKey(), leftover, world,
+                        world == null ? null : world.getSpawnLocation());
+            }
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score_drops_allocated | instance=" + instanceId

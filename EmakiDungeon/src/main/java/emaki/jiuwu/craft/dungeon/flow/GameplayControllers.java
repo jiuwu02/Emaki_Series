@@ -141,7 +141,15 @@ public final class GameplayControllers implements FlowControllers {
         if (playerId == null) {
             return;
         }
-        rewardBox.deposit(playerId, new ArrayList<>(generated));
+        var point = reward.point();
+        java.util.List<org.bukkit.inventory.ItemStack> leftover =
+                rewardBox.deposit(playerId, new ArrayList<>(generated));
+        if (!leftover.isEmpty()) {
+            org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+            org.bukkit.Location fallback = world == null ? null : new org.bukkit.Location(world,
+                    point.x(), point.y(), point.z(), point.yaw(), point.pitch());
+            rewardBox.deliverOrDrop(playerId, leftover, world, fallback);
+        }
     }
 
     @Override

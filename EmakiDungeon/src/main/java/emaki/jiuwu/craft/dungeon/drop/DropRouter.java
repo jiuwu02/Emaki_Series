@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
 
 public final class DropRouter implements Listener {
 
@@ -116,33 +117,74 @@ public final class DropRouter implements Listener {
         List<ItemStack> captured = cloneAll(drops);
         event.getDrops().clear();
         if (killer == null) {
-            dropAtSpawn(instance, captured);
+            dropAsDiscard(instance, captured, event.getEntity().getLocation());
             return;
         }
-        rewardBox.deposit(killer.getUniqueId(), captured);
+        List<ItemStack> leftover = rewardBox.deposit(killer.getUniqueId(), captured);
+        if (!leftover.isEmpty()) {
+            dropAsDiscard(instance, leftover, event.getEntity().getLocation());
+        }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    public void onDiscard(org.bukkit.event.player.PlayerDropItemEvent event) {
+        DungeonInstance instance = registry.get(event.getPlayer().getWorld().getName());
+        if (instance == null) {
+            return;
+        }
+        event.getItemDrop().getPersistentDataContainer().set(
+                RewardBoxService.DROP_OWNER_KEY,
+                org.bukkit.persistence.PersistentDataType.STRING,
+                RewardBoxService.OWNER_DISCARD);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPickup(org.bukkit.event.entity.EntityPickupItemEvent event) {
-        if (!(event.getEntity() instanceof Player player)) {
+        DungeonInstance instance = registry.get(event.getItem().getWorld().getName());
+        if (instance == null || !rewardBox.enabled()) {
             return;
         }
-        DungeonInstance instance = registry.get(player.getWorld().getName());
-        if (instance == null) {
+        if (!(event.getEntity() instanceof Player player)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (event.getItem().getPersistentDataContainer().has(
+                RewardBoxService.DROP_OWNER_KEY,
+                org.bukkit.persistence.PersistentDataType.STRING)) {
             return;
         }
         ItemStack stack = event.getItem().getItemStack().clone();
         if (stack.getType() == Material.AIR || stack.getAmount() <= 0) {
             return;
         }
+        if (rewardBox.isAutoFlow(player.getUniqueId()) && canFit(player, stack)) {
+            return;
+        }
+        if (rewardBox.remainingSlots(player.getUniqueId()) < stack.getAmount()) {
+            event.setCancelled(true);
+            return;
+        }
         event.setCancelled(true);
+        rewardBox.storeBox(player.getUniqueId(), List.of(stack));
         event.getItem().remove();
-        rewardBox.deposit(player.getUniqueId(), List.of(stack));
         rewardBox.notifyStored(player, itemLabel(stack), stack.getAmount());
     }
 
-    private void dropAtSpawn(DungeonInstance instance, List<ItemStack> items) {
-        if (items.isEmpty()) {
+    private static boolean canFit(Player player, ItemStack stack) {
+        ItemStack[] contents = player.getInventory().getStorageContents();
+        org.bukkit.inventory.Inventory probe = Bukkit.createInventory(null,
+                Math.max(9, contents.length));
+        ItemStack[] copy = new ItemStack[contents.length];
+        for (int i = 0; i < contents.length; i++) {
+            copy[i] = contents[i] == null ? null : contents[i].clone();
+        }
+        probe.setContents(copy);
+        return probe.addItem(stack.clone()).isEmpty();
+    }
+
+    private void dropAsDiscard(DungeonInstance instance, List<ItemStack> items,
+            org.bukkit.Location location) {
+        if (items.isEmpty() || location == null) {
             return;
         }
         dispatcher.runGlobal(plugin, () -> {
@@ -150,9 +192,12 @@ public final class DropRouter implements Listener {
             if (world == null) {
                 return;
             }
-            var location = world.getSpawnLocation();
             for (ItemStack stack : items) {
-                world.dropItemNaturally(location, stack);
+                org.bukkit.entity.Item dropped = world.dropItemNaturally(location, stack);
+                dropped.getPersistentDataContainer().set(
+                        RewardBoxService.DROP_OWNER_KEY,
+                        org.bukkit.persistence.PersistentDataType.STRING,
+                        RewardBoxService.OWNER_DISCARD);
             }
         });
     }
@@ -163,17 +208,22 @@ public final class DropRouter implements Listener {
         }
         List<UUID> members = new ArrayList<>();
         for (UUID memberId : membersOf(instance)) {
-            if (Bukkit.getPlayer(memberId) != null) {
+            if (Bukkit.getPlayer(memberId) != null
+                    && (!rewardBox.enabled() || !rewardBox.isFull(memberId))) {
                 members.add(memberId);
             }
         }
         if (members.isEmpty()) {
-            dropAtSpawn(instance, items);
+            dropAtSpawnAsDiscard(instance, items);
             return;
         }
         for (ItemStack stack : items) {
             UUID winner = members.get(random.nextInt(members.size()));
-            rewardBox.deposit(winner, List.of(stack));
+            List<ItemStack> leftover = rewardBox.deposit(winner, List.of(stack));
+            if (!leftover.isEmpty()) {
+                dropAtSpawnAsDiscard(instance, leftover);
+                continue;
+            }
             Player winnerPlayer = Bukkit.getPlayer(winner);
             if (winnerPlayer != null) {
                 messages.send(winnerPlayer, "drop.roll.won", Map.of(
@@ -182,13 +232,18 @@ public final class DropRouter implements Listener {
                 ));
             }
         }
-        for (UUID memberId : members) {
+        for (UUID memberId : membersOf(instance)) {
             Player member = Bukkit.getPlayer(memberId);
             if (member != null) {
                 messages.send(member, "drop.roll.distributed", Map.of(
                         "count", String.valueOf(items.size())));
             }
         }
+    }
+
+    private void dropAtSpawnAsDiscard(DungeonInstance instance, List<ItemStack> items) {
+        org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+        dropAsDiscard(instance, items, world == null ? null : world.getSpawnLocation());
     }
 
     private static String itemLabel(ItemStack stack) {
@@ -207,7 +262,10 @@ public final class DropRouter implements Listener {
         Map<UUID, List<ItemStack>> allocation =
                 DropAllocator.allocateShare(items, members);
         for (Map.Entry<UUID, List<ItemStack>> entry : allocation.entrySet()) {
-            rewardBox.deposit(entry.getKey(), entry.getValue());
+            List<ItemStack> leftover = rewardBox.deposit(entry.getKey(), entry.getValue());
+            if (!leftover.isEmpty()) {
+                dropAtSpawnAsDiscard(instance, leftover);
+            }
         }
     }
 
