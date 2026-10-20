@@ -24,6 +24,7 @@ public final class DungeonInstance {
     private volatile boolean test;
     private volatile InstanceLoop loop;
     private volatile emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime;
+    private volatile emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession;
 
     public DungeonInstance(String instanceId, String dungeonId, WorldCommandQueue commands) {
         this.instanceId = instanceId;
@@ -95,6 +96,14 @@ public final class DungeonInstance {
 
     public void setFlowRuntime(emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime) {
         this.flowRuntime = flowRuntime;
+    }
+
+    public emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession() {
+        return scriptSession;
+    }
+
+    public void setScriptSession(emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession) {
+        this.scriptSession = scriptSession;
     }
 
     public WorldCommandQueue commands() {

@@ -21,6 +21,9 @@ public record AppConfig(
         String bstats,
         int foliaHeldWorldsMax,
         boolean rewardboxEnabled,
+        boolean scriptEnabled,
+        long scriptTimeoutMs,
+        boolean scriptFailOnError,
         Map<String, List<String>> actionPipelines
 ) {
     static final String CURRENT_VERSION = "1.0.0";
@@ -42,6 +45,9 @@ public record AppConfig(
                 "disabled",
                 10,
                 true,
+                true,
+                5000L,
+                false,
                 Map.of()
         );
     }
@@ -77,6 +83,9 @@ public record AppConfig(
                 section.getString("storage.bstats", defaults.bstats()),
                 section.getInt("folia.held-worlds-max", defaults.foliaHeldWorldsMax()),
                 section.getBoolean("rewardbox.enabled", defaults.rewardboxEnabled()),
+                section.getBoolean("script.enabled", defaults.scriptEnabled()),
+                section.getInt("script.timeout-ms", (int) defaults.scriptTimeoutMs()),
+                section.getBoolean("script.fail-on-error", defaults.scriptFailOnError()),
                 Map.copyOf(actionPipelines)
         );
     }

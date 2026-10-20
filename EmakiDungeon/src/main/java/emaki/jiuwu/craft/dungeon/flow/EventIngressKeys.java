@@ -14,6 +14,7 @@ public final class EventIngressKeys {
     public static final String REDSTONE = "flow.redstone";
     public static final String PLAYER_STATE = "flow.player_state";
     public static final String CHEST = "flow.chest";
+    public static final String SCRIPT_TRIGGER = "script.trigger";
 
     public static final String KEY_PLAYER = "player";
     public static final String KEY_ENTITY = "entity";

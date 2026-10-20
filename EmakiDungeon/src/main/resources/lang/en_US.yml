@@ -346,6 +346,14 @@ console:
   flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
   editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
   editor_template_saved: "Edit template written back | dungeon=%dungeon% | generation=%generation%"
+  script_disabled: "GraalJS script host disabled by configuration"
+  script_engine_unavailable: "[script] GraalJS runtime not detected; the script host is disabled and the rest of the plugin is unaffected"
+  script_load_failed: "Instance script failed to load; that script is stopped and the run continues | instance=%instance% | error=%error%"
+  script_stopped: "Script handler failed or timed out; the script is stopped and the run continues | instance=%instance% | script=%script% | trigger=%trigger% | error=%error%"
+  script_api_failed: "Script trigger API handler failed | trigger=%trigger% | error=%error%"
+
+script:
+  stopped_chat: "The dungeon script stopped after an error; this run continues"
 
 debug:
   instance_created: "Instance created | world=%instance%"
@@ -374,3 +382,10 @@ debug:
   limit_denied: "Entry limit denied | dungeon=%dungeon% | member=%member% | verdict=%verdict%"
   settle_step_failed: "Settlement step failed | command=%command% | error=%error% | instance=%instance%"
   settle_step_skipped: "Settlement step skipped | command=%command% | player=%player% | instance=%instance%"
+  script_session_created: "Instance script loaded | instance=%instance% | dungeon=%dungeon% | script=%script%"
+  script_session_absent: "No dungeon script found; script host not enabled for this run | dungeon=%dungeon%"
+  script_session_closed: "Instance script released | instance=%instance%"
+  script_takeover: "Flow script took over the run | instance=%instance% | dungeon=%dungeon%"
+  script_entry_registered: "Entry registered | instance=%instance% | entry=%entry%"
+  script_entry_cleared: "Entries removed with instance destroy | instance=%instance% | count=%count%"
+  script_stopped: "Script stopped, instance continues | instance=%instance% | script=%script%"

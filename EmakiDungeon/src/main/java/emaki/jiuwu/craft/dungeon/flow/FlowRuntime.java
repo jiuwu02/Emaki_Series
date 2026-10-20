@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.script.TriggerSink;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 
 public final class FlowRuntime {
 
@@ -26,6 +28,8 @@ public final class FlowRuntime {
     private final java.util.function.Consumer<UUID> teleportPermit;
     private volatile FlowControllers controllers;
     private volatile PlayerStateHook stateHook;
+    private volatile TriggerSink scriptSink;
+    private volatile boolean scriptTakeover;
 
     private final Map<String, Object> facts = new ConcurrentHashMap<>();
     private final Set<String> openedGates = ConcurrentHashMap.newKeySet();
@@ -54,6 +58,36 @@ public final class FlowRuntime {
 
     public void bindStateHook(PlayerStateHook stateHook) {
         this.stateHook = stateHook;
+    }
+
+    public void bindScript(TriggerSink scriptSink) {
+        this.scriptSink = scriptSink;
+    }
+
+    public void setScriptTakeover(boolean scriptTakeover) {
+        this.scriptTakeover = scriptTakeover;
+    }
+
+    public boolean isScriptTakeover() {
+        return scriptTakeover;
+    }
+
+    private void fireTrigger(TriggerType type, java.util.Map<String, String> context) {
+        TriggerSink sink = scriptSink;
+        if (sink != null) {
+            sink.fire(type, instance.instanceId(), instance.dungeonId(), context);
+        }
+    }
+
+    private java.util.Map<String, String> playerCtx(UUID playerId, String key, String value) {
+        java.util.Map<String, String> context = new java.util.LinkedHashMap<>();
+        if (playerId != null) {
+            context.put("player", playerId.toString());
+        }
+        if (key != null && value != null) {
+            context.put(key, value);
+        }
+        return context;
     }
 
     public FlowDefinition definition() {
@@ -149,6 +183,8 @@ public final class FlowRuntime {
         if (!adjudicator.adjudicate(reward.head(), reward.conditions(), context, playerId).allowed()) {
             return;
         }
+        fireTrigger(TriggerType.onChestOpen,
+                playerCtx(playerId, "chestId", event.sourceId()));
         if (controllers != null) {
             controllers.handleRewardOpen(this, event.sourceId(), playerId);
         }
@@ -162,7 +198,12 @@ public final class FlowRuntime {
 
         FlowModules.TriggerZoneDef triggerZone = definition.triggerZones().get(zoneId);
         if (triggerZone != null && triggerZone.head().enabled()) {
-            adjudicator.adjudicate(triggerZone.head(), triggerZone.conditions(), context, playerId);
+            boolean zoneAllowed =
+                    adjudicator.adjudicate(triggerZone.head(), triggerZone.conditions(), context, playerId).allowed();
+            if (zoneAllowed && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
+                fireTrigger(TriggerType.onRegionEnter,
+                        playerCtx(playerId, "triggerId", zoneId));
+            }
         }
 
         FlowModules.CheckpointDef checkpoint = definition.checkpoints().get(zoneId);
@@ -171,6 +212,8 @@ public final class FlowRuntime {
             EvalContext checkpointContext = new EvalContext(playerId, payload);
             if (adjudicator.adjudicate(checkpoint.head(), java.util.List.of(), checkpointContext, playerId).allowed()) {
                 checkpointId = checkpoint.recordId();
+                fireTrigger(TriggerType.onCheckpoint,
+                        playerCtx(playerId, "checkpointId", checkpoint.recordId()));
             }
         }
 
@@ -222,6 +265,9 @@ public final class FlowRuntime {
     }
 
     private void handleRoomZone(String roomId, UUID playerId, Map<String, Object> payload) {
+        if (scriptTakeover) {
+            return;
+        }
         for (FlowModules.RoomDef room : definition.rooms()) {
             if (!room.id().equals(roomId)) {
                 return;
@@ -258,6 +304,55 @@ public final class FlowRuntime {
         if (controllers != null) {
             controllers.handleRoomEntered(this, roomId, playerId);
         }
+        fireTrigger(TriggerType.onRoomEnter, playerCtx(playerId, "roomId", roomId));
+    }
+
+    public void scriptEnterRoom(String roomId) {
+        FlowModules.RoomDef target = null;
+        for (FlowModules.RoomDef room : definition.rooms()) {
+            if (room.id().equals(roomId)) {
+                target = room;
+                break;
+            }
+        }
+        if (target == null || target.region() == null) {
+            return;
+        }
+        String previousRoomId = currentRoomId();
+        currentRoomOrder = target.order();
+        notifyRoomEntered(target.id(), null);
+        if (previousRoomId.isEmpty()) {
+            return;
+        }
+        FlowModules.RoomDef previousRoom = null;
+        for (FlowModules.RoomDef room : definition.rooms()) {
+            if (room.id().equals(previousRoomId)) {
+                previousRoom = room;
+                break;
+            }
+        }
+        if (previousRoom == null || previousRoom.region() == null) {
+            return;
+        }
+        World world = Bukkit.getWorld(instance.instanceId());
+        if (world == null) {
+            return;
+        }
+        UUID anchor = null;
+        for (Player member : world.getPlayers()) {
+            Location location = member.getLocation();
+            if (target.region().contains(location.getX(), location.getY(), location.getZ())) {
+                anchor = member.getUniqueId();
+                break;
+            }
+        }
+        if (anchor != null) {
+            syncStragglers(previousRoomId, anchor);
+        }
+    }
+
+    public void scriptHint(String text, String channel) {
+        submitHint(null, text, channel == null || channel.isBlank() ? "chat" : channel);
     }
 
     private void syncStragglers(String previousRoomId, UUID arrivingPlayer) {
@@ -341,6 +436,8 @@ public final class FlowRuntime {
         if (!adjudicator.adjudicate(interaction.head(), interaction.conditions(), context, playerId).allowed()) {
             return;
         }
+        fireTrigger(TriggerType.onBlockInteract,
+                playerCtx(playerId, "blockId", event.sourceId()));
         executeActions(interaction.actions(), context, playerId);
     }
 
@@ -388,6 +485,8 @@ public final class FlowRuntime {
                 continue;
             }
             if (adjudicator.adjudicate(killTarget.head(), java.util.List.of(), context, playerId).allowed()) {
+                fireTrigger(TriggerType.onKillCount, playerCtx(playerId, "count",
+                        String.valueOf(factInt(countKey, 0))));
                 executeActions(killTarget.actions(), context, playerId);
             }
         }
@@ -403,6 +502,8 @@ public final class FlowRuntime {
         if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
             return;
         }
+        fireTrigger(TriggerType.onBlockActivate,
+                playerCtx(playerId, "mechanismId", event.sourceId()));
         for (FlowModules.BlockStateTarget target : mechanism.targets()) {
             submitSetBlock(playerId, target);
         }
@@ -418,6 +519,8 @@ public final class FlowRuntime {
         if (!adjudicator.adjudicate(mechanism.head(), mechanism.conditions(), context, playerId).allowed()) {
             return;
         }
+        fireTrigger(TriggerType.onRedstoneSignal,
+                playerCtx(playerId, "mechanismId", event.sourceId()));
         for (FlowModules.BlockStateTarget target : mechanism.targets()) {
             submitSetBlock(playerId, target);
         }

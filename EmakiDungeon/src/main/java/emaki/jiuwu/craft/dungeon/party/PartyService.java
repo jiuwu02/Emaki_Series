@@ -68,6 +68,18 @@ public final class PartyService {
     private final java.util.Set<UUID> chatChannel = ConcurrentHashMap.newKeySet();
 
     private TaskToken cleanupTask = TaskToken.UNAVAILABLE;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            Map<String, String> context) {
+        if (scriptManager != null) {
+            scriptManager.fireTrigger(type, null, null, context);
+        }
+    }
 
     public PartyService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -165,6 +177,11 @@ public final class PartyService {
         debug.log("dungeon", actor, "party_invite_sent", Map.of(
                 "party", String.valueOf(actorParty.id()),
                 "target", targetId.toString()
+        ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onPartyInvite, Map.of(
+                "party", String.valueOf(actorParty.id()),
+                "target", targetId.toString(),
+                "player", actorId.toString()
         ));
         return InviteResult.OK;
     }
@@ -319,6 +336,10 @@ public final class PartyService {
                 "party", String.valueOf(party.id()),
                 "player", targetId.toString()
         ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onPartyLeave, Map.of(
+                "party", String.valueOf(party.id()),
+                "player", targetId.toString()
+        ));
         dissolveIfEmpty(party);
         return InviteResult.OK;
     }
@@ -336,6 +357,10 @@ public final class PartyService {
         pendingByTarget.remove(playerId);
         persist(party);
         debug.log("dungeon", player, "party_leave", Map.of(
+                "party", String.valueOf(party.id()),
+                "player", playerId.toString()
+        ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onPartyLeave, Map.of(
                 "party", String.valueOf(party.id()),
                 "player", playerId.toString()
         ));
@@ -441,6 +466,10 @@ public final class PartyService {
 
     private void notifyJoin(Player player, Party party) {
         debug.log("dungeon", player, "party_join", Map.of(
+                "party", String.valueOf(party.id()),
+                "player", player.getUniqueId().toString()
+        ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onPartyJoin, Map.of(
                 "party", String.valueOf(party.id()),
                 "player", player.getUniqueId().toString()
         ));

@@ -35,6 +35,7 @@ public final class InstanceCoordinator {
     private final DebugLogger debug;
     private final java.util.function.Consumer<DungeonInstance> evacuator;
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
     private volatile emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
     private volatile java.util.function.Consumer<String> dropCleanup;
 
@@ -75,6 +76,10 @@ public final class InstanceCoordinator {
 
     public void bindDropCleanup(java.util.function.Consumer<String> dropCleanup) {
         this.dropCleanup = dropCleanup;
+    }
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
     }
 
     public void startupScan() {
@@ -166,7 +171,22 @@ public final class InstanceCoordinator {
             } catch (RuntimeException ignored) {
             }
         }
+        if (scriptManager != null) {
+            if ("admin".equals(trigger) || "api_force_stop".equals(trigger)) {
+                scriptManager.fireTriggerNow(
+                        emaki.jiuwu.craft.dungeon.trigger.TriggerType.onAdminForceStop,
+                        instanceId, instance.dungeonId(),
+                        Map.of("instanceId", instanceId, "trigger", trigger));
+            }
+            scriptManager.fireTriggerNow(
+                    emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDestroy,
+                    instanceId, instance.dungeonId(),
+                    Map.of("instanceId", instanceId, "outcome", trigger));
+        }
         instance.closeLoop();
+        if (scriptManager != null) {
+            scriptManager.closeSession(instance);
+        }
         String dungeonId = instance.dungeonId();
         disposer.dispose(instanceId).whenComplete((result, error) -> {
             boolean held = error != null || result != WorldDisposer.Result.DISPOSED;

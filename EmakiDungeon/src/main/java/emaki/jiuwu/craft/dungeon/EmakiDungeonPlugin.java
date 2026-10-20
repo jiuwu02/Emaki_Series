@@ -99,6 +99,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
     private emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
     private emaki.jiuwu.craft.dungeon.editor.EditorService editorService;
+    private emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
@@ -174,6 +175,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             coordinator.shutdown();
             coordinator = null;
         }
+        if (scriptManager != null) {
+            scriptManager.close();
+            scriptManager = null;
+        }
         if (teleportGuard != null) {
             teleportGuard = null;
         }
@@ -237,7 +242,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         String version = getPluginMeta().getVersion();
         bridge = new ServiceBackedDungeonBridge(
                 ApiStatus.ready(getName(), version, API_VERSION),
-                challenge, parties, registry, coordinator, configOf);
+                challenge, parties, registry, coordinator, configOf, scriptManager);
         EmakiDungeonApi.install(bridge);
     }
 
@@ -279,6 +284,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 poolMaxOf
         );
         registry = new InstanceRegistry();
+        scriptManager = new emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager(
+                this, messageService, debugLogger(), appConfigSupplier, configOf,
+                registry, getDataFolder());
+        scriptManager.startup();
         DestroyArbiter arbiter = new DestroyArbiter();
         InstancesStore store = new InstancesStore(this, dispatcher, getDataFolder());
         WorldNames names = new WorldNames(worldContainer);
@@ -298,22 +307,31 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         emaki.jiuwu.craft.dungeon.limit.LimitService limitService =
                 new emaki.jiuwu.craft.dungeon.limit.LimitService(playersDataStore, configOf,
-                        appConfigSupplier, debugLogger(), (dungeonId, period) ->
-                                debugLogger().logRaw("dungeon", (java.util.UUID) null,
-                                        "daily_reset | dungeon=" + dungeonId + " | period=" + period));
+                        appConfigSupplier, debugLogger(), (dungeonId, period) -> {
+                            debugLogger().logRaw("dungeon", (java.util.UUID) null,
+                                    "daily_reset | dungeon=" + dungeonId + " | period=" + period);
+                            if (scriptManager != null) {
+                                scriptManager.fireTrigger(
+                                        emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDailyReset,
+                                        null, dungeonId, java.util.Map.of("period", period));
+                            }
+                        });
         leaderboard = new emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore(
                 this, dispatcher, getDataFolder());
 
         PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
         parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
                 appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
+        parties.bindScriptManager(scriptManager);
         parties.start();
 
         recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
                 teleportGuard::permit);
+        recovery.bindScriptManager(scriptManager);
 
         coordinator = new InstanceCoordinator(this, dispatcher, pool, disposer, allocator, registry, arbiter,
                 store, messageService, debugLogger(), recovery::evacuate);
+        coordinator.bindScriptManager(scriptManager);
 
         guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
                 coreLib.performanceMonitor(), coreLib.guiBackend());
@@ -330,6 +348,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
         challenge.bindLimitService(limitService);
+        challenge.bindScriptManager(scriptManager);
         challenge.start();
         editorService.bindChallenge(challenge);
 
@@ -351,7 +370,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation =
                 new emaki.jiuwu.craft.dungeon.isolation.MessageIsolation(registry, playersDataStore, messageService);
         stateService = new PlayerStateService(this, dispatcher, coordinator, registry,
-                        parties, recovery, messageService, debugLogger(), configOf, languageLoader);
+                parties, recovery, messageService, debugLogger(), configOf, languageLoader);
+        stateService.bindScriptManager(scriptManager);
         stateService.start();
         regionTracker = new RegionTracker(this, dispatcher, registry);
         scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
@@ -364,6 +384,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.settlement.SettlementCommandRunner(debugLogger()),
                 rewardBox, messageService, debugLogger(), configOf);
         settlement.bindActionBridge(actionBridge);
+        settlement.bindScriptManager(scriptManager);
         this.actionBridge = actionBridge;
 
         recovery.bindActionBridge(actionBridge);
@@ -390,7 +411,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router.bindEditor(editorService);
 
         getServer().getPluginManager().registerEvents(
-                new DungeonLifecycleListener(recovery, parties), this);
+                new DungeonLifecycleListener(recovery, parties, scriptManager), this);
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(editorService, this);
@@ -402,7 +423,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         getServer().getPluginManager().registerEvents(
                 new PlayerStateListener(registry, stateService), this);
         getServer().getPluginManager().registerEvents(
-                new FlowEventListeners(registry), this);
+                new FlowEventListeners(registry, scriptManager), this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.script.TriggerBridge(scriptManager), this);
         getServer().getPluginManager().registerEvents(
                 new emaki.jiuwu.craft.dungeon.score.CombatDataListener(registry, scoreTracker), this);
         getServer().getPluginManager().registerEvents(dropRouter, this);
@@ -469,11 +492,19 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 (optionCase, endingId) -> settlement.onEnding(instance, optionCase, endingId));
         controllers.bindRewardChests(rewardChests);
         waveController.bindListeners(
-                (spawnId, wave) -> actionBridge.dispatch("dungeon_wave_start", null, Map.of(
-                        "instanceId", instance.instanceId(),
-                        "spawnId", spawnId,
-                        "wave", String.valueOf(wave)
-                )),
+                (spawnId, wave) -> {
+                    actionBridge.dispatch("dungeon_wave_start", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "spawnId", spawnId,
+                            "wave", String.valueOf(wave)
+                    ));
+                    if (scriptManager != null) {
+                        scriptManager.fireTrigger(
+                                emaki.jiuwu.craft.dungeon.trigger.TriggerType.onWaveStart,
+                                instance.instanceId(), instance.dungeonId(),
+                                Map.of("spawnId", spawnId, "wave", String.valueOf(wave)));
+                    }
+                },
                 (gateId, condition) -> {
                     actionBridge.dispatch("dungeon_gate_open", null, Map.of(
                             "instanceId", instance.instanceId(),
@@ -495,6 +526,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 });
         runtime.bindControllers(controllers);
         runtime.bindStateHook(stateService::onPlayerDeath);
+        if (scriptManager != null) {
+            runtime.bindScript(scriptManager.sink());
+            waveController.bindTriggerSink(scriptManager);
+            scriptManager.createSession(instance, runtime, controllers);
+        }
         return runtime;
     }
 

@@ -28,9 +28,22 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 public final class FlowEventListeners implements Listener {
 
     private final InstanceRegistry registry;
+    private final emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
 
-    public FlowEventListeners(InstanceRegistry registry) {
+    public FlowEventListeners(InstanceRegistry registry,
+            emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
         this.registry = registry;
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireInteract(DungeonInstance instance, String triggerId, Player player) {
+        if (scriptManager == null) {
+            return;
+        }
+        scriptManager.fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInteract,
+                instance.instanceId(), instance.dungeonId(), Map.of(
+                        "triggerId", triggerId,
+                        "player", String.valueOf(player.getUniqueId())));
     }
 
     private DungeonInstance instanceOf(org.bukkit.World world) {
@@ -82,6 +95,9 @@ public final class FlowEventListeners implements Listener {
             payload.put(EventIngressKeys.KEY_PLAYER, event.getPlayer().getUniqueId());
             payload.put(Facts.CLICK, click);
             instance.ingress().post(new IngressEvent(EventIngressKeys.BLOCK, interactionId, payload));
+            if (click.startsWith("right")) {
+                fireInteract(instance, interactionId, event.getPlayer());
+            }
             return;
         }
         String itemId = findItemInteraction(runtime, block);
@@ -90,6 +106,9 @@ public final class FlowEventListeners implements Listener {
             payload.put(EventIngressKeys.KEY_PLAYER, event.getPlayer().getUniqueId());
             payload.put(Facts.ITEM_INTERACTED, true);
             instance.ingress().post(new IngressEvent(EventIngressKeys.ITEM, itemId, payload));
+            if (click.startsWith("right")) {
+                fireInteract(instance, itemId, event.getPlayer());
+            }
             return;
         }
         String redstoneMechanism = findRedstoneMechanism(runtime, block);

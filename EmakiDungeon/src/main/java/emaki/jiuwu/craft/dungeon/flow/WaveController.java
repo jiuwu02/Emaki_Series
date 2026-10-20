@@ -46,6 +46,18 @@ public final class WaveController {
     private volatile java.util.function.BiConsumer<String, Integer> waveStartListener;
     private volatile java.util.function.BiConsumer<String, String> gateOpenListener;
     private volatile java.util.function.Consumer<String> roomListener;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptTrigger;
+
+    public void bindTriggerSink(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptTrigger) {
+        this.scriptTrigger = scriptTrigger;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            java.util.Map<String, String> context) {
+        if (scriptTrigger != null) {
+            scriptTrigger.fireTrigger(type, instance.instanceId(), instance.dungeonId(), context);
+        }
+    }
 
     public WaveController(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -163,6 +175,8 @@ public final class WaveController {
         if (origin.bossId() != null && !origin.bossId().isEmpty() && runtime != null) {
             runtime.setFact(Facts.bossKilled(origin.bossId()), true);
             debug.logRaw("dungeon", (UUID) null, "boss killed | boss=" + origin.bossId());
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onBossKill,
+                    java.util.Map.of("bossId", origin.bossId()));
         }
         WaveRuntime waveRuntime = waves.get(origin.spawnId());
         if (waveRuntime == null) {
@@ -189,6 +203,9 @@ public final class WaveController {
         }
         runtime.setFact(Facts.waveCleared(origin.spawnId()), true);
         debug.logRaw("dungeon", (UUID) null, "wave clear | spawn=" + origin.spawnId());
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onWaveClear, java.util.Map.of(
+                "spawnId", origin.spawnId(),
+                "wave", String.valueOf(origin.waveIndex())));
     }
 
     public void syncBossPoints(FlowRuntime runtime) {
@@ -241,6 +258,8 @@ public final class WaveController {
                     }
                     debug.logRaw("dungeon", (UUID) null,
                             "boss spawned | boss=" + bossPoint.bossId());
+                    fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onBossSpawn,
+                            java.util.Map.of("bossId", bossPoint.bossId()));
                 }
             });
         });

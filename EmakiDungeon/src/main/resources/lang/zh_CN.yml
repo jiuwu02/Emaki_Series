@@ -346,6 +346,14 @@ console:
   flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
   editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
   editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"
+  script_disabled: "GraalJS 脚本宿主已由配置关闭"
+  script_engine_unavailable: "[script] 未检测到 GraalJS 运行库, 脚本宿主降级禁用, 插件其余功能不受影响"
+  script_load_failed: "实例脚本装载失败, 该脚本已停用, 实例继续运行 | 实例=%instance% | 错误=%error%"
+  script_stopped: "脚本处理器异常或超时, 脚本已停用, 实例继续运行 | 实例=%instance% | 脚本=%script% | 触发=%trigger% | 错误=%error%"
+  script_api_failed: "脚本触发器 API 处理器异常 | 触发=%trigger% | 错误=%error%"
+
+script:
+  stopped_chat: "副本脚本异常已停用, 本局继续运行"
 
 debug:
   instance_created: "实例已创建 | 世界=%instance%"
@@ -374,3 +382,10 @@ debug:
   limit_denied: "次数限制拒绝 | 副本=%dungeon% | 玩家=%member% | 判定=%verdict%"
   settle_step_failed: "结算步骤失败 | 命令=%command% | 错误=%error% | 实例=%instance%"
   settle_step_skipped: "结算步骤跳过 | 命令=%command% | 玩家=%player% | 实例=%instance%"
+  script_session_created: "实例脚本已装载 | 实例=%instance% | 副本=%dungeon% | 脚本=%script%"
+  script_session_absent: "未找到副本脚本, 本局未启用脚本宿主 | 副本=%dungeon%"
+  script_session_closed: "实例脚本已释放 | 实例=%instance%"
+  script_takeover: "流程脚本已接管整局推进 | 实例=%instance% | 副本=%dungeon%"
+  script_entry_registered: "词条已注册 | 实例=%instance% | 词条=%entry%"
+  script_entry_cleared: "词条已随实例销毁摘除 | 实例=%instance% | 数量=%count%"
+  script_stopped: "脚本已停用, 实例继续运行 | 实例=%instance% | 脚本=%script%"

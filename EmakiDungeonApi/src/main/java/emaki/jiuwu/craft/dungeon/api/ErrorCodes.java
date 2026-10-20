@@ -23,6 +23,9 @@ public final class ErrorCodes {
     public static final String ALREADY_DISPOSING = "ALREADY_DISPOSING";
     public static final String DUNGEON_NOT_FOUND = "DUNGEON_NOT_FOUND";
     public static final String ENGINE_UNAVAILABLE = "ENGINE_UNAVAILABLE";
+    public static final String SCRIPT_COMPILE_ERROR = "SCRIPT_COMPILE_ERROR";
+    public static final String TRIGGER_DUPLICATE = "TRIGGER_DUPLICATE";
+    public static final String SCRIPT_NOT_LOADED = "SCRIPT_NOT_LOADED";
     public static final String MEMBER_NOT_FOUND = "MEMBER_NOT_FOUND";
     public static final String NOT_LEADER = "NOT_LEADER";
     public static final String NOT_INSTALLED = "NOT_INSTALLED";

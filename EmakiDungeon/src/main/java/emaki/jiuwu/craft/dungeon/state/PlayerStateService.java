@@ -51,6 +51,18 @@ public final class PlayerStateService {
     private final Function<String, DungeonConfig> configOf;
     private final emaki.jiuwu.craft.corelib.loader.LanguageLoader languageLoader;
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            DungeonInstance instance, Map<String, String> context) {
+        if (scriptManager != null && instance != null) {
+            scriptManager.fireTrigger(type, instance.instanceId(), instance.dungeonId(), context);
+        }
+    }
 
     private final Map<String, LifeState> states = new ConcurrentHashMap<>();
     private final Set<UUID> spectators = ConcurrentHashMap.newKeySet();
@@ -131,6 +143,10 @@ public final class PlayerStateService {
                 "instance", instance.instanceId(),
                 "remaining", String.valueOf(remaining)
         ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDeath, instance, Map.of(
+                "player", String.valueOf(playerId),
+                "remaining", String.valueOf(remaining)
+        ));
         messages.warning("player.died", Map.of(
                 "player", String.valueOf(playerId),
                 "remaining", String.valueOf(remaining)
@@ -146,6 +162,8 @@ public final class PlayerStateService {
         if (world == null) {
             return null;
         }
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onRespawn, instance,
+                Map.of("player", String.valueOf(player.getUniqueId())));
         FlowRuntime runtime = instance.flowRuntime();
         if (runtime == null) {
             return world.getSpawnLocation();
@@ -327,6 +345,12 @@ public final class PlayerStateService {
         }
         long remainingSeconds = Math.max(0, (state.deadline - now) / 1000L);
         Set<Integer> warned = warnedMarks.computeIfAbsent(instance.instanceId(), key -> ConcurrentHashMap.newKeySet());
+        int shortestMark = Integer.MAX_VALUE;
+        for (int mark : config.timerMessages()) {
+            if (mark < shortestMark) {
+                shortestMark = mark;
+            }
+        }
         for (int mark : config.timerMessages()) {
             if (remainingSeconds > mark || warned.contains(mark)) {
                 continue;
@@ -339,6 +363,12 @@ public final class PlayerStateService {
             actionBridge.sendToWorld(instance.instanceId(), text);
             debug.logRaw("dungeon", (UUID) null,
                     "timer mark | instance=" + instance.instanceId() + " | seconds=" + mark);
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onTimerMark, instance,
+                    Map.of("seconds", String.valueOf(mark)));
+            if (mark == shortestMark) {
+                fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onTimeoutWarn, instance,
+                        Map.of("seconds", String.valueOf(mark)));
+            }
         }
     }
 

@@ -49,6 +49,18 @@ public final class SettlementService {
     private final java.util.function.Function<String, DungeonConfig> configOf;
 
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            String instanceId, String dungeonId, Map<String, String> context) {
+        if (scriptManager != null) {
+            scriptManager.fireTrigger(type, instanceId, dungeonId, context);
+        }
+    }
 
     public SettlementService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -154,6 +166,10 @@ public final class SettlementService {
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score computed | instance=" + instanceId + " | team=" + teamScore);
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onScoreReady,
+                instanceId, instance.dungeonId(), Map.of(
+                        "score", String.valueOf(teamScore),
+                        "durationMs", String.valueOf(durationMs)));
         for (UUID memberId : members) {
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
@@ -181,6 +197,9 @@ public final class SettlementService {
             }
             debug.logRaw("dungeon", (UUID) null,
                     "settle_partial | instance=" + instanceId + " | steps=" + runResult.steps());
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onSettlePartial,
+                    instanceId, instance.dungeonId(), Map.of(
+                            "steps", String.valueOf(runResult.steps())));
         }
         if (actionBridge != null) {
             actionBridge.dispatch("dungeon_reward", null, Map.of(

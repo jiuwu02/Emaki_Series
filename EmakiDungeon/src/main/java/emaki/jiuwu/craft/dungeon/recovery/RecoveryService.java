@@ -27,6 +27,18 @@ public final class RecoveryService {
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
     private volatile BiFunction<String, UUID, Boolean> stagingClear;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            DungeonInstance instance, Map<String, String> context) {
+        if (scriptManager != null && instance != null) {
+            scriptManager.fireTrigger(type, instance.instanceId(), instance.dungeonId(), context);
+        }
+    }
 
     public void bindStaging(BiFunction<String, UUID, Boolean> stagingClear) {
         this.stagingClear = stagingClear;
@@ -69,6 +81,8 @@ public final class RecoveryService {
         }
         snapshots.repack(player, pointer);
         debug.log("dungeon", player, "snapshot_repacked", Map.of("instance", pointer));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDisconnect, instance,
+                Map.of("player", String.valueOf(player.getUniqueId())));
     }
 
     public void onJoin(Player player) {
@@ -83,6 +97,8 @@ public final class RecoveryService {
             snapshots.restoreState(player, pointer, true);
             messages.send(player, "recovery.reconnected", Map.of("instance", pointer));
             debug.log("dungeon", player, "reconnected_instance", Map.of("instance", pointer));
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onReconnect, instance,
+                    Map.of("player", String.valueOf(playerId)));
             return;
         }
         teleportPermit.accept(playerId);

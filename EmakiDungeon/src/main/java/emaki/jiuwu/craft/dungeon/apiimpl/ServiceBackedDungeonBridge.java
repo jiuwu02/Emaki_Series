@@ -44,19 +44,22 @@ public final class ServiceBackedDungeonBridge implements EmakiDungeonApi.Bridge 
     private final InstanceRegistry registry;
     private final InstanceCoordinator coordinator;
     private final java.util.function.Function<String, DungeonConfig> configOf;
+    private final emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
 
     public ServiceBackedDungeonBridge(ApiStatus status,
             ChallengeService challenge,
             PartyService parties,
             InstanceRegistry registry,
             InstanceCoordinator coordinator,
-            java.util.function.Function<String, DungeonConfig> configOf) {
+            java.util.function.Function<String, DungeonConfig> configOf,
+            emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
         this.status = status;
         this.challenge = challenge;
         this.parties = parties;
         this.registry = registry;
         this.coordinator = coordinator;
         this.configOf = configOf;
+        this.scriptManager = scriptManager;
     }
 
     @Override
@@ -180,17 +183,23 @@ public final class ServiceBackedDungeonBridge implements EmakiDungeonApi.Bridge 
             @Override
             public @NotNull Result<ScriptId> loadFlowScript(@NotNull String dungeonId,
                     @NotNull String source) {
+                if (scriptManager == null) {
+                    return Result.err(ErrorCodes.ENGINE_UNAVAILABLE, "api.engine_unavailable");
+                }
                 if (configOf.apply(dungeonId) == null) {
                     return Result.err(ErrorCodes.DUNGEON_NOT_FOUND, "api.dungeon_not_found",
                             Map.of("dungeon", dungeonId));
                 }
-                return Result.err(ErrorCodes.ENGINE_UNAVAILABLE, "api.engine_unavailable");
+                return scriptManager.loadFlowScript(dungeonId, source);
             }
 
             @Override
             public @NotNull Result<Void> registerTrigger(@NotNull String triggerId,
                     @NotNull String event, @NotNull ScriptTriggerHandler handler) {
-                return Result.err(ErrorCodes.ENGINE_UNAVAILABLE, "api.engine_unavailable");
+                if (scriptManager == null) {
+                    return Result.err(ErrorCodes.ENGINE_UNAVAILABLE, "api.engine_unavailable");
+                }
+                return scriptManager.registerTrigger(triggerId, event, handler);
             }
         };
     }

@@ -66,6 +66,7 @@ public final class ChallengeService {
     private volatile emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService;
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
     private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
+    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
 
     public ChallengeService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -115,6 +116,17 @@ public final class ChallengeService {
 
     public void bindLimitService(emaki.jiuwu.craft.dungeon.limit.LimitService limitService) {
         this.limitService = limitService;
+    }
+
+    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+        this.scriptManager = scriptManager;
+    }
+
+    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+            String dungeonId, java.util.Map<String, String> context) {
+        if (scriptManager != null) {
+            scriptManager.fireTrigger(type, null, dungeonId, context);
+        }
     }
 
     public void shutdown() {
@@ -256,6 +268,8 @@ public final class ChallengeService {
             if (worlds >= config.poolMaxWorlds()) {
                 messages.send(leader, "challenge.enter.dungeon_full", Map.of("dungeon", session.dungeonId()));
                 debug.log("dungeon", leader, "instance_full", Map.of("dungeon", session.dungeonId()));
+                fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
+                        session.dungeonId(), Map.of("dungeon", session.dungeonId()));
                 return false;
             }
         }
@@ -499,6 +513,10 @@ public final class ChallengeService {
                 "dungeon", session.dungeonId(),
                 "party", String.valueOf(party.id())
         ));
+        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onReadyAll,
+                session.dungeonId(),
+                java.util.Map.of("dungeon", session.dungeonId(),
+                        "party", String.valueOf(party.id())));
         DenyReason deny = allocator.tryAcquireParty(session.dungeonId(), party.id(),
                 pool.reserveCount(session.dungeonId()) > 0);
         if (deny != null) {
@@ -516,6 +534,8 @@ public final class ChallengeService {
             allocator.releaseParty(party.id());
             messages.send(leader, "challenge.enter.dungeon_full", Map.of("dungeon", session.dungeonId()));
             debug.log("dungeon", leader, "instance_full", Map.of("dungeon", session.dungeonId()));
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
+                    session.dungeonId(), Map.of("dungeon", session.dungeonId()));
             abort(session, "deny_DUNGEON_FULL");
             return "deny_DENY_DUNGEON_FULL";
         }
@@ -527,6 +547,8 @@ public final class ChallengeService {
         if (deny == DenyReason.DENY_DUNGEON_FULL || deny == DenyReason.DENY_GLOBAL_FULL) {
             messages.send(leader, "challenge.enter.full", Map.of("dungeon", dungeonId));
             debug.log("dungeon", leader, "instance_full", Map.of("dungeon", dungeonId));
+            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
+                    dungeonId, java.util.Map.of("dungeon", dungeonId));
             return;
         }
         messages.send(leader, "challenge.enter.party_busy", Map.of());
@@ -618,7 +640,13 @@ public final class ChallengeService {
         }
         if (instance.flowRuntime() != null) {
             var flowRuntime = instance.flowRuntime();
-            instance.startLoop(plugin, dispatcher, flowRuntime::onEvent, () -> {
+            instance.startLoop(plugin, dispatcher, event -> {
+                flowRuntime.onEvent(event);
+                var scriptSession = instance.scriptSession();
+                if (scriptSession != null) {
+                    scriptSession.onIngress(event);
+                }
+            }, () -> {
             }, throwable -> {
                 messages.warning("console.instance_crashed", Map.of(
                         "instance", instance.instanceId(),
