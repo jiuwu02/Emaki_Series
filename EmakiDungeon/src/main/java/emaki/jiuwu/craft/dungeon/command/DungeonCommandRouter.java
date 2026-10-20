@@ -48,6 +48,17 @@ public final class DungeonCommandRouter {
     private final InstanceCoordinator coordinator;
     private final InstanceRegistry registry;
     private final emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation;
+    private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
+    private volatile emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
+    private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
+
+    public void bindOperations(emaki.jiuwu.craft.dungeon.limit.LimitService limitService,
+            emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard,
+            java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf) {
+        this.limitService = limitService;
+        this.leaderboard = leaderboard;
+        this.configOf = configOf;
+    }
 
     public DungeonCommandRouter(org.bukkit.plugin.Plugin plugin,
             MessageService messages,
@@ -93,6 +104,8 @@ public final class DungeonCommandRouter {
             case "cancel" -> challenge.cancelBy(player, "member_cancel");
             case "ready" -> challenge.readyBy(player);
             case "party" -> routeParty(player, args);
+            case "stats" -> routeStats(player, args);
+            case "rank" -> routeRank(player, args);
             case "globalchat" -> routeGlobalChat(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }
@@ -177,6 +190,126 @@ public final class DungeonCommandRouter {
             }
         }
         return true;
+    }
+
+    private void routeStats(Player player, String[] args) {
+        if (limitService == null || leaderboard == null || configOf == null) {
+            messages.send(player, "general.invalid_args", Map.of());
+            return;
+        }
+        Player target = player;
+        if (args.length >= 2 && !Texts.isBlank(args[1])) {
+            Player requested = Bukkit.getPlayerExact(args[1]);
+            if (requested == null) {
+                messages.send(player, "party.result.invalid_target", Map.of("player", args[1]));
+                return;
+            }
+            target = requested;
+        }
+        List<String> dungeons = templates.discoverDungeons();
+        if (args.length >= 3 && !Texts.isBlank(args[2])) {
+            dungeons = List.of(args[2]);
+        }
+        if (dungeons.isEmpty()) {
+            messages.send(player, "command.list.empty");
+            return;
+        }
+        messages.send(player, "command.stats.header", Map.of("player", target.getName()));
+        for (String dungeonId : dungeons) {
+            if (configOf.apply(dungeonId) == null) {
+                continue;
+            }
+            Map<String, Object> status = limitService.status(target.getUniqueId(), dungeonId);
+            int dailyTotal = number(status.get("daily-total"));
+            int dailyUsed = number(status.get("daily-used"));
+            int weeklyTotal = number(status.get("weekly-total"));
+            int weeklyUsed = number(status.get("weekly-used"));
+            int monthlyTotal = number(status.get("monthly-total"));
+            int monthlyUsed = number(status.get("monthly-used"));
+            long cooldown = ((Number) status.getOrDefault("cooldown-seconds", 0L)).longValue();
+            StringBuilder limits = new StringBuilder();
+            if (dailyTotal > 0) {
+                limits.append(messages.message("command.stats.limit_daily", Map.of(
+                        "used", String.valueOf(dailyUsed),
+                        "total", String.valueOf(dailyTotal)))).append(' ');
+            }
+            if (weeklyTotal > 0) {
+                limits.append(messages.message("command.stats.limit_weekly", Map.of(
+                        "used", String.valueOf(weeklyUsed),
+                        "total", String.valueOf(weeklyTotal)))).append(' ');
+            }
+            if (monthlyTotal > 0) {
+                limits.append(messages.message("command.stats.limit_monthly", Map.of(
+                        "used", String.valueOf(monthlyUsed),
+                        "total", String.valueOf(monthlyTotal)))).append(' ');
+            }
+            if (cooldown > 0) {
+                limits.append(messages.message("command.stats.limit_cooldown", Map.of(
+                        "seconds", String.valueOf(cooldown))));
+            }
+            if (limits.isEmpty()) {
+                limits.append(messages.message("command.stats.no_limits", Map.of()));
+            }
+            messages.send(player, "command.stats.entry", Map.of(
+                    "dungeon", dungeonId,
+                    "limits", limits.toString()
+            ));
+            var best = leaderboard.personalBest(dungeonId, target.getName());
+            if (!best.isEmpty()) {
+                var entry = best.get(0);
+                messages.send(player, "command.stats.best", Map.of(
+                        "dungeon", dungeonId,
+                        "score", String.valueOf(entry.score()),
+                        "duration", formatDuration(entry.durationMs())
+                ));
+            }
+        }
+    }
+
+    private void routeRank(Player player, String[] args) {
+        if (leaderboard == null) {
+            messages.send(player, "general.invalid_args", Map.of());
+            return;
+        }
+        if (args.length < 2 || Texts.isBlank(args[1])) {
+            messages.send(player, "command.rank.usage");
+            return;
+        }
+        String dungeonId = args[1];
+        var entries = leaderboard.top(dungeonId, 10);
+        if (entries.isEmpty()) {
+            messages.send(player, "command.rank.empty", Map.of("dungeon", dungeonId));
+            return;
+        }
+        messages.send(player, "command.rank.header", Map.of("dungeon", dungeonId));
+        int place = 1;
+        for (var entry : entries) {
+            StringBuilder names = new StringBuilder();
+            for (int i = 0; i < entry.members().size(); i++) {
+                if (i > 0) {
+                    names.append(", ");
+                }
+                names.append(entry.members().get(i).name());
+            }
+            messages.send(player, "command.rank.entry", Map.of(
+                    "place", String.valueOf(place++),
+                    "score", String.valueOf(entry.score()),
+                    "duration", formatDuration(entry.durationMs()),
+                    "difficulty", entry.difficulty(),
+                    "members", names.toString()
+            ));
+        }
+    }
+
+    private static String formatDuration(long durationMs) {
+        long totalSeconds = Math.max(0L, durationMs / 1000L);
+        long minutes = totalSeconds / 60L;
+        long seconds = totalSeconds % 60L;
+        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    }
+
+    private static int number(Object value) {
+        return value instanceof Number number ? number.intValue() : 0;
     }
 
     private void routeGlobalChat(Player player, String[] args) {

@@ -41,6 +41,20 @@ command:
     aborted: "<gray>Leave cancelled</gray>"
   party:
     usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  stats:
+    header: "<gray>Dungeon stats for <player>:</gray>"
+    entry: "<gray>- <dungeon>: </gray><limits>"
+    limit_daily: "<gray>Daily: </gray><white><used>/<total></white>"
+    limit_weekly: "<gray>Weekly: </gray><white><used>/<total></white>"
+    limit_monthly: "<gray>Monthly: </gray><white><used>/<total></white>"
+    limit_cooldown: "<gray>Cooldown: </gray><white><seconds>s</white>"
+    no_limits: "<white>No entry limits</white>"
+    best: "<gray>  Best: </gray><white><score></white> <gray>| time </gray><white><duration></white>"
+  rank:
+    usage: "<red>Usage: /edg rank <dungeonId></red>"
+    empty: "<yellow>No leaderboard records yet for <dungeon></yellow>"
+    header: "<gray>Leaderboard for <dungeon> (top 10):</gray>"
+    entry: "<gold>#<place></gold> <white><score></white> <gray>pts | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
   globalchat:
     usage: "<red>Usage: /edg globalchat <on|off></red>"
   denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
@@ -69,6 +83,8 @@ challenge:
     member_offline: "<red>A party member is offline, cannot start the challenge</red>"
     dungeon_full: "<yellow>Dungeon is full right now, retry after existing parties finish</yellow>"
     full: "<yellow>Dungeon is full (pool or global limit reached), retry after existing parties finish</yellow>"
+    cooldown: "<yellow><player> is still on entry cooldown, <seconds>s remaining</yellow>"
+    daily_limit: "<yellow><player> has used up entry attempts, wait for the period reset</yellow>"
   cancel:
     no_session: "<yellow>No active challenge to cancel</yellow>"
 
@@ -128,6 +144,15 @@ guard:
 globalchat:
   enabled: "<green>Global chat listening enabled, messages reach inside and outside the dungeon</green>"
   disabled: "<yellow>Global chat listening disabled, messages stay inside the instance</yellow>"
+
+drop:
+  chest_locked: "<red>This reward chest must be opened before settlement, loot cannot be taken now</red>"
+  roll:
+    won: "<green>ROLL won: <white><item></white> x<amount></green>"
+    distributed: "<gray>This drop batch was auto-rolled (<count> items)</gray>"
+
+settle:
+  partial: "<yellow>Settlement partially completed, some rewards may be missing, audited</yellow>"
 
 flow:
   option:
@@ -189,3 +214,7 @@ debug:
   temp_item_granted: "Temp item granted | instance=%instance% | item=%item% | amount=%amount%"
   temp_item_removed: "Temp item removed | instance=%instance% | items=%items%"
   player_died: "Player died | player=%player% | instance=%instance% | remaining=%remaining%"
+  limit_recorded: "Entry attempt recorded | dungeon=%dungeon% | day_bucket=%day%"
+  limit_denied: "Entry limit denied | dungeon=%dungeon% | member=%member% | verdict=%verdict%"
+  settle_step_failed: "Settlement step failed | command=%command% | error=%error% | instance=%instance%"
+  settle_step_skipped: "Settlement step skipped | command=%command% | player=%player% | instance=%instance%"

@@ -34,6 +34,8 @@ public final class GameplayControllers implements FlowControllers {
 
     private volatile Consumer<String> failHandler;
     private volatile BiConsumer<String, Integer> tempItemHandler;
+    private volatile Consumer<String> completeHandler;
+    private volatile BiConsumer<String, String> endingHandler;
 
     public GameplayControllers(Plugin plugin,
             DungeonInstance instance,
@@ -54,6 +56,12 @@ public final class GameplayControllers implements FlowControllers {
     public void bindHandlers(Consumer<String> failHandler, BiConsumer<String, Integer> tempItemHandler) {
         this.failHandler = failHandler;
         this.tempItemHandler = tempItemHandler;
+    }
+
+    public void bindSettlementHandlers(Consumer<String> completeHandler,
+            BiConsumer<String, String> endingHandler) {
+        this.completeHandler = completeHandler;
+        this.endingHandler = endingHandler;
     }
 
     @Override
@@ -80,10 +88,76 @@ public final class GameplayControllers implements FlowControllers {
     }
 
     @Override
+    public void triggerComplete(FlowRuntime runtime, String cause) {
+        if (completeHandler != null) {
+            completeHandler.accept(cause);
+        }
+    }
+
+    @Override
+    public void triggerEnding(FlowRuntime runtime, String optionCase, String endingId) {
+        if (endingHandler != null) {
+            endingHandler.accept(optionCase, endingId);
+        }
+    }
+
+    @Override
     public void giveTempItem(FlowRuntime runtime, String itemId, int amount) {
         if (tempItemHandler != null) {
             tempItemHandler.accept(itemId, amount);
         }
+    }
+
+    @Override
+    public void handleRewardOpen(FlowRuntime runtime, String rewardId, UUID playerId) {
+        FlowModules.RewardDef reward = runtime.definition().rewards().get(rewardId);
+        if (reward == null || !reward.head().enabled() || reward.point() == null) {
+            return;
+        }
+        debug.logRaw("dungeon", (UUID) null,
+                "chest opened | reward=" + rewardId + " | player=" + playerId);
+        String lootTable = reward.lootTable();
+        if (lootTable.isBlank()) {
+            return;
+        }
+        org.bukkit.NamespacedKey key = org.bukkit.NamespacedKey.fromString(lootTable);
+        if (key == null) {
+            return;
+        }
+        org.bukkit.loot.LootTable table = Bukkit.getLootTable(key);
+        if (table == null) {
+            debug.logRaw("dungeon", (UUID) null,
+                    "loot table missing | reward=" + rewardId + " | table=" + lootTable);
+            return;
+        }
+        var point = reward.point();
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 1;
+            }
+
+            @Override
+            public void execute() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return;
+                }
+                var location = new org.bukkit.Location(world,
+                        point.x(), point.y(), point.z(), point.yaw(), point.pitch());
+                var block = world.getBlockAt(location);
+                java.util.Collection<org.bukkit.inventory.ItemStack> generated =
+                        table.populateLoot(new java.util.Random(), null);
+                if (block.getState() instanceof org.bukkit.block.Container container) {
+                    container.getInventory().addItem(
+                            generated.toArray(new org.bukkit.inventory.ItemStack[0]));
+                } else {
+                    for (org.bukkit.inventory.ItemStack stack : generated) {
+                        world.dropItemNaturally(location, stack);
+                    }
+                }
+            }
+        });
     }
 
     @Override
@@ -158,6 +232,16 @@ public final class GameplayControllers implements FlowControllers {
             if (!picked.contains(optionCase.caseId())) {
                 sealRegions(runtime, optionCase);
             }
+        }
+        String endingId = "";
+        for (FlowModules.OptionCase optionCase : option.cases()) {
+            if (picked.contains(optionCase.caseId()) && !optionCase.endingId().isBlank()) {
+                endingId = optionCase.endingId();
+                break;
+            }
+        }
+        if (!endingId.isBlank() && endingHandler != null) {
+            triggerEnding(runtime, pickedCaseIds.get(0), endingId);
         }
     }
 

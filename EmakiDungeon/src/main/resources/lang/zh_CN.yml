@@ -41,6 +41,20 @@ command:
     aborted: "<gray>已取消退出</gray>"
   party:
     usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  stats:
+    header: "<gray>玩家 <player> 的副本统计:</gray>"
+    entry: "<gray>- <dungeon>: </gray><limits>"
+    limit_daily: "<gray>日: </gray><white><used>/<total></white>"
+    limit_weekly: "<gray>周: </gray><white><used>/<total></white>"
+    limit_monthly: "<gray>月: </gray><white><used>/<total></white>"
+    limit_cooldown: "<gray>冷却: </gray><white><seconds>s</white>"
+    no_limits: "<white>无次数限制</white>"
+    best: "<gray>  最佳成绩: </gray><white><score></white> <gray>| 用时 </gray><white><duration></white>"
+  rank:
+    usage: "<red>用法: /edg rank <副本ID></red>"
+    empty: "<yellow>副本 <dungeon> 暂无排行记录</yellow>"
+    header: "<gray>副本 <dungeon> 排行榜 (前 10):</gray>"
+    entry: "<gold>#<place></gold> <white><score></white> <gray>分 | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
   globalchat:
     usage: "<red>用法: /edg globalchat <on|off></red>"
   denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
@@ -69,6 +83,8 @@ challenge:
     member_offline: "<red>有队员不在线, 无法发起挑战</red>"
     dungeon_full: "<yellow>副本当前满载, 请等待已有队伍结束后重试</yellow>"
     full: "<yellow>副本当前满载 (已达池或全局上限), 请等待已有队伍结束后重试</yellow>"
+    cooldown: "<yellow><player> 仍在进入冷却中, 剩余 <seconds> 秒</yellow>"
+    daily_limit: "<yellow><player> 的进入次数已用尽, 请等待周期重置</yellow>"
   cancel:
     no_session: "<yellow>当前没有可取消的挑战</yellow>"
 
@@ -128,6 +144,15 @@ guard:
 globalchat:
   enabled: "<green>已开启全局消息收听, 实例内外互通</green>"
   disabled: "<yellow>已关闭全局消息收听, 消息仅实例内闭环</yellow>"
+
+drop:
+  chest_locked: "<red>该奖励箱需在结算前开启, 当前不可拾取战利品</red>"
+  roll:
+    won: "<green>ROLL 获得: <white><item></white> x<amount></green>"
+    distributed: "<gray>本批掉落已自动 ROLL 分配 (<count> 件)</gray>"
+
+settle:
+  partial: "<yellow>结算部分完成, 部分奖励可能未发放, 已记录审计</yellow>"
 
 flow:
   option:
@@ -189,3 +214,7 @@ debug:
   temp_item_granted: "临时物品发放 | 实例=%instance% | 物品=%item% | 数量=%amount%"
   temp_item_removed: "临时物品收回 | 实例=%instance% | 物品=%items%"
   player_died: "玩家阵亡 | 玩家=%player% | 实例=%instance% | 剩余=%remaining%"
+  limit_recorded: "次数已计入 | 副本=%dungeon% | 日桶=%day%"
+  limit_denied: "次数限制拒绝 | 副本=%dungeon% | 玩家=%member% | 判定=%verdict%"
+  settle_step_failed: "结算步骤失败 | 命令=%command% | 错误=%error% | 实例=%instance%"
+  settle_step_skipped: "结算步骤跳过 | 命令=%command% | 玩家=%player% | 实例=%instance%"

@@ -37,6 +37,7 @@ public final class WaveController {
     private final DungeonInstance instance;
     private final MobSource mobSource;
     private final DebugLogger debug;
+    private final java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
 
     private final Map<String, WaveRuntime> waves = new ConcurrentHashMap<>();
     private final Map<UUID, MobOrigin> origins = new ConcurrentHashMap<>();
@@ -50,12 +51,39 @@ public final class WaveController {
             ExecutionDispatcher dispatcher,
             DungeonInstance instance,
             MobSource mobSource,
-            DebugLogger debug) {
+            DebugLogger debug,
+            java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.instance = instance;
         this.mobSource = mobSource;
         this.debug = debug;
+        this.configOf = configOf;
+    }
+
+    private double mobMultiplier() {
+        if (configOf == null) {
+            return 1.0D;
+        }
+        emaki.jiuwu.craft.dungeon.config.DungeonConfig config = configOf.apply(instance.dungeonId());
+        return config == null ? 1.0D : config.mobMultiplier(instance.difficulty());
+    }
+
+    private void applyDifficultyTuning(LivingEntity entity) {
+        double multiplier = mobMultiplier();
+        if (multiplier == 1.0D || entity == null) {
+            return;
+        }
+        var maxHealth = entity.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        if (maxHealth != null) {
+            double boosted = maxHealth.getValue() * multiplier;
+            maxHealth.setBaseValue(boosted);
+            entity.setHealth(Math.min(boosted, entity.getHealth() * multiplier));
+        }
+        var attackDamage = entity.getAttribute(org.bukkit.attribute.Attribute.ATTACK_DAMAGE);
+        if (attackDamage != null) {
+            attackDamage.setBaseValue(attackDamage.getValue() * multiplier);
+        }
     }
 
     public void bindListeners(java.util.function.BiConsumer<String, Integer> waveStartListener,
@@ -109,6 +137,7 @@ public final class WaveController {
                         return;
                     }
                     for (LivingEntity entity : result.spawned()) {
+                        applyDifficultyTuning(entity);
                         if (!dropLoot) {
                             entity.setMetadata(META_NO_DROP,
                                     new org.bukkit.metadata.FixedMetadataValue(plugin, Boolean.TRUE));
@@ -207,6 +236,7 @@ public final class WaveController {
                     MobSource.SpawnResult result =
                             mobSource.spawn(instance.instanceId(), bossPoint.point(), mobId, 1);
                     for (LivingEntity entity : result.spawned()) {
+                        applyDifficultyTuning(entity);
                         origins.put(entity.getUniqueId(), new MobOrigin("", -1, bossPoint.bossId()));
                     }
                     debug.logRaw("dungeon", (UUID) null,

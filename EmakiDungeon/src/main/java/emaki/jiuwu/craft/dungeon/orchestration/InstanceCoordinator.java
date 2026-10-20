@@ -35,6 +35,8 @@ public final class InstanceCoordinator {
     private final DebugLogger debug;
     private final java.util.function.Consumer<DungeonInstance> evacuator;
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
+    private volatile emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
+    private volatile java.util.function.Consumer<String> dropCleanup;
 
     private volatile boolean shuttingDown;
     private TaskToken inspectionTask = TaskToken.UNAVAILABLE;
@@ -65,6 +67,14 @@ public final class InstanceCoordinator {
 
     public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
+    }
+
+    public void bindScoreTracker(emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker) {
+        this.scoreTracker = scoreTracker;
+    }
+
+    public void bindDropCleanup(java.util.function.Consumer<String> dropCleanup) {
+        this.dropCleanup = dropCleanup;
     }
 
     public void startupScan() {
@@ -181,6 +191,15 @@ public final class InstanceCoordinator {
         }
         String instanceId = instance.instanceId();
         registry.unregister(instanceId);
+        if (scoreTracker != null) {
+            scoreTracker.remove(instanceId);
+        }
+        if (dropCleanup != null) {
+            try {
+                dropCleanup.accept(instanceId);
+            } catch (RuntimeException ignored) {
+            }
+        }
         store.remove(instanceId);
         if (held) {
             store.snapshot().addResidual(instanceId);

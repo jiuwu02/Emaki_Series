@@ -122,6 +122,11 @@ public final class RecoveryService {
                     "reason", reason
             ));
         }
+        org.bukkit.Bukkit.getPluginManager().callEvent(
+                new emaki.jiuwu.craft.dungeon.api.event.DungeonExitEvent(
+                        pointer,
+                        registry.get(pointer) == null ? "" : registry.get(pointer).dungeonId(),
+                        player.getName(), reason));
     }
 
     public void evacuate(DungeonInstance instance) {

@@ -19,6 +19,8 @@ public final class DungeonInstance {
 
     private volatile UUID partyId;
     private volatile String difficulty = "normal";
+    private volatile String dropMode = "free";
+    private volatile long startedAt;
     private volatile InstanceLoop loop;
     private volatile emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime;
 
@@ -54,6 +56,24 @@ public final class DungeonInstance {
 
     public void setDifficulty(String difficulty) {
         this.difficulty = difficulty == null ? "normal" : difficulty;
+    }
+
+    public String dropMode() {
+        return dropMode;
+    }
+
+    public void setDropMode(String dropMode) {
+        this.dropMode = dropMode == null || dropMode.isBlank() ? "free" : dropMode;
+    }
+
+    public long startedAt() {
+        return startedAt;
+    }
+
+    public void markStarted() {
+        if (startedAt == 0L) {
+            startedAt = System.currentTimeMillis();
+        }
     }
 
     public EventIngress ingress() {

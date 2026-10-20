@@ -186,6 +186,37 @@ public final class FlowEventListeners implements Listener {
         instance.ingress().post(new IngressEvent(EventIngressKeys.BLOCK, interactionId, payload));
     }
 
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onInventoryOpen(org.bukkit.event.inventory.InventoryOpenEvent event) {
+        if (!(event.getInventory().getHolder(true) instanceof org.bukkit.block.BlockState state)) {
+            return;
+        }
+        DungeonInstance instance = instanceOf(state.getWorld());
+        if (instance == null) {
+            return;
+        }
+        FlowRuntime runtime = instance.flowRuntime();
+        if (runtime == null || !(event.getPlayer() instanceof Player player)) {
+            return;
+        }
+        String rewardId = findReward(runtime, state.getBlock());
+        if (rewardId == null) {
+            return;
+        }
+        Map<String, Object> payload = new HashMap<>();
+        payload.put(EventIngressKeys.KEY_PLAYER, player.getUniqueId());
+        instance.ingress().post(new IngressEvent(EventIngressKeys.CHEST, rewardId, payload));
+    }
+
+    private String findReward(FlowRuntime runtime, Block block) {
+        for (Map.Entry<String, FlowModules.RewardDef> entry : runtime.definition().rewards().entrySet()) {
+            if (entry.getValue().head().enabled() && matches(entry.getValue().point(), block)) {
+                return entry.getKey();
+            }
+        }
+        return null;
+    }
+
     private String resolveClick(PlayerInteractEvent event) {
         Action action = event.getAction();
         if (action != Action.RIGHT_CLICK_BLOCK && action != Action.LEFT_CLICK_BLOCK) {

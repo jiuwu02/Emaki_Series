@@ -133,8 +133,24 @@ public final class FlowRuntime {
                     stateHook.onPlayerDeath(instance, EventIngressKeys.player(event.payload()));
                 }
             }
+            case EventIngressKeys.CHEST -> onChestOpen(event);
             default -> {
             }
+        }
+    }
+
+    private void onChestOpen(IngressEvent event) {
+        FlowModules.RewardDef reward = definition.rewards().get(event.sourceId());
+        if (reward == null || !reward.head().enabled()) {
+            return;
+        }
+        UUID playerId = EventIngressKeys.player(event.payload());
+        EvalContext context = new EvalContext(playerId, event.payload());
+        if (!adjudicator.adjudicate(reward.head(), reward.conditions(), context, playerId).allowed()) {
+            return;
+        }
+        if (controllers != null) {
+            controllers.handleRewardOpen(this, event.sourceId(), playerId);
         }
     }
 
@@ -491,6 +507,11 @@ public final class FlowRuntime {
             case "fail" -> {
                 if (controllers != null) {
                     controllers.triggerFail(this, action.param("reason", "scripted"));
+                }
+            }
+            case "complete" -> {
+                if (controllers != null) {
+                    controllers.triggerComplete(this, action.param("cause", "flow"));
                 }
             }
             case "give_temp_item" -> {

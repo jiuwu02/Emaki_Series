@@ -247,6 +247,9 @@ public final class PlayerStateService {
         if (state == null) {
             return;
         }
+        if (instance.state() == emaki.jiuwu.craft.dungeon.instance.InstanceState.SETTLING) {
+            return;
+        }
         synchronized (state) {
             if (state.failed) {
                 return;
@@ -261,6 +264,10 @@ public final class PlayerStateService {
                     "reason", reason
             ));
         }
+        org.bukkit.Bukkit.getPluginManager().callEvent(
+                new emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent(
+                        instance.instanceId(), instance.dungeonId(),
+                        mapFailReason(reason), reason));
         dispatcher.runGlobal(plugin, () -> {
             Party party = instance.partyId() == null ? null : parties.partyById(instance.partyId());
             if (party != null) {
@@ -277,6 +284,20 @@ public final class PlayerStateService {
             }
             coordinator.dispose(instance.instanceId(), "fail:" + reason);
         });
+    }
+
+    private static emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason mapFailReason(
+            String reason) {
+        if (reason == null) {
+            return emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.OTHER;
+        }
+        return switch (reason) {
+            case "all_dead" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.ALL_DEAD;
+            case "timeout" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.TIMEOUT;
+            case "crash" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.CRASH;
+            case "scripted" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.SCRIPTED;
+            default -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.OTHER;
+        };
     }
 
     private void tick() {

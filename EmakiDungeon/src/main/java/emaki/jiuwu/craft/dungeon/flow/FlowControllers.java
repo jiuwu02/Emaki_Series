@@ -12,7 +12,13 @@ public interface FlowControllers {
 
     void triggerFail(FlowRuntime runtime, String reason);
 
+    void triggerComplete(FlowRuntime runtime, String cause);
+
+    void triggerEnding(FlowRuntime runtime, String optionCase, String endingId);
+
     void giveTempItem(FlowRuntime runtime, String itemId, int amount);
+
+    void handleRewardOpen(FlowRuntime runtime, String rewardId, UUID playerId);
 
     void handleOptionTrigger(FlowRuntime runtime, String optionId, UUID playerId);
 

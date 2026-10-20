@@ -65,6 +65,7 @@ public final class ChallengeService {
             emaki.jiuwu.craft.dungeon.flow.FlowRuntime> runtimeFactory;
     private volatile emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService;
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
+    private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
 
     public ChallengeService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -110,6 +111,10 @@ public final class ChallengeService {
         this.runtimeFactory = runtimeFactory;
         this.stateService = stateService;
         this.tempItems = tempItems;
+    }
+
+    public void bindLimitService(emaki.jiuwu.craft.dungeon.limit.LimitService limitService) {
+        this.limitService = limitService;
     }
 
     public void shutdown() {
@@ -188,6 +193,14 @@ public final class ChallengeService {
             return;
         }
         session.setDropMode(mode);
+        var startEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeStartEvent(
+                session.dungeonId(), config.prepareWindowSeconds(),
+                session.difficulty(), session.dropMode());
+        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        if (startEvent.isCancelled()) {
+            abort(session, "challenge_start_cancelled");
+            return;
+        }
         if (!initialChecks(session, leader)) {
             abort(session, "initial_failed");
             return;
@@ -310,6 +323,25 @@ public final class ChallengeService {
                 abort(session, "permission");
                 return;
             }
+            if (limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
+                var verdict = limitService.check(memberId, session.dungeonId());
+                if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+                    String key = verdict.verdict() == emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.DENY_COOLDOWN
+                            ? "challenge.enter.cooldown"
+                            : "challenge.enter.daily_limit";
+                    messages.send(leader, key, Map.of(
+                            "player", member.getName(),
+                            "seconds", String.valueOf(verdict.retrySeconds())
+                    ));
+                    debug.log("dungeon", leader, "limit_denied", Map.of(
+                            "dungeon", session.dungeonId(),
+                            "member", String.valueOf(memberId),
+                            "verdict", verdict.verdict().name()
+                    ));
+                    abort(session, "limit_" + verdict.verdict().name());
+                    return;
+                }
+            }
         }
         debug.log("dungeon", leader, "ready_all", Map.of(
                 "dungeon", session.dungeonId(),
@@ -418,6 +450,8 @@ public final class ChallengeService {
         }
         instance.setPartyId(party.id());
         instance.setDifficulty(session.difficulty());
+        instance.setDropMode(session.dropMode());
+        instance.markStarted();
         if (runtimeFactory != null) {
             var runtime = runtimeFactory.apply(instance);
             if (runtime != null) {
@@ -446,9 +480,15 @@ public final class ChallengeService {
             if (member == null) {
                 continue;
             }
+            if (limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
+                limitService.record(memberId, session.dungeonId());
+            }
             teleportPermit.accept(memberId);
             snapshots.captureInitial(member, instanceId, session.dungeonId(), String.valueOf(party.id()));
             member.teleport(world.getSpawnLocation());
+            org.bukkit.Bukkit.getPluginManager().callEvent(
+                    new emaki.jiuwu.craft.dungeon.api.event.DungeonEnterEvent(
+                            instanceId, session.dungeonId(), memberId, String.valueOf(party.id())));
             messages.send(member, "challenge.entered", Map.of(
                     "dungeon", session.dungeonId(),
                     "instance", instanceId
@@ -537,6 +577,9 @@ public final class ChallengeService {
 
     public void abort(ChallengeSession session, String reason) {
         if (sessions.remove(session.partyId(), session)) {
+            org.bukkit.Bukkit.getPluginManager().callEvent(
+                    new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeCancelEvent(
+                            session.dungeonId(), reason));
             cleanup(session, reason);
         }
     }

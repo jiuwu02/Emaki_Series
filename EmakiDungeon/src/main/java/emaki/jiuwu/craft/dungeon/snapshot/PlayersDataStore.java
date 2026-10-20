@@ -22,6 +22,7 @@ public final class PlayersDataStore {
         private String restoreInstance = "";
         private String partyId = "";
         private boolean globalChat;
+        private Map<String, Object> limits = Map.of();
 
         public String restoreInstance() {
             return restoreInstance;
@@ -45,6 +46,14 @@ public final class PlayersDataStore {
 
         public void setGlobalChat(boolean globalChat) {
             this.globalChat = globalChat;
+        }
+
+        public Map<String, Object> limits() {
+            return limits;
+        }
+
+        public void setLimits(Map<String, Object> limits) {
+            this.limits = limits == null ? Map.of() : limits;
         }
     }
 
@@ -78,6 +87,10 @@ public final class PlayersDataStore {
         data.restoreInstance = section.getString("restore-instance", "");
         data.partyId = section.getString("party", "");
         data.globalChat = section.getBoolean("global-chat", globalChatDefault);
+        YamlSection limits = section.getSection("limits");
+        if (limits != null && !limits.isEmpty()) {
+            data.limits = new LinkedHashMap<>(limits.asMap());
+        }
         return data;
     }
 
@@ -94,6 +107,9 @@ public final class PlayersDataStore {
         values.put("restore-instance", data.restoreInstance);
         values.put("party", data.partyId);
         values.put("global-chat", data.globalChat);
+        if (!data.limits.isEmpty()) {
+            values.put("limits", new LinkedHashMap<>(data.limits));
+        }
         try {
             Files.createDirectories(root.toPath());
             Path temp = file.toPath().resolveSibling(file.getName() + ".tmp");

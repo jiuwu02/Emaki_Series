@@ -92,6 +92,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private RegionTracker regionTracker;
     private PlayerStateService stateService;
     private ActionBridge actionBridge;
+    private emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
+    private emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
+    private emaki.jiuwu.craft.dungeon.settlement.SettlementService settlement;
+    private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
 
     public EmakiDungeonPlugin() {
@@ -250,6 +254,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             }
         }
         Function<String, DungeonConfig> configOf = configCache::get;
+        this.configOf = configOf;
         Function<String, Integer> poolMaxOf = dungeonId -> {
             DungeonConfig config = configCache.get(dungeonId);
             return config == null ? null : config.poolMaxWorlds();
@@ -277,6 +282,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 appConfig.globalChatDefault());
         snapshots = new SnapshotManager(snapshotsStore, playersDataStore, messageService);
 
+        emaki.jiuwu.craft.dungeon.limit.LimitService limitService =
+                new emaki.jiuwu.craft.dungeon.limit.LimitService(playersDataStore, configOf,
+                        appConfigSupplier, debugLogger(), (dungeonId, period) ->
+                                debugLogger().logRaw("dungeon", (java.util.UUID) null,
+                                        "daily_reset | dungeon=" + dungeonId + " | period=" + period));
+        leaderboard = new emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore(
+                this, dispatcher, getDataFolder());
+
         PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
         parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
                 appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
@@ -294,18 +307,33 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
+        challenge.bindLimitService(limitService);
         challenge.start();
 
         emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge =
                 new ActionBridge(this, appConfigSupplier, registry, messageService);
         emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItemManager =
                 new TempItemManager(messageService, debugLogger());
+        emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests =
+                new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
+        emaki.jiuwu.craft.dungeon.drop.DropRouter dropRouter =
+                new emaki.jiuwu.craft.dungeon.drop.DropRouter(registry, parties, messageService,
+                        rewardChests, configOf, this, dispatcher);
         emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation =
                 new emaki.jiuwu.craft.dungeon.isolation.MessageIsolation(registry, playersDataStore, messageService);
         stateService = new PlayerStateService(this, dispatcher, coordinator, registry,
                         parties, recovery, messageService, debugLogger(), configOf, languageLoader);
         stateService.start();
         regionTracker = new RegionTracker(this, dispatcher, registry);
+        scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
+        coordinator.bindScoreTracker(scoreTracker);
+        coordinator.bindDropCleanup(instanceId -> rewardChests.remove(instanceId));
+        settlement = new emaki.jiuwu.craft.dungeon.settlement.SettlementService(
+                this, dispatcher, registry, parties, scoreTracker, snapshots, recovery,
+                rewardChests, leaderboard, coordinator,
+                new emaki.jiuwu.craft.dungeon.settlement.SettlementCommandRunner(debugLogger()),
+                messageService, debugLogger(), configOf);
+        settlement.bindActionBridge(actionBridge);
         this.actionBridge = actionBridge;
 
         recovery.bindActionBridge(actionBridge);
@@ -327,6 +355,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         router = new DungeonCommandRouter(this, messageService, challenge, parties, recovery, snapshots,
                 chatInputService, templates, coordinator, registry, isolation);
+        router.bindOperations(limitService, leaderboard, configOf);
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties), this);
@@ -338,6 +367,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new PlayerStateListener(registry, stateService), this);
         getServer().getPluginManager().registerEvents(
                 new FlowEventListeners(registry), this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.score.CombatDataListener(registry, scoreTracker), this);
+        getServer().getPluginManager().registerEvents(dropRouter, this);
+        getServer().getPluginManager().registerEvents(rewardChests, this);
         getServer().getPluginManager().registerEvents(isolation, this);
 
         actionBridge.registerAll();
@@ -385,7 +418,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         var gateController = new emaki.jiuwu.craft.dungeon.flow.GateController(this, instance, debugLogger());
         var waveController = new emaki.jiuwu.craft.dungeon.flow.WaveController(
                 this, EmakiCoreLibPlugin.lookup().executionDispatcher(), instance,
-                new emaki.jiuwu.craft.dungeon.flow.MobSource(), debugLogger());
+                new emaki.jiuwu.craft.dungeon.flow.MobSource(), debugLogger(), configOf);
         gateController.bindWaveController(waveController);
         var controllers = new emaki.jiuwu.craft.dungeon.flow.GameplayControllers(
                 this, instance, messageService, chatInputService, debugLogger(),
@@ -393,21 +426,34 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         controllers.bindHandlers(
                 reason -> stateService.fail(instance, reason),
                 (itemId, amount) -> dispatchTempItemGrant(instance, itemId, amount, tempItemManager));
+        controllers.bindSettlementHandlers(
+                cause -> settlement.beginComplete(instance, cause),
+                (optionCase, endingId) -> settlement.onEnding(instance, optionCase, endingId));
         waveController.bindListeners(
                 (spawnId, wave) -> actionBridge.dispatch("dungeon_wave_start", null, Map.of(
                         "instanceId", instance.instanceId(),
                         "spawnId", spawnId,
                         "wave", String.valueOf(wave)
                 )),
-                (gateId, condition) -> actionBridge.dispatch("dungeon_gate_open", null, Map.of(
-                        "instanceId", instance.instanceId(),
-                        "gateId", gateId,
-                        "condition", condition
-                )),
-                roomId -> actionBridge.dispatch("dungeon_room_clear", null, Map.of(
-                        "instanceId", instance.instanceId(),
-                        "roomId", roomId
-                )));
+                (gateId, condition) -> {
+                    actionBridge.dispatch("dungeon_gate_open", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "gateId", gateId,
+                            "condition", condition
+                    ));
+                    Bukkit.getPluginManager().callEvent(
+                            new emaki.jiuwu.craft.dungeon.api.event.DungeonGateOpenEvent(
+                                    instance.instanceId(), instance.dungeonId(), gateId, condition));
+                },
+                roomId -> {
+                    actionBridge.dispatch("dungeon_room_clear", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "roomId", roomId
+                    ));
+                    Bukkit.getPluginManager().callEvent(
+                            new emaki.jiuwu.craft.dungeon.api.event.DungeonRoomClearEvent(
+                                    instance.instanceId(), instance.dungeonId(), roomId));
+                });
         runtime.bindControllers(controllers);
         runtime.bindStateHook(stateService::onPlayerDeath);
         return runtime;

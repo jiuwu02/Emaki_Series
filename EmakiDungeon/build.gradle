@@ -11,4 +11,6 @@ dependencies {
     provided libs.paper.api
     provided libs.mythic.dist
     provided project(':EmakiMobsApi')
+
+    testImplementation libs.junit.jupiter
 }
