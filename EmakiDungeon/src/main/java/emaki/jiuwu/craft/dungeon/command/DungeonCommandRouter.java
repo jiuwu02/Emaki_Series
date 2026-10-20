@@ -237,7 +237,8 @@ public final class DungeonCommandRouter {
         }
         messages.send(player, "command.stats.header", Map.of("player", target.getName()));
         for (String dungeonId : dungeons) {
-            if (configOf.apply(dungeonId) == null) {
+            var dungeonConfig = configOf.apply(dungeonId);
+            if (dungeonConfig == null) {
                 continue;
             }
             Map<String, Object> status = limitService.status(target.getUniqueId(), dungeonId);
@@ -271,6 +272,13 @@ public final class DungeonCommandRouter {
             if (limits.isEmpty()) {
                 limits.append(messages.message("command.stats.no_limits", Map.of()));
             }
+            messages.send(player, "command.stats.limit_windows", Map.of(
+                    "monthly", dungeonConfig.limitsMonthlyWeeks().isEmpty()
+                            ? "*" : joinNumbers(dungeonConfig.limitsMonthlyWeeks()),
+                    "weekly", dungeonConfig.limitsWeeklyDays().isEmpty()
+                            ? "*" : joinNumbers(dungeonConfig.limitsWeeklyDays()),
+                    "daily", dungeonConfig.limitsDailyWindow() == null
+                            ? "*" : dungeonConfig.limitsDailyWindow().format()));
             messages.send(player, "command.stats.entry", Map.of(
                     "dungeon", dungeonId,
                     "limits", limits.toString()
@@ -327,6 +335,17 @@ public final class DungeonCommandRouter {
         long minutes = totalSeconds / 60L;
         long seconds = totalSeconds % 60L;
         return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
+    }
+
+    private static String joinNumbers(List<Integer> values) {
+        StringBuilder builder = new StringBuilder();
+        for (Integer value : values) {
+            if (builder.length() > 0) {
+                builder.append(',');
+            }
+            builder.append(value);
+        }
+        return builder.toString();
     }
 
     private static int number(Object value) {

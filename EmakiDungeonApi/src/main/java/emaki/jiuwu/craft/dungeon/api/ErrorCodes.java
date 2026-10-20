@@ -4,6 +4,9 @@ public final class ErrorCodes {
 
     public static final String DENY_COOLDOWN = "DENY_COOLDOWN";
     public static final String DENY_DAILY_LIMIT = "DENY_DAILY_LIMIT";
+    public static final String DENY_WEEKLY_LIMIT = "DENY_WEEKLY_LIMIT";
+    public static final String DENY_MONTHLY_LIMIT = "DENY_MONTHLY_LIMIT";
+    public static final String DENY_WINDOW = "DENY_WINDOW";
     public static final String DENY_GLOBAL_FULL = "DENY_GLOBAL_FULL";
     public static final String DENY_DUNGEON_FULL = "DENY_DUNGEON_FULL";
     public static final String DENY_PARTY_INVALID = "DENY_PARTY_INVALID";

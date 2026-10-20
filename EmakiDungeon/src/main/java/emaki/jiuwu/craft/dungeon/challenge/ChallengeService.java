@@ -362,14 +362,11 @@ public final class ChallengeService {
         }
         if (limitService != null && !player.hasPermission("emakidungeon.bypass.limit")) {
             var verdict = limitService.check(player.getUniqueId(), dungeonId);
-            if (verdict.verdict() == emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.DENY_COOLDOWN) {
+            if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+                String code = limitErrorCode(verdict.verdict());
                 return emaki.jiuwu.craft.dungeon.api.Result.err(
-                        emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_COOLDOWN, "api.denied_cooldown",
-                        Map.of("seconds", String.valueOf(verdict.retrySeconds())));
-            }
-            if (verdict.verdict() == emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.DENY_DAILY_LIMIT) {
-                return emaki.jiuwu.craft.dungeon.api.Result.err(
-                        emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DAILY_LIMIT, "api.denied_daily_limit",
+                        code,
+                        "api.denied_" + code.substring(5).toLowerCase(java.util.Locale.ROOT),
                         Map.of("seconds", String.valueOf(verdict.retrySeconds())));
             }
         }
@@ -414,7 +411,7 @@ public final class ChallengeService {
             return emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID;
         }
         if (reason.startsWith("limit_")) {
-            return reason.substring("limit_".length());
+            return limitErrorCodeByName(reason.substring("limit_".length()));
         }
         return switch (reason) {
             case "config_missing" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DUNGEON_NOT_FOUND;
@@ -422,6 +419,41 @@ public final class ChallengeService {
             case "deny_DENY_GLOBAL_FULL" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_GLOBAL_FULL;
             case "deny_DENY_DUNGEON_FULL" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DUNGEON_FULL;
             default -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID;
+        };
+    }
+
+    private static String limitErrorCode(emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict verdict) {
+        return switch (verdict) {
+            case DENY_COOLDOWN -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_COOLDOWN;
+            case DENY_DAILY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DAILY_LIMIT;
+            case DENY_WEEKLY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WEEKLY_LIMIT;
+            case DENY_MONTHLY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_MONTHLY_LIMIT;
+            default -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WINDOW;
+        };
+    }
+
+    private static String limitErrorCodeByName(String verdictName) {
+        return switch (verdictName) {
+            case "DENY_COOLDOWN" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_COOLDOWN;
+            case "DENY_DAILY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DAILY_LIMIT;
+            case "DENY_WEEKLY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WEEKLY_LIMIT;
+            case "DENY_MONTHLY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_MONTHLY_LIMIT;
+            case "DENY_DAILY_WINDOW", "DENY_WEEKLY_DAY", "DENY_MONTHLY_WEEK" ->
+                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WINDOW;
+            default -> verdictName;
+        };
+    }
+
+    private static String limitMessageKey(emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict verdict) {
+        return switch (verdict) {
+            case DENY_COOLDOWN -> "challenge.enter.cooldown";
+            case DENY_DAILY_LIMIT -> "challenge.enter.daily_limit";
+            case DENY_WEEKLY_LIMIT -> "challenge.enter.weekly_limit";
+            case DENY_MONTHLY_LIMIT -> "challenge.enter.monthly_limit";
+            case DENY_DAILY_WINDOW -> "challenge.enter.daily_window";
+            case DENY_WEEKLY_DAY -> "challenge.enter.weekly_day";
+            case DENY_MONTHLY_WEEK -> "challenge.enter.monthly_week";
+            default -> "challenge.enter.daily_limit";
         };
     }
 
@@ -447,9 +479,7 @@ public final class ChallengeService {
             if (limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
                 var verdict = limitService.check(memberId, session.dungeonId());
                 if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
-                    String key = verdict.verdict() == emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.DENY_COOLDOWN
-                            ? "challenge.enter.cooldown"
-                            : "challenge.enter.daily_limit";
+                    String key = limitMessageKey(verdict.verdict());
                     messages.send(leader, key, Map.of(
                             "player", member.getName(),
                             "seconds", String.valueOf(verdict.retrySeconds())

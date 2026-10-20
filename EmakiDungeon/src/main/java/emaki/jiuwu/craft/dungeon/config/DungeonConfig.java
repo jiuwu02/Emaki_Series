@@ -26,14 +26,40 @@ public record DungeonConfig(
         String dropDefaultMode,
         Map<String, DifficultyTuning> difficultyTunings,
         int limitsDaily,
-        Map<Integer, Integer> limitsWeekly,
+        DailyWindow limitsDailyWindow,
+        int limitsWeeklyCount,
+        List<Integer> limitsWeeklyDays,
         int limitsMonthly,
+        List<Integer> limitsMonthlyWeeks,
         int cooldownSeconds,
         int leaderboardMaxEntries,
         List<String> settlementCommands
 ) {
 
     public record DifficultyTuning(double mobMultiplier, double dropMultiplier) {
+    }
+
+    public record DailyWindow(int startMinute, int endMinute) {
+
+        public boolean contains(int minuteOfDay) {
+            if (startMinute == endMinute) {
+                return true;
+            }
+            if (startMinute < endMinute) {
+                return minuteOfDay >= startMinute && minuteOfDay < endMinute;
+            }
+            return minuteOfDay >= startMinute || minuteOfDay < endMinute;
+        }
+
+        public String format() {
+            return minute(startMinute) + "-" + minute(endMinute);
+        }
+
+        private static String minute(int value) {
+            int hour = value / 60;
+            int minute = value % 60;
+            return (hour < 10 ? "0" : "") + hour + ":" + (minute < 10 ? "0" : "") + minute;
+        }
     }
 
     private static final List<String> DEFAULT_DIFFICULTIES = List.of("normal", "hard");
@@ -61,8 +87,11 @@ public record DungeonConfig(
                 "free",
                 Map.copyOf(tunings),
                 1,
-                Map.of(),
+                null,
                 0,
+                List.of(),
+                0,
+                List.of(),
                 0,
                 100,
                 List.of()
@@ -176,25 +205,15 @@ public record DungeonConfig(
             tunings.put("normal", new DifficultyTuning(1.0D, 1.0D));
             tunings.put("hard", new DifficultyTuning(1.5D, 1.2D));
         }
-        Integer limitsDaily = section.getInt("limits.daily", 0);
-        Map<Integer, Integer> limitsWeekly = new LinkedHashMap<>();
-        YamlSection weeklySection = section.getSection("limits.weekly");
-        if (weeklySection != null) {
-            for (String day : weeklySection.getKeys(false)) {
-                try {
-                    int dayOfWeek = Integer.parseInt(day.trim());
-                    if (dayOfWeek < 1 || dayOfWeek > 7) {
-                        continue;
-                    }
-                    Integer count = weeklySection.getInt(day, 0);
-                    if (count != null && count > 0) {
-                        limitsWeekly.put(dayOfWeek, count);
-                    }
-                } catch (NumberFormatException ignored) {
-                }
-            }
-        }
-        Integer limitsMonthly = section.getInt("limits.monthly", 0);
+        Integer limitsDaily = section.getInt("limits.daily.count", 0);
+        DailyWindow limitsDailyWindow = parseWindow(
+                section.getString("limits.daily.time-window", ""));
+        Integer limitsWeeklyCount = section.getInt("limits.weekly.count", 0);
+        List<Integer> limitsWeeklyDays = parseIntList(
+                section.getList("limits.weekly.days"), 1, 7, "limits.weekly.days");
+        Integer limitsMonthly = section.getInt("limits.monthly.count", 0);
+        List<Integer> limitsMonthlyWeeks = parseIntList(
+                section.getList("limits.monthly.weeks"), 1, 6, "limits.monthly.weeks");
         Integer cooldownSeconds = section.getInt("limits.cooldown-seconds", 0);
         Integer leaderboardMaxEntries = section.getInt("leaderboard.max-entries", 100);
         List<String> settlementCommands = new ArrayList<>();
@@ -220,13 +239,60 @@ public record DungeonConfig(
                 dropDefaultMode,
                 Map.copyOf(tunings),
                 limitsDaily == null || limitsDaily < 0 ? 0 : limitsDaily,
-                Map.copyOf(limitsWeekly),
+                limitsDailyWindow,
+                limitsWeeklyCount == null || limitsWeeklyCount < 0 ? 0 : limitsWeeklyCount,
+                limitsWeeklyDays,
                 limitsMonthly == null || limitsMonthly < 0 ? 0 : limitsMonthly,
+                limitsMonthlyWeeks,
                 cooldownSeconds == null || cooldownSeconds < 0 ? 0 : cooldownSeconds,
                 leaderboardMaxEntries == null || leaderboardMaxEntries < 1
                         ? 100 : leaderboardMaxEntries,
                 List.copyOf(settlementCommands)
         );
+    }
+
+    private static DailyWindow parseWindow(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        String text = raw.trim();
+        java.util.regex.Matcher matcher = java.util.regex.Pattern
+                .compile("^(\\d{1,2}):(\\d{2})-(\\d{1,2}):(\\d{2})$").matcher(text);
+        if (!matcher.matches()) {
+            throw new IllegalArgumentException("invalid limits.daily.time-window: " + raw);
+        }
+        int startHour = Integer.parseInt(matcher.group(1));
+        int startMinute = Integer.parseInt(matcher.group(2));
+        int endHour = Integer.parseInt(matcher.group(3));
+        int endMinute = Integer.parseInt(matcher.group(4));
+        if (startHour > 23 || endHour > 23 || startMinute > 59 || endMinute > 59) {
+            throw new IllegalArgumentException("invalid limits.daily.time-window: " + raw);
+        }
+        return new DailyWindow(startHour * 60 + startMinute, endHour * 60 + endMinute);
+    }
+
+    private static List<Integer> parseIntList(List<?> raw, int min, int max, String key) {
+        if (raw == null || raw.isEmpty()) {
+            return List.of();
+        }
+        List<Integer> values = new ArrayList<>();
+        for (Object entry : raw) {
+            Integer parsed = null;
+            if (entry instanceof Number number) {
+                parsed = number.intValue();
+            } else {
+                try {
+                    parsed = Integer.parseInt(String.valueOf(entry).trim());
+                } catch (NumberFormatException ignored) {
+                    parsed = null;
+                }
+            }
+            if (parsed == null || parsed < min || parsed > max) {
+                throw new IllegalArgumentException("invalid " + key + ": " + entry);
+            }
+            values.add(parsed);
+        }
+        return List.copyOf(values);
     }
 
     private static Map<String, Integer> defaultDropLevels() {

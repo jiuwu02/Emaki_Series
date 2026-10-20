@@ -50,6 +50,7 @@ command:
     limit_monthly: "<gray>月: </gray><white><used>/<total></white>"
     limit_cooldown: "<gray>冷却: </gray><white><seconds>s</white>"
     no_limits: "<white>无次数限制</white>"
+    limit_windows: "<gray>可挑战窗口: </gray><white>月[<monthly>] 周[<weekly>] 日[<daily>]</white>"
     best: "<gray>  最佳成绩: </gray><white><score></white> <gray>| 用时 </gray><white><duration></white>"
   rank:
     usage: "<red>用法: /edg rank <副本ID></red>"
@@ -85,7 +86,12 @@ challenge:
     dungeon_full: "<yellow>副本当前满载, 请等待已有队伍结束后重试</yellow>"
     full: "<yellow>副本当前满载 (已达池或全局上限), 请等待已有队伍结束后重试</yellow>"
     cooldown: "<yellow><player> 仍在进入冷却中, 剩余 <seconds> 秒</yellow>"
-    daily_limit: "<yellow><player> 的进入次数已用尽, 请等待周期重置</yellow>"
+    daily_limit: "<yellow><player> 的进入次数已用尽, 请等待周期重置 (<seconds> 秒)</yellow>"
+    weekly_limit: "<yellow><player> 本周可挑战次数已用尽, <seconds> 秒后重置</yellow>"
+    monthly_limit: "<yellow><player> 本月可挑战次数已用尽, <seconds> 秒后重置</yellow>"
+    daily_window: "<red>当前不在每日可挑战时段内, <seconds> 秒后重试</red>"
+    weekly_day: "<red>今天不在可挑战周几内, <seconds> 秒后重试</red>"
+    monthly_week: "<red>当前不在可挑战的月周次内, <seconds> 秒后重试</red>"
   cancel:
     no_session: "<yellow>当前没有可取消的挑战</yellow>"
 

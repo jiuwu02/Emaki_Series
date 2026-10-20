@@ -5,12 +5,14 @@ import java.time.YearMonth;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.config.DungeonConfig.DailyWindow;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore.PlayerData;
 
@@ -19,7 +21,12 @@ public final class LimitService {
     public enum Verdict {
         ALLOWED,
         DENY_COOLDOWN,
-        DENY_DAILY_LIMIT
+        DENY_DAILY_LIMIT,
+        DENY_WEEKLY_LIMIT,
+        DENY_MONTHLY_LIMIT,
+        DENY_DAILY_WINDOW,
+        DENY_WEEKLY_DAY,
+        DENY_MONTHLY_WEEK
     }
 
     public record Result(Verdict verdict, long retrySeconds) {
@@ -64,35 +71,45 @@ public final class LimitService {
             return new Result(Verdict.DENY_COOLDOWN,
                     (cooldownUntil - now.toInstant().toEpochMilli() + 999L) / 1000L);
         }
-        String dayBucket = dayBucket(now);
-        if (bucketChanged(dungeonLimits, "daily", dayBucket)) {
-            fireReset(dungeonId, "day");
-        }
-        if (config.limitsDaily() > 0) {
-            int used = bucketCount(dungeonLimits, "daily", dayBucket);
-            if (used >= config.limitsDaily()) {
-                return new Result(Verdict.DENY_DAILY_LIMIT, secondsUntilTomorrow(now));
-            }
-        }
-        int weeklyLimit = config.limitsWeekly().getOrDefault(now.getDayOfWeek().getValue(), 0);
-        if (bucketChanged(dungeonLimits, "weekly", weekBucket(now))) {
-            fireReset(dungeonId, "week");
-        }
-        if (weeklyLimit > 0) {
-            String bucket = weekBucket(now);
-            int used = bucketCount(dungeonLimits, "weekly", bucket);
-            if (used >= weeklyLimit) {
-                return new Result(Verdict.DENY_DAILY_LIMIT, secondsUntilTomorrow(now));
-            }
-        }
         if (bucketChanged(dungeonLimits, "monthly", monthBucket(now))) {
             fireReset(dungeonId, "month");
         }
+        if (!config.limitsMonthlyWeeks().isEmpty()
+                && !config.limitsMonthlyWeeks().contains(monthWeek(now))) {
+            return new Result(Verdict.DENY_MONTHLY_WEEK, secondsUntilNextWeek(now));
+        }
         if (config.limitsMonthly() > 0) {
-            String bucket = monthBucket(now);
-            int used = bucketCount(dungeonLimits, "monthly", bucket);
+            int used = bucketCount(dungeonLimits, "monthly", monthBucket(now));
             if (used >= config.limitsMonthly()) {
-                return new Result(Verdict.DENY_DAILY_LIMIT, secondsUntilNextMonth(now));
+                return new Result(Verdict.DENY_MONTHLY_LIMIT, secondsUntilNextMonth(now));
+            }
+        }
+        if (bucketChanged(dungeonLimits, "weekly", weekBucket(now))) {
+            fireReset(dungeonId, "week");
+        }
+        if (!config.limitsWeeklyDays().isEmpty()
+                && !config.limitsWeeklyDays().contains(now.getDayOfWeek().getValue())) {
+            return new Result(Verdict.DENY_WEEKLY_DAY,
+                    secondsUntilNextAllowedDay(now, config.limitsWeeklyDays()));
+        }
+        if (config.limitsWeeklyCount() > 0) {
+            int used = bucketCount(dungeonLimits, "weekly", weekBucket(now));
+            if (used >= config.limitsWeeklyCount()) {
+                return new Result(Verdict.DENY_WEEKLY_LIMIT, secondsUntilNextWeek(now));
+            }
+        }
+        if (bucketChanged(dungeonLimits, "daily", dayBucket(now))) {
+            fireReset(dungeonId, "day");
+        }
+        DailyWindow window = config.limitsDailyWindow();
+        if (window != null && !window.contains(now.getHour() * 60 + now.getMinute())) {
+            return new Result(Verdict.DENY_DAILY_WINDOW,
+                    secondsUntilWindowStart(now, window.startMinute()));
+        }
+        if (config.limitsDaily() > 0) {
+            int used = bucketCount(dungeonLimits, "daily", dayBucket(now));
+            if (used >= config.limitsDaily()) {
+                return new Result(Verdict.DENY_DAILY_LIMIT, secondsUntilTomorrow(now));
             }
         }
         return Result.allowed();
@@ -121,8 +138,7 @@ public final class LimitService {
         if (config.limitsDaily() > 0) {
             increment(dungeonLimits, "daily", dayBucket);
         }
-        int weeklyLimit = config.limitsWeekly().getOrDefault(now.getDayOfWeek().getValue(), 0);
-        if (weeklyLimit > 0) {
+        if (config.limitsWeeklyCount() > 0) {
             increment(dungeonLimits, "weekly", weekBucket(now));
         }
         if (config.limitsMonthly() > 0) {
@@ -172,10 +188,10 @@ public final class LimitService {
         result.put("daily-used",
                 config.limitsDaily() <= 0 ? 0
                         : bucketCount(dungeonLimits, "daily", dayBucket(now)));
-        result.put("weekly-total",
-                config.limitsWeekly().getOrDefault(now.getDayOfWeek().getValue(), 0));
+        result.put("weekly-total", config.limitsWeeklyCount());
         result.put("weekly-used",
-                bucketCount(dungeonLimits, "weekly", weekBucket(now)));
+                config.limitsWeeklyCount() <= 0 ? 0
+                        : bucketCount(dungeonLimits, "weekly", weekBucket(now)));
         result.put("monthly-total", config.limitsMonthly());
         result.put("monthly-used",
                 config.limitsMonthly() <= 0 ? 0
@@ -211,11 +227,17 @@ public final class LimitService {
     private static String weekBucket(ZonedDateTime now) {
         LocalDate monday = now.toLocalDate()
                 .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
-        return monday + "-D" + now.getDayOfWeek().getValue();
+        return monday.toString();
     }
 
     private static String monthBucket(ZonedDateTime now) {
         return YearMonth.from(now).toString();
+    }
+
+    private static int monthWeek(ZonedDateTime now) {
+        LocalDate date = now.toLocalDate();
+        int firstOffset = date.withDayOfMonth(1).getDayOfWeek().getValue() - 1;
+        return (date.getDayOfMonth() - 1 + firstOffset) / 7 + 1;
     }
 
     private static int bucketCount(Map<String, Object> dungeonLimits, String kind, String bucket) {
@@ -229,7 +251,7 @@ public final class LimitService {
     @SuppressWarnings("unchecked")
     private static void increment(Map<String, Object> dungeonLimits, String kind, String bucket) {
         Map<String, Object> counts = dungeonLimits.get(kind) instanceof Map<?, ?> raw
-                ? (Map<String, Object>) raw
+                ? cast(raw)
                 : new LinkedHashMap<>();
         Object current = counts.get(bucket);
         int value = current instanceof Number number ? number.intValue() : 0;
@@ -246,8 +268,35 @@ public final class LimitService {
         return Math.max(1L, now.until(tomorrow, java.time.temporal.ChronoUnit.SECONDS));
     }
 
+    private static long secondsUntilNextWeek(ZonedDateTime now) {
+        LocalDate monday = now.toLocalDate()
+                .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                .plusWeeks(1);
+        ZonedDateTime start = monday.atStartOfDay(now.getZone());
+        return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
+    }
+
     private static long secondsUntilNextMonth(ZonedDateTime now) {
         ZonedDateTime next = YearMonth.from(now).plusMonths(1).atDay(1).atStartOfDay(now.getZone());
         return Math.max(1L, now.until(next, java.time.temporal.ChronoUnit.SECONDS));
+    }
+
+    private static long secondsUntilNextAllowedDay(ZonedDateTime now, List<Integer> days) {
+        for (int offset = 1; offset <= 7; offset++) {
+            LocalDate day = now.toLocalDate().plusDays(offset);
+            if (days.contains(day.getDayOfWeek().getValue())) {
+                ZonedDateTime start = day.atStartOfDay(now.getZone());
+                return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
+            }
+        }
+        return 86_400L;
+    }
+
+    private static long secondsUntilWindowStart(ZonedDateTime now, int startMinute) {
+        ZonedDateTime start = now.toLocalDate().atStartOfDay(now.getZone()).plusMinutes(startMinute);
+        if (!start.isAfter(now)) {
+            start = start.plusDays(1);
+        }
+        return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
     }
 }

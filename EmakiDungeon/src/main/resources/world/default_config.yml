@@ -23,13 +23,31 @@ enter:
 pool:
   max-worlds: 5
 
-# 复合次数限制: 每日 / 每周指定周几 / 每月可组合。
+# 挑战限制: 日历门 + 三层次数串联, 判定顺序 月 > 周 > 日, 任一层不满足或耗尽即不可进入。
+# count 为 0 表示该层次数不限; days 取 1-7 (1=周一 ... 7=周日); weeks 取 1-6 (当月第几周, 周一起始)。
+# time-window 格式 "HH:mm-HH:mm", 支持跨午夜, 留空表示全天。
+# 示例: 每月第 3 周的周五/周六/周日 15:00-17:00 可挑战, 每日 2 次:
+#  limits:
+#    daily:
+#      count: 2
+#      time-window: "15:00-17:00"
+#    weekly:
+#      count: 0
+#      days: [5, 6, 7]
+#    monthly:
+#      count: 0
+#      weeks: [3]
+#    cooldown-seconds: 0
 limits:
-  daily: 1
+  daily:
+    count: 1
+    time-window: ""
   weekly:
-  #  5: 2
-  #  6: 2
-  monthly: 0
+    count: 0
+    days: []
+  monthly:
+    count: 0
+    weeks: []
   cooldown-seconds: 0
 
 # 副本实例的仿真距离与实体上限, 各实例世界独立生效。

@@ -50,6 +50,7 @@ command:
     limit_monthly: "<gray>Monthly: </gray><white><used>/<total></white>"
     limit_cooldown: "<gray>Cooldown: </gray><white><seconds>s</white>"
     no_limits: "<white>No entry limits</white>"
+    limit_windows: "<gray>Allowed windows: </gray><white>month[<monthly>] week[<weekly>] day[<daily>]</white>"
     best: "<gray>  Best: </gray><white><score></white> <gray>| time </gray><white><duration></white>"
   rank:
     usage: "<red>Usage: /edg rank <dungeonId></red>"
@@ -85,7 +86,12 @@ challenge:
     dungeon_full: "<yellow>Dungeon is full right now, retry after existing parties finish</yellow>"
     full: "<yellow>Dungeon is full (pool or global limit reached), retry after existing parties finish</yellow>"
     cooldown: "<yellow><player> is still on entry cooldown, <seconds>s remaining</yellow>"
-    daily_limit: "<yellow><player> has used up entry attempts, wait for the period reset</yellow>"
+    daily_limit: "<yellow><player> has used up entry attempts, wait for the period reset (<seconds>s)</yellow>"
+    weekly_limit: "<yellow><player> has used up this week's challenge attempts, resets in <seconds>s</yellow>"
+    monthly_limit: "<yellow><player> has used up this month's challenge attempts, resets in <seconds>s</yellow>"
+    daily_window: "<red>Outside the daily challenge window, retry in <seconds>s</red>"
+    weekly_day: "<red>Today is not an allowed challenge weekday, retry in <seconds>s</red>"
+    monthly_week: "<red>Current week of the month is not an allowed challenge week, retry in <seconds>s</red>"
   cancel:
     no_session: "<yellow>No active challenge to cancel</yellow>"
 
