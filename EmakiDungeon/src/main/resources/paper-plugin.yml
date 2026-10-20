@@ -25,14 +25,34 @@ commands:
     aliases: [dungeon, edungeon]
 permissions:
   emakidungeon.play:
+    description: 进入、组队、查询、全局收听等玩家侧能力
+    default: true
+  emakidungeon.dungeon.*:
+    description: 全部副本的进入许可 (运行时按 emakidungeon.dungeon.<副本ID> 逐副本校验)
     default: true
   emakidungeon.bypass.limit:
+    description: 绕过次数与冷却限制
     default: op
   emakidungeon.bypass.escape:
+    description: 逃逸防护豁免 (调试与维护用)
     default: op
   emakidungeon.script:
+    description: ScriptApi 脚本装载与触发器注册
     default: op
   emakidungeon.editor:
+    description: 地图内编辑器会话
     default: op
   emakidungeon.admin:
+    description: 实例管理、强制结束、重载、池维护
     default: op
+  emakidungeon.*:
+    description: EmakiDungeon 全部权限通配
+    default: op
+    children:
+      emakidungeon.play: true
+      emakidungeon.dungeon.*: true
+      emakidungeon.bypass.limit: true
+      emakidungeon.bypass.escape: true
+      emakidungeon.script: true
+      emakidungeon.editor: true
+      emakidungeon.admin: true

@@ -105,6 +105,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
+    private final java.util.Set<String> registeredDungeonPermissions =
+            java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public EmakiDungeonPlugin() {
         super(AppConfig::defaults);
@@ -279,6 +281,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 ));
             }
         }
+        registerDungeonPermissions(templates.discoverDungeons());
         Function<String, DungeonConfig> configOf = configCache::get;
         this.configOf = configOf;
         Function<String, Integer> poolMaxOf = dungeonId -> {
@@ -486,6 +489,33 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 ));
             }
         }
+        registerDungeonPermissions(templates.discoverDungeons());
+    }
+
+    private void registerDungeonPermissions(java.util.Collection<String> dungeonIds) {
+        org.bukkit.plugin.PluginManager pluginManager = getServer().getPluginManager();
+        for (String dungeonId : dungeonIds) {
+            String node = "emakidungeon.dungeon." + dungeonId;
+            if (pluginManager.getPermission(node) == null) {
+                pluginManager.addPermission(new org.bukkit.permissions.Permission(
+                        node,
+                        "EmakiDungeon 副本 " + dungeonId + " 的进入许可",
+                        org.bukkit.permissions.PermissionDefault.TRUE));
+            }
+            registeredDungeonPermissions.add(node);
+        }
+        registeredDungeonPermissions.removeIf(node -> {
+            if (dungeonIds.contains(node.substring("emakidungeon.dungeon.".length()))) {
+                return false;
+            }
+            org.bukkit.permissions.Permission registered = pluginManager.getPermission(node);
+            if (registered == null
+                    || registered.getDefault() != org.bukkit.permissions.PermissionDefault.TRUE) {
+                return false;
+            }
+            pluginManager.removePermission(registered);
+            return true;
+        });
     }
 
     private emaki.jiuwu.craft.dungeon.flow.FlowRuntime buildFlowRuntime(
