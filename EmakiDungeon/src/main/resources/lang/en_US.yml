@@ -273,11 +273,13 @@ editor:
       seal_regions: "Seal regions"
 
 drop:
-  chest_locked: "<red>This reward chest must be opened before settlement, loot cannot be taken now</red>"
-  box_stored: "<gray><item> x<amount> stored in your reward box, run /edg rewards to claim</gray>"
+  chest_locked: "<red>This reward chest is distributed at settlement, loot cannot be taken during the run</red>"
+  box_stored: "<gray><item> x<amount> staged for this run, granted on completion</gray>"
+  payout_done: "<green>Staged rewards from this run have been granted (<count> items)</green>"
+  voided: "<red>This run did not complete, all your staged rewards were forfeited</red>"
   roll:
-    won: "<green>ROLL won: <white><item></white> x<amount> (stored in reward box)</green>"
-    distributed: "<gray>This drop batch was auto-rolled (<count> items)</gray>"
+    won: "<green>ROLL won: <white><item></white> x<amount> (staged for this run, granted on completion)</green>"
+    distributed: "<gray>This drop batch was auto-rolled, granted on completion (<count> items)</gray>"
 
 rewardbox:
   disabled: "<yellow>The reward box is disabled, dungeon rewards go straight to your inventory</yellow>"

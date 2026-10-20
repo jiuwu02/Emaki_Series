@@ -32,10 +32,6 @@ limits:
   monthly: 0
   cooldown-seconds: 0
 
-# 背包隔离开关 (默认关闭): 开启则退出/失败时回滚到进入前背包。
-inventory:
-  isolation-enabled: false
-
 # 副本实例的仿真距离与实体上限, 各实例世界独立生效。
 world:
   simulation-distance: 6

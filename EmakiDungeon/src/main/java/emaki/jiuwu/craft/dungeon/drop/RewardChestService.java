@@ -35,6 +35,7 @@ public final class RewardChestService implements Listener {
     private final MessageService messages;
 
     private final Map<String, List<ItemStack>> pools = new ConcurrentHashMap<>();
+    private final Map<String, Map<UUID, List<ItemStack>>> staging = new ConcurrentHashMap<>();
     private final Map<String, Boolean> chestPlaced = new ConcurrentHashMap<>();
 
     public RewardChestService(Plugin plugin, InstanceRegistry registry, MessageService messages) {
@@ -131,9 +132,69 @@ public final class RewardChestService implements Listener {
         });
     }
 
+    public void stage(String instanceId, UUID owner, List<ItemStack> items) {
+        if (instanceId == null || owner == null || items == null || items.isEmpty()) {
+            return;
+        }
+        Map<UUID, List<ItemStack>> byPlayer = staging.computeIfAbsent(instanceId,
+                key -> new ConcurrentHashMap<>());
+        List<ItemStack> bucket = byPlayer.computeIfAbsent(owner, key -> new ArrayList<>());
+        synchronized (bucket) {
+            for (ItemStack stack : items) {
+                if (stack == null || stack.getAmount() <= 0) {
+                    continue;
+                }
+                bucket.add(stack.clone());
+            }
+        }
+    }
+
+    public Map<UUID, List<ItemStack>> drainStaging(String instanceId) {
+        if (instanceId == null) {
+            return Map.of();
+        }
+        Map<UUID, List<ItemStack>> byPlayer = staging.remove(instanceId);
+        if (byPlayer == null) {
+            return Map.of();
+        }
+        Map<UUID, List<ItemStack>> drained = new java.util.LinkedHashMap<>();
+        for (Map.Entry<UUID, List<ItemStack>> entry : byPlayer.entrySet()) {
+            List<ItemStack> bucket = entry.getValue();
+            List<ItemStack> copy;
+            synchronized (bucket) {
+                copy = new ArrayList<>(bucket);
+            }
+            if (!copy.isEmpty()) {
+                drained.put(entry.getKey(), copy);
+            }
+        }
+        return drained;
+    }
+
+    public boolean clearStaging(String instanceId, UUID owner) {
+        if (instanceId == null || owner == null) {
+            return false;
+        }
+        Map<UUID, List<ItemStack>> byPlayer = staging.get(instanceId);
+        if (byPlayer == null) {
+            return false;
+        }
+        List<ItemStack> bucket = byPlayer.remove(owner);
+        if (byPlayer.isEmpty()) {
+            staging.remove(instanceId, byPlayer);
+        }
+        if (bucket == null) {
+            return false;
+        }
+        synchronized (bucket) {
+            return !bucket.isEmpty();
+        }
+    }
+
     public void remove(String instanceId) {
         if (instanceId != null) {
             pools.remove(instanceId);
+            staging.remove(instanceId);
             chestPlaced.remove(instanceId);
         }
     }

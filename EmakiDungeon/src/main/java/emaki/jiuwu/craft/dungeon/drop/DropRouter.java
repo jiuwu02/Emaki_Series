@@ -120,10 +120,7 @@ public final class DropRouter implements Listener {
             dropAsDiscard(instance, captured, event.getEntity().getLocation());
             return;
         }
-        List<ItemStack> leftover = rewardBox.deposit(killer.getUniqueId(), captured);
-        if (!leftover.isEmpty()) {
-            dropAsDiscard(instance, leftover, event.getEntity().getLocation());
-        }
+        rewardChests.stage(instance.instanceId(), killer.getUniqueId(), captured);
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -141,7 +138,7 @@ public final class DropRouter implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onPickup(org.bukkit.event.entity.EntityPickupItemEvent event) {
         DungeonInstance instance = registry.get(event.getItem().getWorld().getName());
-        if (instance == null || !rewardBox.enabled()) {
+        if (instance == null) {
             return;
         }
         if (!(event.getEntity() instanceof Player player)) {
@@ -157,29 +154,10 @@ public final class DropRouter implements Listener {
         if (stack.getType() == Material.AIR || stack.getAmount() <= 0) {
             return;
         }
-        if (rewardBox.isAutoFlow(player.getUniqueId()) && canFit(player, stack)) {
-            return;
-        }
-        if (rewardBox.remainingSlots(player.getUniqueId()) < stack.getAmount()) {
-            event.setCancelled(true);
-            return;
-        }
         event.setCancelled(true);
-        rewardBox.storeBox(player.getUniqueId(), List.of(stack));
+        rewardChests.stage(instance.instanceId(), player.getUniqueId(), List.of(stack));
         event.getItem().remove();
         rewardBox.notifyStored(player, itemLabel(stack), stack.getAmount());
-    }
-
-    private static boolean canFit(Player player, ItemStack stack) {
-        ItemStack[] contents = player.getInventory().getStorageContents();
-        org.bukkit.inventory.Inventory probe = Bukkit.createInventory(null,
-                Math.max(9, contents.length));
-        ItemStack[] copy = new ItemStack[contents.length];
-        for (int i = 0; i < contents.length; i++) {
-            copy[i] = contents[i] == null ? null : contents[i].clone();
-        }
-        probe.setContents(copy);
-        return probe.addItem(stack.clone()).isEmpty();
     }
 
     private void dropAsDiscard(DungeonInstance instance, List<ItemStack> items,
@@ -208,8 +186,7 @@ public final class DropRouter implements Listener {
         }
         List<UUID> members = new ArrayList<>();
         for (UUID memberId : membersOf(instance)) {
-            if (Bukkit.getPlayer(memberId) != null
-                    && (!rewardBox.enabled() || !rewardBox.isFull(memberId))) {
+            if (Bukkit.getPlayer(memberId) != null) {
                 members.add(memberId);
             }
         }
@@ -219,11 +196,7 @@ public final class DropRouter implements Listener {
         }
         for (ItemStack stack : items) {
             UUID winner = members.get(random.nextInt(members.size()));
-            List<ItemStack> leftover = rewardBox.deposit(winner, List.of(stack));
-            if (!leftover.isEmpty()) {
-                dropAtSpawnAsDiscard(instance, leftover);
-                continue;
-            }
+            rewardChests.stage(instance.instanceId(), winner, List.of(stack));
             Player winnerPlayer = Bukkit.getPlayer(winner);
             if (winnerPlayer != null) {
                 messages.send(winnerPlayer, "drop.roll.won", Map.of(
@@ -262,10 +235,7 @@ public final class DropRouter implements Listener {
         Map<UUID, List<ItemStack>> allocation =
                 DropAllocator.allocateShare(items, members);
         for (Map.Entry<UUID, List<ItemStack>> entry : allocation.entrySet()) {
-            List<ItemStack> leftover = rewardBox.deposit(entry.getKey(), entry.getValue());
-            if (!leftover.isEmpty()) {
-                dropAtSpawnAsDiscard(instance, leftover);
-            }
+            rewardChests.stage(instance.instanceId(), entry.getKey(), entry.getValue());
         }
     }
 

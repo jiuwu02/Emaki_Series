@@ -2,15 +2,14 @@ package emaki.jiuwu.craft.dungeon.recovery;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
-import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
@@ -24,10 +23,14 @@ public final class RecoveryService {
     private final PartyService parties;
     private final MessageService messages;
     private final DebugLogger debug;
-    private final Function<String, DungeonConfig> configOf;
     private final Consumer<UUID> teleportPermit;
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
+    private volatile BiFunction<String, UUID, Boolean> stagingClear;
+
+    public void bindStaging(BiFunction<String, UUID, Boolean> stagingClear) {
+        this.stagingClear = stagingClear;
+    }
 
     public void bindTempItems(emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems) {
         this.tempItems = tempItems;
@@ -42,14 +45,12 @@ public final class RecoveryService {
             PartyService parties,
             MessageService messages,
             DebugLogger debug,
-            Function<String, DungeonConfig> configOf,
             Consumer<UUID> teleportPermit) {
         this.snapshots = snapshots;
         this.registry = registry;
         this.parties = parties;
         this.messages = messages;
         this.debug = debug;
-        this.configOf = configOf;
         this.teleportPermit = teleportPermit;
     }
 
@@ -100,7 +101,11 @@ public final class RecoveryService {
         if (pointer == null) {
             return;
         }
-        boolean rollbackInventory = rollbackInventoryOf(pointer);
+        boolean rollbackInventory = true;
+        BiFunction<String, UUID, Boolean> clear = stagingClear;
+        if (clear != null && Boolean.TRUE.equals(clear.apply(pointer, playerId))) {
+            messages.send(player, "drop.voided", Map.of());
+        }
         if (tempItems != null) {
             tempItems.removeAll(pointer, player);
         }
@@ -148,7 +153,11 @@ public final class RecoveryService {
             if (pointer == null || !pointer.equals(instanceId)) {
                 continue;
             }
-            boolean rollbackInventory = rollbackInventoryOf(instanceId);
+            boolean rollbackInventory = true;
+            BiFunction<String, UUID, Boolean> clear = stagingClear;
+            if (clear != null && Boolean.TRUE.equals(clear.apply(instanceId, memberId))) {
+                messages.send(member, "drop.voided", Map.of());
+            }
             if (tempItems != null) {
                 tempItems.removeAll(instanceId, member);
             }
@@ -171,17 +180,7 @@ public final class RecoveryService {
         if (partyId == null) {
             return false;
         }
-        Party party = parties.partyById(partyId);
+        Party party = partyId == null ? null : parties.partyById(partyId);
         return party != null && party.contains(playerId);
-    }
-
-    private boolean rollbackInventoryOf(String dungeonId) {
-        DungeonInstance instance = registry.get(dungeonId);
-        String dungeon = instance == null ? null : instance.dungeonId();
-        if (dungeon == null) {
-            return true;
-        }
-        DungeonConfig config = configOf.apply(dungeon);
-        return config == null || config.inventoryIsolation();
     }
 }

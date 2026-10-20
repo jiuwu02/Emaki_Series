@@ -72,14 +72,6 @@ public final class RewardBoxService {
         return capacitySlots;
     }
 
-    public boolean isFull(UUID playerId) {
-        return store.load(playerId).items().size() >= capacitySlots;
-    }
-
-    public int remainingSlots(UUID playerId) {
-        return Math.max(0, capacitySlots - store.load(playerId).items().size());
-    }
-
     public void storeBox(UUID playerId, List<ItemStack> items) {
         RewardBoxStore.Box box = store.load(playerId);
         append(playerId, box, items);

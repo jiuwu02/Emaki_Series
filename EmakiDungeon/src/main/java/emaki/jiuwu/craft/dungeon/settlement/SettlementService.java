@@ -154,20 +154,20 @@ public final class SettlementService {
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score computed | instance=" + instanceId + " | team=" + teamScore);
-        if (config != null && config.inventoryIsolation()) {
-            for (UUID memberId : members) {
-                Player member = Bukkit.getPlayer(memberId);
-                if (member == null) {
-                    continue;
-                }
-                PlayerSnapshot snapshot = snapshots.read(instanceId, memberId);
-                if (snapshot != null) {
-                    snapshot.applyInventoryTo(member);
-                }
+        for (UUID memberId : members) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member == null) {
+                continue;
+            }
+            PlayerSnapshot snapshot = snapshots.read(instanceId, memberId);
+            if (snapshot != null) {
+                snapshot.applyInventoryTo(member);
             }
         }
         if ("score".equals(instance.dropMode())) {
             allocateScoreDrops(instance, config, members, scores);
+        } else {
+            payoutStaging(instance, members);
         }
         SettlementCommandRunner.RunResult runResult =
                 commandRunner.run(config == null ? List.of() : config.settlementCommands(),
@@ -242,6 +242,35 @@ public final class SettlementService {
             recovery.onExit(member, "complete");
         }
         coordinator.dispose(instanceId, "complete:" + cause);
+    }
+
+    private void payoutStaging(DungeonInstance instance, List<UUID> members) {
+        Map<UUID, List<org.bukkit.inventory.ItemStack>> staged =
+                rewardChests.drainStaging(instance.instanceId());
+        if (staged.isEmpty()) {
+            return;
+        }
+        org.bukkit.World instanceWorld = Bukkit.getWorld(instance.instanceId());
+        for (UUID memberId : members) {
+            List<org.bukkit.inventory.ItemStack> items = staged.remove(memberId);
+            if (items == null || items.isEmpty()) {
+                continue;
+            }
+            Player member = Bukkit.getPlayer(memberId);
+            if (member == null) {
+                rewardBox.storeBox(memberId, items);
+                continue;
+            }
+            List<org.bukkit.inventory.ItemStack> leftover = rewardBox.deposit(memberId, items);
+            if (!leftover.isEmpty()) {
+                org.bukkit.Location fallback = instanceWorld == null
+                        ? member.getLocation()
+                        : instanceWorld.getSpawnLocation();
+                rewardBox.deliverOrDrop(memberId, leftover, instanceWorld, fallback);
+            }
+            messages.send(member, "drop.payout_done", Map.of(
+                    "count", String.valueOf(items.size())));
+        }
     }
 
     private void allocateScoreDrops(DungeonInstance instance,

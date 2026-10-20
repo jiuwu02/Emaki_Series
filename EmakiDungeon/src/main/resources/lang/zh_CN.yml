@@ -273,11 +273,13 @@ editor:
       seal_regions: "封路区域"
 
 drop:
-  chest_locked: "<red>该奖励箱需在结算前开启, 当前不可拾取战利品</red>"
-  box_stored: "<gray><item> x<amount> 已存入奖励箱, /edg rewards 领取</gray>"
+  chest_locked: "<red>该奖励箱需在结算后统一分配, 局内暂不可拾取</red>"
+  box_stored: "<gray><item> x<amount> 已暂存本局, 通关后发放</gray>"
+  payout_done: "<green>本局暂存奖励已发放 (<count> 件)</green>"
+  voided: "<red>本局未通关, 你暂存的奖励已全部作废</red>"
   roll:
-    won: "<green>ROLL 获得: <white><item></white> x<amount> (已入奖励箱)</green>"
-    distributed: "<gray>本批掉落已自动 ROLL 分配 (<count> 件)</gray>"
+    won: "<green>ROLL 获得: <white><item></white> x<amount> (已暂存本局, 通关发放)</green>"
+    distributed: "<gray>本批掉落已自动 ROLL 分配, 通关后发放 (<count> 件)</gray>"
 
 rewardbox:
   disabled: "<yellow>奖励箱功能当前未启用, 副本奖励将直接进入背包</yellow>"

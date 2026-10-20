@@ -97,6 +97,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private emaki.jiuwu.craft.dungeon.settlement.SettlementService settlement;
     private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
     private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
+    private emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
     private emaki.jiuwu.craft.dungeon.editor.EditorService editorService;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
@@ -309,7 +310,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         parties.start();
 
         recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
-                configOf, teleportGuard::permit);
+                teleportGuard::permit);
 
         coordinator = new InstanceCoordinator(this, dispatcher, pool, disposer, allocator, registry, arbiter,
                 store, messageService, debugLogger(), recovery::evacuate);
@@ -338,6 +339,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new TempItemManager(messageService, debugLogger());
         emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests =
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
+        this.rewardChests = rewardChests;
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
                 new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),
                 messageService, appConfigSupplier);
@@ -355,6 +357,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
         coordinator.bindScoreTracker(scoreTracker);
         coordinator.bindDropCleanup(instanceId -> rewardChests.remove(instanceId));
+        recovery.bindStaging(rewardChests::clearStaging);
         settlement = new emaki.jiuwu.craft.dungeon.settlement.SettlementService(
                 this, dispatcher, registry, parties, scoreTracker, snapshots, recovery,
                 rewardChests, leaderboard, coordinator,
@@ -457,13 +460,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         gateController.bindWaveController(waveController);
         var controllers = new emaki.jiuwu.craft.dungeon.flow.GameplayControllers(
                 this, instance, messageService, chatInputService, debugLogger(),
-                gateController, waveController, rewardBox);
+                gateController, waveController);
         controllers.bindHandlers(
                 reason -> stateService.fail(instance, reason),
                 (itemId, amount) -> dispatchTempItemGrant(instance, itemId, amount, tempItemManager));
         controllers.bindSettlementHandlers(
                 cause -> settlement.beginComplete(instance, cause),
                 (optionCase, endingId) -> settlement.onEnding(instance, optionCase, endingId));
+        controllers.bindRewardChests(rewardChests);
         waveController.bindListeners(
                 (spawnId, wave) -> actionBridge.dispatch("dungeon_wave_start", null, Map.of(
                         "instanceId", instance.instanceId(),

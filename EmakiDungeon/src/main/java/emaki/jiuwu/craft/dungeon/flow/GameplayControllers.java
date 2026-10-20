@@ -31,12 +31,12 @@ public final class GameplayControllers implements FlowControllers {
     private final DebugLogger debug;
     private final GateController gateController;
     private final WaveController waveController;
-    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
 
     private volatile Consumer<String> failHandler;
     private volatile BiConsumer<String, Integer> tempItemHandler;
     private volatile Consumer<String> completeHandler;
     private volatile BiConsumer<String, String> endingHandler;
+    private volatile emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
 
     public GameplayControllers(Plugin plugin,
             DungeonInstance instance,
@@ -44,8 +44,7 @@ public final class GameplayControllers implements FlowControllers {
             ChatInputService chatInput,
             DebugLogger debug,
             GateController gateController,
-            WaveController waveController,
-            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox) {
+            WaveController waveController) {
         this.plugin = plugin;
         this.instance = instance;
         this.messages = messages;
@@ -53,7 +52,6 @@ public final class GameplayControllers implements FlowControllers {
         this.debug = debug;
         this.gateController = gateController;
         this.waveController = waveController;
-        this.rewardBox = rewardBox;
     }
 
     public void bindHandlers(Consumer<String> failHandler, BiConsumer<String, Integer> tempItemHandler) {
@@ -65,6 +63,10 @@ public final class GameplayControllers implements FlowControllers {
             BiConsumer<String, String> endingHandler) {
         this.completeHandler = completeHandler;
         this.endingHandler = endingHandler;
+    }
+
+    public void bindRewardChests(emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests) {
+        this.rewardChests = rewardChests;
     }
 
     @Override
@@ -141,15 +143,7 @@ public final class GameplayControllers implements FlowControllers {
         if (playerId == null) {
             return;
         }
-        var point = reward.point();
-        java.util.List<org.bukkit.inventory.ItemStack> leftover =
-                rewardBox.deposit(playerId, new ArrayList<>(generated));
-        if (!leftover.isEmpty()) {
-            org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
-            org.bukkit.Location fallback = world == null ? null : new org.bukkit.Location(world,
-                    point.x(), point.y(), point.z(), point.yaw(), point.pitch());
-            rewardBox.deliverOrDrop(playerId, leftover, world, fallback);
-        }
+        rewardChests.stage(instance.instanceId(), playerId, new ArrayList<>(generated));
     }
 
     @Override
