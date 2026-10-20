@@ -309,6 +309,10 @@ public final class ChallengeService {
     }
 
     public emaki.jiuwu.craft.dungeon.api.Result<Object> apiEnter(Player player, String dungeonId) {
+        return apiEnter(player, dungeonId, false);
+    }
+
+    public emaki.jiuwu.craft.dungeon.api.Result<Object> apiEnter(Player player, String dungeonId, boolean test) {
         DungeonConfig config = configOf.apply(dungeonId);
         if (config == null) {
             return emaki.jiuwu.craft.dungeon.api.Result.err(
@@ -352,6 +356,7 @@ public final class ChallengeService {
                         emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
                         "api.challenge_active");
             }
+            sessions.get(party.id()).setTest(test);
             return emaki.jiuwu.craft.dungeon.api.Result.ok(
                     new emaki.jiuwu.craft.dungeon.api.ChallengeId(String.valueOf(party.id())));
         }
@@ -370,6 +375,7 @@ public final class ChallengeService {
         }
         ChallengeSession session = new ChallengeSession(party.id(), dungeonId, player.getUniqueId());
         sessions.put(party.id(), session);
+        session.setTest(test);
         session.setDifficulty(config.difficulties().get(0));
         String mode = config.dropDefaultMode();
         if (!config.supportsDropMode(mode)) {
@@ -569,6 +575,7 @@ public final class ChallengeService {
         instance.setPartyId(party.id());
         instance.setDifficulty(session.difficulty());
         instance.setDropMode(session.dropMode());
+        instance.setTest(session.isTest());
         instance.markStarted();
         if (runtimeFactory != null) {
             var runtime = runtimeFactory.apply(instance);
@@ -598,7 +605,7 @@ public final class ChallengeService {
             if (member == null) {
                 continue;
             }
-            if (limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
+            if (!session.isTest() && limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
                 limitService.record(memberId, session.dungeonId());
             }
             teleportPermit.accept(memberId);

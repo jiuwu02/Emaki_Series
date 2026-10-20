@@ -18,6 +18,7 @@ public final class ChallengeSession {
     private volatile long windowDeadline;
     private volatile long waitDeadline;
     private volatile BossBar waitBar;
+    private volatile boolean test;
 
     public ChallengeSession(UUID partyId, String dungeonId, UUID leaderId) {
         this.partyId = partyId;
@@ -88,5 +89,13 @@ public final class ChallengeSession {
 
     public void setWaitBar(BossBar waitBar) {
         this.waitBar = waitBar;
+    }
+
+    public boolean isTest() {
+        return test;
+    }
+
+    public void setTest(boolean test) {
+        this.test = test;
     }
 }

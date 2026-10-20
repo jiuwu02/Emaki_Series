@@ -204,7 +204,7 @@ public final class SettlementService {
                     "score", String.valueOf(teamScore)
             ));
         }
-        if (config != null) {
+        if (config != null && !instance.isTest()) {
             List<LeaderboardStore.MemberScore> boardMembers = new ArrayList<>();
             for (UUID memberId : members) {
                 Player member = Bukkit.getPlayer(memberId);

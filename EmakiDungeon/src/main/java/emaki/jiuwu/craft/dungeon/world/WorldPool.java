@@ -45,6 +45,7 @@ public final class WorldPool {
     private final InstanceRegistry registry;
     private final InstancesStore store;
     private final Function<String, Integer> poolMaxOf;
+    private final Function<String, Integer> generationOf;
     private final MessageService messages;
 
     private final Map<String, PoolState> pools = new ConcurrentHashMap<>();
@@ -61,6 +62,7 @@ public final class WorldPool {
             InstanceRegistry registry,
             InstancesStore store,
             Function<String, Integer> poolMaxOf,
+            Function<String, Integer> generationOf,
             MessageService messages) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
@@ -73,6 +75,7 @@ public final class WorldPool {
         this.registry = registry;
         this.store = store;
         this.poolMaxOf = poolMaxOf;
+        this.generationOf = generationOf;
         this.messages = messages;
     }
 
@@ -111,17 +114,23 @@ public final class WorldPool {
                 rollbackCreate(worldName, instance, reservation, false);
                 return;
             }
+            int generation = generation(dungeonId);
             cloner.cloneAsync(template, worldName).whenComplete((ignored, error) -> {
                 if (error != null) {
                     rollbackCreate(worldName, instance, reservation, true);
                     return;
                 }
-                dispatcher.runGlobal(plugin, () -> mount(worldName, dungeonId, instance, reservation));
+                dispatcher.runGlobal(plugin, () -> mount(worldName, dungeonId, instance, reservation, generation));
             });
         }
     }
 
-    private void mount(String worldName, String dungeonId, DungeonInstance instance, PoolReservation reservation) {
+    private void mount(String worldName, String dungeonId, DungeonInstance instance, PoolReservation reservation,
+            int generation) {
+        if (generation != generation(dungeonId)) {
+            rollbackCreate(worldName, instance, reservation, true);
+            return;
+        }
         if (stopping || !instance.transition(InstanceState.CREATING, InstanceState.MOUNTING)) {
             rollbackCreate(worldName, instance, reservation, false);
             return;
@@ -209,6 +218,15 @@ public final class WorldPool {
         dispatcher.runAsync(plugin, () -> ensureReserve(dungeonId));
     }
 
+    public void invalidateAllReserves(String dungeonId) {
+        if (dungeonId == null) {
+            return;
+        }
+        for (String worldName : reservesOf(dungeonId)) {
+            invalidateReserve(dungeonId, worldName);
+        }
+    }
+
     public boolean inspectReserves() {
         boolean healthy = true;
         for (Map.Entry<String, PoolState> pair : pools.entrySet()) {
@@ -239,5 +257,10 @@ public final class WorldPool {
     private int poolMax(String dungeonId) {
         Integer poolMax = poolMaxOf.apply(dungeonId);
         return poolMax == null || poolMax < 1 ? 1 : poolMax;
+    }
+
+    private int generation(String dungeonId) {
+        Integer generation = generationOf.apply(dungeonId);
+        return generation == null || generation < 1 ? 1 : generation;
     }
 }

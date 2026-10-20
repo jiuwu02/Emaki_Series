@@ -97,6 +97,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private emaki.jiuwu.craft.dungeon.settlement.SettlementService settlement;
     private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
     private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
+    private emaki.jiuwu.craft.dungeon.editor.EditorService editorService;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
@@ -147,6 +148,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (boundaryGuard != null) {
             boundaryGuard.shutdown();
             boundaryGuard = null;
+        }
+        if (editorService != null) {
+            editorService.closeAll();
+            editorService = null;
         }
         if (chatInputService != null) {
             chatInputService.close();
@@ -278,8 +283,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         WorldNames names = new WorldNames(worldContainer);
         WorldCloner cloner = new WorldCloner(this, dispatcher, worldContainer);
         WorldDisposer disposer = new WorldDisposer(this, dispatcher, worldContainer);
+        emaki.jiuwu.craft.dungeon.editor.EditorStateStore editorStates =
+                new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, getDataFolder());
+        editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
-                allocator, registry, store, poolMaxOf, messageService);
+                allocator, registry, store, poolMaxOf, editorStates::generationOf, messageService);
 
         teleportGuard = new TeleportGuard(messageService, registry);
         SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
@@ -309,11 +317,20 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
                 coreLib.performanceMonitor(), coreLib.guiBackend());
         chatInputService = new ChatInputService(this, dispatcher);
+        editorService = new emaki.jiuwu.craft.dungeon.editor.EditorService(this, dispatcher, messageService,
+                chatInputService, cloner, disposer, templates, editorStates, worldContainer, getDataFolder());
+        editorService.bindPool(pool);
+        editorService.bindConfigCache(configCache);
+        emaki.jiuwu.craft.dungeon.editor.EditorGui editorGui =
+                new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
+                        chatInputService);
+        editorService.bindGui(editorGui);
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
         challenge.bindLimitService(limitService);
         challenge.start();
+        editorService.bindChallenge(challenge);
 
         emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge =
                 new ActionBridge(this, appConfigSupplier, registry, messageService);
@@ -367,9 +384,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 chatInputService, templates, coordinator, registry, isolation);
         router.bindOperations(limitService, leaderboard, configOf);
         router.bindRewardBox(rewardBoxGui);
+        router.bindEditor(editorService);
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties), this);
+        getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(chatInputService, this);
+        getServer().getPluginManager().registerEvents(editorService, this);
+        getServer().getPluginManager().registerEvents(editorGui, this);
         getServer().getPluginManager().registerEvents(
                 new DungeonChatListener(parties, isolation, languageLoader.getMessage("party.chat_format")), this);
         getServer().getPluginManager().registerEvents(commandGuard, this);
@@ -398,6 +420,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             }
         }
 
+        editorService.sweepLeftoverWorlds();
         coordinator.startupScan();
         coordinator.warmupAll(dungeons);
         coordinator.startInspection();

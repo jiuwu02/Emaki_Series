@@ -21,6 +21,7 @@ public final class DungeonInstance {
     private volatile String difficulty = "normal";
     private volatile String dropMode = "free";
     private volatile long startedAt;
+    private volatile boolean test;
     private volatile InstanceLoop loop;
     private volatile emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime;
 
@@ -74,6 +75,14 @@ public final class DungeonInstance {
         if (startedAt == 0L) {
             startedAt = System.currentTimeMillis();
         }
+    }
+
+    public boolean isTest() {
+        return test;
+    }
+
+    public void setTest(boolean test) {
+        this.test = test;
     }
 
     public EventIngress ingress() {

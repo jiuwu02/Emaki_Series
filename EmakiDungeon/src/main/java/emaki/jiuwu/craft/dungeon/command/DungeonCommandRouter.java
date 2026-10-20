@@ -36,6 +36,7 @@ public final class DungeonCommandRouter {
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
+    private static final List<String> EDITOR_SUBS = List.of("exit", "pos1", "pos2", "mark", "marks", "test", "fill");
 
     private final org.bukkit.plugin.Plugin plugin;
     private final MessageService messages;
@@ -52,6 +53,11 @@ public final class DungeonCommandRouter {
     private volatile emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
     private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
     private volatile emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
+    private volatile emaki.jiuwu.craft.dungeon.editor.EditorService editor;
+
+    public void bindEditor(emaki.jiuwu.craft.dungeon.editor.EditorService editor) {
+        this.editor = editor;
+    }
 
     public void bindRewardBox(emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui) {
         this.rewardBoxGui = rewardBoxGui;
@@ -121,6 +127,7 @@ public final class DungeonCommandRouter {
                 }
             }
             case "globalchat" -> routeGlobalChat(player, args);
+            case "editor" -> routeEditor(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }
     }
@@ -348,6 +355,71 @@ public final class DungeonCommandRouter {
         isolation.sendToggleFeedback(player, target);
     }
 
+    private void routeEditor(Player player, String[] args) {
+        if (editor == null) {
+            messages.send(player, "general.invalid_args", Map.of());
+            return;
+        }
+        if (!player.hasPermission("emakidungeon.editor")) {
+            messages.send(player, "general.no_permission", Map.of());
+            return;
+        }
+        if (editor.hasSession(player.getUniqueId())) {
+            String sub = args.length >= 2 && !Texts.isBlank(args[1]) ? Texts.lower(args[1]) : null;
+            switch (sub == null ? "" : sub) {
+                case "exit" -> {
+                    String pointer = snapshots.pointerOf(player.getUniqueId());
+                    if (pointer != null && registry.get(pointer) != null) {
+                        messages.send(player, "editor.instance_active", Map.of());
+                        return;
+                    }
+                    editor.exit(player);
+                }
+                case "pos1" -> editor.markPos(player, 1);
+                case "pos2" -> editor.markPos(player, 2);
+                case "mark" -> {
+                    if (args.length < 3 || Texts.isBlank(args[2])) {
+                        messages.send(player, "editor.mark_usage", Map.of());
+                        return;
+                    }
+                    editor.mark(player, args[2], args.length >= 4 ? args[3] : null);
+                }
+                case "marks" -> editor.listMarks(player);
+                case "test" -> {
+                    String pointer = snapshots.pointerOf(player.getUniqueId());
+                    if (pointer != null && registry.get(pointer) != null) {
+                        messages.send(player, "editor.instance_active", Map.of());
+                        return;
+                    }
+                    editor.startTest(player);
+                }
+                case "fill" -> {
+                    if (args.length < 3 || Texts.isBlank(args[2])) {
+                        messages.send(player, "editor.fill_usage", Map.of());
+                        return;
+                    }
+                    editor.fill(player, args[2]);
+                }
+                default -> messages.send(player, "editor.usage_session", Map.of());
+            }
+            return;
+        }
+        if (args.length < 2 || Texts.isBlank(args[1])) {
+            messages.send(player, "editor.usage", Map.of());
+            return;
+        }
+        String pointer = snapshots.pointerOf(player.getUniqueId());
+        if (pointer != null && registry.get(pointer) != null) {
+            messages.send(player, "editor.in_instance", Map.of());
+            return;
+        }
+        if (challenge.sessionContains(player.getUniqueId())) {
+            messages.send(player, "editor.busy_challenge", Map.of());
+            return;
+        }
+        editor.open(player, args[1]);
+    }
+
     private void routeParty(Player player, String[] args) {
         if (args.length < 2) {
             messages.send(player, "command.party.usage");
@@ -443,6 +515,18 @@ public final class DungeonCommandRouter {
         String root = Texts.lower(args[0]);
         if ("enter".equals(root) && args.length == 2) {
             return templates.discoverDungeons();
+        }
+        if ("editor".equals(root) && sender.hasPermission("emakidungeon.editor")) {
+            if (args.length == 2) {
+                if (editor != null && sender instanceof Player player
+                        && editor.hasSession(player.getUniqueId())) {
+                    return EDITOR_SUBS;
+                }
+                return templates.discoverDungeons();
+            }
+            if (args.length == 3 && "mark".equals(Texts.lower(args[1]))) {
+                return emaki.jiuwu.craft.dungeon.editor.EditorService.markTypes();
+            }
         }
         if ("party".equals(root)) {
             if (args.length == 2) {

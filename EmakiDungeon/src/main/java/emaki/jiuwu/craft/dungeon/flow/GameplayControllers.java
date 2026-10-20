@@ -159,6 +159,23 @@ public final class GameplayControllers implements FlowControllers {
         if (option == null || player == null || option.cases().isEmpty()) {
             return;
         }
+        java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
+        for (FlowModules.OptionCase optionCase : option.cases()) {
+            candidates.add(optionCase.caseId());
+        }
+        var triggerEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChoiceEvent(
+                instance.instanceId(), instance.dungeonId(), optionId,
+                option.selectMode(), candidates);
+        Bukkit.getPluginManager().callEvent(triggerEvent);
+        if (triggerEvent.isCancelled()) {
+            debug.logRaw("dungeon", (UUID) null, "option trigger cancelled | option=" + optionId);
+            return;
+        }
+        promptForPick(runtime, option, player, playerId);
+    }
+
+    private void promptForPick(FlowRuntime runtime, FlowModules.OptionDef option, Player player, UUID playerId) {
+        String optionId = option.optionId();
         StringBuilder prompt = new StringBuilder();
         List<String> caseIds = new ArrayList<>(option.cases().size());
         for (int i = 0; i < option.cases().size(); i++) {
@@ -170,18 +187,63 @@ public final class GameplayControllers implements FlowControllers {
         messages.send(player, "flow.option.prompt", Map.of("options", prompt.toString()));
         long timeout = option.timeLimitSeconds() > 0 ? option.timeLimitSeconds() : 60L;
         chatInput.await(new ChatInputRequest(plugin, player, timeout, List.of("取消", "cancel"), result -> {
-            if (!result.submitted()) {
+            if (result.status() == ChatInputResult.Status.TIMEOUT) {
                 messages.send(player, "flow.option.expired");
+                return;
+            }
+            if (!result.submitted()) {
+                messages.send(player, "flow.option.aborted");
                 return;
             }
             String text = Texts.lower(Texts.trim(result.text()));
             List<String> picked = parsePick(text, caseIds);
-            if (picked.isEmpty()) {
+            boolean multi = "multi".equalsIgnoreCase(option.selectMode());
+            if (picked.isEmpty() || (!multi && picked.size() != 1)) {
                 messages.send(player, "flow.option.invalid");
+                promptForPick(runtime, option, player, playerId);
                 return;
             }
-            finalizePick(runtime, optionId, picked, player.getUniqueId());
+            if (multi && !withinSelectBounds(option, picked.size())) {
+                messages.send(player, "flow.option.bounds", Map.of(
+                        "min", String.valueOf(option.minSelect()),
+                        "max", String.valueOf(option.maxSelect())));
+                promptForPick(runtime, option, player, playerId);
+                return;
+            }
+            if (!multi) {
+                finalizePick(runtime, optionId, picked, playerId);
+                return;
+            }
+            confirmMulti(runtime, option, player, playerId, picked);
         }));
+    }
+
+    private void confirmMulti(FlowRuntime runtime, FlowModules.OptionDef option, Player player, UUID playerId,
+            List<String> picked) {
+        messages.send(player, "flow.option.confirm_prompt", Map.of("options", String.join(", ", picked)));
+        long timeout = option.timeLimitSeconds() > 0 ? option.timeLimitSeconds() : 60L;
+        chatInput.await(new ChatInputRequest(plugin, player, timeout, List.of("取消", "cancel"), result -> {
+            if (result.status() == ChatInputResult.Status.TIMEOUT) {
+                finalizePick(runtime, option.optionId(), picked, playerId);
+                return;
+            }
+            if (!result.submitted()) {
+                messages.send(player, "flow.option.aborted");
+                return;
+            }
+            String text = Texts.lower(Texts.trim(result.text()));
+            if ("确认".equals(text) || "confirm".equals(text) || "yes".equals(text) || "y".equals(text)) {
+                finalizePick(runtime, option.optionId(), picked, playerId);
+                return;
+            }
+            messages.send(player, "flow.option.aborted");
+        }));
+    }
+
+    private boolean withinSelectBounds(FlowModules.OptionDef option, int size) {
+        int minimum = Math.max(1, option.minSelect());
+        int maximum = Math.max(minimum, option.maxSelect());
+        return size >= minimum && size <= maximum;
     }
 
     private List<String> parsePick(String text, List<String> caseIds) {
@@ -211,38 +273,120 @@ public final class GameplayControllers implements FlowControllers {
         if (option == null || pickedCaseIds.isEmpty()) {
             return;
         }
-        var choiceEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChoiceEvent(
-                instance.instanceId(), instance.dungeonId(), optionId,
-                option.selectMode(), new java.util.LinkedHashSet<>(pickedCaseIds));
-        Bukkit.getPluginManager().callEvent(choiceEvent);
-        if (choiceEvent.isCancelled()) {
-            debug.logRaw("dungeon", (UUID) null,
-                    "option choice cancelled | option=" + optionId);
-            return;
-        }
         boolean multi = "multi".equalsIgnoreCase(option.selectMode());
         java.util.Set<String> picked = multi
-                ? new java.util.HashSet<>(pickedCaseIds)
+                ? new java.util.LinkedHashSet<>(pickedCaseIds)
                 : java.util.Set.of(pickedCaseIds.get(0));
         runtime.setFact("option_case:" + optionId, multi
                 ? String.join(",", pickedCaseIds)
                 : pickedCaseIds.get(0));
-        debug.logRaw("dungeon", (UUID) null,
-                "option picked | option=" + optionId + " | cases=" + String.join(",", pickedCaseIds));
+        debug.logRaw("dungeon", (UUID) null, "option picked | option=" + optionId
+                + " | cases=" + String.join(",", pickedCaseIds));
+        Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.dungeon.api.event.DungeonOptionConfirmEvent(
+                instance.instanceId(), instance.dungeonId(), optionId, picked));
+        List<FlowModules.OptionCase> sealed = new ArrayList<>();
         for (FlowModules.OptionCase optionCase : option.cases()) {
             if (!picked.contains(optionCase.caseId())) {
-                sealRegions(runtime, optionCase);
+                sealed.add(optionCase);
             }
         }
-        String endingId = "";
-        for (FlowModules.OptionCase optionCase : option.cases()) {
-            if (picked.contains(optionCase.caseId()) && !optionCase.endingId().isBlank()) {
-                endingId = optionCase.endingId();
+        pullbackSealed(option, sealed);
+        for (FlowModules.OptionCase optionCase : sealed) {
+            sealRegions(runtime, optionCase);
+        }
+        if (!sealed.isEmpty()) {
+            java.util.Set<String> sealedIds = new java.util.LinkedHashSet<>();
+            for (FlowModules.OptionCase optionCase : sealed) {
+                sealedIds.add(optionCase.caseId());
+            }
+            instance.commands().submit(new WorldCommand() {
+                @Override
+                public int blockCost() {
+                    return 0;
+                }
+
+                @Override
+                public void execute() {
+                    Bukkit.getPluginManager().callEvent(
+                            new emaki.jiuwu.craft.dungeon.api.event.DungeonSealPathEvent(
+                                    instance.instanceId(), instance.dungeonId(), optionId, sealedIds));
+                }
+            });
+        }
+        String endingId = resolveEnding(option, pickedCaseIds);
+        if (!endingId.isBlank() && endingHandler != null) {
+            triggerEnding(runtime, pickedCaseIds.get(0), endingId);
+        }
+    }
+
+    private String resolveEnding(FlowModules.OptionDef option, List<String> pickedCaseIds) {
+        String canonical = canonicalKey(pickedCaseIds);
+        for (Map.Entry<String, String> entry : option.endingMap().entrySet()) {
+            if (canonicalKey(java.util.Arrays.asList(entry.getKey().split(","))).equals(canonical)) {
+                return entry.getValue();
+            }
+        }
+        if (pickedCaseIds.size() == 1) {
+            String only = pickedCaseIds.get(0);
+            for (FlowModules.OptionCase optionCase : option.cases()) {
+                if (only.equals(optionCase.caseId()) && !optionCase.endingId().isBlank()) {
+                    return optionCase.endingId();
+                }
+            }
+        }
+        return "";
+    }
+
+    private static String canonicalKey(java.util.Collection<String> parts) {
+        List<String> normalized = new ArrayList<>();
+        for (String part : parts) {
+            String trimmed = Texts.trim(part);
+            if (!trimmed.isEmpty()) {
+                normalized.add(trimmed);
+            }
+        }
+        java.util.Collections.sort(normalized);
+        return String.join(",", normalized);
+    }
+
+    private void pullbackSealed(FlowModules.OptionDef option, List<FlowModules.OptionCase> sealed) {
+        boolean anyRegion = false;
+        for (FlowModules.OptionCase optionCase : sealed) {
+            if (!optionCase.sealRegions().isEmpty()) {
+                anyRegion = true;
                 break;
             }
         }
-        if (!endingId.isBlank() && endingHandler != null) {
-            triggerEnding(runtime, pickedCaseIds.get(0), endingId);
+        if (!anyRegion) {
+            return;
+        }
+        World world = Bukkit.getWorld(instance.instanceId());
+        FlowPoint safe = option.safePoint() != null ? option.safePoint() : option.point();
+        if (world == null || safe == null) {
+            return;
+        }
+        org.bukkit.Location target = new org.bukkit.Location(world,
+                safe.x(), safe.y(), safe.z(), safe.yaw(), safe.pitch());
+        for (Player member : List.copyOf(world.getPlayers())) {
+            org.bukkit.Location location = member.getLocation();
+            boolean inside = false;
+            for (FlowModules.OptionCase optionCase : sealed) {
+                for (FlowRegion region : optionCase.sealRegions()) {
+                    if (region.contains(location.getX(), location.getY(), location.getZ())) {
+                        inside = true;
+                        break;
+                    }
+                }
+                if (inside) {
+                    break;
+                }
+            }
+            if (inside) {
+                try {
+                    member.teleport(target);
+                } catch (Throwable ignored) {
+                }
+            }
         }
     }
 

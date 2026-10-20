@@ -245,6 +245,19 @@ public final class FlowLoader {
                         regions(caseSection.getMapList("seal_regions"))
                 ));
             }
+            FlowPoint safePoint = section.contains("safe-point")
+                    ? point(section.getSection("safe-point"))
+                    : null;
+            Map<String, String> endingMap = new LinkedHashMap<>();
+            YamlSection endings = section.getSection("ending_map");
+            if (endings != null && !endings.isEmpty()) {
+                for (String key : endings.getKeys(false)) {
+                    String value = endings.getString(key, "");
+                    if (!value.isBlank()) {
+                        endingMap.put(key, value);
+                    }
+                }
+            }
             definition.options().put(entry.getKey(), new OptionDef(
                     head(section),
                     section.getString("option_id", entry.getKey()),
@@ -254,7 +267,9 @@ public final class FlowLoader {
                     section.getInt("time_limit_seconds", 0),
                     section.getInt("min_select", 1),
                     section.getInt("max_select", 1),
-                    conditions(section.getList("conditions"))
+                    conditions(section.getList("conditions")),
+                    safePoint,
+                    endingMap
             ));
         }
     }

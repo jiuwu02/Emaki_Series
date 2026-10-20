@@ -77,7 +77,9 @@ public final class FlowModules {
             int timeLimitSeconds,
             int minSelect,
             int maxSelect,
-            List<ConditionDef> conditions) {
+            List<ConditionDef> conditions,
+            FlowPoint safePoint,
+            java.util.Map<String, String> endingMap) {
     }
 
     public record HintDef(Head head, FlowPoint point, FlowRegion region, String text, String channel, List<ConditionDef> conditions) {
