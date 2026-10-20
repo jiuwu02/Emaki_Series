@@ -28,6 +28,11 @@ public final class RecoveryService {
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
     private volatile BiFunction<String, UUID, Boolean> stagingClear;
     private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
+    }
 
     public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
@@ -136,6 +141,13 @@ public final class RecoveryService {
                 "instance", pointer,
                 "reason", reason
         ));
+        if (audit != null) {
+            audit.write("player", Map.of(
+                    "event", "exit",
+                    "player", String.valueOf(playerId),
+                    "instance", pointer,
+                    "reason", reason));
+        }
         if (actionBridge != null) {
             actionBridge.dispatch("dungeon_exit", playerId, Map.of(
                     "instanceId", pointer,

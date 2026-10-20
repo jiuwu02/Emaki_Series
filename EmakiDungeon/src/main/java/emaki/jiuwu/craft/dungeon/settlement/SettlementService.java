@@ -50,6 +50,11 @@ public final class SettlementService {
 
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
     private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
+    }
 
     public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
@@ -200,6 +205,12 @@ public final class SettlementService {
             fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onSettlePartial,
                     instanceId, instance.dungeonId(), Map.of(
                             "steps", String.valueOf(runResult.steps())));
+            if (audit != null) {
+                audit.write("settle", Map.of(
+                        "event", "partial",
+                        "instance", instanceId,
+                        "steps", String.valueOf(runResult.steps())));
+            }
         }
         if (actionBridge != null) {
             actionBridge.dispatch("dungeon_reward", null, Map.of(
@@ -243,6 +254,16 @@ public final class SettlementService {
                 "instance completed | instance=" + instanceId
                         + " | cause=" + cause
                         + " | duration_ms=" + durationMs);
+        if (audit != null) {
+            audit.write("settle", Map.of(
+                    "event", "complete",
+                    "instance", instanceId,
+                    "dungeon", instance.dungeonId(),
+                    "cause", cause,
+                    "score", String.valueOf(teamScore),
+                    "duration_ms", String.valueOf(durationMs),
+                    "test", String.valueOf(instance.isTest())));
+        }
         Bukkit.getPluginManager().callEvent(
                 new emaki.jiuwu.craft.dungeon.api.event.DungeonCompleteEvent(
                         instanceId, instance.dungeonId(), teamScore, durationMs));

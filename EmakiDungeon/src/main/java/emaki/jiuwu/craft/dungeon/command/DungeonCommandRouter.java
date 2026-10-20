@@ -71,6 +71,208 @@ public final class DungeonCommandRouter {
         this.configOf = configOf;
     }
 
+    private volatile emaki.jiuwu.craft.dungeon.world.WorldPool adminPool;
+    private volatile emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator adminAllocator;
+    private volatile Runnable adminReload;
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+
+    public void bindAdmin(emaki.jiuwu.craft.dungeon.world.WorldPool pool,
+            emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator allocator,
+            Runnable reloadAction) {
+        this.adminPool = pool;
+        this.adminAllocator = allocator;
+        this.adminReload = reloadAction;
+    }
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
+    }
+
+    private void routeAdmin(CommandSender sender, String[] args) {
+        if (!sender.hasPermission("emakidungeon.admin")) {
+            messages.send(sender, "general.no_permission", Map.of());
+            return;
+        }
+        if (args.length < 2) {
+            messages.send(sender, "command.admin.usage", Map.of());
+            return;
+        }
+        switch (Texts.lower(args[1])) {
+            case "instances" -> adminInstances(sender);
+            case "stop" -> adminStop(sender, args);
+            case "status" -> adminStatus(sender);
+            case "reload" -> adminReload(sender);
+            case "validate" -> adminValidate(sender);
+            case "poolreset" -> adminPoolReset(sender, args);
+            case "clearslots" -> adminClearSlots(sender);
+            default -> messages.send(sender, "command.admin.usage", Map.of());
+        }
+    }
+
+    private void adminInstances(CommandSender sender) {
+        var instances = registry.all();
+        messages.send(sender, "command.admin.instances_header",
+                Map.of("count", String.valueOf(instances.size())));
+        for (emaki.jiuwu.craft.dungeon.instance.DungeonInstance instance : instances) {
+            String queue = instance.commands() == null ? "0" : String.valueOf(instance.commands().pending());
+            messages.send(sender, "command.admin.instance_line", Map.of(
+                    "instance", instance.instanceId(),
+                    "dungeon", instance.dungeonId(),
+                    "state", instance.state().name(),
+                    "party", instance.partyId() == null
+                            ? "-" : instance.partyId().toString().substring(0, 8),
+                    "queue", queue));
+        }
+    }
+
+    private void adminStop(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            messages.send(sender, "command.admin.usage", Map.of());
+            return;
+        }
+        String instanceId = args[2];
+        if (registry.get(instanceId) == null) {
+            messages.send(sender, "command.admin.stop_missing", Map.of("instance", instanceId));
+            return;
+        }
+        coordinator.dispose(instanceId, "admin");
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "stop", "sender", sender.getName(),
+                    "instance", instanceId));
+        }
+        messages.send(sender, "command.admin.stopped", Map.of("instance", instanceId));
+    }
+
+    private void adminStatus(CommandSender sender) {
+        int threads = 0;
+        for (Thread thread : Thread.getAllStackTraces().keySet()) {
+            if (thread.isAlive() && thread.getName().startsWith("emd-instance-")) {
+                threads++;
+            }
+        }
+        int templateCount = templates.discoverDungeons().size();
+        messages.send(sender, "command.admin.status_header", Map.of(
+                "instances", String.valueOf(registry.all().size()),
+                "threads", String.valueOf(threads),
+                "templates", String.valueOf(templateCount)));
+        if (adminPool != null && adminAllocator != null) {
+            for (String dungeonId : templates.discoverDungeons()) {
+                messages.send(sender, "command.admin.status_pool", Map.of(
+                        "dungeon", dungeonId,
+                        "worlds", String.valueOf(adminAllocator.worldsOf(dungeonId)),
+                        "reserves", String.valueOf(adminPool.reservesOf(dungeonId).size())));
+            }
+        }
+        boolean anyBacklog = false;
+        for (emaki.jiuwu.craft.dungeon.instance.DungeonInstance instance : registry.all()) {
+            if (instance.commands() == null) {
+                continue;
+            }
+            int pending = instance.commands().pending();
+            if (pending <= 0 && instance.commands().deferredTotal() <= 0L) {
+                continue;
+            }
+            anyBacklog = true;
+            messages.send(sender, "command.admin.status_queue", Map.of(
+                    "instance", instance.instanceId(),
+                    "pending", String.valueOf(pending),
+                    "deferred", String.valueOf(instance.commands().deferredTotal())));
+        }
+        if (!anyBacklog) {
+            messages.send(sender, "command.admin.status_queue_empty", Map.of());
+        }
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "status", "sender", sender.getName()));
+        }
+    }
+
+    private void adminReload(CommandSender sender) {
+        if (adminReload == null) {
+            messages.send(sender, "command.admin.reload_failed", Map.of("error", "unbound"));
+            return;
+        }
+        try {
+            adminReload.run();
+            messages.send(sender, "command.admin.reloaded", Map.of());
+            if (audit != null) {
+                audit.write("admin", Map.of("action", "reload", "sender", sender.getName()));
+            }
+        } catch (RuntimeException exception) {
+            messages.send(sender, "command.admin.reload_failed",
+                    Map.of("error", String.valueOf(exception.getMessage())));
+        }
+    }
+
+    private void adminValidate(CommandSender sender) {
+        var dungeons = templates.discoverDungeons();
+        if (dungeons.isEmpty()) {
+            messages.send(sender, "command.admin.validate_empty", Map.of());
+            return;
+        }
+        for (String dungeonId : dungeons) {
+            try {
+                emaki.jiuwu.craft.dungeon.config.DungeonConfig config =
+                        templates.findConfig(dungeonId);
+                if (config == null) {
+                    messages.send(sender, "command.admin.validate_error",
+                            Map.of("dungeon", dungeonId, "error", "config invalid"));
+                    continue;
+                }
+                var templateDir = templates.templateDir(dungeonId);
+                boolean flowPresent = templateDir.isPresent()
+                        && new java.io.File(templateDir.get(), "flow.yml").isFile();
+                if (flowPresent) {
+                    messages.send(sender, "command.admin.validate_ok",
+                            Map.of("dungeon", dungeonId));
+                } else {
+                    messages.send(sender, "command.admin.validate_flow_missing",
+                            Map.of("dungeon", dungeonId));
+                }
+            } catch (RuntimeException exception) {
+                messages.send(sender, "command.admin.validate_error",
+                        Map.of("dungeon", dungeonId,
+                                "error", String.valueOf(exception.getMessage())));
+            }
+        }
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "validate", "sender", sender.getName()));
+        }
+    }
+
+    private void adminPoolReset(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            messages.send(sender, "command.admin.usage", Map.of());
+            return;
+        }
+        String dungeonId = args[2];
+        if (templates.findConfig(dungeonId) == null) {
+            messages.send(sender, "command.admin.pool_missing", Map.of("dungeon", dungeonId));
+            return;
+        }
+        if (adminPool == null) {
+            messages.send(sender, "command.admin.pool_missing", Map.of("dungeon", dungeonId));
+            return;
+        }
+        adminPool.invalidateAllReserves(dungeonId);
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "poolreset", "sender", sender.getName(),
+                    "dungeon", dungeonId));
+        }
+        messages.send(sender, "command.admin.pool_reset", Map.of("dungeon", dungeonId));
+    }
+
+    private void adminClearSlots(CommandSender sender) {
+        if (adminAllocator == null) {
+            messages.send(sender, "command.admin.reload_failed", Map.of("error", "unbound"));
+            return;
+        }
+        adminAllocator.reset();
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "clearslots", "sender", sender.getName()));
+        }
+        messages.send(sender, "command.admin.slots_cleared", Map.of());
+    }
+
     public DungeonCommandRouter(org.bukkit.plugin.Plugin plugin,
             MessageService messages,
             ChallengeService challenge,
@@ -103,6 +305,10 @@ public final class DungeonCommandRouter {
         String sub = args[0];
         if ("list".equalsIgnoreCase(sub)) {
             routeList(sender);
+            return;
+        }
+        if ("admin".equalsIgnoreCase(sub)) {
+            routeAdmin(sender, args);
             return;
         }
         if (!(sender instanceof Player player)) {

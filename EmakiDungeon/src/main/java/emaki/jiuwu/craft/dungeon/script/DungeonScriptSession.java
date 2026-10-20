@@ -85,6 +85,7 @@ public final class DungeonScriptSession implements AutoCloseable {
     private final long timeoutMs;
     private final boolean failOnError;
     private final String scriptName;
+    private final emaki.jiuwu.craft.dungeon.audit.AuditService audit;
     private final EntryRegistry entries = new EntryRegistry();
     private final Map<String, CopyOnWriteArrayList<Value>> handlers = new ConcurrentHashMap<>();
 
@@ -102,7 +103,8 @@ public final class DungeonScriptSession implements AutoCloseable {
             ScheduledExecutorService watchdog,
             long timeoutMs,
             boolean failOnError,
-            String scriptName) {
+            String scriptName,
+            emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
         this.instance = instance;
         this.runtime = runtime;
         this.controllers = controllers;
@@ -113,6 +115,7 @@ public final class DungeonScriptSession implements AutoCloseable {
         this.timeoutMs = timeoutMs;
         this.failOnError = failOnError;
         this.scriptName = scriptName;
+        this.audit = audit;
     }
 
     boolean load(String source) {
@@ -311,6 +314,15 @@ public final class DungeonScriptSession implements AutoCloseable {
         debug.log("dungeon", (UUID) null, "script_stopped", Map.of(
                 "instance", instance.instanceId(),
                 "script", scriptName));
+        if (audit != null) {
+            audit.write("script", Map.of(
+                    "event", "stopped",
+                    "instance", instance.instanceId(),
+                    "dungeon", instance.dungeonId(),
+                    "script", scriptName,
+                    "trigger", triggerName == null ? "-" : triggerName,
+                    "error", detail == null || detail.isBlank() ? "-" : detail));
+        }
         instance.commands().submit(new WorldCommand() {
             @Override
             public int blockCost() {

@@ -100,6 +100,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
     private emaki.jiuwu.craft.dungeon.editor.EditorService editorService;
     private emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private emaki.jiuwu.craft.dungeon.audit.AuditService auditService;
+    private emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor performanceMonitor;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
@@ -174,6 +176,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (coordinator != null) {
             coordinator.shutdown();
             coordinator = null;
+        }
+        if (performanceMonitor != null) {
+            performanceMonitor.close();
+            performanceMonitor = null;
+        }
+        if (auditService != null) {
+            auditService.close();
+            auditService = null;
         }
         if (scriptManager != null) {
             scriptManager.close();
@@ -284,9 +294,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 poolMaxOf
         );
         registry = new InstanceRegistry();
+        auditService = new emaki.jiuwu.craft.dungeon.audit.AuditService(
+                getDataFolder(), appConfigSupplier, messageService);
+        performanceMonitor = new emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor(
+                this, dispatcher, registry, messageService, auditService, appConfigSupplier);
         scriptManager = new emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager(
                 this, messageService, debugLogger(), appConfigSupplier, configOf,
-                registry, getDataFolder());
+                registry, getDataFolder(), auditService);
         scriptManager.startup();
         DestroyArbiter arbiter = new DestroyArbiter();
         InstancesStore store = new InstancesStore(this, dispatcher, getDataFolder());
@@ -298,6 +312,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
                 allocator, registry, store, poolMaxOf, editorStates::generationOf, messageService);
+        pool.bindAudit(auditService);
 
         teleportGuard = new TeleportGuard(messageService, registry);
         SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
@@ -328,10 +343,12 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
                 teleportGuard::permit);
         recovery.bindScriptManager(scriptManager);
+        recovery.bindAudit(auditService);
 
         coordinator = new InstanceCoordinator(this, dispatcher, pool, disposer, allocator, registry, arbiter,
                 store, messageService, debugLogger(), recovery::evacuate);
         coordinator.bindScriptManager(scriptManager);
+        coordinator.bindAudit(auditService);
 
         guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
                 coreLib.performanceMonitor(), coreLib.guiBackend());
@@ -349,6 +366,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
         challenge.bindLimitService(limitService);
         challenge.bindScriptManager(scriptManager);
+        challenge.bindAudit(auditService);
         challenge.start();
         editorService.bindChallenge(challenge);
 
@@ -385,6 +403,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 rewardBox, messageService, debugLogger(), configOf);
         settlement.bindActionBridge(actionBridge);
         settlement.bindScriptManager(scriptManager);
+        settlement.bindAudit(auditService);
         this.actionBridge = actionBridge;
 
         recovery.bindActionBridge(actionBridge);
@@ -407,6 +426,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router = new DungeonCommandRouter(this, messageService, challenge, parties, recovery, snapshots,
                 chatInputService, templates, coordinator, registry, isolation);
         router.bindOperations(limitService, leaderboard, configOf);
+        router.bindAdmin(pool, allocator, () -> reloadTemplates(templates, configCache));
+        router.bindAudit(auditService);
         router.bindRewardBox(rewardBoxGui);
         router.bindEditor(editorService);
 
@@ -450,6 +471,21 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         coordinator.startupScan();
         coordinator.warmupAll(dungeons);
         coordinator.startInspection();
+    }
+
+    private void reloadTemplates(TemplateRepository templates,
+            Map<String, DungeonConfig> configCache) {
+        appConfigLoader.load();
+        for (String dungeonId : templates.discoverDungeons()) {
+            try {
+                configCache.put(dungeonId, templates.loadConfig(dungeonId));
+            } catch (RuntimeException exception) {
+                messageService.warning("console.dungeon_config_invalid", Map.of(
+                        "dungeon", dungeonId,
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            }
+        }
     }
 
     private emaki.jiuwu.craft.dungeon.flow.FlowRuntime buildFlowRuntime(

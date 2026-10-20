@@ -24,6 +24,9 @@ public record AppConfig(
         boolean scriptEnabled,
         long scriptTimeoutMs,
         boolean scriptFailOnError,
+        int monitorMsptP95Ms,
+        int monitorMemorySlopeMbPerMin,
+        int monitorQueueBacklogSeconds,
         Map<String, List<String>> actionPipelines
 ) {
     static final String CURRENT_VERSION = "1.0.0";
@@ -48,6 +51,9 @@ public record AppConfig(
                 true,
                 5000L,
                 false,
+                50,
+                64,
+                5,
                 Map.of()
         );
     }
@@ -86,6 +92,9 @@ public record AppConfig(
                 section.getBoolean("script.enabled", defaults.scriptEnabled()),
                 section.getInt("script.timeout-ms", (int) defaults.scriptTimeoutMs()),
                 section.getBoolean("script.fail-on-error", defaults.scriptFailOnError()),
+                section.getInt("monitor.mspt-p95-ms", defaults.monitorMsptP95Ms()),
+                section.getInt("monitor.memory-slope-mb-per-min", defaults.monitorMemorySlopeMbPerMin()),
+                section.getInt("monitor.queue-backlog-seconds", defaults.monitorQueueBacklogSeconds()),
                 Map.copyOf(actionPipelines)
         );
     }

@@ -240,6 +240,17 @@ public final class GameplayControllers implements FlowControllers {
         return size >= minimum && size <= maximum;
     }
 
+    static List<FlowModules.OptionCase> sealedCases(FlowModules.OptionDef option,
+            java.util.Set<String> picked) {
+        List<FlowModules.OptionCase> sealed = new ArrayList<>();
+        for (FlowModules.OptionCase optionCase : option.cases()) {
+            if (!picked.contains(optionCase.caseId())) {
+                sealed.add(optionCase);
+            }
+        }
+        return sealed;
+    }
+
     private List<String> parsePick(String text, List<String> caseIds) {
         List<String> picked = new ArrayList<>();
         for (String token : text.split("[,\\s]+")) {
@@ -278,12 +289,7 @@ public final class GameplayControllers implements FlowControllers {
                 + " | cases=" + String.join(",", pickedCaseIds));
         Bukkit.getPluginManager().callEvent(new emaki.jiuwu.craft.dungeon.api.event.DungeonOptionConfirmEvent(
                 instance.instanceId(), instance.dungeonId(), optionId, picked));
-        List<FlowModules.OptionCase> sealed = new ArrayList<>();
-        for (FlowModules.OptionCase optionCase : option.cases()) {
-            if (!picked.contains(optionCase.caseId())) {
-                sealed.add(optionCase);
-            }
-        }
+        List<FlowModules.OptionCase> sealed = sealedCases(option, picked);
         pullbackSealed(option, sealed);
         for (FlowModules.OptionCase optionCase : sealed) {
             sealRegions(runtime, optionCase);

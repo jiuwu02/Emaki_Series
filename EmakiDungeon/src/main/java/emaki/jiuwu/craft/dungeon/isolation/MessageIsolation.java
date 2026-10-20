@@ -64,27 +64,30 @@ public final class MessageIsolation implements Listener {
         }
     }
 
+    public static boolean dropChatRecipient(boolean senderInInstance,
+            String senderInstanceId,
+            boolean senderGlobalListen,
+            String targetInstanceId,
+            boolean targetGlobalListen) {
+        if (!senderInInstance) {
+            return targetInstanceId != null && !targetGlobalListen;
+        }
+        if (senderGlobalListen) {
+            return false;
+        }
+        return !senderInstanceId.equals(targetInstanceId);
+    }
+
     public void applyChatViewers(io.papermc.paper.event.player.AsyncChatEvent event, Player sender) {
-        if (!inInstance(sender)) {
-            event.viewers().removeIf(viewer -> {
-                if (!(viewer instanceof Player target)) {
-                    return false;
-                }
-                String targetInstanceId = instanceIdOf(target);
-                return targetInstanceId != null && !globalListen(target.getUniqueId());
-            });
-            return;
-        }
-        if (globalListen(sender.getUniqueId())) {
-            return;
-        }
-        String instanceId = instanceIdOf(sender);
+        boolean senderInInstance = inInstance(sender);
+        String senderInstanceId = senderInInstance ? instanceIdOf(sender) : null;
+        boolean senderGlobal = senderInInstance && globalListen(sender.getUniqueId());
         event.viewers().removeIf(viewer -> {
             if (!(viewer instanceof Player target)) {
-                return true;
+                return senderInInstance && !senderGlobal;
             }
-            String targetInstanceId = instanceIdOf(target);
-            return !instanceId.equals(targetInstanceId);
+            return dropChatRecipient(senderInInstance, senderInstanceId, senderGlobal,
+                    instanceIdOf(target), globalListen(target.getUniqueId()));
         });
     }
 
@@ -94,7 +97,8 @@ public final class MessageIsolation implements Listener {
             if (!(recipient instanceof Player target)) {
                 return false;
             }
-            return inInstance(target) && !globalListen(target.getUniqueId());
+            return dropChatRecipient(false, null, false,
+                    instanceIdOf(target), globalListen(target.getUniqueId()));
         });
     }
 

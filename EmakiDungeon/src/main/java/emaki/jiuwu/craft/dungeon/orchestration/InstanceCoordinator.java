@@ -36,6 +36,7 @@ public final class InstanceCoordinator {
     private final java.util.function.Consumer<DungeonInstance> evacuator;
     private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
     private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
     private volatile emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
     private volatile java.util.function.Consumer<String> dropCleanup;
 
@@ -80,6 +81,10 @@ public final class InstanceCoordinator {
 
     public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
+    }
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
     }
 
     public void startupScan() {
@@ -164,6 +169,13 @@ public final class InstanceCoordinator {
                 "instance", instanceId,
                 "trigger", trigger
         ));
+        if (audit != null) {
+            audit.write("instance", Map.of(
+                    "event", "destroyed",
+                    "instance", instanceId,
+                    "dungeon", instance.dungeonId(),
+                    "outcome", trigger));
+        }
         pool.dropFromReserves(instance.dungeonId(), instanceId);
         if (evacuator != null) {
             try {
@@ -198,6 +210,12 @@ public final class InstanceCoordinator {
                 ));
             } else {
                 allocator.releaseWorld(dungeonId);
+            }
+            if (audit != null) {
+                audit.write("instance", Map.of(
+                        "event", held ? "held" : "disposed",
+                        "instance", instanceId,
+                        "dungeon", dungeonId));
             }
             finish(instance, held);
         });

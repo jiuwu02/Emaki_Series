@@ -67,6 +67,11 @@ public final class ChallengeService {
     private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
     private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
     private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
+    }
 
     public ChallengeService(Plugin plugin,
             ExecutionDispatcher dispatcher,
@@ -676,10 +681,14 @@ public final class ChallengeService {
                     "dungeon", session.dungeonId(),
                     "instance", instanceId
             ));
-            instance.ingress().post(new IngressEvent("onEnter", String.valueOf(memberId), Map.of(
-                    "dungeonId", session.dungeonId(),
-                    "instanceId", instanceId
-            )));
+            if (audit != null) {
+                audit.write("player", Map.of(
+                        "event", "enter",
+                        "player", String.valueOf(memberId),
+                        "instance", instanceId,
+                        "dungeon", session.dungeonId(),
+                        "test", String.valueOf(session.isTest())));
+            }
             if (actionBridge != null) {
                 actionBridge.dispatch("dungeon_enter", memberId, Map.of(
                         "instanceId", instanceId,

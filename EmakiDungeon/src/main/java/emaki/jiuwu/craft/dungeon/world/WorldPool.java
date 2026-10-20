@@ -83,6 +83,12 @@ public final class WorldPool {
         stopping = true;
     }
 
+    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+
+    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+        this.audit = audit;
+    }
+
     public void ensureReserve(String dungeonId) {
         if (stopping || dungeonId == null) {
             return;
@@ -109,6 +115,12 @@ public final class WorldPool {
             }
             store.put(worldName, new Entry(dungeonId, InstanceState.CREATING.name(), "", List.of(), System.currentTimeMillis()));
             store.saveAsync();
+            if (audit != null) {
+                audit.write("instance", Map.of(
+                        "event", "created",
+                        "instance", worldName,
+                        "dungeon", dungeonId));
+            }
             File template = templates.templateDir(dungeonId).orElse(null);
             if (template == null) {
                 rollbackCreate(worldName, instance, reservation, false);

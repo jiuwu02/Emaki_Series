@@ -61,6 +61,25 @@ command:
     usage: "<red>Usage: /edg globalchat <on|off></red>"
   denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
   denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
+  admin:
+    usage: "<red>Usage: /edg admin <instances|stop|status|reload|validate|poolreset|clearslots></red>"
+    instances_header: "<gray>Instance list (<count> total):</gray>"
+    instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| party </gray><party> <gray>| queue </gray><queue>"
+    stop_missing: "<red>Instance not found: <instance></red>"
+    stopped: "<green>Instance force-stopped: <instance></green>"
+    status_header: "<gray>Status: instances <instances> | live virtual threads <threads> | templates <templates></gray>"
+    status_pool: "<gray>- Pool </gray><dungeon> <gray>: worlds </gray><worlds> <gray> reserves </gray><reserves>"
+    status_queue: "<gray>- Write queue </gray><instance> <gray>: pending </gray><pending> <gray> deferred total </gray><deferred>"
+    status_queue_empty: "<gray>Write queues have no backlog</gray>"
+    reloaded: "<green>Configuration reloaded (global and all dungeons)</green>"
+    reload_failed: "<red>Configuration reload failed: <error></red>"
+    validate_ok: "<gray>- </gray><dungeon> <gray>: </gray><green>OK</green>"
+    validate_flow_missing: "<gray>- </gray><dungeon> <gray>: </gray><red>flow.yml missing</red>"
+    validate_error: "<gray>- </gray><dungeon> <gray>: </gray><red><error></red>"
+    validate_empty: "<yellow>No dungeon templates found</yellow>"
+    pool_reset: "<green>Pool reserves force-reset: <dungeon></green>"
+    pool_missing: "<red>Dungeon not found: <dungeon></red>"
+    slots_cleared: "<green>Slot placeholders cleared</green>"
 
 challenge:
   entered: "<green>Entered dungeon <dungeon> (<instance>)</green>"
@@ -351,6 +370,10 @@ console:
   script_load_failed: "Instance script failed to load; that script is stopped and the run continues | instance=%instance% | error=%error%"
   script_stopped: "Script handler failed or timed out; the script is stopped and the run continues | instance=%instance% | script=%script% | trigger=%trigger% | error=%error%"
   script_api_failed: "Script trigger API handler failed | trigger=%trigger% | error=%error%"
+  monitor_mspt_high: "MSPT P95 exceeded the alert threshold | p95=%p95%ms | threshold=%threshold%ms"
+  monitor_memory_slope: "Heap memory slope exceeded the alert threshold | slope=%slope%MB/min | threshold=%threshold%MB/min"
+  monitor_queue_backlog: "World queue backlog lasted over threshold | instance=%instance% | seconds=%seconds%s | threshold=%threshold%s"
+  audit_write_failed: "Failed to write audit log | file=%file% | error=%error%"
 
 script:
   stopped_chat: "The dungeon script stopped after an error; this run continues"

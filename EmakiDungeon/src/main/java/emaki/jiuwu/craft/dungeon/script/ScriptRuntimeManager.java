@@ -57,6 +57,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
     private final Function<String, DungeonConfig> configOf;
     private final InstanceRegistry registry;
     private final File dataFolder;
+    private final emaki.jiuwu.craft.dungeon.audit.AuditService audit;
 
     private final Map<String, String> apiSources = new ConcurrentHashMap<>();
     private final Map<String, DungeonScriptSession> sessions = new ConcurrentHashMap<>();
@@ -73,7 +74,8 @@ public final class ScriptRuntimeManager implements AutoCloseable {
             Supplier<AppConfig> config,
             Function<String, DungeonConfig> configOf,
             InstanceRegistry registry,
-            File dataFolder) {
+            File dataFolder,
+            emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
         this.plugin = plugin;
         this.messages = messages;
         this.debug = debug;
@@ -81,6 +83,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
         this.configOf = configOf;
         this.registry = registry;
         this.dataFolder = dataFolder;
+        this.audit = audit;
     }
 
     public void startup() {
@@ -141,7 +144,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
         }
         DungeonScriptSession session = new DungeonScriptSession(instance, runtime, controllers,
                 engine, messages, debug, watchdog,
-                appConfig.scriptTimeoutMs(), appConfig.scriptFailOnError(), scriptName);
+                appConfig.scriptTimeoutMs(), appConfig.scriptFailOnError(), scriptName, audit);
         if (!session.load(source)) {
             messages.warning("console.script_load_failed", Map.of(
                     "instance", instance.instanceId(),
