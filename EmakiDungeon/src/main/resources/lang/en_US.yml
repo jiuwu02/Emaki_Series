@@ -22,6 +22,7 @@ command:
     <gray>/edg leave</gray> <white>Leave the current dungeon</white>
     <gray>/edg cancel</gray> <white>Cancel entering wait</white>
     <gray>/edg ready</gray> <white>Confirm ready</white>
+    <gray>/edg rewards</gray> <white>Open the reward box</white>
     <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>Party actions</white>
     <gray>/edg stats [player] [dungeonId]</gray> <white>Query limits and records</white>
     <gray>/edg rank <dungeonId></gray> <white>Show leaderboard</white>
@@ -147,12 +148,27 @@ globalchat:
 
 drop:
   chest_locked: "<red>This reward chest must be opened before settlement, loot cannot be taken now</red>"
+  box_stored: "<gray><item> x<amount> stored in your reward box, run /edg rewards to claim</gray>"
   roll:
-    won: "<green>ROLL won: <white><item></white> x<amount></green>"
+    won: "<green>ROLL won: <white><item></white> x<amount> (stored in reward box)</green>"
     distributed: "<gray>This drop batch was auto-rolled (<count> items)</gray>"
+
+rewardbox:
+  gui:
+    title: "<gradient:#93C5FD:#60A5FA>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
+    prev: "<white>Previous page</white>"
+    next: "<white>Next page</white>"
+    toggle_on: "<green>Auto deposit: ON</green><gray> (click to disable)</gray>"
+    toggle_off: "<red>Auto deposit: OFF</red><gray> (click to enable)</gray>"
+    info: "<yellow>Drag items to your inventory to claim</yellow>"
+    close: "<red>Close</red>"
+    filler: ""
+    auto_enabled: "<green>Auto deposit enabled: future rewards go straight to your inventory (kept in box when full)</green>"
+    auto_disabled: "<yellow>Auto deposit disabled: future rewards go to the reward box, claim with /edg rewards</yellow>"
 
 settle:
   partial: "<yellow>Settlement partially completed, some rewards may be missing, audited</yellow>"
+  rewards_hint: "<yellow>Your rewards are in the reward box, run </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> to claim</yellow>"
 
 flow:
   option:

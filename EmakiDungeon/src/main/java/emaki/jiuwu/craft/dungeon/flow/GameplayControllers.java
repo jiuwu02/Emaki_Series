@@ -31,6 +31,7 @@ public final class GameplayControllers implements FlowControllers {
     private final DebugLogger debug;
     private final GateController gateController;
     private final WaveController waveController;
+    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
 
     private volatile Consumer<String> failHandler;
     private volatile BiConsumer<String, Integer> tempItemHandler;
@@ -43,7 +44,8 @@ public final class GameplayControllers implements FlowControllers {
             ChatInputService chatInput,
             DebugLogger debug,
             GateController gateController,
-            WaveController waveController) {
+            WaveController waveController,
+            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox) {
         this.plugin = plugin;
         this.instance = instance;
         this.messages = messages;
@@ -51,6 +53,7 @@ public final class GameplayControllers implements FlowControllers {
         this.debug = debug;
         this.gateController = gateController;
         this.waveController = waveController;
+        this.rewardBox = rewardBox;
     }
 
     public void bindHandlers(Consumer<String> failHandler, BiConsumer<String, Integer> tempItemHandler) {
@@ -130,34 +133,15 @@ public final class GameplayControllers implements FlowControllers {
                     "loot table missing | reward=" + rewardId + " | table=" + lootTable);
             return;
         }
-        var point = reward.point();
-        instance.commands().submit(new WorldCommand() {
-            @Override
-            public int blockCost() {
-                return 1;
-            }
-
-            @Override
-            public void execute() {
-                World world = Bukkit.getWorld(instance.instanceId());
-                if (world == null) {
-                    return;
-                }
-                var location = new org.bukkit.Location(world,
-                        point.x(), point.y(), point.z(), point.yaw(), point.pitch());
-                var block = world.getBlockAt(location);
-                java.util.Collection<org.bukkit.inventory.ItemStack> generated =
-                        table.populateLoot(new java.util.Random(), null);
-                if (block.getState() instanceof org.bukkit.block.Container container) {
-                    container.getInventory().addItem(
-                            generated.toArray(new org.bukkit.inventory.ItemStack[0]));
-                } else {
-                    for (org.bukkit.inventory.ItemStack stack : generated) {
-                        world.dropItemNaturally(location, stack);
-                    }
-                }
-            }
-        });
+        java.util.Collection<org.bukkit.inventory.ItemStack> generated =
+                table.populateLoot(new java.util.Random(), null);
+        if (generated.isEmpty()) {
+            return;
+        }
+        if (playerId == null) {
+            return;
+        }
+        rewardBox.deposit(playerId, new ArrayList<>(generated));
     }
 
     @Override
@@ -216,7 +200,16 @@ public final class GameplayControllers implements FlowControllers {
 
     private void finalizePick(FlowRuntime runtime, String optionId, List<String> pickedCaseIds, UUID playerId) {
         FlowModules.OptionDef option = runtime.definition().options().get(optionId);
-        if (option == null) {
+        if (option == null || pickedCaseIds.isEmpty()) {
+            return;
+        }
+        var choiceEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChoiceEvent(
+                instance.instanceId(), instance.dungeonId(), optionId,
+                option.selectMode(), new java.util.LinkedHashSet<>(pickedCaseIds));
+        Bukkit.getPluginManager().callEvent(choiceEvent);
+        if (choiceEvent.isCancelled()) {
+            debug.logRaw("dungeon", (UUID) null,
+                    "option choice cancelled | option=" + optionId);
             return;
         }
         boolean multi = "multi".equalsIgnoreCase(option.selectMode());

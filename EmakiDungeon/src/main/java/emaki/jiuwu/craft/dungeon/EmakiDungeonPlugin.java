@@ -95,6 +95,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
     private emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
     private emaki.jiuwu.craft.dungeon.settlement.SettlementService settlement;
+    private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
+    private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
+    private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
 
@@ -226,7 +229,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void installPublicApi() {
         String version = getPluginMeta().getVersion();
-        bridge = new ServiceBackedDungeonBridge(ApiStatus.ready(getName(), version, API_VERSION));
+        bridge = new ServiceBackedDungeonBridge(
+                ApiStatus.ready(getName(), version, API_VERSION),
+                challenge, parties, registry, coordinator, configOf);
         EmakiDungeonApi.install(bridge);
     }
 
@@ -267,7 +272,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 appConfig.foliaHeldWorldsMax(),
                 poolMaxOf
         );
-        InstanceRegistry registry = new InstanceRegistry();
+        registry = new InstanceRegistry();
         DestroyArbiter arbiter = new DestroyArbiter();
         InstancesStore store = new InstancesStore(this, dispatcher, getDataFolder());
         WorldNames names = new WorldNames(worldContainer);
@@ -316,9 +321,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new TempItemManager(messageService, debugLogger());
         emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests =
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
+        rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
+                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),
+                messageService);
+        rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);
         emaki.jiuwu.craft.dungeon.drop.DropRouter dropRouter =
                 new emaki.jiuwu.craft.dungeon.drop.DropRouter(registry, parties, messageService,
-                        rewardChests, configOf, this, dispatcher);
+                        rewardChests, rewardBox, configOf, this, dispatcher);
         emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation =
                 new emaki.jiuwu.craft.dungeon.isolation.MessageIsolation(registry, playersDataStore, messageService);
         stateService = new PlayerStateService(this, dispatcher, coordinator, registry,
@@ -332,7 +341,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 this, dispatcher, registry, parties, scoreTracker, snapshots, recovery,
                 rewardChests, leaderboard, coordinator,
                 new emaki.jiuwu.craft.dungeon.settlement.SettlementCommandRunner(debugLogger()),
-                messageService, debugLogger(), configOf);
+                rewardBox, messageService, debugLogger(), configOf);
         settlement.bindActionBridge(actionBridge);
         this.actionBridge = actionBridge;
 
@@ -356,6 +365,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router = new DungeonCommandRouter(this, messageService, challenge, parties, recovery, snapshots,
                 chatInputService, templates, coordinator, registry, isolation);
         router.bindOperations(limitService, leaderboard, configOf);
+        router.bindRewardBox(rewardBoxGui);
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties), this);
@@ -371,6 +381,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.score.CombatDataListener(registry, scoreTracker), this);
         getServer().getPluginManager().registerEvents(dropRouter, this);
         getServer().getPluginManager().registerEvents(rewardChests, this);
+        getServer().getPluginManager().registerEvents(rewardBoxGui, this);
         getServer().getPluginManager().registerEvents(isolation, this);
 
         actionBridge.registerAll();
@@ -422,7 +433,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         gateController.bindWaveController(waveController);
         var controllers = new emaki.jiuwu.craft.dungeon.flow.GameplayControllers(
                 this, instance, messageService, chatInputService, debugLogger(),
-                gateController, waveController);
+                gateController, waveController, rewardBox);
         controllers.bindHandlers(
                 reason -> stateService.fail(instance, reason),
                 (itemId, amount) -> dispatchTempItemGrant(instance, itemId, amount, tempItemManager));

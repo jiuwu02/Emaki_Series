@@ -43,6 +43,7 @@ public final class SettlementService {
     private final LeaderboardStore leaderboard;
     private final InstanceCoordinator coordinator;
     private final SettlementCommandRunner commandRunner;
+    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
     private final MessageService messages;
     private final DebugLogger debug;
     private final java.util.function.Function<String, DungeonConfig> configOf;
@@ -60,6 +61,7 @@ public final class SettlementService {
             LeaderboardStore leaderboard,
             InstanceCoordinator coordinator,
             SettlementCommandRunner commandRunner,
+            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox,
             MessageService messages,
             DebugLogger debug,
             java.util.function.Function<String, DungeonConfig> configOf) {
@@ -74,6 +76,7 @@ public final class SettlementService {
         this.leaderboard = leaderboard;
         this.coordinator = coordinator;
         this.commandRunner = commandRunner;
+        this.rewardBox = rewardBox;
         this.messages = messages;
         this.debug = debug;
         this.configOf = configOf;
@@ -229,6 +232,13 @@ public final class SettlementService {
             if (member == null) {
                 continue;
             }
+            messages.send(member, "settle.rewards_hint", Map.of());
+        }
+        for (UUID memberId : members) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member == null) {
+                continue;
+            }
             recovery.onExit(member, "complete");
         }
         coordinator.dispose(instanceId, "complete:" + cause);
@@ -247,15 +257,7 @@ public final class SettlementService {
         Map<UUID, List<org.bukkit.inventory.ItemStack>> allocation = DropAllocator.allocate(
                 pool, scores, config == null ? Map.of() : config.dropLevels(), members);
         for (Map.Entry<UUID, List<org.bukkit.inventory.ItemStack>> entry : allocation.entrySet()) {
-            Player player = Bukkit.getPlayer(entry.getKey());
-            if (player == null) {
-                continue;
-            }
-            for (org.bukkit.inventory.ItemStack stack : entry.getValue()) {
-                for (org.bukkit.inventory.ItemStack leftover : player.getInventory().addItem(stack).values()) {
-                    player.getWorld().dropItemNaturally(player.getLocation(), leftover);
-                }
-            }
+            rewardBox.deposit(entry.getKey(), entry.getValue());
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score_drops_allocated | instance=" + instanceId

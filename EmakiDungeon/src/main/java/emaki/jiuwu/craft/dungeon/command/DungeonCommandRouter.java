@@ -30,7 +30,7 @@ import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 public final class DungeonCommandRouter {
 
     private static final List<String> ROOT_SUBS = List.of(
-            "help", "list", "enter", "leave", "cancel", "ready",
+            "help", "list", "enter", "leave", "cancel", "ready", "rewards",
             "party", "stats", "rank", "globalchat", "editor", "admin"
     );
     private static final List<String> PARTY_SUBS = List.of(
@@ -51,6 +51,11 @@ public final class DungeonCommandRouter {
     private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
     private volatile emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
     private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
+    private volatile emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
+
+    public void bindRewardBox(emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui) {
+        this.rewardBoxGui = rewardBoxGui;
+    }
 
     public void bindOperations(emaki.jiuwu.craft.dungeon.limit.LimitService limitService,
             emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard,
@@ -106,6 +111,11 @@ public final class DungeonCommandRouter {
             case "party" -> routeParty(player, args);
             case "stats" -> routeStats(player, args);
             case "rank" -> routeRank(player, args);
+            case "rewards" -> {
+                if (rewardBoxGui != null) {
+                    rewardBoxGui.open(player, 0);
+                }
+            }
             case "globalchat" -> routeGlobalChat(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }

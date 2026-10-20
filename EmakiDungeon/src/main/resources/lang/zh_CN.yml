@@ -22,6 +22,7 @@ command:
     <gray>/edg leave</gray> <white>退出当前副本</white>
     <gray>/edg cancel</gray> <white>取消进入等待</white>
     <gray>/edg ready</gray> <white>确认准备</white>
+    <gray>/edg rewards</gray> <white>打开奖励箱领取奖励</white>
     <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>组队操作</white>
     <gray>/edg stats [玩家] [副本ID]</gray> <white>查询次数与成绩</white>
     <gray>/edg rank <副本ID></gray> <white>查看排行榜</white>
@@ -147,12 +148,27 @@ globalchat:
 
 drop:
   chest_locked: "<red>该奖励箱需在结算前开启, 当前不可拾取战利品</red>"
+  box_stored: "<gray><item> x<amount> 已存入奖励箱, /edg rewards 领取</gray>"
   roll:
-    won: "<green>ROLL 获得: <white><item></white> x<amount></green>"
+    won: "<green>ROLL 获得: <white><item></white> x<amount> (已入奖励箱)</green>"
     distributed: "<gray>本批掉落已自动 ROLL 分配 (<count> 件)</gray>"
+
+rewardbox:
+  gui:
+    title: "<gradient:#93C5FD:#60A5FA>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
+    prev: "<white>上一页</white>"
+    next: "<white>下一页</white>"
+    toggle_on: "<green>自动流入: 开</green><gray> (点击关闭)</gray>"
+    toggle_off: "<red>自动流入: 关</red><gray> (点击开启)</gray>"
+    info: "<yellow>拖拽物品到背包即可领取</yellow>"
+    close: "<red>关闭</red>"
+    filler: ""
+    auto_enabled: "<green>已开启自动流入: 之后的奖励将直接进入背包 (背包满时仍留奖励箱)</green>"
+    auto_disabled: "<yellow>已关闭自动流入: 之后的奖励将存入奖励箱, /edg rewards 手动领取</yellow>"
 
 settle:
   partial: "<yellow>结算部分完成, 部分奖励可能未发放, 已记录审计</yellow>"
+  rewards_hint: "<yellow>副本奖励已存入奖励箱, 输入 </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> 打开领取</yellow>"
 
 flow:
   option:

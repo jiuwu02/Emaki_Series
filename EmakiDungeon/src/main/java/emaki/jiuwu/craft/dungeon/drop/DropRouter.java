@@ -7,6 +7,7 @@ import java.util.Random;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -28,6 +29,7 @@ public final class DropRouter implements Listener {
     private final PartyService parties;
     private final MessageService messages;
     private final RewardChestService rewardChests;
+    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
     private final java.util.function.Function<String, DungeonConfig> configOf;
     private final org.bukkit.plugin.Plugin plugin;
     private final emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher dispatcher;
@@ -37,6 +39,7 @@ public final class DropRouter implements Listener {
             PartyService parties,
             MessageService messages,
             RewardChestService rewardChests,
+            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox,
             java.util.function.Function<String, DungeonConfig> configOf,
             org.bukkit.plugin.Plugin plugin,
             emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher dispatcher) {
@@ -44,6 +47,7 @@ public final class DropRouter implements Listener {
         this.parties = parties;
         this.messages = messages;
         this.rewardChests = rewardChests;
+        this.rewardBox = rewardBox;
         this.configOf = configOf;
         this.plugin = plugin;
         this.dispatcher = dispatcher;
@@ -109,22 +113,46 @@ public final class DropRouter implements Listener {
 
     private void applyKiller(DungeonInstance instance, EntityDeathEvent event, List<ItemStack> drops) {
         Player killer = event.getEntity().getKiller();
-        if (killer == null) {
-            return;
-        }
-        UUID killerId = killer.getUniqueId();
         List<ItemStack> captured = cloneAll(drops);
         event.getDrops().clear();
-        var location = event.getEntity().getLocation();
+        if (killer == null) {
+            dropAtSpawn(instance, captured);
+            return;
+        }
+        rewardBox.deposit(killer.getUniqueId(), captured);
+    }
+
+    @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
+    public void onPickup(org.bukkit.event.entity.EntityPickupItemEvent event) {
+        if (!(event.getEntity() instanceof Player player)) {
+            return;
+        }
+        DungeonInstance instance = registry.get(player.getWorld().getName());
+        if (instance == null) {
+            return;
+        }
+        ItemStack stack = event.getItem().getItemStack().clone();
+        if (stack.getType() == Material.AIR || stack.getAmount() <= 0) {
+            return;
+        }
+        event.setCancelled(true);
+        event.getItem().remove();
+        rewardBox.deposit(player.getUniqueId(), List.of(stack));
+        rewardBox.notifyStored(player, itemLabel(stack), stack.getAmount());
+    }
+
+    private void dropAtSpawn(DungeonInstance instance, List<ItemStack> items) {
+        if (items.isEmpty()) {
+            return;
+        }
         dispatcher.runGlobal(plugin, () -> {
             org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
             if (world == null) {
                 return;
             }
-            for (ItemStack stack : captured) {
-                org.bukkit.entity.Item item = world.dropItemNaturally(location, stack);
-                item.setOwner(killerId);
-                item.setPickupDelay(0);
+            var location = world.getSpawnLocation();
+            for (ItemStack stack : items) {
+                world.dropItemNaturally(location, stack);
             }
         });
     }
@@ -140,21 +168,12 @@ public final class DropRouter implements Listener {
             }
         }
         if (members.isEmpty()) {
-            dispatcher.runGlobal(plugin, () -> {
-                org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
-                if (world == null) {
-                    return;
-                }
-                var location = world.getSpawnLocation();
-                for (ItemStack stack : items) {
-                    world.dropItemNaturally(location, stack);
-                }
-            });
+            dropAtSpawn(instance, items);
             return;
         }
         for (ItemStack stack : items) {
             UUID winner = members.get(random.nextInt(members.size()));
-            giveTo(instance, winner, stack);
+            rewardBox.deposit(winner, List.of(stack));
             Player winnerPlayer = Bukkit.getPlayer(winner);
             if (winnerPlayer != null) {
                 messages.send(winnerPlayer, "drop.roll.won", Map.of(
@@ -188,23 +207,8 @@ public final class DropRouter implements Listener {
         Map<UUID, List<ItemStack>> allocation =
                 DropAllocator.allocateShare(items, members);
         for (Map.Entry<UUID, List<ItemStack>> entry : allocation.entrySet()) {
-            for (ItemStack stack : entry.getValue()) {
-                giveTo(instance, entry.getKey(), stack);
-            }
+            rewardBox.deposit(entry.getKey(), entry.getValue());
         }
-    }
-
-    private void giveTo(DungeonInstance instance, UUID memberId, ItemStack stack) {
-        dispatcher.runGlobal(plugin, () -> {
-            Player player = Bukkit.getPlayer(memberId);
-            if (player == null) {
-                return;
-            }
-            for (ItemStack leftover : player.getInventory().addItem(stack)
-                    .values()) {
-                player.getWorld().dropItemNaturally(player.getLocation(), leftover);
-            }
-        });
     }
 
     private List<UUID> membersOf(DungeonInstance instance) {
