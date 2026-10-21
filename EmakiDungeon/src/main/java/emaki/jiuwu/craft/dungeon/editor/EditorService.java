@@ -187,7 +187,7 @@ public final class EditorService implements Listener {
         states.release(session.dungeonId());
         dispatcher.runAsync(plugin, () -> {
             for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
-                    .dataCandidates(worldContainer, session.editWorldName())) {
+                    .allDirs(worldContainer, session.editWorldName())) {
                 WorldCloner.deleteTree(candidate);
             }
         });
@@ -199,15 +199,18 @@ public final class EditorService implements Listener {
 
     private void mount(EditorSession session) {
         if (sessions.get(session.playerId()) != session) {
-            dispatcher.runAsync(plugin, () -> WorldCloner.deleteTree(
-                    new File(worldContainer, session.editWorldName()).toPath()));
+            dispatcher.runAsync(plugin, () -> {
+                for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
+                        .allDirs(worldContainer, session.editWorldName())) {
+                    WorldCloner.deleteTree(candidate);
+                }
+            });
             states.release(session.dungeonId());
             return;
         }
-        java.util.List<java.nio.file.Path> staleCandidates = emaki.jiuwu.craft.dungeon.world.WorldFolders
-                .dataCandidates(worldContainer, session.editWorldName());
-        for (int index = 1; index < staleCandidates.size(); index++) {
-            WorldCloner.deleteTree(staleCandidates.get(index));
+        for (java.nio.file.Path stale : emaki.jiuwu.craft.dungeon.world.WorldFolders
+                .foreignDirs(worldContainer, session.editWorldName())) {
+            WorldCloner.deleteTree(stale);
         }
         World world;
         try {
@@ -526,13 +529,15 @@ public final class EditorService implements Listener {
         if (world != null) {
             return world.getWorldFolder();
         }
+        java.nio.file.Path fallback = emaki.jiuwu.craft.dungeon.world.WorldFolders
+                .dataDir(worldContainer, session.editWorldName());
         for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
-                .dataCandidates(worldContainer, session.editWorldName())) {
+                .allDirs(worldContainer, session.editWorldName())) {
             if (java.nio.file.Files.isDirectory(candidate)) {
                 return candidate.toFile();
             }
         }
-        return new File(worldContainer, session.editWorldName());
+        return fallback.toFile();
     }
 
     private void captureRegionSnapshot(EditorSession session) {
@@ -845,25 +850,13 @@ public final class EditorService implements Listener {
     public void sweepLeftoverWorlds() {
         dispatcher.runAsync(plugin, () -> {
             int removed = 0;
-            File[] children = worldContainer.listFiles(File::isDirectory);
-            if (children != null) {
-                for (File child : children) {
-                    if (!child.getName().startsWith(EDIT_WORLD_PREFIX)) {
-                        continue;
-                    }
-                    if (Bukkit.getWorld(child.getName()) != null) {
-                        continue;
-                    }
-                    WorldCloner.deleteTree(child.toPath());
-                    removed++;
+            for (java.nio.file.Path root : emaki.jiuwu.craft.dungeon.world.WorldFolders
+                    .sweepRoots(worldContainer)) {
+                File[] children = root.toFile().listFiles(File::isDirectory);
+                if (children == null) {
+                    continue;
                 }
-            }
-            File unifiedRoot = new File(worldContainer,
-                    emaki.jiuwu.craft.dungeon.world.WorldFolders.levelName(worldContainer)
-                            + File.separator + "dimensions" + File.separator + "minecraft");
-            File[] unified = unifiedRoot.listFiles(File::isDirectory);
-            if (unified != null) {
-                for (File child : unified) {
+                for (File child : children) {
                     if (!child.getName().startsWith(EDIT_WORLD_PREFIX)) {
                         continue;
                     }
@@ -890,7 +883,9 @@ public final class EditorService implements Listener {
         if (!source.isFile() || session.origin() == null || session.origin().getWorld() == null) {
             return;
         }
-        File originDir = new File(new File(worldContainer, session.origin().getWorld().getName()), "playerdata");
+        File originDir = emaki.jiuwu.craft.dungeon.world.WorldFolders
+                .dataDir(worldContainer, session.origin().getWorld().getName())
+                .resolve("playerdata").toFile();
         try {
             Files.createDirectories(originDir.toPath());
             Files.move(source.toPath(), new File(originDir, source.getName()).toPath(),

@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.dungeon.world;
 import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -39,11 +40,16 @@ public final class WorldDisposer {
     }
 
     public boolean deleteResidual(String worldName) {
-        Path target = new File(worldContainer, worldName).toPath();
-        for (Path candidate : WorldFolders.dataCandidates(worldContainer, worldName)) {
+        List<Path> dirs = WorldFolders.allDirs(worldContainer, worldName);
+        for (Path candidate : dirs) {
             WorldCloner.deleteTree(candidate);
         }
-        return !Files.exists(target);
+        for (Path candidate : dirs) {
+            if (Files.exists(candidate)) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void attempt(String worldName, int tries, CompletableFuture<Result> future) {
@@ -60,11 +66,17 @@ public final class WorldDisposer {
                 return;
             }
             dispatcher.runAsync(plugin, () -> {
-                Path target = new File(worldContainer, worldName).toPath();
-                for (Path candidate : WorldFolders.dataCandidates(worldContainer, worldName)) {
+                List<Path> dirs = WorldFolders.allDirs(worldContainer, worldName);
+                for (Path candidate : dirs) {
                     WorldCloner.deleteTree(candidate);
                 }
-                if (Files.exists(target)) {
+                boolean remaining = false;
+                for (Path candidate : dirs) {
+                    if (Files.exists(candidate)) {
+                        remaining = true;
+                    }
+                }
+                if (remaining) {
                     retryOrFail(worldName, tries, future);
                 } else {
                     future.complete(Result.DISPOSED);

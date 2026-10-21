@@ -30,7 +30,7 @@ public final class WorldCloner {
 
     public CompletableFuture<Void> cloneAsync(File templateDir, String worldName) {
         CompletableFuture<Void> future = new CompletableFuture<>();
-        Path target = new File(worldContainer, worldName).toPath();
+        Path target = WorldFolders.dataDir(worldContainer, worldName);
         dispatcher.runAsync(plugin, () -> {
             try {
                 copyTree(templateDir.toPath(), target);

@@ -542,7 +542,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItemManager) {
         var flowLoader = new emaki.jiuwu.craft.dungeon.flow.FlowLoader();
         emaki.jiuwu.craft.dungeon.flow.FlowDefinition definition;
-        java.io.File flowFile = new File(new File(worldContainerOf(), instance.instanceId()), "flow.yml");
+        java.io.File flowFile = emaki.jiuwu.craft.dungeon.world.WorldFolders
+                .dataDir(worldContainerOf(), instance.instanceId())
+                .resolve("flow.yml").toFile();
         java.io.File templateFlow = new File(new File(getDataFolder(), "world"),
                 instance.dungeonId() + File.separator + "flow.yml");
         try {

@@ -249,7 +249,7 @@ public final class WorldPool {
             String dungeonId = pair.getKey();
             for (String worldName : pair.getValue().reserves) {
                 World world = Bukkit.getWorld(worldName);
-                File directory = new File(worldContainer, worldName);
+                File directory = WorldFolders.dataDir(worldContainer, worldName).toFile();
                 boolean dataPresent = WorldFolders.anyPresent(worldContainer, worldName);
                 if (world != null && dataPresent) {
                     continue;

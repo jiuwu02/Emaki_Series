@@ -4,12 +4,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerRespawnEvent;
 
 import emaki.jiuwu.craft.dungeon.flow.EventIngressKeys;
@@ -72,6 +74,29 @@ public final class PlayerStateListener implements Listener {
                 stateService.forgetPlayer(player.getUniqueId());
             }
         }
+    }
+
+    @EventHandler(priority = EventPriority.HIGH)
+    public void onMove(PlayerMoveEvent event) {
+        Location to = event.getTo();
+        if (to == null) {
+            return;
+        }
+        Player player = event.getPlayer();
+        if (!stateService.isSpectator(player.getUniqueId())) {
+            return;
+        }
+        if (registry.get(player.getWorld().getName()) == null) {
+            return;
+        }
+        Location from = event.getFrom();
+        if (from.getX() == to.getX() && from.getY() == to.getY() && from.getZ() == to.getZ()) {
+            return;
+        }
+        Location locked = from.clone();
+        locked.setYaw(to.getYaw());
+        locked.setPitch(to.getPitch());
+        event.setTo(locked);
     }
 
     private String pointerOf(Player player) {

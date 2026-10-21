@@ -14,14 +14,19 @@ public final class WorldNames {
 
     public WorldNames(File worldContainer) {
         long max = 0;
-        File[] children = worldContainer == null ? null : worldContainer.listFiles(File::isDirectory);
-        if (children != null) {
-            for (File child : children) {
-                Matcher matcher = NAME_PATTERN.matcher(child.getName());
-                if (matcher.matches()) {
-                    try {
-                        max = Math.max(max, Long.parseLong(matcher.group(1)));
-                    } catch (NumberFormatException ignored) {
+        if (worldContainer != null) {
+            for (java.nio.file.Path root : WorldFolders.sweepRoots(worldContainer)) {
+                File[] children = root.toFile().listFiles(File::isDirectory);
+                if (children == null) {
+                    continue;
+                }
+                for (File child : children) {
+                    Matcher matcher = NAME_PATTERN.matcher(child.getName());
+                    if (matcher.matches()) {
+                        try {
+                            max = Math.max(max, Long.parseLong(matcher.group(1)));
+                        } catch (NumberFormatException ignored) {
+                        }
                     }
                 }
             }
