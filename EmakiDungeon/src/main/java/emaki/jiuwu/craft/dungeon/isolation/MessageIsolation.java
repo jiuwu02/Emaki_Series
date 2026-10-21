@@ -52,9 +52,7 @@ public final class MessageIsolation implements Listener {
         boolean current = globalListen(playerId);
         boolean next = !current;
         cache.put(playerId, next);
-        PlayersDataStore.PlayerData data = playersData.read(playerId);
-        data.setGlobalChat(next);
-        playersData.writeAsync(playerId, data);
+        playersData.updateAsync(playerId, data -> data.setGlobalChat(next));
         return next;
     }
 

@@ -124,7 +124,6 @@ public final class DungeonScriptSession implements AutoCloseable {
                     .engine(engine)
                     .allowHostAccess(HostAccess.EXPLICIT)
                     .allowHostClassLookup(className -> false)
-                    .option("engine.WarnInterpreterOnly", "false")
                     .build();
             context = built;
             built.getBindings(LANGUAGE_ID).putMember("dungeon",
@@ -182,6 +181,13 @@ public final class DungeonScriptSession implements AutoCloseable {
         debug.log("dungeon", (UUID) null, "script_takeover", Map.of(
                 "instance", instance.instanceId(),
                 "dungeon", instance.dungeonId()));
+        if (audit != null) {
+            audit.write("script", Map.of(
+                    "event", "takeover",
+                    "instance", instance.instanceId(),
+                    "dungeon", instance.dungeonId(),
+                    "script", scriptName));
+        }
     }
 
     void onEntryRegistered(String entryId) {

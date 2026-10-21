@@ -7,6 +7,8 @@ steps:
   - action: cmd
     player: dummy_a
     command: "/edg leave"
+  - action: sleep
+    seconds: 1
   - action: say
     player: dummy_a
     text: "确认"

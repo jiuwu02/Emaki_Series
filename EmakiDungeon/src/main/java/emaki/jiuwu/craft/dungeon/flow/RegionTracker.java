@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import org.bukkit.Bukkit;
@@ -46,6 +48,7 @@ public final class RegionTracker {
     }
 
     private void sweep() {
+        Set<String> activeBases = new HashSet<>();
         for (DungeonInstance instance : registry.all()) {
             if (instance.state() != InstanceState.RUNNING || instance.flowRuntime() == null) {
                 continue;
@@ -56,45 +59,55 @@ public final class RegionTracker {
             }
             FlowRuntime runtime = instance.flowRuntime();
             for (Player player : world.getPlayers()) {
-                trackPlayer(runtime, world, player);
+                trackPlayer(runtime, world, player, activeBases);
             }
         }
+        presence.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
+        lastRange.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
+        lastEffectAt.keySet().removeIf(key -> !activeBases.contains(baseOf(key)));
     }
 
-    private void trackPlayer(FlowRuntime runtime, World world, Player player) {
+    private static String baseOf(String key) {
+        int index = key.indexOf(':');
+        return index < 0 ? key : key.substring(0, index);
+    }
+
+    private void trackPlayer(FlowRuntime runtime, World world, Player player, Set<String> activeBases) {
         Location location = player.getLocation();
         double x = location.getX();
         double y = location.getY();
         double z = location.getZ();
         FlowDefinition definition = runtime.definition();
         Map<String, Boolean> now = new HashMap<>();
+        String base = runtime.instance().instanceId() + '|' + player.getUniqueId();
+        activeBases.add(base);
 
         for (String zoneId : definition.triggerZones().keySet()) {
             FlowRegion region = definition.triggerZones().get(zoneId).region();
-            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, null);
+            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, base);
         }
         for (String zoneId : definition.checkpoints().keySet()) {
             FlowModules.CheckpointDef checkpoint = definition.checkpoints().get(zoneId);
             FlowRegion region = checkpoint.region() != null
                     ? checkpoint.region()
                     : (checkpoint.point() == null ? null : pointRegion(checkpoint.point()));
-            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, null);
+            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, base);
         }
         for (String zoneId : definition.teleportZones().keySet()) {
             FlowRegion region = definition.teleportZones().get(zoneId).region();
-            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, null);
+            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, base);
         }
         for (String zoneId : definition.boundaryZones().keySet()) {
             FlowRegion region = definition.boundaryZones().get(zoneId).region();
-            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, null);
+            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, base);
         }
         for (String zoneId : definition.effectZones().keySet()) {
             FlowRegion region = definition.effectZones().get(zoneId).region();
             boolean present = region != null && region.contains(x, y, z);
-            zoneTransition(runtime, player, zoneId, present, now, null);
+            zoneTransition(runtime, player, zoneId, present, now, base);
             if (present) {
                 int interval = Math.max(1, definition.effectZones().get(zoneId).intervalTicks());
-                String key = player.getUniqueId() + ":" + zoneId;
+                String key = base + ":" + zoneId;
                 long nowMillis = System.currentTimeMillis();
                 long last = lastEffectAt.getOrDefault(key, 0L);
                 if (nowMillis - last >= interval * 50L) {
@@ -110,17 +123,17 @@ public final class RegionTracker {
         }
         for (String zoneId : definition.roomTimers().keySet()) {
             FlowRegion region = definition.roomTimers().get(zoneId).region();
-            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, null);
+            zoneTransition(runtime, player, zoneId, region != null && region.contains(x, y, z), now, base);
         }
         for (FlowModules.RoomDef room : definition.rooms()) {
             zoneTransition(runtime, player, room.id(),
-                    room.region() != null && room.region().contains(x, y, z), now, null);
+                    room.region() != null && room.region().contains(x, y, z), now, base);
         }
         for (String optionId : definition.options().keySet()) {
             FlowModules.OptionDef option = definition.options().get(optionId);
             FlowPoint point = option.point();
             boolean present = point != null && distanceSquared(point, x, y, z) <= POINT_RADIUS * POINT_RADIUS;
-            zoneTransition(runtime, player, optionId, present, now, null);
+            zoneTransition(runtime, player, optionId, present, now, base);
         }
         for (String spawnId : definition.spawnPoints().keySet()) {
             FlowModules.SpawnPointModuleDef spawnPoint = definition.spawnPoints().get(spawnId);
@@ -139,7 +152,7 @@ public final class RegionTracker {
                     count++;
                 }
             }
-            String rangeKey = player.getUniqueId() + ":" + spawnId;
+            String rangeKey = base + ":" + spawnId;
             int previous = lastRange.getOrDefault(rangeKey, 0);
             lastRange.put(rangeKey, count);
             if (previous < spawnPoint.minPlayers() && count >= spawnPoint.minPlayers()) {
@@ -151,7 +164,7 @@ public final class RegionTracker {
             }
         }
 
-        String prefix = player.getUniqueId() + ":";
+        String prefix = base + ":";
         presence.keySet().removeIf(key -> key.startsWith(prefix) && !now.containsKey(key.substring(prefix.length())));
         for (Map.Entry<String, Boolean> entry : now.entrySet()) {
             presence.put(prefix + entry.getKey(), entry.getValue());
@@ -159,8 +172,8 @@ public final class RegionTracker {
     }
 
     private void zoneTransition(FlowRuntime runtime, Player player, String zoneId, boolean present,
-            Map<String, Boolean> now, Void ignored) {
-        String key = player.getUniqueId() + ":" + zoneId;
+            Map<String, Boolean> now, String base) {
+        String key = base + ":" + zoneId;
         boolean previous = presence.getOrDefault(key, false);
         now.put(zoneId, present);
         if (present == previous) {

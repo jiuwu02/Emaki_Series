@@ -61,6 +61,7 @@ public final class PlayersDataStore {
     private final ExecutionDispatcher dispatcher;
     private final File root;
     private final boolean globalChatDefault;
+    private final Object ioLock = new Object();
 
     public PlayersDataStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder, boolean globalChatDefault) {
         this.plugin = plugin;
@@ -95,7 +96,24 @@ public final class PlayersDataStore {
     }
 
     public void writeAsync(UUID playerId, PlayerData data) {
-        dispatcher.runAsync(plugin, () -> writeSync(playerId, data));
+        dispatcher.runAsync(plugin, () -> {
+            synchronized (ioLock) {
+                writeSync(playerId, data);
+            }
+        });
+    }
+
+    public void updateAsync(UUID playerId, java.util.function.Consumer<PlayerData> mutator) {
+        if (playerId == null || mutator == null) {
+            return;
+        }
+        dispatcher.runAsync(plugin, () -> {
+            synchronized (ioLock) {
+                PlayerData data = read(playerId);
+                mutator.accept(data);
+                writeSync(playerId, data);
+            }
+        });
     }
 
     public void writeSync(UUID playerId, PlayerData data) {
@@ -110,16 +128,21 @@ public final class PlayersDataStore {
         if (!data.limits.isEmpty()) {
             values.put("limits", new LinkedHashMap<>(data.limits));
         }
+        Path temp = file.toPath().resolveSibling(
+                file.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
         try {
             Files.createDirectories(root.toPath());
-            Path temp = file.toPath().resolveSibling(file.getName() + ".tmp");
             YamlFiles.save(temp.toFile(), values);
             try {
                 Files.move(temp, file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
             } catch (IOException exception) {
                 Files.move(temp, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            try {
+                Files.deleteIfExists(temp);
+            } catch (IOException ignored) {
+            }
         }
     }
 

@@ -53,6 +53,10 @@ public record AppConfig(
 
     public static AppConfig parse(YamlSection section) {
         AppConfig defaults = defaults();
+        List<String> auditFiles = section.getStringList("scenario.audit-files");
+        if (auditFiles == null || auditFiles.isEmpty()) {
+            auditFiles = defaults.scenarioAuditFiles();
+        }
         return new AppConfig(
                 section.getString("language", defaults.language()),
                 section.getString("version", defaults.version()),
@@ -72,7 +76,7 @@ public record AppConfig(
                 section.getInt("movement.interval-ticks", defaults.movementIntervalTicks()),
                 section.getInt("scenario.default-timeout-seconds", defaults.scenarioTimeoutSeconds()),
                 section.getInt("scenario.poll-interval-ticks", defaults.scenarioPollIntervalTicks()),
-                section.getStringList("scenario.audit-files")
+                auditFiles
         );
     }
 }

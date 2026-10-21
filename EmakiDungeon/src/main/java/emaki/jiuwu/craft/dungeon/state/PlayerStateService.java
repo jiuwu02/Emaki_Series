@@ -357,8 +357,13 @@ public final class PlayerStateService {
             }
             warned.add(mark);
             String template = languageLoader.getMessage("flow.timer.warning");
+            if (template == null || template.isBlank()) {
+                template = "剩余 %seconds% 秒";
+            } else {
+                template = template.replace("<seconds>", "%seconds%");
+            }
             String text = emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplate(
-                    template == null ? "剩余 %seconds% 秒" : template,
+                    template,
                     Map.of("seconds", String.valueOf(mark)));
             actionBridge.sendToWorld(instance.instanceId(), text);
             debug.logRaw("dungeon", (UUID) null,

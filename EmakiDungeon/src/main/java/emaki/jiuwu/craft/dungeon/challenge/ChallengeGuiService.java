@@ -65,8 +65,8 @@ public final class ChallengeGuiService {
                 }
                 String key = slot.definition().key();
                 if (key.startsWith(KEY_PREFIX_OPTION)) {
-                    onPick.accept(key.substring(KEY_PREFIX_OPTION.length()));
                     gui.close(viewer.getUniqueId());
+                    onPick.accept(key.substring(KEY_PREFIX_OPTION.length()));
                 }
             }
         };

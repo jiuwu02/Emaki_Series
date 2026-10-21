@@ -113,6 +113,8 @@ challenge:
     monthly_week: "<red>当前不在可挑战的月周次内, <seconds> 秒后重试</red>"
   cancel:
     no_session: "<yellow>当前没有可取消的挑战</yellow>"
+  ready:
+    no_session: "<yellow>当前没有可确认准备的挑战</yellow>"
 
 gui:
   difficulty:

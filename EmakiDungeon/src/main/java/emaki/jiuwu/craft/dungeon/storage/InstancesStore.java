@@ -150,7 +150,7 @@ public final class InstancesStore {
 
     private void atomicWrite(Map<String, Object> values) throws IOException {
         Path target = file.toPath();
-        Path temp = target.resolveSibling(file.getName() + ".tmp");
+        Path temp = target.resolveSibling(file.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
         YamlFiles.save(temp.toFile(), values);
         try {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

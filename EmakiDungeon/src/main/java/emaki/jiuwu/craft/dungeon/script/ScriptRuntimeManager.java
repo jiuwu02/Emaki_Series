@@ -244,7 +244,6 @@ public final class ScriptRuntimeManager implements AutoCloseable {
                 .engine(engine)
                 .allowHostAccess(HostAccess.EXPLICIT)
                 .allowHostClassLookup(className -> false)
-                .option("engine.WarnInterpreterOnly", "false")
                 .build()) {
             probe.parse(Source.newBuilder(LANGUAGE_ID, source, dungeonId + ":api").build());
         } catch (PolyglotException exception) {

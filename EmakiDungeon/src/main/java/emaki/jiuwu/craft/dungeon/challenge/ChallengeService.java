@@ -173,6 +173,19 @@ public final class ChallengeService {
             messages.send(leader, "challenge.enter.party_busy", Map.of());
             return;
         }
+        if (limitService != null && !leader.hasPermission("emakidungeon.bypass.limit")) {
+            var verdict = limitService.check(leader.getUniqueId(), dungeonId);
+            if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+                messages.send(leader, limitMessageKey(verdict.verdict()), Map.of(
+                        "player", leader.getName(),
+                        "seconds", String.valueOf(verdict.retrySeconds())));
+                debug.log("dungeon", leader, "limit_denied", Map.of(
+                        "dungeon", dungeonId,
+                        "member", String.valueOf(leader.getUniqueId()),
+                        "verdict", verdict.verdict().name()));
+                return;
+            }
+        }
         ChallengeSession session = new ChallengeSession(party.id(), dungeonId, leader.getUniqueId());
         sessions.put(party.id(), session);
         gui.openOptionSelect(leader, "edg_difficulty", "gui.difficulty.title", "gui.difficulty",
@@ -663,6 +676,14 @@ public final class ChallengeService {
             });
         }
         String instanceId = instance.instanceId();
+        org.bukkit.Location entryLocation = world.getSpawnLocation();
+        var entryRuntime = instance.flowRuntime();
+        if (entryRuntime != null && entryRuntime.definition().spawnPoint() != null
+                && entryRuntime.definition().spawnPoint().point() != null) {
+            var entryPoint = entryRuntime.definition().spawnPoint().point();
+            entryLocation = new org.bukkit.Location(world, entryPoint.x(), entryPoint.y(),
+                    entryPoint.z(), entryPoint.yaw(), entryPoint.pitch());
+        }
         for (UUID memberId : party.members()) {
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
@@ -673,7 +694,7 @@ public final class ChallengeService {
             }
             teleportPermit.accept(memberId);
             snapshots.captureInitial(member, instanceId, session.dungeonId(), String.valueOf(party.id()));
-            member.teleport(world.getSpawnLocation());
+            member.teleport(entryLocation);
             org.bukkit.Bukkit.getPluginManager().callEvent(
                     new emaki.jiuwu.craft.dungeon.api.event.DungeonEnterEvent(
                             instanceId, session.dungeonId(), memberId, String.valueOf(party.id())));
@@ -722,7 +743,7 @@ public final class ChallengeService {
     public void readyBy(Player player) {
         ChallengeSession session = sessions.get(partyIdOf(player));
         if (session == null) {
-            messages.send(player, "challenge.cancel.no_session", Map.of());
+            messages.send(player, "challenge.ready.no_session", Map.of());
             return;
         }
         onReadyRequested(session, player);

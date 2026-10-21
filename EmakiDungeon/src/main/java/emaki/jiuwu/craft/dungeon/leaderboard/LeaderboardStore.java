@@ -154,7 +154,7 @@ public final class LeaderboardStore {
         try {
             Files.createDirectories(root.toPath());
             Path target = file.toPath();
-            Path temp = target.resolveSibling(file.getName() + ".tmp");
+            Path temp = target.resolveSibling(file.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
             YamlFiles.save(temp.toFile(), values);
             try {
                 Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING,

@@ -127,30 +127,30 @@ public final class LimitService {
         if (config == null || playerId == null) {
             return;
         }
-        PlayerData data = store.read(playerId);
-        Map<String, Object> limits = new LinkedHashMap<>(data.limits());
-        @SuppressWarnings("unchecked")
-        Map<String, Object> dungeonLimits = limits.get(dungeonId) instanceof Map<?, ?> raw
-                ? cast(raw)
-                : new LinkedHashMap<>();
         ZonedDateTime now = now();
         String dayBucket = dayBucket(now);
-        if (config.limitsDaily() > 0) {
-            increment(dungeonLimits, "daily", dayBucket);
-        }
-        if (config.limitsWeeklyCount() > 0) {
-            increment(dungeonLimits, "weekly", weekBucket(now));
-        }
-        if (config.limitsMonthly() > 0) {
-            increment(dungeonLimits, "monthly", monthBucket(now));
-        }
-        if (config.cooldownSeconds() > 0) {
-            dungeonLimits.put("cooldown-until",
-                    now.toInstant().toEpochMilli() + config.cooldownSeconds() * 1000L);
-        }
-        limits.put(dungeonId, dungeonLimits);
-        data.setLimits(limits);
-        store.writeAsync(playerId, data);
+        store.updateAsync(playerId, data -> {
+            Map<String, Object> limits = new LinkedHashMap<>(data.limits());
+            @SuppressWarnings("unchecked")
+            Map<String, Object> dungeonLimits = limits.get(dungeonId) instanceof Map<?, ?> raw
+                    ? cast(raw)
+                    : new LinkedHashMap<>();
+            if (config.limitsDaily() > 0) {
+                increment(dungeonLimits, "daily", dayBucket);
+            }
+            if (config.limitsWeeklyCount() > 0) {
+                increment(dungeonLimits, "weekly", weekBucket(now));
+            }
+            if (config.limitsMonthly() > 0) {
+                increment(dungeonLimits, "monthly", monthBucket(now));
+            }
+            if (config.cooldownSeconds() > 0) {
+                dungeonLimits.put("cooldown-until",
+                        now.toInstant().toEpochMilli() + config.cooldownSeconds() * 1000L);
+            }
+            limits.put(dungeonId, dungeonLimits);
+            data.setLimits(limits);
+        });
         debug.log("dungeon", playerId, "limit_recorded", Map.of(
                 "dungeon", dungeonId,
                 "day", String.valueOf(dayBucket)

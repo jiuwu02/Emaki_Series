@@ -22,10 +22,10 @@ public final class SnapshotManager {
         PlayerSnapshot snapshot = PlayerSnapshot.capture(player, instanceId, dungeonId, partyId);
         UUID playerId = player.getUniqueId();
         snapshots.writeAsync(snapshot, playerId);
-        PlayersDataStore.PlayerData data = playersData.read(playerId);
-        data.setRestoreInstance(instanceId);
-        data.setPartyId(partyId);
-        playersData.writeAsync(playerId, data);
+        playersData.updateAsync(playerId, data -> {
+            data.setRestoreInstance(instanceId);
+            data.setPartyId(partyId);
+        });
     }
 
     public void repack(Player player, String instanceId) {
@@ -58,9 +58,7 @@ public final class SnapshotManager {
     }
 
     public void clearPointer(UUID playerId) {
-        PlayersDataStore.PlayerData data = playersData.read(playerId);
-        data.setRestoreInstance("");
-        playersData.writeAsync(playerId, data);
+        playersData.updateAsync(playerId, data -> data.setRestoreInstance(""));
     }
 
     public void clearPointerAndSnapshot(UUID playerId, String instanceId) {

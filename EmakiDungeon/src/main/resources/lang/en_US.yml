@@ -113,6 +113,8 @@ challenge:
     monthly_week: "<red>Current week of the month is not an allowed challenge week, retry in <seconds>s</red>"
   cancel:
     no_session: "<yellow>No active challenge to cancel</yellow>"
+  ready:
+    no_session: "<yellow>No active challenge to confirm</yellow>"
 
 gui:
   difficulty:

@@ -36,7 +36,9 @@ movement:
   step: 0.5
   interval-ticks: 2
 
-# 场景执行: 默认超时秒数与等待条件轮询间隔 (tick)。
+# 场景执行: 默认超时秒数、等待条件轮询间隔 (tick) 与 audit_contains 扫描的审计日志通配列表。
 scenario:
   default-timeout-seconds: 300
   poll-interval-ticks: 10
+  audit-files:
+    - "plugins/EmakiDungeon/logs/audit-*.log"
