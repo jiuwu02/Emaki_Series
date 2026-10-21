@@ -84,7 +84,6 @@ public final class GraalJsEngine implements ScriptEngine {
                 .engine(sharedEngine)
                 .allowHostAccess(HostAccess.EXPLICIT)
                 .allowHostClassLookup(className -> false)
-                .option("engine.WarnInterpreterOnly", "false")
                 .build();
     }
 

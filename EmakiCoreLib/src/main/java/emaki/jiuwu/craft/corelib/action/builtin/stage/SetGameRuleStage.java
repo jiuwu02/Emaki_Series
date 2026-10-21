@@ -81,11 +81,43 @@ public final class SetGameRuleStage extends BaseStage {
     }
 
     private static GameRule<?> lookupRule(String name) {
+        if (Texts.isBlank(name)) {
+            return null;
+        }
+        String bare = stripNamespace(name);
+        String compact = compact(name);
         for (GameRule<?> rule : GameRule.values()) {
-            if (rule.getName().equalsIgnoreCase(name)) {
+            if (rule == null) {
+                continue;
+            }
+            String ruleName = rule.getName();
+            if (Texts.isBlank(ruleName)) {
+                continue;
+            }
+            if (ruleName.equalsIgnoreCase(name) || ruleName.equalsIgnoreCase(bare)) {
+                return rule;
+            }
+            String ruleBare = stripNamespace(ruleName);
+            if (ruleBare.equalsIgnoreCase(bare) || compact.equals(compact(ruleBare))) {
                 return rule;
             }
         }
         return null;
+    }
+
+    private static String stripNamespace(String value) {
+        int colon = value.indexOf(':');
+        return colon >= 0 && colon + 1 < value.length() ? value.substring(colon + 1) : value;
+    }
+
+    private static String compact(String value) {
+        StringBuilder builder = new StringBuilder(value.length());
+        for (int index = 0; index < value.length(); index++) {
+            char character = value.charAt(index);
+            if (character != '_' && character != '-') {
+                builder.append(Character.toLowerCase(character));
+            }
+        }
+        return builder.toString();
     }
 }

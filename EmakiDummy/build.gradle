@@ -1,5 +1,5 @@
 // EmakiDummy.
-version = '1.0.0'
+version = '1.0.1'
 
 configurations.shadeBundle {
     exclude group: 'io.netty'

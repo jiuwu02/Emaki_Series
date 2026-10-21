@@ -35,14 +35,27 @@ import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.Clientbound
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundPlayerChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundRespawnPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundSystemChatPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundBossEventPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundChangeDifficultyPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.ClientboundCooldownPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.title.ClientboundSetActionBarTextPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.title.ClientboundSetTitleTextPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.title.ClientboundClearTitlesPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.title.ClientboundSetSubtitleTextPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.title.ClientboundSetTitlesAnimationPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundAddEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundRemoveMobEffectPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundTakeItemEntityPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.ClientboundUpdateMobEffectPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundPlayerPositionPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.entity.player.ClientboundSetHealthPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerClosePacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundContainerSetContentPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.inventory.ClientboundOpenScreenPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundGameEventPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundLevelParticlesPacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSetTimePacket;
+import org.geysermc.mcprotocollib.protocol.packet.ingame.clientbound.level.ClientboundSoundPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundChatPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundChatCommandPacket;
 import org.geysermc.mcprotocollib.protocol.packet.ingame.serverbound.ServerboundClientCommandPacket;
@@ -159,7 +172,61 @@ final class McplLink extends SessionAdapter implements TransportLink {
             entities.put(spawnPacket.getEntityId(), new EntitySpot(
                     spawnPacket.getX(), spawnPacket.getY(), spawnPacket.getZ(),
                     typeName, isPlayerType(typeName)));
+        } else if (packet instanceof ClientboundSoundPacket soundPacket) {
+            callbacks.onRecvEvent("sound", soundPacket.getSound()
+                    + " @ " + soundPacket.getX() + "," + soundPacket.getY() + "," + soundPacket.getZ()
+                    + " vol=" + soundPacket.getVolume() + " pitch=" + soundPacket.getPitch());
+        } else if (packet instanceof ClientboundLevelParticlesPacket particlePacket) {
+            callbacks.onRecvEvent("particle", particlePacket.getParticle()
+                    + " @ " + particlePacket.getX() + "," + particlePacket.getY() + ","
+                    + particlePacket.getZ() + " amount=" + particlePacket.getAmount());
+        } else if (packet instanceof ClientboundBossEventPacket bossPacket) {
+            String bossTitle = bossPacket.getTitle() == null ? "" : MiniMessages.plain(bossPacket.getTitle());
+            callbacks.onRecvEvent("bossevent", bossPacket.getAction()
+                    + " uuid=" + bossPacket.getUuid()
+                    + " title=" + singleLineText(bossTitle)
+                    + " health=" + bossPacket.getHealth()
+                    + " color=" + bossPacket.getColor());
+        } else if (packet instanceof ClientboundSetSubtitleTextPacket subtitlePacket) {
+            callbacks.onRecvEvent("subtitle", MiniMessages.plain(subtitlePacket.getText()));
+        } else if (packet instanceof ClientboundSetTitlesAnimationPacket animationPacket) {
+            callbacks.onRecvEvent("titleanim", "in=" + animationPacket.getFadeIn()
+                    + " stay=" + animationPacket.getStay() + " out=" + animationPacket.getFadeOut());
+        } else if (packet instanceof ClientboundClearTitlesPacket) {
+            callbacks.onRecvEvent("cleartitles", "reset");
+        } else if (packet instanceof ClientboundUpdateMobEffectPacket effectPacket) {
+            callbacks.onRecvEvent("mobeffect", "entity=" + effectPacket.getEntityId()
+                    + " effect=" + effectPacket.getEffect()
+                    + " amp=" + effectPacket.getAmplifier()
+                    + " dur=" + effectPacket.getDuration());
+        } else if (packet instanceof ClientboundRemoveMobEffectPacket removeEffectPacket) {
+            callbacks.onRecvEvent("removemobeffect", "entity=" + removeEffectPacket.getEntityId()
+                    + " effect=" + removeEffectPacket.getEffect());
+        } else if (packet instanceof ClientboundSetTimePacket timePacket) {
+            callbacks.onRecvEvent("settime", "gametime=" + timePacket.getGameTime()
+                    + " clocks=" + timePacket.getClockUpdates().size());
+        } else if (packet instanceof ClientboundTakeItemEntityPacket takeItemPacket) {
+            callbacks.onRecvEvent("takeitem", "collected=" + takeItemPacket.getCollectedEntityId()
+                    + " collector=" + takeItemPacket.getCollectorEntityId()
+                    + " count=" + takeItemPacket.getItemCount());
+        } else if (packet instanceof ClientboundChangeDifficultyPacket difficultyPacket) {
+            callbacks.onRecvEvent("difficulty", difficultyPacket.getDifficulty()
+                    + " locked=" + difficultyPacket.isDifficultyLocked());
+        } else if (packet instanceof ClientboundGameEventPacket gameEventPacket) {
+            callbacks.onRecvEvent("gameevent", gameEventPacket.getNotification()
+                    + "=" + gameEventPacket.getValue());
+        } else if (packet instanceof ClientboundCooldownPacket cooldownPacket) {
+            callbacks.onRecvEvent("cooldown", "group=" + cooldownPacket.getCooldownGroup()
+                    + " ticks=" + cooldownPacket.getCooldownTicks());
         }
+    }
+
+    private static String singleLineText(String text) {
+        if (text == null) {
+            return "";
+        }
+        String normalized = text.replace('\n', ' ').replace('\r', ' ').trim();
+        return normalized.length() > 300 ? normalized.substring(0, 300) : normalized;
     }
 
     @Override

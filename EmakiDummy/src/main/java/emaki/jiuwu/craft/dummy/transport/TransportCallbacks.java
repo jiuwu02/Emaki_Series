@@ -5,6 +5,9 @@ public interface TransportCallbacks {
     default void onProtocolPacket(String direction, String packetName) {
     }
 
+    default void onRecvEvent(String kind, String detail) {
+    }
+
     default void onWindowOpened(int windowId, String title) {
     }
 

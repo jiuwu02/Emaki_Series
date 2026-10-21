@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "4.8.33"
+version: "4.8.34"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
@@ -395,7 +395,7 @@ action:
       key_required: "<red>[管道] stop_task 必须指定 key</red>"
       none_matched: "<gray>[管道] 没有匹配该 key 的任务</gray>"
     item:
-      invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法</red>"
+      invalid_item_source: "<red>[管道] 物品来源 %item_source% 不合法：物品源统一使用短横分隔（如 minecraft-stone、emakiitem-example_item），不支持冒号写法</red>"
       service_unavailable: "<red>[管道] 物品来源服务当前不可用</red>"
       create_failed: "<red>[管道] 无法根据来源 %item_source% 创建物品</red>"
       created_air: "<gray>[管道] 该来源创建出的物品为空气</gray>"

@@ -406,6 +406,11 @@ public final class DummyManager {
             }
 
             @Override
+            public void onRecvEvent(String kind, String detail) {
+                logger.log(LogLevel.RECV, session.name(), kind + " | " + singleLine(detail));
+            }
+
+            @Override
             public void onJoined(int entityId) {
                 boolean reconciled = session.applyProtocolJoin(entityId);
                 logger.log(LogLevel.RECV, session.name(), "join_game entity=" + entityId);
