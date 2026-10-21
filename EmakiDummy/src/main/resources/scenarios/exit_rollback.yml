@@ -1,0 +1,60 @@
+id: exit_rollback
+players:
+  - dummy_a
+timeout_seconds: 300
+steps:
+  - action: join_all
+  - action: cmd
+    player: dummy_a
+    command: "/edg editor exit"
+  - action: cmd
+    player: dummy_a
+    command: "/edg leave"
+  - action: say
+    player: dummy_a
+    text: "确认"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg cancel"
+  - action: cmd
+    player: dummy_a
+    command: "/edg party disband"
+  - action: sleep
+    seconds: 1
+  - action: cmd
+    player: dummy_a
+    command: "/edg enter test_dungeon"
+  - action: sleep
+    seconds: 2
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: sleep
+    seconds: 1
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: wait_event
+    type: DungeonChallengeStartEvent
+    timeout: 60
+  - action: cmd
+    player: dummy_a
+    command: "/edg ready"
+  - action: wait_event
+    type: DungeonEnterEvent
+    timeout: 120
+  - action: cmd
+    player: dummy_a
+    command: "/edg leave"
+  - action: say
+    player: dummy_a
+    text: "确认"
+  - action: wait_event
+    type: DungeonExitEvent
+    timeout: 30
+  - action: expect
+    expr: "recv_contains('dummy_a', '已退出副本并还原状态')"
+    timeout: 15
+  - action: leave_all

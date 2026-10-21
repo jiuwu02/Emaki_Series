@@ -1,0 +1,42 @@
+# EmakiDummy 主配置
+#
+# 假人连接模式、并发上限、日志保留与场景默认参数。
+# 本配置随插件启动读取, 变更后重启插件生效。
+# 文件位置: plugins/EmakiDummy/config.yml
+
+version: "1.0.0"
+language: "zh_CN"
+
+# 连接模式: direct 直连后端 (离线模式零配置), velocity 经 Velocity 代理 (代理须允许离线登录)。
+connection:
+  mode: "direct"
+  host: "127.0.0.1"
+  port: 44445
+  velocity-host: "127.0.0.1"
+  velocity-port: 44444
+
+# 并发假人上限 (对齐 EmakiDungeon 队伍规模) 与自动生成名字的前缀。
+limits:
+  max-dummies: 4
+  name-prefix: "dummy_"
+
+# 假人日志: logs/dummy/<日期>.log 按日切分, retention-days 控制保留天数, <=0 表示不清理。
+logs:
+  retention-days: 14
+  per-dummy-files: false
+
+# 断线重连: 上线后掉线自动重连, max-attempts 后放弃 (<=0 表示无限重试)。
+reconnect:
+  enabled: true
+  max-attempts: 5
+  delay-ticks: 100
+
+# 移动发包: 单步方块距离与发包间隔 (tick), 间隔越大越保守。
+movement:
+  step: 0.5
+  interval-ticks: 2
+
+# 场景执行: 默认超时秒数与等待条件轮询间隔 (tick)。
+scenario:
+  default-timeout-seconds: 300
+  poll-interval-ticks: 10

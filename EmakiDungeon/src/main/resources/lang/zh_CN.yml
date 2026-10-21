@@ -346,8 +346,9 @@ player:
 
 console:
   plugin_starting: "EmakiDungeon 正在启动"
+  plugin_started: "EmakiDungeon 已启动完成"
   plugin_stopped: "EmakiDungeon 已停止"
-  world_create_failed: "创建实例世界失败 | 副本=%dungeon% | 世界=%world%, 30 秒后重试"
+  world_create_failed: "创建实例世界失败 | 副本=%dungeon% | 世界=%world% | 错误=%error%, 30 秒后重试"
   world_dispose_held: "实例世界卸载删除失败, 已挂起待重启清理 | 副本=%dungeon% | 世界=%world%"
   instances_load_failed: "instances.yml 加载失败, 跳过启动残留自检 | 错误=%error%"
   residual_delete_failed: "启动自检删除残留目录失败 | 世界=%world%"
@@ -374,6 +375,7 @@ console:
   monitor_memory_slope: "堆内存斜率超过告警阈值 | 斜率=%slope%MB/min | 阈值=%threshold%MB/min"
   monitor_queue_backlog: "写队列持续积压超阈值 | 实例=%instance% | 持续=%seconds%s | 阈值=%threshold%s"
   audit_write_failed: "审计日志写入失败 | 文件=%file% | 错误=%error%"
+  instance_disposing_stuck: "实例卡滞在销毁阶段超 60 秒 | 实例=%instance% | 已滞留=%seconds%s"
 
 script:
   stopped_chat: "副本脚本异常已停用, 本局继续运行"

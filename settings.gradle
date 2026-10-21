@@ -26,6 +26,7 @@ dependencyResolutionManagement {
         maven { name = 'auxilor-releases'; url = 'https://repo.auxilor.io/repository/maven-public/' }
         maven { name = 'mockbukkit-releases'; url = 'https://s01.oss.sonatype.org/content/repositories/releases/' }
         maven { name = 'codemc-releases'; url = 'https://repo.codemc.io/repository/maven-releases/' }
+        maven { name = 'opencollab-releases'; url = 'https://repo.opencollab.dev/maven-releases/' }
         mavenCentral()
     }
 }
@@ -43,6 +44,7 @@ def defaultModules = [
         'EmakiForge', 'EmakiStrengthen', 'EmakiCooking', 'EmakiAttribute',
         'EmakiLevel', 'EmakiCodex', 'EmakiStation', 'EmakiMobs',
         'EmakiDungeonApi', 'EmakiDungeon',
+        'EmakiDummy',
 ]
 defaultModules.each { include it }
 

@@ -116,7 +116,22 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     public void onEnable() {
         shutdownStarted.set(false);
         languageLoader = new LanguageLoader(this);
-        messageService = new MessageService(this, languageLoader, "EmakiDungeon");
+        messageService = new MessageService(this, "EmakiDungeon",
+                languageLoader::getMessage,
+                (key, replacements) -> {
+                    String template = languageLoader.getMessage(key);
+                    Map<String, ?> safe = replacements == null ? Map.of() : replacements;
+                    String converted = template;
+                    for (Map.Entry<String, ?> entry : safe.entrySet()) {
+                        if (entry.getKey() == null || entry.getKey().isBlank()) {
+                            continue;
+                        }
+                        converted = converted.replace("<" + entry.getKey() + ">",
+                                "%" + entry.getKey() + "%");
+                    }
+                    return emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplate(converted, safe);
+                },
+                false);
         appConfigLoader = new YamlConfigLoader<>(this, "config.yml", AppConfig::defaults, AppConfig::parse);
         appConfigLoader.load();
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -270,6 +285,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         Map<String, DungeonConfig> configCache = new ConcurrentHashMap<>();
         List<String> dungeons = new ArrayList<>();
+        templates.ensureDefaultConfigs();
         for (String dungeonId : templates.discoverDungeons()) {
             try {
                 configCache.put(dungeonId, templates.loadConfig(dungeonId));
@@ -479,6 +495,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private void reloadTemplates(TemplateRepository templates,
             Map<String, DungeonConfig> configCache) {
         appConfigLoader.load();
+        templates.ensureDefaultConfigs();
         for (String dungeonId : templates.discoverDungeons()) {
             try {
                 configCache.put(dungeonId, templates.loadConfig(dungeonId));

@@ -1,0 +1,44 @@
+id: editor_test_start
+players:
+  - dummy_a
+timeout_seconds: 180
+steps:
+  - action: join_all
+  - action: cmd
+    player: dummy_a
+    command: "/edg leave"
+  - action: say
+    player: dummy_a
+    text: "确认"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg cancel"
+  - action: sleep
+    seconds: 1
+  - action: cmd
+    player: dummy_a
+    command: "/edg editor test_dungeon"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg editor test"
+  - action: sleep
+    seconds: 2
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: sleep
+    seconds: 1
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: wait_event
+    type: DungeonEnterEvent
+    timeout: 90
+  - action: expect
+    expr: "event_count('DungeonEnterEvent') >= 1"
+    timeout: 10
+  - action: leave_all

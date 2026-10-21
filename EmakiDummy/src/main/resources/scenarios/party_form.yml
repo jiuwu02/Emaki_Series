@@ -1,0 +1,40 @@
+id: party_form
+players:
+  - dummy_a
+  - dummy_b
+timeout_seconds: 120
+steps:
+  - action: join_all
+  - action: cmd
+    player: dummy_a
+    command: "/edg party disband"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg party create"
+  - action: sleep
+    seconds: 1
+  - action: cmd
+    player: dummy_a
+    command: "/edg party invite dummy_b"
+  - action: wait_event
+    type: PlayerCommandPreprocessEvent
+    where: "/edg party invite"
+    timeout: 15
+  - action: cmd
+    player: dummy_b
+    command: "/edg party accept"
+  - action: wait_event
+    type: PlayerCommandPreprocessEvent
+    where: "/edg party accept"
+    timeout: 15
+  - action: sleep
+    seconds: 2
+  - action: expect
+    expr: "dummy_online('dummy_a') == 1 && dummy_online('dummy_b') == 1"
+    timeout: 10
+  - action: assert
+    expr: "event_count('PlayerCommandPreprocessEvent') >= 3"
+    on_fail: stop
+  - action: leave_all

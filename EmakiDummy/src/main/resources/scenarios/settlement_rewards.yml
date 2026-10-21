@@ -1,0 +1,64 @@
+id: settlement_rewards
+players:
+  - dummy_a
+timeout_seconds: 600
+steps:
+  - action: join_all
+  - action: cmd
+    player: dummy_a
+    command: "/edg editor exit"
+  - action: cmd
+    player: dummy_a
+    command: "/edg leave"
+  - action: say
+    player: dummy_a
+    text: "确认"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg cancel"
+  - action: cmd
+    player: dummy_a
+    command: "/edg party disband"
+  - action: sleep
+    seconds: 1
+  - action: cmd
+    player: dummy_a
+    command: "/edg enter test_dungeon"
+  - action: sleep
+    seconds: 2
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: sleep
+    seconds: 1
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: wait_event
+    type: DungeonChallengeStartEvent
+    timeout: 60
+  - action: cmd
+    player: dummy_a
+    command: "/edg ready"
+  - action: wait_event
+    type: DungeonEnterEvent
+    timeout: 120
+  - action: wait_event
+    type: DungeonCompleteEvent
+    timeout: 420
+  - action: wait_log
+    file: "plugins/EmakiDungeon/logs/audit-*.log"
+    contains: "event=complete"
+    timeout: 60
+  - action: cmd
+    player: dummy_a
+    command: "/edg rewards"
+  - action: expect
+    expr: "recv_contains('dummy_a', '奖励')"
+    timeout: 15
+  - action: expect
+    expr: "inventory_count('dummy_a') >= 0"
+    timeout: 5
+  - action: leave_all

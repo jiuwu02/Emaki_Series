@@ -1,0 +1,34 @@
+name: EmakiDummy
+main: emaki.jiuwu.craft.dummy.EmakiDummyPlugin
+version: ${project.version}
+api-version: "1.21.8"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiDungeon:
+      load: BEFORE
+      required: false
+      join-classpath: true
+commands:
+  emdum:
+    description: EmakiDummy 命令
+    usage: /emdum help
+    permission: emakidummy.use
+    aliases: [dummy, emdummy]
+permissions:
+  emakidummy.use:
+    description: 假人基础操作 (进服/退出/动作/列表)
+    default: op
+  emakidummy.admin:
+    description: 场景执行与批量停机
+    default: op
+  emakidummy.*:
+    description: EmakiDummy 全部权限通配
+    default: op
+    children:
+      emakidummy.use: true
+      emakidummy.admin: true

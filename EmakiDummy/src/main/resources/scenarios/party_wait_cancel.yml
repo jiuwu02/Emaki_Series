@@ -1,0 +1,70 @@
+id: party_wait_cancel
+players:
+  - dummy_a
+  - dummy_b
+timeout_seconds: 300
+steps:
+  - action: join_all
+  - action: cmd
+    player: dummy_a
+    command: "/edg editor exit"
+  - action: cmd
+    player: dummy_a
+    command: "/edg leave"
+  - action: say
+    player: dummy_a
+    text: "确认"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg cancel"
+  - action: cmd
+    player: dummy_a
+    command: "/edg party disband"
+  - action: sleep
+    seconds: 1
+  - action: cmd
+    player: dummy_a
+    command: "/edg party create"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_a
+    command: "/edg party invite dummy_b"
+  - action: sleep
+    seconds: 2
+  - action: cmd
+    player: dummy_b
+    command: "/edg party accept"
+  - action: sleep
+    seconds: 3
+  - action: expect
+    expr: "dummy_online('dummy_a') == 1 && dummy_online('dummy_b') == 1"
+    timeout: 10
+  - action: cmd
+    player: dummy_a
+    command: "/edg enter test_dungeon"
+  - action: sleep
+    seconds: 2
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: sleep
+    seconds: 1
+  - action: click
+    player: dummy_a
+    slot: 0
+  - action: wait_event
+    type: DungeonChallengeStartEvent
+    timeout: 60
+  - action: cmd
+    player: dummy_a
+    command: "/edg cancel"
+  - action: wait_event
+    type: DungeonChallengeCancelEvent
+    timeout: 30
+  - action: expect
+    expr: "event_count('DungeonChallengeCancelEvent') == 1"
+    timeout: 10
+  - action: leave_all

@@ -51,7 +51,7 @@ public record AppConfig(
                 true,
                 5000L,
                 false,
-                50,
+                55,
                 64,
                 5,
                 Map.of()

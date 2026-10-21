@@ -1,0 +1,89 @@
+# EmakiDummy 简体中文语言资源
+# 消息使用 MiniMessage; 占位符语法为 %key%
+# version 由资源同步流程维护, 用于合并新增默认键
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#7CFFB2:#40E0D0>EmakiDummy</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此命令</red>"
+  invalid_args: "<red>参数错误</red>"
+  unknown_command: "<red>未知子命令: %sub%, 请使用 /emdum help 查看帮助</red>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#7CFFB2:#40E0D0>EmakiDummy 命令</gradient><gray> ==========</gray>
+    <gray>/emdum join [名字]</gray> <white>让假人进服 (省略名字自动生成)</white>
+    <gray>/emdum leave <名字></gray> <white>断开指定假人</white>
+    <gray>/emdum say <名字> <文本></gray> <white>假人发送聊天</white>
+    <gray>/emdum cmd <名字> <命令></gray> <white>假人执行指令 (斜杠可省略)</white>
+    <gray>/emdum walk <名字> <x> <y> <z></gray> <white>假人直线走到坐标</white>
+    <gray>/emdum look <名字> <yaw> <pitch></gray> <white>假人调整视角</white>
+    <gray>/emdum interact <名字> [x] [y] [z]</gray> <white>假人右键面前方块 (可指定坐标)</white>
+    <gray>/emdum attack <名字></gray> <white>假人攻击最近的非玩家实体</white>
+    <gray>/emdum click <名字> <槽位></gray> <white>假人左键点击当前窗口槽位 (GUI 选择)</white>
+    <gray>/emdum list</gray> <white>查看在线假人</white>
+    <gray>/emdum scenario <run|stop> <场景ID></gray> <white>执行或停止测试场景</white>
+    <gray>/emdum stop-all</gray> <white>断开全部假人</white>
+  join:
+    duplicate: "<yellow>假人 %name% 已存在</yellow>"
+    limit: "<red>假人数量已达上限 %limit%</red>"
+    connecting: "<gray>假人 %name% 正在连接 %host%:%port% ...</gray>"
+    failed: "<red>假人 %name% 连接失败: %reason%</red>"
+  leave:
+    usage: "<red>用法: /emdum leave <名字></red>"
+    not_found: "<yellow>假人 %name% 不存在</yellow>"
+    done: "<green>假人 %name% 已断开</green>"
+  say:
+    usage: "<red>用法: /emdum say <名字> <文本></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    sent: "<gray>假人 %name% 已发送聊天: %text%</gray>"
+  cmd:
+    usage: "<red>用法: /emdum cmd <名字> <命令></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    sent: "<gray>假人 %name% 已执行: %command%</gray>"
+  walk:
+    usage: "<red>用法: /emdum walk <名字> <x> <y> <z></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    started: "<gray>假人 %name% 开始走向 %x%, %y%, %z%</gray>"
+  look:
+    usage: "<red>用法: /emdum look <名字> <yaw> <pitch></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    done: "<gray>假人 %name% 视角已调整为 yaw=%yaw% pitch=%pitch%</gray>"
+  interact:
+    usage: "<red>用法: /emdum interact <名字> [x] [y] [z]</red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    done: "<gray>假人 %name% 已对 %block% 发起右键交互</gray>"
+  attack:
+    usage: "<red>用法: /emdum attack <名字></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    no_target: "<yellow>假人 %name% 附近没有可攻击实体</yellow>"
+    done: "<gray>假人 %name% 已攻击实体 #%entity%</gray>"
+  click:
+    usage: "<red>用法: /emdum click <名字> <槽位></red>"
+    not_found: "<yellow>假人 %name% 不存在或未进服</yellow>"
+    no_window: "<yellow>假人 %name% 当前没有打开的窗口</yellow>"
+    done: "<gray>假人 %name% 已点击槽位 %slot%</gray>"
+  list:
+    header: "<gray>在线假人 (%count%):</gray>"
+    entry: "<gray>- </gray><white>%name%</white><gray> [</gray><yellow>%state%</yellow><gray>] </gray><gray>@ %position%</gray>"
+    empty: "<yellow>当前没有假人</yellow>"
+  scenario:
+    usage: "<red>用法: /emdum scenario <run|stop> <场景ID></red>"
+    not_found: "<yellow>场景 %id% 不存在 (见 plugins/EmakiDummy/scenarios/)</yellow>"
+    busy: "<yellow>已有场景正在执行: %active%</yellow>"
+    started: "<gray>场景 %id% 开始执行 (假人: %players%)</gray>"
+    stopped: "<gray>场景 %id% 已停止</gray>"
+    none_active: "<yellow>当前没有正在执行的场景</yellow>"
+    result: "<gray>场景 <white>%id%</white> 结果: <green>%result%</green> (通过 %passed%, 失败 %failed%, 耗时 %elapsed%ms)</gray>"
+  stopall:
+    none: "<gray>当前没有假人</gray>"
+    done: "<green>已断开全部假人 (%count%)</green>"
+
+console:
+  plugin_starting: "<gray>正在启动假人测试基建...</gray>"
+  plugin_started: "<green>EmakiDummy 已启动, 连接模式 %mode% -> %host%:%port%</green>"
+  plugin_stopped: "<gray>EmakiDummy 已停止, 全部假人与场景已释放</gray>"
+  scenarios_loaded: "<gray>已加载测试场景 %count% 个</gray>"
+  log_retention_removed: "<gray>日志轮转已清理 %count% 个过期文件</gray>"
+  scenario_load_failed: "<red>场景加载失败: %file% (%reason%)</red>"

@@ -40,7 +40,9 @@ public final class WorldDisposer {
 
     public boolean deleteResidual(String worldName) {
         Path target = new File(worldContainer, worldName).toPath();
-        WorldCloner.deleteTree(target);
+        for (Path candidate : WorldFolders.dataCandidates(worldContainer, worldName)) {
+            WorldCloner.deleteTree(candidate);
+        }
         return !Files.exists(target);
     }
 
@@ -59,7 +61,9 @@ public final class WorldDisposer {
             }
             dispatcher.runAsync(plugin, () -> {
                 Path target = new File(worldContainer, worldName).toPath();
-                WorldCloner.deleteTree(target);
+                for (Path candidate : WorldFolders.dataCandidates(worldContainer, worldName)) {
+                    WorldCloner.deleteTree(candidate);
+                }
                 if (Files.exists(target)) {
                     retryOrFail(worldName, tries, future);
                 } else {

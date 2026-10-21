@@ -123,13 +123,14 @@ public final class WorldPool {
             }
             File template = templates.templateDir(dungeonId).orElse(null);
             if (template == null) {
-                rollbackCreate(worldName, instance, reservation, false);
+                rollbackCreate(worldName, instance, reservation, false, "template missing");
                 return;
             }
             int generation = generation(dungeonId);
             cloner.cloneAsync(template, worldName).whenComplete((ignored, error) -> {
                 if (error != null) {
-                    rollbackCreate(worldName, instance, reservation, true);
+                    rollbackCreate(worldName, instance, reservation, true,
+                            "clone failed: " + String.valueOf(error.getMessage()));
                     return;
                 }
                 dispatcher.runGlobal(plugin, () -> mount(worldName, dungeonId, instance, reservation, generation));
@@ -140,11 +141,11 @@ public final class WorldPool {
     private void mount(String worldName, String dungeonId, DungeonInstance instance, PoolReservation reservation,
             int generation) {
         if (generation != generation(dungeonId)) {
-            rollbackCreate(worldName, instance, reservation, true);
+            rollbackCreate(worldName, instance, reservation, true, "generation mismatch");
             return;
         }
         if (stopping || !instance.transition(InstanceState.CREATING, InstanceState.MOUNTING)) {
-            rollbackCreate(worldName, instance, reservation, false);
+            rollbackCreate(worldName, instance, reservation, false, "state transition failed");
             return;
         }
         try {
@@ -153,11 +154,12 @@ public final class WorldPool {
                 throw new IllegalStateException("createWorld returned null");
             }
         } catch (Throwable throwable) {
-            rollbackCreate(worldName, instance, reservation, true);
+            rollbackCreate(worldName, instance, reservation, true,
+                    "createWorld failed: " + String.valueOf(throwable.getMessage()));
             return;
         }
         if (!instance.transition(InstanceState.MOUNTING, InstanceState.IDLE)) {
-            rollbackCreate(worldName, instance, reservation, false);
+            rollbackCreate(worldName, instance, reservation, false, "state transition failed");
             return;
         }
         allocator.confirmPool(reservation);
@@ -167,7 +169,8 @@ public final class WorldPool {
         dispatcher.runGlobal(plugin, () -> ensureReserve(dungeonId));
     }
 
-    private void rollbackCreate(String worldName, DungeonInstance instance, PoolReservation reservation, boolean retry) {
+    private void rollbackCreate(String worldName, DungeonInstance instance, PoolReservation reservation,
+            boolean retry, String reason) {
         allocator.cancelPool(reservation);
         registry.unregister(worldName);
         store.remove(worldName);
@@ -175,7 +178,8 @@ public final class WorldPool {
         dispatcher.runAsync(plugin, () -> disposer.deleteResidual(worldName));
         messages.warning("console.world_create_failed", Map.of(
                 "dungeon", instance.dungeonId(),
-                "world", worldName
+                "world", worldName,
+                "error", reason
         ));
         if (retry && !stopping) {
             dispatcher.runAsyncLater(plugin, () -> ensureReserve(instance.dungeonId()),
@@ -246,13 +250,50 @@ public final class WorldPool {
             for (String worldName : pair.getValue().reserves) {
                 World world = Bukkit.getWorld(worldName);
                 File directory = new File(worldContainer, worldName);
-                if (world == null || !directory.isDirectory()) {
-                    invalidateReserve(dungeonId, worldName);
-                    healthy = false;
+                boolean dataPresent = WorldFolders.anyPresent(worldContainer, worldName);
+                if (world != null && dataPresent) {
+                    continue;
                 }
+                if (world == null && dataPresent) {
+                    try {
+                        World remounted = Bukkit.createWorld(new WorldCreator(worldName));
+                        if (remounted != null) {
+                            if (audit != null) {
+                                audit.write("instance", Map.of(
+                                        "event", "reserve_remounted",
+                                        "instance", worldName,
+                                        "dungeon", dungeonId));
+                            }
+                            continue;
+                        }
+                    } catch (Throwable throwable) {
+                        writeInspectFail(dungeonId, worldName, false,
+                                directory.isDirectory(), String.valueOf(throwable.getMessage()));
+                        invalidateReserve(dungeonId, worldName);
+                        healthy = false;
+                        continue;
+                    }
+                }
+                writeInspectFail(dungeonId, worldName, false,
+                        directory.isDirectory(), dataPresent ? "data-conflict" : "data-missing");
+                invalidateReserve(dungeonId, worldName);
+                healthy = false;
             }
         }
         return healthy;
+    }
+
+    private void writeInspectFail(String dungeonId, String worldName, boolean loaded,
+            boolean legacyDirectory, String reason) {
+        if (audit != null) {
+            audit.write("instance", Map.of(
+                    "event", "reserve_inspect_fail",
+                    "instance", worldName,
+                    "dungeon", dungeonId,
+                    "loaded", String.valueOf(loaded),
+                    "directory", String.valueOf(legacyDirectory),
+                    "reason", reason));
+        }
     }
 
     private WorldCommandQueue newWorldQueue(String worldName) {

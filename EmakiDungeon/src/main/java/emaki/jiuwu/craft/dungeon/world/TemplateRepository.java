@@ -76,4 +76,24 @@ public final class TemplateRepository {
         }
         return flowFile;
     }
+
+    public void ensureDefaultConfigs() {
+        File[] children = templateRoot.listFiles(File::isDirectory);
+        if (children == null) {
+            return;
+        }
+        for (File child : children) {
+            File configFile = new File(child, "config.yml");
+            if (configFile.isFile()) {
+                continue;
+            }
+            try {
+                emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.copyResourceIfMissing(
+                        plugin, "world/default_config.yml", configFile);
+            } catch (java.io.IOException exception) {
+                plugin.getLogger().warning("[EmakiDungeon] default_config 复制失败 | 副本="
+                        + child.getName() + " | 错误=" + exception.getMessage());
+            }
+        }
+    }
 }

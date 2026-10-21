@@ -346,8 +346,9 @@ player:
 
 console:
   plugin_starting: "EmakiDungeon is starting"
+  plugin_started: "EmakiDungeon has started"
   plugin_stopped: "EmakiDungeon has stopped"
-  world_create_failed: "Instance world creation failed | dungeon=%dungeon% | world=%world%, retrying in 30s"
+  world_create_failed: "Instance world creation failed | dungeon=%dungeon% | world=%world% | error=%error%, retrying in 30s"
   world_dispose_held: "Instance world unload or delete failed, held for cleanup on restart | dungeon=%dungeon% | world=%world%"
   instances_load_failed: "Failed to load instances.yml, startup residual scan skipped | error=%error%"
   residual_delete_failed: "Startup scan failed to delete residual directory | world=%world%"
@@ -374,6 +375,7 @@ console:
   monitor_memory_slope: "Heap memory slope exceeded the alert threshold | slope=%slope%MB/min | threshold=%threshold%MB/min"
   monitor_queue_backlog: "World queue backlog lasted over threshold | instance=%instance% | seconds=%seconds%s | threshold=%threshold%s"
   audit_write_failed: "Failed to write audit log | file=%file% | error=%error%"
+  instance_disposing_stuck: "Instance stuck in disposing for over 60s | instance=%instance% | elapsed=%seconds%s"
 
 script:
   stopped_chat: "The dungeon script stopped after an error; this run continues"

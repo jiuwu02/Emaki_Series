@@ -19,6 +19,7 @@ caffeine = "3.3.0"
 bstats = "3.2.1"
 packetevents = "2.14.0"
 graalvm = "25.4.4.1.1"
+mcprotocollib = "26.2"
 
 # --- 可选运行时集成（全部 provided）---
 vault = "1.7.1"
@@ -60,6 +61,7 @@ boosted-yaml = { module = "dev.dejvokep:boosted-yaml", version.ref = "boosted-ya
 caffeine = { module = "com.github.ben-manes.caffeine:caffeine", version.ref = "caffeine" }
 bstats-bukkit = { module = "org.bstats:bstats-bukkit", version.ref = "bstats" }
 packetevents-spigot = { module = "com.github.retrooper:packetevents-spigot", version.ref = "packetevents" }
+mcprotocollib = { module = "org.geysermc.mcprotocollib:protocol", version.ref = "mcprotocollib" }
 
 graalvm-polyglot = { module = "org.graalvm.polyglot:polyglot", version.ref = "graalvm" }
 graalvm-js-language = { module = "org.graalvm.js:js-language", version.ref = "graalvm" }

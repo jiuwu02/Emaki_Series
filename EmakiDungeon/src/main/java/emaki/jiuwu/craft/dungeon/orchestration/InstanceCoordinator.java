@@ -41,6 +41,8 @@ public final class InstanceCoordinator {
     private volatile java.util.function.Consumer<String> dropCleanup;
 
     private volatile boolean shuttingDown;
+    private final java.util.Map<String, Long> disposingSince = new java.util.concurrent.ConcurrentHashMap<>();
+    private final java.util.Set<String> disposingAlerted = java.util.concurrent.ConcurrentHashMap.newKeySet();
     private TaskToken inspectionTask = TaskToken.UNAVAILABLE;
 
     public InstanceCoordinator(Plugin plugin,
@@ -136,7 +138,26 @@ public final class InstanceCoordinator {
             return;
         }
         pool.inspectReserves();
+        long now = System.currentTimeMillis();
         for (DungeonInstance instance : registry.all()) {
+            if (instance.state() == InstanceState.DISPOSING) {
+                Long since = disposingSince.get(instance.instanceId());
+                long seconds = since == null ? 0L : (now - since) / 1000L;
+                if (since != null && seconds >= 60L
+                        && disposingAlerted.add(instance.instanceId())) {
+                    messages.warning("console.instance_disposing_stuck", Map.of(
+                            "instance", instance.instanceId(),
+                            "seconds", String.valueOf(seconds)
+                    ));
+                    if (audit != null) {
+                        audit.write("instance", Map.of(
+                                "event", "disposing_stuck",
+                                "instance", instance.instanceId(),
+                                "dungeon", instance.dungeonId(),
+                                "seconds", String.valueOf(seconds)));
+                    }
+                }
+            }
             if (instance.state() == InstanceState.RUNNING && Bukkit.getWorld(instance.instanceId()) == null) {
                 messages.warning("console.active_world_missing", Map.of(
                         "dungeon", instance.dungeonId(),
@@ -165,6 +186,7 @@ public final class InstanceCoordinator {
         if (!instance.transition(current, InstanceState.DISPOSING)) {
             return;
         }
+        disposingSince.put(instanceId, System.currentTimeMillis());
         debug.log("dungeon", (UUID) null, "instance_destroyed", Map.of(
                 "instance", instanceId,
                 "trigger", trigger
@@ -222,6 +244,8 @@ public final class InstanceCoordinator {
     }
 
     private void finish(DungeonInstance instance, boolean held) {
+        disposingSince.remove(instance.instanceId());
+        disposingAlerted.remove(instance.instanceId());
         UUID partyId = instance.partyId();
         if (partyId != null) {
             allocator.releaseParty(partyId);

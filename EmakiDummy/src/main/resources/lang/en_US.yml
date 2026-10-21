@@ -1,0 +1,89 @@
+# EmakiDummy English language resource
+# Messages use MiniMessage; placeholder syntax is %key%
+# version is maintained by the resource sync flow to merge new default keys
+
+version: "1.0.0"
+
+general:
+  prefix: "<gray>[ <gradient:#7CFFB2:#40E0D0>EmakiDummy</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to run this command</red>"
+  invalid_args: "<red>Invalid arguments</red>"
+  unknown_command: "<red>Unknown subcommand: %sub%. Use /emdum help for help</red>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#7CFFB2:#40E0D0>EmakiDummy Commands</gradient><gray> ==========</gray>
+    <gray>/emdum join [name]</gray> <white>Let a dummy join the server (auto name if omitted)</white>
+    <gray>/emdum leave <name></gray> <white>Disconnect the given dummy</white>
+    <gray>/emdum say <name> <text></gray> <white>Make the dummy send chat</white>
+    <gray>/emdum cmd <name> <command></gray> <white>Make the dummy run a command (slash optional)</white>
+    <gray>/emdum walk <name> <x> <y> <z></gray> <white>Walk the dummy to coordinates in a straight line</white>
+    <gray>/emdum look <name> <yaw> <pitch></gray> <white>Adjust the dummy view angle</white>
+    <gray>/emdum interact <name> [x] [y] [z]</gray> <white>Right click the block in front (or at given coords)</white>
+    <gray>/emdum attack <name></gray> <white>Attack the nearest non-player entity</white>
+    <gray>/emdum click <name> <slot></gray> <white>Left click a slot in the current window (GUI choice)</white>
+    <gray>/emdum list</gray> <white>List online dummies</white>
+    <gray>/emdum scenario <run|stop> <scenarioId></gray> <white>Run or stop a test scenario</white>
+    <gray>/emdum stop-all</gray> <white>Disconnect all dummies</white>
+  join:
+    duplicate: "<yellow>Dummy %name% already exists</yellow>"
+    limit: "<red>Dummy limit reached: %limit%</red>"
+    connecting: "<gray>Dummy %name% is connecting to %host%:%port% ...</gray>"
+    failed: "<red>Dummy %name% failed to connect: %reason%</red>"
+  leave:
+    usage: "<red>Usage: /emdum leave <name></red>"
+    not_found: "<yellow>Dummy %name% does not exist</yellow>"
+    done: "<green>Dummy %name% disconnected</green>"
+  say:
+    usage: "<red>Usage: /emdum say <name> <text></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    sent: "<gray>Dummy %name% sent chat: %text%</gray>"
+  cmd:
+    usage: "<red>Usage: /emdum cmd <name> <command></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    sent: "<gray>Dummy %name% ran: %command%</gray>"
+  walk:
+    usage: "<red>Usage: /emdum walk <name> <x> <y> <z></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    started: "<gray>Dummy %name% started walking to %x%, %y%, %z%</gray>"
+  look:
+    usage: "<red>Usage: /emdum look <name> <yaw> <pitch></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    done: "<gray>Dummy %name% view set to yaw=%yaw% pitch=%pitch%</gray>"
+  interact:
+    usage: "<red>Usage: /emdum interact <name> [x] [y] [z]</red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    done: "<gray>Dummy %name% right clicked block %block%</gray>"
+  attack:
+    usage: "<red>Usage: /emdum attack <name></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    no_target: "<yellow>No attackable entity near dummy %name%</yellow>"
+    done: "<gray>Dummy %name% attacked entity #%entity%</gray>"
+  click:
+    usage: "<red>Usage: /emdum click <name> <slot></red>"
+    not_found: "<yellow>Dummy %name% does not exist or has not joined</yellow>"
+    no_window: "<yellow>Dummy %name% has no open window right now</yellow>"
+    done: "<gray>Dummy %name% clicked slot %slot%</gray>"
+  list:
+    header: "<gray>Online dummies (%count%):</gray>"
+    entry: "<gray>- </gray><white>%name%</white><gray> [</gray><yellow>%state%</yellow><gray>] </gray><gray>@ %position%</gray>"
+    empty: "<yellow>No dummies currently</yellow>"
+  scenario:
+    usage: "<red>Usage: /emdum scenario <run|stop> <scenarioId></red>"
+    not_found: "<yellow>Scenario %id% not found (see plugins/EmakiDummy/scenarios/)</yellow>"
+    busy: "<yellow>A scenario is already running: %active%</yellow>"
+    started: "<gray>Scenario %id% started (players: %players%)</gray>"
+    stopped: "<gray>Scenario %id% stopped</gray>"
+    none_active: "<yellow>No scenario is currently running</yellow>"
+    result: "<gray>Scenario <white>%id%</white> result: <green>%result%</green> (passed %passed%, failed %failed%, elapsed %elapsed%ms)</gray>"
+  stopall:
+    none: "<gray>No dummies currently</gray>"
+    done: "<green>Disconnected all dummies (%count%)</green>"
+
+console:
+  plugin_starting: "<gray>Starting dummy test infrastructure...</gray>"
+  plugin_started: "<green>EmakiDummy started, connection mode %mode% -> %host%:%port%</green>"
+  plugin_stopped: "<gray>EmakiDummy stopped, all dummies and scenarios released</gray>"
+  scenarios_loaded: "<gray>Loaded %count% test scenarios</gray>"
+  log_retention_removed: "<gray>Log rotation removed %count% expired files</gray>"
+  scenario_load_failed: "<red>Scenario load failed: %file% (%reason%)</red>"

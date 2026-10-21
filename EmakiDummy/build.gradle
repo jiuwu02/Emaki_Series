@@ -1,0 +1,48 @@
+// EmakiDummy.
+version = '1.0.0'
+
+configurations.shadeBundle {
+    exclude group: 'io.netty'
+    exclude group: 'org.slf4j'
+    exclude group: 'net.kyori'
+    exclude group: 'com.google.code.gson'
+    exclude group: 'com.nukkitx.fastutil'
+    exclude group: 'org.checkerframework'
+}
+
+configurations.testCompileClasspath {
+    resolutionStrategy.force 'net.kyori:adventure-api:4.26.1',
+            'net.kyori:adventure-key:4.26.1',
+            'net.kyori:adventure-text-minimessage:4.26.1',
+            'net.kyori:adventure-text-serializer-ansi:4.26.1',
+            'net.kyori:adventure-text-serializer-commons:4.26.1',
+            'net.kyori:adventure-text-serializer-gson:4.26.1',
+            'net.kyori:adventure-text-serializer-json:4.26.1',
+            'net.kyori:adventure-text-serializer-legacy:4.26.1',
+            'net.kyori:adventure-text-serializer-plain:4.26.1'
+}
+
+configurations.testRuntimeClasspath {
+    resolutionStrategy.force 'net.kyori:adventure-api:4.26.1',
+            'net.kyori:adventure-key:4.26.1',
+            'net.kyori:adventure-text-minimessage:4.26.1',
+            'net.kyori:adventure-text-serializer-ansi:4.26.1',
+            'net.kyori:adventure-text-serializer-commons:4.26.1',
+            'net.kyori:adventure-text-serializer-gson:4.26.1',
+            'net.kyori:adventure-text-serializer-json:4.26.1',
+            'net.kyori:adventure-text-serializer-legacy:4.26.1',
+            'net.kyori:adventure-text-serializer-plain:4.26.1'
+}
+
+dependencies {
+    shadeBundle libs.mcprotocollib
+
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+
+    optional libs.mcprotocollib
+    provided libs.paper.api
+
+    testImplementation libs.junit.jupiter
+    testImplementation libs.mockbukkit
+}

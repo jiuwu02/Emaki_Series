@@ -57,7 +57,7 @@ script:
 # 运行期性能告警阈值: MSPT P95 (毫秒)、堆内存斜率 (MB/分钟)、写队列持续积压 (秒)。
 # 超阈值即控制台告警并写入审计日志, 该项阈值 <= 0 表示关闭该项监测。
 monitor:
-  mspt-p95-ms: 50
+  mspt-p95-ms: 55
   memory-slope-mb-per-min: 64
   queue-backlog-seconds: 5
 
