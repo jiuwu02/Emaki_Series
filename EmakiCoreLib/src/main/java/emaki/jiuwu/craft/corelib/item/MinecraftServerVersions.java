@@ -17,6 +17,18 @@ public final class MinecraftServerVersions {
         }
     }
 
+    /**
+     * 判断当前服务端版本是否大于等于指定下限（如 "26"）。
+     * 版本取不到时返回 false，回落旧版路径。
+     */
+    public static boolean atLeast(String minimum) {
+        String version = currentServerVersion();
+        if (version == null || version.isBlank()) {
+            return false;
+        }
+        return satisfies(">=" + minimum, version);
+    }
+
     public static boolean satisfies(String requirement, String serverVersion) {
         if (Texts.isBlank(requirement) || Texts.isBlank(serverVersion)) {
             return true;
