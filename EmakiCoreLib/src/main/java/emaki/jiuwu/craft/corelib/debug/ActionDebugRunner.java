@@ -19,13 +19,6 @@ import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 
-/**
- * {@code debug action run|check} 的共用实现。
- *
- * <p>供 CoreLib 自身命令与共享 {@link DebugCommand}（各插件 {@code <root> debug action ...}）复用。
- * 消息通过注入的 {@link MessageWriter} 输出、线程切换通过注入的 {@code dispatcher} 完成，
- * 本类不做任何调度断言。</p>
- */
 public final class ActionDebugRunner {
 
     public static final String[] MODES = {"run", "check", "registry"};
@@ -155,9 +148,6 @@ public final class ActionDebugRunner {
         }));
     }
 
-    /**
-     * 解析 {@code debug action} 之后的参数，返回 null 表示参数非法（已发用法提示）。
-     */
     public static @Nullable Invocation parse(String[] args) {
         String mode = args.length >= 1 ? args[0].toLowerCase(Locale.ROOT) : "";
         if ("check".equals(mode)) {

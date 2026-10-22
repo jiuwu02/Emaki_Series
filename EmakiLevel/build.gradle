@@ -1,5 +1,5 @@
 // EmakiLevel（原 EmakiLevel/pom.xml）。
-version = '1.6.9'
+version = '1.6.10'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -15,10 +15,4 @@ dependencies {
     provided libs.paper.api
     provided libs.mythic.dist
     provided libs.placeholderapi
-
-    // 原 test 作用域。
-    testImplementation project(':EmakiAttribute')
-    testImplementation libs.junit.jupiter
-    testImplementation libs.boosted.yaml
-    testImplementation libs.mockbukkit
 }

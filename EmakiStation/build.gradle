@@ -1,5 +1,5 @@
 // EmakiStation（原 EmakiStation/pom.xml）。
-version = '1.1.8'
+version = '1.1.9'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -15,10 +15,4 @@ dependencies {
     provided project(':EmakiStorageApi')
     provided libs.paper.api
     provided libs.placeholderapi
-
-    // 原 test 作用域。
-    testImplementation libs.junit.jupiter
-    testImplementation libs.boosted.yaml
-    testImplementation emakiDep(':EmakiStorage', 'emaki.jiuwu.craft:emaki-storage:1.1.4')
-    testImplementation libs.mockbukkit
 }

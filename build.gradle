@@ -29,25 +29,12 @@ subprojects {
         options.addStringOption('Xdoclint:all,-missing', '-quiet')
     }
 
-    tasks.withType(Test).configureEach {
-        useJUnitPlatform()
-    }
-
-    // 原根 pom dependencyManagement 中 import 的 junit-bom。
-    dependencies {
-        testImplementation platform(libs.junit.bom)
-        testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
-    }
-
-    // Maven provided 作用域：仅编译期可见，但同样参与本模块测试类路径
-    // （Maven 的 provided 会出现在 test compile/runtime classpath 上）。
+    // Maven provided 作用域：仅编译期可见。
     ext.provided = { Object dep, Closure configure = null ->
-        ['compileOnly', 'testImplementation'].each { String configurationName ->
-            if (configure == null) {
-                dependencies.add(configurationName, dep)
-            } else {
-                dependencies.add(configurationName, dep, configure)
-            }
+        if (configure == null) {
+            dependencies.add('compileOnly', dep)
+        } else {
+            dependencies.add('compileOnly', dep, configure)
         }
     }
 

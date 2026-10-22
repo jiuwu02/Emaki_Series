@@ -6,6 +6,14 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextComponent;
 import net.kyori.adventure.text.format.TextColor;
 
+/**
+ * Sends decorative multi-line ASCII art to the server console with a per-character color
+ * gradient.
+ *
+ * <p>Both helpers are no-ops for a {@code null} plugin or blank art, normalize Windows line
+ * endings before splitting, and color each line independently from the start color on the left
+ * to the end color on the right.
+ */
 public final class ConsoleOutputs {
 
     private static final int ASCII_START_COLOR = 0xFF80FF;
@@ -14,10 +22,29 @@ public final class ConsoleOutputs {
     private ConsoleOutputs() {
     }
 
+    /**
+     * Sends the art with the default pink-to-cyan gradient.
+     *
+     * @param plugin plugin whose console receives the art; {@code null} makes this a no-op
+     * @param asciiArt multi-line art; blank makes this a no-op
+     */
     public static void sendGradientAscii(JavaPlugin plugin, String asciiArt) {
         sendGradientAscii(plugin, asciiArt, ASCII_START_COLOR, ASCII_END_COLOR);
     }
 
+    /**
+     * Sends the art line by line with an explicit gradient.
+     *
+     * <p>Trailing whitespace of the whole text is stripped and line endings are normalized to
+     * {@code \n} first; every line is then sent to the console sender as one component whose
+     * characters interpolate evenly from {@code startColor} to {@code endColor} (a
+     * one-character line keeps the start color). Empty lines are sent as empty components.
+     *
+     * @param plugin plugin whose console receives the art; {@code null} makes this a no-op
+     * @param asciiArt multi-line art; blank makes this a no-op
+     * @param startColor {@code 0xRRGGBB} color of the leftmost character
+     * @param endColor {@code 0xRRGGBB} color of the rightmost character
+     */
     public static void sendGradientAscii(JavaPlugin plugin, String asciiArt, int startColor, int endColor) {
         if (plugin == null || Texts.isBlank(asciiArt)) {
             return;

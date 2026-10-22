@@ -7,11 +7,32 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Small dependency-free JSON writer and lenient reader for diagnostic and persistence payloads.
+ *
+ * <p>{@link #stringify(Object)} builds JSON from plain data (maps, collections, arrays, strings,
+ * numbers and booleans), while {@link #parse(String)} tolerates malformed input: it returns what
+ * it could read (partial objects and arrays, raw text in place of a number) instead of throwing.
+ * Both sides preserve map iteration order and keep no shared state, so they are safe to call
+ * from any thread.
+ */
 public final class Jsons {
 
     private Jsons() {
     }
 
+    /**
+     * Writes plain data as JSON text.
+     *
+     * <p>{@code null} becomes the literal {@code null}, strings are quoted, numbers and booleans
+     * are written as-is, maps become objects keyed by {@code String.valueOf}, and collections
+     * and object arrays become arrays in iteration order. Any other value is quoted through its
+     * string form. Primitive arrays are not supported and fail with
+     * {@link ClassCastException}.
+     *
+     * @param value value to write; may be {@code null}
+     * @return the JSON text, never {@code null}
+     */
     public static String stringify(Object value) {
         if (value == null) {
             return "null";
@@ -59,6 +80,16 @@ public final class Jsons {
         return quote(String.valueOf(value));
     }
 
+    /**
+     * Quotes and escapes a JSON string.
+     *
+     * <p>The quote, backslash, backspace, form feed, newline, carriage return and tab characters
+     * use their two-character escapes; every other control character below {@code 0x20} is
+     * written as a four-digit hexadecimal escape.
+     *
+     * @param value text to quote; {@code null} yields the literal {@code null}
+     * @return the quoted text
+     */
     public static String quote(String value) {
         if (value == null) {
             return "null";
@@ -86,11 +117,31 @@ public final class Jsons {
         return builder.append('"').toString();
     }
 
+    /**
+     * Reads one top-level value out of a JSON object as text.
+     *
+     * @param json JSON text; {@code null} yields an empty string
+     * @param key top-level key to read; {@code null} yields an empty string
+     * @return the value's string form, or an empty string when the key is missing, the value is
+     *         JSON {@code null}, the root is not an object, or the text cannot be read
+     */
     public static String extractString(String json, String key) {
         Object value = extractValue(json, key);
         return value == null ? "" : String.valueOf(value);
     }
 
+    /**
+     * Reads one top-level value out of a JSON object.
+     *
+     * <p>A missing key, an explicit JSON {@code null} and an unreadable document are
+     * indistinguishable: all three answer {@code null}.
+     *
+     * @param json JSON text; {@code null} yields {@code null}
+     * @param key top-level key to read; {@code null} yields {@code null}
+     * @return the parsed value ({@code Map}, {@code List}, {@code String}, {@code Long},
+     *         {@code Double}, {@code Boolean} or {@code null}) when the root is an object
+     *         holding the key, otherwise {@code null}
+     */
     public static Object extractValue(String json, String key) {
         if (json == null || key == null) {
             return null;
@@ -102,6 +153,18 @@ public final class Jsons {
         return null;
     }
 
+    /**
+     * Parses JSON text leniently.
+     *
+     * <p>Objects become {@link LinkedHashMap} and arrays become {@link ArrayList}, so key and
+     * element order survive a round trip. Numbers become {@code Long} or {@code Double}
+     * depending on whether they carry a decimal point or exponent, while text that is not a
+     * valid value comes back as a raw {@code String} instead of throwing; a truncated document
+     * yields whatever was read so far.
+     *
+     * @param json JSON text; {@code null} or blank input yields {@code null}
+     * @return the parsed value, or {@code null} for null or blank input
+     */
     public static Object parse(String json) {
         if (json == null) {
             return null;

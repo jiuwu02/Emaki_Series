@@ -53,7 +53,6 @@ public final class BossBarManager implements Listener {
         MobSpec spec = registry.get().get(mobId);
         if (spec == null || spec.bossBarConfig() == null) return;
         var cfg = spec.bossBarConfig();
-        // Adventure BossBar 以 Component 承载标题，MiniMessage 标签（含渐变）可完整渲染。
         BossBar bar = BossBar.bossBar(MiniMessages.parse(cfg.title()), progress(entity),
                 toColor(cfg.color()), toOverlay(cfg.style()));
         BossBar previous = entityBars.put(entity.getUniqueId(), bar);

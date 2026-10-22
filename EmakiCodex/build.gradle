@@ -1,5 +1,5 @@
 // EmakiCodex（原 EmakiCodex/pom.xml）。
-version = '1.1.6'
+version = '1.1.7'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -18,10 +18,4 @@ dependencies {
     provided libs.packetevents.spigot
     provided libs.adventure.text.serializer.gson
     provided libs.adventure.text.serializer.json
-
-    // 原 test 作用域。
-    testImplementation libs.junit.jupiter
-    testImplementation project(':EmakiAttribute')
-    testImplementation libs.boosted.yaml
-    testImplementation libs.mockbukkit
 }

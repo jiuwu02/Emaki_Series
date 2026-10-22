@@ -36,6 +36,18 @@ import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlLoadException;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
+/**
+ * Central YAML file utilities for plugin configuration: plain and versioned reads, bundled
+ * resource bootstrap, version synchronization, missing-default merging and block-style writes.
+ *
+ * <p>All reads are UTF-8 and all writes go through {@link #saveText}, which creates missing
+ * parent directories first. A one-shot startup handoff cache holds the documents opened during
+ * bootstrap: {@code syncVersionedResource} publishes them and the consuming reads
+ * ({@link #pollStartupCache}, {@link #load(File)}, {@link #loadCurrentResource}) remove them on
+ * first access, so later reads see the already-opened document instead of re-reading disk.
+ * Failures surface as {@link YamlLoadException} on reads and {@link IOException} on writes;
+ * {@link #dump(Map)} is the only entry that never throws.
+ */
 public final class YamlFiles {
 
     private static final GeneralSettings BOOSTED_GENERAL_SETTINGS = GeneralSettings.builder()
@@ -59,6 +71,16 @@ public final class YamlFiles {
     private YamlFiles() {
     }
 
+    /**
+     * Takes the cached startup document for a file out of the handoff cache.
+     *
+     * <p>Consuming is destructive: a second call for the same file answers {@code null} again,
+     * which is what gives post-bootstrap reads their read-disk-later semantics.
+     *
+     * @param target file whose cached document is wanted; {@code null} yields {@code null}
+     * @return the cached document keyed by the normalized absolute path, or {@code null} when
+     *         nothing was cached
+     */
     public static VersionedYamlFile pollStartupCache(File target) {
         if (target == null) {
             return null;
@@ -76,6 +98,16 @@ public final class YamlFiles {
         }
     }
 
+    /**
+     * Reads a YAML file into a detached section.
+     *
+     * <p>The startup handoff cache is consulted first (and consumed when it hits), so a file
+     * synced during bootstrap is not read from disk twice.
+     *
+     * @param file file to read; {@code null} or a missing file yields an empty section
+     * @return the parsed content as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the file exists but cannot be read or parsed
+     */
     public static YamlSection load(File file) {
         if (file == null || !file.exists()) {
             return new MapYamlSection();
@@ -93,14 +125,37 @@ public final class YamlFiles {
         }
     }
 
+    /**
+     * Reads YAML text from a stream.
+     *
+     * @param inputStream source to read; {@code null} yields an empty section
+     * @return the parsed content as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the document cannot be parsed
+     */
     public static YamlSection load(InputStream inputStream) {
         return BoostedYamlSupport.load(inputStream);
     }
 
+    /**
+     * Reads YAML text.
+     *
+     * @param payload document text; {@code null} yields an empty section
+     * @return the parsed content as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the document cannot be parsed
+     */
     public static YamlSection load(String payload) {
         return BoostedYamlSupport.load(payload);
     }
 
+    /**
+     * Reads a bundled YAML resource shipped inside the plugin jar.
+     *
+     * @param plugin plugin owning the resource; {@code null} yields an empty section
+     * @param resourcePath jar-relative resource path; blank yields an empty section
+     * @return the parsed content, or an empty section when the plugin or resource does not
+     *         exist; never {@code null}
+     * @throws YamlLoadException if the resource exists but cannot be read or parsed
+     */
     public static YamlSection loadResource(JavaPlugin plugin, String resourcePath) {
         if (plugin == null || Texts.isBlank(resourcePath)) {
             return new MapYamlSection();
@@ -117,6 +172,17 @@ public final class YamlFiles {
         }
     }
 
+    /**
+     * Opens a bundled YAML resource as a versioned document without touching disk.
+     *
+     * <p>The returned view has no runtime file ({@link VersionedYamlFile#file()} is
+     * {@code null}), so it must not be saved; use it to read the bundled version and defaults.
+     *
+     * @param plugin plugin owning the resource; {@code null} yields {@code null}
+     * @param resourcePath jar-relative resource path; blank yields {@code null}
+     * @return the opened document, or {@code null} when the plugin or resource does not exist
+     * @throws YamlLoadException if the resource exists but cannot be parsed
+     */
     public static VersionedYamlFile loadVersionedResource(JavaPlugin plugin, String resourcePath) {
         if (plugin == null || Texts.isBlank(resourcePath)) {
             return null;
@@ -138,6 +204,22 @@ public final class YamlFiles {
         }
     }
 
+    /**
+     * Opens a versioned resource against its runtime file, bootstrapping the file from the jar
+     * when it does not exist yet.
+     *
+     * <p>The startup handoff cache is consumed when it still holds the target, so a document
+     * synced during bootstrap is not reopened. When the bundled resource itself is missing, the
+     * target file is still created on disk by the loader.
+     *
+     * @param plugin plugin owning the bundled resource; may be {@code null} (then the method
+     *               answers {@code null})
+     * @param target runtime file to open or create; {@code null} yields {@code null}
+     * @param resourcePath jar-relative resource path; blank yields {@code null}
+     * @return the opened document with its bundled defaults attached, or {@code null} when an
+     *         argument rules the open out
+     * @throws IOException if the resource cannot be copied or the document cannot be opened
+     */
     public static VersionedYamlFile loadCurrentResource(JavaPlugin plugin,
             File target,
             String resourcePath) throws IOException {
@@ -152,6 +234,19 @@ public final class YamlFiles {
         return openVersioned(plugin, target, resourcePath);
     }
 
+    /**
+     * Synchronizes a versioned resource without a post-update hook.
+     *
+     * <p>Shorthand for the five-argument overload with no {@code afterUpdate} callback.
+     *
+     * @param plugin plugin owning the bundled resource
+     * @param target runtime file to open or update
+     * @param resourcePath jar-relative resource path
+     * @param versionKey key holding the version in both documents
+     * @return the opened (and possibly updated) document, or {@code null} when an argument rules
+     *         the open out
+     * @throws IOException if the file cannot be created, read or saved
+     */
     public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
             File target,
             String resourcePath,
@@ -159,6 +254,29 @@ public final class YamlFiles {
         return syncVersionedResource(plugin, target, resourcePath, versionKey, null);
     }
 
+    /**
+     * Opens a versioned resource, merges missing bundled keys into the runtime file when its
+     * stored version is older, and republishes the result to the startup handoff cache.
+     *
+     * <p>The comparison is numeric per dot- or dash-separated segment. A blank or older runtime
+     * version triggers the BoostedYAML update (keep all keys, no auto-save), then
+     * {@code afterUpdate} runs when given, then the version key is stamped with the bundled
+     * version and the document is saved once; the returned view reports
+     * {@link VersionedYamlFile#versionUpdated()} as {@code true}. An up-to-date file is
+     * returned unchanged with the flag still {@code false}.
+     *
+     * @param plugin plugin owning the bundled resource; may be {@code null} (then the method
+     *               answers {@code null})
+     * @param target runtime file to open or create; {@code null} yields {@code null} and is
+     *                never cached
+     * @param resourcePath jar-relative resource path; blank yields {@code null}
+     * @param versionKey key holding the version in both documents; blank skips any update
+     * @param afterUpdate callback between the merge and the version stamp, before the save; may
+     *                    be {@code null}
+     * @return the opened (and possibly updated) document, or {@code null} when an argument rules
+     *         the open out
+     * @throws IOException if the file cannot be created, read or saved
+     */
     public static VersionedYamlFile syncVersionedResource(JavaPlugin plugin,
             File target,
             String resourcePath,
@@ -203,25 +321,68 @@ public final class YamlFiles {
         );
     }
 
+    /**
+     * Writes a section to a file as block-style YAML.
+     *
+     * @param file target file; created together with its parent directories
+     * @param section content to write; {@code null} is rejected
+     * @throws IOException if the text cannot be written
+     * @throws NullPointerException if {@code file} or {@code section} is {@code null}
+     */
     public static void save(File file, YamlSection section) throws IOException {
         Objects.requireNonNull(section, "section");
         save(file, section.asMap());
     }
 
+    /**
+     * Writes a map to a file as block-style YAML.
+     *
+     * @param file target file; created together with its parent directories
+     * @param values content to write; {@code null} renders an empty document
+     * @throws IOException if the text cannot be written
+     * @throws NullPointerException if {@code file} is {@code null}
+     */
     public static void save(File file, Map<String, ?> values) throws IOException {
         saveText(file, BoostedYamlSupport.dump(values));
     }
 
+    /**
+     * Writes raw text to a file in UTF-8, creating missing parent directories first.
+     *
+     * @param file target file; must not be {@code null}
+     * @param content text to write; {@code null} is rejected
+     * @throws IOException if the directory or the file cannot be written
+     * @throws NullPointerException if {@code file} or {@code content} is {@code null}
+     */
     public static void saveText(File file, String content) throws IOException {
         Objects.requireNonNull(file, "file");
         ensureDirectory(file.toPath().getParent());
         Files.writeString(file.toPath(), content, StandardCharsets.UTF_8);
     }
 
+    /**
+     * Renders a map as block-style YAML without touching disk.
+     *
+     * <p>Shorthand for {@link BoostedYamlSupport#dump(Map)}; an empty string is returned when
+     * the document cannot be rendered.
+     *
+     * @param values values to render; {@code null} renders an empty document
+     * @return the YAML text, possibly empty; never {@code null} and never throws
+     */
     public static String dump(Map<String, ?> values) {
         return BoostedYamlSupport.dump(values);
     }
 
+    /**
+     * Copies a bundled resource only when the target file does not exist yet.
+     *
+     * @param plugin plugin owning the resource
+     * @param resourcePath jar-relative resource path
+     * @param target destination file; created together with its parent directories
+     * @return {@code true} only when the resource was copied; an existing target, a missing
+     *         resource or a {@code null} argument yields {@code false}
+     * @throws IOException if the copy fails
+     */
     public static boolean copyResourceIfMissing(JavaPlugin plugin, String resourcePath, File target) throws IOException {
         if (target != null && target.exists()) {
             return false;
@@ -229,6 +390,18 @@ public final class YamlFiles {
         return copyResource(plugin, resourcePath, target, false);
     }
 
+    /**
+     * Copies a bundled resource to a target file.
+     *
+     * @param plugin plugin owning the resource
+     * @param resourcePath jar-relative resource path
+     * @param target destination file; created together with its parent directories
+     * @param overwrite whether an existing target may be replaced
+     * @return {@code true} only when bytes were actually copied; {@code null} arguments, an
+     *         existing target without {@code overwrite}, or a resource the jar does not ship
+     *         yield {@code false}
+     * @throws IOException if the copy fails
+     */
     public static boolean copyResource(JavaPlugin plugin, String resourcePath, File target, boolean overwrite) throws IOException {
         if (plugin == null || resourcePath == null || target == null) {
             return false;
@@ -250,6 +423,20 @@ public final class YamlFiles {
         }
     }
 
+    /**
+     * Lists the YAML files shipped under a directory of the plugin jar.
+     *
+     * <p>The directory is resolved through the classpath first and falls back to the plugin's
+     * code source, so the listing works both from an exploded directory and from a packaged
+     * jar. Both path separators and surrounding slashes are accepted in
+     * {@code resourceDirectory}, only {@code .yml}/{@code .yaml} files are reported, and the
+     * result is sorted case-insensitively.
+     *
+     * @param plugin plugin owning the resources; {@code null} yields an empty list
+     * @param resourceDirectory jar-relative directory; blank yields an empty list
+     * @return an immutable, case-insensitively sorted list of jar-relative file paths; empty
+     *         when nothing is found or any lookup step fails (this method never throws)
+     */
     public static List<String> listResourcePaths(JavaPlugin plugin, String resourceDirectory) {
         if (plugin == null || Texts.isBlank(resourceDirectory)) {
             return List.of();
@@ -277,6 +464,13 @@ public final class YamlFiles {
         return List.copyOf(ordered);
     }
 
+    /**
+     * Creates a directory and any missing parent directories.
+     *
+     * @param path directory to create; {@code null} yields {@code false} without touching disk
+     * @return {@code true} when the directory exists after the call
+     * @throws IOException if the directory cannot be created
+     */
     public static boolean ensureDirectory(Path path) throws IOException {
         if (path == null) {
             return false;
@@ -285,6 +479,16 @@ public final class YamlFiles {
         return true;
     }
 
+    /**
+     * Copies every default value whose key is missing from the runtime section.
+     *
+     * <p>The walk is recursive: nested default sections are traversed and each missing leaf is
+     * written into {@code runtime} in place, creating intermediate sections as needed.
+     *
+     * @param runtime section to fill; mutated directly; {@code null} yields {@code 0}
+     * @param defaults section supplying the missing values; {@code null} yields {@code 0}
+     * @return the number of values copied
+     */
     public static int mergeMissingValues(YamlSection runtime, YamlSection defaults) {
         if (runtime == null || defaults == null) {
             return 0;
@@ -292,6 +496,16 @@ public final class YamlFiles {
         return mergeMissingValues(runtime, defaults, "");
     }
 
+    /**
+     * Counts default keys that are missing from the runtime section, without changing it.
+     *
+     * <p>Same recursive walk as {@link #mergeMissingValues(YamlSection, YamlSection)}, but
+     * read-only: nested sections are descended into and only missing leaves are counted.
+     *
+     * @param runtime section to inspect; {@code null} yields {@code 0}
+     * @param defaults section supplying the reference keys; {@code null} yields {@code 0}
+     * @return the number of missing leaf keys
+     */
     public static int countMissingKeys(YamlSection runtime, YamlSection defaults) {
         if (runtime == null || defaults == null) {
             return 0;
@@ -299,6 +513,22 @@ public final class YamlFiles {
         return countMissingKeys(runtime, defaults, "");
     }
 
+    /**
+     * Merges the bundled defaults of a versioned resource into its runtime file when keys are
+     * missing.
+     *
+     * <p>The file is opened through {@link #loadCurrentResource}; when the runtime root lacks
+     * any default key, the BoostedYAML updater pulls the missing entries in and the document is
+     * saved once. An already-complete file (or one that cannot be opened together with its
+     * defaults) is left untouched.
+     *
+     * @param plugin plugin owning the bundled resource
+     * @param target runtime file
+     * @param resourcePath jar-relative resource path
+     * @return the number of missing keys detected before the merge; {@code 0} when nothing was
+     *         missing or the file could not be opened with defaults
+     * @throws IOException if the file cannot be opened or saved
+     */
     public static int mergeMissingKeys(JavaPlugin plugin, File target, String resourcePath) throws IOException {
         VersionedYamlFile versionedFile = loadCurrentResource(plugin, target, resourcePath);
         if (versionedFile == null || versionedFile.root() == null || versionedFile.defaults() == null) {

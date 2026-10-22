@@ -6,12 +6,6 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 
-/**
- * 管道逐步执行观测口。
- *
- * <p>默认空实现（{@link #NOOP}）不产生任何分配与副作用，可安全挂在热路径上；干跑或调试时注入
- * 具体实现即可逐段回显 source/gate 的输入输出与 action 的参数，用于排查复杂管道的决策过程。</p>
- */
 public interface StepReporter {
 
     StepReporter NOOP = new StepReporter() {

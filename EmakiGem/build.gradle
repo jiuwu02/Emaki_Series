@@ -1,5 +1,5 @@
 // EmakiGem（原 EmakiGem/pom.xml，private-modules profile 模块）。
-version = '2.8.11'
+version = '2.8.12'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -19,16 +19,6 @@ dependencies {
     provided libs.paper.api
     provided libs.placeholderapi
     provided libs.jetbrains.annotations
-
-    // 原 test 作用域。
-    testImplementation libs.junit.jupiter
-    testImplementation project(':EmakiAttribute')
-    testImplementation project(':EmakiSkills')
-    testImplementation project(':EmakiItem')
-    testImplementation project(':EmakiStrengthen')
-    testImplementation libs.boosted.yaml
-    testImplementation libs.graalvm.polyglot
-    testImplementation libs.mockbukkit
 }
 
 tasks.named('shadowJar') {

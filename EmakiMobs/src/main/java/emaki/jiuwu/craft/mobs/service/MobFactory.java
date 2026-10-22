@@ -94,12 +94,6 @@ public final class MobFactory {
         return Optional.of(entity);
     }
 
-    /**
-     * 和平难度下服务端会拒绝生成敌对型实体并直接抛出
-     * {@code IllegalStateException: Cannot spawn monster for ... in Peaceful difficulty}
-     * （CraftRegionAccessor 按原版 EntityType#isAllowedInPeaceful 判定，覆盖全部怪物类）。
-     * 这里按同一口径提前拦截，让自然生成、命令生成与 summon 动作段静默跳过而不是抛堆栈。
-     */
     public static boolean blockedByDifficulty(World world, EntityType entityType) {
         if (world.getDifficulty() != Difficulty.PEACEFUL) {
             return false;

@@ -9,11 +9,6 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.StepReporter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
-/**
- * 把管道逐步执行回显到聊天栏的干跑观测实现。
- *
- * <p>所有输出通过注入的 {@code sink} 交给调用方决定线程与发送方式，本类不做任何线程断言。</p>
- */
 public final class ChatStepReporter implements StepReporter {
 
     private final MessageWriter writer;

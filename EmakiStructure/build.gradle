@@ -1,5 +1,5 @@
 // EmakiStructure（新增模块）。
-version = '1.0.5'
+version = '1.0.6'
 
 dependencies {
     shadeBundle project(':EmakiStructureApi')
@@ -17,8 +17,4 @@ dependencies {
     provided libs.itemsadder.api
     provided(libs.nexo) { transitive = false }
     provided(libs.oraxen) { transitive = false }
-
-    testImplementation libs.junit.jupiter
-    testImplementation libs.boosted.yaml
-    testImplementation libs.mockbukkit
 }

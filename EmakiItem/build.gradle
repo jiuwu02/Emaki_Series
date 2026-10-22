@@ -1,5 +1,5 @@
 // EmakiItem（原 EmakiItem/pom.xml，private-modules profile 模块）。
-version = '2.8.16'
+version = '2.8.17'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -18,17 +18,6 @@ dependencies {
     provided libs.graalvm.polyglot
     provided libs.mythic.dist
     provided libs.placeholderapi
-
-    // 原 test 作用域。
-    testImplementation libs.boosted.yaml
-    testImplementation libs.mockbukkit
-    testImplementation project(':EmakiAttribute')
-    testImplementation project(':EmakiSkills')
-    testImplementation libs.junit.jupiter
-    testImplementation libs.graalvm.js.language
-    testImplementation libs.graalvm.truffle.runtime
-    testImplementation libs.graalvm.regex
-    testImplementation libs.graalvm.icu4j
 }
 
 tasks.named('shadowJar') {

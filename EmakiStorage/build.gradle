@@ -1,5 +1,5 @@
 // EmakiStorage（原 EmakiStorage/pom.xml，private-modules profile 模块）。
-version = '1.1.5'
+version = '1.1.6'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -13,9 +13,4 @@ dependencies {
     // 原 provided 作用域。
     provided libs.paper.api
     provided libs.placeholderapi
-
-    // 原 test 作用域。
-    testImplementation libs.junit.jupiter
-    testImplementation libs.boosted.yaml
-    testImplementation libs.mockbukkit
 }

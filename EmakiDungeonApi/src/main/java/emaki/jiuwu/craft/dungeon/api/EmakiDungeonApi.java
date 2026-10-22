@@ -8,8 +8,7 @@ import org.jetbrains.annotations.Nullable;
  * Static public API facade for EmakiDungeon.
  *
  * <p>EmakiDungeon exposes dungeon entry, party, instance, script, and editor
- * facades. The M0 skeleton only installs the availability bridge; the five
- * domain facades are delivered in later phases. Accessors never return
+ * facades, all five delivered by the installed bridge. Accessors never return
  * {@code null}: while EmakiDungeon is absent the facade reports
  * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()}.
  *

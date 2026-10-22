@@ -1,5 +1,5 @@
 // EmakiDungeon.
-version = '1.0.2'
+version = '1.0.3'
 
 dependencies {
     shadeBundle project(':EmakiDungeonApi')
@@ -12,7 +12,4 @@ dependencies {
     provided libs.mythic.dist
     provided project(':EmakiMobsApi')
     provided libs.graalvm.polyglot
-
-    testImplementation libs.junit.jupiter
-    testImplementation libs.mockbukkit
 }

@@ -7,13 +7,32 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
+/**
+ * One numeric stat value contributed by a namespace layer to an assembled item, referenced by
+ * name and lore templates through its {@code statId} while rendering.
+ *
+ * <p>The compact constructor normalizes {@code statId}: it is trimmed, lowercased with
+ * {@link Locale#ROOT} and has spaces replaced by {@code _}, falling back to {@code unknown} when
+ * blank. A blank {@code sourceId} falls back to the normalized {@code statId}. Rendering sorts
+ * contributions ascending by {@code sequence} and breaks ties by {@code statId}.
+ *
+ * @param statId identifier templates use to look the value up
+ * @param amount the contributed value
+ * @param sourceId identifies the layer or operation that produced the value
+ * @param sequence ascending ordering key controlling render order
+ */
 public record EmakiStatContribution(String statId, double amount, String sourceId, int sequence) {
 
+    /** Normalizes the raw components as described in the type documentation. */
     public EmakiStatContribution    {
         statId = normalizeId(statId);
         sourceId = Texts.isBlank(sourceId) ? statId : Texts.toStringSafe(sourceId);
     }
 
+    /**
+     * {@return the contribution as a plain map with the {@code stat_id}, {@code amount},
+     * {@code source_id} and {@code sequence} keys}
+     */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("stat_id", statId);
@@ -23,6 +42,14 @@ public record EmakiStatContribution(String statId, double amount, String sourceI
         return map;
     }
 
+    /**
+     * Reads a contribution back from its {@link #toMap()} form.
+     *
+     * @param map plain map; {@code null} and empty are accepted
+     * @return the parsed contribution, or {@code null} when the map is {@code null}, empty, or
+     *         carries a blank {@code stat_id}; unparsable {@code amount} and {@code sequence}
+     *         values fall back to {@code 0}
+     */
     public static EmakiStatContribution fromMap(Map<String, Object> map) {
         if (map == null || map.isEmpty()) {
             return null;

@@ -103,8 +103,6 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         List<CompletableFuture<Void>> refreshes = new ArrayList<>(players.size());
         emaki.jiuwu.craft.corelib.execution.ThreadOwnership ownership = plugin.threadOwnership();
         for (Player player : players) {
-            // 当前线程已拥有该玩家实体的执行权时, runEntity 会把任务排回当前线程;
-            // 调用方若同步等待(如 action 段的 get)将永久挂起 → 直接内联刷新
             if (ownership != null && ownership.isEntityOwned(player)) {
                 try {
                     if (!player.isOnline() || !plugin.isGenerationActive(generation)) {

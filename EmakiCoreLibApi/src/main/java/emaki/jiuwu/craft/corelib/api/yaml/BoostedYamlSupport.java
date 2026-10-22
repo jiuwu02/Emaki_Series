@@ -19,6 +19,15 @@ import emaki.jiuwu.craft.corelib.api.yaml.BoostedYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlLoadException;
 
+/**
+ * Load and dump helpers that adapt BoostedYAML to the {@link YamlSection} contract with one
+ * fixed settings profile.
+ *
+ * <p>The profile loads without bundled defaults or auto-update and dumps block-style YAML with
+ * two-space indentation, so repository files keep a uniform shape. Every {@code load} overload
+ * answers an empty {@link MapYamlSection} for {@code null} input and wraps parse failures in
+ * {@link YamlLoadException}; {@link #dump(Map)} never throws and falls back to an empty string.
+ */
 public final class BoostedYamlSupport {
 
     private static final GeneralSettings GENERAL_SETTINGS = GeneralSettings.builder()
@@ -42,6 +51,13 @@ public final class BoostedYamlSupport {
     private BoostedYamlSupport() {
     }
 
+    /**
+     * Parses YAML text from a stream.
+     *
+     * @param inputStream source to read; {@code null} yields an empty section
+     * @return the parsed document as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the document cannot be parsed
+     */
     public static MapYamlSection load(InputStream inputStream) {
         if (inputStream == null) {
             return new MapYamlSection();
@@ -60,6 +76,13 @@ public final class BoostedYamlSupport {
         }
     }
 
+    /**
+     * Parses YAML text.
+     *
+     * @param payload document text; {@code null} yields an empty section
+     * @return the parsed document as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the document cannot be parsed
+     */
     public static MapYamlSection load(String payload) {
         if (payload == null) {
             return new MapYamlSection();
@@ -73,6 +96,13 @@ public final class BoostedYamlSupport {
         }
     }
 
+    /**
+     * Parses YAML text from a character reader, draining it fully into memory first.
+     *
+     * @param reader source to read; {@code null} yields an empty section
+     * @return the parsed document as a plain map-backed section; never {@code null}
+     * @throws YamlLoadException if the reader fails or the document cannot be parsed
+     */
     public static MapYamlSection load(Reader reader) {
         if (reader == null) {
             return new MapYamlSection();
@@ -88,6 +118,17 @@ public final class BoostedYamlSupport {
         }
     }
 
+    /**
+     * Renders a map as block-style YAML.
+     *
+     * <p>Keys are normalized to strings and nested structures to plain maps and lists first, so
+     * the dump always uses block style with two-space indentation and never contains flow-style
+     * mappings or sequences.
+     *
+     * @param values values to render; {@code null} renders an empty document
+     * @return the YAML text, or an empty string when the document cannot be rendered (this
+     *         method never throws)
+     */
     public static String dump(Map<String, ?> values) {
         Map<String, Object> normalized = values == null ? new LinkedHashMap<>() : MapYamlSection.normalizeMap(values);
         try (InputStream inputStream = new ByteArrayInputStream(EMPTY_DOCUMENT)) {

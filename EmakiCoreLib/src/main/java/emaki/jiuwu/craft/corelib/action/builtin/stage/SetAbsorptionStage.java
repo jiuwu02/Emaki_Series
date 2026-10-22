@@ -31,8 +31,6 @@ public final class SetAbsorptionStage extends BaseStage {
         float amount = (float) Math.max(0D, arguments.getDouble("amount", 0D));
         living.setAbsorptionAmount(amount);
         if (living.getAbsorptionAmount() < amount) {
-            // setAbsorptionAmount 会把值钳制到 MAX_ABSORPTION 属性上（默认 0），
-            // 写不进去时先抬高该属性上限再重写；属性缺失则维持原行为
             AttributeInstance ceiling = living.getAttribute(Attribute.MAX_ABSORPTION);
             if (ceiling != null && ceiling.getBaseValue() < amount) {
                 ceiling.setBaseValue(amount);

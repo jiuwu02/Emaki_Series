@@ -1,8 +1,7 @@
 // EmakiStrengthenApi（原 EmakiStrengthenApi/pom.xml）。
-version = '4.8.7'
+version = '4.8.8'
 
 dependencies {
-    testImplementation libs.junit.jupiter
 
     provided project(':EmakiCoreLibApi')
     provided libs.paper.api

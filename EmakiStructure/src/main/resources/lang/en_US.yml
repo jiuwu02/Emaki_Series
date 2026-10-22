@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep placeholders noted beside each message group
 # version is maintained by the resource sync flow to merge new default keys
 
-version: "1.0.5"
+version: "1.0.6"
 
 general:
   prefix: "<gray>[ <gradient:#86EFAC:#34D399>EmakiStructure</gradient> ]</gray>"

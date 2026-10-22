@@ -42,10 +42,6 @@ betterhud = "2.0.0"
 modelengine = "R4.2.0"
 bettermodel = "3.5.0"
 
-# --- 测试 ---
-junit = "6.1.3"
-mockbukkit = "4.93.0"
-
 [libraries]
 paper-api = { module = "io.papermc.paper:paper-api", version.ref = "paper" }
 
@@ -88,7 +84,3 @@ libreforge-loader = { module = "com.willfp:libreforge-loader", version.ref = "li
 betterhud-bukkit-api = { module = "io.github.toxicity188:BetterHud-bukkit-api", version.ref = "betterhud" }
 modelengine = { module = "com.ticxo.modelengine:ModelEngine", version.ref = "modelengine" }
 bettermodel-bukkit-api = { module = "io.github.toxicity188:bettermodel-bukkit-api", version.ref = "bettermodel" }
-
-junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
-junit-jupiter = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
-mockbukkit = { module = "org.mockbukkit.mockbukkit:mockbukkit-v1.21", version.ref = "mockbukkit" }

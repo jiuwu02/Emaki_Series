@@ -1,5 +1,5 @@
 // EmakiStrengthen（原 EmakiStrengthen/pom.xml）。
-version = '4.8.9'
+version = '4.8.10'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -18,15 +18,6 @@ dependencies {
     provided libs.paper.api
     provided libs.placeholderapi
     provided libs.jetbrains.annotations
-
-    // 原 test 作用域。
-    testImplementation libs.junit.jupiter
-    testImplementation libs.boosted.yaml
-    testImplementation project(':EmakiAttribute')
-    testImplementation emakiDep(':EmakiSkills', 'emaki.jiuwu.craft:emaki-skills:2.8.8')
-    testImplementation emakiDep(':EmakiItem', 'emaki.jiuwu.craft:emaki-item:2.8.16')
-    testImplementation libs.graalvm.polyglot
-    testImplementation libs.mockbukkit
 }
 
 tasks.named('shadowJar') {

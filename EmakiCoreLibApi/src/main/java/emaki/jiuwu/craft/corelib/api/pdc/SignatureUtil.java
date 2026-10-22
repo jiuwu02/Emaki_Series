@@ -14,11 +14,27 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
+/**
+ * SHA-256 content signatures for cache keys, definition fingerprints and change detection.
+ *
+ * <p>Signatures are the lower-case hex form of the digest. {@link #stableSignature(Object)}
+ * canonicalizes the value first: map keys are sorted, so map iteration order never changes the
+ * result; integral numbers render without a fraction; floating numbers without trailing zeros;
+ * collections keep their iteration order deliberately. Every call builds its own digest, so the
+ * class is safe to use from any thread.
+ */
 public final class SignatureUtil {
 
     private SignatureUtil() {
     }
 
+    /**
+     * Hashes text with SHA-256.
+     *
+     * @param value text to hash; {@code null} is treated as an empty string
+     * @return the 64-character lower-case hex digest, never {@code null}
+     * @throws IllegalStateException if the SHA-256 algorithm is unavailable in this JVM
+     */
     public static String sha256(String value) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
@@ -29,18 +45,51 @@ public final class SignatureUtil {
         }
     }
 
+    /**
+     * Hashes the canonical form of a value.
+     *
+     * <p>Two values that canonicalize to the same text (for example maps that differ only in
+     * iteration order) produce the same signature.
+     *
+     * @param value value to canonicalize; {@code null} canonicalizes to the text {@code null}
+     * @return the signature of the canonical text
+     */
     public static String stableSignature(Object value) {
         return sha256(canonicalize(value));
     }
 
+    /**
+     * Convenience overload of {@link #stableSignature(Object)} for maps; the behavior is
+     * identical.
+     *
+     * @param values map to sign; {@code null} is accepted
+     * @return the signature of the canonical map form
+     */
     public static String stableSignature(Map<String, ?> values) {
         return stableSignature((Object) values);
     }
 
+    /**
+     * Convenience overload of {@link #stableSignature(Object)} for collections; the behavior is
+     * identical and the element order is part of the signature.
+     *
+     * @param values collection to sign; {@code null} is accepted
+     * @return the signature of the canonical collection form
+     */
     public static String stableSignature(Collection<?> values) {
         return stableSignature((Object) values);
     }
 
+    /**
+     * Signs several strings as one ordered list.
+     *
+     * <p>Each element is stringified ({@code null} becomes an empty string) and the digest is
+     * taken over the canonical list form, so reordering the arguments changes the result. A
+     * {@code null} or empty array is hashed as the empty text.
+     *
+     * @param values ordered parts; may be {@code null} or empty
+     * @return the combined signature
+     */
     public static String combine(String... values) {
         if (values == null || values.length == 0) {
             return sha256("");
