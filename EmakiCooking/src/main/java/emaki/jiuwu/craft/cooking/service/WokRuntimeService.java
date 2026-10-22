@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -330,7 +331,10 @@ public final class WokRuntimeService {
         refreshText(coordinates, updated);
         Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
         if (particleLocation.getWorld() != null) {
-            particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute in " + particleLocation.getWorld().getKey() + " run particle " + Particle.CLOUD.getKey()
+                            + " " + particleLocation.getX() + " " + particleLocation.getY() + " " + particleLocation.getZ()
+                            + " 0.15 0.1 0.15 0.01 4 force");
         }
         plugin.effectService().playActions(StationType.WOK, "stir", player);
         if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {

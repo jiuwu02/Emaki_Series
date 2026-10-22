@@ -1,7 +1,7 @@
 name: EmakiCooking
 main: emaki.jiuwu.craft.cooking.EmakiCookingPlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:

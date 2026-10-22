@@ -18,7 +18,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
-import emaki.jiuwu.craft.corelib.item.MinecraftServerVersions;
 
 public final class SpawnParticleStage extends BaseStage {
 
@@ -47,24 +46,14 @@ public final class SpawnParticleStage extends BaseStage {
             return CoreActionOutcome.skipped("action.stage.common.no_location");
         }
         World world = location.getWorld();
-        if (MinecraftServerVersions.atLeast("26")) {
-            // 26.x 的 World#spawnParticle 调用不产生任何粒子包，改派发原版 particle 命令
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "execute in " + world.getKey() + " run particle " + particle.getKey()
-                            + " " + location.getX() + " " + location.getY() + " " + location.getZ()
-                            + " " + arguments.getDouble("offset_x", 0D)
-                            + " " + arguments.getDouble("offset_y", 0D)
-                            + " " + arguments.getDouble("offset_z", 0D)
-                            + " " + Math.max(0D, arguments.getDouble("extra", 0D))
-                            + " " + Math.max(0, arguments.getInt("count", 1)) + " force");
-        } else {
-            world.spawnParticle(particle, location,
-                    Math.max(0, arguments.getInt("count", 1)),
-                    arguments.getDouble("offset_x", 0D),
-                    arguments.getDouble("offset_y", 0D),
-                    arguments.getDouble("offset_z", 0D),
-                    arguments.getDouble("extra", 0D));
-        }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "execute in " + world.getKey() + " run particle " + particle.getKey()
+                        + " " + location.getX() + " " + location.getY() + " " + location.getZ()
+                        + " " + arguments.getDouble("offset_x", 0D)
+                        + " " + arguments.getDouble("offset_y", 0D)
+                        + " " + arguments.getDouble("offset_z", 0D)
+                        + " " + Math.max(0D, arguments.getDouble("extra", 0D))
+                        + " " + Math.max(0, arguments.getInt("count", 1)) + " force");
         return CoreActionOutcome.success();
     }
 }

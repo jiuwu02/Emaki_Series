@@ -9,10 +9,9 @@
 #   icon        组件 GUI 图标所用的物品来源；格式为 minecraft-<material>，其中 <material>
 #               必须是真实存在的 Bukkit 材料名（小写），如 minecraft-cooked_beef、minecraft-potion
 #   format      值格式说明，供 GUI 编辑器提示与文档展示使用
-#   version     最低可用版本表达式；形如 ">=1.21.11" 或 ">=26.1"，表示该组件自对应 Minecraft 版本起才存在/生效。
-#               基线为 1.21.8：省略 version 代表该组件自 1.21.8 起即已存在；仅当组件在 1.21.8 之后才引入时才书写。
-#               版本命名规则：1.0~1.21.11 使用 major.minor.patch；自 26.1 起 Mojang 改用 year.release（当年第几个 drop），
-#               发布顺序为 1.21.11 -> 26.1 -> 26.2。
+#   version     最低可用版本表达式; 形如 ">=26.2", 表示该组件自对应 Minecraft 版本起才存在/生效
+#               基线为 26.1: 省略 version 代表该组件自 26.1 起即已存在; 仅当组件在 26.1 之后才引入时才书写
+#               版本命名规则: 26.x 起为 year.release (当年第几个 drop), 如 26.1 -> 26.2 -> 26.3
 #   non_valued  无值组件（只可 set/unset/reset，不写值）
 #   scope       universal = 对任意物品材料都能真正生效（省略 scope 即视为 universal）；material = 仅对 applies_to 列出的材料有意义，且 applies_to 不得为空
 #   applies_to  适用材料 ID 列表（仅 scope: material 需要），GUI 编辑器据此自适应加载专属编辑入口
@@ -106,7 +105,6 @@ components:
     description: "定义使用物品时的即时效果。<newline><gray>使用原版使用效果映射。</gray>"
     icon: minecraft-golden_apple
     format: vanilla use effects map
-    version: ">=1.21.11"
   - id: minecraft:item_model
     name: 物品模型
     description: "覆盖物品使用的模型资源 ID。<newline><gray>使用命名空间资源 ID。</gray>"
@@ -465,7 +463,6 @@ components:
     description: "设置造成完整伤害所需蓄力比例。<newline><gray>浮点数，默认 1.0。</gray>"
     icon: minecraft-wooden_sword
     format: floating-point number
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:wooden_sword
@@ -508,7 +505,6 @@ components:
     description: "指定攻击造成的伤害类型。<newline><gray>使用伤害类型资源 ID。</gray>"
     icon: minecraft-iron_sword
     format: damage type resource id
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:wooden_sword
@@ -551,7 +547,6 @@ components:
     description: "设置近战或远程的攻击射程。<newline><gray>使用原版攻击距离映射。</gray>"
     icon: minecraft-arrow
     format: vanilla attack range map
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:wooden_sword
@@ -594,7 +589,6 @@ components:
     description: "定义近战挥击的动画类型与时长。<newline><gray>使用原版挥击动画映射。</gray>"
     icon: minecraft-stick
     format: vanilla swing animation map
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:wooden_sword
@@ -637,7 +631,6 @@ components:
     description: "定义动能武器的伤害累积规则。<newline><gray>使用原版动能武器映射。</gray>"
     icon: minecraft-mace
     format: vanilla kinetic weapon map
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:mace
@@ -646,7 +639,6 @@ components:
     description: "定义穿刺武器的击中与冷却规则。<newline><gray>使用原版穿刺武器映射。</gray>"
     icon: minecraft-trident
     format: vanilla piercing weapon map
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:trident
@@ -1892,7 +1884,6 @@ components:
     description: "设置僵尸鹦鹉螺刷怪蛋的变体。<newline><gray>使用僵尸鹦鹉螺变体资源 ID。</gray>"
     icon: minecraft-nautilus_shell
     format: zombie nautilus variant resource id
-    version: ">=1.21.11"
     scope: material
     applies_to:
       - minecraft:zombie_nautilus_spawn_egg

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -7,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 
@@ -799,9 +801,12 @@ public final class FlowRuntime {
                 String particle = action.param("particle", "");
                 if (!particle.isBlank()) {
                     try {
-                        world.spawnParticle(org.bukkit.Particle.valueOf(
-                                particle.toUpperCase(java.util.Locale.ROOT)),
-                                world.getSpawnLocation(), 20);
+                        Particle type = Particle.valueOf(particle.toUpperCase(Locale.ROOT));
+                        Location spawn = world.getSpawnLocation();
+                        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                                "execute in " + world.getKey() + " run particle " + type.getKey()
+                                        + " " + spawn.getX() + " " + spawn.getY() + " " + spawn.getZ()
+                                        + " 0 0 0 0 20 force");
                     } catch (IllegalArgumentException ignored) {
                     }
                 }

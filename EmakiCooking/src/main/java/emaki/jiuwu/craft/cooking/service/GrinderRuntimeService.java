@@ -439,7 +439,10 @@ public final class GrinderRuntimeService {
         refreshText(coordinates, state);
         Location location = block.getLocation().add(0.5D, 1.0D, 0.5D);
         if (location.getWorld() != null) {
-            location.getWorld().spawnParticle(Particle.CLOUD, location, 3, 0.15D, 0.15D, 0.15D, 0.01D);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute in " + location.getWorld().getKey() + " run particle " + Particle.CLOUD.getKey()
+                            + " " + location.getX() + " " + location.getY() + " " + location.getZ()
+                            + " 0.15 0.15 0.15 0.01 3 force");
         }
     }
 

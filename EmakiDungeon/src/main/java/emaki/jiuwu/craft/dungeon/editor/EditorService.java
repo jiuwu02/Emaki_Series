@@ -208,10 +208,6 @@ public final class EditorService implements Listener {
             states.release(session.dungeonId());
             return;
         }
-        for (java.nio.file.Path stale : emaki.jiuwu.craft.dungeon.world.WorldFolders
-                .foreignDirs(worldContainer, session.editWorldName())) {
-            WorldCloner.deleteTree(stale);
-        }
         World world;
         try {
             world = Bukkit.createWorld(new WorldCreator(session.editWorldName()));

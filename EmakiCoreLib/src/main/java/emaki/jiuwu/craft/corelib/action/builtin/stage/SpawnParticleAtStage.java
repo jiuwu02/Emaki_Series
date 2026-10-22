@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 
 import java.util.Locale;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -16,7 +17,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.item.MinecraftServerVersions;
 
 public final class SpawnParticleAtStage extends BaseStage {
 
@@ -60,15 +60,10 @@ public final class SpawnParticleAtStage extends BaseStage {
         double y = arguments.getDouble("y", 0D);
         double z = arguments.getDouble("z", 0D);
         int count = Math.max(1, arguments.getInt("count", 1));
-        if (MinecraftServerVersions.atLeast("26")) {
-            // 26.x 的 World#spawnParticle 调用不产生任何粒子包，改派发原版 particle 命令
-            org.bukkit.Bukkit.dispatchCommand(org.bukkit.Bukkit.getConsoleSender(),
-                    "execute in " + world.getKey() + " run particle " + particle.getKey()
-                            + " " + (origin.getX() + x) + " " + (origin.getY() + y) + " " + (origin.getZ() + z)
-                            + " 0 0 0 0 " + count + " force");
-        } else {
-            world.spawnParticle(particle, origin.clone().add(x, y, z), count);
-        }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "execute in " + world.getKey() + " run particle " + particle.getKey()
+                        + " " + (origin.getX() + x) + " " + (origin.getY() + y) + " " + (origin.getZ() + z)
+                        + " 0 0 0 0 " + count + " force");
         return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.success();
     }
 }

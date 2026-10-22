@@ -1,7 +1,7 @@
 name: EmakiStructure
 main: emaki.jiuwu.craft.structure.EmakiStructurePlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 author: JiuWu
 description: High performance structure generation and multiblock interaction plugin

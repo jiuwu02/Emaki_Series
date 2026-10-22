@@ -1,7 +1,7 @@
 name: EmakiStrengthen
 main: emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:

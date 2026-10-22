@@ -56,27 +56,8 @@ public final class SetWorldTimeStage extends BaseStage {
             }
         }
         long target = Math.max(0L, ticks % 24000L);
-        if (unifiedPlatform()) {
-            // 26.x 起 World#setTime 不再产生可观察效果, 改派发原版 time set 到该世界维度
-            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
-                    "execute in " + world.getKey() + " run time set " + target);
-        } else {
-            world.setTime(target);
-        }
+        Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                "execute in " + world.getKey() + " run time set " + target);
         return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.success();
-    }
-
-    private static boolean unifiedPlatform() {
-        try {
-            String version = org.bukkit.Bukkit.getMinecraftVersion();
-            if (version == null || version.isBlank()) {
-                return false;
-            }
-            int dot = version.indexOf('.');
-            String head = dot < 0 ? version : version.substring(0, dot);
-            return Integer.parseInt(head) >= 26;
-        } catch (Throwable unavailable) {
-            return false;
-        }
     }
 }

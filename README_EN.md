@@ -1,6 +1,6 @@
 # Emaki Series
 
-Emaki Series is a multi-module Gradle project for Minecraft 1.21.8+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
+Emaki Series is a multi-module Gradle project for Minecraft 26.1+ Paper-based RPG servers (Paper / Purpur / Folia). `EmakiCoreLib` provides shared infrastructure for item sources, GUI templates, actions, YAML, PDC, expressions, economy bridges, and runtime services, while the business modules implement equipment progression, combat, skills, cooking, crafting, codex, storage, and custom-mob systems.
 
 Current source versions: `EmakiCoreLib 4.8.22`, `EmakiAttribute 4.8.5`, `EmakiForge 4.8.5`, `EmakiStrengthen 4.8.6`, `EmakiCooking 4.3.5`, `EmakiGem 2.8.7`, `EmakiSkills 2.8.6`, `EmakiItem 2.8.14`, `EmakiLevel 1.6.5`, `EmakiCodex 1.1.4`, `EmakiStorage 1.1.2`, `EmakiStation 1.1.6`, `EmakiAccessory 1.1.6`, and `EmakiMobs 1.0.8`.
 
@@ -30,8 +30,8 @@ The repository also contains the compile-time `Emaki*Api` contract modules. The 
 | Item            | Requirement                                           |
 | --------------- | ----------------------------------------------------- |
 | Java            | `25`                                                  |
-| Server API      | `Paper API 1.21.8-R0.1-SNAPSHOT`                      |
-| Descriptor base | `api-version: "1.21.8"`                               |
+| Server API      | `Paper API 26.1.2.build.74-stable`                      |
+| Descriptor base | `api-version: "26.1"`                               |
 | Folia           | All 14 runtime plugins declare `folia-supported: true` (declaration only; no live-server verification recorded) |
 | Text components | `Adventure 4.26.1`                                    |
 | Build tool      | Multi-module Gradle project (wrapper pins Gradle 9.1.0) |
@@ -135,7 +135,7 @@ Build outputs are written to each module's `build/libs/` directory. Runtime modu
 
 ## Installation and first check
 
-1. Use Java `25` with Paper `1.21.8+` or a compatible Paper-family server.
+1. Use Java `25` with Paper `26.1+` or a compatible Paper-family server.
 2. Put `EmakiCoreLib-*.jar` and the runtime modules you need into the server's `plugins/` directory.
 3. Do not put `emaki-*-api-*.jar` into `plugins/`; API jars are compile-time dependencies for developers only.
 4. After startup, run `/corelib check` to inspect loaded modules and configuration precheck results.

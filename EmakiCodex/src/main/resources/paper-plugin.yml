@@ -1,7 +1,7 @@
 name: EmakiCodex
 main: emaki.jiuwu.craft.codex.EmakiCodexPlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:

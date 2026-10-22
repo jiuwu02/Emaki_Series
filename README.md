@@ -30,8 +30,8 @@ Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采�
 | 项目       | 说明                                       |
 | ---------- | ------------------------------------------ |
 | Java       | `25`                                       |
-| 服务端 API | `Paper API 1.21.8-R0.1-SNAPSHOT`           |
-| 描述符基线 | `api-version: "1.21.8"`                    |
+| 服务端 API | `Paper API 26.1.2.build.74-stable`           |
+| 描述符基线 | `api-version: "26.1"`                       |
 | Folia      | 14 个运行时插件均声明 `folia-supported: true`（声明值，尚未有实机验证记录）|
 | 文本组件   | `Adventure 4.26.1`                         |
 | 构建工具   | 多模块 Gradle 工程（wrapper 固定 Gradle 9.1.0）      |
@@ -159,7 +159,7 @@ Project/
 
 ## 安装与首次检查
 
-1. 使用 Java `25` 和 Paper `1.21.8+`（或兼容的 Paper 系服务端）。
+1. 使用 Java `25` 和 Paper `26.1+`（或兼容的 Paper 系服务端）。
 2. 将 `EmakiCoreLib-*.jar` 与所需的运行时模块 Jar 放入服务器 `plugins/`。
 3. 不要将 `emaki-*-api-*.jar` 放入 `plugins/`；API Jar 仅用于开发者编译依赖。
 4. 启动服务器后，可执行 `/corelib check` 检查已加载模块与配置预检结果。

@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
@@ -198,7 +199,10 @@ public final class ProjectileStage extends BaseStage {
                 return;
             }
             if (settings.particle() != null) {
-                world.spawnParticle(settings.particle(), current, 1, 0D, 0D, 0D, 0D);
+                Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                        "execute in " + world.getKey() + " run particle " + settings.particle().getKey()
+                                + " " + current.getX() + " " + current.getY() + " " + current.getZ()
+                                + " 0 0 0 0 1 force");
             }
             if (applyHits(world)) {
                 return;
