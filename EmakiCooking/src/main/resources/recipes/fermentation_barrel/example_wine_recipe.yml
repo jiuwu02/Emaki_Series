@@ -1,0 +1,87 @@
+# ============================================================
+# EmakiCooking 发酵桶配方示例 - 苹果陈酿
+# ============================================================
+# 演示点：
+# 1. 多输入配方用 slot_id 作为持久化槽位身份、count_key 作为聚合与消费身份
+# 2. fermentation.early_collect 提前收取与 result.early 半成品分支
+# 3. fermentation.over_time_seconds 过度发酵与 result.over 变质分支
+# 4. 收取条件使用 condition.on_fail.block_output 控制是否阻止产物
+# 字段依据：docs/modules/cooking/recipes.md 的「发酵桶示例」与
+# 「发酵桶状态迁移与失败保护」章节。
+# 状态迁移说明：旧状态若缺少槽位身份，恢复时会按当前配方逐个匹配已保存物品；
+# 每个槽位必须只得到一个非空的 slot_id/count_key 候选且不能重复，否则拒绝迁移
+# 并记录 warning，不会写成规范格式。改配方时不要复用 slot_id 给另一种材料。
+# ============================================================
+
+id: "example_wine"
+display_name: "苹果陈酿"
+
+# ============================================================
+# 输入食材
+# ============================================================
+# slot_id 与 count_key 都必须显式且稳定。
+inputs:
+  - slot_id: "wine_fruit_slot"
+    count_key: "fruit"
+    item_sources:
+      - "minecraft-apple"
+    amount: 3
+  - slot_id: "wine_sweetener_slot"
+    count_key: "sweetener"
+    item_sources:
+      - "minecraft-sugar"
+    amount: 2
+
+# ============================================================
+# 发酵参数
+# ============================================================
+# fermentation_time_seconds：正常完成时间（秒）
+# early_collect.min_progress_ratio：最早可提前收取的进度比例
+# over_time_seconds：正常完成后继续放置多久进入过度发酵
+fermentation_time_seconds: 240
+
+fermentation:
+  early_collect:
+    min_progress_ratio: 0.4
+  over_time_seconds: 480
+
+permission: "emakicooking.recipe.example_wine"
+
+# ============================================================
+# 收取条件
+# ============================================================
+# 自动完成或破坏掉落时玩家可能离线，此时条件按源码运行时逻辑处理。
+condition:
+  type: all_of
+  entries:
+    - "%player_level% >= 4"
+  on_pass:
+    actions:
+      - 'send_message text="<gold>陈酿收取条件满足。</gold>"'
+  on_fail:
+    actions:
+      - 'send_message text="<yellow>条件不足，仍可收取但品质没有额外保障。</yellow>"'
+    block_output: false
+
+# ============================================================
+# 发酵结果
+# ============================================================
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-honey_bottle"
+        amount: 1
+    actions:
+      - 'send_message text="<gold>苹果陈酿发酵完成。</gold>"'
+  early:
+    outputs:
+      - item_source: "minecraft-potion"
+        amount: 1
+    actions:
+      - 'send_message text="<yellow>提前收取，得到半发酵的苹果饮。</yellow>"'
+  over:
+    outputs:
+      - item_source: "minecraft-potion"
+        amount: 1
+    actions:
+      - 'send_message text="<red>发酵过度，苹果饮已经变成酸醋。</red>"'

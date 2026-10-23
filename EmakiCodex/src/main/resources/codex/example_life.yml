@@ -1,0 +1,93 @@
+# ============================================================
+# EmakiCodex 图鉴分类示例 - 生活
+# ============================================================
+# 演示点：
+# 1. 生活类条目分别用触发器与成就页解锁
+#    unlock.advancements 引用 emakicodex:example_collection_page/<节点>
+# 2. collector 条目也会被 scripts/triggers/example_collect_trigger.js 返回
+# 3. 属性 ID 使用 EmakiAttribute 已定义的 health / movement_speed /
+#    max_health_vanilla / physical_defense
+# 字段依据：docs/modules/codex/configuration.md 与 scripts.md。
+# ============================================================
+
+category_id: "example_life"
+title: "<green>生活图鉴</green>"
+icon: "minecraft-crafting_table"
+order: 120
+
+entries:
+  harvest_moon:
+    title: "<gold>丰收时刻</gold>"
+    description: "<gray>收获一次成熟小麦。</gray>"
+    icon: "minecraft-wheat"
+    hidden: false
+    unlock:
+      triggers:
+        - event: "crop_harvest"
+          condition:
+            type: "all_of"
+            entries:
+              - '%block_type% == "WHEAT"'
+    rewards:
+      attributes:
+        max_health_vanilla: 2.0
+      actions:
+        - "send_message text=<gold>丰收的喜悦让你更健康了。</gold>"
+
+  angler:
+    title: "<blue>悠闲垂钓</blue>"
+    description: "<gray>成功钓到一条鱼。</gray>"
+    icon: "minecraft-fishing_rod"
+    hidden: false
+    unlock:
+      triggers:
+        - event: "player_fish"
+          condition:
+            type: "all_of"
+            entries:
+              - '%fish_state% == "CAUGHT_FISH"'
+      advancements:
+        - "emakicodex:example_collection_page/fisher"
+    rewards:
+      attributes:
+        movement_speed: 0.01
+
+  collector:
+    title: "<aqua>矿石收藏家</aqua>"
+    description: "<gray>挖到钻石或绿宝石矿石，或由脚本触发器授予。</gray>"
+    icon: "minecraft-diamond"
+    hidden: true
+    unlock:
+      triggers:
+        - event: "block_break"
+          condition:
+            type: "any_of"
+            entries:
+              - '%block_type% == "DIAMOND_ORE"'
+              - '%block_type% == "DEEPSLATE_DIAMOND_ORE"'
+              - '%block_type% == "EMERALD_ORE"'
+      advancements:
+        - "emakicodex:example_collection_page/collector"
+    rewards:
+      attributes:
+        physical_defense: 1.0
+      actions:
+        - "send_message text=<aqua>收藏家奖励已领取。</aqua>"
+
+  apprentice_cook:
+    title: "<yellow>厨房新手</yellow>"
+    description: "<gray>从熔炉取出一份熟牛肉。</gray>"
+    icon: "minecraft-cooked_beef"
+    hidden: false
+    unlock:
+      triggers:
+        - event: "furnace_extract"
+          condition:
+            type: "all_of"
+            entries:
+              - '%result_type% == "COOKED_BEEF"'
+      advancements:
+        - "emakicodex:example_collection_page/chef"
+    rewards:
+      attributes:
+        health: 2.0

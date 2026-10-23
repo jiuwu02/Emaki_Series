@@ -1,0 +1,48 @@
+# ============================================================
+# EmakiGem 共鸣示例：锐击共鸣
+# ============================================================
+# 演示功能：unordered 无序双宝石共鸣。同一件装备同时镶入
+#   example_attack_gem 与 example_crit_gem 时触发额外属性、技能与展示。
+# 镶嵌位置：任意同时拥有 attack 与 universal 插槽的装备
+#   （例如 items/example_socket_helmet.yml 默认开放这两个插槽）。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供 ea_attributes；
+#   EmakiSkills 提供 es_skills；两颗宝石均由本模块示例文件提供。
+# ============================================================
+
+id: "example_duo_resonance"
+
+display_name: "<red>锐击共鸣</red>"
+
+# 数值越高越先匹配并占用宝石；本示例只有一条共鸣，留出优先级便于扩展
+priority: 20
+
+# 互斥组：以后新增同类双宝石共鸣时，同组只会激活优先级最高的一条
+exclusive_group: "example_duo"
+
+chain:
+  mode: "unordered"
+  pattern:
+    - id: "example_attack_gem"
+    - id: "example_crit_gem"
+
+# 共鸣效果是对象结构，不是带 type 字段的列表；动作写在 effects.actions 下
+effects:
+  actions:
+    - 'send_message text="<gold>锐击共鸣已激活！</gold>"'
+    - "play_sound sound=minecraft:block.amethyst_block.chime volume=0.6 pitch=1.4"
+  ea_attributes:
+    physical_attack: 3
+    physical_crit_rate: 1.5
+  es_skills:
+    - "example_passive_skill"
+  name_actions:
+    - action: "prepend_prefix"
+      value: "<red>[锐] </red>"
+  lore_actions:
+    - action: "append"
+      content:
+        - ""
+        - "<red>◆ 锐击共鸣</red>"
+        - "<gray>  物理攻击 +3</gray>"
+        - "<gray>  物理暴击率 +1.5%</gray>"
+        - "<gray>  技能: 示例被动技能</gray>"

@@ -66,8 +66,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml",
             "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
+            "recipes/example_armor_recipe.yml",
             "enhancement_recipes/example_enhancement_recipe.yml", "enhancement_recipes/example_affix_recipe.yml",
-            "enhancement_recipes/example_gem.yml");
+            "enhancement_recipes/example_gem.yml", "enhancement_recipes/example_pity_recipe.yml",
+            "enhancement_recipes/example_armor_affix.yml", "enhancement_recipes/example_weapon_affix.yml",
+            "enhancement_recipes/example_upgradeable_gem.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {

@@ -15,9 +15,13 @@ final class ScriptExampleReleaser {
     private static final List<String> EXAMPLE_RESOURCES = List.of(
             "scripts/lib/example_lib.js",
             "scripts/actions/example_stage.js",
+            "scripts/actions/example_combat_stage.js",
             "scripts/expressions/example_function.js",
+            "scripts/expressions/example_clamp.js",
             "scripts/placeholders/example_placeholder.js",
-            "scripts/conditions/example_condition.js"
+            "scripts/placeholders/example_team.js",
+            "scripts/conditions/example_condition.js",
+            "scripts/conditions/example_level_gate.js"
     );
 
     private ScriptExampleReleaser() {

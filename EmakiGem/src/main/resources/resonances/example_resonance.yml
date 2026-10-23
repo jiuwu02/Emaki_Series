@@ -52,10 +52,10 @@ effects:
   # 额外属性加成
   ea_attributes:
     physical_attack: 5
-    fire_damage: 3
+    spell_attack: 3
   # 附加技能
   es_skills:
-    - "fire_resonance_passive"
+    - "example_passive_skill"
   # 修改装备名称
   name_actions:
     - action: "prepend_prefix"

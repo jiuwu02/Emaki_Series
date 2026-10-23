@@ -1,0 +1,92 @@
+# ============================================================
+# EmakiCooking 炒锅配方示例 - 田园时蔬炒鸡
+# ============================================================
+# 演示点：
+# 1. 多味食材与各自的数量、翻炒区间 stir_rule
+# 2. heat_level 火力等级、stir_total 有效翻炒次数范围、fault_tolerance 容错
+# 3. success / undercooked / overcooked / invalid 四路结果分支
+# 字段依据：docs/modules/cooking/recipes.md 的「炒锅示例」章节。
+# ============================================================
+
+id: "example_stirfry"
+display_name: "田园时蔬炒鸡"
+
+# ============================================================
+# 食材列表
+# ============================================================
+# 每味食材的 item_sources 与 matcher 取 AND，两者都不写则该味食材永不命中。
+# stir_rule 格式为「最早翻炒次序-最晚翻炒次序」。
+ingredients:
+  - item_sources:
+      - "minecraft-carrot"
+    amount: 2
+    stir_rule: "1-3"
+  - item_sources:
+      - "minecraft-brown_mushroom"
+    amount: 2
+    stir_rule: "1-4"
+  - item_sources:
+      - "minecraft-cooked_chicken"
+    amount: 1
+    stir_rule: "2-5"
+
+# ============================================================
+# 烹饪参数
+# ============================================================
+# heat_level：配方要求的火力等级
+# stir_total.min / max：两个子键都必填
+# fault_tolerance：允许的错误翻炒次数
+heat_level: 2
+
+stir_total:
+  min: 3
+  max: 7
+
+fault_tolerance: 1
+
+permission: "emakicooking.recipe.example_stirfry"
+
+# ============================================================
+# 完成条件
+# ============================================================
+condition:
+  type: all_of
+  entries:
+    - "%player_level% >= 4"
+  on_pass:
+    actions:
+      - 'send_message text="<green>火候与翻炒都合格，准备出锅。</green>"'
+  on_fail:
+    actions:
+      - 'send_message text="<red>厨艺等级不足，这锅菜只能算练习。</red>"'
+    block_output: false
+
+# ============================================================
+# 烹饪结果
+# ============================================================
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-rabbit_stew"
+        amount: 1
+    actions:
+      - 'send_message text="<green>香气扑鼻，成功出锅。</green>"'
+      - "play_sound sound=minecraft:block.campfire.crackle volume=0.8 pitch=1.1"
+  undercooked:
+    outputs:
+      - item_source: "minecraft-mushroom_stew"
+        amount: 1
+    actions:
+      - 'send_message text="<yellow>翻炒不足，食材还没断生。</yellow>"'
+  overcooked:
+    outputs:
+      - item_source: "minecraft-dried_kelp"
+        amount: 1
+    actions:
+      - 'send_message text="<red>翻炒过度，食材已经焦糊。</red>"'
+  invalid:
+    outputs:
+      - item_source: "minecraft-rotten_flesh"
+        amount: 1
+    actions:
+      - 'send_message text="<red>食材组合或下锅顺序不对，只能倒掉。</red>"'

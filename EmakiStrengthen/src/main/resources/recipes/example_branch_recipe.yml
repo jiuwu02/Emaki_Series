@@ -353,7 +353,7 @@ branch_tree:
                     physical_crit_damage: 15
                 - type: "es_skill"
                   es_skills:
-                    - "lethal_strike"
+                    - "example_passive_skill"
                 - type: "lore_action"
                   lore_actions:
                     - action: "replace_line"
@@ -462,7 +462,7 @@ branch_tree:
                     physical_armor_penetration: 6
                 - type: "es_skill"
                   es_skills:
-                    - "swift_assault"
+                    - "guardian_dash"
                 - type: "lore_action"
                   lore_actions:
                     - action: "replace_line"
@@ -623,7 +623,7 @@ branch_tree:
                 physical_damage_bonus: 8
             - type: "es_skill"
               es_skills:
-                - "heavy_smash"
+                - "combo_finisher"
             - type: "lore_action"
               lore_actions:
                 - action: "replace_line"

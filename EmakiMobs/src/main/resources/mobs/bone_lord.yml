@@ -23,9 +23,8 @@ experience: 500
 
 # ── EmakiAttribute（可选）──────────────────────────────────
 ea_attributes:
-  STR: 40
-  VIT: 30
-  AGI: 8
+  strength: 40
+  agility: 8
 
 # ── 动作触发器（可选，由 CoreLib 动作管道执行）──────────────
 actions:

@@ -1,0 +1,120 @@
+# ============================================================
+# EmakiSkills 技能定义示例 - 冰霜箭
+# ============================================================
+# 演示功能: 主动投射物技能 + projectile 动作 + 命中范围伤害与减速 +
+#           本地资源 + 材料升级。
+# 触发方式: 主动技能，绑定主动触发器槽位后，在施法模式中释放。
+# 依赖模块: EmakiSkills (本模块) 与 EmakiCoreLib 内置动作 projectile /
+#           nearby / give_potion_effect；不依赖 Vault/PAPI/MythicMobs。
+# 如何获得: 管理员执行 /eskills grant <玩家> ice_bolt；
+#           该 id 同时被现有 example_skill 的 conflicting_skills 引用，
+#           两者不能同时装备。
+# ============================================================
+
+id: "ice_bolt"
+
+display_name: "<aqua>冰霜箭</aqua>"
+
+description:
+  - "<gray>发射一枚冰霜投射物，命中后冻结周围区域</gray>"
+  - "<gray>被波及的实体会受到伤害并被减速</gray>"
+
+icon_material: "snowball"
+
+trigger_type: "active"
+show_in_slots: true
+
+cooldown_ticks: 90
+global_cooldown_ticks: 12
+
+lore_aliases:
+  - "冰霜箭"
+tags:
+  - "attack"
+tab_tags:
+  - "example"
+ui_category: "attack"
+sort_order: 25
+
+enabled: true
+
+# 与 example_skill（火球术）互斥，避免火冰两系同时装备。
+conflicting_skills:
+  - "example_skill"
+
+resource_costs:
+  - type: "local-resource"
+    target_id: "example_resource"
+    amount: 8.0
+    operation: "consume"
+    failure_message: "<red>示例魔力不足，无法发射冰霜箭。</red>"
+
+variables:
+  impact_damage:
+    type: "expression"
+    value: "5 + (%level% - 1) * 2"
+    decimals: 1
+    min: 1
+
+  chill_duration:
+    type: "expression"
+    value: "40 + (%level% - 1) * 10"
+    decimals: 0
+    min: 10
+
+  impact_message:
+    type: "string"
+    value: "<aqua>冰霜箭命中，区域被冻结。</aqua>"
+
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: false
+
+  actions:
+    cast:
+      # projectile 命中实体/位置时不会写回目标流，因此用 looking_at + keep
+      # 记录爆炸中心，供 hit 阶段的范围效果使用。
+      - "self | projectile speed=1.4 gravity=0.02 lifetime=70 hit_radius=0.7 particle=snowflake damage=12 direction=look"
+      - "looking_at range=20 | keep"
+      - "self | play_sound sound=minecraft:entity.arrow.shoot volume=0.9 pitch=1.7"
+
+    hit:
+      - "nearby radius=2.5 limit=12 include_players=false | damage amount=%var.impact_damage%"
+      - "nearby radius=2.5 limit=12 include_players=false | give_potion_effect type=slowness level=2 duration=%var.chill_duration%t particles=false icon=true"
+      - "inherited | spawn_particle particle=snowflake count=24 extra=0.15"
+      - 'self | send_message text="%var.impact_message%"'
+
+    miss:
+      - "self | spawn_particle particle=snowflake count=8 extra=0.05"
+      - 'self | send_message text="<gray>冰霜箭没有命中目标。</gray>"'
+
+upgrade:
+  enabled: true
+  max_level: 4
+  economy:
+    enabled: false
+  success_rates:
+    2: 100.0
+    3: 90.0
+    4: 75.0
+  failure_penalty: "none"
+  levels:
+    2:
+      materials:
+        - item_sources:
+            - "minecraft-snowball"
+          amount: 16
+    3:
+      materials:
+        - item_sources:
+            - "minecraft-packed_ice"
+          amount: 4
+    4:
+      materials:
+        - item_sources:
+            - "minecraft-blue_ice"
+          amount: 2
+      actions:
+        success:
+          - 'send_message text="<aqua>冰霜箭达到满级。</aqua>"'

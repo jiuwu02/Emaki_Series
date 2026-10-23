@@ -1,0 +1,82 @@
+# ============================================================
+# EmakiStation 示例工作站：示例祭坛（example_altar）
+# ============================================================
+# 演示功能：
+#   1. 三个界面布局的绑定（layout / preview_layout / queue_layout）
+#   2. queue 段：队列长度、推进方式、取消退还比例、速度倍率、付费队列位开关
+#   3. channels 段：背包 / EmakiStorage 仓库两种材料通道
+#   4. output 段：产物去向与玩家是否可切换
+#   5. condition 段：条件门的结构（当前版本只解析，不在打开时判定）
+# 如何触发：
+#   安装 EmakiStation 后执行 /emakistation open example_altar
+#   （需要 emakistation.use 与 emakistation.access.example_altar）。
+# 配方归属：
+#   工作站文件没有 recipes 段；配方在自己的文件里用 station_ids 声明归属。
+#   本工位配套的配方是 example_weapon_station 与 example_queue_station。
+# 依赖：
+#   EmakiStorage 未安装或未开启时，storage 通道会自动不可用，
+#   仅保留背包通道，工作站仍然可以正常使用。
+# ============================================================
+
+id: "example_altar"
+display_name: "<light_purple>示例祭坛</light_purple>"
+
+# 三个布局都指向随包释放的默认界面，缺任何一个都会在启动预检里报 missing_layout。
+layout: "station_catalog"
+preview_layout: "station_preview"
+queue_layout: "station_queue"
+
+# 留空时自动使用 emakistation.access.example_altar。
+permission: ""
+
+# ============================================================
+# 队列参数
+# ============================================================
+# 省略的键继承 config.yml 的 queue 段；这里演示工作站级覆盖。
+# progress_mode: offline 表示离线也继续计时（但不代表离线发货）。
+queue:
+  base_length: 4
+  max_length: 12
+  progress_mode: "offline"
+  cancel_refund_rate: 0.85
+  speed_multiplier: 0.9
+
+  # 本工作站是否出售额外队列位。
+  # 还需要 config.yml 的 queue.purchase.enabled 为 true；
+  # 默认关闭，避免没有经济插件时出现无法购买的死入口。
+  allow_purchase: false
+
+# ============================================================
+# 材料通道
+# ============================================================
+# 两个都关会导致工作站被拒绝加载（station.station_no_channel）。
+# 两个都开时，材料来自“背包 + 仓库”合并池，优先扣背包。
+channels:
+  backpack: true
+  storage: true
+  # default 是保留键，当前不会真正决定取材通道；
+  # 写在这里只是为了兼容旧配置，不要依赖它切换通道。
+  default: "backpack"
+
+# ============================================================
+# 产物去向
+# ============================================================
+# storage_first / backpack_first / storage_only / backpack_only
+# 默认 storage_first：先送仓库，满了退背包。
+output:
+  default: "storage_first"
+  player_switchable: true
+
+# ============================================================
+# 条件门
+# ============================================================
+# 字段结构与其他 Emaki 模块一致。
+# 当前版本会解析并保存这段，但打开工作站时不会做判定；
+# entries 为空表示条件组恒为 true。
+# 如需预先写好条件，可把 entries 换成字符串表达式，例如：
+#   entries:
+#     - "level >= 10"
+condition:
+  type: "all_of"
+  entries: []
+  invalid_as_failure: true

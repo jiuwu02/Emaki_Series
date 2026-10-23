@@ -52,6 +52,7 @@ final class StationLifecycleCoordinator
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of("stations/blacksmith.yml",
+            "stations/example_altar.yml",
             "gui/station_catalog.yml",
             "gui/station_preview.yml",
             "gui/station_queue.yml",
@@ -60,9 +61,13 @@ final class StationLifecycleCoordinator
             "gui/editor_browser_gui.yml",
             "recipes/example_recipe.yml",
             "recipes/example_component_recipe.yml",
+            "recipes/example_weapon_recipe.yml",
+            "recipes/example_queue_recipe.yml",
             "recipes_dismantle/example_dismantle_recipe.yml",
             "recipes_dismantle/example_component_dismantle_recipe.yml",
+            "recipes_dismantle/example_weapon_dismantle_recipe.yml",
             "stations_dismantle/example_dismantle_station.yml",
+            "stations_dismantle/example_weapon_dismantle_station.yml",
             "queue_costs.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("stations", "stations_dismantle", "gui", "recipes", "recipes_dismantle", "data");

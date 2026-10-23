@@ -1,0 +1,37 @@
+# ============================================================
+# EmakiStation 分解站：示例武器分解站（example_weapon_dismantle_station）
+# ============================================================
+# 演示功能：
+#   1. 分解站独立配置（与合成工作站 ID 互不关联）
+#   2. layout 指向随包释放的 station_dismantle 界面
+#   3. output.default 控制产物去向
+# 如何触发：
+#   执行 /emakistation dismantle example_weapon_dismantle_station
+#   （需要 emakistation.dismantle 与 emakistation.dismantle.access.example_weapon_dismantle_station）。
+# 配套配方：
+#   recipes_dismantle/example_weapon_dismantle_recipe.yml
+# 依赖：
+#   无额外依赖。分解站没有 queue / channels / preview_layout / queue_layout 段，
+#   分解是即时结算，不进队列。
+# ============================================================
+
+id: "example_weapon_dismantle_station"
+display_name: "<aqua>示例武器分解台</aqua>"
+
+# 省略时默认使用 station_dismantle；这里显式写出便于理解。
+layout: "station_dismantle"
+
+# 留空时自动使用 emakistation.dismantle.access.example_weapon_dismantle_station。
+permission: ""
+
+# 产物去向：
+#   storage_first / backpack_first - 首选目标满了会退到另一个
+#   storage_only / backpack_only   - 只用一个目标
+# 注意：所有目标都放不下时，当前实现会清空本次产物，不会进入待领取。
+# 默认 storage_first 在多数环境下更容易放下产物。
+output:
+  default: "storage_first"
+
+# 当前版本只解析、不执行分解站级条件。
+condition:
+  invalid_as_failure: true

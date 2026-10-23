@@ -33,9 +33,8 @@ experience: 80
 # 注意：health / mana 一类 RESOURCE 型属性对非玩家实体无效，
 # 想抬高怪物血量上限请用下方 components.max_health 或 EA 的 max_health_vanilla。
 ea_attributes:
-  STR: 15
-  VIT: 10
-  AGI: 5
+  strength: 15
+  agility: 5
 
 # ── 动作触发器（可选）──────────────────────────────────────
 # 由 EmakiCoreLib 的动作管道执行，不需要安装 EmakiSkills。

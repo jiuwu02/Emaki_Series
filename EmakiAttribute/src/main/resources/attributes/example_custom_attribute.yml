@@ -1,0 +1,48 @@
+# ============================================================
+# EmakiAttribute 示例：自定义元素属性
+# ============================================================
+# 演示功能：
+#   - value_kind: FLAT 与 target_type: DAMAGE 组合
+#   - target_id 指向 damage_types/example_elemental.yml
+#   - lore_format_id 引用 lore_formats/example_gradient.yml
+#   - lore_patterns 使用 %Key% / %Value%，可读取单值与 10-20 这类区间写法
+# 说明：属性文件本身不声明区间随机值或 scaling_curves；区间值由物品
+#       ea_attributes 提供，scaling_curves 位于 config.yml。
+# 使用方式：物品 effects 中写 type: ea_attribute 并配置 example_spirit
+# ============================================================
+
+id: example_spirit
+
+display_name: "元素共鸣"
+
+value_kind: FLAT
+
+target_type: DAMAGE
+
+target_id: example_elemental
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 999999.0
+
+allow_negative: false
+
+priority: 96
+
+lore_format_id: example_gradient
+
+# %Key% 展开为 display_name，%Value% 同时支持单值与区间。
+lore_patterns:
+  - "%Key%.*?: ?%Value%$"
+
+attribute_power: 0.9
+
+tags:
+  - example
+  - elemental
+
+temporary_stack_mode: REPLACE
+
+description: "示例属性：参与元素伤害管线的平坦加成，可在物品 ea_attributes 中写 10-20 这类区间随机值。"

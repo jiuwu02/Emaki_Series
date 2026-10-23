@@ -106,7 +106,7 @@ materials:
       - type: "ea_attribute"
         ea_attributes:
           physical_attack: 5.0
-          max_health: 2.0
+          health: 2.0
       - type: "lore_action"
         lore_actions:
           - action: "insert_below"
@@ -130,13 +130,13 @@ materials:
           critical_chance: 5
       - type: "ea_attribute"
         ea_attributes:
-          fire_damage: 10.0
+          spell_attack: 10.0
           physical_crit_rate: 5.0
       # 附加技能
       - type: "es_skill"
         es_skills:
-          - "flame_strike"
-          - "flame_passive"
+          - "example_skill"
+          - "example_passive_skill"
       # 修改物品名称
       - type: "name_action"
         name_actions:
@@ -166,7 +166,7 @@ materials:
           critical_chance: 4
       - type: "ea_attribute"
         ea_attributes:
-          fire_damage: 12.0
+          spell_attack: 12.0
           physical_crit_rate: 4.0
       - type: "lore_action"
         lore_actions:
@@ -317,7 +317,7 @@ materials:
           durability_bonus: 5
       - type: "ea_attribute"
         ea_attributes:
-          max_health: 5.0
+          health: 5.0
 
 # ============================================================
 # 可选材料数量限制

@@ -1,0 +1,123 @@
+# ============================================================
+# EmakiGem 宝石示例：洗炼宝石
+# ============================================================
+# 演示功能：reroll 词缀重铸。配置词缀池 pools、全量洗炼 full_cost
+#   与数值洗炼 value_cost，玩家可用 /emakigem 的洗炼入口重掷词缀。
+# 镶嵌位置：universal 通用插槽。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供属性；洗炼只涉及宝石自身。
+# 经济说明：两档洗炼都只收材料，未安装 Vault 也能使用。
+# ============================================================
+
+id: "example_reforge_gem"
+
+display_name: "<light_purple>变幻宝石</light_purple>"
+
+lore:
+  - "<gray>可以洗炼词缀的通用宝石。</gray>"
+  - "<gray>全量洗炼会重抽词缀，数值洗炼只重掷数值。</gray>"
+
+gem_type: "universal"
+
+level: 1
+
+base_item_source: "minecraft-lapis_lazuli"
+
+item_sources:
+  - "minecraft-lapis_lazuli"
+
+custom_model_data: 1204
+
+# 基础效果不写属性，全部强度交给洗炼词缀提供
+effects:
+  - type: "name_action"
+    name_actions:
+      - action: "append_suffix"
+        value: " <light_purple>[%display_name%]</light_purple>"
+  - type: "lore_action"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<light_purple>◆ %display_name%</light_purple>"
+          - "<gray>  词缀可通过洗炼重铸</gray>"
+
+socket_compatibility:
+  - "universal"
+
+inlay_cost:
+  materials:
+    - item_sources:
+        - "minecraft-lapis_lazuli"
+      amount: 1
+
+extract_cost:
+  materials:
+    - item_sources:
+        - "minecraft-lapis_lazuli"
+      amount: 1
+
+extract_return:
+  mode: "original"
+  downgrade_levels: 1
+  degraded_chance: 0.0
+
+# ============================================================
+# 洗炼配置
+# ============================================================
+reroll:
+  enabled: true
+  group: "default"
+  # 全量洗炼最多生成 2 条词缀；原宝石已有词缀时取较小值
+  max_affixes: 2
+  pools:
+    default:
+      - id: "physical_attack"
+        weight: 10
+        min: 2
+        max: 8
+        min_stage: 1
+        max_stage: 5
+        display_name: "<red>物理攻击</red>"
+        attribute_id: "physical_attack"
+      - id: "physical_crit_rate"
+        weight: 6
+        min: 1
+        max: 4
+        min_stage: 1
+        max_stage: 5
+        display_name: "<yellow>物理暴击率</yellow>"
+        attribute_id: "physical_crit_rate"
+      - id: "physical_crit_damage"
+        weight: 4
+        min: 2
+        max: 10
+        min_stage: 1
+        max_stage: 5
+        display_name: "<gold>物理暴击伤害</gold>"
+        attribute_id: "physical_crit_damage"
+      - id: "health"
+        weight: 5
+        min: 4
+        max: 16
+        min_stage: 1
+        max_stage: 5
+        display_name: "<red>生命值</red>"
+        attribute_id: "health"
+  # 全量洗炼：重抽词缀本身
+  full_cost:
+    materials:
+      - item_sources:
+          - "minecraft-lapis_lazuli"
+        amount: 3
+  # 数值洗炼：保留词缀 ID，只重掷数值
+  value_cost:
+    materials:
+      - item_sources:
+          - "minecraft-lapis_lazuli"
+        amount: 1
+
+actions:
+  inlay_success:
+    - 'send_message text="<green>变幻宝石镶嵌成功！</green>"'
+    - "play_sound sound=minecraft:block.lapis_lazuli_block.place volume=1 pitch=1.2"
+  extract_success:
+    - 'send_message text="<yellow>变幻宝石已拆卸。</yellow>"'

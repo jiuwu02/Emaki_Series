@@ -101,6 +101,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             "types/forging.yml",
             "types/taming.yml",
             "types/smelting.yml",
+            "types/example_prestige.yml",
             "sources/combat.yml",
             "sources/block_actions.yml",
             "sources/fishing.yml",
@@ -109,6 +110,8 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
             "sources/taming.yml",
             "sources/smelting.yml",
             "sources/mythicmobs.yml",
+            "sources/example_custom_source.yml",
+            "sources/example_block_source.yml",
             "gui/editor_page_gui.yml",
             "gui/editor_browser_gui.yml"
     );

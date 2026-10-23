@@ -64,3 +64,9 @@ groups:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
   smelting:
     formula: "floor(80 + 22 * %target_level% + 6 * pow(%target_level%, 2))"
+  # 示例等级类型 example_prestige 使用的分组，可按需调整数值。
+  prestige:
+    formula: "floor(180 + 45 * %target_level% + 12 * pow(%target_level%, 2))"
+    values:
+      2: 200
+      3: 500

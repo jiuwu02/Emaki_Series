@@ -216,7 +216,7 @@ stages:
         # 满级时附加技能
         - type: "es_skill"
           es_skills:
-            - "ruby_burst"
+            - "example_skill"
         - type: "name_action"
           name_actions:
             - action: "append_suffix"

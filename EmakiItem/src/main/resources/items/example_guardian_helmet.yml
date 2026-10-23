@@ -1,0 +1,67 @@
+# ============================================================
+# EmakiItem 示例：守护者头盔
+# ============================================================
+# 演示功能：
+#   - equip_slot 限定为头盔槽，set 归属 example_set 的 helmet 部件
+#   - effects 中的 ea_attribute 写入 EmakiAttribute 属性
+#   - condition 装备条件：玩家等级不足 5 时本物品属性 / 套装贡献不生效
+# 获得方式：/ei give <玩家> example_guardian_helmet
+# 依赖：EmakiAttribute（属性生效）；套装阈值技能由 EmakiSkills 提供
+# ============================================================
+
+id: "example_guardian_helmet"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-iron_helmet"
+  components:
+    custom_name: "<aqua>守护者头盔</aqua>"
+    lore:
+      - "<gray>示例守护者套装的头盔部件</gray>"
+      - ""
+      - "<yellow>物理防御: <white>+%physical_defense%</white></yellow>"
+      - "<yellow>生命上限: <white>+%health%</white></yellow>"
+      - ""
+      - "<dark_gray>装备条件: 玩家等级不低于 5</dark_gray>"
+    max_stack_size: 1
+    rarity: "uncommon"
+    max_damage: 275
+    enchantable: 10
+
+# 业务属性与技能仅在头盔槽生效。
+equip_slot: "helmet"
+
+# ============================================================
+# 物品效果
+# ============================================================
+# variables 只用于名称 / Lore 占位符渲染；真实数值由 ea_attribute 写入 PDC。
+effects:
+  - type: "variables"
+    variables:
+      physical_defense: 4
+      health: 4
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_defense: 4.0
+      health: 4.0
+
+# ============================================================
+# 套装归属
+# ============================================================
+set:
+  id: "example_set"
+  piece: "helmet"
+
+# ============================================================
+# 装备条件
+# ============================================================
+# 条件按玩家实时求值；不满足时属性、技能、套装贡献与触发器动作一起失效。
+condition:
+  type: "all_of"
+  invalid_as_failure: true
+  entries:
+    - "%player_level% >= 5"
+  on_fail:
+    message: "<red>需要玩家等级 5 才能发挥守护者头盔的效果.</red>"

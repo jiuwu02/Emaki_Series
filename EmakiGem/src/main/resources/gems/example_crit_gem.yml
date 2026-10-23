@@ -1,0 +1,72 @@
+# ============================================================
+# EmakiGem 宝石示例：暴击宝石
+# ============================================================
+# 演示功能：percent 型属性宝石，提供物理暴击率（百分比），
+#   演示 universal 宝石类型与只允许通用插槽的兼容性写法。
+# 镶嵌位置：universal 通用插槽。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供 ea_attribute 属性输出。
+# 经济说明：只配置材料费用，未安装 Vault 也能正常使用。
+# ============================================================
+
+id: "example_crit_gem"
+
+display_name: "<yellow>锐意宝石</yellow>"
+
+lore:
+  - "<gray>镶嵌在通用插槽上，提升物理暴击率。</gray>"
+
+gem_type: "universal"
+
+level: 1
+
+base_item_source: "minecraft-amethyst_shard"
+
+item_sources:
+  - "minecraft-amethyst_shard"
+
+custom_model_data: 1202
+
+effects:
+  - type: "variables"
+    variables:
+      physical_crit_rate: 4
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_crit_rate: 4.0
+  - type: "name_action"
+    name_actions:
+      - action: "append_suffix"
+        value: " <yellow>[%display_name%]</yellow>"
+  - type: "lore_action"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<yellow>◆ %display_name%: 物理暴击率+%physical_crit_rate%%</yellow>"
+
+# 只接受通用插槽
+socket_compatibility:
+  - "universal"
+
+inlay_cost:
+  materials:
+    - item_sources:
+        - "minecraft-gold_ingot"
+      amount: 1
+
+extract_cost:
+  materials:
+    - item_sources:
+        - "minecraft-gold_nugget"
+      amount: 1
+
+extract_return:
+  mode: "original"
+  downgrade_levels: 1
+  degraded_chance: 0.0
+
+actions:
+  inlay_success:
+    - 'send_message text="<green>锐意宝石镶嵌成功！</green>"'
+    - "play_sound sound=minecraft:block.amethyst_block.chime volume=1 pitch=1.3"
+  extract_success:
+    - 'send_message text="<yellow>锐意宝石已拆卸。</yellow>"'

@@ -25,7 +25,7 @@ cost:
     amount: 100
 
 # 输入物品来源条件。格式与普通配方的 item_source 一致，用【连字符】：
-#   minecraft-iron_block、emakiitem-example_sword
+#   minecraft-iron_block、emakiitem-example_item
 item_sources:
   - "minecraft-iron_block"
 

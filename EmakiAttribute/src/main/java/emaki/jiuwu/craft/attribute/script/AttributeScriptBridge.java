@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.attribute.script;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
@@ -21,6 +22,9 @@ public final class AttributeScriptBridge {
     private static final String SCRIPTS_DIRECTORY = "scripts";
     private static final String RESOURCE_PREFIX = "scripts/";
     private static final String UNKNOWN_FILE = "unknown";
+    private static final List<String> EXAMPLE_SCRIPTS = List.of(
+            "scripts/attributes/example_attribute.js",
+            "scripts/attributes/example_dynamic_attribute.js");
 
     private final EmakiAttributePlugin plugin;
     private final AttributeRegistry attributeRegistry;
@@ -125,7 +129,7 @@ public final class AttributeScriptBridge {
             return;
         }
         Files.createDirectories(directory);
-        for (String resource : YamlFiles.listResourcePaths(plugin, SCRIPTS_DIRECTORY)) {
+        for (String resource : EXAMPLE_SCRIPTS) {
             String relative = resource.startsWith(RESOURCE_PREFIX)
                     ? resource.substring(RESOURCE_PREFIX.length())
                     : resource;

@@ -1,0 +1,126 @@
+# ============================================================
+# EmakiForge 示例配方：失败分支（example_failure_forge）
+# ============================================================
+# 演示功能：
+#   1. success_rate 低于 100 时的概率失败
+#   2. failure_outcomes 三种合法方案：全额返还 / 部分返还 / 全额消耗
+#   3. failure_outcomes[].weight 加权抽取
+#   4. actions.failure 失败动作
+# 如何触发：
+#   安装 EmakiForge 后执行 /ef forge，放入 minecraft-paper 作为图纸，
+#   再放入铁锭、燧石与可选火药。每次锻造有 55% 概率成功。
+# 依赖：
+#   只用原版物品，不依赖其它 Emaki 模块。
+# ============================================================
+# 注意：未配置 failure_outcomes 时默认按 return_materials 全额返还。
+# 填了三种以外的 type 不会报错，但运行时会按全额返还处理。
+# ============================================================
+
+id: "example_failure_forge"
+display_name: "<red>示例失败分支锻造</red>"
+
+blueprint_requirements:
+  - id: "example_failure_blueprint"
+    item_sources:
+      - "minecraft-paper"
+    amount: 1
+
+materials:
+  # ---- 必选材料：铁锭 ----
+  - material_id: "failure_iron"
+    count_key: "failure_iron"
+    audit_id: "failure_iron"
+    item_sources:
+      - "minecraft-iron_ingot"
+    amount: 2
+    capacity_cost: 4
+    effects:
+      - type: "variables"
+        variables:
+          physical_damage: 4
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 4.0
+
+  # ---- 必选材料：燧石（暴击率）----
+  - material_id: "failure_flint"
+    count_key: "failure_flint"
+    audit_id: "failure_flint"
+    item_sources:
+      - "minecraft-flint"
+    amount: 1
+    capacity_cost: 3
+    effects:
+      - type: "variables"
+        variables:
+          physical_crit_rate: 3
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_crit_rate: 3.0
+
+  # ---- 可选材料：火药（提高失败风险的同时追加攻击）----
+  - material_id: "failure_gunpowder"
+    count_key: "failure_gunpowder"
+    audit_id: "failure_gunpowder"
+    item_sources:
+      - "minecraft-gunpowder"
+    amount: 1
+    optional: true
+    capacity_cost: 4
+    effects:
+      - type: "variables"
+        variables:
+          physical_damage: 6
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 6.0
+
+forge_capacity: 15
+optional_material_limit: 1
+
+# ============================================================
+# 成功率与失败方案
+# ============================================================
+success_rate: 55
+failure_outcomes:
+  - type: "return_materials"
+    weight: 50
+    params:
+      return_rate: 1.0
+  - type: "partial_consume"
+    weight: 30
+    params:
+      return_rate: 0.5
+  - type: "consume_materials"
+    weight: 20
+
+quality:
+  enabled: true
+  custom_pool:
+    - "平庸-70-1.0"
+    - "精良-25-1.05"
+    - "优质-5-1.12"
+
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-iron_sword"
+    name_actions:
+      - action: "replace"
+        value: "<red>试作短剑</red>"
+    lore_actions:
+      - action: "append"
+        content:
+          - ""
+          - "<gray>锻造品质: <white>%quality_name%</white></gray>"
+          - "<dark_gray>EmakiForge 失败分支示例"
+
+actions:
+  pre:
+    - 'send_action_bar text="<gray>高风险锻造开始，请握紧铁锤……</gray>"'
+  success:
+    - 'send_message text="<green>这次成功了! 已获得新装备。</green>"'
+    - "play_sound sound=BLOCK_ANVIL_USE volume=1 pitch=1"
+  failure:
+    - 'send_message text="<red>锻造失败，材料按失败方案结算。</red>"'
+    - "play_sound sound=ENTITY_VILLAGER_NO volume=1 pitch=1"

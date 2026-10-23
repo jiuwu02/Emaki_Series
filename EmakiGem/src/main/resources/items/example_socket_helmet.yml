@@ -1,0 +1,63 @@
+# ============================================================
+# EmakiGem 插槽示例：钻石头盔
+# ============================================================
+# 演示功能：防具插槽配置。演示 item_sources + slot_groups 同时生效、
+#   slots[].index/type/display_name、default_open_slots、宝石类型限制、
+#   max_same_type / max_same_id、GUI 模板与 obtain 首次识别展示。
+# 镶嵌位置：minecraft-diamond_helmet（钻石头盔）。
+#   slot 0 攻击插槽与 slot 1 通用插槽默认开放，
+#   可直接镶入 example_attack_gem 与 example_crit_gem 触发 example_duo_resonance；
+#   slot 2 防御插槽需要开孔器解锁。
+# 依赖：EmakiCoreLib（必需）；开孔器使用 config.yml 内置的 attack/defense/universal 条目。
+# ============================================================
+
+id: "example_socket_helmet"
+
+# 识别判定：item_sources 与 slot_groups 取 AND
+item_sources:
+  - "minecraft-diamond_helmet"
+
+slot_groups:
+  - "armor"
+
+slots:
+  - index: 0
+    type: "attack"
+    display_name: "<red>攻击插槽</red>"
+  - index: 1
+    type: "universal"
+    display_name: "<white>通用插槽</white>"
+  - index: 2
+    type: "defense"
+    display_name: "<blue>防御插槽</blue>"
+
+# 0、1 号插槽默认开放；2 号插槽需要用防御开孔器解锁
+default_open_slots:
+  - 0
+  - 1
+
+allowed_gem_types:
+  - "attack"
+  - "defense"
+  - "utility"
+  - "universal"
+
+# 同类型最多 1 颗，同 ID 最多 1 颗，避免重复堆叠同一宝石
+max_same_type: 1
+max_same_id: 1
+
+gui:
+  gem_template: "gem/default"
+  open_template: "open/default"
+
+obtain:
+  name_actions:
+    - action: "prepend_prefix"
+      value: "<gold>✦</gold> "
+  lore_actions:
+    - action: "append"
+      content:
+        - "<dark_gray>─────────────</dark_gray>"
+        - "<gray>宝石槽: <yellow>■■□</yellow> <dark_gray>(%opened_slots%/%total_slots%)</dark_gray></gray>"
+  actions:
+    - 'send_message text="<gray>已识别可镶嵌装备：<yellow>%item_definition_id%</yellow></gray>"'

@@ -1,0 +1,82 @@
+# ============================================================
+# EmakiStation 示例配方：长耗时队列合成（example_queue_station）
+# ============================================================
+# 演示功能：
+#   1. duration_seconds 长耗时配方（进入队列串行推进）
+#   2. 工作站 speed_multiplier 对耗时的乘算关系
+#   3. 队列取消退还比例由工作站 queue.cancel_refund_rate 决定
+#   4. 配方货币成本与队列数据的关系（默认注释，保证无经济环境可用）
+# 如何触发：
+#   执行 /emakistation open example_altar，选择本条配方提交；
+#   再用 /emakistation queue 查看进度，/emakistation cancel example_altar <序号> 取消。
+# 依赖：
+#   只用原版物品，不依赖其它 Emaki 模块。
+# ============================================================
+# 字段来源说明（避免混淆）：
+#   duration_seconds        配方文件（本文件）
+#   speed_multiplier        工作站 stations/example_altar.yml
+#   cancel_refund_rate      工作站 stations/example_altar.yml
+#   base_length/max_length  工作站与 config.yml 的 queue 段
+#   cost.currency           配方文件，按倍率乘算后从货币余额扣除
+# ============================================================
+
+id: "example_queue_station"
+display_name: "<gray>祭坛长时压制</gray>"
+
+station_ids:
+  - "example_altar"
+
+tags:
+  - "example_altar"
+
+permission: ""
+visible: true
+
+# 600 秒 = 10 分钟。
+# 示例祭坛的 speed_multiplier 是 0.9，实际耗时为 600 × 0.9 = 540 秒。
+duration_seconds: 600
+
+# 货币成本默认不启用：没有 Vault / ExcellentEconomy 时，
+# 写入 cost 会让提交因余额不足被拒绝，无法做到即插即用。
+# 需要收费时取消注释，并确认经济插件已安装。
+# cost:
+#   currency:
+#     type: "excellent"   # vault | excellent
+#     amount: 10
+
+materials:
+  - material_id: "queue_gold_ingot"
+    requirement_id: "queue_gold_ingot_input"
+    count_key: "queue_gold_ingot"
+    item_sources:
+      - "minecraft-gold_ingot"
+    amount: 9
+    consume: true
+
+  - material_id: "queue_coal"
+    requirement_id: "queue_coal_input"
+    count_key: "queue_coal"
+    item_sources:
+      - "minecraft-coal"
+    amount: 4
+    consume: true
+
+result:
+  outputs:
+    - item_source: "minecraft-gold_block"
+      amount: 1
+
+# 当前版本只解析、不执行，保留完整结构供后续版本与 API 读取。
+actions:
+  pre:
+    - 'send_action_bar text="<gray>长时压制已排队……</gray>"'
+  success:
+    - 'send_message text="<green>长时压制完成。</green>"'
+  failure:
+    - 'send_message text="<red>长时压制失败。</red>"'
+
+condition:
+  invalid_as_failure: true
+
+display_condition:
+  invalid_as_failure: false

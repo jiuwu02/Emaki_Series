@@ -239,7 +239,7 @@ stars:
       # 达到此星级时附加技能
       - type: "es_skill"
         es_skills:
-          - "weapon_crit_passive"
+          - "example_passive_skill"
       - type: "lore_action"
         lore_actions:
           # 更新已有的物理伤害行
@@ -472,7 +472,7 @@ stars:
       # 满星时附加终极技能
       - type: "es_skill"
         es_skills:
-          - "weapon_penetration_ultimate"
+          - "example_toggle_skill"
       - type: "lore_action"
         lore_actions:
           - action: "replace_line"

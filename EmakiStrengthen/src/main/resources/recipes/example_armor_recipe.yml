@@ -1,0 +1,265 @@
+# ============================================================
+# EmakiStrengthen 强化配方示例：护甲整件强化
+# ============================================================
+# 演示功能：线性星级强化。演示 slot_groups + matcher 匹配护甲、
+#   success_rates 逐星成功率、limits 上限与锻印、stars 各星级材料、
+#   variables / ea_attribute / lore_action / es_skill 效果，
+#   economy 费用（使用 items 提供者消耗金锭，未安装 Vault 也能运行）。
+# 适用装备：任意护甲（材质名以 _helmet / _chestplate / _leggings / _boots 结尾），
+#   slot_groups 为 armor；matcher 用 max_damage 组件收窄到有耐久的物品。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供 ea_attribute；
+#   EmakiSkills 提供 es_skill。经济不依赖 Vault。
+# ============================================================
+
+schema_version: 2
+
+id: "example_armor_recipe"
+
+display_name: "<blue>护甲强化</blue>"
+
+gui_template: "strengthen_gui"
+
+# ============================================================
+# 经济费用
+# ============================================================
+# provider: "items" 表示按物品收费，currency_id 填物品源简写。
+# 这样即使服务器没有安装 Vault，本示例也能正常强化。
+# 若已有经济插件，可改成 provider: "vault" + currency_id: ""。
+economy:
+  enabled: true
+  currencies:
+    - provider: "items"
+      currency_id: "minecraft-gold_ingot"
+      base_cost: 1
+      cost_formula: "%base_cost% * %star%"
+      display_name: "<gold>金锭</gold>"
+
+limits:
+  max_star: 6
+  max_temper: 4
+  temper_chance_bonus_per_level: 5.0
+  success_chance_cap: 90.0
+
+# 各目标星级的基础成功率（百分比）
+success_rates:
+  1: 100.0
+  2: 100.0
+  3: 90.0
+  4: 75.0
+  5: 55.0
+  6: 35.0
+
+# ============================================================
+# 匹配规则
+# ============================================================
+# 顶层四个字段取 AND：slot_groups、matcher、stats_any、source_patterns。
+# 本配方只按装备大类 + 组件条件匹配，不绑定具体物品源。
+slot_groups:
+  - "armor"
+
+matcher:
+  type: component
+  component: max_damage
+  operator: exists
+
+name_actions:
+  - action: "append_suffix"
+    value: " <blue>[护+%star%]</blue>"
+
+lore_actions:
+  - action: "prepend"
+    content:
+      - "<gradient:#7DD3FC:#2563EB>护甲强化 +%star%</gradient>"
+      - "<gray>锻印: %temper_color%%temper%/%max_temper%</gray>"
+
+# ============================================================
+# 星级阶段
+# ============================================================
+# 每星级的 variables / ea_attributes 是“本星级新增值”，
+# 模块会沿星级累计；Lore 用 replace_line 保持每种属性只有一行。
+stars:
+  1:
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 2.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "append"
+            content:
+              - "<gray>物理防御: <aqua>+2</aqua></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 1
+
+  2:
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 2.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理防御:"
+            content:
+              - "<gray>物理防御: <aqua>+4</aqua></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 2
+      - item_sources:
+          - "minecraft-leather"
+        amount: 1
+
+  3:
+    name: "<blue>坚甲 I</blue>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 3
+          health: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 3.0
+          health: 2.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理防御:"
+            content:
+              - "<gray>物理防御: <aqua>+7</aqua></gray>"
+          - action: "append"
+            content:
+              - "<gray>生命值: <red>+2</red></gray>"
+              - "<blue>★ 坚甲 I</blue>"
+    materials:
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 2
+      - item_sources:
+          - "minecraft-leather"
+        amount: 2
+    actions:
+      success:
+        - 'send_message text="<blue>护甲强化达到 +3，解锁生命值加成。</blue>"'
+        - "play_sound sound=minecraft:block.anvil.use volume=1 pitch=1.1"
+
+  4:
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 3
+          health: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 3.0
+          health: 2.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理防御:"
+            content:
+              - "<gray>物理防御: <aqua>+10</aqua></gray>"
+          - action: "replace_line"
+            anchor: "生命值:"
+            content:
+              - "<gray>生命值: <red>+4</red></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 3
+      - item_sources:
+          - "minecraft-leather"
+        amount: 3
+      # 保护材料：不消耗，仅需背包持有，失败时不降星
+      - material_id: "armor_protection"
+        count_key: "armor_protection"
+        item_sources:
+          - "minecraft-shield"
+        amount: -1
+        optional: true
+        protection: true
+
+  5:
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 4
+          health: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 4.0
+          health: 2.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理防御:"
+            content:
+              - "<gray>物理防御: <aqua>+14</aqua></gray>"
+          - action: "replace_line"
+            anchor: "生命值:"
+            content:
+              - "<gray>生命值: <red>+6</red></gray>"
+    materials:
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 3
+      - item_sources:
+          - "minecraft-leather"
+        amount: 4
+
+  6:
+    name: "<blue>不破之壁</blue>"
+    effects:
+      - type: "variables"
+        variables:
+          physical_defense: 5
+          health: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_defense: 5.0
+          health: 2.0
+      # 满级附带共享技能 ID（EmakiSkills 内置示例技能）
+      - type: "es_skill"
+        es_skills:
+          - "guardian_aura"
+      - type: "lore_action"
+        lore_actions:
+          - action: "replace_line"
+            anchor: "物理防御:"
+            content:
+              - "<gray>物理防御: <aqua>+19</aqua></gray>"
+          - action: "replace_line"
+            anchor: "生命值:"
+            content:
+              - "<gray>生命值: <red>+8</red></gray>"
+          - action: "append"
+            content:
+              - "<blue>★ 解锁被动: 守护光环</blue>"
+    materials:
+      - item_sources:
+          - "minecraft-netherite_ingot"
+        amount: 1
+      - item_sources:
+          - "minecraft-iron_ingot"
+        amount: 4
+      # 锻印材料：放入后本次额外 +1 锻印等级
+      - item_sources:
+          - "minecraft-amethyst_shard"
+        amount: -1
+        optional: true
+        temper_boost: 1
+    actions:
+      success:
+        - 'send_title title="<blue><bold>不破之壁</bold></blue>" subtitle="<gray>护甲强化达到满星</gray>"'
+        - "play_sound sound=minecraft:ui.toast.challenge_complete volume=1 pitch=1"
+      failure:
+        - 'send_message text="<red>强化失败，当前星级仍为 +%star%。</red>"'
+        - "play_sound sound=minecraft:block.anvil.destroy volume=1 pitch=0.8"

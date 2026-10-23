@@ -1,0 +1,55 @@
+# ============================================================
+# EmakiItem 示例：分支强化之剑
+# ============================================================
+# 演示功能：
+#   - 作为 EmakiStrengthen 分支配方示例的专属底材，物品源为
+#     emakiitem-example_branch_blade（对应本文件 id）
+#   - ea_attribute 写入物理攻击与物理暴击率
+#   - actions.interact 演示右键触发动作
+# 获得方式：/ei give <玩家> example_branch_blade
+# 依赖：EmakiAttribute（属性生效）；EmakiStrengthen（分支强化配方）
+# ============================================================
+
+id: "example_branch_blade"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-diamond_sword"
+  components:
+    custom_name: "<light_purple>分支强化之剑</light_purple>"
+    lore:
+      - "<gray>用于演示 EmakiStrengthen 分支强化的专属武器</gray>"
+      - ""
+      - "<yellow>物理攻击: <white>+%physical_attack%</white></yellow>"
+      - "<yellow>物理暴击率: <white>+%physical_crit_rate%%</white></yellow>"
+      - ""
+      - "<dark_gray>强化配方按物品源 emakiitem-example_branch_blade 识别</dark_gray>"
+    max_stack_size: 1
+    rarity: "rare"
+    damage: 0
+    max_damage: 1561
+    enchantable: 15
+
+equip_slot: "main_hand"
+
+# ============================================================
+# 物品效果
+# ============================================================
+effects:
+  - type: "variables"
+    variables:
+      physical_attack: 10
+      physical_crit_rate: 5
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_attack: 10.0
+      physical_crit_rate: 5.0
+
+# ============================================================
+# 触发动作
+# ============================================================
+actions:
+  interact:
+    - 'send_action_bar text="<gray>你挥动了分支强化之剑</gray>"'

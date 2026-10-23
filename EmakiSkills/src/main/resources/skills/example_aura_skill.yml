@@ -1,0 +1,103 @@
+# ============================================================
+# EmakiSkills 技能定义示例 - 守护者光环
+# ============================================================
+# 演示功能: 周期性被动光环 + 自身与附近玩家增益 + 本地资源 + 材料升级。
+# 触发方式: passive_triggers 的 timer 定时派发（间隔由 config.yml 的
+#           passive_trigger_settings.timer_interval_ticks 控制），
+#           再由技能自身 cooldown_ticks 限制实际生效频率。
+# 依赖模块: EmakiSkills (本模块) 与 EmakiCoreLib 内置动作 nearby_players /
+#           give_potion_effect；不依赖 Vault/PAPI/MythicMobs。
+# 如何获得: 管理员执行 /eskills grant <玩家> guardian_aura，
+#           或由 EmakiItem 套装 example_set 的四件套授予。
+# ============================================================
+
+id: "guardian_aura"
+
+display_name: "<gold>守护者光环</gold>"
+
+description:
+  - "<gray>周期性为自己与附近玩家提供生命恢复与抗性</gray>"
+  - "<gray>光环范围固定，持续时间内无需重复施放</gray>"
+
+icon_material: "beacon"
+
+trigger_type: "passive"
+show_in_slots: false
+
+passive_triggers:
+  - "timer"
+
+# timer 每隔 timer_interval_ticks 派发一次；技能冷却决定光环实际刷新频率。
+cooldown_ticks: 200
+
+lore_aliases:
+  - "守护者光环"
+tags:
+  - "passive"
+  - "aura"
+tab_tags:
+  - "equipment"
+ui_category: "passive"
+sort_order: 50
+
+enabled: true
+
+resource_costs:
+  - type: "local-resource"
+    target_id: "example_resource"
+    amount: 5.0
+    operation: "consume"
+    failure_message: "<red>示例魔力不足，光环暂时熄灭。</red>"
+
+variables:
+  aura_duration:
+    type: "expression"
+    value: "60 + (%level% - 1) * 20"
+    decimals: 0
+    min: 20
+
+  aura_message:
+    type: "random_text"
+    lines:
+      - "<gold>守护者光环笼罩着周围。</gold>"
+      - "<gold>光环为同伴带来了庇护。</gold>"
+
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: false
+
+  actions:
+    cast:
+      # self 保证施法者必定获得增益，nearby_players 覆盖周围玩家。
+      - "self | give_potion_effect type=regeneration level=1 duration=%var.aura_duration%t particles=false icon=true"
+      - "self | give_potion_effect type=resistance level=1 duration=%var.aura_duration%t particles=false icon=true"
+      - "nearby_players radius=6 limit=8 | give_potion_effect type=regeneration level=1 duration=%var.aura_duration%t particles=false icon=true"
+      - "nearby_players radius=6 limit=8 | give_potion_effect type=resistance level=1 duration=%var.aura_duration%t particles=false icon=true"
+      - "self | spawn_particle particle=end_rod count=12 extra=0.25"
+      - "self | play_sound sound=minecraft:block.beacon.ambient volume=0.5 pitch=1.4"
+      - 'self | send_action_bar text="%var.aura_message%"'
+
+upgrade:
+  enabled: true
+  max_level: 3
+  economy:
+    enabled: false
+  success_rates:
+    2: 100.0
+    3: 85.0
+  failure_penalty: "none"
+  levels:
+    2:
+      materials:
+        - item_sources:
+            - "minecraft-glowstone_dust"
+          amount: 16
+    3:
+      materials:
+        - item_sources:
+            - "minecraft-golden_apple"
+          amount: 2
+      actions:
+        success:
+          - 'send_message text="<gold>守护者光环达到满级。</gold>"'

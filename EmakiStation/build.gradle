@@ -1,5 +1,5 @@
 // EmakiStation（原 EmakiStation/pom.xml）。
-version = '1.1.9'
+version = '1.1.10'
 
 dependencies {
     // 原 shade artifactSet 白名单。

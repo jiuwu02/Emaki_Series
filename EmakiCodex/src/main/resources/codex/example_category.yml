@@ -53,4 +53,4 @@ entries:
         - "emakicodex:example/first_step"
     rewards:
       attributes:
-        max_health: 5.0
+        health: 5.0

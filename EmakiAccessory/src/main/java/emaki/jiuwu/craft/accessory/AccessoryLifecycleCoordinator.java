@@ -48,6 +48,7 @@ final class AccessoryLifecycleCoordinator
     private static final List<String> STATIC_FILES = List.of("gui/accessory_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES =
             List.of("parts.yml", "sets/example_set.yml", "pages/main.yml", "pages/secondary.yml",
+                    "pages/example_battle.yml", "pages/example_collection.yml", "sets/example_ring_set.yml",
                     "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("gui", "sets", "pages", "data");
 

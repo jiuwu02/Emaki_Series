@@ -45,6 +45,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> STATIC_FILES = List.of("gui/codex_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
             "advancements/example_page.yml", "codex/example_category.yml",
+            "advancements/example_combat_page.yml", "advancements/example_collection_page.yml",
+            "codex/example_combat.yml", "codex/example_life.yml",
             "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "codex");
     private static final long SHUTDOWN_FLUSH_SECONDS = 10L;

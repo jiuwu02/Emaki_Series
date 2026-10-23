@@ -1,0 +1,53 @@
+# ============================================================
+# EmakiStrengthen 宝石阶段强化示例（mode: gem）
+# ============================================================
+# 演示功能：驱动 EmakiGem 的 example_upgradeable_gem 逐级升级。
+#   配方 id 必须与宝石定义的 id 完全相同（Gem Provider 用宝石 ID 作为配方 ID）。
+# 依赖：EmakiCoreLib（必需）；EmakiGem 提供 gem Target Provider；
+#   费用使用 provider: "items" 消耗绿宝石，不依赖 Vault。
+# 说明：本文件是 example_upgradeable_gem 升级入口能开箱使用所必需；
+#   宝石文件只描述各等级效果，材料/费用/成功率/保底都在这里。
+# ============================================================
+
+schema_version: 2
+
+id: "example_upgradeable_gem"
+
+mode: "gem"
+
+target:
+  provider: "gem"
+
+materials:
+  - item_sources:
+      - "minecraft-amethyst_shard"
+    quantity: 1
+    consume: "always"
+
+costs:
+  - provider: "items"
+    currency_id: "minecraft-emerald"
+    amount:
+      type: formula
+      expression: "1 + target.level"
+
+chance:
+  type: formula
+  expression: "max(0.2, 0.9 - target.level * 0.1)"
+
+pity:
+  scope: "player"
+  group: "example_upgradeable_gem"
+  threshold: 3
+  effect: "force_success"
+  decay:
+    type: "reset"
+    value: 0
+
+actions:
+  on_success:
+    - 'send_message text="<green>生长宝石升级成功！</green>"'
+    - "sound: BLOCK_ENCHANTMENT_TABLE_USE"
+  on_failure:
+    - 'send_message text="<yellow>生长宝石升级失败，材料已按配方处理。</yellow>"'
+    - "sound: BLOCK_ANVIL_LAND"

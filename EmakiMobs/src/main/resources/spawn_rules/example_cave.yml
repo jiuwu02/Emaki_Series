@@ -1,0 +1,35 @@
+# ============================================================
+# EmakiMobs 刷新规则示例 - 洞穴自主刷新
+# 演示 autonomous（自主定时刷新）的触发方式与位置条件：
+# trigger / interval_ticks / y_range / light_level_max /
+# require_surface / distance / max_nearby / max_global / count。
+# 该规则不依赖原版刷新事件，由插件调度器按周期为每名在线
+# 玩家尝试生成；候选位置要求上方可通行、下方是固体方块。
+# mob_id 引用 mobs/example_slime.yml 中已定义的生物。
+# ============================================================
+rules:
+  - mob_id: example_slime
+    type: autonomous
+    trigger: interval
+    interval_ticks: 1200
+    worlds:
+      - world
+    biomes:
+      - dripstone_caves
+      - lush_caves
+    y_range:
+      - -60
+      - 40
+    # 只有该值小于 15 时才检查光照
+    light_level_max: 4
+    time_of_day: any
+    # true 时要求刷出点天光为 15，洞穴内应保持 false
+    require_surface: false
+    distance:
+      min: 16
+      max: 48
+    max_nearby: 2
+    max_global: 8
+    count:
+      min: 2
+      max: 3

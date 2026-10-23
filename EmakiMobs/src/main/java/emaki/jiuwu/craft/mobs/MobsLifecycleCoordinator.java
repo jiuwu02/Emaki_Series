@@ -73,9 +73,13 @@ final class MobsLifecycleCoordinator
             List.of("mobs/zombie.yml", "mobs/jungle_stalker.yml",
                     "mobs/elite_zombie.yml", "mobs/bone_lord.yml",
                     "mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
+                    "mobs/example_skeleton_archer.yml", "mobs/example_boss.yml",
+                    "mobs/example_slime.yml",
+                    "loot_tables/example_skeleton_archer.yml", "loot_tables/example_boss.yml",
                     "loot_tables/jungle_stalker.yml", "loot_tables/elite_zombie.yml",
                     "loot_tables/bone_lord.yml",
                     "spawn_rules/overworld.yml", "spawn_rules/overworld_elites.yml",
+                    "spawn_rules/example_cave.yml", "spawn_rules/example_night.yml",
                     "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES =
             List.of("mobs", "loot_tables", "spawn_rules", "gui");

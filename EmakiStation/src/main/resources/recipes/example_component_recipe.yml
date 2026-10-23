@@ -38,7 +38,7 @@ cost:
 
 # 材料需求。
 # 形状速查：
-#   物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_sword
+#   物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_item
 #   matcher 内的组件 ID 与 path 资源 ID 用【冒号】：
 #     component: custom_name   等价于 minecraft:custom_name
 #     path: sharpness          等价于 minecraft:sharpness

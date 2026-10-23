@@ -1,0 +1,107 @@
+# ============================================================
+# EmakiSkills 技能定义示例 - 守护者冲刺
+# ============================================================
+# 演示功能: 主动位移技能 + add_velocity 位移 + 短时增益 + 本地资源 + 材料升级。
+# 触发方式: 主动技能，在技能 GUI 绑定到 left_click / right_click 等槽位后，
+#           进入施法模式并按下对应操作释放。
+# 依赖模块: EmakiSkills (本模块) 与 EmakiCoreLib 内置动作 add_velocity /
+#           give_potion_effect；不依赖 Vault/PAPI/MythicMobs。
+# 如何获得: 管理员执行 /eskills grant <玩家> guardian_dash，
+#           或由 EmakiItem 的 example_item / 饰品套装 example_ring_set 授予。
+# 说明: CoreLib 的 add_velocity 接受固定 x/y/z 分量，这里演示沿世界 X 轴冲刺；
+#       若要按视线方向冲刺，可改用 JS 段或 MythicMobs 实现。
+# ============================================================
+
+id: "guardian_dash"
+
+display_name: "<aqua>守护者冲刺</aqua>"
+
+description:
+  - "<gray>向前冲刺一小段距离，并获得短暂速度与抗性</gray>"
+  - "<gray>冷却期间无法再次使用</gray>"
+
+icon_material: "feather"
+
+trigger_type: "active"
+show_in_slots: true
+
+# 技能冷却与全局冷却（tick，20 tick = 1 秒）。
+cooldown_ticks: 160
+global_cooldown_ticks: 20
+
+lore_aliases:
+  - "守护者冲刺"
+tags:
+  - "mobility"
+tab_tags:
+  - "equipment"
+ui_category: "mobility"
+sort_order: 20
+
+enabled: true
+
+resource_costs:
+  - type: "local-resource"
+    target_id: "example_resource"
+    amount: 10.0
+    operation: "consume"
+    failure_message: "<red>示例魔力不足，无法冲刺。</red>"
+
+variables:
+  # 速度与抗性的持续时间随等级增长。
+  speed_duration:
+    type: "expression"
+    value: "60 + (%level% - 1) * 20"
+    decimals: 0
+    min: 20
+
+  resist_duration:
+    type: "expression"
+    value: "40 + (%level% - 1) * 10"
+    decimals: 0
+    min: 10
+
+  dash_message:
+    type: "random_text"
+    lines:
+      - "<aqua>守护者冲刺！</aqua>"
+      - "<aqua>让开，守护者来了！</aqua>"
+
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: false
+
+  actions:
+    cast:
+      # 固定分量位移，配合短时速度与抗性构成冲刺手感。
+      - "self | add_velocity x=0.85 y=0.25 z=0"
+      - "self | give_potion_effect type=speed level=2 duration=%var.speed_duration%t particles=false icon=false"
+      - "self | give_potion_effect type=resistance level=1 duration=%var.resist_duration%t particles=false icon=false"
+      - "self | spawn_particle particle=cloud count=14 extra=0.1"
+      - "self | play_sound sound=minecraft:entity.enderman.teleport volume=0.9 pitch=1.6"
+      - 'self | send_message text="%var.dash_message%"'
+
+upgrade:
+  enabled: true
+  max_level: 3
+  economy:
+    enabled: false
+  success_rates:
+    2: 100.0
+    3: 90.0
+  failure_penalty: "none"
+  levels:
+    2:
+      materials:
+        - item_sources:
+            - "minecraft-feather"
+          amount: 8
+    3:
+      materials:
+        - item_sources:
+            - "minecraft-sugar"
+          amount: 12
+      actions:
+        success:
+          - 'send_message text="<aqua>守护者冲刺更迅捷了。</aqua>"'

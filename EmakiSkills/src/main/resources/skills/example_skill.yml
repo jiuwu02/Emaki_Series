@@ -68,7 +68,7 @@ condition:
 # 资源类型支持本地/EA 消耗、EA 属性只读检查及外部 mana；failure_message 为失败提示。
 resource_costs:
   - type: "local-resource"
-    target_id: "mana"
+    target_id: "example_resource"
     amount: 30.0
     operation: "consume"
     failure_message: "魔力不足，需要 30 点魔力"

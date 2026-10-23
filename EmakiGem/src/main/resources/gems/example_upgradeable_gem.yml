@@ -1,0 +1,141 @@
+# ============================================================
+# EmakiGem 宝石示例：可升级宝石
+# ============================================================
+# 演示功能：stages 分等级配置。基础等级与 2、3 级各有独立显示名、
+#   变量、EmakiAttribute 属性、名称/Lore 操作，满级附带一个技能。
+# 镶嵌位置：attack 攻击插槽，或 universal 通用插槽。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供 ea_attribute；
+#   升级入口由 EmakiStrengthen 的 mode: gem 强化配方驱动，
+#   配套文件为 EmakiStrengthen/enhancement_recipes/example_upgradeable_gem.yml
+#   （配方 id 必须与本宝石 id 相同）。
+# 经济说明：升级材料/费用/成功率全部写在 Strengthen 配方里，
+#   本文件只描述各等级效果；宝石原文件不读取 materials/economy/success_rate。
+# ============================================================
+
+id: "example_upgradeable_gem"
+
+display_name: "<green>生长宝石</green>"
+
+lore:
+  - "<gray>可以随强化逐级成长的攻击宝石。</gray>"
+  - "<gray>升级材料与费用由 EmakiStrengthen 的对应配方决定。</gray>"
+
+gem_type: "attack"
+
+level: 1
+
+base_item_source: "minecraft-emerald"
+
+item_sources:
+  - "minecraft-emerald"
+
+custom_model_data: 1203
+
+# 1 级（基础）效果
+effects:
+  - type: "variables"
+    variables:
+      physical_attack: 5
+      physical_crit_rate: 1
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_attack: 5.0
+      physical_crit_rate: 1.0
+  - type: "name_action"
+    name_actions:
+      - action: "append_suffix"
+        value: " <green>[%display_name%]</green>"
+  - type: "lore_action"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<green>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</green>"
+
+socket_compatibility:
+  - "attack"
+  - "universal"
+
+inlay_cost:
+  materials:
+    - item_sources:
+        - "minecraft-emerald"
+      amount: 1
+
+extract_cost:
+  materials:
+    - item_sources:
+        - "minecraft-emerald"
+      amount: 1
+
+extract_return:
+  # 升级宝石拆卸时降级返还，演示 downgrade 模式
+  mode: "downgrade"
+  downgrade_levels: 1
+  degraded_chance: 0.5
+
+# ============================================================
+# 分等级配置
+# ============================================================
+# 注意：同一文件只写 stages，不要同时写 upgrade（同时存在时 upgrade 被忽略）。
+# 各等级的效果是“该等级下的完整效果”，不是增量。
+stages:
+  enabled: true
+  max_level: 3
+  levels:
+    2:
+      display_name: "<green>生长宝石 II</green>"
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 9
+            physical_crit_rate: 2
+        - type: "ea_attribute"
+          ea_attributes:
+            physical_attack: 9.0
+            physical_crit_rate: 2.0
+        - type: "name_action"
+          name_actions:
+            - action: "append_suffix"
+              value: " <green>[%display_name%]</green>"
+        - type: "lore_action"
+          lore_actions:
+            - action: "append"
+              content:
+                - "<green>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</green>"
+
+    3:
+      display_name: "<green>生长宝石 III</green>"
+      effects:
+        - type: "variables"
+          variables:
+            physical_attack: 14
+            physical_crit_rate: 3
+        - type: "ea_attribute"
+          ea_attributes:
+            physical_attack: 14.0
+            physical_crit_rate: 3.0
+        # 满级附带共享技能 ID（EmakiSkills 内置示例技能）
+        - type: "es_skill"
+          es_skills:
+            - "example_skill"
+        - type: "name_action"
+          name_actions:
+            - action: "append_suffix"
+              value: " <green>[%display_name%]</green>"
+        - type: "lore_action"
+          lore_actions:
+            - action: "append"
+              content:
+                - "<green>◆ %display_name%: 物理攻击+%physical_attack% 暴击率+%physical_crit_rate%%</green>"
+                - "<gold>  ★ 解锁技能: 示例技能</gold>"
+      # 字符串键值表，随等级写入宝石实例，可供其他模块读取
+      matrices:
+        tier: "III"
+        theme: "growth"
+
+actions:
+  inlay_success:
+    - 'send_message text="<green>生长宝石镶嵌成功！</green>"'
+    - "play_sound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.1"
+  extract_success:
+    - 'send_message text="<yellow>生长宝石已拆卸。</yellow>"'

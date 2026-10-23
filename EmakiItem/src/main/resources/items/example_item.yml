@@ -135,10 +135,10 @@ effects:
       physical_crit_rate: 5.0
   - type: "es_skill"
     es_skills:
-      - "fireball"
-      - "flame_dash"
+      - "example_skill"
+      - "guardian_dash"
     es_skill_triggers:
-      fireball: "right_click"
+      example_skill: "right_click"
   - type: "accessory_slot"
     accessory_slots:
       - "ring"

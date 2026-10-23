@@ -1,0 +1,43 @@
+# ============================================================
+# EmakiItem 示例：守护者项链
+# ============================================================
+# 演示功能：
+#   - accessory_slot 声明该物品可放入 EmakiAccessory 的 necklace 部位
+#   - ea_attribute 提供生命上限加成
+#   - max_damage 让饰品在 EmakiAccessory 中按耐久规则损耗
+# 获得方式：/ei give <玩家> example_necklace
+# 依赖：EmakiAccessory（饰品槽位与耐久）；EmakiAttribute（属性生效）
+# ============================================================
+
+id: "example_necklace"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-iron_ingot"
+  components:
+    custom_name: "<gold>守护者项链</gold>"
+    lore:
+      - "<gray>可放入饰品栏的项链</gray>"
+      - ""
+      - "<yellow>生命上限: <white>+%health%</white></yellow>"
+      - ""
+      - "<dark_gray>饰品部位: 项链</dark_gray>"
+    max_stack_size: 1
+    rarity: "uncommon"
+    max_damage: 120
+
+# ============================================================
+# 物品效果
+# ============================================================
+effects:
+  - type: "variables"
+    variables:
+      health: 6
+  - type: "ea_attribute"
+    ea_attributes:
+      health: 6.0
+  - type: "accessory_slot"
+    accessory_slots:
+      - "necklace"

@@ -1,0 +1,38 @@
+# ============================================================
+# EmakiAttribute 示例：组合条件组
+# ============================================================
+# 演示功能：
+#   - condition.type: exactly + required_count：恰好满足 2 条
+#   - pdc_meta：读取 payload meta 中的品质字段
+#   - pdc_attribute：读取 payload 中的物理攻击数值
+#   - lore_regex：从 Lore 提取等级并与玩家等级比较
+# 说明：把 type 改为 at_least 即表示"至少满足 2 条"；
+#       本条件组仅供 source_id: example_combo_condition 的数据使用。
+# 依赖：attributes/physical_attack.yml
+# ============================================================
+
+enabled: true
+
+source_id: "example_combo_condition"
+
+condition:
+  # exactly 表示恰好 required_count 条通过；at_least 表示至少 required_count 条。
+  type: "exactly"
+  required_count: 2
+  invalid_as_failure: true
+  entries:
+    # pdc_meta 的 %value% 是 payload meta 中 quality 的值。
+    - type: pdc_meta
+      key: quality
+      condition: '%value% == "epic"'
+
+    # pdc_attribute 的 %value% 是 payload 中 physical_attack 的数值。
+    - type: pdc_attribute
+      key: physical_attack
+      condition: "%value% >= 50"
+
+    # lore_regex 使用捕获组 $1 取等级，已安装 PAPI 时也可引用其占位符。
+    - type: lore_regex
+      pattern: "武器等级: (\\d+)"
+      require_match: true
+      condition: "$1 >= 10"

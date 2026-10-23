@@ -1,0 +1,94 @@
+# ============================================================
+# EmakiStrengthen 保底示例配方（mode: equipment）
+# ============================================================
+# 演示功能：enhancement_recipes 通用强化框架的 pity / pity_tracks 保底、
+#   costs 物品费用、materials 材料槽与 chance 成功率。
+# 目标装备：example_item（EmakiItem 的示例之刃，材质为钻石剑）。
+#   target.filter 使用 item_type: DIAMOND_SWORD 收窄到该类装备；
+#   通用强化配方不支持 recipes/*.yml 的 source_patterns 正则字段。
+# 依赖：EmakiCoreLib（必需）；target.provider 使用内置 equipment；
+#   费用使用 provider: "items" 消耗金锭，不依赖 Vault。
+#
+# 说明：pity / pity_tracks / costs 只存在于 enhancement_recipes，
+#   recipes/*.yml（星级配方）没有这些字段，写进去不会生效。
+# ============================================================
+
+schema_version: 2
+
+id: "example_pity_recipe"
+
+mode: "equipment"
+
+target:
+  provider: "equipment"
+  filter:
+    item_type: "DIAMOND_SWORD"
+
+# 材料槽：item_sources 与 matcher 同级取 AND，两者都省略时该槽永不命中
+materials:
+  - item_sources:
+      - "minecraft-amethyst_shard"
+    quantity: 1
+    consume: "always"
+  - item_sources:
+      - "minecraft-gunpowder"
+    quantity: 2
+    consume: "success"
+
+# 货币消耗：provider: "items" 表示按物品扣费，currency_id 填物品源简写
+costs:
+  - provider: "items"
+    currency_id: "minecraft-gold_ingot"
+    amount:
+      type: formula
+      expression: "1 + target.level"
+
+# 成功率：0~1 的概率值
+chance: 0.5
+
+# ============================================================
+# 单轨保底
+# ============================================================
+# 同一件装备连续失败 5 次后，下一次必定成功，成功后计数重置
+pity:
+  scope: "item"
+  group: "example_pity_recipe"
+  threshold: 5
+  effect: "force_success"
+  decay:
+    type: "reset"
+    value: 0
+
+# ============================================================
+# 多轨保底
+# ============================================================
+# 与上方单轨合并成同一份轨道列表；scope + group 相同的轨道会去重。
+pity_tracks:
+  # 玩家维度累计失败 10 次后，本次成功率 +0.1
+  - scope: "player"
+    group: "example_pity_recipe_player"
+    threshold: 10
+    effect: "chance_bonus"
+    bonus_value: 0.1
+    decay:
+      type: "reset"
+      value: 0
+  # 装备维度累计失败 4 次后必定成功；按配方与等级分桶计数
+  - scope: "item"
+    group: "example_pity_recipe_item"
+    threshold: 4
+    effect: "force_success"
+    isolate:
+      - "recipe"
+      - "level"
+    decay:
+      type: "fixed_decay"
+      value: 1
+
+actions:
+  on_success:
+    - 'send_message text="<green>保底配方强化成功。</green>"'
+    - "sound: ITEM_TOTEM_USE"
+  on_failure:
+    - 'send_message text="<red>强化失败，失败次数已累计，达到阈值后必定成功。</red>"'
+    - "sound: BLOCK_ANVIL_USE"

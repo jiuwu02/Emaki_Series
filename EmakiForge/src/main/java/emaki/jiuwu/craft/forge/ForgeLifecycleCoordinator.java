@@ -64,7 +64,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/forge_gui.yml", "gui/recipe_book.yml",
             "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
-    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml");
+    private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_recipe.yml",
+            "recipes/example_weapon_recipe.yml",
+            "recipes/example_armor_recipe.yml",
+            "recipes/example_guarantee_recipe.yml",
+            "recipes/example_failure_recipe.yml",
+            "recipes/example_optional_materials_recipe.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
             new ConfigKeyMigration.Rename("permission.op_bypass", "op_bypass"));

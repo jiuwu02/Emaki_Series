@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -139,12 +140,14 @@ final class CoreLibLifecycleCoordinator
         if (Files.isDirectory(dialogsDirectory)) {
             return;
         }
-        try {
-            YamlFiles.copyResourceIfMissing(plugin, "dialogs/example_notice.yml",
-                    dialogsDirectory.resolve("example_notice.yml").toFile());
-        } catch (Exception exception) {
-            plugin.getLogger().warning("[loader] 释放示例对话 dialogs/example_notice.yml 失败: "
-                    + exception.getMessage());
+        for (String fileName : List.of("example_notice.yml", "example_shop.yml", "example_confirm.yml")) {
+            try {
+                YamlFiles.copyResourceIfMissing(plugin, "dialogs/" + fileName,
+                        dialogsDirectory.resolve(fileName).toFile());
+            } catch (Exception exception) {
+                plugin.getLogger().warning("[loader] 释放示例对话 dialogs/" + fileName + " 失败: "
+                        + exception.getMessage());
+            }
         }
     }
 }

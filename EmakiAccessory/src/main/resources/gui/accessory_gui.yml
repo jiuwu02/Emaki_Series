@@ -110,6 +110,21 @@ slots:
     item:
       source: "iron_ingot"
 
+  # 新增页面示例的切页入口；键名必须与 pages/*.yml 的 page_id 一致。
+  example_battle:
+    slots:
+      - 9
+    type: "page_switch"
+    item:
+      source: "red_dye"
+
+  example_collection:
+    slots:
+      - 10
+    type: "page_switch"
+    item:
+      source: "purple_dye"
+
   orphan:
     slots: "37-43"
     type: "orphan_slot"

@@ -1,0 +1,150 @@
+# ============================================================
+# EmakiForge 示例配方：武器锻造（example_weapon_forge）
+# ============================================================
+# 演示功能：
+#   1. 图纸需求（不消耗，只检查是否持有）
+#   2. 必需材料与可选材料
+#   3. forge_capacity 容量上限与 optional_material_limit 可选材料种类上限
+#   4. 配方级品质池（custom_pool）
+#   5. 结果物品、名称 / Lore 动作与各阶段动作
+# 如何触发：
+#   安装 EmakiForge 后执行 /ef forge 打开锻造界面，
+#   放入 minecraft-paper 作为图纸，再放入铁锭 / 木棍等材料即可看到本条配方。
+# 依赖：
+#   只用原版物品；不安装 EmakiItem / EmakiSkills / EmakiAttribute 时也能正常加载，
+#   属性与技能效果分别走“未安装则空操作”的路径。
+# ============================================================
+
+id: "example_weapon_forge"
+display_name: "<gold>示例武器锻造</gold>"
+
+# ============================================================
+# 图纸需求
+# ============================================================
+# 图纸只检查持有、不消耗。item_sources 用连字符简写。
+blueprint_requirements:
+  - id: "example_weapon_blueprint"
+    item_sources:
+      - "minecraft-paper"
+    amount: 1
+
+# ============================================================
+# 材料列表
+# ============================================================
+# 材料效果值最终按“配置值 × 材料数量 × 品质倍率”结算。
+# 这里把三条身份键（material_id / count_key / audit_id）都显式写出来，
+# 避免后续改动物品源时成品审计身份跟着漂移。
+materials:
+  # ---- 必选材料：铁锭（物理攻击）----
+  - material_id: "weapon_iron"
+    count_key: "weapon_iron"
+    audit_id: "weapon_iron"
+    item_sources:
+      - "minecraft-iron_ingot"
+    amount: 3
+    capacity_cost: 6
+    effects:
+      - type: "variables"
+        variables:
+          physical_damage: 6
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 6.0
+      - type: "lore_action"
+        lore_actions:
+          - action: "insert_below"
+            anchor: "锻造属性:"
+            content:
+              - "<gray>物理伤害: <red>+%physical_damage%</red></gray>"
+
+  # ---- 必选材料：木棍（攻速）----
+  - material_id: "weapon_stick"
+    count_key: "weapon_stick"
+    audit_id: "weapon_stick"
+    item_sources:
+      - "minecraft-stick"
+    amount: 2
+    capacity_cost: 3
+    effects:
+      - type: "variables"
+        variables:
+          attack_speed: 2
+      - type: "ea_attribute"
+        ea_attributes:
+          attack_speed: 2.0
+
+  # ---- 可选材料：金锭（追加攻击与名称后缀）----
+  - material_id: "weapon_gold"
+    count_key: "weapon_gold"
+    audit_id: "weapon_gold"
+    item_sources:
+      - "minecraft-gold_ingot"
+    amount: 1
+    optional: true
+    capacity_cost: 8
+    effects:
+      - type: "variables"
+        variables:
+          gold_bonus: 3
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 3.0
+      - type: "name_action"
+        name_actions:
+          - action: "append_suffix"
+            value: " <gold>[鎏金]</gold>"
+
+# ============================================================
+# 容量与可选材料
+# ============================================================
+# 全部材料 capacity_cost 之和不能超过 forge_capacity。
+# 一次锻造最多放 optional_material_limit 种可选材料。
+forge_capacity: 20
+optional_material_limit: 2
+
+# ============================================================
+# 品质
+# ============================================================
+# custom_pool 用“品质名-权重-倍率”字符串写法；留空则用全局品质池。
+quality:
+  enabled: true
+  custom_pool:
+    - "平庸-65-1.0"
+    - "精良-27-1.05"
+    - "优质-8-1.12"
+
+# ============================================================
+# 结果
+# ============================================================
+# 内置 forge_gui 只提供图纸槽与材料槽，因此必须配置 outputs。
+# Forge 只取第一项作为主产物，主产物数量固定为 1。
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-diamond_sword"
+    name_actions:
+      - action: "replace"
+        value: "<gold>示例长剑</gold>"
+    lore_actions:
+      - action: "append"
+        content:
+          - ""
+          - "<gray>锻造属性:"
+          - "<dark_gray>由 %player% 锻造"
+          - "<dark_gray>EmakiForge 武器锻造示例"
+    actions:
+      - 'send_message text="<green>武器锻造完成: %var.forge_result_item_name%</green>"'
+
+# ============================================================
+# 流程动作
+# ============================================================
+# pre 阶段动作失败会中止锻造并触发 failure。
+actions:
+  pre:
+    - 'send_action_bar text="<gray>铁砧正在敲打武器……</gray>"'
+  success:
+    - 'send_message text="<green>锻造成功!</green>"'
+    - "play_sound sound=BLOCK_ANVIL_USE volume=1 pitch=1"
+  failure:
+    - 'send_message text="<red>锻造失败，请检查图纸与材料。</red>"'
+    - "play_sound sound=ENTITY_VILLAGER_NO volume=1 pitch=1"

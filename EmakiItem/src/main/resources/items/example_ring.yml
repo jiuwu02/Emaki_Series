@@ -1,0 +1,44 @@
+# ============================================================
+# EmakiItem 示例：守护者戒指
+# ============================================================
+# 演示功能：
+#   - accessory_slot 声明该物品可放入 EmakiAccessory 的 ring 部位
+#   - ea_attribute 提供小幅物理暴击率
+#   - max_damage 让饰品在 EmakiAccessory 中按耐久规则损耗
+# 获得方式：/ei give <玩家> example_ring
+# 依赖：EmakiAccessory（饰品槽位与耐久）；EmakiAttribute（属性生效）
+# ============================================================
+
+id: "example_ring"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-iron_ingot"
+  components:
+    custom_name: "<gold>守护者戒指</gold>"
+    lore:
+      - "<gray>可放入饰品栏的戒指</gray>"
+      - ""
+      - "<yellow>物理暴击率: <white>+%physical_crit_rate%%</white></yellow>"
+      - ""
+      - "<dark_gray>饰品部位: 戒指</dark_gray>"
+    max_stack_size: 1
+    rarity: "uncommon"
+    max_damage: 120
+
+# ============================================================
+# 物品效果
+# ============================================================
+# accessory_slots 取值可以是部位 id（ring 表示该部位任意一格）。
+effects:
+  - type: "variables"
+    variables:
+      physical_crit_rate: 2
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_crit_rate: 2.0
+  - type: "accessory_slot"
+    accessory_slots:
+      - "ring"

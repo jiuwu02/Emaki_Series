@@ -35,7 +35,7 @@ condition:
 
 resource_costs:
   - type: "local-resource"
-    target_id: "mana"
+    target_id: "example_resource"
     amount: 50.0
     operation: "consume"
     failure_message: "魔力不足，需要 50 点魔力"

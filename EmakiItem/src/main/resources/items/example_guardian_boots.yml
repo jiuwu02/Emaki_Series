@@ -1,0 +1,52 @@
+# ============================================================
+# EmakiItem 示例：守护者战靴
+# ============================================================
+# 演示功能：
+#   - equip_slot 限定为靴子槽，set 归属 example_set 的 boots 部件
+#   - ea_attribute 同时写入防御与移动速度属性
+# 获得方式：/ei give <玩家> example_guardian_boots
+# 依赖：EmakiAttribute（属性生效）；套装阈值技能由 EmakiSkills 提供
+# ============================================================
+
+id: "example_guardian_boots"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-iron_boots"
+  components:
+    custom_name: "<aqua>守护者战靴</aqua>"
+    lore:
+      - "<gray>示例守护者套装的战靴部件</gray>"
+      - ""
+      - "<yellow>物理防御: <white>+%physical_defense%</white></yellow>"
+      - "<yellow>移动速度: <white>+%movement_speed%</white></yellow>"
+      - ""
+      - "<dark_gray>集齐头盔 / 胸甲 / 战靴可激活套装阈值</dark_gray>"
+    max_stack_size: 1
+    rarity: "uncommon"
+    max_damage: 250
+    enchantable: 10
+
+equip_slot: "boots"
+
+# ============================================================
+# 物品效果
+# ============================================================
+effects:
+  - type: "variables"
+    variables:
+      physical_defense: 2
+      movement_speed: 3
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_defense: 2.0
+      movement_speed: 3.0
+
+# ============================================================
+# 套装归属
+# ============================================================
+set:
+  id: "example_set"
+  piece: "boots"

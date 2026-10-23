@@ -1,0 +1,123 @@
+# ============================================================
+# EmakiForge 示例配方：品质保底（example_guarantee_forge）
+# ============================================================
+# 演示功能：
+#   1. 配方级 quality 覆盖（enabled + custom_pool）
+#   2. 配方自己的品质保底（quality.guarantee.enabled / attempts / minimum）
+#   3. 品质名与倍率在成品名称 / Lore 中的占位符
+# 如何触发：
+#   安装 EmakiForge 后执行 /ef forge，放入 minecraft-paper 作为图纸与 3 个金锭。
+#   连续锻造未达到“优质”时，第 8 次必定给出“优质”或更高。
+# 依赖：
+#   只用原版物品，不依赖其它 Emaki 模块。
+# ============================================================
+# 说明：配方级品质字段名与全局 config.yml 不同：
+#   配方池字段是 custom_pool（全局叫 tiers）
+#   配方保底阈值字段是 attempts（全局叫 threshold）
+# 只有 quality.enabled 与 quality.guarantee.enabled 同时为 true 时，
+# attempts / minimum 才会被采用；否则回落到全局保底。
+# ============================================================
+
+id: "example_guarantee_forge"
+display_name: "<light_purple>示例品质保底锻造</light_purple>"
+
+blueprint_requirements:
+  - id: "example_guarantee_blueprint"
+    item_sources:
+      - "minecraft-paper"
+    amount: 1
+
+materials:
+  # ---- 必选材料：金锭 ----
+  - material_id: "guarantee_gold"
+    count_key: "guarantee_gold"
+    audit_id: "guarantee_gold"
+    item_sources:
+      - "minecraft-gold_ingot"
+    amount: 3
+    capacity_cost: 6
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 7
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 7.0
+
+  # ---- 必选材料：钻石（追加暴击率）----
+  - material_id: "guarantee_diamond"
+    count_key: "guarantee_diamond"
+    audit_id: "guarantee_diamond"
+    item_sources:
+      - "minecraft-diamond"
+    amount: 2
+    capacity_cost: 8
+    effects:
+      - type: "variables"
+        variables:
+          physical_crit_rate: 4
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_crit_rate: 4.0
+
+  # ---- 可选材料：绿宝石（追加物理攻击）----
+  - material_id: "guarantee_emerald"
+    count_key: "guarantee_emerald"
+    audit_id: "guarantee_emerald"
+    item_sources:
+      - "minecraft-emerald"
+    amount: 1
+    optional: true
+    capacity_cost: 7
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 5
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 5.0
+
+forge_capacity: 24
+optional_material_limit: 2
+
+# ============================================================
+# 品质保底
+# ============================================================
+# 品质池顺序需要从低到高排列，保底判定按位次比较。
+# minimum 必须出现在 custom_pool 中，否则会回落到全局保底最低品质。
+quality:
+  enabled: true
+  custom_pool:
+    - "平庸-55-1.0"
+    - "精良-30-1.05"
+    - "优质-10-1.12"
+    - "无暇-5-1.18"
+  guarantee:
+    enabled: true
+    attempts: 8
+    minimum: "优质"
+
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-golden_sword"
+    name_actions:
+      - action: "replace"
+        value: "<light_purple>保底试作剑</light_purple>"
+      - action: "append_suffix"
+        value: " <gray>[%quality_name%]</gray>"
+    lore_actions:
+      - action: "append"
+        content:
+          - ""
+          - "<gray>锻造品质: <white>%quality_name%</white></gray>"
+          - "<gray>品质倍率: <white>%quality_multiplier%</white></gray>"
+          - "<dark_gray>EmakiForge 品质保底示例"
+
+actions:
+  pre:
+    - 'send_action_bar text="<gray>正在为下一件精品做准备……</gray>"'
+  success:
+    - 'send_message text="<green>锻造完成，已获得新装备。</green>"'
+  failure:
+    - 'send_message text="<red>锻造失败。</red>"'

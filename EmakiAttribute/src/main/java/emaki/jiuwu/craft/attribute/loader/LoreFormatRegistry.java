@@ -15,7 +15,8 @@ public final class LoreFormatRegistry extends DirectoryLoader<LoreFormatDefiniti
             "default_flat.yml",
             "default_percent.yml",
             "default_regen.yml",
-            "default_resource.yml"
+            "default_resource.yml",
+            "example_gradient.yml"
     );
 
     public LoreFormatRegistry(EmakiAttributePlugin plugin) {

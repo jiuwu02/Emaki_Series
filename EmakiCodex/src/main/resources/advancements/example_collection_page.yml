@@ -1,0 +1,119 @@
+# ============================================================
+# EmakiCodex 成就页示例 - 收藏图鉴
+# ============================================================
+# 演示点：
+# 1. 条件组 any_of / all_of 的写法
+# 2. 不同事件触发：block_break / player_fish / furnace_extract
+# 3. 节点坐标与完成动作
+# 节点 key 规则：emakicodex:<page_id>/<node_id>，本页即
+#   emakicodex:example_collection_page/collector
+# example_life 分类的 unlock.advancements 会引用本页节点。
+# 字段依据：docs/modules/codex/advancements.md 与 triggers.md。
+# ============================================================
+
+page_id: "example_collection_page"
+title: "<gradient:#10B981:#3B82F6>收藏图鉴</gradient>"
+background: "minecraft:textures/gui/advancements/backgrounds/stone.png"
+root: "root"
+
+advancements:
+  root:
+    icon: "minecraft-chest"
+    title: "<gold>收藏之旅</gold>"
+    description: "<gray>记录你收集到的资源与生活足迹。</gray>"
+    frame: "task"
+    x: 0.0
+    y: 0.0
+    toast: false
+    announce: false
+    hidden: false
+
+  collector:
+    icon: "minecraft-diamond"
+    title: "<aqua>矿石收藏家</aqua>"
+    description: "<gray>挖到钻石或绿宝石矿石。</gray>"
+    frame: "task"
+    parent: "root"
+    x: 1.0
+    y: 0.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<aqua>你的矿石收藏开始了。</aqua>"
+    triggers:
+      entries:
+        - event: "block_break"
+          condition:
+            type: "any_of"
+            entries:
+              - '%block_type% == "DIAMOND_ORE"'
+              - '%block_type% == "DEEPSLATE_DIAMOND_ORE"'
+              - '%block_type% == "EMERALD_ORE"'
+
+  ore_expert:
+    icon: "minecraft-netherite_scrap"
+    title: "<light_purple>远古矿工</light_purple>"
+    description: "<gray>挖到远古残骸。</gray>"
+    frame: "goal"
+    parent: "root"
+    x: 2.0
+    y: 0.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<light_purple>你找到了远古残骸。</light_purple>"
+    triggers:
+      entries:
+        - event: "block_break"
+          condition:
+            type: "all_of"
+            entries:
+              - '%block_type% == "ANCIENT_DEBRIS"'
+
+  fisher:
+    icon: "minecraft-fishing_rod"
+    title: "<blue>钓鱼入门</blue>"
+    description: "<gray>成功钓到一条鱼。</gray>"
+    frame: "task"
+    parent: "root"
+    x: 1.0
+    y: 1.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<blue>第一条鱼上钩了。</blue>"
+    triggers:
+      entries:
+        - event: "player_fish"
+          condition:
+            type: "all_of"
+            entries:
+              - '%fish_state% == "CAUGHT_FISH"'
+
+  chef:
+    icon: "minecraft-cooked_beef"
+    title: "<gold>厨房新手</gold>"
+    description: "<gray>从熔炉取出一份熟牛肉。</gray>"
+    frame: "task"
+    parent: "root"
+    x: 2.0
+    y: 1.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<gold>你做出了第一份熟牛肉。</gold>"
+    triggers:
+      entries:
+        - event: "furnace_extract"
+          condition:
+            type: "all_of"
+            entries:
+              - '%result_type% == "COOKED_BEEF"'

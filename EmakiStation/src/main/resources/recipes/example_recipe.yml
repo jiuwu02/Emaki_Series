@@ -37,7 +37,7 @@ cost:
 # 需要 64 个时，30 个 coal + 34 个 charcoal 也算满足。
 # 单个配方的材料种类数不受 GUI 槽位数限制。仓库通道按 long 直扣，
 # 背包通道受原版每格 64 上限约束。
-# 物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_sword。
+# 物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_item。
 # 下面 matcher 里 component 的组件 ID 与 path 资源 ID 用【冒号】。
 # 两种分配模型，按本配方是否出现 matcher 决定，一个配方只走其中一种：
 #   1) 全部材料只写 item_sources（下面第一条）——沿用原有聚合计数模型，

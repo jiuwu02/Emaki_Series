@@ -22,6 +22,8 @@ public final class TriggerScriptBridge {
     private static final String BINDING_NAME = "triggers";
     private static final String EXAMPLE_RESOURCE = "scripts/triggers/example_trigger.js";
     private static final String EXAMPLE_TARGET = "triggers/example_trigger.js";
+    private static final String EXAMPLE_COLLECT_RESOURCE = "scripts/triggers/example_collect_trigger.js";
+    private static final String EXAMPLE_COLLECT_TARGET = "triggers/example_collect_trigger.js";
 
     private final EmakiCodexPlugin plugin;
     private final Path scriptsDirectory;
@@ -162,8 +164,13 @@ public final class TriggerScriptBridge {
         if (Files.isDirectory(scriptsDirectory)) {
             return;
         }
-        Path target = scriptsDirectory.resolve(EXAMPLE_TARGET);
-        try (InputStream resource = plugin.getResource(EXAMPLE_RESOURCE)) {
+        releaseExampleScript(EXAMPLE_RESOURCE, EXAMPLE_TARGET);
+        releaseExampleScript(EXAMPLE_COLLECT_RESOURCE, EXAMPLE_COLLECT_TARGET);
+    }
+
+    private void releaseExampleScript(String resourcePath, String targetPath) {
+        Path target = scriptsDirectory.resolve(targetPath);
+        try (InputStream resource = plugin.getResource(resourcePath)) {
             if (resource == null) {
                 plugin.messageService().warning("console.script_release_failed",
                         Map.of("reason", "内置资源缺失"));

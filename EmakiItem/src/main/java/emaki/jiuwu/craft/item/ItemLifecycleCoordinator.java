@@ -71,6 +71,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "emakiitem";
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("items/example_item.yml",
+            "items/example_guardian_helmet.yml",
+            "items/example_guardian_chestplate.yml",
+            "items/example_guardian_boots.yml",
+            "items/example_ring.yml",
+            "items/example_necklace.yml",
+            "items/example_charm.yml",
+            "items/example_branch_blade.yml",
             "items/example_pack/pack.yml",
             "items/example_pack/example_pack_item.yml",
             "sets/example_set.yml",

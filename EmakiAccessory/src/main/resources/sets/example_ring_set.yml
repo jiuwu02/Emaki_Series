@@ -1,0 +1,44 @@
+# ============================================================
+# EmakiAccessory 饰品套装示例 - 回响饰品套
+# ============================================================
+# 演示功能: 饰品套装 pieces + slot 部位匹配 + 分档阈值 + 属性与技能奖励。
+# 生效方式: 三件饰品分别戴在 ring / necklace / charm 槽位，且所在页为生效页。
+# 依赖模块: EmakiAccessory；pieces.item 引用 EmakiItem 物品定义，
+#           ea_attributes 接入 EmakiAttribute，es_skills 接入 EmakiSkills。
+# 注意: 缺少 EmakiItem 时整个套装不生效；缺少 EmakiAttribute / EmakiSkills 时
+#       对应那一半奖励自动失效，套装件数统计仍照常工作。
+# ============================================================
+id: "example_ring_set"
+display_name: "<gold>回响饰品套</gold>"
+
+pieces:
+  ring:
+    item: "example_ring"
+    slot: "ring"
+    display: "<gray>回响戒指</gray>"
+
+  necklace:
+    item: "example_necklace"
+    slot: "necklace"
+    display: "<gray>回响项链</gray>"
+
+  charm:
+    item: "example_charm"
+    slot: "charm"
+    display: "<gray>回响护符</gray>"
+
+# 阈值累计生效：戴够 3 件时，2 件档与 3 件档同时生效。
+thresholds:
+  2:
+    effects:
+      - ea_attributes:
+          physical_attack: 3.0
+          physical_defense: 2.0
+
+  3:
+    effects:
+      - ea_attributes:
+          physical_attack: 4.0
+          physical_crit_rate: 2.0
+        es_skills:
+          - "guardian_dash"

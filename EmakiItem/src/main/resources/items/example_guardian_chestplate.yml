@@ -1,0 +1,67 @@
+# ============================================================
+# EmakiItem 示例：守护者胸甲
+# ============================================================
+# 演示功能：
+#   - equip_slot 限定为胸甲槽，set 归属 example_set 的 chestplate 部件
+#   - ea_attribute 同时写入防御与生命上限属性
+#   - update 版本号机制：修改定义后递增 version 可刷新已有物品
+# 获得方式：/ei give <玩家> example_guardian_chestplate
+# 依赖：EmakiAttribute（属性生效）；套装阈值技能由 EmakiSkills 提供
+# ============================================================
+
+id: "example_guardian_chestplate"
+
+# ============================================================
+# 基础物品与原版组件
+# ============================================================
+item:
+  item_source: "minecraft-iron_chestplate"
+  components:
+    custom_name: "<aqua>守护者胸甲</aqua>"
+    lore:
+      - "<gray>示例守护者套装的胸甲部件</gray>"
+      - ""
+      - "<yellow>物理防御: <white>+%physical_defense%</white></yellow>"
+      - "<yellow>生命上限: <white>+%health%</white></yellow>"
+      - ""
+      - "<dark_gray>集齐头盔 / 胸甲 / 战靴可激活套装阈值</dark_gray>"
+    max_stack_size: 1
+    rarity: "uncommon"
+    max_damage: 300
+    enchantable: 10
+
+equip_slot: "chestplate"
+
+# ============================================================
+# 物品效果
+# ============================================================
+effects:
+  - type: "variables"
+    variables:
+      physical_defense: 7
+      health: 8
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_defense: 7.0
+      health: 8.0
+
+# ============================================================
+# 套装归属
+# ============================================================
+set:
+  id: "example_set"
+  piece: "chestplate"
+
+# ============================================================
+# 物品更新策略
+# ============================================================
+# 修改本文件后递增 version，已发放的旧物品会在更新触发时机重建。
+update:
+  enabled: true
+  version: 1
+  preserve_amount: true
+  preserve_damage: true
+  triggers:
+    join: true
+    held_change: true
+    command: true

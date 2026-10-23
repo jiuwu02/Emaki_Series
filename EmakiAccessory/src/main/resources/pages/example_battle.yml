@@ -1,0 +1,24 @@
+# ============================================================
+# EmakiAccessory 饰品页示例 - 战斗饰品页
+# ============================================================
+# 演示功能: 新增独立饰品页，复用 parts.yml 的四个部位与 accessory_gui 布局。
+# 可达方式: gui/accessory_gui.yml 中已补充键名为 example_battle 的 page_switch 格，
+#           点击即可切换到本页；之后再点 page_enable 才会成为生效页。
+# 依赖模块: EmakiAccessory (本模块)；部位来自 parts.yml，布局来自 gui_template。
+# 权限: 留空表示不限制，所有能打开饰品栏的玩家都可切换。
+# ============================================================
+page_id: "example_battle"
+display_name: "<red>战斗饰品页</red>"
+
+# 页面排序，数值越小越靠前；跟随 main(1) / secondary(2) 之后。
+order: 3
+
+gui_template: "accessory_gui"
+permission: ""
+
+# 四个部位全部启用，对应布局中 necklace_1 / ring_1 / ring_2 / belt_1 / charm_1 / charm_2。
+parts:
+  - "necklace"
+  - "ring"
+  - "belt"
+  - "charm"

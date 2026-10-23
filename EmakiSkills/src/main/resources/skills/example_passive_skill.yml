@@ -1,0 +1,107 @@
+# ============================================================
+# EmakiSkills 技能定义示例 - 被动反击
+# ============================================================
+# 演示功能: 被动技能 + passive_triggers + 脚本动作 + 本地资源 + 材料升级。
+# 触发方式: 攻击命中实体时自动触发 (attack)，对命中目标追加伤害并治疗自己。
+# 依赖模块: EmakiSkills (本模块)；资源使用本地资源 example_resource，不依赖 Vault/PAPI/MythicMobs。
+# 如何获得: 管理员执行 /eskills grant <玩家> example_passive_skill，
+#           或由 EmakiItem 物品的 es_skill 效果授予。
+# ============================================================
+
+id: "example_passive_skill"
+
+display_name: "<green>荆棘回响</green>"
+
+description:
+  - "<gray>攻击命中时，荆棘之力追加一次伤害</gray>"
+  - "<gray>同时为自己恢复少量生命值</gray>"
+
+icon_material: "shield"
+
+# 被动技能: 不在主动技能槽中出现，由 passive_triggers 自动派发。
+trigger_type: "passive"
+show_in_slots: false
+
+passive_triggers:
+  - "attack"
+
+# 触发间隔限制（tick，20 tick = 1 秒），避免每次普攻都追加伤害。
+cooldown_ticks: 80
+
+lore_aliases:
+  - "荆棘回响"
+tags:
+  - "passive"
+tab_tags:
+  - "example"
+ui_category: "passive"
+sort_order: 40
+
+enabled: true
+
+# 本地资源消耗；target_id 必须是 resources/ 下定义过的资源 id。
+resource_costs:
+  - type: "local-resource"
+    target_id: "example_resource"
+    amount: 4.0
+    operation: "consume"
+    failure_message: "<red>示例魔力不足，无法触发荆棘回响。</red>"
+
+variables:
+  # 追加伤害随技能等级成长。
+  bonus_damage:
+    type: "expression"
+    value: "6 + (%level% - 1) * 3"
+    decimals: 1
+    min: 1
+
+  heal_amount:
+    type: "expression"
+    value: "2 + (%level% - 1)"
+    decimals: 1
+    min: 1
+
+  proc_message:
+    type: "random_text"
+    lines:
+      - "<green>荆棘回响：额外伤害已追加。</green>"
+      - "<green>回响之力反击！</green>"
+      - "<green>荆棘缠绕了目标。</green>"
+
+script:
+  enabled: true
+  mode: "native"
+  stop_on_failure: true
+
+  actions:
+    # attack 被动触发时，trigger 指向被攻击的实体。
+    cast:
+      - "trigger | damage amount=%var.bonus_damage%"
+      - "self | heal amount=%var.heal_amount%"
+      - "self | play_sound sound=minecraft:block.azalea_leaves.hit volume=0.8 pitch=1.4"
+      - 'self | send_message text="%var.proc_message%"'
+
+upgrade:
+  enabled: true
+  max_level: 3
+  # 不启用经济消耗，避免依赖 Vault；只使用原版材料。
+  economy:
+    enabled: false
+  success_rates:
+    2: 100.0
+    3: 80.0
+  failure_penalty: "none"
+  levels:
+    2:
+      materials:
+        - item_sources:
+            - "minecraft-vine"
+          amount: 4
+    3:
+      materials:
+        - item_sources:
+            - "minecraft-nether_star"
+          amount: 1
+      actions:
+        success:
+          - 'send_message text="<green>荆棘回响达到满级。</green>"'

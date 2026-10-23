@@ -1,0 +1,59 @@
+# ============================================================
+# EmakiCoreLib 对话框示例 - 多按钮商店
+# 演示：multi_action 多按钮、single_option / number_range 输入控件、
+#       command_template 点击动作与 $(key) 输入项替换。
+# 说明：对话框动作以玩家身份执行，示例使用原版 /give；
+#       实际运营时请替换成服务器的购买命令，并给对应权限。
+# 需要 Minecraft 1.21.6+ 客户端才能看到原版对话框。
+# ============================================================
+id: "example_shop"
+
+type: "multi_action"
+title: "<gold>示例商店</gold>"
+can_close_with_escape: true
+pause: false
+after_action: "close"
+columns: 2
+
+body:
+  - "<gray>选择商品和数量，然后点击购买。</gray>"
+  - text: "<yellow>示例商品会在购买后直接发放。</yellow>"
+    width: 320
+
+# 输入控件的 key 会作为 command_template 中 $(key) 的取值来源
+inputs:
+  - type: "single_option"
+    key: "product"
+    label: "<white>商品</white>"
+    options:
+      - id: "emerald"
+        display: "<green>绿宝石</green>"
+        initial: true
+      - id: "diamond"
+        display: "<aqua>钻石</aqua>"
+      - id: "gold_ingot"
+        display: "<gold>金锭</gold>"
+  - type: "number_range"
+    key: "amount"
+    label: "<white>数量</white>"
+    start: 1
+    end: 8
+    step: 1
+    width: 240
+
+buttons:
+  - label: "<green>购买</green>"
+    tooltip: "<gray>获得 minecraft:$(product) x$(amount)</gray>"
+    width: 140
+    action:
+      type: "command_template"
+      template: "give @s minecraft:$(product) $(amount)"
+  - label: "<gray>重置</gray>"
+    tooltip: "<gray>关闭后重新打开即可重置输入</gray>"
+    width: 120
+    action:
+      type: "none"
+  - label: "<red>关闭</red>"
+    width: 100
+    action:
+      type: "none"

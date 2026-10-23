@@ -1,0 +1,87 @@
+# ============================================================
+# EmakiGem 宝石示例：攻击宝石
+# ============================================================
+# 演示功能：最基础的攻击向宝石，提供固定物理攻击，演示
+#   base_item_source（构造底材）、item_sources（识别来源）、
+#   effects（variables / ea_attribute / 名称与 Lore 操作）、
+#   socket_compatibility（插槽兼容）、inlay_cost / extract_cost 与提取返还。
+# 镶嵌位置：attack 攻击插槽，或 universal 通用插槽。
+# 依赖：EmakiCoreLib（必需）；EmakiAttribute 提供 ea_attribute 属性输出；
+#   EmakiStrengthen 仅用于升级，本宝石没有 stages，不依赖它。
+# 经济说明：只配置材料费用，未写 currencies，因此未安装 Vault 也能正常使用。
+# ============================================================
+
+id: "example_attack_gem"
+
+display_name: "<red>锐击宝石</red>"
+
+lore:
+  - "<gray>镶嵌在攻击或通用插槽上，提升物理攻击。</gray>"
+
+# 宝石类型，用于插槽兼容性匹配
+gem_type: "attack"
+
+level: 1
+
+# 构造底材：发放宝石时用哪种物品造出实物（只负责造，不负责认）
+base_item_source: "minecraft-quartz"
+
+# 识别判定：与同级 matcher 取 AND；本文件只按物品来源识别
+item_sources:
+  - "minecraft-quartz"
+
+custom_model_data: 1201
+
+# ============================================================
+# 宝石效果
+# ============================================================
+effects:
+  - type: "variables"
+    variables:
+      physical_attack: 6
+  - type: "ea_attribute"
+    ea_attributes:
+      physical_attack: 6.0
+  - type: "name_action"
+    name_actions:
+      - action: "append_suffix"
+        value: " <red>[%display_name%]</red>"
+  - type: "lore_action"
+    lore_actions:
+      - action: "append"
+        content:
+          - "<red>◆ %display_name%: 物理攻击+%physical_attack%</red>"
+
+# 允许镶嵌的插槽类型
+socket_compatibility:
+  - "attack"
+  - "universal"
+
+# ============================================================
+# 镶嵌与拆卸费用
+# ============================================================
+# 只使用材料费用；如需额外收货币，可自行补 currencies 段
+# （provider / currency_id / amount / base_cost / cost_formula / display_name）。
+inlay_cost:
+  materials:
+    - item_sources:
+        - "minecraft-iron_ingot"
+      amount: 1
+
+extract_cost:
+  materials:
+    - item_sources:
+        - "minecraft-iron_nugget"
+      amount: 1
+
+extract_return:
+  mode: "original"
+  downgrade_levels: 1
+  degraded_chance: 0.0
+
+actions:
+  inlay_success:
+    - 'send_message text="<green>锐击宝石镶嵌成功！</green>"'
+    - "play_sound sound=minecraft:block.enchantment_table.use volume=1 pitch=1.2"
+  extract_success:
+    - 'send_message text="<yellow>锐击宝石已拆卸。</yellow>"'
