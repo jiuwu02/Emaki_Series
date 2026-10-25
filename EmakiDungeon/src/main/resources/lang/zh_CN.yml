@@ -5,7 +5,7 @@
 version: "1.0.3"
 
 general:
-  prefix: "<gray>[ <gradient:#93C5FD:#60A5FA>EmakiDungeon</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此命令</red>"
   player_only: "<red>此命令只能由玩家执行</red>"
   invalid_args: "<red>参数错误</red>"
@@ -15,7 +15,7 @@ general:
 
 command:
   help: |
-    <gray>========== </gray><gradient:#93C5FD:#60A5FA>EmakiDungeon 命令</gradient><gray> ==========</gray>
+    <gray>========== </gray><gradient:#1E3A8A:#8B5CF6>EmakiDungeon 命令</gradient><gray> ==========</gray>
     <gray>/edg help</gray> <white>查看命令帮助</white>
     <gray>/edg list</gray> <white>查看副本列表</white>
     <gray>/edg enter <副本ID></gray> <white>进入副本 (组队时由队长发起)</white>
@@ -135,7 +135,7 @@ gui:
     cancel_lore: "<gray>点击取消本次挑战</gray>"
 
 party:
-  chat_format: "<gradient:#93C5FD:#60A5FA>[队伍]</gradient> <gold><player></gold>: <white><message></white>"
+  chat_format: "<gradient:#1E3A8A:#8B5CF6>[队伍]</gradient> <gold><player></gold>: <white><message></white>"
   invite_sent: "<yellow>已邀请 <player> 加入队伍</yellow>"
   invite_received: "<yellow><player> 邀请你加入队伍, /edg party accept 接受, /edg party deny 拒绝</yellow>"
   apply_received: "<yellow><player> 申请加入你的队伍, /edg party accept 批准, /edg party deny 拒绝</yellow>"
@@ -229,7 +229,7 @@ editor:
   field_updated: "<green>已更新 <field> -> <value> (保存后生效)</green>"
   field_failed: "<red>字段写入失败: <error></red>"
   gui:
-    title: "<gradient:#93C5FD:#60A5FA>副本编辑器</gradient> <gray><dungeon></gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>副本编辑器</gradient> <gray><dungeon></gray>"
     meta: "<white>副本元数据</white>"
     waves: "<white>刷怪点与波次</white>"
     gates: "<white>门禁</white>"
@@ -311,7 +311,7 @@ drop:
 rewardbox:
   disabled: "<yellow>奖励箱功能当前未启用, 副本奖励将直接进入背包</yellow>"
   gui:
-    title: "<gradient:#93C5FD:#60A5FA>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
     prev: "<white>上一页</white>"
     next: "<white>下一页</white>"
     toggle_on: "<green>自动流入: 开</green><gray> (点击关闭)</gray>"

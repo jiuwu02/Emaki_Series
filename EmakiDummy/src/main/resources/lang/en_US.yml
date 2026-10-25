@@ -5,14 +5,14 @@
 version: "1.0.2"
 
 general:
-  prefix: "<gray>[ <gradient:#7CFFB2:#40E0D0>EmakiDummy</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to run this command</red>"
   invalid_args: "<red>Invalid arguments</red>"
   unknown_command: "<red>Unknown subcommand: %sub%. Use /emdum help for help</red>"
 
 command:
   help: |
-    <gray>========== </gray><gradient:#7CFFB2:#40E0D0>EmakiDummy Commands</gradient><gray> ==========</gray>
+    <gray>========== </gray><gradient:#22D3EE:#14B8A6>EmakiDummy Commands</gradient><gray> ==========</gray>
     <gray>/emdum join [name]</gray> <white>Let a dummy join the server (auto name if omitted)</white>
     <gray>/emdum leave <name></gray> <white>Disconnect the given dummy</white>
     <gray>/emdum say <name> <text></gray> <white>Make the dummy send chat</white>

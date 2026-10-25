@@ -44,7 +44,7 @@ final class StructureLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStructurePlugin, StructureRuntimeComponents> {
 
     private static final String DEFAULT_PREFIX =
-            "<gray>[<gradient:#86EFAC:#34D399>EmakiStructure</gradient>]</gray> ";
+            "<gray>[<gradient:#F59E0B:#F97316>EmakiStructure</gradient>]</gray> ";
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of();
     private static final List<String> DEFAULT_DATA_FILES = List.of();

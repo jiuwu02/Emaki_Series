@@ -5,14 +5,14 @@
 version: "1.0.2"
 
 general:
-  prefix: "<gray>[ <gradient:#7CFFB2:#40E0D0>EmakiDummy</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"
   no_permission: "<red>你没有权限执行此命令</red>"
   invalid_args: "<red>参数错误</red>"
   unknown_command: "<red>未知子命令: %sub%, 请使用 /emdum help 查看帮助</red>"
 
 command:
   help: |
-    <gray>========== </gray><gradient:#7CFFB2:#40E0D0>EmakiDummy 命令</gradient><gray> ==========</gray>
+    <gray>========== </gray><gradient:#22D3EE:#14B8A6>EmakiDummy 命令</gradient><gray> ==========</gray>
     <gray>/emdum join [名字]</gray> <white>让假人进服 (省略名字自动生成)</white>
     <gray>/emdum leave <名字></gray> <white>断开指定假人</white>
     <gray>/emdum say <名字> <文本></gray> <white>假人发送聊天</white>

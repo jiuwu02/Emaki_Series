@@ -47,8 +47,8 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
  \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\/\\_____\\ \\ \\_\\ \\ \\_\\ \\_\\ \\_____\\ \\_____\\ \\_\\ \\ \\_____\\ \\_\\ \\_\\ \\_____\\
   \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/_____/  \\/_/  \\/_/ /_/\\/_____/\\/_____/  \\/_/  \\/_____/\\/_/ /_/\\/_____/
 """;
-    private static final int STARTUP_ASCII_START_COLOR = 0x86EFAC;
-    private static final int STARTUP_ASCII_END_COLOR = 0x34D399;
+    private static final int STARTUP_ASCII_START_COLOR = 0xF59E0B;
+    private static final int STARTUP_ASCII_END_COLOR = 0xF97316;
     private static final int BSTATS_PLUGIN_ID = 34642;
 
     private final StructureLifecycleCoordinator lifecycleCoordinator = new StructureLifecycleCoordinator();

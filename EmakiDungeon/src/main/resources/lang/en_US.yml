@@ -5,7 +5,7 @@
 version: "1.0.3"
 
 general:
-  prefix: "<gray>[ <gradient:#93C5FD:#60A5FA>EmakiDungeon</gradient> ]</gray>"
+  prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
   no_permission: "<red>You do not have permission to run this command</red>"
   player_only: "<red>This command can only be executed by a player</red>"
   invalid_args: "<red>Invalid arguments</red>"
@@ -15,7 +15,7 @@ general:
 
 command:
   help: |
-    <gray>========== </gray><gradient:#93C5FD:#60A5FA>EmakiDungeon Commands</gradient><gray> ==========</gray>
+    <gray>========== </gray><gradient:#1E3A8A:#8B5CF6>EmakiDungeon Commands</gradient><gray> ==========</gray>
     <gray>/edg help</gray> <white>Show command help</white>
     <gray>/edg list</gray> <white>List dungeons</white>
     <gray>/edg enter <dungeonId></gray> <white>Enter a dungeon (party leader starts a challenge)</white>
@@ -135,7 +135,7 @@ gui:
     cancel_lore: "<gray>Click to cancel this challenge</gray>"
 
 party:
-  chat_format: "<gradient:#93C5FD:#60A5FA>[Party]</gradient> <gold><player></gold>: <white><message></white>"
+  chat_format: "<gradient:#1E3A8A:#8B5CF6>[Party]</gradient> <gold><player></gold>: <white><message></white>"
   invite_sent: "<yellow>Invited <player> to the party</yellow>"
   invite_received: "<yellow><player> invited you to a party, /edg party accept to join, /edg party deny to refuse</yellow>"
   apply_received: "<yellow><player> asked to join your party, /edg party accept to approve, /edg party deny to refuse</yellow>"
@@ -229,7 +229,7 @@ editor:
   field_updated: "<green>Updated <field> -> <value> (applies on save)</green>"
   field_failed: "<red>Failed to update the field: <error></red>"
   gui:
-    title: "<gradient:#93C5FD:#60A5FA>Dungeon Editor</gradient> <gray><dungeon></gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>Dungeon Editor</gradient> <gray><dungeon></gray>"
     meta: "<white>Dungeon metadata</white>"
     waves: "<white>Spawn points and waves</white>"
     gates: "<white>Gates</white>"
@@ -311,7 +311,7 @@ drop:
 rewardbox:
   disabled: "<yellow>The reward box is disabled, dungeon rewards go straight to your inventory</yellow>"
   gui:
-    title: "<gradient:#93C5FD:#60A5FA>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
+    title: "<gradient:#1E3A8A:#8B5CF6>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
     prev: "<white>Previous page</white>"
     next: "<white>Next page</white>"
     toggle_on: "<green>Auto deposit: ON</green><gray> (click to disable)</gray>"
