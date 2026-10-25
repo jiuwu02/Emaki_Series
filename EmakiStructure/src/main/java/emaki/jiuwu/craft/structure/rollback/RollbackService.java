@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 
@@ -403,8 +404,8 @@ public final class RollbackService implements Runnable {
                     + exception.getMessage());
         }
         registerPartial(name + SUFFIX_PARTIAL);
-        plugin.debugLogger().log("structure", (java.util.UUID) null, "rollback_partial",
-                java.util.Map.of("file", name + SUFFIX_PARTIAL));
+        plugin.debugLogger().log("structure", (UUID) null, "rollback_partial",
+                Map.of("file", name + SUFFIX_PARTIAL));
     }
 
     private void registerPartial(String name) {

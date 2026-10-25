@@ -20,12 +20,13 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEvent;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEventListener;
+import java.util.HashSet;
 
 public final class FurnitureEventRelay implements Listener {
 
     private final JavaPlugin owner;
     private final Map<String, Listener> registeredSources = new LinkedHashMap<>();
-    private final Set<String> failedSources = new java.util.HashSet<>();
+    private final Set<String> failedSources = new HashSet<>();
     private final Map<Plugin, FurnitureEventListener> subscribers = new LinkedHashMap<>();
 
     public FurnitureEventRelay(JavaPlugin owner) {

@@ -39,7 +39,7 @@ public final class SnapshotsStore {
         File target = new File(dir, playerId + ".yml");
         try {
             Files.createDirectories(dir.toPath());
-            Path temp = target.toPath().resolveSibling(target.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
+            Path temp = target.toPath().resolveSibling(target.getName() + "." + UUID.randomUUID() + ".tmp");
             YamlFiles.save(temp.toFile(), snapshot.serialize().asMap());
             try {
                 Files.move(temp, target.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

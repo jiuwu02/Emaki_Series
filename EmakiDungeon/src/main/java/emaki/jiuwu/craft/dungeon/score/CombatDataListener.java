@@ -14,6 +14,8 @@ import org.bukkit.potion.PotionEffectType;
 
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.entity.Entity;
 
 public final class CombatDataListener implements Listener {
 
@@ -80,7 +82,7 @@ public final class CombatDataListener implements Listener {
                 if (!(affected instanceof Player target)) {
                     continue;
                 }
-                var maxHealth = target.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+                var maxHealth = target.getAttribute(Attribute.MAX_HEALTH);
                 double missing = (maxHealth == null ? 20.0D : maxHealth.getValue()) - target.getHealth();
                 if (missing <= 0.0D) {
                     continue;
@@ -96,7 +98,7 @@ public final class CombatDataListener implements Listener {
                 .anyMatch(effect -> effect.getType().equals(PotionEffectType.INSTANT_HEALTH));
     }
 
-    private static Player resolvePlayer(org.bukkit.entity.Entity damager) {
+    private static Player resolvePlayer(Entity damager) {
         if (damager instanceof Player player) {
             return player;
         }

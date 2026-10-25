@@ -12,6 +12,9 @@ import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import java.util.HashSet;
+import java.util.Locale;
+import java.util.Set;
 
 final class FermentationBarrelStateCodec {
 
@@ -69,8 +72,8 @@ final class FermentationBarrelStateCodec {
         state.setCompleted(section.getBoolean("fermentation_barrel.completed", false));
         state.setActiveRecipeId(section.getString("fermentation_barrel.active_recipe_id", ""));
         state.setPlayerContext(CookingRuntimeUtil.parseUuid(section.getString("fermentation_barrel.player_uuid", "")), section.getString("fermentation_barrel.player_name", ""));
-        java.util.Set<Integer> seenIndexes = new java.util.HashSet<>();
-        java.util.Set<String> seenSlotIds = new java.util.HashSet<>();
+        Set<Integer> seenIndexes = new HashSet<>();
+        Set<String> seenSlotIds = new HashSet<>();
         boolean sawLegacySlotId = false;
         boolean sawExplicitSlotId = false;
         for (Map<?, ?> raw : section.getMapList("gui_slots")) {
@@ -104,7 +107,7 @@ final class FermentationBarrelStateCodec {
                 }
                 state.setSlot(index, source, source, source, item, amount);
             } else {
-                String normalizedSlotId = slotId.trim().toLowerCase(java.util.Locale.ROOT);
+                String normalizedSlotId = slotId.trim().toLowerCase(Locale.ROOT);
                 if (!seenSlotIds.add(normalizedSlotId)) {
                     state.markInvalid();
                     continue;

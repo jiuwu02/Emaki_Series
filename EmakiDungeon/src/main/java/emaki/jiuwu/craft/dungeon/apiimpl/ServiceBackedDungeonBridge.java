@@ -35,6 +35,8 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import java.util.function.Function;
 
 public final class ServiceBackedDungeonBridge implements EmakiDungeonApi.Bridge {
 
@@ -43,16 +45,16 @@ public final class ServiceBackedDungeonBridge implements EmakiDungeonApi.Bridge 
     private final PartyService parties;
     private final InstanceRegistry registry;
     private final InstanceCoordinator coordinator;
-    private final java.util.function.Function<String, DungeonConfig> configOf;
-    private final emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private final Function<String, DungeonConfig> configOf;
+    private final ScriptRuntimeManager scriptManager;
 
     public ServiceBackedDungeonBridge(ApiStatus status,
             ChallengeService challenge,
             PartyService parties,
             InstanceRegistry registry,
             InstanceCoordinator coordinator,
-            java.util.function.Function<String, DungeonConfig> configOf,
-            emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+            Function<String, DungeonConfig> configOf,
+            ScriptRuntimeManager scriptManager) {
         this.status = status;
         this.challenge = challenge;
         this.parties = parties;

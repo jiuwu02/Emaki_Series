@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.LinkedHashSet;
 
 public final class ActionInterpreter {
 
@@ -348,8 +349,8 @@ public final class ActionInterpreter {
             if (current.failureKind() != null) {
                 return current;
             }
-            java.util.LinkedHashSet<CoreActionSubject> unique =
-                    new java.util.LinkedHashSet<>(merged);
+            LinkedHashSet<CoreActionSubject> unique =
+                    new LinkedHashSet<>(merged);
             return current.recovered().withFlow(new ArrayList<>(unique));
         });
     }

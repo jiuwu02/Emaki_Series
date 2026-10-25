@@ -9,6 +9,7 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
@@ -42,7 +43,7 @@ public final class SetGameRuleStage extends BaseStage {
         GameRule<?> rule = lookupRule(ruleName);
         if (rule == null) {
             return CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.INVALID_CONFIG,
+                    CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.set_game_rule.unknown_rule",
                     Map.of("rule", ruleName));
         }
@@ -50,7 +51,7 @@ public final class SetGameRuleStage extends BaseStage {
         Object parsed = parseValue(rule, rawValue);
         if (parsed == null) {
             return CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.INVALID_CONFIG,
+                    CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.set_game_rule.invalid_value",
                     Map.of("rule", ruleName, "value", rawValue));
         }

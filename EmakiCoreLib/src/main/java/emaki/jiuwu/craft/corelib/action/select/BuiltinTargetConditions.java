@@ -215,7 +215,7 @@ public final class BuiltinTargetConditions {
         }
     }
 
-    private static java.util.function.BiFunction<TargetFacts, CoreTargetConditionArguments, CoreTargetOutcome> flag(String key) {
+    private static BiFunction<TargetFacts, CoreTargetConditionArguments, CoreTargetOutcome> flag(String key) {
         return (facts, arguments) -> {
             if (!facts.present()) {
                 return CoreTargetOutcome.UNKNOWN;

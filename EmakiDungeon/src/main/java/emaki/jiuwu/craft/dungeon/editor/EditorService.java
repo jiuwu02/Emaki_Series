@@ -30,11 +30,20 @@ import emaki.jiuwu.craft.corelib.editor.EditorValidator;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
+import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
+import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.nio.file.Path;
+import org.bukkit.block.Block;
+import org.bukkit.block.data.BlockData;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class EditorService implements Listener {
 
@@ -67,7 +76,7 @@ public final class EditorService implements Listener {
         return MARK_TYPES;
     }
 
-    private final org.bukkit.plugin.java.JavaPlugin plugin;
+    private final JavaPlugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final MessageService messages;
     private final ChatInputService chatInput;
@@ -78,12 +87,12 @@ public final class EditorService implements Listener {
     private final File worldContainer;
     private final File dataFolder;
     private final Map<UUID, EditorSession> sessions = new ConcurrentHashMap<>();
-    private volatile emaki.jiuwu.craft.dungeon.world.WorldPool pool;
-    private volatile Map<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configCache;
-    private volatile emaki.jiuwu.craft.dungeon.challenge.ChallengeService challenge;
+    private volatile WorldPool pool;
+    private volatile Map<String, DungeonConfig> configCache;
+    private volatile ChallengeService challenge;
     private volatile EditorGui gui;
 
-    public EditorService(org.bukkit.plugin.java.JavaPlugin plugin,
+    public EditorService(JavaPlugin plugin,
             ExecutionDispatcher dispatcher,
             MessageService messages,
             ChatInputService chatInput,
@@ -105,15 +114,15 @@ public final class EditorService implements Listener {
         this.dataFolder = dataFolder;
     }
 
-    public void bindPool(emaki.jiuwu.craft.dungeon.world.WorldPool pool) {
+    public void bindPool(WorldPool pool) {
         this.pool = pool;
     }
 
-    public void bindConfigCache(Map<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configCache) {
+    public void bindConfigCache(Map<String, DungeonConfig> configCache) {
         this.configCache = configCache;
     }
 
-    public void bindChallenge(emaki.jiuwu.craft.dungeon.challenge.ChallengeService challenge) {
+    public void bindChallenge(ChallengeService challenge) {
         this.challenge = challenge;
     }
 
@@ -186,7 +195,7 @@ public final class EditorService implements Listener {
         sessions.remove(session.playerId());
         states.release(session.dungeonId());
         dispatcher.runAsync(plugin, () -> {
-            for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
+            for (Path candidate : WorldFolders
                     .allDirs(worldContainer, session.editWorldName())) {
                 WorldCloner.deleteTree(candidate);
             }
@@ -200,7 +209,7 @@ public final class EditorService implements Listener {
     private void mount(EditorSession session) {
         if (sessions.get(session.playerId()) != session) {
             dispatcher.runAsync(plugin, () -> {
-                for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
+                for (Path candidate : WorldFolders
                         .allDirs(worldContainer, session.editWorldName())) {
                     WorldCloner.deleteTree(candidate);
                 }
@@ -444,7 +453,7 @@ public final class EditorService implements Listener {
             messages.send(player, "editor.pos_missing", Map.of("which", "2"));
             return;
         }
-        org.bukkit.block.data.BlockData data;
+        BlockData data;
         try {
             data = Bukkit.createBlockData(rawBlock);
         } catch (IllegalArgumentException exception) {
@@ -500,12 +509,12 @@ public final class EditorService implements Listener {
             if (sessions.get(session.playerId()) != session) {
                 return;
             }
-            java.util.List<emaki.jiuwu.craft.dungeon.instance.WorldCommand> batch = session.queue().drain();
+            List<WorldCommand> batch = session.queue().drain();
             if (batch.isEmpty()) {
                 return;
             }
             session.inFlightAdd(batch.size());
-            for (emaki.jiuwu.craft.dungeon.instance.WorldCommand command : batch) {
+            for (WorldCommand command : batch) {
                 dispatcher.runAtLocation(plugin, anchor, () -> {
                     try {
                         command.execute();
@@ -525,11 +534,11 @@ public final class EditorService implements Listener {
         if (world != null) {
             return world.getWorldFolder();
         }
-        java.nio.file.Path fallback = emaki.jiuwu.craft.dungeon.world.WorldFolders
+        Path fallback = WorldFolders
                 .dataDir(worldContainer, session.editWorldName());
-        for (java.nio.file.Path candidate : emaki.jiuwu.craft.dungeon.world.WorldFolders
+        for (Path candidate : WorldFolders
                 .allDirs(worldContainer, session.editWorldName())) {
-            if (java.nio.file.Files.isDirectory(candidate)) {
+            if (Files.isDirectory(candidate)) {
                 return candidate.toFile();
             }
         }
@@ -619,7 +628,7 @@ public final class EditorService implements Listener {
     }
 
     private FlowPoint lookPoint(Player player) {
-        org.bukkit.block.Block block = player.getTargetBlockExact(16);
+        Block block = player.getTargetBlockExact(16);
         if (block == null) {
             return null;
         }
@@ -846,7 +855,7 @@ public final class EditorService implements Listener {
     public void sweepLeftoverWorlds() {
         dispatcher.runAsync(plugin, () -> {
             int removed = 0;
-            for (java.nio.file.Path root : emaki.jiuwu.craft.dungeon.world.WorldFolders
+            for (Path root : WorldFolders
                     .sweepRoots(worldContainer)) {
                 File[] children = root.toFile().listFiles(File::isDirectory);
                 if (children == null) {
@@ -879,7 +888,7 @@ public final class EditorService implements Listener {
         if (!source.isFile() || session.origin() == null || session.origin().getWorld() == null) {
             return;
         }
-        File originDir = emaki.jiuwu.craft.dungeon.world.WorldFolders
+        File originDir = WorldFolders
                 .dataDir(worldContainer, session.origin().getWorld().getName())
                 .resolve("playerdata").toFile();
         try {
@@ -935,7 +944,7 @@ public final class EditorService implements Listener {
     }
 
     public void invalidateReserves(String dungeonId) {
-        emaki.jiuwu.craft.dungeon.world.WorldPool bound = pool;
+        WorldPool bound = pool;
         if (bound != null) {
             bound.invalidateAllReserves(dungeonId);
         }

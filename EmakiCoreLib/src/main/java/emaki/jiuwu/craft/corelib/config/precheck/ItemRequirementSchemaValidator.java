@@ -372,7 +372,7 @@ public final class ItemRequirementSchemaValidator {
         if (node == null) {
             return null;
         }
-        if (node instanceof Map<?, ?> || node instanceof emaki.jiuwu.craft.corelib.api.yaml.YamlSection) {
+        if (node instanceof Map<?, ?> || node instanceof YamlSection) {
             return new LinkedHashMap<>(ConfigNodes.entries(node));
         }
         return null;

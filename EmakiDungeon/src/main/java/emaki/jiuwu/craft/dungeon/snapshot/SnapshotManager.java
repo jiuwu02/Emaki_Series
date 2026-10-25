@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import java.util.Map;
 
 public final class SnapshotManager {
 
@@ -75,7 +76,7 @@ public final class SnapshotManager {
         UUID playerId = player.getUniqueId();
         PlayerSnapshot snapshot = snapshots.read(instanceId, playerId);
         if (snapshot == null) {
-            messages.send(player, "snapshot.missing", java.util.Map.of("instance", instanceId));
+            messages.send(player, "snapshot.missing", Map.of("instance", instanceId));
             return;
         }
         if (rollbackInventory) {

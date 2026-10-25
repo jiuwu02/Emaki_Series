@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import java.util.List;
 
 public final class HighestBlockSource extends BaseSource {
 
@@ -36,6 +37,6 @@ public final class HighestBlockSource extends BaseSource {
         if (block == null) {
             return CoreSourceResult.empty("action.source.highest_block.no_block");
         }
-        return CoreSourceResult.selected(java.util.List.of(CoreActionSubject.of(block.getLocation())));
+        return CoreSourceResult.selected(List.of(CoreActionSubject.of(block.getLocation())));
     }
 }

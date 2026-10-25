@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import java.util.Locale;
+import java.util.Set;
 
 public final class PerformanceMonitor implements AutoCloseable {
 
@@ -90,7 +92,7 @@ public final class PerformanceMonitor implements AutoCloseable {
         }
         lastMsptAlert = now;
         Map<String, String> fields = Map.of(
-                "p95", String.format(java.util.Locale.ROOT, "%.1f", p95),
+                "p95", String.format(Locale.ROOT, "%.1f", p95),
                 "threshold", String.valueOf(threshold));
         messages.warning("console.monitor_mspt_high", fields);
         audit.write("monitor", merge("kind", "mspt_p95", fields));
@@ -116,7 +118,7 @@ public final class PerformanceMonitor implements AutoCloseable {
         }
         lastMemoryAlert = now;
         Map<String, String> fields = Map.of(
-                "slope", String.format(java.util.Locale.ROOT, "%.1f", slopeMbPerMin),
+                "slope", String.format(Locale.ROOT, "%.1f", slopeMbPerMin),
                 "threshold", String.valueOf(threshold));
         messages.warning("console.monitor_memory_slope", fields);
         audit.write("monitor", merge("kind", "memory_slope", fields));
@@ -128,7 +130,7 @@ public final class PerformanceMonitor implements AutoCloseable {
             return;
         }
         long now = System.currentTimeMillis();
-        java.util.Set<String> seen = ConcurrentHashMap.newKeySet();
+        Set<String> seen = ConcurrentHashMap.newKeySet();
         for (DungeonInstance instance : registry.all()) {
             WorldCommandQueue queue = instance.commands();
             if (queue == null || queue.pending() <= 0) {

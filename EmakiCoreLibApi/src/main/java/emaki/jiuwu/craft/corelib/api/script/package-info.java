@@ -31,5 +31,6 @@
  *
  * @since 4.8.0
  */
-@org.jetbrains.annotations.ApiStatus.Experimental
+@ApiStatus.Experimental
 package emaki.jiuwu.craft.corelib.api.script;
+import org.jetbrains.annotations.ApiStatus;

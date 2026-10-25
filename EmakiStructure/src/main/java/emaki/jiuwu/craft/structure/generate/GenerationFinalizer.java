@@ -33,6 +33,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -75,16 +76,16 @@ public final class GenerationFinalizer {
         plugin.messageService().send(request.initiator(), rejection.reasonKey(), rejection.placeholders());
     }
 
-    private static java.util.UUID initiatorId(GenerationService.Request request) {
+    private static UUID initiatorId(GenerationService.Request request) {
         return request.initiator() instanceof Player player ? player.getUniqueId() : null;
     }
 
     private void debug(String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
-        if (logger == null || !logger.shouldLog("structure", (java.util.UUID) null)) {
+        if (logger == null || !logger.shouldLog("structure", (UUID) null)) {
             return;
         }
-        logger.log("structure", (java.util.UUID) null, langKey, replacements);
+        logger.log("structure", (UUID) null, langKey, replacements);
     }
 
     public void onSettled(GenerationService.Request request, GenerationJob job,

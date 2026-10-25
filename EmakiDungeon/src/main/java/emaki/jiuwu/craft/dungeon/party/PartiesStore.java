@@ -113,7 +113,7 @@ public final class PartiesStore {
 
     private void atomicWrite(Map<String, Object> values) throws IOException {
         Path target = file.toPath();
-        Path temp = target.resolveSibling(target.getFileName() + "." + java.util.UUID.randomUUID() + ".tmp");
+        Path temp = target.resolveSibling(target.getFileName() + "." + UUID.randomUUID() + ".tmp");
         YamlFiles.save(temp.toFile(), values);
         try {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

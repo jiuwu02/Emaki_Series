@@ -14,7 +14,11 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.PlaceholderBridge;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
@@ -28,13 +32,13 @@ public final class ActionDebugRunner {
     private ActionDebugRunner() {
     }
 
-    public static void registry(@Nullable emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry registry,
+    public static void registry(@Nullable StageRegistry registry,
             MessageWriter writer) {
         if (registry == null) {
             writer.send("command.action_unavailable");
             return;
         }
-        java.util.Map<emaki.jiuwu.craft.corelib.api.action.CoreStageKind, List<String>> byKind =
+        Map<CoreStageKind, List<String>> byKind =
                 registry.allIds();
         int total = byKind.values().stream().mapToInt(List::size).sum();
         writer.send("command.action_list_header", Map.of("count", String.valueOf(total)));
@@ -42,8 +46,8 @@ public final class ActionDebugRunner {
             writer.send("command.action_list_empty");
             return;
         }
-        for (emaki.jiuwu.craft.corelib.api.action.CoreStageKind kind
-                : emaki.jiuwu.craft.corelib.api.action.CoreStageKind.values()) {
+        for (CoreStageKind kind
+                : CoreStageKind.values()) {
             for (String id : byKind.getOrDefault(kind, List.of())) {
                 writer.send("command.action_list_item", Map.of(
                         "id", id,
@@ -54,8 +58,8 @@ public final class ActionDebugRunner {
     }
 
     private static String ownerNameOf(
-            emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry registry,
-            emaki.jiuwu.craft.corelib.api.action.CoreStageKind kind,
+            StageRegistry registry,
+            CoreStageKind kind,
             String id) {
         String owner = switch (kind) {
             case SOURCE -> registry.sources().ownerNameOf(id);
@@ -109,10 +113,10 @@ public final class ActionDebugRunner {
         }
         PipelineContext context = PipelineContext.root(owner,
                 caster == null
-                        ? emaki.jiuwu.craft.corelib.api.action.CoreActionSubject.absent()
-                        : emaki.jiuwu.craft.corelib.api.action.CoreActionSubject.of(caster),
+                        ? CoreActionSubject.absent()
+                        : CoreActionSubject.of(caster),
                 null, "command.action_debug", false,
-                emaki.jiuwu.craft.corelib.action.pipeline.PlaceholderBridge.noop())
+                PlaceholderBridge.noop())
                 .withVariables(Map.of(
                         "sender", sender.getName(),
                         "player", caster == null ? "" : caster.getName(),

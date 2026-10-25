@@ -4,6 +4,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -36,6 +38,7 @@ import emaki.jiuwu.craft.skills.script.SkillScriptCastService;
 import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.corelib.trigger.TriggerConflictResolver;
 import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
+import emaki.jiuwu.craft.skills.editor.SkillsEditorModule;
 
 record SkillsRuntimeComponents(
         YamlConfigLoader<AppConfig> appConfigLoader,
@@ -70,9 +73,9 @@ record SkillsRuntimeComponents(
         EaBridge eaBridge,
         ExternalManaBridge externalManaBridge,
         MythicBridge mythicBridge,
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
-        emaki.jiuwu.craft.skills.editor.SkillsEditorModule editorModule,
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService
+        ChatInputService chatInputService,
+        SkillsEditorModule editorModule,
+        EditorService editorService
 ) implements RuntimeComponents {
 
     @Override

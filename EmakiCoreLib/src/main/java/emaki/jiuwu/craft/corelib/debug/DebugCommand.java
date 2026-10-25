@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.debug;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -119,7 +121,7 @@ public final class DebugCommand {
     }
 
     private void handleAction(CommandSender sender, String[] args, AbstractMessageService messageService) {
-        emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin coreLib = lookupCoreLib();
+        EmakiCoreLibPlugin coreLib = lookupCoreLib();
         ActionDebugRunner.MessageWriter writer =
                 ActionDebugRunner.MessageWriter.of(messageService, sender);
         String[] tail = args.length > 1
@@ -130,7 +132,7 @@ public final class DebugCommand {
             writer.send("command.action_debug_usage");
             return;
         }
-        emaki.jiuwu.craft.corelib.action.pipeline.ActionEngine engine =
+        ActionEngine engine =
                 coreLib == null ? null : coreLib.actionEngine();
         if (invocation.mode() == ActionDebugRunner.Mode.CHECK) {
             ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
@@ -156,9 +158,9 @@ public final class DebugCommand {
                 invocation.mode() == ActionDebugRunner.Mode.SHADOW, writer, dispatch);
     }
 
-    private emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin lookupCoreLib() {
+    private EmakiCoreLibPlugin lookupCoreLib() {
         try {
-            return emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin.lookup();
+            return EmakiCoreLibPlugin.lookup();
         } catch (Exception exception) {
             return null;
         }

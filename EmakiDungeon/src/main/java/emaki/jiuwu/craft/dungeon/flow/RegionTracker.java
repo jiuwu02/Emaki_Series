@@ -15,6 +15,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.instance.EventIngress;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 
@@ -116,7 +117,7 @@ public final class RegionTracker {
                     payload.put(Facts.REGION_ENTERED, true);
                     payload.put("effect_tick", true);
                     runtime.instance().ingress().post(
-                            new emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent(
+                            new EventIngress.IngressEvent(
                                     EventIngressKeys.ZONE, zoneId, payload));
                 }
             }
@@ -159,7 +160,7 @@ public final class RegionTracker {
                 Map<String, Object> payload = basePayload(player);
                 payload.put(Facts.RANGE_PLAYERS, count);
                 runtime.instance().ingress().post(
-                        new emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent(
+                        new EventIngress.IngressEvent(
                                 EventIngressKeys.RANGE, spawnId, payload));
             }
         }
@@ -186,7 +187,7 @@ public final class RegionTracker {
             payload.put(Facts.REGION_LEFT, true);
         }
         runtime.instance().ingress().post(
-                new emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent(
+                new EventIngress.IngressEvent(
                         EventIngressKeys.ZONE, zoneId, payload));
     }
 

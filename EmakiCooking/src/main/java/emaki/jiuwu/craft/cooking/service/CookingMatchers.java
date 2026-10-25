@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
+import java.util.LinkedHashMap;
 
 final class CookingMatchers {
 
@@ -69,7 +70,7 @@ final class CookingMatchers {
         if (legacyMatcherMap != null) {
             String type = Texts.lower(String.valueOf(legacyMatcherMap.getOrDefault("type", "")));
             if (type.equals("item_source") || type.equals("item_sources") || type.equals("source") || type.equals("sources")) {
-                Map<String, Object> sourceOwner = new java.util.LinkedHashMap<>();
+                Map<String, Object> sourceOwner = new LinkedHashMap<>();
                 sourceOwner.put(ItemRequirement.KEY_ITEM_SOURCES, legacyMatcherMap.get("sources"));
                 return ItemRequirement.fromConfig(sourceOwner);
             }
@@ -79,7 +80,7 @@ final class CookingMatchers {
 
     private static Map<String, Object> matcherMap(Object value) {
         if (value instanceof YamlSection section) {
-            Map<String, Object> result = new java.util.LinkedHashMap<>();
+            Map<String, Object> result = new LinkedHashMap<>();
             for (String key : List.of("type", "sources")) {
                 if (section.contains(key)) {
                     result.put(key, section.get(key));

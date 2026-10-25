@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.script.host.ScriptCallbackException;
 import emaki.jiuwu.craft.corelib.script.host.ScriptCallbackRunner;
 import net.objecthunter.exp4j.function.Function;
+import org.jetbrains.annotations.Nullable;
 
 final class ScriptExpressionFunction extends Function {
 
@@ -53,7 +54,7 @@ final class ScriptExpressionFunction extends Function {
         }
     }
 
-    private void warnOnce(@org.jetbrains.annotations.Nullable ScriptCallbackException exception) {
+    private void warnOnce(@Nullable ScriptCallbackException exception) {
         if (!warned.compareAndSet(false, true)) {
             return;
         }

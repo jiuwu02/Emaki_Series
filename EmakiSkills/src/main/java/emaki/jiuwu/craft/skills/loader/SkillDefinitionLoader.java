@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.progression.TableProgression;
 import emaki.jiuwu.craft.skills.model.CostOperation;
 import emaki.jiuwu.craft.skills.model.ResourceCostType;
 import emaki.jiuwu.craft.skills.model.SkillActivationType;
@@ -263,7 +264,7 @@ public final class SkillDefinitionLoader extends YamlDirectoryLoader<SkillDefini
                 maxLevel,
                 section.getString("gui_template", SkillUpgradeConfig.DEFAULT_GUI_TEMPLATE),
                 economy,
-                new emaki.jiuwu.craft.corelib.progression.TableProgression<>(successRates, 100D),
+                new TableProgression<>(successRates, 100D),
                 section.getString("failure_penalty", "none"),
                 levels
         );

@@ -4,6 +4,7 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -13,6 +14,7 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.storage.config.AppConfig;
+import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
 import emaki.jiuwu.craft.storage.gui.StorageAmountFormatter;
 import emaki.jiuwu.craft.storage.gui.StorageGuiService;
 import emaki.jiuwu.craft.storage.gui.StorageLayoutResolver;
@@ -47,8 +49,8 @@ record StorageRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         StorageLayoutResolver layoutResolver,
         StorageAmountFormatter amountFormatter,
         StorageGuiService storageGuiService,
-        emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule,
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
+        StorageEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

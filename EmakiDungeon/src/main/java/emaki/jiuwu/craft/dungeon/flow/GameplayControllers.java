@@ -19,8 +19,18 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.Set;
+import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.loot.LootTable;
 
 public final class GameplayControllers implements FlowControllers {
 
@@ -36,7 +46,7 @@ public final class GameplayControllers implements FlowControllers {
     private volatile BiConsumer<String, Integer> tempItemHandler;
     private volatile Consumer<String> completeHandler;
     private volatile BiConsumer<String, String> endingHandler;
-    private volatile emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
+    private volatile RewardChestService rewardChests;
 
     public GameplayControllers(Plugin plugin,
             DungeonInstance instance,
@@ -65,7 +75,7 @@ public final class GameplayControllers implements FlowControllers {
         this.endingHandler = endingHandler;
     }
 
-    public void bindRewardChests(emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests) {
+    public void bindRewardChests(RewardChestService rewardChests) {
         this.rewardChests = rewardChests;
     }
 
@@ -125,17 +135,17 @@ public final class GameplayControllers implements FlowControllers {
         if (lootTable.isBlank()) {
             return;
         }
-        org.bukkit.NamespacedKey key = org.bukkit.NamespacedKey.fromString(lootTable);
+        NamespacedKey key = NamespacedKey.fromString(lootTable);
         if (key == null) {
             return;
         }
-        org.bukkit.loot.LootTable table = Bukkit.getLootTable(key);
+        LootTable table = Bukkit.getLootTable(key);
         if (table == null) {
             debug.logRaw("dungeon", (UUID) null,
                     "loot table missing | reward=" + rewardId + " | table=" + lootTable);
             return;
         }
-        java.util.Collection<org.bukkit.inventory.ItemStack> generated =
+        Collection<ItemStack> generated =
                 table.populateLoot(new java.util.Random(), null);
         if (generated.isEmpty()) {
             return;
@@ -153,7 +163,7 @@ public final class GameplayControllers implements FlowControllers {
         if (option == null || player == null || option.cases().isEmpty()) {
             return;
         }
-        java.util.Set<String> candidates = new java.util.LinkedHashSet<>();
+        Set<String> candidates = new LinkedHashSet<>();
         for (FlowModules.OptionCase optionCase : option.cases()) {
             candidates.add(optionCase.caseId());
         }
@@ -241,7 +251,7 @@ public final class GameplayControllers implements FlowControllers {
     }
 
     static List<FlowModules.OptionCase> sealedCases(FlowModules.OptionDef option,
-            java.util.Set<String> picked) {
+            Set<String> picked) {
         List<FlowModules.OptionCase> sealed = new ArrayList<>();
         for (FlowModules.OptionCase optionCase : option.cases()) {
             if (!picked.contains(optionCase.caseId())) {
@@ -279,9 +289,9 @@ public final class GameplayControllers implements FlowControllers {
             return;
         }
         boolean multi = "multi".equalsIgnoreCase(option.selectMode());
-        java.util.Set<String> picked = multi
-                ? new java.util.LinkedHashSet<>(pickedCaseIds)
-                : java.util.Set.of(pickedCaseIds.get(0));
+        Set<String> picked = multi
+                ? new LinkedHashSet<>(pickedCaseIds)
+                : Set.of(pickedCaseIds.get(0));
         runtime.setFact("option_case:" + optionId, multi
                 ? String.join(",", pickedCaseIds)
                 : pickedCaseIds.get(0));
@@ -295,7 +305,7 @@ public final class GameplayControllers implements FlowControllers {
             sealRegions(runtime, optionCase);
         }
         if (!sealed.isEmpty()) {
-            java.util.Set<String> sealedIds = new java.util.LinkedHashSet<>();
+            Set<String> sealedIds = new LinkedHashSet<>();
             for (FlowModules.OptionCase optionCase : sealed) {
                 sealedIds.add(optionCase.caseId());
             }
@@ -322,7 +332,7 @@ public final class GameplayControllers implements FlowControllers {
     private String resolveEnding(FlowModules.OptionDef option, List<String> pickedCaseIds) {
         String canonical = canonicalKey(pickedCaseIds);
         for (Map.Entry<String, String> entry : option.endingMap().entrySet()) {
-            if (canonicalKey(java.util.Arrays.asList(entry.getKey().split(","))).equals(canonical)) {
+            if (canonicalKey(Arrays.asList(entry.getKey().split(","))).equals(canonical)) {
                 return entry.getValue();
             }
         }
@@ -337,7 +347,7 @@ public final class GameplayControllers implements FlowControllers {
         return "";
     }
 
-    private static String canonicalKey(java.util.Collection<String> parts) {
+    private static String canonicalKey(Collection<String> parts) {
         List<String> normalized = new ArrayList<>();
         for (String part : parts) {
             String trimmed = Texts.trim(part);
@@ -345,7 +355,7 @@ public final class GameplayControllers implements FlowControllers {
                 normalized.add(trimmed);
             }
         }
-        java.util.Collections.sort(normalized);
+        Collections.sort(normalized);
         return String.join(",", normalized);
     }
 
@@ -365,10 +375,10 @@ public final class GameplayControllers implements FlowControllers {
         if (world == null || safe == null) {
             return;
         }
-        org.bukkit.Location target = new org.bukkit.Location(world,
+        Location target = new org.bukkit.Location(world,
                 safe.x(), safe.y(), safe.z(), safe.yaw(), safe.pitch());
         for (Player member : List.copyOf(world.getPlayers())) {
-            org.bukkit.Location location = member.getLocation();
+            Location location = member.getLocation();
             boolean inside = false;
             for (FlowModules.OptionCase optionCase : sealed) {
                 for (FlowRegion region : optionCase.sealRegions()) {

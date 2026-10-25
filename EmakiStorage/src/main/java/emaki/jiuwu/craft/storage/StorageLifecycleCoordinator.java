@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.config.UnlockCostConfig;
 import emaki.jiuwu.craft.storage.gui.StorageAmountFormatter;
@@ -42,6 +43,7 @@ import emaki.jiuwu.craft.storage.service.StorageTransactionService;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
 import emaki.jiuwu.craft.storage.config.InputModeConfig;
+import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
 
 final class StorageLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStoragePlugin, StorageRuntimeComponents> {
@@ -128,9 +130,9 @@ final class StorageLifecycleCoordinator
         StorageGuiService storageGuiService = new StorageGuiService(guiService, capacityService,
                 searchService, overflowService, amountFormatter, messageService, config);
 
-        emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule =
+        StorageEditorModule editorModule =
                 new emaki.jiuwu.craft.storage.editor.StorageEditorModule(plugin);
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+        EditorService editorService =
                 new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
                         messageService, chatInputService, editorModule);
         editorModule.bind(editorService);

@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Map;
 
 public final class SetDifficultyStage extends BaseStage {
 
@@ -43,12 +45,12 @@ public final class SetDifficultyStage extends BaseStage {
                     Texts.lower(Texts.trim(arguments.getString("difficulty")))
                             .toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.INVALID_CONFIG,
+            return CoreActionOutcome.failure(
+                    CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.set_difficulty.unknown_difficulty",
-                    java.util.Map.of("difficulty", arguments.getString("difficulty")));
+                    Map.of("difficulty", arguments.getString("difficulty")));
         }
         world.setDifficulty(difficulty);
-        return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.success();
+        return CoreActionOutcome.success();
     }
 }

@@ -12,6 +12,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import java.time.Duration;
+import net.kyori.adventure.title.Title;
 
 public final class SendTitleFadeStage extends BaseStage {
 
@@ -34,13 +36,13 @@ public final class SendTitleFadeStage extends BaseStage {
         int fadeIn = Math.max(0, arguments.getInt("fade_in", 10));
         int stay = Math.max(0, arguments.getInt("stay", 40));
         int fadeOut = Math.max(0, arguments.getInt("fade_out", 10));
-        player.showTitle(net.kyori.adventure.title.Title.title(
+        player.showTitle(Title.title(
                 MiniMessages.parse(arguments.getString("title")),
                 MiniMessages.parse(arguments.getString("subtitle")),
-                net.kyori.adventure.title.Title.Times.times(
-                        java.time.Duration.ofMillis(fadeIn * 50L),
-                        java.time.Duration.ofMillis(stay * 50L),
-                        java.time.Duration.ofMillis(fadeOut * 50L))));
+                Title.Times.times(
+                        Duration.ofMillis(fadeIn * 50L),
+                        Duration.ofMillis(stay * 50L),
+                        Duration.ofMillis(fadeOut * 50L))));
         return CoreActionOutcome.success();
     }
 }

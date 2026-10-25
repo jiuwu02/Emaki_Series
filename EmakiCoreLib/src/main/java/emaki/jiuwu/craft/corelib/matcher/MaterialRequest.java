@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.matcher;
 
+import java.util.List;
+import java.util.Locale;
 import org.jetbrains.annotations.NotNull;
 
 public record MaterialRequest(@NotNull ItemRequirement requirement,
@@ -11,7 +13,7 @@ public record MaterialRequest(@NotNull ItemRequirement requirement,
         @NotNull String auditId) {
 
     public MaterialRequest {
-        requirement = requirement == null ? new ItemRequirement(java.util.List.of(), null, "", "") : requirement;
+        requirement = requirement == null ? new ItemRequirement(List.of(), null, "", "") : requirement;
         quantity = Math.max(0, quantity);
         materialId = normalize(materialId);
         requirementId = normalize(requirementId);
@@ -25,7 +27,7 @@ public record MaterialRequest(@NotNull ItemRequirement requirement,
     }
 
     public MaterialRequest(@NotNull Matcher matcher, int quantity) {
-        this((ItemRequirement) new ItemRequirement(java.util.List.of(), matcher, "", ""), quantity);
+        this((ItemRequirement) new ItemRequirement(List.of(), matcher, "", ""), quantity);
     }
 
     public @NotNull String identity() {
@@ -39,6 +41,6 @@ public record MaterialRequest(@NotNull ItemRequirement requirement,
     }
 
     private static String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }

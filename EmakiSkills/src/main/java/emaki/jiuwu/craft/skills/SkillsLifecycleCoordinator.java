@@ -15,6 +15,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
@@ -59,6 +60,9 @@ import emaki.jiuwu.craft.skills.script.SkillVariableResolver;
 import emaki.jiuwu.craft.skills.trigger.SkillTriggerDefaults;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.skills.editor.SkillsEditorModule;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
@@ -70,7 +74,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
     public SkillsRuntimeComponents initialize(EmakiSkillsPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
-        var scheduling = emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi.scheduling();
+        var scheduling = EmakiCoreLibApi.scheduling();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -194,11 +198,11 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 skillRegistryService, triggerRegistry,
                 castModeService, skillLevelService,
                 skillUpgradeService, messageService);
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+        ChatInputService chatInputService =
                 new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
-        emaki.jiuwu.craft.skills.editor.SkillsEditorModule editorModule =
+        SkillsEditorModule editorModule =
                 new emaki.jiuwu.craft.skills.editor.SkillsEditorModule(plugin);
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+        EditorService editorService =
                 new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
                         messageService, chatInputService, editorModule);
         editorModule.bind(editorService);

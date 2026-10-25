@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import org.bukkit.block.data.BlockData;
 
 public final class GateController {
 
@@ -86,7 +87,7 @@ public final class GateController {
         });
     }
 
-    private void submitBlock(FlowPoint point, org.bukkit.block.data.BlockData blockData, int cost) {
+    private void submitBlock(FlowPoint point, BlockData blockData, int cost) {
         instance.commands().submit(new WorldCommand() {
             @Override
             public int blockCost() {

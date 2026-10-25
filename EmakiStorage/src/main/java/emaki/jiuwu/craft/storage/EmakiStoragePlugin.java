@@ -64,6 +64,8 @@ import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.storage.session.StorageSessionManager;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
 import emaki.jiuwu.craft.storage.listener.StorageAutoPickupListener;
 import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 
@@ -108,8 +110,8 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private StorageLayoutResolver layoutResolver;
     private StorageAmountFormatter amountFormatter;
     private StorageGuiService storageGuiService;
-    private emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule;
-    private emaki.jiuwu.craft.corelib.editor.EditorService editorService;
+    private StorageEditorModule editorModule;
+    private EditorService editorService;
 
     private StorageSessionManager sessionManager;
     private StoragePlayerListener playerListener;
@@ -432,11 +434,11 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         return storageGuiService;
     }
 
-    public emaki.jiuwu.craft.storage.editor.StorageEditorModule editorModule() {
+    public StorageEditorModule editorModule() {
         return editorModule;
     }
 
-    public emaki.jiuwu.craft.corelib.editor.EditorService editorService() {
+    public EditorService editorService() {
         return editorService;
     }
 

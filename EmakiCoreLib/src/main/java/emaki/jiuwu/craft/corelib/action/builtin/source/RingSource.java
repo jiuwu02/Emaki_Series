@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 import java.util.Map;
+import org.bukkit.entity.Player;
 
 public final class RingSource extends BaseSource {
 
@@ -66,7 +67,7 @@ public final class RingSource extends BaseSource {
             if (limit > 0 && subjects.size() >= limit) {
                 break;
             }
-            if (!includePlayers && entity instanceof org.bukkit.entity.Player) {
+            if (!includePlayers && entity instanceof Player) {
                 continue;
             }
             if (type != null && entity.getType() != type) {

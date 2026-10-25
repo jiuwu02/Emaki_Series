@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.debug.ActionDebugRunner;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Arrays;
 
 public final class CoreLibCommandRouter implements TabExecutor {
 
@@ -451,7 +452,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
         ActionDebugRunner.MessageWriter writer =
                 ActionDebugRunner.MessageWriter.of(plugin.messageService(), sender);
         String[] tail = args.length > 2
-                ? java.util.Arrays.copyOfRange(args, 2, args.length)
+                ? Arrays.copyOfRange(args, 2, args.length)
                 : new String[0];
         ActionDebugRunner.Invocation invocation = ActionDebugRunner.parse(tail);
         if (invocation == null) {

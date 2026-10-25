@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dungeon.world;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -15,7 +16,7 @@ public final class WorldNames {
     public WorldNames(File worldContainer) {
         long max = 0;
         if (worldContainer != null) {
-            for (java.nio.file.Path root : WorldFolders.sweepRoots(worldContainer)) {
+            for (Path root : WorldFolders.sweepRoots(worldContainer)) {
                 File[] children = root.toFile().listFiles(File::isDirectory);
                 if (children == null) {
                     continue;

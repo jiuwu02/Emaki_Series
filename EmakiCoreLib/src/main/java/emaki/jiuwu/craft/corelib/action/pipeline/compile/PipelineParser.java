@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import java.util.Set;
 
 public final class PipelineParser {
 
@@ -33,7 +35,7 @@ public final class PipelineParser {
 
     private static final int MAX_ALIAS_DEPTH = 8;
 
-    private static final java.util.Set<String> RESERVED_KEYWORDS = java.util.Set.of(
+    private static final Set<String> RESERVED_KEYWORDS = Set.of(
             IF, ELSE, RUN, WEIGHT, ON_ERROR, UNION, PARSE_IF);
 
     private final PipelineLexer lexer = new PipelineLexer();
@@ -299,7 +301,7 @@ public final class PipelineParser {
                     Map.of("condition", raw)));
             return null;
         }
-        Boolean evaluated = emaki.jiuwu.craft.corelib.expression.ExpressionEngine
+        Boolean evaluated = ExpressionEngine
                 .evaluateBoolean(raw);
         if (evaluated == null) {
             cursor.fail(CompileDiagnostic.at("action.parse.parse_if_not_evaluable", parseIfToken,

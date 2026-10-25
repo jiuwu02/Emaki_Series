@@ -8,6 +8,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 public final class FurniturePlacer {
 
@@ -80,7 +81,7 @@ public final class FurniturePlacer {
         return created;
     }
 
-    private static FurnitureRestorer tryCreate(java.util.function.Supplier<FurnitureRestorer> factory) {
+    private static FurnitureRestorer tryCreate(Supplier<FurnitureRestorer> factory) {
         try {
             return factory.get();
         } catch (LinkageError | RuntimeException exception) {

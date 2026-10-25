@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
 import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
 import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
+import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -37,6 +38,8 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
@@ -115,11 +118,11 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         CodexGuiService codexGuiService = new CodexGuiService(plugin, guiService, guiTemplateLoader,
                 codexCategoryLoader, codexEntryService, messageService);
 
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+        ChatInputService chatInputService =
                 new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
-        emaki.jiuwu.craft.codex.editor.CodexEditorModule editorModule =
+        CodexEditorModule editorModule =
                 new emaki.jiuwu.craft.codex.editor.CodexEditorModule(plugin);
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+        EditorService editorService =
                 new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
                         messageService, chatInputService, editorModule);
         editorModule.bind(editorService);

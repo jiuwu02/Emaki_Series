@@ -4,6 +4,8 @@ import java.util.List;
 import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 
 public record AppConfig(
         String language,
@@ -60,11 +62,11 @@ public record AppConfig(
 
     public static AppConfig parse(YamlSection section) {
         AppConfig defaults = defaults();
-        Map<String, List<String>> actionPipelines = new java.util.LinkedHashMap<>();
+        Map<String, List<String>> actionPipelines = new LinkedHashMap<>();
         YamlSection action = section.getSection("action");
         if (action != null) {
             for (String segment : action.getKeys(false)) {
-                List<String> lines = new java.util.ArrayList<>();
+                List<String> lines = new ArrayList<>();
                 for (Object raw : action.getList(segment)) {
                     lines.add(String.valueOf(raw));
                 }

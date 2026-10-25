@@ -42,6 +42,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
@@ -1055,10 +1056,10 @@ public final class StructureCommandRouter {
 
     private void debug(String langKey, Map<String, ?> replacements) {
         var logger = plugin.debugLogger();
-        if (logger == null || !logger.shouldLog("structure", (java.util.UUID) null)) {
+        if (logger == null || !logger.shouldLog("structure", (UUID) null)) {
             return;
         }
-        logger.log("structure", (java.util.UUID) null, langKey, replacements);
+        logger.log("structure", (UUID) null, langKey, replacements);
     }
 
     private void reportMultiblockProblems(CommandSender sender, MultiblockRepository repository) {

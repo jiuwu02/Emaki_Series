@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.nio.charset.StandardCharsets;
 
 public final class InMemoryPityStateStore implements PityStateStore {
 
@@ -193,12 +194,12 @@ public final class InMemoryPityStateStore implements PityStateStore {
     }
 
     private static String encodeKey(String value) {
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(value.getBytes(StandardCharsets.UTF_8));
     }
 
     private static String decodeKey(String value) {
         try {
-            return new String(Base64.getUrlDecoder().decode(value), java.nio.charset.StandardCharsets.UTF_8);
+            return new String(Base64.getUrlDecoder().decode(value), StandardCharsets.UTF_8);
         } catch (IllegalArgumentException exception) {
             return "";
         }

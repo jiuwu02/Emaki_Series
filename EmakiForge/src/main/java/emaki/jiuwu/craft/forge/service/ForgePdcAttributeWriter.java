@@ -12,6 +12,7 @@ import org.bukkit.persistence.PersistentDataType;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
@@ -139,7 +140,7 @@ final class ForgePdcAttributeWriter {
                 if (contribution.material().auditIdDeclared()) {
                     auditIds.add(contribution.material().auditId());
                 }
-                matchedSources.add(contribution.source() == null ? "" : emaki.jiuwu.craft.corelib.item.ItemSourceUtil.toShorthand(contribution.source()));
+                matchedSources.add(contribution.source() == null ? "" : ItemSourceUtil.toShorthand(contribution.source()));
                 matcherDigests.add(contribution.material().matcherKey());
                 consumed += contribution.amountConsumed();
                 allocations.add(contribution.toAuditMap());

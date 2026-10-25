@@ -43,7 +43,10 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.forge.config.AppConfig;
+import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.loader.ForgeGuiTemplateLoader;
@@ -153,12 +156,12 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         );
         ForgeGuiService forgeGuiService = new ForgeGuiService(plugin, guiService, executionDispatcher, threadOwnership);
         RecipeBookGuiService recipeBookGuiService = new RecipeBookGuiService(plugin, guiService);
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+        ChatInputService chatInputService =
                 new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
         GuiTemplateLoader editorTemplateLoader = new GuiTemplateLoader(plugin);
-        emaki.jiuwu.craft.forge.editor.ForgeEditorModule editorModule =
+        ForgeEditorModule editorModule =
                 new emaki.jiuwu.craft.forge.editor.ForgeEditorModule(plugin, editorTemplateLoader);
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+        EditorService editorService =
                 new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, editorTemplateLoader,
                         messageService, chatInputService, editorModule);
         editorModule.bind(editorService);

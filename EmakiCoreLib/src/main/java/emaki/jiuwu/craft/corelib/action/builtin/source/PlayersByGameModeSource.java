@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Map;
 
 public final class PlayersByGameModeSource extends BaseSource {
 
@@ -39,7 +40,7 @@ public final class PlayersByGameModeSource extends BaseSource {
             mode = GameMode.valueOf(raw.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
             return CoreSourceResult.invalid("action.source.players_by_gamemode.unknown_gamemode",
-                    java.util.Map.of("gamemode", raw));
+                    Map.of("gamemode", raw));
         }
         int limit = Math.max(0, arguments.getInt("limit", 0));
         List<CoreActionSubject> subjects = new ArrayList<>();

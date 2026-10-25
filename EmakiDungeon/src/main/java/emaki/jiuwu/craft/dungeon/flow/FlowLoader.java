@@ -522,7 +522,7 @@ public final class FlowLoader {
         return params;
     }
 
-    private Map<String, Object> flatParams(java.util.Map<?, ?> map) {
+    private Map<String, Object> flatParams(Map<?, ?> map) {
         Map<String, Object> params = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
             String key = String.valueOf(entry.getKey());

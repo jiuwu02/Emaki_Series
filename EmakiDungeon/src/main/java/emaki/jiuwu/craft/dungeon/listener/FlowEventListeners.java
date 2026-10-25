@@ -20,18 +20,25 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import emaki.jiuwu.craft.dungeon.flow.EventIngressKeys;
 import emaki.jiuwu.craft.dungeon.flow.Facts;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules;
+import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
 import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import java.util.Locale;
+import org.bukkit.World;
+import org.bukkit.block.BlockState;
+import org.bukkit.event.inventory.InventoryOpenEvent;
 
 public final class FlowEventListeners implements Listener {
 
     private final InstanceRegistry registry;
-    private final emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private final ScriptRuntimeManager scriptManager;
 
     public FlowEventListeners(InstanceRegistry registry,
-            emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+            ScriptRuntimeManager scriptManager) {
         this.registry = registry;
         this.scriptManager = scriptManager;
     }
@@ -40,20 +47,20 @@ public final class FlowEventListeners implements Listener {
         if (scriptManager == null) {
             return;
         }
-        scriptManager.fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInteract,
+        scriptManager.fireTrigger(TriggerType.onInteract,
                 instance.instanceId(), instance.dungeonId(), Map.of(
                         "triggerId", triggerId,
                         "player", String.valueOf(player.getUniqueId())));
     }
 
-    private DungeonInstance instanceOf(org.bukkit.World world) {
+    private DungeonInstance instanceOf(World world) {
         return registry.get(world.getName());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onEntityDeath(EntityDeathEvent event) {
         Entity entity = event.getEntity();
-        if (!(entity.getWorld().getEnvironment() == org.bukkit.World.Environment.NORMAL)) {
+        if (!(entity.getWorld().getEnvironment() == World.Environment.NORMAL)) {
             return;
         }
         DungeonInstance instance = instanceOf(entity.getWorld());
@@ -63,7 +70,7 @@ public final class FlowEventListeners implements Listener {
         Player killer = event.getEntity().getKiller();
         Map<String, Object> payload = new HashMap<>();
         payload.put(EventIngressKeys.KEY_ENTITY, entity.getUniqueId());
-        payload.put("mob", entity.getType().name().toLowerCase(java.util.Locale.ROOT));
+        payload.put("mob", entity.getType().name().toLowerCase(Locale.ROOT));
         if (killer != null) {
             payload.put(EventIngressKeys.KEY_PLAYER, killer.getUniqueId());
         }
@@ -206,8 +213,8 @@ public final class FlowEventListeners implements Listener {
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onInventoryOpen(org.bukkit.event.inventory.InventoryOpenEvent event) {
-        if (!(event.getInventory().getHolder(true) instanceof org.bukkit.block.BlockState state)) {
+    public void onInventoryOpen(InventoryOpenEvent event) {
+        if (!(event.getInventory().getHolder(true) instanceof BlockState state)) {
             return;
         }
         DungeonInstance instance = instanceOf(state.getWorld());
@@ -285,7 +292,7 @@ public final class FlowEventListeners implements Listener {
         return null;
     }
 
-    private static boolean matches(emaki.jiuwu.craft.dungeon.flow.FlowPoint point, Block block) {
+    private static boolean matches(FlowPoint point, Block block) {
         if (point == null) {
             return false;
         }

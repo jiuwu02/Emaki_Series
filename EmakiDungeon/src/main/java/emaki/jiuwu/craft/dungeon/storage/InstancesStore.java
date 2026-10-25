@@ -18,6 +18,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import java.util.UUID;
 
 public final class InstancesStore {
 
@@ -150,7 +151,7 @@ public final class InstancesStore {
 
     private void atomicWrite(Map<String, Object> values) throws IOException {
         Path target = file.toPath();
-        Path temp = target.resolveSibling(file.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
+        Path temp = target.resolveSibling(file.getName() + "." + UUID.randomUUID() + ".tmp");
         YamlFiles.save(temp.toFile(), values);
         try {
             Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);

@@ -17,15 +17,26 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
+import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.editor.EditorService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
+import emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore;
+import emaki.jiuwu.craft.dungeon.limit.LimitService;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
+import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.util.function.Function;
+import org.bukkit.plugin.Plugin;
 
 public final class DungeonCommandRouter {
 
@@ -38,7 +49,7 @@ public final class DungeonCommandRouter {
     );
     private static final List<String> EDITOR_SUBS = List.of("exit", "pos1", "pos2", "mark", "marks", "test", "fill");
 
-    private final org.bukkit.plugin.Plugin plugin;
+    private final Plugin plugin;
     private final MessageService messages;
     private final ChallengeService challenge;
     private final PartyService parties;
@@ -48,43 +59,43 @@ public final class DungeonCommandRouter {
     private final TemplateRepository templates;
     private final InstanceCoordinator coordinator;
     private final InstanceRegistry registry;
-    private final emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation;
-    private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
-    private volatile emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
-    private volatile java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf;
-    private volatile emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
-    private volatile emaki.jiuwu.craft.dungeon.editor.EditorService editor;
+    private final MessageIsolation isolation;
+    private volatile LimitService limitService;
+    private volatile LeaderboardStore leaderboard;
+    private volatile Function<String, DungeonConfig> configOf;
+    private volatile RewardBoxGui rewardBoxGui;
+    private volatile EditorService editor;
 
-    public void bindEditor(emaki.jiuwu.craft.dungeon.editor.EditorService editor) {
+    public void bindEditor(EditorService editor) {
         this.editor = editor;
     }
 
-    public void bindRewardBox(emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui) {
+    public void bindRewardBox(RewardBoxGui rewardBoxGui) {
         this.rewardBoxGui = rewardBoxGui;
     }
 
-    public void bindOperations(emaki.jiuwu.craft.dungeon.limit.LimitService limitService,
-            emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard,
-            java.util.function.Function<String, emaki.jiuwu.craft.dungeon.config.DungeonConfig> configOf) {
+    public void bindOperations(LimitService limitService,
+            LeaderboardStore leaderboard,
+            Function<String, DungeonConfig> configOf) {
         this.limitService = limitService;
         this.leaderboard = leaderboard;
         this.configOf = configOf;
     }
 
-    private volatile emaki.jiuwu.craft.dungeon.world.WorldPool adminPool;
-    private volatile emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator adminAllocator;
+    private volatile WorldPool adminPool;
+    private volatile InstanceSlotAllocator adminAllocator;
     private volatile Runnable adminReload;
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private volatile AuditService audit;
 
-    public void bindAdmin(emaki.jiuwu.craft.dungeon.world.WorldPool pool,
-            emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator allocator,
+    public void bindAdmin(WorldPool pool,
+            InstanceSlotAllocator allocator,
             Runnable reloadAction) {
         this.adminPool = pool;
         this.adminAllocator = allocator;
         this.adminReload = reloadAction;
     }
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 
@@ -113,7 +124,7 @@ public final class DungeonCommandRouter {
         var instances = registry.all();
         messages.send(sender, "command.admin.instances_header",
                 Map.of("count", String.valueOf(instances.size())));
-        for (emaki.jiuwu.craft.dungeon.instance.DungeonInstance instance : instances) {
+        for (DungeonInstance instance : instances) {
             String queue = instance.commands() == null ? "0" : String.valueOf(instance.commands().pending());
             messages.send(sender, "command.admin.instance_line", Map.of(
                     "instance", instance.instanceId(),
@@ -164,7 +175,7 @@ public final class DungeonCommandRouter {
             }
         }
         boolean anyBacklog = false;
-        for (emaki.jiuwu.craft.dungeon.instance.DungeonInstance instance : registry.all()) {
+        for (DungeonInstance instance : registry.all()) {
             if (instance.commands() == null) {
                 continue;
             }
@@ -211,7 +222,7 @@ public final class DungeonCommandRouter {
         }
         for (String dungeonId : dungeons) {
             try {
-                emaki.jiuwu.craft.dungeon.config.DungeonConfig config =
+                DungeonConfig config =
                         templates.findConfig(dungeonId);
                 if (config == null) {
                     messages.send(sender, "command.admin.validate_error",
@@ -273,7 +284,7 @@ public final class DungeonCommandRouter {
         messages.send(sender, "command.admin.slots_cleared", Map.of());
     }
 
-    public DungeonCommandRouter(org.bukkit.plugin.Plugin plugin,
+    public DungeonCommandRouter(Plugin plugin,
             MessageService messages,
             ChallengeService challenge,
             PartyService parties,
@@ -283,7 +294,7 @@ public final class DungeonCommandRouter {
             TemplateRepository templates,
             InstanceCoordinator coordinator,
             InstanceRegistry registry,
-            emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation) {
+            MessageIsolation isolation) {
         this.plugin = plugin;
         this.messages = messages;
         this.challenge = challenge;
@@ -750,7 +761,7 @@ public final class DungeonCommandRouter {
                 return templates.discoverDungeons();
             }
             if (args.length == 3 && "mark".equals(Texts.lower(args[1]))) {
-                return emaki.jiuwu.craft.dungeon.editor.EditorService.markTypes();
+                return EditorService.markTypes();
             }
         }
         if ("party".equals(root)) {

@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemItemInstance;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
+import java.util.LinkedHashMap;
 
 final class GemGuiInteractionController {
 
@@ -363,7 +364,7 @@ final class GemGuiInteractionController {
             case "strengthen.error.compensation_pending" -> "gui.gem.upgrade_compensation_pending";
             default -> "gui.gem.upgrade_failed";
         };
-        Map<String, Object> values = new java.util.LinkedHashMap<>(placeholders == null ? Map.of() : placeholders);
+        Map<String, Object> values = new LinkedHashMap<>(placeholders == null ? Map.of() : placeholders);
         values.put("reason", Texts.toStringSafe(reasonKey));
         plugin.messageService().send(player, messageKey, values);
     }

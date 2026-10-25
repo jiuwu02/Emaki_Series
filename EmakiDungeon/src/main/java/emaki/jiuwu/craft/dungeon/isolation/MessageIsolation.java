@@ -14,6 +14,7 @@ import org.bukkit.event.server.BroadcastMessageEvent;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
+import io.papermc.paper.event.player.AsyncChatEvent;
 
 public final class MessageIsolation implements Listener {
 
@@ -76,7 +77,7 @@ public final class MessageIsolation implements Listener {
         return !senderInstanceId.equals(targetInstanceId);
     }
 
-    public void applyChatViewers(io.papermc.paper.event.player.AsyncChatEvent event, Player sender) {
+    public void applyChatViewers(AsyncChatEvent event, Player sender) {
         boolean senderInInstance = inInstance(sender);
         String senderInstanceId = senderInInstance ? instanceIdOf(sender) : null;
         boolean senderGlobal = senderInInstance && globalListen(sender.getUniqueId());

@@ -10,6 +10,8 @@ import emaki.jiuwu.craft.dungeon.flow.FlowControllers;
 import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import java.util.Locale;
+import org.bukkit.potion.PotionEffectType;
 
 public final class ScriptHostObject {
 
@@ -203,8 +205,8 @@ public final class ScriptHostObject {
             return;
         }
         try {
-            org.bukkit.potion.PotionEffectType type =
-                    org.bukkit.potion.PotionEffectType.getByName(parts[0].toUpperCase(java.util.Locale.ROOT));
+            PotionEffectType type =
+                    PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
             if (type == null) {
                 return;
             }

@@ -16,20 +16,28 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.flow.Facts;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
 import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 
 public final class PlayerStateService {
 
@@ -49,15 +57,15 @@ public final class PlayerStateService {
     private final MessageService messages;
     private final DebugLogger debug;
     private final Function<String, DungeonConfig> configOf;
-    private final emaki.jiuwu.craft.corelib.loader.LanguageLoader languageLoader;
-    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
-    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
+    private final LanguageLoader languageLoader;
+    private volatile ActionBridge actionBridge;
+    private volatile ScriptRuntimeManager scriptManager;
 
-    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
     }
 
-    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+    private void fireTrigger(TriggerType type,
             DungeonInstance instance, Map<String, String> context) {
         if (scriptManager != null && instance != null) {
             scriptManager.fireTrigger(type, instance.instanceId(), instance.dungeonId(), context);
@@ -79,7 +87,7 @@ public final class PlayerStateService {
             MessageService messages,
             DebugLogger debug,
             Function<String, DungeonConfig> configOf,
-            emaki.jiuwu.craft.corelib.loader.LanguageLoader languageLoader) {
+            LanguageLoader languageLoader) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.coordinator = coordinator;
@@ -96,7 +104,7 @@ public final class PlayerStateService {
         tickTask = dispatcher.runGlobalTimer(plugin, this::tick, 20L, 20L);
     }
 
-    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+    public void bindActionBridge(ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
     }
 
@@ -135,15 +143,15 @@ public final class PlayerStateService {
         }
         FlowRuntime runtime = instance.flowRuntime();
         if (runtime != null) {
-            runtime.setFact(emaki.jiuwu.craft.dungeon.flow.Facts.PLAYER_STATE, "dead");
-            runtime.setFact(emaki.jiuwu.craft.dungeon.flow.Facts.REMAINING_LIVES, remaining);
+            runtime.setFact(Facts.PLAYER_STATE, "dead");
+            runtime.setFact(Facts.REMAINING_LIVES, remaining);
         }
         debug.log("dungeon", (UUID) null, "player_died", Map.of(
                 "player", String.valueOf(playerId),
                 "instance", instance.instanceId(),
                 "remaining", String.valueOf(remaining)
         ));
-        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDeath, instance, Map.of(
+        fireTrigger(TriggerType.onDeath, instance, Map.of(
                 "player", String.valueOf(playerId),
                 "remaining", String.valueOf(remaining)
         ));
@@ -162,7 +170,7 @@ public final class PlayerStateService {
         if (world == null) {
             return null;
         }
-        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onRespawn, instance,
+        fireTrigger(TriggerType.onRespawn, instance,
                 Map.of("player", String.valueOf(player.getUniqueId())));
         FlowRuntime runtime = instance.flowRuntime();
         if (runtime == null) {
@@ -265,7 +273,7 @@ public final class PlayerStateService {
         if (state == null) {
             return;
         }
-        if (instance.state() == emaki.jiuwu.craft.dungeon.instance.InstanceState.SETTLING) {
+        if (instance.state() == InstanceState.SETTLING) {
             return;
         }
         synchronized (state) {
@@ -282,7 +290,7 @@ public final class PlayerStateService {
                     "reason", reason
             ));
         }
-        org.bukkit.Bukkit.getPluginManager().callEvent(
+        Bukkit.getPluginManager().callEvent(
                 new emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent(
                         instance.instanceId(), instance.dungeonId(),
                         mapFailReason(reason), reason));
@@ -304,17 +312,17 @@ public final class PlayerStateService {
         });
     }
 
-    private static emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason mapFailReason(
+    private static DungeonFailEvent.Reason mapFailReason(
             String reason) {
         if (reason == null) {
-            return emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.OTHER;
+            return DungeonFailEvent.Reason.OTHER;
         }
         return switch (reason) {
-            case "all_dead" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.ALL_DEAD;
-            case "timeout" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.TIMEOUT;
-            case "crash" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.CRASH;
-            case "scripted" -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.SCRIPTED;
-            default -> emaki.jiuwu.craft.dungeon.api.event.DungeonFailEvent.Reason.OTHER;
+            case "all_dead" -> DungeonFailEvent.Reason.ALL_DEAD;
+            case "timeout" -> DungeonFailEvent.Reason.TIMEOUT;
+            case "crash" -> DungeonFailEvent.Reason.CRASH;
+            case "scripted" -> DungeonFailEvent.Reason.SCRIPTED;
+            default -> DungeonFailEvent.Reason.OTHER;
         };
     }
 
@@ -362,16 +370,16 @@ public final class PlayerStateService {
             } else {
                 template = template.replace("<seconds>", "%seconds%");
             }
-            String text = emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplate(
+            String text = Texts.formatTemplate(
                     template,
                     Map.of("seconds", String.valueOf(mark)));
             actionBridge.sendToWorld(instance.instanceId(), text);
             debug.logRaw("dungeon", (UUID) null,
                     "timer mark | instance=" + instance.instanceId() + " | seconds=" + mark);
-            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onTimerMark, instance,
+            fireTrigger(TriggerType.onTimerMark, instance,
                     Map.of("seconds", String.valueOf(mark)));
             if (mark == shortestMark) {
-                fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onTimeoutWarn, instance,
+                fireTrigger(TriggerType.onTimeoutWarn, instance,
                         Map.of("seconds", String.valueOf(mark)));
             }
         }

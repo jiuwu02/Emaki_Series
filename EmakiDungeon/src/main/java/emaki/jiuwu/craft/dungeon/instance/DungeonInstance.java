@@ -7,7 +7,9 @@ import java.util.function.Consumer;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
+import emaki.jiuwu.craft.dungeon.script.DungeonScriptSession;
 
 public final class DungeonInstance {
 
@@ -23,8 +25,8 @@ public final class DungeonInstance {
     private volatile long startedAt;
     private volatile boolean test;
     private volatile InstanceLoop loop;
-    private volatile emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime;
-    private volatile emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession;
+    private volatile FlowRuntime flowRuntime;
+    private volatile DungeonScriptSession scriptSession;
 
     public DungeonInstance(String instanceId, String dungeonId, WorldCommandQueue commands) {
         this.instanceId = instanceId;
@@ -90,19 +92,19 @@ public final class DungeonInstance {
         return ingress;
     }
 
-    public emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime() {
+    public FlowRuntime flowRuntime() {
         return flowRuntime;
     }
 
-    public void setFlowRuntime(emaki.jiuwu.craft.dungeon.flow.FlowRuntime flowRuntime) {
+    public void setFlowRuntime(FlowRuntime flowRuntime) {
         this.flowRuntime = flowRuntime;
     }
 
-    public emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession() {
+    public DungeonScriptSession scriptSession() {
         return scriptSession;
     }
 
-    public void setScriptSession(emaki.jiuwu.craft.dungeon.script.DungeonScriptSession scriptSession) {
+    public void setScriptSession(DungeonScriptSession scriptSession) {
         this.scriptSession = scriptSession;
     }
 

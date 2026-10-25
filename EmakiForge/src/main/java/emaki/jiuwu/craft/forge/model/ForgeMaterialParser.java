@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.matcher.MatcherDigest;
@@ -29,7 +30,7 @@ final class ForgeMaterialParser {
             return null;
         }
         List<ItemSourceRef> sources = ItemRequirement.parseSources(ConfigNodes.get(raw, "item_sources"));
-        String item = sources.isEmpty() ? ConfigNodes.string(raw, "item", "") : emaki.jiuwu.craft.corelib.item.ItemSourceUtil.toShorthand(sources.get(0));
+        String item = sources.isEmpty() ? ConfigNodes.string(raw, "item", "") : ItemSourceUtil.toShorthand(sources.get(0));
         Object matcherNode = ConfigNodes.get(raw, "matcher");
         Matcher matcher = matcherNode == null ? null : Matcher.fromConfig(matcherNode);
         String matcherKey = matcher == null ? "" : MatcherDigest.of(matcherNode);

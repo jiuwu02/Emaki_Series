@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.api.furniture.FurnitureEventType;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceKind;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Player;
 import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -122,7 +123,7 @@ final class ItemsAdderFurnitureRelayListener implements Listener {
                 event::setCancelled), event);
     }
 
-    private void dispatchPlace(Entity entity, org.bukkit.entity.Player player, String namespacedId,
+    private void dispatchPlace(Entity entity, Player player, String namespacedId,
             Cancellable bukkitEvent) {
         Block anchor = anchorBlock(entity);
         if (anchor == null) {

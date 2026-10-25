@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import java.util.Map;
 
 public final class PlayersWithMaterialSource extends BaseSource {
 
@@ -34,7 +35,7 @@ public final class PlayersWithMaterialSource extends BaseSource {
         Material material = StageSupport.material(arguments.getString("material"));
         if (material == null) {
             return CoreSourceResult.invalid("action.source.players_with_material.unknown_material",
-                    java.util.Map.of("material", arguments.getString("material")));
+                    Map.of("material", arguments.getString("material")));
         }
         int limit = Math.max(0, arguments.getInt("limit", 0));
         List<CoreActionSubject> subjects = new ArrayList<>();

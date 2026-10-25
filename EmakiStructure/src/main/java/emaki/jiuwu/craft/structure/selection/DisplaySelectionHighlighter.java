@@ -18,6 +18,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.bukkit.World;
 
 public final class DisplaySelectionHighlighter implements SelectionHighlighter {
 
@@ -122,7 +123,7 @@ public final class DisplaySelectionHighlighter implements SelectionHighlighter {
         }
     }
 
-    private boolean schedule(Player player, SelectionSession session, org.bukkit.World world,
+    private boolean schedule(Player player, SelectionSession session, World world,
             SelectionBox box, Location anchor) {
         try {
             var token = dispatcher.runAtLocation(plugin, anchor, () -> {

@@ -10,11 +10,16 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 
 public final class RecoveryService {
 
@@ -24,21 +29,21 @@ public final class RecoveryService {
     private final MessageService messages;
     private final DebugLogger debug;
     private final Consumer<UUID> teleportPermit;
-    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
-    private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
+    private volatile ActionBridge actionBridge;
+    private volatile TempItemManager tempItems;
     private volatile BiFunction<String, UUID, Boolean> stagingClear;
-    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private volatile ScriptRuntimeManager scriptManager;
+    private volatile AuditService audit;
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 
-    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
     }
 
-    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+    private void fireTrigger(TriggerType type,
             DungeonInstance instance, Map<String, String> context) {
         if (scriptManager != null && instance != null) {
             scriptManager.fireTrigger(type, instance.instanceId(), instance.dungeonId(), context);
@@ -49,7 +54,7 @@ public final class RecoveryService {
         this.stagingClear = stagingClear;
     }
 
-    public void bindTempItems(emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems) {
+    public void bindTempItems(TempItemManager tempItems) {
         this.tempItems = tempItems;
     }
 
@@ -71,7 +76,7 @@ public final class RecoveryService {
         this.teleportPermit = teleportPermit;
     }
 
-    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+    public void bindActionBridge(ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
     }
 
@@ -86,7 +91,7 @@ public final class RecoveryService {
         }
         snapshots.repack(player, pointer);
         debug.log("dungeon", player, "snapshot_repacked", Map.of("instance", pointer));
-        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDisconnect, instance,
+        fireTrigger(TriggerType.onDisconnect, instance,
                 Map.of("player", String.valueOf(player.getUniqueId())));
     }
 
@@ -102,7 +107,7 @@ public final class RecoveryService {
             snapshots.restoreState(player, pointer, true);
             messages.send(player, "recovery.reconnected", Map.of("instance", pointer));
             debug.log("dungeon", player, "reconnected_instance", Map.of("instance", pointer));
-            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onReconnect, instance,
+            fireTrigger(TriggerType.onReconnect, instance,
                     Map.of("player", String.valueOf(playerId)));
             return;
         }
@@ -155,7 +160,7 @@ public final class RecoveryService {
                     "reason", reason
             ));
         }
-        org.bukkit.Bukkit.getPluginManager().callEvent(
+        Bukkit.getPluginManager().callEvent(
                 new emaki.jiuwu.craft.dungeon.api.event.DungeonExitEvent(
                         pointer,
                         registry.get(pointer) == null ? "" : registry.get(pointer).dungeonId(),

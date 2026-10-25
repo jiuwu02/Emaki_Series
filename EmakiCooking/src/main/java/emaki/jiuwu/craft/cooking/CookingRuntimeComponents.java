@@ -45,6 +45,7 @@ import emaki.jiuwu.craft.cooking.service.SteamerRuntimeService;
 import emaki.jiuwu.craft.cooking.service.WokRuntimeService;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 
 record CookingRuntimeComponents(EmakiScheduling taskScheduler,
         ExecutionDispatcher executionDispatcher,
@@ -87,7 +88,7 @@ record CookingRuntimeComponents(EmakiScheduling taskScheduler,
         NutritionService nutritionService,
         GuiService guiService,
         GuiTemplateLoader guiTemplateLoader,
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
+        ChatInputService chatInputService,
         CookingEditorModule editorModule,
         EditorService editorService) implements RuntimeComponents {
 

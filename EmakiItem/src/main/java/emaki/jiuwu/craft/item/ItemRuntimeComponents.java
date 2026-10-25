@@ -4,6 +4,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
@@ -14,6 +16,7 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.config.AppConfig;
+import emaki.jiuwu.craft.item.editor.ItemEditorModule;
 import emaki.jiuwu.craft.item.loader.EmakiItemAliasLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemLoader;
 import emaki.jiuwu.craft.item.loader.EmakiItemSetLoader;
@@ -73,9 +76,9 @@ record ItemRuntimeComponents(EmakiScheduling scheduling,
         ItemRepairService repairService,
         ItemRepairGuiService repairGuiService,
         ItemBrowserGuiService browserGuiService,
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
-        emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule,
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
+        ChatInputService chatInputService,
+        ItemEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

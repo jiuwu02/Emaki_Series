@@ -13,6 +13,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.drop.DropAllocator;
 import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
@@ -24,11 +26,18 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
 import emaki.jiuwu.craft.dungeon.score.ScoreCalculator;
 import emaki.jiuwu.craft.dungeon.score.ScoreStats;
 import emaki.jiuwu.craft.dungeon.score.ScoreTracker;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayerSnapshot;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import java.util.function.Function;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.inventory.ItemStack;
 
 public final class SettlementService {
 
@@ -43,24 +52,24 @@ public final class SettlementService {
     private final LeaderboardStore leaderboard;
     private final InstanceCoordinator coordinator;
     private final SettlementCommandRunner commandRunner;
-    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
+    private final RewardBoxService rewardBox;
     private final MessageService messages;
     private final DebugLogger debug;
-    private final java.util.function.Function<String, DungeonConfig> configOf;
+    private final Function<String, DungeonConfig> configOf;
 
-    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
-    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private volatile ActionBridge actionBridge;
+    private volatile ScriptRuntimeManager scriptManager;
+    private volatile AuditService audit;
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 
-    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
     }
 
-    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
+    private void fireTrigger(TriggerType type,
             String instanceId, String dungeonId, Map<String, String> context) {
         if (scriptManager != null) {
             scriptManager.fireTrigger(type, instanceId, dungeonId, context);
@@ -78,10 +87,10 @@ public final class SettlementService {
             LeaderboardStore leaderboard,
             InstanceCoordinator coordinator,
             SettlementCommandRunner commandRunner,
-            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox,
+            RewardBoxService rewardBox,
             MessageService messages,
             DebugLogger debug,
-            java.util.function.Function<String, DungeonConfig> configOf) {
+            Function<String, DungeonConfig> configOf) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.registry = registry;
@@ -99,7 +108,7 @@ public final class SettlementService {
         this.configOf = configOf;
     }
 
-    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+    public void bindActionBridge(ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
     }
 
@@ -171,7 +180,7 @@ public final class SettlementService {
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score computed | instance=" + instanceId + " | team=" + teamScore);
-        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onScoreReady,
+        fireTrigger(TriggerType.onScoreReady,
                 instanceId, instance.dungeonId(), Map.of(
                         "score", String.valueOf(teamScore),
                         "durationMs", String.valueOf(durationMs)));
@@ -202,7 +211,7 @@ public final class SettlementService {
             }
             debug.logRaw("dungeon", (UUID) null,
                     "settle_partial | instance=" + instanceId + " | steps=" + runResult.steps());
-            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onSettlePartial,
+            fireTrigger(TriggerType.onSettlePartial,
                     instanceId, instance.dungeonId(), Map.of(
                             "steps", String.valueOf(runResult.steps())));
             if (audit != null) {
@@ -285,14 +294,14 @@ public final class SettlementService {
     }
 
     private void payoutStaging(DungeonInstance instance, List<UUID> members) {
-        Map<UUID, List<org.bukkit.inventory.ItemStack>> staged =
+        Map<UUID, List<ItemStack>> staged =
                 rewardChests.drainStaging(instance.instanceId());
         if (staged.isEmpty()) {
             return;
         }
-        org.bukkit.World instanceWorld = Bukkit.getWorld(instance.instanceId());
+        World instanceWorld = Bukkit.getWorld(instance.instanceId());
         for (UUID memberId : members) {
-            List<org.bukkit.inventory.ItemStack> items = staged.remove(memberId);
+            List<ItemStack> items = staged.remove(memberId);
             if (items == null || items.isEmpty()) {
                 continue;
             }
@@ -301,9 +310,9 @@ public final class SettlementService {
                 rewardBox.storeBox(memberId, items);
                 continue;
             }
-            List<org.bukkit.inventory.ItemStack> leftover = rewardBox.deposit(memberId, items);
+            List<ItemStack> leftover = rewardBox.deposit(memberId, items);
             if (!leftover.isEmpty()) {
-                org.bukkit.Location fallback = instanceWorld == null
+                Location fallback = instanceWorld == null
                         ? member.getLocation()
                         : instanceWorld.getSpawnLocation();
                 rewardBox.deliverOrDrop(memberId, leftover, instanceWorld, fallback);
@@ -318,18 +327,18 @@ public final class SettlementService {
             List<UUID> members,
             Map<UUID, Double> scores) {
         String instanceId = instance.instanceId();
-        List<org.bukkit.inventory.ItemStack> pool = rewardChests.drainPool(instanceId);
+        List<ItemStack> pool = rewardChests.drainPool(instanceId);
         rewardChests.clearVisual(instance);
         if (pool.isEmpty()) {
             return;
         }
-        Map<UUID, List<org.bukkit.inventory.ItemStack>> allocation = DropAllocator.allocate(
+        Map<UUID, List<ItemStack>> allocation = DropAllocator.allocate(
                 pool, scores, config == null ? Map.of() : config.dropLevels(), members);
-        for (Map.Entry<UUID, List<org.bukkit.inventory.ItemStack>> entry : allocation.entrySet()) {
-            List<org.bukkit.inventory.ItemStack> leftover =
+        for (Map.Entry<UUID, List<ItemStack>> entry : allocation.entrySet()) {
+            List<ItemStack> leftover =
                     rewardBox.deposit(entry.getKey(), entry.getValue());
             if (!leftover.isEmpty()) {
-                org.bukkit.World world = Bukkit.getWorld(instanceId);
+                World world = Bukkit.getWorld(instanceId);
                 rewardBox.deliverOrDrop(entry.getKey(), leftover, world,
                         world == null ? null : world.getSpawnLocation());
             }
@@ -345,7 +354,7 @@ public final class SettlementService {
         if (party != null) {
             return new ArrayList<>(party.members());
         }
-        org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+        World world = Bukkit.getWorld(instance.instanceId());
         if (world == null) {
             return List.of();
         }

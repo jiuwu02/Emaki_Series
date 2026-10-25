@@ -17,6 +17,11 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
+import java.util.function.Supplier;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class RewardBoxService {
 
@@ -28,20 +33,20 @@ public final class RewardBoxService {
 
     private final RewardBoxStore store;
     private final MessageService messages;
-    private final java.util.function.Supplier<AppConfig> appConfig;
+    private final Supplier<AppConfig> appConfig;
 
     private volatile int defaultPages = 1;
     private volatile int capacitySlots = 135;
 
     public RewardBoxService(RewardBoxStore store,
             MessageService messages,
-            java.util.function.Supplier<AppConfig> appConfig) {
+            Supplier<AppConfig> appConfig) {
         this.store = store;
         this.messages = messages;
         this.appConfig = appConfig;
     }
 
-    public void loadGuiConfig(org.bukkit.plugin.java.JavaPlugin plugin) {
+    public void loadGuiConfig(JavaPlugin plugin) {
         File file = new File(plugin.getDataFolder(), "gui" + File.separator + "rewardbox.yml");
         try {
             YamlFiles.copyResourceIfMissing(plugin, "gui/rewardbox.yml", file);
@@ -125,7 +130,7 @@ public final class RewardBoxService {
     }
 
     public void deliverOrDrop(UUID playerId, List<ItemStack> items,
-            org.bukkit.World fallbackWorld, org.bukkit.Location fallbackLocation) {
+            World fallbackWorld, Location fallbackLocation) {
         if (items == null || items.isEmpty()) {
             return;
         }
@@ -136,7 +141,7 @@ public final class RewardBoxService {
         for (ItemStack stack : leftover) {
             Item dropped = fallbackWorld.dropItemNaturally(fallbackLocation, stack);
             dropped.getPersistentDataContainer().set(DROP_OWNER_KEY,
-                    org.bukkit.persistence.PersistentDataType.STRING, OWNER_DISCARD);
+                    PersistentDataType.STRING, OWNER_DISCARD);
         }
     }
 

@@ -9,6 +9,8 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import java.io.IOException;
+import org.bukkit.plugin.Plugin;
 
 public final class EditorStateStore {
 
@@ -27,12 +29,12 @@ public final class EditorStateStore {
         }
     }
 
-    private final org.bukkit.plugin.Plugin plugin;
+    private final Plugin plugin;
     private final File editorRoot;
     private final File templateRoot;
     private final Map<String, State> states = new ConcurrentHashMap<>();
 
-    public EditorStateStore(org.bukkit.plugin.Plugin plugin, File dataFolder) {
+    public EditorStateStore(Plugin plugin, File dataFolder) {
         this.plugin = plugin;
         this.editorRoot = new File(dataFolder, "editor");
         this.templateRoot = new File(dataFolder, "world");
@@ -148,7 +150,7 @@ public final class EditorStateStore {
         }
         try {
             YamlFiles.save(stateFile(dungeonId), root);
-        } catch (java.io.IOException exception) {
+        } catch (IOException exception) {
             plugin.getLogger().warning("[editor] state save failed | dungeon=" + dungeonId
                     + " | error=" + exception.getMessage());
         }

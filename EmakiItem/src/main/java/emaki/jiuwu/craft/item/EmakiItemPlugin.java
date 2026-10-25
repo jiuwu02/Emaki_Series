@@ -34,6 +34,8 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.item.action.ItemStageRegistrar;
@@ -79,6 +81,7 @@ import emaki.jiuwu.craft.item.service.ItemRepairService;
 import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
 import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
+import emaki.jiuwu.craft.item.editor.ItemEditorModule;
 
 public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -149,9 +152,9 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     private ItemRepairService repairService;
     private ItemRepairGuiService repairGuiService;
     private ItemBrowserGuiService browserGuiService;
-    private emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService;
-    private emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule;
-    private emaki.jiuwu.craft.corelib.editor.EditorService editorService;
+    private ChatInputService chatInputService;
+    private ItemEditorModule editorModule;
+    private EditorService editorService;
     private final EmakiItemApi.Bridge itemApiBridge =
             new DefaultEmakiItemApi(this);
 
@@ -637,15 +640,15 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         return browserGuiService;
     }
 
-    public emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService() {
+    public ChatInputService chatInputService() {
         return chatInputService;
     }
 
-    public emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule() {
+    public ItemEditorModule editorModule() {
         return editorModule;
     }
 
-    public emaki.jiuwu.craft.corelib.editor.EditorService editorService() {
+    public EditorService editorService() {
         return editorService;
     }
 

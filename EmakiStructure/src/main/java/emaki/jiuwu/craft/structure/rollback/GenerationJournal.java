@@ -9,6 +9,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
@@ -33,7 +34,7 @@ public final class GenerationJournal {
                     && world.equals(snapshot.world)
                     && x == snapshot.x && y == snapshot.y && z == snapshot.z
                     && state.equals(snapshot.state)
-                    && java.util.Arrays.equals(containerPayload, snapshot.containerPayload);
+                    && Arrays.equals(containerPayload, snapshot.containerPayload);
         }
 
         @Override
@@ -43,7 +44,7 @@ public final class GenerationJournal {
             result = 31 * result + y;
             result = 31 * result + z;
             result = 31 * result + state.hashCode();
-            result = 31 * result + java.util.Arrays.hashCode(containerPayload);
+            result = 31 * result + Arrays.hashCode(containerPayload);
             return result;
         }
     }

@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.dungeon.api.ErrorCodes;
 import emaki.jiuwu.craft.dungeon.api.Result;
 import emaki.jiuwu.craft.dungeon.api.ScriptId;
 import emaki.jiuwu.craft.dungeon.api.ScriptTriggerHandler;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.flow.EventIngressKeys;
@@ -57,7 +58,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
     private final Function<String, DungeonConfig> configOf;
     private final InstanceRegistry registry;
     private final File dataFolder;
-    private final emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private final AuditService audit;
 
     private final Map<String, String> apiSources = new ConcurrentHashMap<>();
     private final Map<String, DungeonScriptSession> sessions = new ConcurrentHashMap<>();
@@ -75,7 +76,7 @@ public final class ScriptRuntimeManager implements AutoCloseable {
             Function<String, DungeonConfig> configOf,
             InstanceRegistry registry,
             File dataFolder,
-            emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+            AuditService audit) {
         this.plugin = plugin;
         this.messages = messages;
         this.debug = debug;

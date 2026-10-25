@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.gem.model.GemResonanceDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemStateService;
+import java.util.UUID;
 
 public final class DefaultGemCatalog implements GemCatalog {
 
@@ -197,7 +198,7 @@ public final class DefaultGemCatalog implements GemCatalog {
     }
 
     @Override
-    public Optional<GemRerollSessionView> rerollSession(java.util.UUID operatorId) {
+    public Optional<GemRerollSessionView> rerollSession(UUID operatorId) {
         if (!ready() || operatorId == null || plugin.rerollSessionService() == null) {
             return Optional.empty();
         }

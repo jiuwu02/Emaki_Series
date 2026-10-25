@@ -132,6 +132,8 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import java.util.LinkedHashMap;
+import org.bukkit.Bukkit;
 
 public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvider, EmakiServiceRegistry, DebugLoggerProvider {
 
@@ -143,7 +145,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     private static final String PLUGIN_NAME = "EmakiCoreLib";
 
     public static EmakiCoreLibPlugin lookup() {
-        org.bukkit.plugin.Plugin plugin = org.bukkit.Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(PLUGIN_NAME);
         if (plugin instanceof EmakiCoreLibPlugin coreLib) {
             return coreLib;
         }
@@ -523,7 +525,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         if (declared == null || declared.isEmpty()) {
             return Map.of();
         }
-        Map<String, String> accepted = new java.util.LinkedHashMap<>();
+        Map<String, String> accepted = new LinkedHashMap<>();
         for (Map.Entry<String, String> entry : declared.entrySet()) {
             String name = entry.getKey();
             CoreStageKind kind = stageRegistry == null ? null : stageRegistry.kindOf(name);

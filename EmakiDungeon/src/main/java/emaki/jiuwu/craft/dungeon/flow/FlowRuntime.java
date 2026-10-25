@@ -20,6 +20,14 @@ import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.script.TriggerSink;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.function.Consumer;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.title.Title;
+import org.bukkit.Sound;
+import org.bukkit.potion.PotionEffectType;
 
 public final class FlowRuntime {
 
@@ -27,7 +35,7 @@ public final class FlowRuntime {
     private final FlowDefinition definition;
     private final Adjudicator adjudicator;
     private final MessageService messages;
-    private final java.util.function.Consumer<UUID> teleportPermit;
+    private final Consumer<UUID> teleportPermit;
     private volatile FlowControllers controllers;
     private volatile PlayerStateHook stateHook;
     private volatile TriggerSink scriptSink;
@@ -43,7 +51,7 @@ public final class FlowRuntime {
             FlowDefinition definition,
             Adjudicator adjudicator,
             MessageService messages,
-            java.util.function.Consumer<UUID> teleportPermit) {
+            Consumer<UUID> teleportPermit) {
         this.instance = instance;
         this.definition = definition;
         this.adjudicator = adjudicator;
@@ -74,15 +82,15 @@ public final class FlowRuntime {
         return scriptTakeover;
     }
 
-    private void fireTrigger(TriggerType type, java.util.Map<String, String> context) {
+    private void fireTrigger(TriggerType type, Map<String, String> context) {
         TriggerSink sink = scriptSink;
         if (sink != null) {
             sink.fire(type, instance.instanceId(), instance.dungeonId(), context);
         }
     }
 
-    private java.util.Map<String, String> playerCtx(UUID playerId, String key, String value) {
-        java.util.Map<String, String> context = new java.util.LinkedHashMap<>();
+    private Map<String, String> playerCtx(UUID playerId, String key, String value) {
+        Map<String, String> context = new LinkedHashMap<>();
         if (playerId != null) {
             context.put("player", playerId.toString());
         }
@@ -212,7 +220,7 @@ public final class FlowRuntime {
         if (checkpoint != null && checkpoint.head().enabled() && checkpoint.region() != null
                 && payload.get(Facts.REGION_ENTERED) != null) {
             EvalContext checkpointContext = new EvalContext(playerId, payload);
-            if (adjudicator.adjudicate(checkpoint.head(), java.util.List.of(), checkpointContext, playerId).allowed()) {
+            if (adjudicator.adjudicate(checkpoint.head(), List.of(), checkpointContext, playerId).allowed()) {
                 checkpointId = checkpoint.recordId();
                 fireTrigger(TriggerType.onCheckpoint,
                         playerCtx(playerId, "checkpointId", checkpoint.recordId()));
@@ -240,7 +248,7 @@ public final class FlowRuntime {
         if (roomTimer != null && roomTimer.head().enabled()
                 && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
             EvalContext timerContext = new EvalContext(playerId, payload);
-            if (adjudicator.adjudicate(roomTimer.head(), java.util.List.of(), timerContext, playerId).allowed()) {
+            if (adjudicator.adjudicate(roomTimer.head(), List.of(), timerContext, playerId).allowed()) {
                 scheduleRoomTimer(roomTimer, playerId);
             }
         }
@@ -250,7 +258,7 @@ public final class FlowRuntime {
         FlowModules.EffectZoneDef effectZone = definition.effectZones().get(zoneId);
         if (effectZone != null && effectZone.head().enabled()
                 && Boolean.TRUE.equals(payload.get("effect_tick"))) {
-            if (adjudicator.adjudicate(effectZone.head(), java.util.List.of(), context, playerId).allowed()) {
+            if (adjudicator.adjudicate(effectZone.head(), List.of(), context, playerId).allowed()) {
                 applyEffects(effectZone, playerId);
             }
         }
@@ -419,7 +427,7 @@ public final class FlowRuntime {
         }
         UUID playerId = EventIngressKeys.player(event.payload());
         EvalContext context = new EvalContext(playerId, event.payload());
-        if (!adjudicator.adjudicate(spawnPoint.head(), java.util.List.of(), context, playerId).allowed()) {
+        if (!adjudicator.adjudicate(spawnPoint.head(), List.of(), context, playerId).allowed()) {
             return;
         }
         markSpawnTriggered(spawnId);
@@ -486,7 +494,7 @@ public final class FlowRuntime {
             if (!triggeredSpawns.add("kill_target:" + entry.getKey())) {
                 continue;
             }
-            if (adjudicator.adjudicate(killTarget.head(), java.util.List.of(), context, playerId).allowed()) {
+            if (adjudicator.adjudicate(killTarget.head(), List.of(), context, playerId).allowed()) {
                 fireTrigger(TriggerType.onKillCount, playerCtx(playerId, "count",
                         String.valueOf(factInt(countKey, 0))));
                 executeActions(killTarget.actions(), context, playerId);
@@ -558,21 +566,21 @@ public final class FlowRuntime {
         setFact(key, true);
         long deadline = System.currentTimeMillis() + roomTimer.seconds() * 1000L;
         Bukkit.getScheduler().runTaskLater(
-                org.bukkit.Bukkit.getPluginManager().getPlugin("EmakiDungeon"),
+                Bukkit.getPluginManager().getPlugin("EmakiDungeon"),
                 () -> {
                     if (instance.commands() == null) {
                         return;
                     }
                     setFact(Facts.timerMark(roomTimer.head().id()), true);
                     setFact(Facts.TIMER_REMAINING, 0);
-                    executeActions(java.util.List.of(roomTimer.onZero()),
+                    executeActions(List.of(roomTimer.onZero()),
                             new EvalContext(playerId, Map.of()), playerId);
                 },
                 roomTimer.seconds() * 20L);
         setFact(key + ":deadline", deadline);
     }
 
-    public void executeActions(java.util.List<FlowActionDef> actions, EvalContext context, UUID playerId) {
+    public void executeActions(List<FlowActionDef> actions, EvalContext context, UUID playerId) {
         for (FlowActionDef action : actions) {
             executeAction(action, context, playerId);
         }
@@ -651,8 +659,8 @@ public final class FlowRuntime {
                         continue;
                     }
                     try {
-                        org.bukkit.potion.PotionEffectType type =
-                                org.bukkit.potion.PotionEffectType.getByName(parts[0].toUpperCase(java.util.Locale.ROOT));
+                        PotionEffectType type =
+                                PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
                         if (type == null) {
                             continue;
                         }
@@ -696,12 +704,12 @@ public final class FlowRuntime {
                 var component = MiniMessages.parse(text);
                 for (Player player : world.getPlayers()) {
                     if ("title".equals(channel)) {
-                        player.showTitle(net.kyori.adventure.title.Title.title(
-                                component, net.kyori.adventure.text.Component.empty(),
-                                net.kyori.adventure.title.Title.Times.times(
-                                java.time.Duration.ofMillis(100),
-                                java.time.Duration.ofMillis(600),
-                                java.time.Duration.ofMillis(100))));
+                        player.showTitle(Title.title(
+                                component, Component.empty(),
+                                Title.Times.times(
+                                Duration.ofMillis(100),
+                                Duration.ofMillis(600),
+                                Duration.ofMillis(100))));
                     } else if ("actionbar".equals(channel)) {
                         player.sendActionBar(component);
                     } else {
@@ -793,7 +801,7 @@ public final class FlowRuntime {
                 if (!sound.isBlank()) {
                     try {
                         world.playSound(world.getSpawnLocation(),
-                                org.bukkit.Sound.valueOf(sound.toUpperCase(java.util.Locale.ROOT)),
+                                Sound.valueOf(sound.toUpperCase(Locale.ROOT)),
                                 1.0F, 1.0F);
                     } catch (IllegalArgumentException ignored) {
                     }
@@ -831,7 +839,7 @@ public final class FlowRuntime {
                 if (world == null) {
                     return;
                 }
-                var blockData = org.bukkit.Bukkit.createBlockData(target.blockData());
+                var blockData = Bukkit.createBlockData(target.blockData());
                 world.getBlockAt((int) Math.floor(point.x()),
                         (int) Math.floor(point.y()),
                         (int) Math.floor(point.z())).setBlockData(blockData, false);

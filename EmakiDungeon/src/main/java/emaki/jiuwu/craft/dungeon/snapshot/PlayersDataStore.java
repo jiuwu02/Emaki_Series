@@ -14,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import java.util.function.Consumer;
 
 public final class PlayersDataStore {
 
@@ -103,7 +104,7 @@ public final class PlayersDataStore {
         });
     }
 
-    public void updateAsync(UUID playerId, java.util.function.Consumer<PlayerData> mutator) {
+    public void updateAsync(UUID playerId, Consumer<PlayerData> mutator) {
         if (playerId == null || mutator == null) {
             return;
         }
@@ -129,7 +130,7 @@ public final class PlayersDataStore {
             values.put("limits", new LinkedHashMap<>(data.limits));
         }
         Path temp = file.toPath().resolveSibling(
-                file.getName() + "." + java.util.UUID.randomUUID() + ".tmp");
+                file.getName() + "." + UUID.randomUUID() + ".tmp");
         try {
             Files.createDirectories(root.toPath());
             YamlFiles.save(temp.toFile(), values);

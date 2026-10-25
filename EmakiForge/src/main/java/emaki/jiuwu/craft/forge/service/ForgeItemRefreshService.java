@@ -41,6 +41,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
@@ -101,7 +102,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         AtomicInteger skipped = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
         List<CompletableFuture<Void>> refreshes = new ArrayList<>(players.size());
-        emaki.jiuwu.craft.corelib.execution.ThreadOwnership ownership = plugin.threadOwnership();
+        ThreadOwnership ownership = plugin.threadOwnership();
         for (Player player : players) {
             if (ownership != null && ownership.isEntityOwned(player)) {
                 try {

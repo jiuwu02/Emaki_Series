@@ -13,11 +13,19 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
+import emaki.jiuwu.craft.dungeon.score.ScoreTracker;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 public final class InstanceCoordinator {
 
@@ -33,16 +41,16 @@ public final class InstanceCoordinator {
     private final InstancesStore store;
     private final MessageService messages;
     private final DebugLogger debug;
-    private final java.util.function.Consumer<DungeonInstance> evacuator;
-    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
-    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
-    private volatile emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
-    private volatile java.util.function.Consumer<String> dropCleanup;
+    private final Consumer<DungeonInstance> evacuator;
+    private volatile ActionBridge actionBridge;
+    private volatile ScriptRuntimeManager scriptManager;
+    private volatile AuditService audit;
+    private volatile ScoreTracker scoreTracker;
+    private volatile Consumer<String> dropCleanup;
 
     private volatile boolean shuttingDown;
-    private final java.util.Map<String, Long> disposingSince = new java.util.concurrent.ConcurrentHashMap<>();
-    private final java.util.Set<String> disposingAlerted = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Map<String, Long> disposingSince = new ConcurrentHashMap<>();
+    private final Set<String> disposingAlerted = ConcurrentHashMap.newKeySet();
     private TaskToken inspectionTask = TaskToken.UNAVAILABLE;
 
     public InstanceCoordinator(Plugin plugin,
@@ -55,7 +63,7 @@ public final class InstanceCoordinator {
             InstancesStore store,
             MessageService messages,
             DebugLogger debug,
-            java.util.function.Consumer<DungeonInstance> evacuator) {
+            Consumer<DungeonInstance> evacuator) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.pool = pool;
@@ -69,23 +77,23 @@ public final class InstanceCoordinator {
         this.evacuator = evacuator;
     }
 
-    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+    public void bindActionBridge(ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
     }
 
-    public void bindScoreTracker(emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker) {
+    public void bindScoreTracker(ScoreTracker scoreTracker) {
         this.scoreTracker = scoreTracker;
     }
 
-    public void bindDropCleanup(java.util.function.Consumer<String> dropCleanup) {
+    public void bindDropCleanup(Consumer<String> dropCleanup) {
         this.dropCleanup = dropCleanup;
     }
 
-    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
     }
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 
@@ -208,12 +216,12 @@ public final class InstanceCoordinator {
         if (scriptManager != null) {
             if ("admin".equals(trigger) || "api_force_stop".equals(trigger)) {
                 scriptManager.fireTriggerNow(
-                        emaki.jiuwu.craft.dungeon.trigger.TriggerType.onAdminForceStop,
+                        TriggerType.onAdminForceStop,
                         instanceId, instance.dungeonId(),
                         Map.of("instanceId", instanceId, "trigger", trigger));
             }
             scriptManager.fireTriggerNow(
-                    emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDestroy,
+                    TriggerType.onDestroy,
                     instanceId, instance.dungeonId(),
                     Map.of("instanceId", instanceId, "outcome", trigger));
         }

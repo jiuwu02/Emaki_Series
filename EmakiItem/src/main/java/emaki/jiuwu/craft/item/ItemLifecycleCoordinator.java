@@ -29,8 +29,11 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.config.ScriptSettings;
+import emaki.jiuwu.craft.item.editor.ItemEditorModule;
 import emaki.jiuwu.craft.item.model.ItemDirectoryConfig;
 import emaki.jiuwu.craft.item.model.ItemStateConfigParser;
 import emaki.jiuwu.craft.item.model.ItemUpdateConfig;
@@ -215,11 +218,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         );
         ItemRepairGuiService repairGuiService = new ItemRepairGuiService(plugin, guiService, repairService);
         ItemBrowserGuiService browserGuiService = new ItemBrowserGuiService(plugin, guiService);
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService =
+        ChatInputService chatInputService =
                 new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
-        emaki.jiuwu.craft.item.editor.ItemEditorModule editorModule =
+        ItemEditorModule editorModule =
                 new emaki.jiuwu.craft.item.editor.ItemEditorModule(plugin);
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService =
+        EditorService editorService =
                 new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
                         messageService, chatInputService, editorModule);
         editorModule.bind(editorService);

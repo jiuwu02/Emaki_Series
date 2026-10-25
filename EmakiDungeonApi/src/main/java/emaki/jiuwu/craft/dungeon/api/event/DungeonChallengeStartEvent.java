@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dungeon.api.event;
 
 import org.bukkit.event.Cancellable;
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -23,7 +24,7 @@ import org.bukkit.event.HandlerList;
  * when an earlier check aborts the session, or when the session is no
  * longer the active one for its party.
  */
-public class DungeonChallengeStartEvent extends org.bukkit.event.Event implements Cancellable {
+public class DungeonChallengeStartEvent extends Event implements Cancellable {
 
     private static final HandlerList HANDLERS = new HandlerList();
 

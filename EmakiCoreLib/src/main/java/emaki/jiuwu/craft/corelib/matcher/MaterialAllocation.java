@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.corelib.matcher;
 
 import java.util.IdentityHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.inventory.ItemStack;
@@ -99,6 +100,6 @@ public record MaterialAllocation(boolean satisfied,
     }
 
     private static String normalize(String value) {
-        return value == null ? "" : value.trim().toLowerCase(java.util.Locale.ROOT);
+        return value == null ? "" : value.trim().toLowerCase(Locale.ROOT);
     }
 }

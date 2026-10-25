@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.gui.GuiSessionHandler;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import net.kyori.adventure.text.Component;
+import org.bukkit.plugin.Plugin;
 
 public final class ChallengeGuiService {
 
@@ -31,9 +33,9 @@ public final class ChallengeGuiService {
 
     private final GuiService gui;
     private final LanguageLoader lang;
-    private final org.bukkit.plugin.Plugin plugin;
+    private final Plugin plugin;
 
-    public ChallengeGuiService(org.bukkit.plugin.Plugin plugin, GuiService gui, LanguageLoader lang) {
+    public ChallengeGuiService(Plugin plugin, GuiService gui, LanguageLoader lang) {
         this.plugin = plugin;
         this.gui = gui;
         this.lang = lang;
@@ -142,7 +144,7 @@ public final class ChallengeGuiService {
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
             meta.displayName(MiniMessages.parse(name));
-            List<net.kyori.adventure.text.Component> loreComponents = new ArrayList<>(lore.size());
+            List<Component> loreComponents = new ArrayList<>(lore.size());
             for (String line : lore) {
                 loreComponents.add(MiniMessages.parse(line));
             }

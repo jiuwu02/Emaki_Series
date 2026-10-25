@@ -26,17 +26,30 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.api.ErrorCodes;
+import emaki.jiuwu.craft.dungeon.api.Result;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules;
+import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
+import emaki.jiuwu.craft.dungeon.limit.LimitService;
 import emaki.jiuwu.craft.dungeon.orchestration.DenyReason;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
+import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.util.Locale;
+import org.bukkit.Location;
+import org.bukkit.scoreboard.Scoreboard;
 
 public final class ChallengeService {
 
@@ -60,16 +73,16 @@ public final class ChallengeService {
     private final Map<UUID, ChallengeSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, String> scoreboardObjective = new ConcurrentHashMap<>();
     private TaskToken tickTask = TaskToken.UNAVAILABLE;
-    private volatile emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge;
-    private volatile java.util.function.Function<DungeonInstance,
-            emaki.jiuwu.craft.dungeon.flow.FlowRuntime> runtimeFactory;
-    private volatile emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService;
-    private volatile emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems;
-    private volatile emaki.jiuwu.craft.dungeon.limit.LimitService limitService;
-    private volatile emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private volatile ActionBridge actionBridge;
+    private volatile Function<DungeonInstance,
+            FlowRuntime> runtimeFactory;
+    private volatile PlayerStateService stateService;
+    private volatile TempItemManager tempItems;
+    private volatile LimitService limitService;
+    private volatile ScriptRuntimeManager scriptManager;
+    private volatile AuditService audit;
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 
@@ -105,30 +118,30 @@ public final class ChallengeService {
         tickTask = dispatcher.runGlobalTimer(plugin, this::tick, TICK_PERIOD, TICK_PERIOD);
     }
 
-    public void bindActionBridge(emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge) {
+    public void bindActionBridge(ActionBridge actionBridge) {
         this.actionBridge = actionBridge;
     }
 
     public void bindInstanceHooks(
-            java.util.function.Function<DungeonInstance,
-                    emaki.jiuwu.craft.dungeon.flow.FlowRuntime> runtimeFactory,
-            emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService,
-            emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItems) {
+            Function<DungeonInstance,
+                    FlowRuntime> runtimeFactory,
+            PlayerStateService stateService,
+            TempItemManager tempItems) {
         this.runtimeFactory = runtimeFactory;
         this.stateService = stateService;
         this.tempItems = tempItems;
     }
 
-    public void bindLimitService(emaki.jiuwu.craft.dungeon.limit.LimitService limitService) {
+    public void bindLimitService(LimitService limitService) {
         this.limitService = limitService;
     }
 
-    public void bindScriptManager(emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager) {
+    public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
     }
 
-    private void fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType type,
-            String dungeonId, java.util.Map<String, String> context) {
+    private void fireTrigger(TriggerType type,
+            String dungeonId, Map<String, String> context) {
         if (scriptManager != null) {
             scriptManager.fireTrigger(type, null, dungeonId, context);
         }
@@ -175,7 +188,7 @@ public final class ChallengeService {
         }
         if (limitService != null && !leader.hasPermission("emakidungeon.bypass.limit")) {
             var verdict = limitService.check(leader.getUniqueId(), dungeonId);
-            if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+            if (verdict.verdict() != LimitService.Verdict.ALLOWED) {
                 messages.send(leader, limitMessageKey(verdict.verdict()), Map.of(
                         "player", leader.getName(),
                         "seconds", String.valueOf(verdict.retrySeconds())));
@@ -226,7 +239,7 @@ public final class ChallengeService {
         var startEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeStartEvent(
                 session.dungeonId(), config.prepareWindowSeconds(),
                 session.difficulty(), session.dropMode());
-        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        Bukkit.getPluginManager().callEvent(startEvent);
         if (startEvent.isCancelled()) {
             abort(session, "challenge_start_cancelled");
             return;
@@ -286,7 +299,7 @@ public final class ChallengeService {
             if (worlds >= config.poolMaxWorlds()) {
                 messages.send(leader, "challenge.enter.dungeon_full", Map.of("dungeon", session.dungeonId()));
                 debug.log("dungeon", leader, "instance_full", Map.of("dungeon", session.dungeonId()));
-                fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
+                fireTrigger(TriggerType.onInstanceFull,
                         session.dungeonId(), Map.of("dungeon", session.dungeonId()));
                 return false;
             }
@@ -340,65 +353,65 @@ public final class ChallengeService {
         }
     }
 
-    public emaki.jiuwu.craft.dungeon.api.Result<Object> apiEnter(Player player, String dungeonId) {
+    public Result<Object> apiEnter(Player player, String dungeonId) {
         return apiEnter(player, dungeonId, false);
     }
 
-    public emaki.jiuwu.craft.dungeon.api.Result<Object> apiEnter(Player player, String dungeonId, boolean test) {
+    public Result<Object> apiEnter(Player player, String dungeonId, boolean test) {
         DungeonConfig config = configOf.apply(dungeonId);
         if (config == null) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DUNGEON_NOT_FOUND,
+            return Result.err(
+                    ErrorCodes.DUNGEON_NOT_FOUND,
                     "api.dungeon_not_found", Map.of("dungeon", dungeonId));
         }
         if (!player.hasPermission("emakidungeon.dungeon." + dungeonId)) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PERMISSION,
+            return Result.err(
+                    ErrorCodes.DENY_PERMISSION,
                     "api.denied_permission", Map.of("dungeon", dungeonId));
         }
         Party party = parties.partyOf(player.getUniqueId());
         boolean solo = party == null || party.size() == 1;
         if (party == null) {
             if (parties.create(player) != PartyService.InviteResult.OK) {
-                return emaki.jiuwu.craft.dungeon.api.Result.err(
-                        emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
+                return Result.err(
+                        ErrorCodes.DENY_PARTY_INVALID,
                         "api.party_invalid");
             }
             party = parties.partyOf(player.getUniqueId());
         }
         if (party == null) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
+            return Result.err(
+                    ErrorCodes.DENY_PARTY_INVALID,
                     "api.party_invalid");
         }
         if (!solo && !party.isLeader(player.getUniqueId())) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_NOT_LEADER,
+            return Result.err(
+                    ErrorCodes.DENY_NOT_LEADER,
                     "api.not_leader");
         }
         if (sessions.get(party.id()) != null || allocator.isPartyBusy(party.id())) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
+            return Result.err(
+                    ErrorCodes.DENY_PARTY_INVALID,
                     "api.challenge_active");
         }
         if (!solo) {
             startEnter(player, dungeonId);
             if (sessions.get(party.id()) == null) {
-                return emaki.jiuwu.craft.dungeon.api.Result.err(
-                        emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
+                return Result.err(
+                        ErrorCodes.DENY_PARTY_INVALID,
                         "api.challenge_active");
             }
             sessions.get(party.id()).setTest(test);
-            return emaki.jiuwu.craft.dungeon.api.Result.ok(
+            return Result.ok(
                     new emaki.jiuwu.craft.dungeon.api.ChallengeId(String.valueOf(party.id())));
         }
         if (limitService != null && !player.hasPermission("emakidungeon.bypass.limit")) {
             var verdict = limitService.check(player.getUniqueId(), dungeonId);
-            if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+            if (verdict.verdict() != LimitService.Verdict.ALLOWED) {
                 String code = limitErrorCode(verdict.verdict());
-                return emaki.jiuwu.craft.dungeon.api.Result.err(
+                return Result.err(
                         code,
-                        "api.denied_" + code.substring(5).toLowerCase(java.util.Locale.ROOT),
+                        "api.denied_" + code.substring(5).toLowerCase(Locale.ROOT),
                         Map.of("seconds", String.valueOf(verdict.retrySeconds())));
             }
         }
@@ -413,11 +426,11 @@ public final class ChallengeService {
         session.setDropMode(mode);
         var startEvent = new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeStartEvent(
                 dungeonId, config.prepareWindowSeconds(), session.difficulty(), mode);
-        org.bukkit.Bukkit.getPluginManager().callEvent(startEvent);
+        Bukkit.getPluginManager().callEvent(startEvent);
         if (startEvent.isCancelled()) {
             abort(session, "challenge_start_cancelled");
-            return emaki.jiuwu.craft.dungeon.api.Result.err(
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID,
+            return Result.err(
+                    ErrorCodes.DENY_PARTY_INVALID,
                     "api.challenge_cancelled");
         }
         session.setPhase(ChallengePhase.PREPARING);
@@ -425,58 +438,58 @@ public final class ChallengeService {
         session.ready().clear();
         String reason = finalizeReady(session, party);
         if (reason != null) {
-            return emaki.jiuwu.craft.dungeon.api.Result.err(mapAbortReason(reason),
+            return Result.err(mapAbortReason(reason),
                     "api.enter_failed", Map.of("reason", reason));
         }
         for (DungeonInstance instance : registry.all()) {
             if (party.id().equals(instance.partyId())) {
-                return emaki.jiuwu.craft.dungeon.api.Result.ok(
+                return Result.ok(
                         new emaki.jiuwu.craft.dungeon.api.InstanceId(instance.instanceId()));
             }
         }
-        return emaki.jiuwu.craft.dungeon.api.Result.ok(
+        return Result.ok(
                 new emaki.jiuwu.craft.dungeon.api.ChallengeId(String.valueOf(party.id())));
     }
 
     private static String mapAbortReason(String reason) {
         if (reason == null) {
-            return emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID;
+            return ErrorCodes.DENY_PARTY_INVALID;
         }
         if (reason.startsWith("limit_")) {
             return limitErrorCodeByName(reason.substring("limit_".length()));
         }
         return switch (reason) {
-            case "config_missing" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DUNGEON_NOT_FOUND;
-            case "permission" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PERMISSION;
-            case "deny_DENY_GLOBAL_FULL" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_GLOBAL_FULL;
-            case "deny_DENY_DUNGEON_FULL" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DUNGEON_FULL;
-            default -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_PARTY_INVALID;
+            case "config_missing" -> ErrorCodes.DUNGEON_NOT_FOUND;
+            case "permission" -> ErrorCodes.DENY_PERMISSION;
+            case "deny_DENY_GLOBAL_FULL" -> ErrorCodes.DENY_GLOBAL_FULL;
+            case "deny_DENY_DUNGEON_FULL" -> ErrorCodes.DENY_DUNGEON_FULL;
+            default -> ErrorCodes.DENY_PARTY_INVALID;
         };
     }
 
-    private static String limitErrorCode(emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict verdict) {
+    private static String limitErrorCode(LimitService.Verdict verdict) {
         return switch (verdict) {
-            case DENY_COOLDOWN -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_COOLDOWN;
-            case DENY_DAILY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DAILY_LIMIT;
-            case DENY_WEEKLY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WEEKLY_LIMIT;
-            case DENY_MONTHLY_LIMIT -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_MONTHLY_LIMIT;
-            default -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WINDOW;
+            case DENY_COOLDOWN -> ErrorCodes.DENY_COOLDOWN;
+            case DENY_DAILY_LIMIT -> ErrorCodes.DENY_DAILY_LIMIT;
+            case DENY_WEEKLY_LIMIT -> ErrorCodes.DENY_WEEKLY_LIMIT;
+            case DENY_MONTHLY_LIMIT -> ErrorCodes.DENY_MONTHLY_LIMIT;
+            default -> ErrorCodes.DENY_WINDOW;
         };
     }
 
     private static String limitErrorCodeByName(String verdictName) {
         return switch (verdictName) {
-            case "DENY_COOLDOWN" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_COOLDOWN;
-            case "DENY_DAILY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_DAILY_LIMIT;
-            case "DENY_WEEKLY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WEEKLY_LIMIT;
-            case "DENY_MONTHLY_LIMIT" -> emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_MONTHLY_LIMIT;
+            case "DENY_COOLDOWN" -> ErrorCodes.DENY_COOLDOWN;
+            case "DENY_DAILY_LIMIT" -> ErrorCodes.DENY_DAILY_LIMIT;
+            case "DENY_WEEKLY_LIMIT" -> ErrorCodes.DENY_WEEKLY_LIMIT;
+            case "DENY_MONTHLY_LIMIT" -> ErrorCodes.DENY_MONTHLY_LIMIT;
             case "DENY_DAILY_WINDOW", "DENY_WEEKLY_DAY", "DENY_MONTHLY_WEEK" ->
-                    emaki.jiuwu.craft.dungeon.api.ErrorCodes.DENY_WINDOW;
+                    ErrorCodes.DENY_WINDOW;
             default -> verdictName;
         };
     }
 
-    private static String limitMessageKey(emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict verdict) {
+    private static String limitMessageKey(LimitService.Verdict verdict) {
         return switch (verdict) {
             case DENY_COOLDOWN -> "challenge.enter.cooldown";
             case DENY_DAILY_LIMIT -> "challenge.enter.daily_limit";
@@ -510,7 +523,7 @@ public final class ChallengeService {
             }
             if (limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
                 var verdict = limitService.check(memberId, session.dungeonId());
-                if (verdict.verdict() != emaki.jiuwu.craft.dungeon.limit.LimitService.Verdict.ALLOWED) {
+                if (verdict.verdict() != LimitService.Verdict.ALLOWED) {
                     String key = limitMessageKey(verdict.verdict());
                     messages.send(leader, key, Map.of(
                             "player", member.getName(),
@@ -531,9 +544,9 @@ public final class ChallengeService {
                 "dungeon", session.dungeonId(),
                 "party", String.valueOf(party.id())
         ));
-        fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onReadyAll,
+        fireTrigger(TriggerType.onReadyAll,
                 session.dungeonId(),
-                java.util.Map.of("dungeon", session.dungeonId(),
+                Map.of("dungeon", session.dungeonId(),
                         "party", String.valueOf(party.id())));
         DenyReason deny = allocator.tryAcquireParty(session.dungeonId(), party.id(),
                 pool.reserveCount(session.dungeonId()) > 0);
@@ -552,7 +565,7 @@ public final class ChallengeService {
             allocator.releaseParty(party.id());
             messages.send(leader, "challenge.enter.dungeon_full", Map.of("dungeon", session.dungeonId()));
             debug.log("dungeon", leader, "instance_full", Map.of("dungeon", session.dungeonId()));
-            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
+            fireTrigger(TriggerType.onInstanceFull,
                     session.dungeonId(), Map.of("dungeon", session.dungeonId()));
             abort(session, "deny_DUNGEON_FULL");
             return "deny_DENY_DUNGEON_FULL";
@@ -565,8 +578,8 @@ public final class ChallengeService {
         if (deny == DenyReason.DENY_DUNGEON_FULL || deny == DenyReason.DENY_GLOBAL_FULL) {
             messages.send(leader, "challenge.enter.full", Map.of("dungeon", dungeonId));
             debug.log("dungeon", leader, "instance_full", Map.of("dungeon", dungeonId));
-            fireTrigger(emaki.jiuwu.craft.dungeon.trigger.TriggerType.onInstanceFull,
-                    dungeonId, java.util.Map.of("dungeon", dungeonId));
+            fireTrigger(TriggerType.onInstanceFull,
+                    dungeonId, Map.of("dungeon", dungeonId));
             return;
         }
         messages.send(leader, "challenge.enter.party_busy", Map.of());
@@ -607,7 +620,7 @@ public final class ChallengeService {
         if (online.isEmpty()) {
             return;
         }
-        org.bukkit.scoreboard.Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
+        Scoreboard board = Bukkit.getScoreboardManager().getNewScoreboard();
         String name = "emd_wait_" + session.partyId().toString().substring(0, 8);
         Objective objective = board.registerNewObjective(name, Criteria.DUMMY,
                 MiniMessages.parse(render("challenge.wait.sidebar", Map.of("dungeon", session.dungeonId()))));
@@ -676,7 +689,7 @@ public final class ChallengeService {
             });
         }
         String instanceId = instance.instanceId();
-        org.bukkit.Location entryLocation = world.getSpawnLocation();
+        Location entryLocation = world.getSpawnLocation();
         var entryRuntime = instance.flowRuntime();
         if (entryRuntime != null && entryRuntime.definition().spawnPoint() != null
                 && entryRuntime.definition().spawnPoint().point() != null) {
@@ -695,7 +708,7 @@ public final class ChallengeService {
             teleportPermit.accept(memberId);
             snapshots.captureInitial(member, instanceId, session.dungeonId(), String.valueOf(party.id()));
             member.teleport(entryLocation);
-            org.bukkit.Bukkit.getPluginManager().callEvent(
+            Bukkit.getPluginManager().callEvent(
                     new emaki.jiuwu.craft.dungeon.api.event.DungeonEnterEvent(
                             instanceId, session.dungeonId(), memberId, String.valueOf(party.id())));
             messages.send(member, "challenge.entered", Map.of(
@@ -790,7 +803,7 @@ public final class ChallengeService {
 
     public void abort(ChallengeSession session, String reason) {
         if (sessions.remove(session.partyId(), session)) {
-            org.bukkit.Bukkit.getPluginManager().callEvent(
+            Bukkit.getPluginManager().callEvent(
                     new emaki.jiuwu.craft.dungeon.api.event.DungeonChallengeCancelEvent(
                             session.dungeonId(), reason));
             cleanup(session, reason);
@@ -805,7 +818,7 @@ public final class ChallengeService {
             allocator.releaseParty(party.id());
         }
         closeSessionUi(session);
-        debug.logRaw("dungeon", (java.util.UUID) null, "challenge cancelled | party=" + session.partyId()
+        debug.logRaw("dungeon", (UUID) null, "challenge cancelled | party=" + session.partyId()
                 + " | dungeon=" + session.dungeonId() + " | reason=" + reason);
         if (party != null) {
             for (UUID memberId : party.members()) {

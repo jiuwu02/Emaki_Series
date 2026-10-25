@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
+import java.util.Locale;
 import org.bukkit.entity.Player;
 import me.clip.placeholderapi.PlaceholderAPI;
 import org.bukkit.NamespacedKey;
@@ -271,8 +272,8 @@ public final class CookingRecipeService {
         List<Map<String, Object>> result = new ArrayList<>();
         for (Map<String, Object> raw : mapList(recipe.configuration().getMapList("inputs"))) {
             Map<String, Object> input = new LinkedHashMap<>(raw);
-            input.put("slot_id", Texts.toStringSafe(input.get("slot_id")).trim().toLowerCase(java.util.Locale.ROOT));
-            input.put("count_key", Texts.toStringSafe(input.get("count_key")).trim().toLowerCase(java.util.Locale.ROOT));
+            input.put("slot_id", Texts.toStringSafe(input.get("slot_id")).trim().toLowerCase(Locale.ROOT));
+            input.put("count_key", Texts.toStringSafe(input.get("count_key")).trim().toLowerCase(Locale.ROOT));
             input.put("amount", Math.max(1, Numbers.tryParseInt(input.get("amount"), 1)));
             result.add(Map.copyOf(input));
         }

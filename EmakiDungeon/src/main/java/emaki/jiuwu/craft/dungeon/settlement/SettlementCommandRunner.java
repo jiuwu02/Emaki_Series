@@ -7,6 +7,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public final class SettlementCommandRunner {
 
@@ -60,8 +62,8 @@ public final class SettlementCommandRunner {
         return new RunResult(allSucceeded, steps);
     }
 
-    private static java.util.Map<String, String> mapOf(String... pairs) {
-        java.util.Map<String, String> map = new java.util.LinkedHashMap<>();
+    private static Map<String, String> mapOf(String... pairs) {
+        Map<String, String> map = new LinkedHashMap<>();
         for (int i = 0; i + 1 < pairs.length; i += 2) {
             map.put(pairs[i], pairs[i + 1]);
         }

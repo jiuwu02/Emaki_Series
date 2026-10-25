@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.item.api.ItemStateKey;
 import emaki.jiuwu.craft.item.api.ItemStateSchema;
 import emaki.jiuwu.craft.item.api.ItemStateType;
 import emaki.jiuwu.craft.item.service.EmakiItemStateService;
+import java.util.Set;
 
 public final class ItemStateReadGate implements CoreActionGate {
     private final EmakiItemStateService state;
@@ -40,8 +41,8 @@ public final class ItemStateReadGate implements CoreActionGate {
                 CoreStageParameter.required("type", CoreStageParameterType.STRING, "状态类型"),
                 CoreStageParameter.optional("slot", CoreStageParameterType.STRING, "", "背包槽位"));
     }
-    @Override public @NotNull java.util.Set<String> providedVariables() {
-        return java.util.Set.of("item_state.value", "item_state.exists", "item_state.key", "item_state.type");
+    @Override public @NotNull Set<String> providedVariables() {
+        return Set.of("item_state.value", "item_state.exists", "item_state.key", "item_state.type");
     }
 
     @Override

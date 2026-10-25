@@ -10,6 +10,7 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
@@ -17,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Map;
 
 public final class SpawnParticleAtStage extends BaseStage {
 
@@ -51,10 +53,10 @@ public final class SpawnParticleAtStage extends BaseStage {
                             .replace("minecraft:", "")
                             .toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.failure(
-                    emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.INVALID_CONFIG,
+            return CoreActionOutcome.failure(
+                    CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.spawn_particle_at.unknown_particle",
-                    java.util.Map.of("particle", arguments.getString("particle")));
+                    Map.of("particle", arguments.getString("particle")));
         }
         double x = arguments.getDouble("x", 0D);
         double y = arguments.getDouble("y", 0D);
@@ -64,6 +66,6 @@ public final class SpawnParticleAtStage extends BaseStage {
                 "execute in " + world.getKey() + " run particle " + particle.getKey()
                         + " " + (origin.getX() + x) + " " + (origin.getY() + y) + " " + (origin.getZ() + z)
                         + " 0 0 0 0 " + count + " force");
-        return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.success();
+        return CoreActionOutcome.success();
     }
 }

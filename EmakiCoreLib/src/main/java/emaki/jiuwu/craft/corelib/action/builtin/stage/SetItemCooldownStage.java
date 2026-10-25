@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import java.util.Map;
 
 public final class SetItemCooldownStage extends BaseStage {
 
@@ -34,7 +35,7 @@ public final class SetItemCooldownStage extends BaseStage {
         if (material == null) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.set_item_cooldown.unknown_material",
-                    java.util.Map.of("material", arguments.getString("material")));
+                    Map.of("material", arguments.getString("material")));
         }
         player.setCooldown(material, Math.max(0, arguments.getInt("seconds", 0)) * 20);
         return CoreActionOutcome.success();

@@ -16,6 +16,8 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckIssue;
 import emaki.jiuwu.craft.corelib.config.precheck.ItemRequirementSchemaValidator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 public record ItemRequirement(
         @NotNull List<ItemSourceRef> sources,
@@ -56,7 +58,7 @@ public record ItemRequirement(
         String declared = resolveDeclaredIdentity(node);
         String resolvedSourcesKey = KEY_ITEM_SOURCES.equals(sourcesKey) ? firstDeclaredKey(node, SOURCE_KEYS) : sourcesKey;
         String resolvedMatcherKey = KEY_MATCHER.equals(matcherKey) ? firstDeclaredKey(node, MATCHER_KEYS) : matcherKey;
-        java.util.Map<String, Object> validationNode = new java.util.LinkedHashMap<>(ConfigNodes.entries(node));
+        Map<String, Object> validationNode = new LinkedHashMap<>(ConfigNodes.entries(node));
         if (!KEY_ITEM_SOURCES.equals(resolvedSourcesKey) && ConfigNodes.contains(node, resolvedSourcesKey)) {
             validationNode.remove(resolvedSourcesKey);
             validationNode.put(KEY_ITEM_SOURCES, ConfigNodes.get(node, resolvedSourcesKey));

@@ -27,6 +27,11 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorDocument;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
+import java.util.function.Consumer;
+import net.kyori.adventure.text.Component;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 public final class EditorGui implements Listener {
 
@@ -91,12 +96,12 @@ public final class EditorGui implements Listener {
                     new String[] { "leaderboard", "max-entries" }, true)
     );
 
-    private final org.bukkit.plugin.Plugin plugin;
+    private final Plugin plugin;
     private final EditorService service;
     private final MessageService messages;
     private final ChatInputService chatInput;
 
-    public EditorGui(org.bukkit.plugin.Plugin plugin,
+    public EditorGui(Plugin plugin,
             EditorService service,
             MessageService messages,
             ChatInputService chatInput) {
@@ -385,7 +390,7 @@ public final class EditorGui implements Listener {
         }
     }
 
-    private String pointText(emaki.jiuwu.craft.dungeon.flow.FlowPoint point) {
+    private String pointText(FlowPoint point) {
         return point == null ? "-" : point.x() + "," + point.y() + "," + point.z();
     }
 
@@ -402,7 +407,7 @@ public final class EditorGui implements Listener {
         ItemMeta meta = stack.getItemMeta();
         meta.displayName(MiniMessages.parse(messages.message(messageKey, argsMap(replacements))));
         if (!lore.isEmpty()) {
-            List<net.kyori.adventure.text.Component> lines = new ArrayList<>(lore.size());
+            List<Component> lines = new ArrayList<>(lore.size());
             for (String line : lore) {
                 lines.add(MiniMessages.parse(line));
             }
@@ -410,7 +415,7 @@ public final class EditorGui implements Listener {
         }
         meta.getPersistentDataContainer().set(
                 new org.bukkit.NamespacedKey("emakidungeon", "editor_nav"),
-                org.bukkit.persistence.PersistentDataType.STRING, messageKey);
+                PersistentDataType.STRING, messageKey);
         stack.setItemMeta(meta);
         return stack;
     }
@@ -910,7 +915,7 @@ public final class EditorGui implements Listener {
     }
 
     private void prompt(Player player, EditorHolder holder, String fieldKey,
-            java.util.function.Consumer<String> handler) {
+            Consumer<String> handler) {
         String label = messages.message(fieldKey(fieldKey), Map.of());
         messages.send(player, "editor.input_prompt", Map.of("field", label));
         chatInput.await(new ChatInputRequest(plugin, player, 60L, List.of("取消", "cancel"), result -> {
@@ -928,7 +933,7 @@ public final class EditorGui implements Listener {
     }
 
     private void applyEdit(Player player, EditorHolder holder, EditorSession session, boolean config,
-            java.util.function.Consumer<YamlTextDocument> mutation, String fieldKey, String value) {
+            Consumer<YamlTextDocument> mutation, String fieldKey, String value) {
         EditorDocument doc = config ? session.configDoc() : session.flowDoc();
         EditorDocument.SaveResult result;
         synchronized (doc) {
@@ -963,8 +968,8 @@ public final class EditorGui implements Listener {
     }
 
     private Map<String, Object> flatRegion(EditorSession session) {
-        emaki.jiuwu.craft.dungeon.flow.FlowPoint first = session.pos1();
-        emaki.jiuwu.craft.dungeon.flow.FlowPoint second = session.pos2();
+        FlowPoint first = session.pos1();
+        FlowPoint second = session.pos2();
         long ax = (long) Math.floor(first == null ? 0 : first.x());
         long ay = (long) Math.floor(first == null ? 0 : first.y());
         long az = (long) Math.floor(first == null ? 0 : first.z());

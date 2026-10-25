@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.schedule.cron;
 
+import java.time.Duration;
 import org.bukkit.plugin.Plugin;
 
 import java.time.ZoneId;
@@ -54,7 +55,7 @@ public final class CronScheduler {
             return;
         }
 
-        long delayMillis = java.time.Duration.between(now, next).toMillis();
+        long delayMillis = Duration.between(now, next).toMillis();
         long delayTicks = Math.max(1L, delayMillis / 50L);
 
         plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, scheduledTask -> {

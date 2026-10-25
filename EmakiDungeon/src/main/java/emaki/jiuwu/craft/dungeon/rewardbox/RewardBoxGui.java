@@ -22,6 +22,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import org.bukkit.persistence.PersistentDataType;
 
 public final class RewardBoxGui implements Listener {
 
@@ -111,7 +112,7 @@ public final class RewardBoxGui implements Listener {
         meta.displayName(MiniMessages.parse(messages.message(messageKey, Map.of())));
         meta.getPersistentDataContainer().set(
                 new org.bukkit.NamespacedKey("emakidungeon", "reward_nav"),
-                org.bukkit.persistence.PersistentDataType.STRING, "1");
+                PersistentDataType.STRING, "1");
         stack.setItemMeta(meta);
         return stack;
     }

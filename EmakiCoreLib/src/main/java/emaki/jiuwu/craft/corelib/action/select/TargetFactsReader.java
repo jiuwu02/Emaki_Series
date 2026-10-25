@@ -15,6 +15,8 @@ import org.bukkit.potion.PotionEffectType;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentity;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import org.bukkit.entity.Ageable;
+import org.bukkit.entity.Tameable;
 
 public final class TargetFactsReader {
 
@@ -128,10 +130,10 @@ public final class TargetFactsReader {
             flags.put(FLAG_BREATHING, living.getRemainingAir() > 0);
             flags.put(FLAG_LEASHED, living.isLeashed());
         }
-        if (entity instanceof org.bukkit.entity.Tameable tameable) {
+        if (entity instanceof Tameable tameable) {
             flags.put(FLAG_TAMED, tameable.isTamed());
         }
-        if (entity instanceof org.bukkit.entity.Ageable ageable) {
+        if (entity instanceof Ageable ageable) {
             flags.put(FLAG_BABY, !ageable.isAdult());
         }
         return flags;

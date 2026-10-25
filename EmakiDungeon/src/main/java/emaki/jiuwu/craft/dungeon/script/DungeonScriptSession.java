@@ -20,12 +20,20 @@ import org.graalvm.polyglot.Value;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
+import emaki.jiuwu.craft.dungeon.flow.EventIngressKeys;
 import emaki.jiuwu.craft.dungeon.flow.FlowControllers;
 import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import java.time.Duration;
+import java.util.LinkedHashMap;
+import org.bukkit.Bukkit;
+import org.bukkit.World;
+import org.bukkit.entity.Player;
+import org.graalvm.polyglot.SourceSection;
 
 public final class DungeonScriptSession implements AutoCloseable {
 
@@ -85,7 +93,7 @@ public final class DungeonScriptSession implements AutoCloseable {
     private final long timeoutMs;
     private final boolean failOnError;
     private final String scriptName;
-    private final emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private final AuditService audit;
     private final EntryRegistry entries = new EntryRegistry();
     private final Map<String, CopyOnWriteArrayList<Value>> handlers = new ConcurrentHashMap<>();
 
@@ -104,7 +112,7 @@ public final class DungeonScriptSession implements AutoCloseable {
             long timeoutMs,
             boolean failOnError,
             String scriptName,
-            emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+            AuditService audit) {
         this.instance = instance;
         this.runtime = runtime;
         this.controllers = controllers;
@@ -206,11 +214,11 @@ public final class DungeonScriptSession implements AutoCloseable {
         if (event == null || event.trigger() == null) {
             return;
         }
-        if (emaki.jiuwu.craft.dungeon.flow.EventIngressKeys.SCRIPT_TRIGGER.equals(event.trigger())) {
+        if (EventIngressKeys.SCRIPT_TRIGGER.equals(event.trigger())) {
             Map<String, String> context = Map.of();
             Object raw = event.payload().get("ctx");
             if (raw instanceof Map<?, ?> map) {
-                Map<String, String> parsed = new java.util.LinkedHashMap<>();
+                Map<String, String> parsed = new LinkedHashMap<>();
                 for (Map.Entry<?, ?> entry : map.entrySet()) {
                     if (entry.getKey() != null && entry.getValue() != null) {
                         parsed.put(String.valueOf(entry.getKey()), String.valueOf(entry.getValue()));
@@ -227,7 +235,7 @@ public final class DungeonScriptSession implements AutoCloseable {
         } catch (RuntimeException exception) {
             return;
         }
-        Map<String, String> context = new java.util.LinkedHashMap<>();
+        Map<String, String> context = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : event.payload().entrySet()) {
             if (entry.getKey() != null && entry.getValue() != null) {
                 context.put(entry.getKey(), String.valueOf(entry.getValue()));
@@ -279,7 +287,7 @@ public final class DungeonScriptSession implements AutoCloseable {
             killer = watchdog.schedule(() -> {
                 interrupted.set(true);
                 try {
-                    current.interrupt(java.time.Duration.ofMillis(100));
+                    current.interrupt(Duration.ofMillis(100));
                 } catch (Exception ignored) {
                 }
             }, timeoutMs, TimeUnit.MILLISECONDS);
@@ -337,11 +345,11 @@ public final class DungeonScriptSession implements AutoCloseable {
 
             @Override
             public void execute() {
-                org.bukkit.World world = org.bukkit.Bukkit.getWorld(instance.instanceId());
+                World world = Bukkit.getWorld(instance.instanceId());
                 if (world == null) {
                     return;
                 }
-                for (org.bukkit.entity.Player member : world.getPlayers()) {
+                for (Player member : world.getPlayers()) {
                     messages.send(member, "script.stopped_chat", Map.of());
                 }
             }
@@ -354,7 +362,7 @@ public final class DungeonScriptSession implements AutoCloseable {
     private String describe(PolyglotException exception) {
         String message = exception.getMessage();
         String text = message == null || message.isBlank() ? exception.toString() : message;
-        org.graalvm.polyglot.SourceSection location = exception.getSourceLocation();
+        SourceSection location = exception.getSourceLocation();
         if (location != null) {
             String locationText = location.toString();
             if (locationText != null && !locationText.isBlank()) {
@@ -420,18 +428,18 @@ public final class DungeonScriptSession implements AutoCloseable {
     }
 
     UUID anyPlayer() {
-        org.bukkit.World world = org.bukkit.Bukkit.getWorld(instance.instanceId());
+        World world = Bukkit.getWorld(instance.instanceId());
         if (world == null) {
             return null;
         }
-        for (org.bukkit.entity.Player member : world.getPlayers()) {
+        for (Player member : world.getPlayers()) {
             return member.getUniqueId();
         }
         return null;
     }
 
     int playerCount() {
-        org.bukkit.World world = org.bukkit.Bukkit.getWorld(instance.instanceId());
+        World world = Bukkit.getWorld(instance.instanceId());
         return world == null ? 0 : world.getPlayers().size();
     }
 }

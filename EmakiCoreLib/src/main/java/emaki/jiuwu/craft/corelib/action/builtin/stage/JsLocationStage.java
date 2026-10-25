@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.script.ScriptResult;
 import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.exports.EmakiContextExport;
+import org.graalvm.polyglot.HostAccess;
 
 public final class JsLocationStage extends BaseStage {
 
@@ -85,37 +86,37 @@ public final class JsLocationStage extends BaseStage {
             this.location = location;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getWorld() {
             return location.getWorld() != null ? location.getWorld().getName() : "未知";
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getX() {
             return location.getX();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getY() {
             return location.getY();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getZ() {
             return location.getZ();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockX() {
             return location.getBlockX();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockY() {
             return location.getBlockY();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockZ() {
             return location.getBlockZ();
         }
@@ -128,22 +129,22 @@ public final class JsLocationStage extends BaseStage {
             this.player = player;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getName() {
             return player.getName();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getUniqueId() {
             return player.getUniqueId().toString();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getHealth() {
             return player.getHealth();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getLevel() {
             return player.getLevel();
         }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.api.event;
 
+import org.bukkit.event.Event;
 import org.bukkit.event.HandlerList;
 
 /**
@@ -23,7 +24,7 @@ import org.bukkit.event.HandlerList;
  * <p>Not fired when the session is no longer the active one for its party,
  * so repeated abort requests for the same session fire only once.
  */
-public class DungeonChallengeCancelEvent extends org.bukkit.event.Event {
+public class DungeonChallengeCancelEvent extends Event {
 
     private static final HandlerList HANDLERS = new HandlerList();
 

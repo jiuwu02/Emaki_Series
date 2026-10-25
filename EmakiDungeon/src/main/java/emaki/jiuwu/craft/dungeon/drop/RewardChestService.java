@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import java.util.LinkedHashMap;
 
 public final class RewardChestService implements Listener {
 
@@ -157,7 +158,7 @@ public final class RewardChestService implements Listener {
         if (byPlayer == null) {
             return Map.of();
         }
-        Map<UUID, List<ItemStack>> drained = new java.util.LinkedHashMap<>();
+        Map<UUID, List<ItemStack>> drained = new LinkedHashMap<>();
         for (Map.Entry<UUID, List<ItemStack>> entry : byPlayer.entrySet()) {
             List<ItemStack> bucket = entry.getValue();
             List<ItemStack> copy;

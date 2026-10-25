@@ -4,6 +4,8 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
@@ -13,6 +15,7 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.gem.config.AppConfig;
+import emaki.jiuwu.craft.gem.editor.GemEditorModule;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.service.GemActionCoordinator;
@@ -51,9 +54,9 @@ record GemRuntimeComponents(EmakiScheduling scheduling,
         GemInlayService inlayService,
         GemExtractService extractService,
         GemGuiService gemGuiService,
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
-        emaki.jiuwu.craft.gem.editor.GemEditorModule editorModule,
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
+        ChatInputService chatInputService,
+        GemEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
 import java.util.List;
+import java.util.Map;
 
 public final class FlowModules {
 
@@ -79,7 +80,7 @@ public final class FlowModules {
             int maxSelect,
             List<ConditionDef> conditions,
             FlowPoint safePoint,
-            java.util.Map<String, String> endingMap) {
+            Map<String, String> endingMap) {
     }
 
     public record HintDef(Head head, FlowPoint point, FlowRegion region, String text, String channel, List<ConditionDef> conditions) {

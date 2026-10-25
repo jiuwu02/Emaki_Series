@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
+import java.util.List;
 
 public final class VerticalOffsetBlockSource extends BaseSource {
 
@@ -40,6 +41,6 @@ public final class VerticalOffsetBlockSource extends BaseSource {
                 centre.getBlockX() + 0.5D,
                 centre.getBlockY() + offset,
                 centre.getBlockZ() + 0.5D);
-        return CoreSourceResult.selected(java.util.List.of(CoreActionSubject.of(target)));
+        return CoreSourceResult.selected(List.of(CoreActionSubject.of(target)));
     }
 }

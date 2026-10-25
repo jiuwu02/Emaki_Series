@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
@@ -15,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Map;
 
 public final class SetWorldTimeStage extends BaseStage {
 
@@ -48,16 +50,16 @@ public final class SetWorldTimeStage extends BaseStage {
                 try {
                     ticks = Long.parseLong(raw);
                 } catch (NumberFormatException exception) {
-                    return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.failure(
-                            emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind.INVALID_CONFIG,
+                    return CoreActionOutcome.failure(
+                            CoreActionFailureKind.INVALID_CONFIG,
                             "action.stage.set_world_time.invalid_time",
-                            java.util.Map.of("time", raw));
+                            Map.of("time", raw));
                 }
             }
         }
         long target = Math.max(0L, ticks % 24000L);
         Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
                 "execute in " + world.getKey() + " run time set " + target);
-        return emaki.jiuwu.craft.corelib.api.action.CoreActionOutcome.success();
+        return CoreActionOutcome.success();
     }
 }

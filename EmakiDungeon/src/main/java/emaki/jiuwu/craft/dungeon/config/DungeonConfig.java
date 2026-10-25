@@ -8,6 +8,8 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.dungeon.score.ScoreWeights;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public record DungeonConfig(
         String displayName,
@@ -256,7 +258,7 @@ public record DungeonConfig(
             return null;
         }
         String text = raw.trim();
-        java.util.regex.Matcher matcher = java.util.regex.Pattern
+        Matcher matcher = Pattern
                 .compile("^(\\d{1,2}):(\\d{2})-(\\d{1,2}):(\\d{2})$").matcher(text);
         if (!matcher.matches()) {
             throw new IllegalArgumentException("invalid limits.daily.time-window: " + raw);

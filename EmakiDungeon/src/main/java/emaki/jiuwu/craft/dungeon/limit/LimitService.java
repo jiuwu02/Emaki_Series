@@ -15,6 +15,12 @@ import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig.DailyWindow;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore.PlayerData;
+import java.time.DayOfWeek;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAdjusters;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 public final class LimitService {
 
@@ -37,16 +43,16 @@ public final class LimitService {
     }
 
     private final PlayersDataStore store;
-    private final java.util.function.Function<String, DungeonConfig> configOf;
-    private final java.util.function.Supplier<AppConfig> appConfig;
+    private final Function<String, DungeonConfig> configOf;
+    private final Supplier<AppConfig> appConfig;
     private final DebugLogger debug;
-    private final java.util.function.BiConsumer<String, String> resetListener;
+    private final BiConsumer<String, String> resetListener;
 
     public LimitService(PlayersDataStore store,
-            java.util.function.Function<String, DungeonConfig> configOf,
-            java.util.function.Supplier<AppConfig> appConfig,
+            Function<String, DungeonConfig> configOf,
+            Supplier<AppConfig> appConfig,
             DebugLogger debug,
-            java.util.function.BiConsumer<String, String> resetListener) {
+            BiConsumer<String, String> resetListener) {
         this.store = store;
         this.configOf = configOf;
         this.appConfig = appConfig;
@@ -226,7 +232,7 @@ public final class LimitService {
 
     private static String weekBucket(ZonedDateTime now) {
         LocalDate monday = now.toLocalDate()
-                .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY));
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
         return monday.toString();
     }
 
@@ -265,20 +271,20 @@ public final class LimitService {
 
     private static long secondsUntilTomorrow(ZonedDateTime now) {
         ZonedDateTime tomorrow = now.toLocalDate().plusDays(1).atStartOfDay(now.getZone());
-        return Math.max(1L, now.until(tomorrow, java.time.temporal.ChronoUnit.SECONDS));
+        return Math.max(1L, now.until(tomorrow, ChronoUnit.SECONDS));
     }
 
     private static long secondsUntilNextWeek(ZonedDateTime now) {
         LocalDate monday = now.toLocalDate()
-                .with(java.time.temporal.TemporalAdjusters.previousOrSame(java.time.DayOfWeek.MONDAY))
+                .with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
                 .plusWeeks(1);
         ZonedDateTime start = monday.atStartOfDay(now.getZone());
-        return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
+        return Math.max(1L, now.until(start, ChronoUnit.SECONDS));
     }
 
     private static long secondsUntilNextMonth(ZonedDateTime now) {
         ZonedDateTime next = YearMonth.from(now).plusMonths(1).atDay(1).atStartOfDay(now.getZone());
-        return Math.max(1L, now.until(next, java.time.temporal.ChronoUnit.SECONDS));
+        return Math.max(1L, now.until(next, ChronoUnit.SECONDS));
     }
 
     private static long secondsUntilNextAllowedDay(ZonedDateTime now, List<Integer> days) {
@@ -286,7 +292,7 @@ public final class LimitService {
             LocalDate day = now.toLocalDate().plusDays(offset);
             if (days.contains(day.getDayOfWeek().getValue())) {
                 ZonedDateTime start = day.atStartOfDay(now.getZone());
-                return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
+                return Math.max(1L, now.until(start, ChronoUnit.SECONDS));
             }
         }
         return 86_400L;
@@ -297,6 +303,6 @@ public final class LimitService {
         if (!start.isAfter(now)) {
             start = start.plusDays(1);
         }
-        return Math.max(1L, now.until(start, java.time.temporal.ChronoUnit.SECONDS));
+        return Math.max(1L, now.until(start, ChronoUnit.SECONDS));
     }
 }

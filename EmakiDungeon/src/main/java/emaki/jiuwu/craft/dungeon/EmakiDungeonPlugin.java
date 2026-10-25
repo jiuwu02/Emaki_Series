@@ -15,6 +15,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -27,23 +28,34 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.dungeon.action.ActionBridge;
 import emaki.jiuwu.craft.dungeon.api.EmakiDungeonApi;
 import emaki.jiuwu.craft.dungeon.apiimpl.ServiceBackedDungeonBridge;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeGuiService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
 import emaki.jiuwu.craft.dungeon.command.DungeonCommandAdapter;
 import emaki.jiuwu.craft.dungeon.command.DungeonCommandRouter;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.drop.DropRouter;
+import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
+import emaki.jiuwu.craft.dungeon.editor.EditorGui;
+import emaki.jiuwu.craft.dungeon.editor.EditorService;
+import emaki.jiuwu.craft.dungeon.editor.EditorStateStore;
 import emaki.jiuwu.craft.dungeon.flow.FlowDefinition;
 import emaki.jiuwu.craft.dungeon.flow.FlowLoader;
+import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.flow.RegionTracker;
 import emaki.jiuwu.craft.dungeon.guard.BoundaryGuard;
 import emaki.jiuwu.craft.dungeon.guard.CommandGuard;
 import emaki.jiuwu.craft.dungeon.guard.TeleportGuard;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
+import emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore;
+import emaki.jiuwu.craft.dungeon.limit.LimitService;
 import emaki.jiuwu.craft.dungeon.listener.DungeonChatListener;
 import emaki.jiuwu.craft.dungeon.listener.DungeonLifecycleListener;
 import emaki.jiuwu.craft.dungeon.listener.FlowEventListeners;
 import emaki.jiuwu.craft.dungeon.listener.PlayerStateListener;
+import emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.dungeon.orchestration.DestroyArbiter;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
@@ -51,17 +63,30 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.party.PartiesStore;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
+import emaki.jiuwu.craft.dungeon.score.ScoreTracker;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import emaki.jiuwu.craft.dungeon.settlement.SettlementService;
 import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotsStore;
 import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
 import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
 import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
+import emaki.jiuwu.craft.dungeon.world.WorldFolders;
 import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.UUID;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.PluginManager;
 
 public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
 
@@ -92,21 +117,21 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private RegionTracker regionTracker;
     private PlayerStateService stateService;
     private ActionBridge actionBridge;
-    private emaki.jiuwu.craft.dungeon.score.ScoreTracker scoreTracker;
-    private emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore leaderboard;
-    private emaki.jiuwu.craft.dungeon.settlement.SettlementService settlement;
-    private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
-    private emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui rewardBoxGui;
-    private emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests;
-    private emaki.jiuwu.craft.dungeon.editor.EditorService editorService;
-    private emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager scriptManager;
-    private emaki.jiuwu.craft.dungeon.audit.AuditService auditService;
-    private emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor performanceMonitor;
+    private ScoreTracker scoreTracker;
+    private LeaderboardStore leaderboard;
+    private SettlementService settlement;
+    private RewardBoxService rewardBox;
+    private RewardBoxGui rewardBoxGui;
+    private RewardChestService rewardChests;
+    private EditorService editorService;
+    private ScriptRuntimeManager scriptManager;
+    private AuditService auditService;
+    private PerformanceMonitor performanceMonitor;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
     private boolean runtimeInitialized;
-    private final java.util.Set<String> registeredDungeonPermissions =
-            java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<String> registeredDungeonPermissions =
+            ConcurrentHashMap.newKeySet();
 
     public EmakiDungeonPlugin() {
         super(AppConfig::defaults);
@@ -129,7 +154,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                         converted = converted.replace("<" + entry.getKey() + ">",
                                 "%" + entry.getKey() + "%");
                     }
-                    return emaki.jiuwu.craft.corelib.api.text.Texts.formatTemplate(converted, safe);
+                    return Texts.formatTemplate(converted, safe);
                 },
                 false);
         appConfigLoader = new YamlConfigLoader<>(this, "config.yml", AppConfig::defaults, AppConfig::parse);
@@ -326,7 +351,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         WorldNames names = new WorldNames(worldContainer);
         WorldCloner cloner = new WorldCloner(this, dispatcher, worldContainer);
         WorldDisposer disposer = new WorldDisposer(this, dispatcher, worldContainer);
-        emaki.jiuwu.craft.dungeon.editor.EditorStateStore editorStates =
+        EditorStateStore editorStates =
                 new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, getDataFolder());
         editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
@@ -339,15 +364,15 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 appConfig.globalChatDefault());
         snapshots = new SnapshotManager(snapshotsStore, playersDataStore, messageService);
 
-        emaki.jiuwu.craft.dungeon.limit.LimitService limitService =
+        LimitService limitService =
                 new emaki.jiuwu.craft.dungeon.limit.LimitService(playersDataStore, configOf,
                         appConfigSupplier, debugLogger(), (dungeonId, period) -> {
-                            debugLogger().logRaw("dungeon", (java.util.UUID) null,
+                            debugLogger().logRaw("dungeon", (UUID) null,
                                     "daily_reset | dungeon=" + dungeonId + " | period=" + period);
                             if (scriptManager != null) {
                                 scriptManager.fireTrigger(
-                                        emaki.jiuwu.craft.dungeon.trigger.TriggerType.onDailyReset,
-                                        null, dungeonId, java.util.Map.of("period", period));
+                                        TriggerType.onDailyReset,
+                                        null, dungeonId, Map.of("period", period));
                             }
                         });
         leaderboard = new emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore(
@@ -376,7 +401,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 chatInputService, cloner, disposer, templates, editorStates, worldContainer, getDataFolder());
         editorService.bindPool(pool);
         editorService.bindConfigCache(configCache);
-        emaki.jiuwu.craft.dungeon.editor.EditorGui editorGui =
+        EditorGui editorGui =
                 new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
                         chatInputService);
         editorService.bindGui(editorGui);
@@ -389,11 +414,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         challenge.start();
         editorService.bindChallenge(challenge);
 
-        emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge =
+        ActionBridge actionBridge =
                 new ActionBridge(this, appConfigSupplier, registry, messageService);
-        emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItemManager =
+        TempItemManager tempItemManager =
                 new TempItemManager(messageService, debugLogger());
-        emaki.jiuwu.craft.dungeon.drop.RewardChestService rewardChests =
+        RewardChestService rewardChests =
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
         this.rewardChests = rewardChests;
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
@@ -401,10 +426,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 messageService, appConfigSupplier);
         rewardBox.loadGuiConfig(this);
         rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);
-        emaki.jiuwu.craft.dungeon.drop.DropRouter dropRouter =
+        DropRouter dropRouter =
                 new emaki.jiuwu.craft.dungeon.drop.DropRouter(registry, parties, messageService,
                         rewardChests, rewardBox, configOf, this, dispatcher);
-        emaki.jiuwu.craft.dungeon.isolation.MessageIsolation isolation =
+        MessageIsolation isolation =
                 new emaki.jiuwu.craft.dungeon.isolation.MessageIsolation(registry, playersDataStore, messageService);
         stateService = new PlayerStateService(this, dispatcher, coordinator, registry,
                 parties, recovery, messageService, debugLogger(), configOf, languageLoader);
@@ -478,7 +503,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         for (String dungeonId : dungeons) {
             try {
                 templates.ensureFlowFile(dungeonId);
-            } catch (java.io.IOException exception) {
+            } catch (IOException exception) {
                 messageService.warning("console.flow_file_failed", Map.of(
                         "dungeon", dungeonId,
                         "error", String.valueOf(exception.getMessage())
@@ -509,15 +534,15 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         registerDungeonPermissions(templates.discoverDungeons());
     }
 
-    private void registerDungeonPermissions(java.util.Collection<String> dungeonIds) {
-        org.bukkit.plugin.PluginManager pluginManager = getServer().getPluginManager();
+    private void registerDungeonPermissions(Collection<String> dungeonIds) {
+        PluginManager pluginManager = getServer().getPluginManager();
         for (String dungeonId : dungeonIds) {
             String node = "emakidungeon.dungeon." + dungeonId;
             if (pluginManager.getPermission(node) == null) {
                 pluginManager.addPermission(new org.bukkit.permissions.Permission(
                         node,
                         "EmakiDungeon 副本 " + dungeonId + " 的进入许可",
-                        org.bukkit.permissions.PermissionDefault.TRUE));
+                        PermissionDefault.TRUE));
             }
             registeredDungeonPermissions.add(node);
         }
@@ -525,9 +550,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             if (dungeonIds.contains(node.substring("emakidungeon.dungeon.".length()))) {
                 return false;
             }
-            org.bukkit.permissions.Permission registered = pluginManager.getPermission(node);
+            Permission registered = pluginManager.getPermission(node);
             if (registered == null
-                    || registered.getDefault() != org.bukkit.permissions.PermissionDefault.TRUE) {
+                    || registered.getDefault() != PermissionDefault.TRUE) {
                 return false;
             }
             pluginManager.removePermission(registered);
@@ -535,17 +560,17 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         });
     }
 
-    private emaki.jiuwu.craft.dungeon.flow.FlowRuntime buildFlowRuntime(
+    private FlowRuntime buildFlowRuntime(
             DungeonInstance instance,
-            emaki.jiuwu.craft.dungeon.state.PlayerStateService stateService,
-            emaki.jiuwu.craft.dungeon.action.ActionBridge actionBridge,
-            emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItemManager) {
+            PlayerStateService stateService,
+            ActionBridge actionBridge,
+            TempItemManager tempItemManager) {
         var flowLoader = new emaki.jiuwu.craft.dungeon.flow.FlowLoader();
-        emaki.jiuwu.craft.dungeon.flow.FlowDefinition definition;
-        java.io.File flowFile = emaki.jiuwu.craft.dungeon.world.WorldFolders
+        FlowDefinition definition;
+        File flowFile = WorldFolders
                 .dataDir(worldContainerOf(), instance.instanceId())
                 .resolve("flow.yml").toFile();
-        java.io.File templateFlow = new File(new File(getDataFolder(), "world"),
+        File templateFlow = new File(new File(getDataFolder(), "world"),
                 instance.dungeonId() + File.separator + "flow.yml");
         try {
             definition = flowLoader.load(flowFile.isFile() ? flowFile : templateFlow);
@@ -585,7 +610,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                     ));
                     if (scriptManager != null) {
                         scriptManager.fireTrigger(
-                                emaki.jiuwu.craft.dungeon.trigger.TriggerType.onWaveStart,
+                                TriggerType.onWaveStart,
                                 instance.instanceId(), instance.dungeonId(),
                                 Map.of("spawnId", spawnId, "wave", String.valueOf(wave)));
                     }
@@ -620,7 +645,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     private void dispatchTempItemGrant(DungeonInstance instance, String itemId, int amount,
-            emaki.jiuwu.craft.dungeon.tempitem.TempItemManager tempItemManager) {
+            TempItemManager tempItemManager) {
         EmakiCoreLibPlugin.lookup().executionDispatcher().runGlobal(this, () -> {
             var world = Bukkit.getWorld(instance.instanceId());
             if (world == null) {

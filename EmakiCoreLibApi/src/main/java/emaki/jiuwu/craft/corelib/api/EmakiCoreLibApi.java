@@ -361,13 +361,13 @@ public final class EmakiCoreLibApi {
      * {@code NOT_FOUND}. The future may complete on any stage's execution domain; schedule through
      * {@link #scheduling()} before touching Bukkit state in continuations.
      */
-    public static @NotNull java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+    public static @NotNull CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
             @Nullable Plugin owner,
             @Nullable String triggerId,
             @Nullable CoreTriggerDispatch dispatch) {
         Bridge resolved = bridge;
         return resolved == null
-                ? java.util.concurrent.CompletableFuture.completedFuture(EmakiResult.unavailable())
+                ? CompletableFuture.completedFuture(EmakiResult.unavailable())
                 : resolved.dispatchTriggerAsync(owner, triggerId, dispatch);
     }
 
@@ -804,7 +804,7 @@ public final class EmakiCoreLibApi {
          * @return a future carrying the run outcome
          */
         @NotNull
-        java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+        CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
                 @Nullable Plugin owner,
                 @Nullable String triggerId,
                 @Nullable CoreTriggerDispatch dispatch);

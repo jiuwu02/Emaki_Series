@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
@@ -83,9 +84,9 @@ public final class WorldPool {
         stopping = true;
     }
 
-    private volatile emaki.jiuwu.craft.dungeon.audit.AuditService audit;
+    private volatile AuditService audit;
 
-    public void bindAudit(emaki.jiuwu.craft.dungeon.audit.AuditService audit) {
+    public void bindAudit(AuditService audit) {
         this.audit = audit;
     }
 

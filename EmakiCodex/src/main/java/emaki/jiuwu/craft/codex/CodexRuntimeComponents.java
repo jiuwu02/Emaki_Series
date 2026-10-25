@@ -16,7 +16,10 @@ import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
 import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
 import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
+import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
@@ -47,9 +50,9 @@ record CodexRuntimeComponents(YamlConfigLoader<AppConfig> appConfigLoader,
         CodexProviderRegistrar codexProviderRegistrar,
         CodexEntryService codexEntryService,
         CodexGuiService codexGuiService,
-        emaki.jiuwu.craft.corelib.chat.ChatInputService chatInputService,
-        emaki.jiuwu.craft.codex.editor.CodexEditorModule editorModule,
-        emaki.jiuwu.craft.corelib.editor.EditorService editorService) implements RuntimeComponents {
+        ChatInputService chatInputService,
+        CodexEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

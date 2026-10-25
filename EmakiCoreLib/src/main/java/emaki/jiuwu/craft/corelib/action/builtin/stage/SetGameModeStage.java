@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Map;
 
 public final class SetGameModeStage extends BaseStage {
 
@@ -39,7 +40,7 @@ public final class SetGameModeStage extends BaseStage {
         } catch (IllegalArgumentException exception) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INVALID_CONFIG,
                     "action.stage.set_gamemode.unknown_gamemode",
-                    java.util.Map.of("gamemode", arguments.getString("gamemode")));
+                    Map.of("gamemode", arguments.getString("gamemode")));
         }
         player.setGameMode(mode);
         return CoreActionOutcome.success();

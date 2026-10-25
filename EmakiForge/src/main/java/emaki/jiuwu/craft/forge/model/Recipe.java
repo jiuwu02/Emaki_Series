@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import java.util.function.Function;
 
 public final class Recipe {
     public record QualityConfig(boolean enabled,
@@ -395,7 +396,7 @@ public final class Recipe {
     }
 
     private ForgeMaterial findFirstMaterial(String identity,
-            java.util.function.Function<ForgeMaterial, String> keyExtractor) {
+            Function<ForgeMaterial, String> keyExtractor) {
         if (Texts.isBlank(identity)) {
             return null;
         }
@@ -408,7 +409,7 @@ public final class Recipe {
         return null;
     }
 
-    private ForgeMaterial findUniqueMaterial(String identity, java.util.function.Function<ForgeMaterial, String> keyExtractor) {
+    private ForgeMaterial findUniqueMaterial(String identity, Function<ForgeMaterial, String> keyExtractor) {
         if (Texts.isBlank(identity)) {
             return null;
         }
@@ -438,7 +439,7 @@ public final class Recipe {
         ForgeMaterial legacy = null;
         for (ForgeMaterial material : materials) {
             if (material == null || material.itemSources().stream()
-                    .map(emaki.jiuwu.craft.corelib.item.ItemSourceUtil::toShorthand)
+                    .map(ItemSourceUtil::toShorthand)
                     .noneMatch(source -> normalized.equals(Texts.lower(source)))) {
                 continue;
             }

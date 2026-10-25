@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
+import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
 import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -51,7 +52,7 @@ public final class ActionBridge {
     private final MessageService messages;
 
     private final List<CoreStageRegistration> registrations = new ArrayList<>();
-    private final List<emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration> triggerRegistrations =
+    private final List<CoreTriggerRegistration> triggerRegistrations =
             new ArrayList<>();
 
     public ActionBridge(Plugin plugin,

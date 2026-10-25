@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.drop;
 
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -18,11 +19,22 @@ import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.flow.WaveController;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
+import java.util.Locale;
+import java.util.function.Function;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Location;
+import org.bukkit.World;
+import org.bukkit.entity.Item;
+import org.bukkit.event.entity.EntityPickupItemEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 
 public final class DropRouter implements Listener {
 
@@ -30,20 +42,20 @@ public final class DropRouter implements Listener {
     private final PartyService parties;
     private final MessageService messages;
     private final RewardChestService rewardChests;
-    private final emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox;
-    private final java.util.function.Function<String, DungeonConfig> configOf;
-    private final org.bukkit.plugin.Plugin plugin;
-    private final emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher dispatcher;
+    private final RewardBoxService rewardBox;
+    private final Function<String, DungeonConfig> configOf;
+    private final Plugin plugin;
+    private final ExecutionDispatcher dispatcher;
     private final Random random = new Random();
 
     public DropRouter(InstanceRegistry registry,
             PartyService parties,
             MessageService messages,
             RewardChestService rewardChests,
-            emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService rewardBox,
-            java.util.function.Function<String, DungeonConfig> configOf,
-            org.bukkit.plugin.Plugin plugin,
-            emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher dispatcher) {
+            RewardBoxService rewardBox,
+            Function<String, DungeonConfig> configOf,
+            Plugin plugin,
+            ExecutionDispatcher dispatcher) {
         this.registry = registry;
         this.parties = parties;
         this.messages = messages;
@@ -68,7 +80,7 @@ public final class DropRouter implements Listener {
         if (drops.isEmpty()) {
             return;
         }
-        if (emaki.jiuwu.craft.dungeon.flow.WaveController.hasNoDrop(entity)) {
+        if (WaveController.hasNoDrop(entity)) {
             drops.clear();
             return;
         }
@@ -124,19 +136,19 @@ public final class DropRouter implements Listener {
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onDiscard(org.bukkit.event.player.PlayerDropItemEvent event) {
+    public void onDiscard(PlayerDropItemEvent event) {
         DungeonInstance instance = registry.get(event.getPlayer().getWorld().getName());
         if (instance == null) {
             return;
         }
         event.getItemDrop().getPersistentDataContainer().set(
                 RewardBoxService.DROP_OWNER_KEY,
-                org.bukkit.persistence.PersistentDataType.STRING,
+                PersistentDataType.STRING,
                 RewardBoxService.OWNER_DISCARD);
     }
 
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
-    public void onPickup(org.bukkit.event.entity.EntityPickupItemEvent event) {
+    public void onPickup(EntityPickupItemEvent event) {
         DungeonInstance instance = registry.get(event.getItem().getWorld().getName());
         if (instance == null) {
             return;
@@ -147,7 +159,7 @@ public final class DropRouter implements Listener {
         }
         if (event.getItem().getPersistentDataContainer().has(
                 RewardBoxService.DROP_OWNER_KEY,
-                org.bukkit.persistence.PersistentDataType.STRING)) {
+                PersistentDataType.STRING)) {
             return;
         }
         ItemStack stack = event.getItem().getItemStack().clone();
@@ -161,20 +173,20 @@ public final class DropRouter implements Listener {
     }
 
     private void dropAsDiscard(DungeonInstance instance, List<ItemStack> items,
-            org.bukkit.Location location) {
+            Location location) {
         if (items.isEmpty() || location == null) {
             return;
         }
         dispatcher.runGlobal(plugin, () -> {
-            org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+            World world = Bukkit.getWorld(instance.instanceId());
             if (world == null) {
                 return;
             }
             for (ItemStack stack : items) {
-                org.bukkit.entity.Item dropped = world.dropItemNaturally(location, stack);
+                Item dropped = world.dropItemNaturally(location, stack);
                 dropped.getPersistentDataContainer().set(
                         RewardBoxService.DROP_OWNER_KEY,
-                        org.bukkit.persistence.PersistentDataType.STRING,
+                        PersistentDataType.STRING,
                         RewardBoxService.OWNER_DISCARD);
             }
         });
@@ -215,16 +227,16 @@ public final class DropRouter implements Listener {
     }
 
     private void dropAtSpawnAsDiscard(DungeonInstance instance, List<ItemStack> items) {
-        org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+        World world = Bukkit.getWorld(instance.instanceId());
         dropAsDiscard(instance, items, world == null ? null : world.getSpawnLocation());
     }
 
     private static String itemLabel(ItemStack stack) {
         if (stack.hasItemMeta() && stack.getItemMeta().hasDisplayName()) {
-            return net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
+            return PlainTextComponentSerializer
                     .plainText().serialize(stack.getItemMeta().displayName());
         }
-        return stack.getType().name().toLowerCase(java.util.Locale.ROOT).replace('_', ' ');
+        return stack.getType().name().toLowerCase(Locale.ROOT).replace('_', ' ');
     }
 
     private void giveShare(DungeonInstance instance, List<ItemStack> items) {
@@ -245,7 +257,7 @@ public final class DropRouter implements Listener {
         if (party != null) {
             return new ArrayList<>(party.members());
         }
-        org.bukkit.World world = Bukkit.getWorld(instance.instanceId());
+        World world = Bukkit.getWorld(instance.instanceId());
         if (world == null) {
             return List.of();
         }

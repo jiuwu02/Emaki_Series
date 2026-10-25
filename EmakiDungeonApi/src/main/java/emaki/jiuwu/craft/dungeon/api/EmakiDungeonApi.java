@@ -1,5 +1,9 @@
 package emaki.jiuwu.craft.dungeon.api;
 
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import org.bukkit.entity.Player;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -45,7 +49,7 @@ public final class EmakiDungeonApi {
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
-        emaki.jiuwu.craft.corelib.api.contract.ApiStatus s = resolved.status();
+        var s = resolved.status();
         return s == null ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled() : s;
     }
 
@@ -92,20 +96,20 @@ public final class EmakiDungeonApi {
         public @NotNull DungeonApi dungeonApi() {
             return new DungeonApi() {
                 @Override
-                public @NotNull Result<Object> enter(@NotNull org.bukkit.entity.Player player,
+                public @NotNull Result<Object> enter(@NotNull Player player,
                         @NotNull String dungeonId) {
                     return notInstalled();
                 }
 
                 @Override
-                public @NotNull java.util.List<InstanceView> listInstances() {
-                    return java.util.List.of();
+                public @NotNull List<InstanceView> listInstances() {
+                    return List.of();
                 }
 
                 @Override
-                public @NotNull java.util.Optional<InstanceView> getInstance(
-                        @NotNull java.util.UUID instanceId) {
-                    return java.util.Optional.empty();
+                public @NotNull Optional<InstanceView> getInstance(
+                        @NotNull UUID instanceId) {
+                    return Optional.empty();
                 }
             };
         }
@@ -114,23 +118,23 @@ public final class EmakiDungeonApi {
         public @NotNull PartyApi partyApi() {
             return new PartyApi() {
                 @Override
-                public @NotNull Result<PartyId> create(@NotNull java.util.UUID player) {
+                public @NotNull Result<PartyId> create(@NotNull UUID player) {
                     return notInstalled();
                 }
 
                 @Override
-                public @NotNull Result<InviteToken> invite(@NotNull java.util.UUID player,
-                        @NotNull java.util.UUID target) {
+                public @NotNull Result<InviteToken> invite(@NotNull UUID player,
+                        @NotNull UUID target) {
                     return notInstalled();
                 }
 
                 @Override
-                public @NotNull Result<Void> kick(@NotNull java.util.UUID member) {
+                public @NotNull Result<Void> kick(@NotNull UUID member) {
                     return notInstalled();
                 }
 
                 @Override
-                public @NotNull Result<Void> confirmReady(@NotNull java.util.UUID player) {
+                public @NotNull Result<Void> confirmReady(@NotNull UUID player) {
                     return notInstalled();
                 }
             };

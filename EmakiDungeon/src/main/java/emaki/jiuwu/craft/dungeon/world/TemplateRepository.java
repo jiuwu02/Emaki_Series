@@ -10,13 +10,15 @@ import org.jetbrains.annotations.Nullable;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import java.io.IOException;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class TemplateRepository {
 
-    private final org.bukkit.plugin.java.JavaPlugin plugin;
+    private final JavaPlugin plugin;
     private final File templateRoot;
 
-    public TemplateRepository(org.bukkit.plugin.java.JavaPlugin plugin, File dataFolder) {
+    public TemplateRepository(JavaPlugin plugin, File dataFolder) {
         this.plugin = plugin;
         this.templateRoot = new File(dataFolder, "world");
     }
@@ -68,10 +70,10 @@ public final class TemplateRepository {
         }
     }
 
-    public File ensureFlowFile(String dungeonId) throws java.io.IOException {
+    public File ensureFlowFile(String dungeonId) throws IOException {
         File flowFile = new File(new File(templateRoot, dungeonId), "flow.yml");
         if (!flowFile.isFile()) {
-            emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.copyResourceIfMissing(
+            YamlFiles.copyResourceIfMissing(
                     plugin, "world/flow.yml", flowFile);
         }
         return flowFile;
@@ -88,9 +90,9 @@ public final class TemplateRepository {
                 continue;
             }
             try {
-                emaki.jiuwu.craft.corelib.api.yaml.YamlFiles.copyResourceIfMissing(
+                YamlFiles.copyResourceIfMissing(
                         plugin, "world/default_config.yml", configFile);
-            } catch (java.io.IOException exception) {
+            } catch (IOException exception) {
                 plugin.getLogger().warning("[EmakiDungeon] default_config 复制失败 | 副本="
                         + child.getName() + " | 错误=" + exception.getMessage());
             }

@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.item.api.model.RepairOutcome;
 import emaki.jiuwu.craft.item.api.model.RepairQuoteView;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
+import java.util.Optional;
 
 /** Shared no-op layers used while no EmakiItem runtime bridge is installed. */
 final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemMigration, ItemExtensions, ItemState {
@@ -177,8 +178,8 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     }
 
     @Override
-    public <T> java.util.Optional<T> get(ItemStack item, ItemStateKey<T> key) {
-        return java.util.Optional.empty();
+    public <T> Optional<T> get(ItemStack item, ItemStateKey<T> key) {
+        return Optional.empty();
     }
 
     @Override

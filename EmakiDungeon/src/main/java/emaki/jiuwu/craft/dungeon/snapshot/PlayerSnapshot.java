@@ -10,6 +10,9 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.attribute.Attribute;
 
 public final class PlayerSnapshot {
 
@@ -114,12 +117,12 @@ public final class PlayerSnapshot {
     public void applyVitalsTo(Player player) {
         player.setLevel(level);
         player.setExp(exp);
-        var maxHealthAttribute = player.getAttribute(org.bukkit.attribute.Attribute.MAX_HEALTH);
+        var maxHealthAttribute = player.getAttribute(Attribute.MAX_HEALTH);
         double maxHealth = maxHealthAttribute == null ? 20.0D : maxHealthAttribute.getValue();
         player.setHealth(Math.max(0.5D, Math.min(maxHealth, health)));
         player.setFoodLevel(food);
         try {
-            player.setGameMode(org.bukkit.GameMode.valueOf(gameMode));
+            player.setGameMode(GameMode.valueOf(gameMode));
         } catch (IllegalArgumentException ignored) {
         }
     }
@@ -134,7 +137,7 @@ public final class PlayerSnapshot {
 
     private static void teleportInternal(Player player, String worldName,
             double x, double y, double z, float yaw, float pitch) {
-        var world = org.bukkit.Bukkit.getWorld(worldName);
+        var world = Bukkit.getWorld(worldName);
         if (world == null) {
             return;
         }

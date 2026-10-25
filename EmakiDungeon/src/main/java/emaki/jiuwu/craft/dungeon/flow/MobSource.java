@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import emaki.jiuwu.craft.mobs.api.EmakiMobsApi;
+import io.lumine.mythic.bukkit.MythicBukkit;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -93,7 +95,7 @@ public final class MobSource {
     private static final class MythicCalls {
 
         private static LivingEntity spawn(Location location, String mythicId) throws Exception {
-            var helper = io.lumine.mythic.bukkit.MythicBukkit.inst().getAPIHelper();
+            var helper = MythicBukkit.inst().getAPIHelper();
             var spawned = helper.spawnMythicMob(mythicId, location);
             return spawned instanceof LivingEntity living ? living : null;
         }
@@ -102,7 +104,7 @@ public final class MobSource {
     private static final class MobsCalls {
 
         private static LivingEntity spawn(Location location, String mobsId) {
-            return emaki.jiuwu.craft.mobs.api.EmakiMobsApi.operations()
+            return EmakiMobsApi.operations()
                     .spawn(location, mobsId)
                     .orElse(null);
         }

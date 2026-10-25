@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.station.material;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -104,7 +105,7 @@ public final class AllocationEngine {
     private static int[] path(long[][] capacity, long[][] flow, int source, int sink) {
         int[] parents = new int[capacity.length];
         boolean[] visited = new boolean[capacity.length];
-        java.util.Arrays.fill(parents, -1);
+        Arrays.fill(parents, -1);
         visited[source] = true;
         Deque<Integer> queue = new ArrayDeque<>();
         queue.add(source);
