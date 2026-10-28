@@ -6,12 +6,4 @@
 
 version: "1.0.0"
 
-spawn_point:
-  id: entry
-  location:
-    x: 0.5
-    y: 65
-    z: 0.5
-    yaw: 0.0
-
 rooms: {}

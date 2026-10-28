@@ -1,5 +1,5 @@
 // EmakiDungeon.
-version = '1.0.4'
+version = '1.0.12'
 
 dependencies {
     shadeBundle project(':EmakiDungeonApi')

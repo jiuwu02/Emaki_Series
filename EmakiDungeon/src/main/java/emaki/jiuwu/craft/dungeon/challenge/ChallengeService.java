@@ -5,10 +5,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Chunk;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -36,6 +38,7 @@ import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.limit.LimitService;
+import emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor;
 import emaki.jiuwu.craft.dungeon.orchestration.DenyReason;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
@@ -81,6 +84,7 @@ public final class ChallengeService {
     private volatile LimitService limitService;
     private volatile ScriptRuntimeManager scriptManager;
     private volatile AuditService audit;
+    private volatile PerformanceMonitor monitor;
 
     public void bindAudit(AuditService audit) {
         this.audit = audit;
@@ -138,6 +142,10 @@ public final class ChallengeService {
 
     public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
+    }
+
+    public void bindMonitor(PerformanceMonitor monitor) {
+        this.monitor = monitor;
     }
 
     private void fireTrigger(TriggerType type,
@@ -556,6 +564,9 @@ public final class ChallengeService {
             abort(session, reason);
             return reason;
         }
+        if (monitor != null) {
+            monitor.markEnterPhase();
+        }
         String worldName = pool.takeReserve(session.dungeonId());
         if (worldName != null) {
             beginEnter(session, party, worldName);
@@ -594,6 +605,9 @@ public final class ChallengeService {
         }
         session.setPhase(ChallengePhase.ENTERING_WAIT);
         session.setWaitDeadline(System.currentTimeMillis() + config.waitTimeoutSeconds() * 1000L);
+        if (monitor != null) {
+            monitor.markEnterPhase();
+        }
         List<Player> online = onlineMembers(party);
         String channel = config.waitChannel();
         if ("bossbar".equals(channel)) {
@@ -697,6 +711,14 @@ public final class ChallengeService {
             entryLocation = new org.bukkit.Location(world, entryPoint.x(), entryPoint.y(),
                     entryPoint.z(), entryPoint.yaw(), entryPoint.pitch());
         }
+        Location target = entryLocation;
+        preloadEntryChunks(world, target).whenComplete((ignored, error) ->
+                dispatcher.runGlobal(plugin, () -> deliverEnter(
+                        session, party, instance, world, instanceId, target)));
+    }
+
+    private void deliverEnter(ChallengeSession session, Party party, DungeonInstance instance,
+            World world, String instanceId, Location entryLocation) {
         for (UUID memberId : party.members()) {
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
@@ -749,8 +771,25 @@ public final class ChallengeService {
                 "instance", instanceId,
                 "dungeon", session.dungeonId()
         ));
+        if (monitor != null) {
+            monitor.markEnterPhase();
+        }
         closeSessionUi(session);
         sessions.remove(session.partyId());
+    }
+
+    private CompletableFuture<Void> preloadEntryChunks(World world, Location entry) {
+        int radius = 8;
+        int chunkX = entry.getBlockX() >> 4;
+        int chunkZ = entry.getBlockZ() >> 4;
+        List<CompletableFuture<Chunk>> futures = new ArrayList<>();
+        for (int dx = -radius; dx <= radius; dx++) {
+            for (int dz = -radius; dz <= radius; dz++) {
+                futures.add(world.getChunkAtAsync(chunkX + dx, chunkZ + dz));
+            }
+        }
+        return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
+                .exceptionally(error -> null);
     }
 
     public void readyBy(Player player) {
@@ -871,6 +910,9 @@ public final class ChallengeService {
                     if (!party.members().stream().allMatch(memberId -> Bukkit.getPlayer(memberId) != null)) {
                         abort(session, "member_offline");
                         continue;
+                    }
+                    if (monitor != null) {
+                        monitor.markEnterPhase();
                     }
                     String worldName = pool.takeReserve(session.dungeonId());
                     if (worldName != null) {

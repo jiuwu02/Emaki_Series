@@ -104,6 +104,9 @@ public final class GameplayControllers implements FlowControllers {
 
     @Override
     public void triggerComplete(FlowRuntime runtime, String cause) {
+        debug.logRaw("dungeon", (UUID) null, "triggerComplete | instance="
+                + runtime.instance().instanceId() + " | cause=" + cause
+                + " | handler=" + (completeHandler != null));
         if (completeHandler != null) {
             completeHandler.accept(cause);
         }

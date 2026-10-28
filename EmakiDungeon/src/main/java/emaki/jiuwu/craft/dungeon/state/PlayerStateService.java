@@ -37,6 +37,7 @@ import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
 import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import emaki.jiuwu.craft.dungeon.settlement.SettlementService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 
 public final class PlayerStateService {
@@ -60,9 +61,14 @@ public final class PlayerStateService {
     private final LanguageLoader languageLoader;
     private volatile ActionBridge actionBridge;
     private volatile ScriptRuntimeManager scriptManager;
+    private volatile SettlementService settlement;
 
     public void bindScriptManager(ScriptRuntimeManager scriptManager) {
         this.scriptManager = scriptManager;
+    }
+
+    public void bindSettlement(SettlementService settlement) {
+        this.settlement = settlement;
     }
 
     private void fireTrigger(TriggerType type,
@@ -304,6 +310,19 @@ public final class PlayerStateService {
                     }
                     if (instance.instanceId().equals(recovery.pointerOf(memberId))) {
                         messages.send(member, "flow.fail.returned", Map.of("reason", reason));
+                    }
+                }
+            }
+            if (settlement != null && settlement.beginFail(instance, reason)) {
+                return;
+            }
+            if (party != null) {
+                for (UUID memberId : party.members()) {
+                    Player member = Bukkit.getPlayer(memberId);
+                    if (member == null) {
+                        continue;
+                    }
+                    if (instance.instanceId().equals(recovery.pointerOf(memberId))) {
                         recovery.onExit(member, "fail:" + reason);
                     }
                 }

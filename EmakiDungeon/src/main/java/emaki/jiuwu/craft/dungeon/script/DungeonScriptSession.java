@@ -96,6 +96,7 @@ public final class DungeonScriptSession implements AutoCloseable {
     private final AuditService audit;
     private final EntryRegistry entries = new EntryRegistry();
     private final Map<String, CopyOnWriteArrayList<Value>> handlers = new ConcurrentHashMap<>();
+    private final Object contextLock = new Object();
 
     private volatile Context context;
     private volatile boolean disabled;
@@ -252,16 +253,21 @@ public final class DungeonScriptSession implements AutoCloseable {
             return;
         }
         String json = toJson(triggerName, context);
-        runSegment(triggerName, () -> callGuest("__resolveWaiters", triggerName, json));
-        CopyOnWriteArrayList<Value> registered = handlers.get(triggerName);
-        if (registered == null || registered.isEmpty() || disabled) {
-            return;
-        }
-        for (Value handler : registered) {
-            if (disabled || closed) {
-                break;
+        synchronized (contextLock) {
+            if (closed || disabled) {
+                return;
             }
-            runSegment(triggerName, () -> handler.execute(triggerName, json));
+            runSegment(triggerName, () -> callGuest("__resolveWaiters", triggerName, json));
+            CopyOnWriteArrayList<Value> registered = handlers.get(triggerName);
+            if (registered == null || registered.isEmpty() || disabled) {
+                return;
+            }
+            for (Value handler : registered) {
+                if (disabled || closed) {
+                    break;
+                }
+                runSegment(triggerName, () -> handler.execute(triggerName, json));
+            }
         }
     }
 
@@ -417,12 +423,14 @@ public final class DungeonScriptSession implements AutoCloseable {
         closed = true;
         entries.clear();
         handlers.clear();
-        Context current = context;
-        context = null;
-        if (current != null) {
-            try {
-                current.close();
-            } catch (RuntimeException ignored) {
+        synchronized (contextLock) {
+            Context current = context;
+            context = null;
+            if (current != null) {
+                try {
+                    current.close();
+                } catch (RuntimeException ignored) {
+                }
             }
         }
     }

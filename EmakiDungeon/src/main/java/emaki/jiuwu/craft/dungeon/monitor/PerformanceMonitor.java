@@ -31,6 +31,7 @@ public final class PerformanceMonitor implements AutoCloseable {
     private static final long MEMORY_WINDOW_MS = 300_000L;
     private static final long MEMORY_ALERT_COOLDOWN_MS = 600_000L;
     private static final long BACKLOG_ALERT_COOLDOWN_MS = 60_000L;
+    private static final long ENTER_PHASE_HOLD_MS = 65_000L;
 
     private final Plugin plugin;
     private final InstanceRegistry registry;
@@ -43,6 +44,7 @@ public final class PerformanceMonitor implements AutoCloseable {
     private final Map<String, Long> backlogLastAlert = new HashMap<>();
 
     private volatile TaskToken probeTask = TaskToken.UNAVAILABLE;
+    private volatile long enterPhaseUntil;
     private long memoryAnchorAt;
     private long memoryAnchorUsed;
     private long lastMsptAlert;
@@ -65,6 +67,10 @@ public final class PerformanceMonitor implements AutoCloseable {
                 PROBE_PERIOD_TICKS, PROBE_PERIOD_TICKS);
     }
 
+    public void markEnterPhase() {
+        enterPhaseUntil = System.currentTimeMillis() + ENTER_PHASE_HOLD_MS;
+    }
+
     private void probe() {
         probeMspt();
         probeMemorySlope();
@@ -72,7 +78,10 @@ public final class PerformanceMonitor implements AutoCloseable {
     }
 
     private void probeMspt() {
-        int threshold = config.get().monitorMsptP95Ms();
+        AppConfig appConfig = config.get();
+        int threshold = System.currentTimeMillis() < enterPhaseUntil
+                ? appConfig.monitorMsptP95EnterMs()
+                : appConfig.monitorMsptP95Ms();
         if (threshold <= 0) {
             return;
         }

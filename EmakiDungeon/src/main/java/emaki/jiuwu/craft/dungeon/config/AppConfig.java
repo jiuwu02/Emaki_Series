@@ -27,6 +27,7 @@ public record AppConfig(
         long scriptTimeoutMs,
         boolean scriptFailOnError,
         int monitorMsptP95Ms,
+        int monitorMsptP95EnterMs,
         int monitorMemorySlopeMbPerMin,
         int monitorQueueBacklogSeconds,
         Map<String, List<String>> actionPipelines
@@ -54,6 +55,7 @@ public record AppConfig(
                 5000L,
                 false,
                 55,
+                200,
                 64,
                 5,
                 Map.of()
@@ -95,6 +97,7 @@ public record AppConfig(
                 section.getInt("script.timeout-ms", (int) defaults.scriptTimeoutMs()),
                 section.getBoolean("script.fail-on-error", defaults.scriptFailOnError()),
                 section.getInt("monitor.mspt-p95-ms", defaults.monitorMsptP95Ms()),
+                section.getInt("monitor.mspt-p95-enter-ms", defaults.monitorMsptP95EnterMs()),
                 section.getInt("monitor.memory-slope-mb-per-min", defaults.monitorMemorySlopeMbPerMin()),
                 section.getInt("monitor.queue-backlog-seconds", defaults.monitorQueueBacklogSeconds()),
                 Map.copyOf(actionPipelines)

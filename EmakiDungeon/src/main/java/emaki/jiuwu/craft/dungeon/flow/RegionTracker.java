@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress;
@@ -34,10 +35,16 @@ public final class RegionTracker {
 
     private TaskToken task = TaskToken.UNAVAILABLE;
 
+    private volatile DebugLogger debug;
+
     public RegionTracker(Plugin plugin, ExecutionDispatcher dispatcher, InstanceRegistry registry) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.registry = registry;
+    }
+
+    public void bindDebug(DebugLogger debug) {
+        this.debug = debug;
     }
 
     public void start() {
@@ -185,6 +192,12 @@ public final class RegionTracker {
             payload.put(Facts.REGION_ENTERED, true);
         } else {
             payload.put(Facts.REGION_LEFT, true);
+        }
+        DebugLogger logger = debug;
+        if (logger != null) {
+            logger.logRaw("dungeon", (UUID) null,
+                    "zone transition | instance=" + runtime.instance().instanceId()
+                            + " | zone=" + zoneId + " | present=" + present);
         }
         runtime.instance().ingress().post(
                 new EventIngress.IngressEvent(

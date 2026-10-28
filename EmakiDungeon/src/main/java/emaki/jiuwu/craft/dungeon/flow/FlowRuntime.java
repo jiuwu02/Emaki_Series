@@ -13,6 +13,7 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
@@ -40,6 +41,7 @@ public final class FlowRuntime {
     private volatile PlayerStateHook stateHook;
     private volatile TriggerSink scriptSink;
     private volatile boolean scriptTakeover;
+    private volatile DebugLogger debug;
 
     private final Map<String, Object> facts = new ConcurrentHashMap<>();
     private final Set<String> openedGates = ConcurrentHashMap.newKeySet();
@@ -76,6 +78,17 @@ public final class FlowRuntime {
 
     public void setScriptTakeover(boolean scriptTakeover) {
         this.scriptTakeover = scriptTakeover;
+    }
+
+    public void bindDebug(DebugLogger debug) {
+        this.debug = debug;
+    }
+
+    private void anchor(String message) {
+        DebugLogger logger = debug;
+        if (logger != null) {
+            logger.logRaw("dungeon", (UUID) null, message);
+        }
     }
 
     public boolean isScriptTakeover() {
@@ -204,6 +217,10 @@ public final class FlowRuntime {
         String zoneId = event.sourceId();
         Map<String, Object> payload = event.payload();
         UUID playerId = EventIngressKeys.player(payload);
+        anchor("zone event consumed | instance=" + instance.instanceId()
+                + " | zone=" + zoneId
+                + " | entered=" + payload.get(Facts.REGION_ENTERED)
+                + " | left=" + payload.get(Facts.REGION_LEFT));
         EvalContext context = new EvalContext(playerId, payload);
 
         FlowModules.TriggerZoneDef triggerZone = definition.triggerZones().get(zoneId);
@@ -248,7 +265,12 @@ public final class FlowRuntime {
         if (roomTimer != null && roomTimer.head().enabled()
                 && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED))) {
             EvalContext timerContext = new EvalContext(playerId, payload);
-            if (adjudicator.adjudicate(roomTimer.head(), List.of(), timerContext, playerId).allowed()) {
+            var verdict = adjudicator.adjudicate(roomTimer.head(), List.of(), timerContext, playerId);
+            anchor("room timer adjudicated | instance=" + instance.instanceId()
+                    + " | zone=" + zoneId + " | allowed=" + verdict.allowed()
+                    + " | exhausted=" + verdict.exhaustedTier()
+                    + " | conditionFailed=" + verdict.conditionFailed());
+            if (verdict.allowed()) {
                 scheduleRoomTimer(roomTimer, playerId);
             }
         }
@@ -561,14 +583,22 @@ public final class FlowRuntime {
     private void scheduleRoomTimer(FlowModules.RoomTimerDef roomTimer, UUID playerId) {
         String key = "room_timer:" + roomTimer.head().id();
         if (factFlag(key)) {
+            anchor("room timer already scheduled | instance=" + instance.instanceId()
+                    + " | timer=" + roomTimer.head().id());
             return;
         }
         setFact(key, true);
+        anchor("room timer scheduled | instance=" + instance.instanceId()
+                + " | timer=" + roomTimer.head().id() + " | seconds=" + roomTimer.seconds());
         long deadline = System.currentTimeMillis() + roomTimer.seconds() * 1000L;
         Bukkit.getScheduler().runTaskLater(
                 Bukkit.getPluginManager().getPlugin("EmakiDungeon"),
                 () -> {
+                    anchor("room timer fired | instance=" + instance.instanceId()
+                            + " | timer=" + roomTimer.head().id());
                     if (instance.commands() == null) {
+                        anchor("room timer aborted | instance=" + instance.instanceId()
+                                + " | reason=commands_null");
                         return;
                     }
                     setFact(Facts.timerMark(roomTimer.head().id()), true);
@@ -623,6 +653,9 @@ public final class FlowRuntime {
                 }
             }
             case "complete" -> {
+                anchor("complete action | instance=" + instance.instanceId()
+                        + " | cause=" + action.param("cause", "flow")
+                        + " | controllers=" + (controllers != null));
                 if (controllers != null) {
                     controllers.triggerComplete(this, action.param("cause", "flow"));
                 }

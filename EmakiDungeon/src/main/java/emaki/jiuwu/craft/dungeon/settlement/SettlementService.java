@@ -116,10 +116,24 @@ public final class SettlementService {
         if (instance == null) {
             return;
         }
-        if (!instance.transition(InstanceState.RUNNING, InstanceState.SETTLING)) {
+        boolean moved = instance.transition(InstanceState.RUNNING, InstanceState.SETTLING);
+        debug.logRaw("dungeon", (UUID) null, "beginComplete | instance="
+                + instance.instanceId() + " | cause=" + cause + " | transitioned=" + moved);
+        if (!moved) {
             return;
         }
-        dispatcher.runGlobal(plugin, () -> settle(instance, cause));
+        dispatcher.runGlobal(plugin, () -> settle(instance, cause, null));
+    }
+
+    public boolean beginFail(DungeonInstance instance, String reason) {
+        if (instance == null) {
+            return false;
+        }
+        if (!instance.transition(InstanceState.RUNNING, InstanceState.SETTLING)) {
+            return false;
+        }
+        dispatcher.runGlobal(plugin, () -> settle(instance, "fail:" + reason, reason));
+        return true;
     }
 
     public void onEnding(DungeonInstance instance, String optionCase, String endingId) {
@@ -140,14 +154,14 @@ public final class SettlementService {
         beginComplete(instance, "ending:" + (endingId == null ? "" : endingId));
     }
 
-    private void settle(DungeonInstance instance, String cause) {
+    private void settle(DungeonInstance instance, String cause, String failReason) {
         String instanceId = instance.instanceId();
         DungeonConfig config = configOf.apply(instance.dungeonId());
         List<UUID> members = membersOf(instance);
         if (members.isEmpty()) {
             debug.logRaw("dungeon", (UUID) null,
                     "settle aborted | instance=" + instanceId + " | reason=no_members");
-            coordinator.dispose(instanceId, "settle:" + cause);
+            coordinator.dispose(instanceId, failReason == null ? "settle:" + cause : cause);
             return;
         }
         Map<UUID, ScoreStats> combat = new LinkedHashMap<>();
@@ -163,7 +177,7 @@ public final class SettlementService {
             scores = ScoreCalculator.calculate(config.scoreWeights(), combat);
             teamScore = scores.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0D);
         }
-        if (actionBridge != null) {
+        if (actionBridge != null && failReason == null) {
             for (UUID memberId : members) {
                 ScoreStats stats = combat.getOrDefault(memberId, ScoreStats.zero());
                 Double score = scores.get(memberId);
@@ -180,10 +194,12 @@ public final class SettlementService {
         }
         debug.logRaw("dungeon", (UUID) null,
                 "score computed | instance=" + instanceId + " | team=" + teamScore);
-        fireTrigger(TriggerType.onScoreReady,
-                instanceId, instance.dungeonId(), Map.of(
-                        "score", String.valueOf(teamScore),
-                        "durationMs", String.valueOf(durationMs)));
+        if (failReason == null) {
+            fireTrigger(TriggerType.onScoreReady,
+                    instanceId, instance.dungeonId(), Map.of(
+                            "score", String.valueOf(teamScore),
+                            "durationMs", String.valueOf(durationMs)));
+        }
         for (UUID memberId : members) {
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
@@ -235,7 +251,7 @@ public final class SettlementService {
             }
             snapshots.repack(member, instanceId);
         }
-        if (actionBridge != null) {
+        if (actionBridge != null && failReason == null) {
             actionBridge.dispatch("dungeon_complete", null, Map.of(
                     "instanceId", instanceId,
                     "dungeonId", instance.dungeonId(),
@@ -243,7 +259,7 @@ public final class SettlementService {
                     "score", String.valueOf(teamScore)
             ));
         }
-        if (config != null && !instance.isTest()) {
+        if (config != null && !instance.isTest() && failReason == null) {
             List<LeaderboardStore.MemberScore> boardMembers = new ArrayList<>();
             for (UUID memberId : members) {
                 Player member = Bukkit.getPlayer(memberId);
@@ -264,18 +280,32 @@ public final class SettlementService {
                         + " | cause=" + cause
                         + " | duration_ms=" + durationMs);
         if (audit != null) {
-            audit.write("settle", Map.of(
-                    "event", "complete",
-                    "instance", instanceId,
-                    "dungeon", instance.dungeonId(),
-                    "cause", cause,
-                    "score", String.valueOf(teamScore),
-                    "duration_ms", String.valueOf(durationMs),
-                    "test", String.valueOf(instance.isTest())));
+            if (failReason == null) {
+                audit.write("settle", Map.of(
+                        "event", "complete",
+                        "instance", instanceId,
+                        "dungeon", instance.dungeonId(),
+                        "cause", cause,
+                        "score", String.valueOf(teamScore),
+                        "duration_ms", String.valueOf(durationMs),
+                        "test", String.valueOf(instance.isTest())));
+            } else {
+                audit.write("settle", Map.of(
+                        "event", "fail",
+                        "instance", instanceId,
+                        "dungeon", instance.dungeonId(),
+                        "cause", cause,
+                        "reason", failReason,
+                        "score", String.valueOf(teamScore),
+                        "duration_ms", String.valueOf(durationMs),
+                        "test", String.valueOf(instance.isTest())));
+            }
         }
-        Bukkit.getPluginManager().callEvent(
-                new emaki.jiuwu.craft.dungeon.api.event.DungeonCompleteEvent(
-                        instanceId, instance.dungeonId(), teamScore, durationMs));
+        if (failReason == null) {
+            Bukkit.getPluginManager().callEvent(
+                    new emaki.jiuwu.craft.dungeon.api.event.DungeonCompleteEvent(
+                            instanceId, instance.dungeonId(), teamScore, durationMs));
+        }
         for (UUID memberId : members) {
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
@@ -288,9 +318,9 @@ public final class SettlementService {
             if (member == null) {
                 continue;
             }
-            recovery.onExit(member, "complete");
+            recovery.onExit(member, failReason == null ? "complete" : cause);
         }
-        coordinator.dispose(instanceId, "complete:" + cause);
+        coordinator.dispose(instanceId, failReason == null ? "complete:" + cause : cause);
     }
 
     private void payoutStaging(DungeonInstance instance, List<UUID> members) {

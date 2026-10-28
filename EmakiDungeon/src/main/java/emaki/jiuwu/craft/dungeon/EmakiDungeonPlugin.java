@@ -329,6 +329,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             DungeonConfig config = configCache.get(dungeonId);
             return config == null ? null : config.poolMaxWorlds();
         };
+        Function<String, Integer> warmOf = dungeonId -> {
+            DungeonConfig config = configCache.get(dungeonId);
+            return config == null ? null : config.poolWarmReserves();
+        };
         Supplier<AppConfig> appConfigSupplier = appConfigLoader::current;
 
         InstanceSlotAllocator allocator = new InstanceSlotAllocator(
@@ -355,7 +359,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, getDataFolder());
         editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
-                allocator, registry, store, poolMaxOf, editorStates::generationOf, messageService);
+                allocator, registry, store, poolMaxOf, warmOf, editorStates::generationOf, messageService);
         pool.bindAudit(auditService);
 
         teleportGuard = new TeleportGuard(messageService, registry);
@@ -411,6 +415,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         challenge.bindLimitService(limitService);
         challenge.bindScriptManager(scriptManager);
         challenge.bindAudit(auditService);
+        challenge.bindMonitor(performanceMonitor);
         challenge.start();
         editorService.bindChallenge(challenge);
 
@@ -436,6 +441,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         stateService.bindScriptManager(scriptManager);
         stateService.start();
         regionTracker = new RegionTracker(this, dispatcher, registry);
+        regionTracker.bindDebug(debugLogger());
         scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
         coordinator.bindScoreTracker(scoreTracker);
         coordinator.bindDropCleanup(instanceId -> rewardChests.remove(instanceId));
@@ -448,6 +454,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         settlement.bindActionBridge(actionBridge);
         settlement.bindScriptManager(scriptManager);
         settlement.bindAudit(auditService);
+        stateService.bindSettlement(settlement);
         this.actionBridge = actionBridge;
 
         recovery.bindActionBridge(actionBridge);
@@ -636,6 +643,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 });
         runtime.bindControllers(controllers);
         runtime.bindStateHook(stateService::onPlayerDeath);
+        runtime.bindDebug(debugLogger());
         if (scriptManager != null) {
             runtime.bindScript(scriptManager.sink());
             waveController.bindTriggerSink(scriptManager);

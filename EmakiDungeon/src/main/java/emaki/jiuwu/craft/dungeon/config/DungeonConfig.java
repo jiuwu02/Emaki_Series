@@ -14,6 +14,7 @@ import java.util.regex.Pattern;
 public record DungeonConfig(
         String displayName,
         int poolMaxWorlds,
+        int poolWarmReserves,
         int prepareWindowSeconds,
         String waitChannel,
         int waitTimeoutSeconds,
@@ -75,6 +76,7 @@ public record DungeonConfig(
         return new DungeonConfig(
                 "dungeon",
                 5,
+                2,
                 10,
                 "bossbar",
                 60,
@@ -108,6 +110,7 @@ public record DungeonConfig(
         if (poolMaxWorlds == null || poolMaxWorlds < 1) {
             throw new IllegalArgumentException("pool.max-worlds must be >= 1");
         }
+        int poolWarmReserves = Math.max(1, section.getInt("pool.warm-reserves", 2));
         Integer prepareWindow = section.getInt("enter.prepare-window-seconds");
         if (prepareWindow == null || prepareWindow < 1) {
             throw new IllegalArgumentException("enter.prepare-window-seconds must be >= 1");
@@ -227,6 +230,7 @@ public record DungeonConfig(
         return new DungeonConfig(
                 section.getString("display-name", "dungeon"),
                 poolMaxWorlds,
+                poolWarmReserves,
                 prepareWindow,
                 waitChannel,
                 waitTimeout,

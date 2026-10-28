@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效。
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.4"
+version: "1.0.12"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)。
@@ -58,6 +58,7 @@ script:
 # 超阈值即控制台告警并写入审计日志, 该项阈值 <= 0 表示关闭该项监测。
 monitor:
   mspt-p95-ms: 55
+  mspt-p95-enter-ms: 200
   memory-slope-mb-per-min: 64
   queue-backlog-seconds: 5
 

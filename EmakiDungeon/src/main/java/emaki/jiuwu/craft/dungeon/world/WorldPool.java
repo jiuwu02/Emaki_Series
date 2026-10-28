@@ -46,6 +46,7 @@ public final class WorldPool {
     private final InstanceRegistry registry;
     private final InstancesStore store;
     private final Function<String, Integer> poolMaxOf;
+    private final Function<String, Integer> warmOf;
     private final Function<String, Integer> generationOf;
     private final MessageService messages;
 
@@ -63,6 +64,7 @@ public final class WorldPool {
             InstanceRegistry registry,
             InstancesStore store,
             Function<String, Integer> poolMaxOf,
+            Function<String, Integer> warmOf,
             Function<String, Integer> generationOf,
             MessageService messages) {
         this.plugin = plugin;
@@ -76,12 +78,19 @@ public final class WorldPool {
         this.registry = registry;
         this.store = store;
         this.poolMaxOf = poolMaxOf;
+        this.warmOf = warmOf;
         this.generationOf = generationOf;
         this.messages = messages;
     }
 
     public void stopNewWork() {
         stopping = true;
+    }
+
+    private int warmReserves(String dungeonId) {
+        Function<String, Integer> supplier = warmOf;
+        Integer warm = supplier == null ? null : supplier.apply(dungeonId);
+        return warm == null || warm < 1 ? 1 : warm;
     }
 
     private volatile AuditService audit;
@@ -100,7 +109,7 @@ public final class WorldPool {
                 return;
             }
             int active = registry.countActive(dungeonId);
-            int target = Math.min(active + 1, poolMax(dungeonId));
+            int target = Math.min(active + warmReserves(dungeonId), poolMax(dungeonId));
             if (allocator.worldsOf(dungeonId) >= target) {
                 return;
             }
