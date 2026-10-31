@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.item;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
@@ -22,7 +24,11 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridge;
 import emaki.jiuwu.craft.item.integration.ItemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
+import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.text.LogMessages;
+import emaki.jiuwu.craft.item.migration.ItemDefinitionMigrationRule;
+import emaki.jiuwu.craft.item.migration.ItemSetMigrationRule;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
@@ -95,6 +101,15 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     private ItemSourceRegistration itemSourceResolverRegistration;
 
+    private static void migrateLegacyContent(EmakiItemPlugin plugin, LogMessages messages) {
+        Path root = plugin.getDataFolder().toPath();
+        // pack.yml 是分包元数据, 不是物品定义, 交给 ItemPackLoader 读取, 不能套用物品迁移规则.
+        new LegacyContentMigrator(root, "items", "物品定义", new ItemDefinitionMigrationRule(),
+                messages, plugin.getLogger(), Set.of(ItemPackLoader.PACK_FILE_NAME)).run(true);
+        new LegacyContentMigrator(root, "sets", "套装定义", new ItemSetMigrationRule(),
+                messages, plugin.getLogger()).run(true);
+    }
+
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
         EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
@@ -130,6 +145,11 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                         if ("config.yml".equals(relativePath) && runtime != null) {
                             runtime.set("item_update", null);
                         }
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        migrateLegacyContent(plugin, messageService);
                     }
                 }
         );

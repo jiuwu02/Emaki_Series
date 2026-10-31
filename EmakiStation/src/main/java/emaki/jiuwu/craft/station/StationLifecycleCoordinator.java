@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -32,6 +33,7 @@ import emaki.jiuwu.craft.station.editor.StationEditorModule;
 import emaki.jiuwu.craft.station.gui.ConfiguredGuiSupport;
 import emaki.jiuwu.craft.station.gui.StationGuiService;
 import emaki.jiuwu.craft.station.material.BackpackChannel;
+import emaki.jiuwu.craft.station.migration.StationRecipeMigrationRule;
 import emaki.jiuwu.craft.station.material.MergedMaterialChannel;
 import emaki.jiuwu.craft.station.material.OutputDelivery;
 import emaki.jiuwu.craft.station.material.StationCapabilities;
@@ -104,6 +106,17 @@ final class StationLifecycleCoordinator
                             return;
                         }
                         ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyContentMigrator migrator = new LegacyContentMigrator(
+                                plugin.getDataFolder().toPath(), "recipes", "站点配方",
+                                new StationRecipeMigrationRule(), messageService, plugin.getLogger());
+                        migrator.run(true);
+                        new LegacyContentMigrator(plugin.getDataFolder().toPath(), "recipes_dismantle",
+                                "分解配方", new StationRecipeMigrationRule(), messageService,
+                                plugin.getLogger()).run(true);
                     }
                 });
 

@@ -34,7 +34,9 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
 import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
@@ -349,6 +351,14 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                         if (consoleDefaults != null) {
                             runtime.set("console", consoleDefaults.asMap());
                         }
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("等级配置", messages, getLogger(),
+                                () -> LegacyStartupMigration.fromItemSourceReport(
+                                        new LegacyItemSourceRewriter(getDataFolder().toPath(),
+                                                LevelLegacyTargets.specs(), getLogger()).run(true)));
                     }
                 }
         );

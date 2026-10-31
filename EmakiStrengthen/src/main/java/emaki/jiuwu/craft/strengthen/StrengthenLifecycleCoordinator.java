@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -33,6 +34,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter;
 import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
@@ -100,6 +102,12 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                     @Override
                     public boolean shouldInstallDefaultData() {
                         return plugin.appConfig().releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("强化配方", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.of(migrateStrengthenRecipes(plugin)));
                     }
                 }
         );
@@ -467,6 +475,18 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return List.copyOf(fallback);
         }
         return List.copyOf(values);
+    }
+
+    private static List<LegacyStartupMigration.FileOutcome> migrateStrengthenRecipes(
+            EmakiStrengthenPlugin plugin) {
+        LegacyStrengthenConfigRewriter.RunReport report =
+                new LegacyStrengthenConfigRewriter(plugin.dataPath("recipes"), plugin.getLogger()).run(true);
+        List<LegacyStartupMigration.FileOutcome> outcomes = new ArrayList<>();
+        for (LegacyStrengthenConfigRewriter.FileReport file : report.files()) {
+            outcomes.add(new LegacyStartupMigration.FileOutcome(
+                    file.fileName(), file.status().name(), file.detail()));
+        }
+        return outcomes;
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

@@ -32,6 +32,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -47,6 +49,7 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
+import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
 import emaki.jiuwu.craft.forge.loader.ForgeGuiTemplateLoader;
@@ -490,6 +493,14 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                         }
                         ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
                         ConfigKeyMigration.pruneEmptySection(runtime, "permission");
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("锻造配方", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.fromItemSourceReport(
+                                        new LegacyItemSourceRewriter(plugin.getDataFolder().toPath(),
+                                                ForgeLegacyTargets.specs(), plugin.getLogger()).run(true)));
                     }
                 }
         );

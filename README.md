@@ -2,7 +2,7 @@
 
 Emaki Series 是一组面向 Minecraft Paper 系服务端的 Java 插件，采用多模块 Gradle 工程组织。项目以 `EmakiCoreLib` 为共享基础库，向上承载属性战斗、装备成长、技能、烹饪、制作、图鉴、仓库与自定义生物等 RPG 玩法模块。
 
-当前源码版本线为：`EmakiCoreLib 5.0.0`、`EmakiAttribute 5.0.0`、`EmakiForge 5.0.0`、`EmakiStrengthen 5.0.0`、`EmakiCooking 5.0.0`、`EmakiGem 3.0.0`、`EmakiSkills 3.0.0`、`EmakiItem 3.0.0`、`EmakiLevel 2.0.0`、`EmakiCodex 2.0.0`、`EmakiStorage 2.0.0`、`EmakiStation 2.0.0`、`EmakiAccessory 2.0.0`、`EmakiMobs 2.0.0`。
+当前源码版本线为: `EmakiCoreLib 5.0.0`, `EmakiAttribute 5.0.0`, `EmakiForge 5.0.0`, `EmakiStrengthen 5.0.0`, `EmakiCooking 5.0.0`, `EmakiGem 3.0.0`, `EmakiSkills 3.0.0`, `EmakiItem 3.0.0`, `EmakiLevel 2.0.0`, `EmakiCodex 2.0.0`, `EmakiStorage 2.0.0`, `EmakiStation 2.0.0`, `EmakiAccessory 2.0.0`, `EmakiMobs 2.0.0`
 
 ## 模块概览
 

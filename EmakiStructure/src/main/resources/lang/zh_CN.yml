@@ -20,6 +20,10 @@ console:
   bootstrap_complete: "[loader] 默认资源同步完成"
   bootstrap_copy_failed: "[loader] 复制默认资源失败: %path%  (%error%)"
   bootstrap_save_failed: "[loader] 保存版本化资源失败: %path%  (%error%)"
+  default_file_missing: "[loader] <yellow>默认资源缺失, 已重新释放: <white>%path%</white></yellow>"
+  directory_create_failed: "[loader] <red>创建目录失败: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "[loader] <green>已自动更新默认文件版本: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "[loader] <yellow>读取 Structure 配置失败: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   # 占位符: %count%
   templates_loaded: "[loader] <gray>已加载 <yellow>%count%</yellow> 个结构模板</gray>"
   # 占位符: %path%, %value%, %expected%

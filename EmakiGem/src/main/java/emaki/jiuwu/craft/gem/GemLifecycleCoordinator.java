@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.condition.ConditionGroup;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridge;
 import emaki.jiuwu.craft.gem.integration.GemAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -38,6 +39,7 @@ import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.gem.config.AppConfig;
 import emaki.jiuwu.craft.gem.editor.GemEditorModule;
+import emaki.jiuwu.craft.gem.legacy.LegacyGemConfigRewriter;
 import emaki.jiuwu.craft.gem.listener.GemItemObtainListener;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
@@ -108,6 +110,13 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                         }
                         ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
                         ConfigKeyMigration.pruneEmptySection(runtime, "permission");
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("宝石定义", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.of(
+                                        migrateGemDefinitions(plugin)));
                     }
                 }
         );
@@ -483,6 +492,17 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 conditionGroup.requiredCount(),
                 condition.invalidAsFailure()
         );
+    }
+
+    private static List<LegacyStartupMigration.FileOutcome> migrateGemDefinitions(EmakiGemPlugin plugin) {
+        LegacyGemConfigRewriter.RunReport report =
+                new LegacyGemConfigRewriter(plugin.dataPath("items"), plugin.getLogger()).run(true);
+        List<LegacyStartupMigration.FileOutcome> outcomes = new ArrayList<>();
+        for (LegacyGemConfigRewriter.FileReport file : report.files()) {
+            outcomes.add(new LegacyStartupMigration.FileOutcome(
+                    file.fileName(), file.status().name(), file.detail()));
+        }
+        return outcomes;
     }
 
     private List<String> staticFiles(EmakiGemPlugin plugin) {

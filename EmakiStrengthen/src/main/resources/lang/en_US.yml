@@ -155,6 +155,9 @@ console:
   bootstrap_complete: "[loader] <green>Default file check complete</green>"
   bootstrap_skip: "[loader] <yellow>release_default_data=false, skipped default data generation</yellow>"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  legacy_file_migrated: "[migrate] <green>Auto-migrated legacy configuration: <yellow>%path%</yellow> <gray> (%detail%)</gray></green>"
+  legacy_migration_failed: "[migrate] <red>Auto-migration failed, original file kept unchanged: <yellow>%path%</yellow> <gray> (%error%)</gray></red>"
+  legacy_migration_summary: "[migrate] <green>%scope% auto-migration finished, <yellow>%count%</yellow> file(s) rewritten</green>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource:
     <red>%path%</red> <gray> (%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource:

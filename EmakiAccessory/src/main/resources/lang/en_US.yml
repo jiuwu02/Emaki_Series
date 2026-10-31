@@ -11,6 +11,7 @@ console:
   bootstrap_complete: "[loader] <green>Default file check complete</green>"
   bootstrap_skip: "[loader] <yellow>Skipped default data generation</yellow>"
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "[loader] <yellow>Failed to load Accessory config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   bootstrap_copy_failed: "[loader] <yellow>Failed to copy default resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   bootstrap_save_failed: "[loader] <yellow>Failed to save merged resource: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   default_file_missing: "[loader] <yellow>Missing built-in default resource: <red>%path%</red></yellow>"

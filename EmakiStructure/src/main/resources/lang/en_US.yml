@@ -20,6 +20,10 @@ console:
   bootstrap_complete: "[loader] Bundled resource sync complete"
   bootstrap_copy_failed: "[loader] Failed to copy bundled resource: %path%  (%error%)"
   bootstrap_save_failed: "[loader] Failed to save versioned resource: %path%  (%error%)"
+  default_file_missing: "[loader] <yellow>Default resource missing, re-extracted: <white>%path%</white></yellow>"
+  directory_create_failed: "[loader] <red>Failed to create directory: <white>%path%</white> (%error%)</red>"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  loader_config_load_error: "[loader] <yellow>Failed to load Structure config: <red>%path%</red> <gray> (%error%)</gray></yellow>"
   # placeholders: %count%
   templates_loaded: "[loader] <gray>Loaded <yellow>%count%</yellow> structure templates</gray>"
   # placeholders: %path%, %value%, %expected%
