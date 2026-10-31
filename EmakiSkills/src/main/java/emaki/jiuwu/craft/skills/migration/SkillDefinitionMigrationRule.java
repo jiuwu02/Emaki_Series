@@ -8,12 +8,6 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.legacy.LegacyEntryMover;
 
-/**
- * 技能定义旧写法自动迁移规则.
- *
- * <p>目前技能定义里只有一处旧写法: {@code tag_limits} 已改名为
- * {@code skill_tags.equip_limits}, 技能文件里出现旧键时把它整体搬进新的嵌套位置.
- */
 public final class SkillDefinitionMigrationRule implements LegacyContentMigrator.Rule {
 
     private static final String LEGACY_KEY = "tag_limits";

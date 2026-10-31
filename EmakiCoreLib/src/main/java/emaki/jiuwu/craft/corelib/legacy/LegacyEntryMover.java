@@ -9,42 +9,19 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-/**
- * 把旧的一级键块搬移成 {@code effects} 列表条目的行级工具.
- *
- * <p>只在文本层工作, 因此原文件的注释, 缩进与行尾都保持不变. 被搬移的键块内容整体缩进两格后
- * 挂到新条目下, 条目按 {@code type} 分派, 与解析器读取 {@code effects} 的路径一致.
- *
- * <p>工具按缩进工作, 所以既能处理根级简写, 也能处理套装 {@code thresholds.<件数>} 这样嵌套一层的位置.
- */
 public final class LegacyEntryMover {
 
     private LegacyEntryMover() {
     }
 
-    /**
-     * 一条搬移规则: 旧键 {@code legacyKey} 的内容搬进 {@code type: effectType} 条目的
-     * {@code effectKey} 字段.
-     */
     public record Spec(@NotNull String legacyKey, @NotNull String effectType, @NotNull String effectKey) {
     }
 
-    /** 把根级旧键块搬进根级 {@code effects}. */
     public static @NotNull LegacyContentMigrator.Outcome moveRootKeys(@NotNull List<String> lines,
             @NotNull List<Spec> specs) {
         return moveKeysInRange(lines, 0, lines.size(), 0, specs);
     }
 
-    /**
-     * 把 {@code [from, to)} 范围内缩进为 {@code keyIndent} 的旧键块搬进同范围的 {@code effects}.
-     *
-     * @param lines     原文件行
-     * @param from      范围起始行 (含)
-     * @param to        范围结束行 (不含)
-     * @param keyIndent 旧键与 {@code effects} 的缩进空格数
-     * @param specs     搬移规则
-     * @return 迁移结果; 未命中任何旧键时返回原列表与空变更集
-     */
     public static @NotNull LegacyContentMigrator.Outcome moveKeysInRange(@NotNull List<String> lines,
             int from,
             int to,
@@ -82,9 +59,6 @@ public final class LegacyEntryMover {
         return new LegacyContentMigrator.Outcome(working, changes);
     }
 
-    /**
-     * 把 {@code [from, to)} 范围内缩进为 {@code indent} 的旧键整体改名为新键, 键块内容随键一起保留.
-     */
     public static @NotNull LegacyContentMigrator.Outcome renameKeys(@NotNull List<String> lines,
             int from,
             int to,
@@ -108,22 +82,9 @@ public final class LegacyEntryMover {
         return new LegacyContentMigrator.Outcome(working, changes);
     }
 
-    /** 一条改名规则. */
     public record Rename(@NotNull String legacyKey, @NotNull String currentKey) {
     }
 
-    /**
-     * 把 {@code [from, to)} 范围内缩进为 {@code indent} 的旧键整体改名为新键, 并同时补一层新父级.
-     *
-     * <p>用于 {@code material: DIAMOND_SWORD} 这类旧写法: 新格式要求写成
-     * {@code item.source: minecraft-diamond_sword}. 旧标量值会被改写成 CoreLib 的物品源简写.
-     *
-     * @param lines      原文件行
-     * @param legacyKey  旧键名
-     * @param parentKey  新父级键名 (例如 {@code item})
-     * @param currentKey 新父级下的字段名 (例如 {@code source})
-     * @param transform  旧值 → 新值; 返回 {@code null} 表示无法安全转换, 放弃该次迁移
-     */
     public static @NotNull LegacyContentMigrator.Outcome hoistToParent(@NotNull List<String> lines,
             @NotNull String legacyKey,
             @NotNull String parentKey,
@@ -190,17 +151,6 @@ public final class LegacyEntryMover {
         return value;
     }
 
-    /**
-     * 把根级标量或列表字段搬进 {@code parentKey.components.<componentKey>}.
-     *
-     * <p>用于 {@code display_name}, {@code item_name}, {@code lore} 这类旧写法: 新格式要求写进
-     * {@code item.components}. 旧字段块 (含多行 lore) 整体搬移, 内容不再增删.
-     *
-     * @param lines      原文件行
-     * @param legacyKey  旧根级键名
-     * @param parentKey  目标父级键名 (通常是 {@code item})
-     * @param componentKey 组件键名 (例如 {@code custom_name})
-     */
     public static @NotNull LegacyContentMigrator.Outcome moveIntoComponents(@NotNull List<String> lines,
             @NotNull String legacyKey,
             @NotNull String parentKey,
@@ -217,7 +167,6 @@ public final class LegacyEntryMover {
         List<String> working = new ArrayList<>(lines);
         int[] parent = findRootBlock(working, parentKey);
         if (parent == null) {
-            // 没有父级时整块替换成新建的父级, 位置不变.
             List<String> replacement = new ArrayList<>();
             replacement.add(parentKey + ":");
             replacement.add("  components:");
@@ -229,7 +178,6 @@ public final class LegacyEntryMover {
             working.addAll(block[0], replacement);
             return new LegacyContentMigrator.Outcome(working, List.of(legacyKey));
         }
-        // 已有 item 段: 补 components 子节并追加. 先摘掉旧键块, 之后一切行号都要重新定位.
         List<String> fragment = new ArrayList<>();
         fragment.add("    " + componentKey + ":" + (inline.isEmpty() ? "" : " " + inline));
         for (String line : body) {
@@ -256,12 +204,6 @@ public final class LegacyEntryMover {
         return new LegacyContentMigrator.Outcome(working, List.of(legacyKey));
     }
 
-    /**
-     * 把 {@code effects} 中所有 {@code type: <effectType>} 条目内的旧字段改名.
-     *
-     * <p>用于 {@code es_skill} 条目里 {@code skill_triggers} 改名成 {@code es_skill_triggers} 这类
-     * 只换字段名, 不动内容的场景.
-     */
     public static @NotNull List<String> renameWithinEntries(@NotNull List<String> lines,
             @NotNull String effectType,
             @NotNull String legacyKey,
@@ -400,16 +342,10 @@ public final class LegacyEntryMover {
         return List.copyOf(normalized);
     }
 
-    /** 定位根级 {@code key:} 块; 返回已裁掉尾部空行与注释的 {@code [start, end)}. */
     public static @Nullable int[] findRootBlock(@NotNull List<String> lines, @NotNull String key) {
         return findBlock(lines, 0, lines.size(), key, 0);
     }
 
-    /**
-     * 在 {@code [from, to)} 里定位缩进为 {@code indent} 的 {@code key:} 块.
-     *
-     * @return {@code [start, end)} 且已裁掉尾部空行与纯注释行; 未命中返回 {@code null}
-     */
     public static @Nullable int[] findBlock(@NotNull List<String> lines,
             int from,
             int to,
@@ -462,11 +398,6 @@ public final class LegacyEntryMover {
         return tail.startsWith("#") ? "" : tail;
     }
 
-    /**
-     * 列出 {@code [from, to)} 里所有缩进为 {@code indent} 的键块.
-     *
-     * @return 每个键块的 {@code [start, end)}; 顺序与文件中出现顺序一致
-     */
     public static @NotNull List<int[]> childBlocks(@NotNull List<String> lines, int from, int to, int indent) {
         List<int[]> blocks = new ArrayList<>();
         int cursor = Math.max(0, from);
@@ -507,7 +438,6 @@ public final class LegacyEntryMover {
                 || Character.isWhitespace(rest.charAt(after + 1)));
     }
 
-    /** 收集文件里出现过的根级键名. */
     public static @NotNull Set<String> rootKeys(@NotNull List<String> lines, @NotNull List<String> candidates) {
         Set<String> present = new LinkedHashSet<>();
         for (String key : candidates) {

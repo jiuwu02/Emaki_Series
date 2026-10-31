@@ -17,13 +17,6 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 
-/**
- * 启动期内容文件旧写法自动迁移引擎.
- *
- * <p>按目录遍历玩家可编辑的 YAML 内容文件, 交给 {@link Rule} 做行级改写. 改写保持原文件的注释,
- * 缩进风格, 行尾序列与结尾换行; 落盘前先备份原文件为 {@code <name>.bak}, 失败时原文件保持不变.
- * 每份被迁移的文件都会输出一条含路径的日志, 便于服主确认哪些配置被自动改写.
- */
 public final class LegacyContentMigrator {
 
     private static final String FILE_MIGRATED_KEY = "console.legacy_file_migrated";
@@ -47,10 +40,6 @@ public final class LegacyContentMigrator {
         this(root, directory, scope, rule, messages, logger, Set.of());
     }
 
-    /**
-     * @param skipFileNames 目录内不属于本规则管辖的文件名 (忽略大小写), 例如物品目录里的
-     *                      {@code pack.yml} 是分包元数据而不是物品定义
-     */
     public LegacyContentMigrator(@NotNull Path root,
             @NotNull String directory,
             @NotNull String scope,
@@ -99,7 +88,6 @@ public final class LegacyContentMigrator {
         }
     }
 
-    /** 行级改写规则; 返回原列表本身表示该文件无需改写. */
     @FunctionalInterface
     public interface Rule {
 

@@ -103,7 +103,6 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     private static void migrateLegacyContent(EmakiItemPlugin plugin, LogMessages messages) {
         Path root = plugin.getDataFolder().toPath();
-        // pack.yml 是分包元数据, 不是物品定义, 交给 ItemPackLoader 读取, 不能套用物品迁移规则.
         new LegacyContentMigrator(root, "items", "物品定义", new ItemDefinitionMigrationRule(),
                 messages, plugin.getLogger(), Set.of(ItemPackLoader.PACK_FILE_NAME)).run(true);
         new LegacyContentMigrator(root, "sets", "套装定义", new ItemSetMigrationRule(),

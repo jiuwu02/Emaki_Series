@@ -11,13 +11,6 @@ import org.jetbrains.annotations.NotNull;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 
-/**
- * 启动期旧写法自动迁移的统一入口.
- *
- * <p>各模块自有的旧格式改写器 (物品源识别块, 旧 {@code match} 块等) 在启动期以"直接应用"方式跑一遍,
- * 由本类负责把结果翻译成统一的日志: 每份被改写的文件打一条带路径的提示, 失败的文件单独告警, 最后
- * 汇总一次总份数, 便于服主确认哪些配置被自动迁移.
- */
 public final class LegacyStartupMigration {
 
     private static final String FILE_MIGRATED_KEY = "console.legacy_file_migrated";
@@ -27,7 +20,6 @@ public final class LegacyStartupMigration {
     private LegacyStartupMigration() {
     }
 
-    /** 单份文件的迁移结果. */
     public record Entry(@NotNull String path, @NotNull String detail) {
 
         public Entry {
@@ -36,7 +28,6 @@ public final class LegacyStartupMigration {
         }
     }
 
-    /** 一次迁移任务的结果: 已改写的文件与失败的文件. */
     public record Result(@NotNull List<Entry> migrated, @NotNull List<Entry> failures) {
 
         public Result {
@@ -53,14 +44,6 @@ public final class LegacyStartupMigration {
         }
     }
 
-    /**
-     * 执行一次启动期迁移并输出统一日志.
-     *
-     * @param scope    日志里显示的迁移范围名称, 例如 "烹饪配方"
-     * @param messages 模块的消息服务; 为 {@code null} 时只写服务器日志
-     * @param logger   模块日志器
-     * @param task     实际执行迁移的任务
-     */
     public static @NotNull Result run(@NotNull String scope,
             LogMessages messages,
             @NotNull Logger logger,
@@ -99,7 +82,6 @@ public final class LegacyStartupMigration {
         return result;
     }
 
-    /** 模块自有改写器的一份文件结果. */
     public record FileOutcome(@NotNull String path, @NotNull String status, @NotNull String detail) {
 
         public FileOutcome {
@@ -112,7 +94,6 @@ public final class LegacyStartupMigration {
     private static final java.util.Set<String> CONVERTED_STATUSES = java.util.Set.of("CONVERTED");
     private static final java.util.Set<String> FAILED_STATUSES = java.util.Set.of("FAILED", "CONFLICT", "UNCONVERTIBLE");
 
-    /** 按状态名把模块自有改写器的逐文件结果归成已改写与失败两类. */
     public static @NotNull Result of(@NotNull List<FileOutcome> outcomes) {
         List<Entry> migrated = new ArrayList<>();
         List<Entry> failures = new ArrayList<>();
@@ -127,7 +108,6 @@ public final class LegacyStartupMigration {
         return new Result(migrated, failures);
     }
 
-    /** 把物品源识别改写器的报告翻译成统一结果. */
     public static @NotNull Result fromItemSourceReport(@NotNull LegacyItemSourceRewriter.RunReport report) {
         List<Entry> migrated = new ArrayList<>();
         List<Entry> failures = new ArrayList<>();
