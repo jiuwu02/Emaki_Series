@@ -12,9 +12,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.stream.Stream;
@@ -24,13 +26,19 @@ import emaki.jiuwu.craft.storage.config.AppConfig;
 
 public final class StorageOperationLog {
 
+    public record DrainReport(int entriesWritten, boolean drained, int pendingEntries) {
+    }
+
     private final Path logRoot;
     private final Logger logger;
     private final AsyncFileService.FileScope fileScope;
     private final Map<UUID, List<StorageLogEntry>> pending = new ConcurrentHashMap<>();
     private final Map<UUID, AtomicBoolean> flushScheduled = new ConcurrentHashMap<>();
+    private final AtomicBoolean sealed = new AtomicBoolean();
+    private final AtomicInteger entriesWritten = new AtomicInteger();
 
     private volatile AppConfig.LoggingConfig config;
+    private volatile CompletableFuture<DrainReport> drainFuture;
 
     public StorageOperationLog(Path logRoot,
             Logger logger,
@@ -47,10 +55,20 @@ public final class StorageOperationLog {
     }
 
     public void record(StorageLogEntry entry) {
-        if (entry == null || !shouldRecord(entry)) {
+        if (entry == null) {
             return;
         }
-        pending.computeIfAbsent(entry.playerId(), id -> new ArrayList<>()).add(entry);
+        if (!shouldRecord(entry)) {
+            return;
+        }
+        if (sealed.get()) {
+            warn("存储日志停服落盘后仍收到新条目，已丢弃该条目", null);
+            return;
+        }
+        List<StorageLogEntry> queue = pending.computeIfAbsent(entry.playerId(), id -> new ArrayList<>());
+        synchronized (queue) {
+            queue.add(entry);
+        }
         scheduleFlush(entry.playerId());
     }
 
@@ -74,8 +92,11 @@ public final class StorageOperationLog {
         Path playerDirectory = logRoot.resolve(playerId.toString());
         fileScope.write(playerDirectory, "storage-log-append", () -> {
             gate.set(false);
-            flushPlayer(playerId);
-            flushScheduled.remove(playerId, gate);
+            try {
+                flushPlayer(playerId);
+            } finally {
+                flushScheduled.remove(playerId, gate);
+            }
         }).exceptionally(throwable -> {
             gate.set(false);
             flushScheduled.remove(playerId, gate);
@@ -105,15 +126,69 @@ public final class StorageOperationLog {
                         StandardOpenOption.CREATE,
                         StandardOpenOption.APPEND);
             }
+            entriesWritten.addAndGet(batch.size());
         } catch (IOException failure) {
-            warn("为玩家 " + playerId + " 写入存储日志失败", failure);
+            requeue(playerId, batch);
+            warn("为玩家 " + playerId + " 写入存储日志失败，已将 " + batch.size()
+                    + " 条日志放回待写队列", failure);
         }
     }
 
-    public void flushAll() {
+    private void requeue(UUID playerId, List<StorageLogEntry> batch) {
+        List<StorageLogEntry> queue = pending.computeIfAbsent(playerId, id -> new ArrayList<>());
+        synchronized (queue) {
+            queue.addAll(0, batch);
+        }
+    }
+
+    public synchronized CompletableFuture<DrainReport> flushAll() {
+        if (!sealed.compareAndSet(false, true)) {
+            return drainFuture == null ? CompletableFuture.completedFuture(null) : drainFuture;
+        }
+        entriesWritten.set(0);
         for (UUID playerId : Set.copyOf(pending.keySet())) {
             flushPlayer(playerId);
         }
+        CompletableFuture<DrainReport> drain = fileScope.waitForIdle()
+                .handle((ignored, throwable) -> {
+                    int unsaved = pendingEntries();
+                    if (unsaved > 0) {
+                        for (UUID playerId : Set.copyOf(pending.keySet())) {
+                            flushPlayer(playerId);
+                        }
+                        unsaved = pendingEntries();
+                    }
+                    if (unsaved > 0) {
+                        logger.warning("[journal] 停服时仍有 " + unsaved + " 条存储日志未落盘"
+                                + (throwable == null ? "" : ": " + describeFailure(throwable)));
+                    }
+                    return new DrainReport(entriesWritten.get(), throwable == null && unsaved == 0, unsaved);
+                });
+        drainFuture = drain;
+        return drain;
+    }
+
+    private int pendingEntries() {
+        int total = 0;
+        for (List<StorageLogEntry> queue : pending.values()) {
+            synchronized (queue) {
+                total += queue.size();
+            }
+        }
+        return total;
+    }
+
+    private String describeFailure(Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause != null && cause.getCause() != null && cause != cause.getCause()
+                && cause instanceof CompletionException) {
+            cause = cause.getCause();
+        }
+        if (cause == null) {
+            return "未知错误";
+        }
+        return cause.getClass().getSimpleName()
+                + (cause.getMessage() == null ? "" : " " + cause.getMessage());
     }
 
     public int purgeExpired() {
@@ -174,13 +249,7 @@ public final class StorageOperationLog {
     }
 
     private void warn(String message, Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause != null && cause.getCause() != null && cause != cause.getCause()
-                && cause instanceof CompletionException) {
-            cause = cause.getCause();
-        }
         logger.log(Level.WARNING, "[journal] " + message
-                + (cause == null ? "" : ": " + cause.getClass().getSimpleName()
-                        + (cause.getMessage() == null ? "" : " " + cause.getMessage())));
+                + (throwable == null ? "" : ": " + describeFailure(throwable)));
     }
 }

@@ -14,6 +14,7 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
@@ -162,7 +163,14 @@ final class CookingCommandRouter implements TabExecutor {
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
         long startTime = System.currentTimeMillis();
-        plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
+        plugin.reloadPluginStateAsync().whenComplete((_, failure) -> runForSender(sender, () -> {
+            if (failure != null) {
+                plugin.getLogger().warning("[cooking] 配置重载失败: " + AsyncFailures.describe(failure));
+                plugin.messageService().send(sender, "general.reload_failed", Map.of(
+                        "reason", AsyncFailures.describe(failure)
+                ));
+                return;
+            }
             long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
@@ -225,11 +233,35 @@ final class CookingCommandRouter implements TabExecutor {
             return true;
         }
         plugin.messageService().send(sender, "command.station.reindex_started");
-        plugin.stationStateStore().reindexAsync().thenAccept(report -> runForSender(sender, () -> plugin.messageService().sendRaw(sender,
-                plugin.messageService().message("command.station.reindex_done", Map.of(
+        plugin.stationStateStore().reindexAsync().whenComplete((report, failure) -> runForSender(sender, () -> {
+            if (failure != null) {
+                plugin.getLogger().warning("[persistence] 工位索引重建失败: " + AsyncFailures.describe(failure));
+                plugin.messageService().send(sender, "command.station.reindex_failed", Map.of(
+                        "reason", AsyncFailures.describe(failure)
+                ));
+                return;
+            }
+            if (report == null) {
+                plugin.messageService().send(sender, "command.station.reindex_failed", Map.of(
+                        "reason", "重建结果缺失"
+                ));
+                return;
+            }
+            if (!report.success()) {
+                plugin.getLogger().warning("[persistence] 工位索引重建部分失败: " + report.failureSummary());
+                plugin.messageService().send(sender, "command.station.reindex_partial", Map.of(
                         "legacy_yaml", report.legacyYamlStates(),
                         "loaded_pdc", report.loadedPdcStates(),
-                        "total_indexed", report.totalIndexedStates())))));
+                        "total_indexed", report.totalIndexedStates(),
+                        "failures", report.failureSummary()
+                ));
+                return;
+            }
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.station.reindex_done", Map.of(
+                    "legacy_yaml", report.legacyYamlStates(),
+                    "loaded_pdc", report.loadedPdcStates(),
+                    "total_indexed", report.totalIndexedStates())));
+        }));
         return true;
     }
 

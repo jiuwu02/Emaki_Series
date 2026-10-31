@@ -125,7 +125,8 @@ final class MobsLifecycleCoordinator
                 plugin, executionDispatcher);
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var naturalSpawnHandler = new NaturalSpawnHandler(mobIdentifier, mobFactory);
-        var autonomousSpawnHandler = new AutonomousSpawnHandler(plugin, mobIdentifier, mobFactory);
+        var autonomousSpawnHandler = new AutonomousSpawnHandler(
+                plugin, mobIdentifier, mobFactory, executionDispatcher);
         var spawnRuleDispatcher = new SpawnRuleDispatcher(naturalSpawnHandler, autonomousSpawnHandler);
         var spawnRuleLoader = new SpawnRuleLoader(plugin);
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());

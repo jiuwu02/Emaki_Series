@@ -7,13 +7,17 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -23,6 +27,7 @@ import emaki.jiuwu.craft.dummy.command.DummyCommandRouter;
 import emaki.jiuwu.craft.dummy.config.AppConfig;
 import emaki.jiuwu.craft.dummy.listener.ServerEventBridge;
 import emaki.jiuwu.craft.dummy.log.DummyLogger;
+import emaki.jiuwu.craft.dummy.log.LogLevel;
 import emaki.jiuwu.craft.dummy.scenario.ScenarioEngine;
 import emaki.jiuwu.craft.dummy.session.DummyManager;
 import emaki.jiuwu.craft.dummy.transport.DummyTransport;
@@ -43,6 +48,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private DummyLogger dummyLogger;
     private DummyManager manager;
     private ScenarioEngine engine;
+    private AsyncFileService.FileScope fileScope;
     private ServerEventBridge bridge;
     private DummyCommandRouter router;
     private boolean runtimeInitialized;
@@ -72,10 +78,21 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             messageService.info("console.log_retention_removed", Map.of("count", removed));
         }
         DummyTransport transport = new McplTransport();
-        manager = new DummyManager(this, this::appConfig, dummyLogger, transport);
+        ExecutionDispatcher dispatcher = null;
+        AsyncFileService.FileScope scope = null;
+        try {
+            EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+            dispatcher = coreLib.executionDispatcher();
+            scope = coreLib.asyncFileScope(this);
+        } catch (RuntimeException failure) {
+            dummyLogger.log(LogLevel.ERROR, "runtime",
+                    "corelib_services_unavailable reason=" + failure.getMessage());
+        }
+        fileScope = scope;
+        manager = new DummyManager(this, this::appConfig, dummyLogger, transport, dispatcher);
         Path dataDirectory = getDataFolder().getAbsoluteFile().toPath();
         Path serverRoot = dataDirectory.getParent().getParent();
-        engine = new ScenarioEngine(this::appConfig, manager, dummyLogger, serverRoot);
+        engine = new ScenarioEngine(this::appConfig, manager, dummyLogger, serverRoot, scope);
         bridge = new ServerEventBridge(this, manager, dummyLogger, engine);
         engine.bridge(bridge);
         getServer().getPluginManager().registerEvents(bridge, this);
@@ -114,6 +131,15 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         movementTask = null;
         scenarioTask = null;
         reconcileTask = null;
+        AsyncFileService.FileScope scope = fileScope;
+        fileScope = null;
+        if (scope != null) {
+            AsyncFileService.DrainResult result = scope.sealAndDrain(2L, TimeUnit.SECONDS);
+            if (!result.drained() && dummyLogger != null) {
+                dummyLogger.log(LogLevel.ERROR, "runtime",
+                        "async_file_drain_timeout pending=" + result.pendingOperations());
+            }
+        }
         if (engine != null) {
             engine.shutdown();
             engine.tick();

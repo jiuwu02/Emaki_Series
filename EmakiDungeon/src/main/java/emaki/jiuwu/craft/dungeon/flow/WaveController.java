@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import java.util.function.BiConsumer;
@@ -139,7 +140,7 @@ public final class WaveController {
 
     private void scheduleSpawn(FlowRuntime runtime, String spawnId, int waveIndex, boolean dropLoot,
             FlowPoint point, String mobId, int delayTicks, WaveRuntime waveRuntime) {
-        dispatcher.runGlobalLater(plugin, () -> {
+        boolean scheduled = runtime.scheduleGlobal(delayTicks, "波次生成 " + spawnId, () -> {
             if (instance.state() != InstanceState.RUNNING) {
                 return;
             }
@@ -147,6 +148,21 @@ public final class WaveController {
                 @Override
                 public int blockCost() {
                     return 0;
+                }
+
+                @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.LOCATION;
+                }
+
+                @Override
+                public String worldName() {
+                    return instance.instanceId();
+                }
+
+                @Override
+                public double[] anchor() {
+                    return new double[] {point.x(), point.y(), point.z()};
                 }
 
                 @Override
@@ -167,7 +183,11 @@ public final class WaveController {
                     }
                 }
             });
-        }, delayTicks);
+        });
+        if (!scheduled) {
+            debug.logRaw("dungeon", (UUID) null,
+                    "wave spawn aborted | spawn=" + spawnId + " | reason=调度被拒绝");
+        }
     }
 
     public void onMobDeath(UUID entityId) {
@@ -246,6 +266,22 @@ public final class WaveController {
                 @Override
                 public int blockCost() {
                     return 0;
+                }
+
+                @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.LOCATION;
+                }
+
+                @Override
+                public String worldName() {
+                    return instance.instanceId();
+                }
+
+                @Override
+                public double[] anchor() {
+                    FlowPoint point = bossPoint.point();
+                    return new double[] {point.x(), point.y(), point.z()};
                 }
 
                 @Override

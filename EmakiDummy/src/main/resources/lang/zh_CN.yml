@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 占位符语法为 %key%
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.2"
+version: "1.0.3"
 
 general:
   prefix: "<gray>[ <gradient:#22D3EE:#14B8A6>EmakiDummy</gradient> ]</gray>"

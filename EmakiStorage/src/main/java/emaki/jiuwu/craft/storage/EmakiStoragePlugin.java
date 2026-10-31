@@ -10,10 +10,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -194,12 +198,12 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             placeholderExpansion.unregister();
             placeholderExpansion = null;
         }
-        if (operationLog != null) {
-            operationLog.flushAll();
-        }
+        long drainTimeout = appConfig().persistence().drainTimeoutSeconds();
+        CompletableFuture<StorageOperationLog.DrainReport> logDrain = operationLog == null
+                ? CompletableFuture.completedFuture(null)
+                : operationLog.flushAll();
         if (dataStore != null) {
-            long timeout = appConfig().persistence().drainTimeoutSeconds();
-            PlayerStorageStore.FlushResult result = dataStore.flushAndSeal(timeout, TimeUnit.SECONDS);
+            PlayerStorageStore.FlushResult result = dataStore.flushAndSeal(drainTimeout, TimeUnit.SECONDS);
             if (!result.clean()) {
                 getLogger().warning("[shutdown] 关闭刷新未干净完成: saved="
                         + result.savedEntries() + " failed=" + result.failedEntries()
@@ -207,7 +211,41 @@ public class EmakiStoragePlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                         + " drained=" + (result.drainResult() != null && result.drainResult().drained()));
             }
         }
+        reportLogDrain(logDrain, drainTimeout);
         lifecycleCoordinator.shutdown(this);
+    }
+
+    private void reportLogDrain(CompletableFuture<StorageOperationLog.DrainReport> drain, long timeoutSeconds) {
+        StorageOperationLog.DrainReport report = awaitLogDrain(drain, timeoutSeconds);
+        if (report == null) {
+            getLogger().warning("[shutdown] 存储日志落盘在 " + timeoutSeconds + " 秒内未完成，停服结果不完整");
+            return;
+        }
+        if (!report.drained()) {
+            getLogger().warning("[shutdown] 存储日志未干净落盘: written=" + report.entriesWritten()
+                    + " pending=" + report.pendingEntries());
+        }
+    }
+
+    private StorageOperationLog.DrainReport awaitLogDrain(CompletableFuture<StorageOperationLog.DrainReport> drain,
+            long timeoutSeconds) {
+        if (drain == null) {
+            return null;
+        }
+        try {
+            return drain.get(Math.max(0L, timeoutSeconds), TimeUnit.SECONDS);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            getLogger().warning("[shutdown] 等待存储日志落盘时被中断");
+            return null;
+        } catch (ExecutionException | CancellationException failure) {
+            Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+            getLogger().log(Level.WARNING, "[shutdown] 存储日志落盘失败: " + cause, cause);
+            return null;
+        } catch (TimeoutException timeout) {
+            getLogger().log(Level.WARNING, "[shutdown] 存储日志落盘等待超时: " + timeout, timeout);
+            return null;
+        }
     }
 
     public int reloadPluginState() {

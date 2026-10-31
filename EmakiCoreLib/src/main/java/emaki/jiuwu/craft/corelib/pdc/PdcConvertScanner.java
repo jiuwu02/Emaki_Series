@@ -29,6 +29,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.pdc.PdcKeyMigration;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 public final class PdcConvertScanner {
@@ -59,49 +60,75 @@ public final class PdcConvertScanner {
         for (Scope scope : scopes) {
             tallies.put(scope, new Tally());
         }
-        boolean wantPlayers = scopes.contains(Scope.PLAYERS);
-        boolean wantChunks = scopes.contains(Scope.CONTAINERS) || scopes.contains(Scope.ENTITIES);
-        return dispatcher.submitGlobal(plugin, () -> snapshotWork(wantPlayers, wantChunks))
-                .thenCompose(work -> dispatchAll(work, tallies, dryRun))
+        List<CompletableFuture<Void>> phases = new ArrayList<>();
+        phases.add(dispatchPlayers(tallies.get(Scope.PLAYERS), dryRun));
+        phases.add(dispatchChunks(tallies.get(Scope.CONTAINERS), tallies.get(Scope.ENTITIES), dryRun));
+        return CompletableFuture.allOf(phases.toArray(CompletableFuture[]::new))
                 .thenApply(ignored -> freeze(tallies));
     }
 
-    private WorkSnapshot snapshotWork(boolean wantPlayers, boolean wantChunks) {
-        List<Player> players = new ArrayList<>();
-        if (wantPlayers) {
-            players.addAll(Bukkit.getOnlinePlayers());
+    private CompletableFuture<Void> dispatchPlayers(Tally tally, boolean dryRun) {
+        if (tally == null) {
+            return CompletableFuture.completedFuture(null);
         }
-        List<ChunkRef> chunks = new ArrayList<>();
-        if (wantChunks) {
-            for (World world : Bukkit.getWorlds()) {
-                for (Chunk chunk : world.getLoadedChunks()) {
-                    chunks.add(new ChunkRef(world.getName(), chunk.getX(), chunk.getZ()));
-                }
+        return dispatcher.submitGlobal(plugin, () -> {
+            List<CompletableFuture<Void>> pending = new ArrayList<>();
+            int index = 0;
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                pending.add(dispatchPlayer(player, tally, dryRun, index / PLAYERS_PER_TICK));
+                index++;
             }
-        }
-        return new WorkSnapshot(List.copyOf(players), List.copyOf(chunks));
+            return List.copyOf(pending);
+        }).thenCompose(PdcConvertScanner::combine);
     }
 
-    private CompletableFuture<Void> dispatchAll(WorkSnapshot work, Map<Scope, Tally> tallies, boolean dryRun) {
-        List<CompletableFuture<Void>> pending = new ArrayList<>();
-        Tally playerTally = tallies.get(Scope.PLAYERS);
-        if (playerTally != null) {
-            for (int index = 0; index < work.players().size(); index++) {
-                Player player = work.players().get(index);
-                long delay = index / PLAYERS_PER_TICK;
-                pending.add(dispatchPlayer(player, playerTally, dryRun, delay));
-            }
+    private CompletableFuture<Void> dispatchChunks(Tally containerTally, Tally entityTally, boolean dryRun) {
+        if (containerTally == null && entityTally == null) {
+            return CompletableFuture.completedFuture(null);
         }
-        Tally containerTally = tallies.get(Scope.CONTAINERS);
-        Tally entityTally = tallies.get(Scope.ENTITIES);
-        if (containerTally != null || entityTally != null) {
-            for (int index = 0; index < work.chunks().size(); index++) {
-                ChunkRef chunkRef = work.chunks().get(index);
-                long delay = index / CHUNKS_PER_TICK;
-                pending.add(dispatchChunk(chunkRef, containerTally, entityTally, dryRun, delay));
+        return dispatcher.submitGlobal(plugin, () -> {
+            List<CompletableFuture<Void>> pending = new ArrayList<>();
+            for (World world : Bukkit.getWorlds()) {
+                pending.add(dispatchWorld(world, containerTally, entityTally, dryRun));
             }
+            return List.copyOf(pending);
+        }).thenCompose(PdcConvertScanner::combine);
+    }
+
+    private CompletableFuture<Void> dispatchWorld(World world,
+            Tally containerTally,
+            Tally entityTally,
+            boolean dryRun) {
+        CompletableFuture<Void> done = new CompletableFuture<>();
+        Runnable collect = () -> {
+            List<CompletableFuture<Void>> pending = new ArrayList<>();
+            try {
+                int index = 0;
+                for (Chunk chunk : world.getLoadedChunks()) {
+                    pending.add(dispatchChunk(world, chunk.getX(), chunk.getZ(),
+                            containerTally, entityTally, dryRun, index / CHUNKS_PER_TICK));
+                    index++;
+                }
+            } catch (Throwable throwable) {
+                failChunk(containerTally, entityTally, world.getName(), throwable);
+                done.complete(null);
+                return;
+            }
+            combine(pending).whenComplete((ignored, throwable) -> done.complete(null));
+        };
+        TaskToken token;
+        try {
+            token = dispatcher.runAtLocation(plugin, worldAnchor(world), collect);
+        } catch (Throwable throwable) {
+            failChunk(containerTally, entityTally, world.getName(), throwable);
+            done.complete(null);
+            return done;
         }
-        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new));
+        if (token == null || token.cancelled()) {
+            failChunk(containerTally, entityTally, world.getName(), null);
+            done.complete(null);
+        }
+        return done;
     }
 
     private CompletableFuture<Void> dispatchPlayer(Player player, Tally tally, boolean dryRun, long delayTicks) {
@@ -119,51 +146,92 @@ public final class PdcConvertScanner {
                 done.complete(null);
             }
         };
-        if (dispatcher.runEntityLater(plugin, player, convert, () -> done.complete(null), delayTicks) == null) {
+        TaskToken token;
+        try {
+            token = dispatcher.runEntityLater(plugin, player, convert, () -> done.complete(null), delayTicks);
+        } catch (Throwable throwable) {
+            tally.failed().incrementAndGet();
+            plugin.getLogger().warning("[persistence] 玩家 " + player.getName() + " 的 PDC 转换调度失败"
+                    + ": " + describe(throwable));
+            done.complete(null);
+            return done;
+        }
+        if (token == null || token.cancelled()) {
             tally.failed().incrementAndGet();
             done.complete(null);
         }
         return done;
     }
 
-    private CompletableFuture<Void> dispatchChunk(ChunkRef chunkRef,
+    private CompletableFuture<Void> dispatchChunk(World world,
+            int chunkX,
+            int chunkZ,
             Tally containerTally,
             Tally entityTally,
             boolean dryRun,
             long delayTicks) {
         CompletableFuture<Void> done = new CompletableFuture<>();
-        World world = Bukkit.getWorld(chunkRef.worldName());
-        if (world == null) {
-            done.complete(null);
-            return done;
-        }
-        Location anchor = new Location(world, (chunkRef.chunkX() << 4) + 8D, 0D, (chunkRef.chunkZ() << 4) + 8D);
+        String position = world.getName() + " " + chunkX + "," + chunkZ;
+        Location anchor = new Location(world, (chunkX << 4) + 8D, 0D, (chunkZ << 4) + 8D);
         Runnable convert = () -> {
             try {
-                if (world.isChunkLoaded(chunkRef.chunkX(), chunkRef.chunkZ())) {
-                    Chunk chunk = world.getChunkAt(chunkRef.chunkX(), chunkRef.chunkZ());
-                    if (containerTally != null) {
-                        convertContainers(chunk, containerTally, dryRun);
+                if (!world.isChunkLoaded(chunkX, chunkZ)) {
+                    Tally target = activeChunkTally(containerTally, entityTally);
+                    if (target != null) {
+                        target.failed().incrementAndGet();
                     }
-                    if (entityTally != null) {
-                        convertEntities(chunk, entityTally, dryRun);
-                    }
+                    return;
+                }
+                Chunk chunk = world.getChunkAt(chunkX, chunkZ);
+                if (containerTally != null) {
+                    convertContainers(chunk, containerTally, dryRun);
+                }
+                if (entityTally != null) {
+                    convertEntities(chunk, entityTally, dryRun);
                 }
             } catch (Throwable throwable) {
-                Tally target = containerTally != null ? containerTally : entityTally;
-                target.failed().incrementAndGet();
-                plugin.getLogger().warning("[persistence] 区块 " + chunkRef.worldName()
-                        + " " + chunkRef.chunkX() + "," + chunkRef.chunkZ() + " 的 PDC 转换失败: " + describe(throwable));
+                failChunk(containerTally, entityTally, position, throwable);
             } finally {
                 done.complete(null);
             }
         };
-        if (dispatcher.runAtLocationLater(plugin, anchor, convert, delayTicks) == null) {
-            Tally target = containerTally != null ? containerTally : entityTally;
-            target.failed().incrementAndGet();
+        TaskToken token;
+        try {
+            token = dispatcher.runAtLocationLater(plugin, anchor, convert, delayTicks);
+        } catch (Throwable throwable) {
+            failChunk(containerTally, entityTally, position, throwable);
+            done.complete(null);
+            return done;
+        }
+        if (token == null || token.cancelled()) {
+            failChunk(containerTally, entityTally, position, null);
             done.complete(null);
         }
         return done;
+    }
+
+    private static Tally activeChunkTally(Tally containerTally, Tally entityTally) {
+        return containerTally != null ? containerTally : entityTally;
+    }
+
+    private void failChunk(Tally containerTally, Tally entityTally, String position, Throwable throwable) {
+        Tally target = activeChunkTally(containerTally, entityTally);
+        if (target != null) {
+            target.failed().incrementAndGet();
+        }
+        String detail = throwable == null ? "调度被拒绝" : describe(throwable);
+        plugin.getLogger().warning("[persistence] 区块 " + position + " 的 PDC 转换失败: " + detail);
+    }
+
+    private static CompletableFuture<Void> combine(List<CompletableFuture<Void>> pending) {
+        if (pending == null || pending.isEmpty()) {
+            return CompletableFuture.completedFuture(null);
+        }
+        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new));
+    }
+
+    private static Location worldAnchor(World world) {
+        return new Location(world, 0.5D, 0.0D, 0.5D);
     }
 
     private void convertPlayer(Player player, Tally tally, boolean dryRun) {
@@ -308,12 +376,6 @@ public final class PdcConvertScanner {
     private String describe(Throwable throwable) {
         String message = throwable.getMessage();
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;
-    }
-
-    private record WorkSnapshot(List<Player> players, List<ChunkRef> chunks) {
-    }
-
-    private record ChunkRef(String worldName, int chunkX, int chunkZ) {
     }
 
     private record Tally(AtomicInteger scanned, AtomicInteger migrated, AtomicInteger skipped, AtomicInteger failed) {

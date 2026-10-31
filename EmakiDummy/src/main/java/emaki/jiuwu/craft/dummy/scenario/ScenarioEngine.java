@@ -11,13 +11,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Queue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import org.bukkit.command.CommandSender;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.async.AsyncFileService;
 import emaki.jiuwu.craft.dummy.config.AppConfig;
 import emaki.jiuwu.craft.dummy.listener.ServerEventBridge;
 import emaki.jiuwu.craft.dummy.log.DummyLogger;
@@ -38,12 +43,23 @@ public final class ScenarioEngine
 
     private static final int EVENT_DETAIL_CAP = 512;
     private static final int TAIL_BYTES = 65536;
+    private static final String PROBE_TASK = "dummy-scenario-probe";
 
     private final Supplier<AppConfig> config;
     private final DummyManager manager;
     private final DummyLogger logger;
     private final Path serverRoot;
+    private final AsyncFileService.FileScope fileScope;
 
+    private record FileProbe(boolean matched, String failure) {
+    }
+
+    private record ProbeResult(String key, String glob, boolean matched, String failure) {
+    }
+
+    private final Map<String, FileProbe> fileProbes = new ConcurrentHashMap<>();
+    private final Set<String> pendingProbes = ConcurrentHashMap.newKeySet();
+    private final Queue<ProbeResult> probeResults = new ConcurrentLinkedQueue<>();
     private final Map<String, ScenarioDefinition> definitions = new ConcurrentHashMap<>();
     private final Map<String, Integer> eventCounters = new ConcurrentHashMap<>();
     private final Map<String, List<String>> eventDetails = new ConcurrentHashMap<>();
@@ -56,11 +72,12 @@ public final class ScenarioEngine
     private volatile CompletedResult completedResult;
 
     public ScenarioEngine(Supplier<AppConfig> config, DummyManager manager,
-            DummyLogger logger, Path serverRoot) {
+            DummyLogger logger, Path serverRoot, AsyncFileService.FileScope fileScope) {
         this.config = config;
         this.manager = manager;
         this.logger = logger;
         this.serverRoot = serverRoot;
+        this.fileScope = fileScope;
     }
 
     public void bridge(ServerEventBridge bridge) {
@@ -148,6 +165,7 @@ public final class ScenarioEngine
     }
 
     public synchronized void tick() {
+        applyProbeResults();
         ScenarioRunner current = activeRunner;
         if (current == null) {
             return;
@@ -213,8 +231,7 @@ public final class ScenarioEngine
         if (fileGlob == null || contains == null) {
             return false;
         }
-        Path target = resolveNewest(fileGlob);
-        return target != null && tailContains(target, contains);
+        return probeMatched(fileGlob, contains);
     }
 
     @Override
@@ -223,8 +240,7 @@ public final class ScenarioEngine
             return false;
         }
         for (String glob : config.get().scenarioAuditFiles()) {
-            Path target = resolveNewest(glob);
-            if (target != null && tailContains(target, text)) {
+            if (probeMatched(glob, text)) {
                 return true;
             }
         }
@@ -269,6 +285,70 @@ public final class ScenarioEngine
         eventCounters.clear();
         eventDetails.clear();
         unresolvedTypes.clear();
+        fileProbes.clear();
+        probeResults.clear();
+    }
+
+    private boolean probeMatched(String glob, String contains) {
+        String key = probeKey(glob, contains);
+        FileProbe probe = fileProbes.get(key);
+        submitProbe(key, glob, contains);
+        return probe != null && probe.matched();
+    }
+
+    private void submitProbe(String key, String glob, String contains) {
+        AsyncFileService.FileScope scope = fileScope;
+        if (scope == null || !scope.acceptingOperations() || !pendingProbes.add(key)) {
+            return;
+        }
+        CompletableFuture<FileProbe> future;
+        try {
+            future = scope.read(PROBE_TASK, () -> scanProbe(glob, contains));
+        } catch (RuntimeException failure) {
+            pendingProbes.remove(key);
+            logger.log(LogLevel.ERROR, "scenario", "probe_submit_failed glob=" + glob
+                    + " reason=" + describeFailure(failure));
+            return;
+        }
+        future.whenComplete((probe, failure) -> {
+            if (failure == null && probe != null) {
+                probeResults.add(new ProbeResult(key, glob, probe.matched(), probe.failure()));
+            } else {
+                probeResults.add(new ProbeResult(key, glob, false, describeFailure(failure)));
+            }
+        });
+    }
+
+    private void applyProbeResults() {
+        ProbeResult result;
+        while ((result = probeResults.poll()) != null) {
+            FileProbe previous = fileProbes.put(result.key(), new FileProbe(result.matched(), result.failure()));
+            pendingProbes.remove(result.key());
+            if (result.failure() != null && !result.failure().isBlank()
+                    && (previous == null || !result.failure().equals(previous.failure()))) {
+                logger.log(LogLevel.ERROR, "scenario", "glob_scan_failed glob=" + result.glob()
+                        + " reason=" + result.failure());
+            }
+        }
+    }
+
+    private FileProbe scanProbe(String glob, String contains) {
+        Path target = resolveNewest(glob);
+        if (target == null) {
+            return new FileProbe(false, null);
+        }
+        return tailContains(target, contains);
+    }
+
+    private static String probeKey(String glob, String contains) {
+        return glob.replace('\\', '/') + '\u0000' + contains;
+    }
+
+    private static String describeFailure(Throwable failure) {
+        if (failure == null) {
+            return "";
+        }
+        return AsyncFailures.describe(failure);
     }
 
     private Path resolveNewest(String glob) {
@@ -316,7 +396,7 @@ public final class ScenarioEngine
         return candidate.isAbsolute() ? candidate : serverRoot.resolve(candidate);
     }
 
-    private boolean tailContains(Path file, String needle) {
+    private FileProbe tailContains(Path file, String needle) {
         try (RandomAccessFile reader = new RandomAccessFile(file.toFile(), "r")) {
             long length = reader.length();
             int offset = (int) Math.max(0, length - TAIL_BYTES);
@@ -324,9 +404,9 @@ public final class ScenarioEngine
             byte[] buffer = new byte[(int) (length - offset)];
             reader.readFully(buffer);
             String text = new String(buffer, StandardCharsets.UTF_8);
-            return text.contains(needle);
+            return new FileProbe(text.contains(needle), null);
         } catch (IOException failure) {
-            return false;
+            return new FileProbe(false, String.valueOf(failure.getMessage()));
         }
     }
 

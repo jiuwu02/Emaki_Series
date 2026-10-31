@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.dungeon.storage;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -18,7 +15,6 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
-import java.util.UUID;
 
 public final class InstancesStore {
 
@@ -75,6 +71,10 @@ public final class InstancesStore {
         this.file = new File(dataFolder, "instances.yml");
     }
 
+    public File file() {
+        return file;
+    }
+
     public Snapshot snapshot() {
         return snapshot;
     }
@@ -122,10 +122,10 @@ public final class InstancesStore {
     }
 
     public void saveAsync() {
-        dispatcher.runAsync(plugin, this::saveSync);
+        dispatcher.runAsync(plugin, () -> saveSync());
     }
 
-    public synchronized void saveSync() {
+    public synchronized boolean saveSync() {
         Map<String, Object> instances = new LinkedHashMap<>();
         for (Map.Entry<String, Entry> pair : snapshot.instances().entrySet()) {
             Map<String, Object> fields = new LinkedHashMap<>();
@@ -144,19 +144,12 @@ public final class InstancesStore {
         values.put("instances", instances);
         values.put("residual", new ArrayList<>(snapshot.residual()));
         try {
-            atomicWrite(values);
-        } catch (IOException ignored) {
-        }
-    }
-
-    private void atomicWrite(Map<String, Object> values) throws IOException {
-        Path target = file.toPath();
-        Path temp = target.resolveSibling(file.getName() + "." + UUID.randomUUID() + ".tmp");
-        YamlFiles.save(temp.toFile(), values);
-        try {
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            YamlFiles.save(file, values);
+            return true;
         } catch (IOException exception) {
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            plugin.getLogger().warning("[EmakiDungeon] instances save failed | file="
+                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            return false;
         }
     }
 }

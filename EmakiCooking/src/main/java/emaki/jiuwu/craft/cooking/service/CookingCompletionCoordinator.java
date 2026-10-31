@@ -188,7 +188,7 @@ public final class CookingCompletionCoordinator {
                     rewardUnit.stableId(),
                     kind,
                     UnitState.PENDING,
-                    Semantics.AT_LEAST_ONCE,
+                    Semantics.AT_MOST_ONCE_AFTER_DURABLE_INTENT,
                     rewardUnit.payload(),
                     0,
                     ""

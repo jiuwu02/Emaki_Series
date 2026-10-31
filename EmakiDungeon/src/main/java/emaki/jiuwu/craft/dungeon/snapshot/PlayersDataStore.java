@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.dungeon.snapshot;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -117,9 +114,9 @@ public final class PlayersDataStore {
         });
     }
 
-    public void writeSync(UUID playerId, PlayerData data) {
+    public boolean writeSync(UUID playerId, PlayerData data) {
         if (playerId == null || data == null) {
-            return;
+            return false;
         }
         File file = fileOf(playerId);
         Map<String, Object> values = new LinkedHashMap<>();
@@ -129,21 +126,13 @@ public final class PlayersDataStore {
         if (!data.limits.isEmpty()) {
             values.put("limits", new LinkedHashMap<>(data.limits));
         }
-        Path temp = file.toPath().resolveSibling(
-                file.getName() + "." + UUID.randomUUID() + ".tmp");
         try {
-            Files.createDirectories(root.toPath());
-            YamlFiles.save(temp.toFile(), values);
-            try {
-                Files.move(temp, file.toPath(), StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException exception) {
-                Files.move(temp, file.toPath(), StandardCopyOption.REPLACE_EXISTING);
-            }
+            YamlFiles.save(file, values);
+            return true;
         } catch (IOException exception) {
-            try {
-                Files.deleteIfExists(temp);
-            } catch (IOException ignored) {
-            }
+            plugin.getLogger().warning("[EmakiDungeon] player data save failed | file="
+                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            return false;
         }
     }
 

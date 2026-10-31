@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 
 public final class CorePluginLifecycle {
 
+    private static final long SHUTDOWN_GRACE_NANOS = TimeUnit.SECONDS.toNanos(1L);
+
     public enum State {
         NEW,
         RUNNING,
@@ -49,7 +51,6 @@ public final class CorePluginLifecycle {
     private State state = State.NEW;
     private AsyncFileService fileService;
     private AsyncTaskScheduler taskScheduler;
-    private ShutdownReport lastReport = new ShutdownReport(true, true, 0, List.of());
     private CompletableFuture<ShutdownReport> shutdownFuture;
 
     public CorePluginLifecycle() {
@@ -117,9 +118,39 @@ public final class CorePluginLifecycle {
         return created;
     }
 
-    public synchronized ShutdownReport shutdown(long timeout, TimeUnit unit) {
-        shutdownAsync(timeout, unit);
-        return lastReport;
+    public ShutdownReport shutdown(long timeout, TimeUnit unit) {
+        Objects.requireNonNull(unit, "unit");
+        long timeoutNanos = Math.max(1L, unit.toNanos(timeout));
+        CompletableFuture<ShutdownReport> completion = shutdownAsync(timeout, unit);
+        long deadline = deadlineAfter(withFinalizeGrace(timeoutNanos));
+        try {
+            return completion.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException exception) {
+            return incompleteReport(exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return incompleteReport(exception);
+        } catch (ExecutionException exception) {
+            return incompleteReport(exception);
+        } catch (CancellationException exception) {
+            return incompleteReport(exception);
+        }
+    }
+
+    private ShutdownReport incompleteReport(Throwable throwable) {
+        return new ShutdownReport(false, false, pendingFileOperations(), List.of(safeUnwrap(throwable)));
+    }
+
+    private synchronized int pendingFileOperations() {
+        AsyncFileService service = fileService;
+        return service == null ? 0 : service.pendingWriteCount();
+    }
+
+    private static long withFinalizeGrace(long timeoutNanos) {
+        if (timeoutNanos >= Long.MAX_VALUE - SHUTDOWN_GRACE_NANOS) {
+            return Long.MAX_VALUE;
+        }
+        return timeoutNanos + SHUTDOWN_GRACE_NANOS;
     }
 
     private void finalizeShutdown(long timeoutNanos,
@@ -189,20 +220,9 @@ public final class CorePluginLifecycle {
     }
 
     private void awaitPreDrainShutdown(long deadline, List<Throwable> failures) {
-        CompletableFuture<? extends CompletionStage<?>> invocation = CompletableFuture.supplyAsync(preDrainShutdown);
         CompletionStage<?> stage;
         try {
-            stage = invocation.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (TimeoutException exception) {
-            failures.add(new TimeoutException("核心运行时收尾分派超时"));
-            return;
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            failures.add(exception);
-            return;
-        } catch (ExecutionException exception) {
-            failures.add(safeUnwrap(exception));
-            return;
+            stage = preDrainShutdown.get();
         } catch (Throwable throwable) {
             failures.add(safeUnwrap(throwable));
             return;
@@ -257,7 +277,6 @@ public final class CorePluginLifecycle {
 
     private synchronized void finishShutdown(CompletableFuture<ShutdownReport> completion,
             ShutdownReport report) {
-        lastReport = report;
         state = State.CLOSED;
         completion.complete(report);
     }

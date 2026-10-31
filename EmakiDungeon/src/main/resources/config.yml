@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效。
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.12"
+version: "1.0.13"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)。

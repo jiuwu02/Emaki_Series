@@ -2,19 +2,21 @@ package emaki.jiuwu.craft.dungeon.rewardbox;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -45,10 +47,13 @@ public final class RewardBoxStore {
     }
 
     private static final String CURRENT_VERSION = "1.0.0";
+    private static final long DRAIN_TIMEOUT_MILLIS = 5000L;
 
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
     private final File root;
+    private final Map<UUID, Object> lanes = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Boolean>> pendingWrites = new ConcurrentHashMap<>();
 
     public RewardBoxStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder) {
         this.plugin = plugin;
@@ -56,7 +61,77 @@ public final class RewardBoxStore {
         this.root = new File(dataFolder, "rewardbox");
     }
 
-    public synchronized Box load(UUID playerId) {
+    public Box load(UUID playerId) {
+        return read(playerId);
+    }
+
+    public boolean update(UUID playerId, Consumer<Box> mutator) {
+        if (playerId == null || mutator == null) {
+            return false;
+        }
+        synchronized (laneOf(playerId)) {
+            Box box = read(playerId);
+            Map<String, Object> before = encode(box);
+            mutator.accept(box);
+            Map<String, Object> after = encode(box);
+            if (before.equals(after)) {
+                return true;
+            }
+            return persist(playerId, after);
+        }
+    }
+
+    public CompletableFuture<Boolean> updateAsync(UUID playerId, Consumer<Box> mutator) {
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        if (playerId == null || mutator == null) {
+            future.complete(Boolean.FALSE);
+            return future;
+        }
+        TaskToken token = dispatcher.runAsync(plugin, () -> {
+            boolean saved;
+            try {
+                saved = update(playerId, mutator);
+            } catch (RuntimeException failure) {
+                warn(playerId, "rewardbox update failed", failure);
+                saved = false;
+            }
+            future.complete(saved);
+        });
+        if (token == null || token.cancelled()) {
+            warn(playerId, "rewardbox update rejected | reason=调度被拒绝", null);
+            future.complete(Boolean.FALSE);
+            return future;
+        }
+        pendingWrites.put(playerId, future);
+        return future;
+    }
+
+    public CompletableFuture<Boolean> drainWrites() {
+        List<CompletableFuture<Boolean>> pending = List.copyOf(pendingWrites.values());
+        if (pending.isEmpty()) {
+            return CompletableFuture.completedFuture(Boolean.TRUE);
+        }
+        CompletableFuture<?>[] handles = pending.toArray(new CompletableFuture<?>[0]);
+        return CompletableFuture.allOf(handles)
+                .orTimeout(DRAIN_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS)
+                .handle((ignored, throwable) -> {
+                    int unsettled = 0;
+                    for (CompletableFuture<Boolean> future : pending) {
+                        if (!Boolean.TRUE.equals(future.getNow(Boolean.FALSE))) {
+                            unsettled++;
+                        }
+                    }
+                    if (unsettled == 0) {
+                        pendingWrites.values().removeAll(pending);
+                        return Boolean.TRUE;
+                    }
+                    warn(null, "rewardbox drain unsettled | count=" + unsettled
+                            + " | reason=" + describe(throwable), null);
+                    return Boolean.FALSE;
+                });
+    }
+
+    private Box read(UUID playerId) {
         File file = fileOf(playerId);
         if (!file.isFile()) {
             return new Box(new ArrayList<>(), false);
@@ -78,11 +153,7 @@ public final class RewardBoxStore {
         return new Box(items, section.getBoolean("auto-flow", false));
     }
 
-    public void saveAsync(UUID playerId, Box box) {
-        dispatcher.runAsync(plugin, () -> saveSync(playerId, box));
-    }
-
-    private synchronized void saveSync(UUID playerId, Box box) {
+    private Map<String, Object> encode(Box box) {
         Map<String, Object> values = new LinkedHashMap<>();
         values.put("version", CURRENT_VERSION);
         values.put("auto-flow", box.autoFlow());
@@ -91,20 +162,38 @@ public final class RewardBoxStore {
             encoded.add(Base64.getEncoder().encodeToString(stack.serializeAsBytes()));
         }
         values.put("items", encoded);
+        return values;
+    }
+
+    private boolean persist(UUID playerId, Map<String, Object> values) {
         File file = fileOf(playerId);
         try {
-            Files.createDirectories(root.toPath());
-            Path target = file.toPath();
-            Path temp = target.resolveSibling(target.getFileName() + "." + UUID.randomUUID() + ".tmp");
-            YamlFiles.save(temp.toFile(), values);
-            try {
-                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING,
-                        StandardCopyOption.ATOMIC_MOVE);
-            } catch (IOException exception) {
-                Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } catch (IOException ignored) {
+            root.mkdirs();
+            YamlFiles.save(file, values);
+            return true;
+        } catch (IOException exception) {
+            warn(playerId, "rewardbox save failed | file=" + file.getAbsolutePath()
+                    + " | error=" + exception.getMessage(), null);
+            return false;
         }
+    }
+
+    private Object laneOf(UUID playerId) {
+        return lanes.computeIfAbsent(playerId, id -> new Object());
+    }
+
+    private void warn(UUID playerId, String detail, Throwable throwable) {
+        plugin.getLogger().warning("[EmakiDungeon] " + detail
+                + (playerId == null ? "" : " | player=" + playerId)
+                + (throwable == null ? "" : " | cause=" + describe(throwable)));
+    }
+
+    private String describe(Throwable throwable) {
+        if (throwable == null) {
+            return "none";
+        }
+        return throwable.getClass().getSimpleName()
+                + (throwable.getMessage() == null ? "" : ": " + throwable.getMessage());
     }
 
     private File fileOf(UUID playerId) {

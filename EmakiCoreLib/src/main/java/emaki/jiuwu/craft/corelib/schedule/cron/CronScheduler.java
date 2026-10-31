@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
+
 public final class CronScheduler {
 
     private final List<DefaultHandle> handles = new ArrayList<>();
@@ -57,9 +59,10 @@ public final class CronScheduler {
 
         long delayMillis = Duration.between(now, next).toMillis();
         long delayTicks = Math.max(1L, delayMillis / 50L);
+        int generation = handle.openGeneration();
 
-        plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, scheduledTask -> {
-            if (handle.isCancelled()) return;
+        ScheduledTask scheduledTask = plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, ignored -> {
+            if (!handle.acceptGeneration(generation)) return;
 
             try {
                 task.run();
@@ -74,6 +77,7 @@ public final class CronScheduler {
             }
             scheduleNext(plugin, expr, task, handle);
         }, delayTicks);
+        handle.attach(scheduledTask, generation);
     }
 
     private static final class DefaultHandle implements CronTaskHandle {
@@ -81,10 +85,29 @@ public final class CronScheduler {
         private final CronScheduler owner;
         private final AtomicInteger remaining;
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        private final AtomicInteger generation = new AtomicInteger();
+        private ScheduledTask scheduledTask;
 
         DefaultHandle(CronScheduler owner, int maxExecutions) {
             this.owner = owner;
             this.remaining = new AtomicInteger(maxExecutions <= 0 ? -1 : maxExecutions);
+        }
+
+        int openGeneration() {
+            return generation.incrementAndGet();
+        }
+
+        boolean acceptGeneration(int expected) {
+            return !cancelled.get() && generation.get() == expected;
+        }
+
+        synchronized void attach(ScheduledTask task, int expected) {
+            if (task == null) return;
+            if (cancelled.get() || generation.get() != expected) {
+                task.cancel();
+                return;
+            }
+            scheduledTask = task;
         }
 
         int decrementAndGet() {
@@ -94,13 +117,26 @@ public final class CronScheduler {
         }
 
         void markDone() {
-            cancelled.set(true);
+            cease();
             owner.forget(this);
+        }
+
+        private void cease() {
+            cancelled.set(true);
+            generation.incrementAndGet();
+            ScheduledTask pending;
+            synchronized (this) {
+                pending = scheduledTask;
+                scheduledTask = null;
+            }
+            if (pending != null) {
+                pending.cancel();
+            }
         }
 
         @Override
         public void cancel() {
-            cancelled.set(true);
+            cease();
             owner.forget(this);
         }
 

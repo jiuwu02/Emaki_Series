@@ -1,122 +1,173 @@
 package emaki.jiuwu.craft.corelib.script.exports;
 
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Consumer;
+
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.graalvm.polyglot.HostAccess;
 import org.jetbrains.annotations.NotNull;
 
 public final class BukkitPlayerExport {
 
-    private final Player player;
+    private final String name;
+    private final String uniqueId;
+    private final double health;
+    private final double maxHealth;
+    private final int foodLevel;
+    private final int level;
+    private final float exp;
+    private final boolean online;
+    private final boolean sneaking;
+    private final boolean sprinting;
+    private final boolean flying;
+    private final boolean allowFlight;
+    private final String worldName;
+    private final double x;
+    private final double y;
+    private final double z;
+    private final List<Consumer<Player>> patches = new CopyOnWriteArrayList<>();
 
     public BukkitPlayerExport(@NotNull Player player) {
         if (player == null) {
             throw new IllegalArgumentException("player 不能为 null");
         }
-        this.player = player;
+        Location location = player.getLocation();
+        this.name = player.getName();
+        this.uniqueId = player.getUniqueId().toString();
+        this.health = player.getHealth();
+        this.maxHealth = player.getMaxHealth();
+        this.foodLevel = player.getFoodLevel();
+        this.level = player.getLevel();
+        this.exp = player.getExp();
+        this.online = player.isOnline();
+        this.sneaking = player.isSneaking();
+        this.sprinting = player.isSprinting();
+        this.flying = player.isFlying();
+        this.allowFlight = player.getAllowFlight();
+        this.worldName = player.getWorld().getName();
+        this.x = location.getX();
+        this.y = location.getY();
+        this.z = location.getZ();
     }
 
     @HostAccess.Export
     public @NotNull String getName() {
-        return player.getName();
+        return name;
     }
 
     @HostAccess.Export
     public @NotNull String getUniqueId() {
-        return player.getUniqueId().toString();
+        return uniqueId;
     }
 
     @HostAccess.Export
     public double getHealth() {
-        return player.getHealth();
+        return health;
     }
 
     @HostAccess.Export
     public void setHealth(double health) {
-        player.setHealth(Math.max(0, Math.min(health, player.getMaxHealth())));
+        patches.add(target -> target.setHealth(Math.max(0, Math.min(health, target.getMaxHealth()))));
     }
 
     @HostAccess.Export
     public double getMaxHealth() {
-        return player.getMaxHealth();
+        return maxHealth;
     }
 
     @HostAccess.Export
     public int getFoodLevel() {
-        return player.getFoodLevel();
+        return foodLevel;
     }
 
     @HostAccess.Export
     public void setFoodLevel(int level) {
-        player.setFoodLevel(Math.max(0, Math.min(level, 20)));
+        patches.add(target -> target.setFoodLevel(Math.max(0, Math.min(level, 20))));
     }
 
     @HostAccess.Export
     public int getLevel() {
-        return player.getLevel();
+        return level;
     }
 
     @HostAccess.Export
     public void setLevel(int level) {
-        player.setLevel(Math.max(0, level));
+        patches.add(target -> target.setLevel(Math.max(0, level)));
     }
 
     @HostAccess.Export
     public float getExp() {
-        return player.getExp();
+        return exp;
     }
 
     @HostAccess.Export
     public void setExp(float exp) {
-        player.setExp(Math.max(0.0f, Math.min(exp, 1.0f)));
+        patches.add(target -> target.setExp(Math.max(0.0f, Math.min(exp, 1.0f))));
     }
 
     @HostAccess.Export
     public boolean isOnline() {
-        return player.isOnline();
+        return online;
     }
 
     @HostAccess.Export
     public boolean isSneaking() {
-        return player.isSneaking();
+        return sneaking;
     }
 
     @HostAccess.Export
     public boolean isSprinting() {
-        return player.isSprinting();
+        return sprinting;
     }
 
     @HostAccess.Export
     public boolean isFlying() {
-        return player.isFlying();
+        return flying;
     }
 
     @HostAccess.Export
     public boolean getAllowFlight() {
-        return player.getAllowFlight();
+        return allowFlight;
     }
 
     @HostAccess.Export
     public @NotNull String getWorldName() {
-        return player.getWorld().getName();
+        return worldName;
     }
 
     @HostAccess.Export
     public double getX() {
-        return player.getLocation().getX();
+        return x;
     }
 
     @HostAccess.Export
     public double getY() {
-        return player.getLocation().getY();
+        return y;
     }
 
     @HostAccess.Export
     public double getZ() {
-        return player.getLocation().getZ();
+        return z;
+    }
+
+    public boolean hasPatches() {
+        return !patches.isEmpty();
+    }
+
+    public void applyPatches(Player player) {
+        if (player == null) {
+            return;
+        }
+        for (Consumer<Player> patch : patches) {
+            patch.accept(player);
+        }
+        patches.clear();
     }
 
     @Override
     public String toString() {
-        return "BukkitPlayerExport{name=" + player.getName() + ", uuid=" + player.getUniqueId() + "}";
+        return "BukkitPlayerExport{name=" + name + ", uuid=" + uniqueId + "}";
     }
 }

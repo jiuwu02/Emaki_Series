@@ -36,15 +36,18 @@ public final class StorageDataFile {
     }
 
     public record LoadResult(List<Record> records, List<ReservationRecord> reservations, int corruptRecords,
-            Path quarantineTarget) {
+            Path quarantineTarget, boolean truncated, String truncationDetail) {
 
         public static LoadResult empty() {
-            return new LoadResult(List.of(), List.of(), 0, null);
+            return new LoadResult(List.of(), List.of(), 0, null, false, null);
         }
 
         public boolean hasCorruption() {
             return corruptRecords > 0;
         }
+    }
+
+    private record ReservationSection(List<ReservationRecord> reservations, boolean truncated, String detail) {
     }
 
     private final Path dataRoot;
@@ -71,10 +74,11 @@ public final class StorageDataFile {
         List<Record> records = new ArrayList<>();
         List<ReservationRecord> reservations = new ArrayList<>();
         List<byte[]> corrupt = new ArrayList<>();
+        boolean truncated = false;
+        String truncationDetail = null;
         try (InputStream in = new BufferedInputStream(Files.newInputStream(file))) {
             int version = StorageCodec.readHeader(in);
             long declared = StorageCodec.readVarLong(in);
-            boolean framingIntact = true;
             for (long index = 0; index < declared; index++) {
                 byte[] payload;
                 long amount;
@@ -84,8 +88,8 @@ public final class StorageDataFile {
                     amount = StorageCodec.readVarLong(in);
                     stackLimit = StorageCodec.readVarLong(in);
                 } catch (IOException framingFailure) {
-
-                    framingIntact = false;
+                    truncated = true;
+                    truncationDetail = "第 " + index + " 条记录框架被截断: " + describe(framingFailure);
                     break;
                 }
                 try {
@@ -100,20 +104,26 @@ public final class StorageDataFile {
                     corrupt.add(StorageCodec.reframe(payload));
                 }
             }
-            if (framingIntact && version >= StorageCodec.RESERVATION_FORMAT_VERSION) {
-                reservations.addAll(readReservations(in));
+            if (!truncated && version >= StorageCodec.RESERVATION_FORMAT_VERSION) {
+                ReservationSection section = readReservations(in);
+                reservations.addAll(section.reservations());
+                if (section.truncated()) {
+                    truncated = true;
+                    truncationDetail = "预留区被截断: " + section.detail();
+                }
             }
         }
         Path quarantine = corrupt.isEmpty() ? null : quarantine(playerId, corrupt);
-        return new LoadResult(records, reservations, corrupt.size(), quarantine);
+        return new LoadResult(records, reservations, corrupt.size(), quarantine, truncated,
+                truncationDetail);
     }
 
-    private List<ReservationRecord> readReservations(InputStream in) throws IOException {
+    private ReservationSection readReservations(InputStream in) throws IOException {
         long declared;
         try {
             declared = StorageCodec.readVarLong(in);
         } catch (IOException missingSection) {
-            return List.of();
+            return new ReservationSection(List.of(), false, null);
         }
         List<ReservationRecord> reservations = new ArrayList<>();
         for (long index = 0; index < declared; index++) {
@@ -146,10 +156,11 @@ public final class StorageDataFile {
                     reservations.add(new ReservationRecord(reservationId, expiresAt, ops));
                 }
             } catch (IOException framingFailure) {
-                break;
+                return new ReservationSection(reservations, true,
+                        "第 " + index + " 条预留框架被截断: " + describe(framingFailure));
             }
         }
-        return reservations;
+        return new ReservationSection(reservations, false, null);
     }
 
     public void save(UUID playerId, List<Record> records, List<ReservationRecord> reservations) throws IOException {
@@ -213,6 +224,12 @@ public final class StorageDataFile {
         if (in.read() >= 0) {
             throw new IOException("校验失败：在 " + declared + " 条记录之后存在多余字节");
         }
+    }
+
+    private static String describe(Throwable throwable) {
+        String message = throwable.getMessage();
+        return throwable.getClass().getSimpleName()
+                + (message == null || message.isBlank() ? "" : " " + message);
     }
 
     private Path quarantine(UUID playerId, List<byte[]> frames) throws IOException {

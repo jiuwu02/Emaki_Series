@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
@@ -31,6 +33,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.action.ActionBridge;
 import emaki.jiuwu.craft.dungeon.api.ErrorCodes;
 import emaki.jiuwu.craft.dungeon.api.Result;
+import emaki.jiuwu.craft.dungeon.api.event.DungeonEnterEvent;
 import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.flow.FlowModules;
@@ -713,28 +716,63 @@ public final class ChallengeService {
         }
         Location target = entryLocation;
         preloadEntryChunks(world, target).whenComplete((ignored, error) ->
-                dispatcher.runGlobal(plugin, () -> deliverEnter(
-                        session, party, instance, world, instanceId, target)));
+                dispatcher.runGlobal(plugin, () -> prepareEnter(
+                        session, party, instance, instanceId, target)));
     }
 
-    private void deliverEnter(ChallengeSession session, Party party, DungeonInstance instance,
-            World world, String instanceId, Location entryLocation) {
-        for (UUID memberId : party.members()) {
+    private void prepareEnter(ChallengeSession session, Party party, DungeonInstance instance,
+            String instanceId, Location entryLocation) {
+        List<UUID> members = List.copyOf(party.members());
+        String partyKey = String.valueOf(party.id());
+        String dungeonId = session.dungeonId();
+        boolean test = session.isTest();
+        List<FlowModules.TempItemDef> entryItems = entryItemsOf(instance);
+        AtomicInteger remaining = new AtomicInteger(members.size());
+        if (members.isEmpty()) {
+            finishEnter(session, instanceId);
+            return;
+        }
+        for (UUID memberId : members) {
+            AtomicBoolean settled = new AtomicBoolean();
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
+                warnEnter(instanceId, memberId, "offline");
+                finishIfSettled(session, instanceId, remaining, settled);
                 continue;
             }
-            if (!session.isTest() && limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
-                limitService.record(memberId, session.dungeonId());
+            TaskToken token = dispatcher.runEntity(plugin, member,
+                    () -> enterMember(session, instanceId, entryLocation, partyKey, dungeonId, test,
+                            entryItems, memberId, member, remaining, settled),
+                    () -> {
+                        warnEnter(instanceId, memberId, "retired");
+                        finishIfSettled(session, instanceId, remaining, settled);
+                    });
+            if (token == null) {
+                warnEnter(instanceId, memberId, "schedule_rejected");
+                finishIfSettled(session, instanceId, remaining, settled);
+            }
+        }
+    }
+
+    private void enterMember(ChallengeSession session, String instanceId, Location entryLocation,
+            String partyKey, String dungeonId, boolean test,
+            List<FlowModules.TempItemDef> entryItems, UUID memberId, Player member,
+            AtomicInteger remaining, AtomicBoolean settled) {
+        try {
+            if (!member.isOnline()) {
+                warnEnter(instanceId, memberId, "offline");
+                return;
+            }
+            if (!test && limitService != null && !member.hasPermission("emakidungeon.bypass.limit")) {
+                limitService.record(memberId, dungeonId);
             }
             teleportPermit.accept(memberId);
-            snapshots.captureInitial(member, instanceId, session.dungeonId(), String.valueOf(party.id()));
+            snapshots.captureInitial(member, instanceId, dungeonId, partyKey);
             member.teleport(entryLocation);
             Bukkit.getPluginManager().callEvent(
-                    new emaki.jiuwu.craft.dungeon.api.event.DungeonEnterEvent(
-                            instanceId, session.dungeonId(), memberId, String.valueOf(party.id())));
+                    new DungeonEnterEvent(instanceId, dungeonId, memberId, partyKey));
             messages.send(member, "challenge.entered", Map.of(
-                    "dungeon", session.dungeonId(),
+                    "dungeon", dungeonId,
                     "instance", instanceId
             ));
             if (audit != null) {
@@ -742,31 +780,40 @@ public final class ChallengeService {
                         "event", "enter",
                         "player", String.valueOf(memberId),
                         "instance", instanceId,
-                        "dungeon", session.dungeonId(),
-                        "test", String.valueOf(session.isTest())));
+                        "dungeon", dungeonId,
+                        "test", String.valueOf(test)));
             }
             if (actionBridge != null) {
                 actionBridge.dispatch("dungeon_enter", memberId, Map.of(
                         "instanceId", instanceId,
-                        "dungeonId", session.dungeonId(),
+                        "dungeonId", dungeonId,
                         "player", member.getName(),
-                        "partyId", String.valueOf(party.id())
+                        "partyId", partyKey
                 ));
             }
-        }
-        if (tempItems != null && instance.flowRuntime() != null) {
-            for (FlowModules.TempItemDef tempItem : instance.flowRuntime().definition().tempItems().values()) {
-                if (!tempItem.head().enabled() || !"entry".equals(tempItem.timing())) {
-                    continue;
-                }
-                for (UUID memberId : party.members()) {
-                    Player member = Bukkit.getPlayer(memberId);
-                    if (member != null) {
-                        tempItems.grant(instanceId, member, tempItem.itemId(), tempItem.amount());
-                    }
-                }
+            for (FlowModules.TempItemDef tempItem : entryItems) {
+                tempItems.grant(instanceId, member, tempItem.itemId(), tempItem.amount());
             }
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("[EmakiDungeon] challenge enter failed | instance=" + instanceId
+                    + " | player=" + memberId + " | error=" + exception.getMessage());
+        } finally {
+            finishIfSettled(session, instanceId, remaining, settled);
         }
+    }
+
+    private void finishIfSettled(ChallengeSession session, String instanceId,
+            AtomicInteger remaining, AtomicBoolean settled) {
+        if (!settled.compareAndSet(false, true)) {
+            return;
+        }
+        if (remaining.decrementAndGet() > 0) {
+            return;
+        }
+        dispatcher.runGlobal(plugin, () -> finishEnter(session, instanceId));
+    }
+
+    private void finishEnter(ChallengeSession session, String instanceId) {
         debug.log("dungeon", Bukkit.getPlayer(session.leaderId()), "instance_assigned", Map.of(
                 "instance", instanceId,
                 "dungeon", session.dungeonId()
@@ -776,6 +823,28 @@ public final class ChallengeService {
         }
         closeSessionUi(session);
         sessions.remove(session.partyId());
+    }
+
+    private List<FlowModules.TempItemDef> entryItemsOf(DungeonInstance instance) {
+        if (tempItems == null) {
+            return List.of();
+        }
+        FlowRuntime runtime = instance.flowRuntime();
+        if (runtime == null) {
+            return List.of();
+        }
+        List<FlowModules.TempItemDef> entryItems = new ArrayList<>();
+        for (FlowModules.TempItemDef tempItem : runtime.definition().tempItems().values()) {
+            if (tempItem.head().enabled() && "entry".equals(tempItem.timing())) {
+                entryItems.add(tempItem);
+            }
+        }
+        return entryItems;
+    }
+
+    private void warnEnter(String instanceId, UUID memberId, String reason) {
+        plugin.getLogger().warning("[EmakiDungeon] challenge enter skipped | instance=" + instanceId
+                + " | player=" + memberId + " | reason=" + reason);
     }
 
     private CompletableFuture<Void> preloadEntryChunks(World world, Location entry) {

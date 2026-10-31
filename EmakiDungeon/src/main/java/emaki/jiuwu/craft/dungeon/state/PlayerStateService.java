@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.InstanceState;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
@@ -226,6 +227,16 @@ public final class PlayerStateService {
             @Override
             public int blockCost() {
                 return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
             }
 
             @Override

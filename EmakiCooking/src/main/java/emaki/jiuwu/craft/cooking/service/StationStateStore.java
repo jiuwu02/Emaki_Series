@@ -613,7 +613,22 @@ public final class StationStateStore {
         }
     }
 
-    public record ReindexReport(int legacyYamlStates, int loadedPdcStates, int totalIndexedStates) {
+    public record ReindexReport(int legacyYamlStates,
+            int loadedPdcStates,
+            int totalIndexedStates,
+            List<String> failures) {
+
+        public ReindexReport {
+            failures = failures == null ? List.of() : List.copyOf(failures);
+        }
+
+        public boolean success() {
+            return failures.isEmpty();
+        }
+
+        public String failureSummary() {
+            return String.join("; ", failures);
+        }
     }
 
     record StoredState(YamlSection state,

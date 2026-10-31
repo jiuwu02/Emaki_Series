@@ -286,7 +286,7 @@ public final class InstanceCoordinator {
         pool.ensureReserve(instance.dungeonId());
     }
 
-    public void shutdown() {
+    public boolean shutdown() {
         shuttingDown = true;
         pool.stopNewWork();
         inspectionTask.cancel();
@@ -300,6 +300,6 @@ public final class InstanceCoordinator {
                 }
             }
         }
-        store.saveSync();
+        return store.saveSync();
     }
 }

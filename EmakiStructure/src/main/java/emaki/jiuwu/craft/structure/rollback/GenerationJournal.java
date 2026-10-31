@@ -2,8 +2,9 @@ package emaki.jiuwu.craft.structure.rollback;
 
 import emaki.jiuwu.craft.structure.template.nbt.NbtWriter;
 
-import java.io.BufferedWriter;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.channels.FileChannel;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -63,6 +64,13 @@ public final class GenerationJournal {
         }
     }
 
+    public static final class JournalWriteException extends RuntimeException {
+
+        public JournalWriteException(String message, Throwable cause) {
+            super(message, cause);
+        }
+    }
+
     static final String KIND_BLOCK = "B";
     static final String KIND_ENTITY = "E";
     static final String KIND_COMMIT = "COMMIT";
@@ -74,23 +82,24 @@ public final class GenerationJournal {
     private final Path file;
     private final long maxBytes;
     private final List<Entry> entries = new ArrayList<>();
-    private BufferedWriter writer;
+    private FileChannel channel;
     private long bytes;
     private boolean closed;
+    private IOException writeFailure;
 
-    private GenerationJournal(Path file, long maxBytes, BufferedWriter writer) {
+    private GenerationJournal(Path file, long maxBytes, FileChannel channel) {
         this.file = file;
         this.maxBytes = maxBytes;
-        this.writer = writer;
+        this.channel = channel;
     }
 
     public static GenerationJournal open(Path journalDir, String txid, long maxBytes)
             throws IOException {
         Files.createDirectories(journalDir);
         Path file = journalDir.resolve(txid + ".log");
-        BufferedWriter writer = Files.newBufferedWriter(file, StandardCharsets.UTF_8,
-                StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-        return new GenerationJournal(file, maxBytes, writer);
+        FileChannel channel = FileChannel.open(file, StandardOpenOption.CREATE,
+                StandardOpenOption.TRUNCATE_EXISTING, StandardOpenOption.WRITE);
+        return new GenerationJournal(file, maxBytes, channel);
     }
 
     public Path file() {
@@ -98,8 +107,12 @@ public final class GenerationJournal {
     }
 
     public synchronized void appendBlocks(List<BlockSnapshot> snapshots) {
-        if (closed || snapshots.isEmpty()) {
+        if (snapshots.isEmpty()) {
             return;
+        }
+        if (closed) {
+            throw new JournalWriteException("journal 已关闭, 快照无法写入: " + file,
+                    new IllegalStateException("journal closed"));
         }
         StringBuilder batch = new StringBuilder();
         for (BlockSnapshot snapshot : snapshots) {
@@ -112,55 +125,79 @@ public final class GenerationJournal {
         if (bytes + raw.length > maxBytes) {
             throw new OverflowException("journal 快照超限（上限 " + maxBytes + " 字节）");
         }
-        write(raw, raw.length);
+        write(raw);
         entries.addAll(snapshots);
     }
 
     public synchronized void appendEntity(String world, UUID id, int x, int y, int z) {
         if (closed) {
-            return;
+            throw new JournalWriteException("journal 已关闭, 实体记录无法写入: " + file,
+                    new IllegalStateException("journal closed"));
         }
-        entries.add(new EntitySnapshot(world, id, x, y, z));
         String payload = KIND_ENTITY + FIELD_SEP + world + FIELD_SEP + id
                 + FIELD_SEP + x + FIELD_SEP + y + FIELD_SEP + z;
-        try {
-            byte[] raw = (encodeLine(payload) + "\n").getBytes(StandardCharsets.UTF_8);
-            write(raw, raw.length);
-        } catch (IllegalStateException ignored) {
-        }
+        byte[] raw = (encodeLine(payload) + "\n").getBytes(StandardCharsets.UTF_8);
+        write(raw);
+        entries.add(new EntitySnapshot(world, id, x, y, z));
     }
 
-    public synchronized void commit() {
+    public synchronized boolean commit() {
         if (closed) {
-            return;
+            throw new JournalWriteException("journal 已关闭, 无法写入提交标记: " + file,
+                    writeFailure != null ? writeFailure : new IllegalStateException("journal closed"));
+        }
+        if (writeFailure != null) {
+            close();
+            throw new JournalWriteException(
+                    "journal 存在未落盘的记录, 拒绝提交并保留日志: " + file, writeFailure);
         }
         try {
-            String payload = KIND_COMMIT + "";
-            writer.write(encodeLine(payload));
-            writer.newLine();
-            writer.flush();
-        } catch (IOException ignored) {
+            write((encodeLine(KIND_COMMIT) + "\n").getBytes(StandardCharsets.UTF_8));
+        } catch (JournalWriteException exception) {
+            close();
+            throw exception;
         }
-        closeQuietly();
+        if (!close()) {
+            throw new JournalWriteException(
+                    "journal 未可靠落盘, 拒绝删除日志: " + file, writeFailure);
+        }
         try {
             Files.deleteIfExists(file);
-        } catch (IOException ignored) {
+            return true;
+        } catch (IOException exception) {
+            return false;
         }
     }
 
-    public synchronized void closeQuietly() {
+    public synchronized boolean close() {
         if (closed) {
-            return;
+            return writeFailure == null;
         }
         closed = true;
+        IOException failure = null;
         try {
-            if (writer != null) {
-                writer.flush();
-                writer.close();
+            if (channel != null) {
+                channel.force(true);
             }
-        } catch (IOException ignored) {
+        } catch (IOException exception) {
+            failure = exception;
         }
-        writer = null;
+        try {
+            if (channel != null) {
+                channel.close();
+            }
+        } catch (IOException exception) {
+            if (failure == null) {
+                failure = exception;
+            } else {
+                failure.addSuppressed(exception);
+            }
+        }
+        channel = null;
+        if (failure != null) {
+            recordFailure(failure);
+        }
+        return writeFailure == null;
     }
 
     public synchronized List<Entry> entries() {
@@ -173,14 +210,33 @@ public final class GenerationJournal {
         }
     }
 
-    private void write(byte[] raw, int length) {
-        try {
-            writer.write(new String(raw, StandardCharsets.UTF_8));
-            writer.flush();
-        } catch (IOException exception) {
-            throw new IllegalStateException("journal 写入失败: " + exception.getMessage(), exception);
+    public synchronized boolean isHealthy() {
+        return !closed && writeFailure == null;
+    }
+
+    private void write(byte[] raw) {
+        if (channel == null) {
+            throw new JournalWriteException("journal 已关闭, 无法写入: " + file,
+                    new IllegalStateException("journal closed"));
         }
-        bytes += length;
+        try {
+            ByteBuffer buffer = ByteBuffer.wrap(raw);
+            while (buffer.hasRemaining()) {
+                channel.write(buffer);
+            }
+            bytes += raw.length;
+        } catch (IOException exception) {
+            recordFailure(exception);
+            throw new JournalWriteException("journal 写入失败: " + exception.getMessage(), exception);
+        }
+    }
+
+    private void recordFailure(IOException exception) {
+        if (writeFailure == null) {
+            writeFailure = exception;
+        } else {
+            writeFailure.addSuppressed(exception);
+        }
     }
 
     private static String encodeContainer(BlockSnapshot snapshot) {

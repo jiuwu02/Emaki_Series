@@ -135,6 +135,11 @@ public final class DungeonInstance {
         if (current != null) {
             current.close();
         }
+        FlowRuntime runtime = flowRuntime;
+        flowRuntime = null;
+        if (runtime != null) {
+            runtime.shutdown();
+        }
         ingress.close();
         commands.clear();
     }

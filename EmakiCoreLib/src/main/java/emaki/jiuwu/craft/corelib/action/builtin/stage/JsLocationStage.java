@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.graalvm.polyglot.HostAccess;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
@@ -19,7 +20,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.script.ScriptResult;
 import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.exports.EmakiContextExport;
-import org.graalvm.polyglot.HostAccess;
 
 public final class JsLocationStage extends BaseStage {
 
@@ -80,73 +80,91 @@ public final class JsLocationStage extends BaseStage {
     }
 
     private static final class LocationExport {
-        private final Location location;
+        private final String worldName;
+        private final double x;
+        private final double y;
+        private final double z;
+        private final int blockX;
+        private final int blockY;
+        private final int blockZ;
 
         LocationExport(Location location) {
-            this.location = location;
+            this.worldName = location.getWorld() != null ? location.getWorld().getName() : "未知";
+            this.x = location.getX();
+            this.y = location.getY();
+            this.z = location.getZ();
+            this.blockX = location.getBlockX();
+            this.blockY = location.getBlockY();
+            this.blockZ = location.getBlockZ();
         }
 
         @HostAccess.Export
         public @NotNull String getWorld() {
-            return location.getWorld() != null ? location.getWorld().getName() : "未知";
+            return worldName;
         }
 
         @HostAccess.Export
         public double getX() {
-            return location.getX();
+            return x;
         }
 
         @HostAccess.Export
         public double getY() {
-            return location.getY();
+            return y;
         }
 
         @HostAccess.Export
         public double getZ() {
-            return location.getZ();
+            return z;
         }
 
         @HostAccess.Export
         public int getBlockX() {
-            return location.getBlockX();
+            return blockX;
         }
 
         @HostAccess.Export
         public int getBlockY() {
-            return location.getBlockY();
+            return blockY;
         }
 
         @HostAccess.Export
         public int getBlockZ() {
-            return location.getBlockZ();
+            return blockZ;
         }
     }
 
     private static final class PlayerReadOnlyExport {
-        private final Player player;
+        private final String name;
+        private final String uniqueId;
+        private final double health;
+        private final int level;
 
         PlayerReadOnlyExport(Player player) {
-            this.player = player;
+            this.name = player.getName();
+            this.uniqueId = player.getUniqueId().toString();
+            this.health = player.getHealth();
+            this.level = player.getLevel();
         }
 
         @HostAccess.Export
         public @NotNull String getName() {
-            return player.getName();
+            return name;
         }
 
         @HostAccess.Export
         public @NotNull String getUniqueId() {
-            return player.getUniqueId().toString();
+            return uniqueId;
         }
 
         @HostAccess.Export
         public double getHealth() {
-            return player.getHealth();
+            return health;
         }
 
         @HostAccess.Export
         public int getLevel() {
-            return player.getLevel();
+            return level;
         }
     }
 }

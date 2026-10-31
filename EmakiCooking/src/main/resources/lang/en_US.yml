@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "4.3.11"
+version: "4.3.12"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -15,6 +15,8 @@ general:
   reloading: "<gray>Reloading configuration...</gray>"
   reload_success: "<green>Configuration reloaded</green>"
   reload_summary: "<gray>Reloaded %recipes% recipes, %resources% GUI resources</gray>"
+  # Player: reload failed and rolled back to previous configuration; placeholders: %reason%
+  reload_failed: "<red>Reload failed, rolled back to the previous configuration: </red>%reason%"
 
 command:
   help:
@@ -66,6 +68,10 @@ command:
     store_not_ready: "<red>Station state store is not ready</red>"
     reindex_started: "<gray>Rebuilding station location index...</gray>"
     reindex_done: "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed%"
+    # Player: station index rebuild partially failed; placeholders: %legacy_yaml%, %loaded_pdc%, %total_indexed%, %failures%
+    reindex_partial: "<red>Station index rebuild finished with errors:</red> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed% <gray>failures: </gray>%failures%"
+    # Player: station index rebuild failed entirely; placeholders: %reason%
+    reindex_failed: "<red>Station index rebuild failed: </red>%reason%"
   # Player: reload elapsed time; placeholders: %elapsed_ms%
   reload_elapsed: "<gray>Reload took: <white>%elapsed_ms%ms</white></gray>"
 

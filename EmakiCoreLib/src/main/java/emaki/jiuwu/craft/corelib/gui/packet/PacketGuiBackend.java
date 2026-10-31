@@ -224,6 +224,11 @@ public final class PacketGuiBackend implements GuiBackend, Listener {
     }
 
     @Override
+    public boolean shutdownRequiresOwnerThread() {
+        return false;
+    }
+
+    @Override
     public CompletionStage<Void> shutdownAsync() {
         CompletableFuture<Void> existing = shutdownFuture.get();
         if (existing != null) {

@@ -12,7 +12,13 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
+import org.bukkit.plugin.Plugin;
+
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.cache.CacheManager;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class GuiBackendRegistry {
@@ -22,6 +28,9 @@ public final class GuiBackendRegistry {
     private static final int WARNED_NAMES_LIMIT = 256;
 
     private final MessageService messageService;
+    private final Plugin owner;
+    private final ExecutionDispatcher dispatcher;
+    private final ThreadOwnership threadOwnership;
     private final BukkitGuiBackend bukkitBackend = new BukkitGuiBackend();
     private final Map<String, GuiBackend> backends = new ConcurrentHashMap<>();
 
@@ -31,8 +40,15 @@ public final class GuiBackendRegistry {
 
     private volatile String configuredName = BUKKIT;
 
-    public GuiBackendRegistry(MessageService messageService) {
+    public GuiBackendRegistry(
+            MessageService messageService,
+            Plugin owner,
+            ExecutionDispatcher dispatcher,
+            ThreadOwnership threadOwnership) {
         this.messageService = messageService;
+        this.owner = owner;
+        this.dispatcher = dispatcher;
+        this.threadOwnership = threadOwnership;
         register(BUKKIT, bukkitBackend);
     }
 
@@ -157,16 +173,109 @@ public final class GuiBackendRegistry {
     }
 
     private CompletableFuture<Void> safeShutdownAsync(GuiBackend backend) {
+        if (!requiresOwnerThread(backend) || isOwnerThread()) {
+            return dispatchShutdown(backend);
+        }
+        return dispatchToOwner(backend);
+    }
+
+    private boolean requiresOwnerThread(GuiBackend backend) {
         try {
-            CompletionStage<Void> stage = backend.shutdownAsync();
-            if (stage == null) {
-                return CompletableFuture.completedFuture(null);
-            }
-            CompletableFuture<Void> completion = new CompletableFuture<>();
-            stage.whenComplete((ignored, throwable) -> completion.complete(null));
-            return completion;
+            return backend.shutdownRequiresOwnerThread();
         } catch (Throwable ignored) {
+            return true;
+        }
+    }
+
+    private boolean isOwnerThread() {
+        if (threadOwnership != null) {
+            try {
+                return threadOwnership.isGlobalOwned();
+            } catch (Throwable ignored) {
+                return false;
+            }
+        }
+        return false;
+    }
+
+    private CompletableFuture<Void> dispatchToOwner(GuiBackend backend) {
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        if (dispatcher == null || owner == null) {
+            warnShutdownDeferred(backend, "缺少 owner 调度器");
+            completion.complete(null);
+            return completion;
+        }
+        TaskToken token;
+        try {
+            token = dispatcher.runGlobal(owner, () -> dispatchShutdown(backend).whenComplete((ignored, throwable) -> {
+                if (throwable == null) {
+                    completion.complete(null);
+                } else {
+                    completion.completeExceptionally(throwable);
+                }
+            }));
+        } catch (Throwable throwable) {
+            warnShutdownDeferred(backend, AsyncFailures.describe(throwable));
+            completion.complete(null);
+            return completion;
+        }
+        if (token == null || token.cancelled()) {
+            warnShutdownDeferred(backend, "owner 调度被拒绝");
+            completion.complete(null);
+        }
+        return completion;
+    }
+
+    private CompletableFuture<Void> dispatchShutdown(GuiBackend backend) {
+        CompletionStage<Void> stage;
+        try {
+            stage = backend.shutdownAsync();
+        } catch (Throwable throwable) {
+            warnShutdownFailed(backend, throwable);
             return CompletableFuture.completedFuture(null);
+        }
+        if (stage == null) {
+            return CompletableFuture.completedFuture(null);
+        }
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        stage.whenComplete((ignored, throwable) -> {
+            if (throwable != null) {
+                warnShutdownFailed(backend, throwable);
+            }
+            completion.complete(null);
+        });
+        return completion;
+    }
+
+    private void warnShutdownFailed(GuiBackend backend, Throwable throwable) {
+        warn("console.gui_backend_shutdown_failed", Map.of(
+                "backend", backendName(backend),
+                "error", AsyncFailures.describe(throwable)));
+    }
+
+    private void warnShutdownDeferred(GuiBackend backend, String reason) {
+        warn("console.gui_backend_shutdown_deferred", Map.of(
+                "backend", backendName(backend),
+                "reason", reason));
+    }
+
+    private void warn(String messageKey, Map<String, String> replacements) {
+        if (messageService == null) {
+            return;
+        }
+        try {
+            messageService.warning(messageKey, replacements);
+        } catch (RuntimeException ignored) {
+            return;
+        }
+    }
+
+    private static String backendName(GuiBackend backend) {
+        try {
+            String name = backend.name();
+            return name == null ? "<unknown>" : name;
+        } catch (Throwable ignored) {
+            return "<unknown>";
         }
     }
 

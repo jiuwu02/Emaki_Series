@@ -152,6 +152,11 @@ public final class PlayerStorageStore {
                     + (loaded.quarantineTarget() == null
                             ? "" : "，已移入 " + loaded.quarantineTarget().getFileName()));
         }
+        if (loaded.truncated()) {
+            logger.warning("[persistence] 玩家 " + playerId + " 的存储文件被截断（"
+                    + loaded.truncationDetail() + "），已按加载失败处理并进入只读保护，原文件保留不覆盖");
+            throw new CompletionException(new IOException("存储文件框架被截断：" + loaded.truncationDetail()));
+        }
         int merged = 0;
         for (StorageDataFile.Record record : loaded.records()) {
             StorageKey key = StorageKey.of(record.template());

@@ -313,9 +313,21 @@ public final class MobsCommandRouter {
                 return;
             }
         }
-        List<ManagedMobCommandService.Match> matches =
-                managedMobService.find(mobId, player.getLocation(), radius);
-        matches.sort(Comparator.comparingDouble(ManagedMobCommandService.Match::distanceSquared));
+        double selectionRadius = radius;
+        managedMobService.find(mobId, player.getLocation(), selectionRadius).whenComplete((found, throwable) -> {
+            if (throwable != null) {
+                reportOperationFailure(sender, "find", throwable);
+                return;
+            }
+            List<ManagedMobCommandService.Match> matches = new ArrayList<>(found);
+            matches.sort(Comparator.comparingDouble(ManagedMobCommandService.Match::distanceSquared));
+            List<ManagedMobCommandService.Match> ordered = List.copyOf(matches);
+            dispatchTo(player, () -> sendFindResult(player, mobId, selectionRadius, ordered));
+        });
+    }
+
+    private void sendFindResult(Player player, String mobId, double radius,
+                                List<ManagedMobCommandService.Match> matches) {
         plugin.messageService().send(player, "command.find_header", Map.of(
                 "mob_id", mobId,
                 "count", matches.size(),
@@ -424,14 +436,17 @@ public final class MobsCommandRouter {
     }
 
     private void deliver(CommandSender sender, String key, Map<String, ?> replacements) {
-        if (!plugin.isEnabled() || plugin.isShutdownStarted()) {
-            return;
-        }
-        Runnable delivery = () -> {
+        dispatchTo(sender, () -> {
             if (plugin.isEnabled() && !plugin.isShutdownStarted()) {
                 plugin.messageService().send(sender, key, replacements);
             }
-        };
+        });
+    }
+
+    private void dispatchTo(CommandSender sender, Runnable delivery) {
+        if (!plugin.isEnabled() || plugin.isShutdownStarted()) {
+            return;
+        }
         TaskToken token;
         if (sender instanceof Player player) {
             token = plugin.executionDispatcher().runEntity(plugin, player, delivery,

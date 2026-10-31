@@ -2,9 +2,6 @@ package emaki.jiuwu.craft.dungeon.party;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -31,6 +28,10 @@ public final class PartiesStore {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.file = new File(dataFolder, "parties.yml");
+    }
+
+    public File file() {
+        return file;
     }
 
     public Map<UUID, Party> parties() {
@@ -87,10 +88,10 @@ public final class PartiesStore {
     }
 
     public void saveAsync() {
-        dispatcher.runAsync(plugin, this::saveSync);
+        dispatcher.runAsync(plugin, () -> saveSync());
     }
 
-    public synchronized void saveSync() {
+    public synchronized boolean saveSync() {
         Map<String, Object> entries = new LinkedHashMap<>();
         for (Party party : parties.values()) {
             Map<String, Object> fields = new LinkedHashMap<>();
@@ -106,19 +107,12 @@ public final class PartiesStore {
         values.put("version", CURRENT_VERSION);
         values.put("parties", entries);
         try {
-            atomicWrite(values);
-        } catch (IOException ignored) {
-        }
-    }
-
-    private void atomicWrite(Map<String, Object> values) throws IOException {
-        Path target = file.toPath();
-        Path temp = target.resolveSibling(target.getFileName() + "." + UUID.randomUUID() + ".tmp");
-        YamlFiles.save(temp.toFile(), values);
-        try {
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+            YamlFiles.save(file, values);
+            return true;
         } catch (IOException exception) {
-            Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
+            plugin.getLogger().warning("[EmakiDungeon] parties save failed | file="
+                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            return false;
         }
     }
 }

@@ -64,6 +64,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiBackendRegistry;
 import emaki.jiuwu.craft.corelib.gui.GuiClickThrottle;
 import emaki.jiuwu.craft.corelib.gui.RegistryBackedGuiBackend;
 import emaki.jiuwu.craft.corelib.gui.packet.PacketBackendInstaller;
+import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
 import emaki.jiuwu.craft.corelib.script.bridge.CoreLibScriptsCoordinator;
 import emaki.jiuwu.craft.corelib.text.VanillaLanguageDownloader;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
@@ -236,6 +237,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     private CoreLibDialogs dialogApiBridge;
     private TextDisplayService textDisplayService;
     private ItemDisplayService itemDisplayService;
+    private volatile CompletionStage<Void> guiShutdownStage;
     private GameplayEventPublisher gameplayEventPublisher;
 
     @Override
@@ -312,6 +314,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
 
         HandlerList.unregisterAll(this);
         getServer().getServicesManager().unregisterAll(this);
+        shutdownBukkitComponents();
         ExpressionEngine.clearThreadLocalCache();
 
         CorePluginLifecycle lifecycle = corePluginLifecycle;
@@ -337,6 +340,32 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 } catch (RuntimeException exception) {
                     getLogger().info("[shutdown] 已停止");
                 }
+            }
+        });
+    }
+
+    private void shutdownBukkitComponents() {
+        runShutdownStep("物品来源集成", () -> {
+            if (itemSourceIntegrationCoordinator != null) {
+                itemSourceIntegrationCoordinator.closeAfterBukkitUnregister();
+                itemSourceIntegrationCoordinator = null;
+            }
+        });
+        runShutdownStep("文本展示", () -> {
+            if (textDisplayService != null) {
+                textDisplayService.shutdown();
+                textDisplayService = null;
+            }
+        });
+        runShutdownStep("物品展示", () -> {
+            if (itemDisplayService != null) {
+                itemDisplayService.shutdown();
+                itemDisplayService = null;
+            }
+        });
+        runShutdownStep("菜单后端", () -> {
+            if (guiBackendRegistry != null) {
+                guiShutdownStage = guiBackendRegistry.shutdownAllAsync();
             }
         });
     }
@@ -648,26 +677,17 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
     }
 
     CompletionStage<Void> finalizeCoreRuntimeAsync() {
-        CompletionStage<Void> guiShutdown = CompletableFuture.completedFuture(null);
-        if (guiBackendRegistry != null) {
-            try {
-                guiShutdown = guiBackendRegistry.shutdownAllAsync();
-            } catch (Throwable throwable) {
-                getLogger().warning("[shutdown] GUI 关闭分派失败: " + AsyncFailures.describe(throwable));
-            }
+        CompletionStage<Void> guiShutdown = guiShutdownStage;
+        guiShutdownStage = null;
+        if (guiShutdown == null) {
+            guiShutdown = CompletableFuture.completedFuture(null);
         }
         return guiShutdown.handle((ignored, throwable) -> {
             if (throwable != null) {
                 getLogger().warning("[shutdown] GUI 关闭未完成: " + AsyncFailures.describe(throwable));
             }
             return null;
-        }).thenRunAsync(() -> {
-            runShutdownStep("物品来源集成", () -> {
-                if (itemSourceIntegrationCoordinator != null) {
-                    itemSourceIntegrationCoordinator.closeAfterBukkitUnregister();
-                    itemSourceIntegrationCoordinator = null;
-                }
-            });
+        }).thenRun(() -> {
             runShutdownStep("事件总线", () -> {
                 if (eventBus != null) {
                     eventBus.clear();
@@ -681,15 +701,8 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
                 }
                 dialogApiBridge = null;
                 dialogService = null;
-                if (textDisplayService != null) {
-                    textDisplayService.shutdown();
-                    textDisplayService = null;
-                }
-                if (itemDisplayService != null) {
-                    itemDisplayService.shutdown();
-                    itemDisplayService = null;
-                }
             });
+            runShutdownStep("脚本引擎", GraalJsEngine::shutdownInstance);
             gameplayEventPublisher = null;
             guiBackendRegistry = null;
             guiBackend = null;

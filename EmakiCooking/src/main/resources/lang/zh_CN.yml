@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "4.3.11"
+version: "4.3.12"
 
 general:
   prefix: "<gray>[ <gradient:#22C55E:#FACC15>EmakiCooking</gradient> ]</gray>"
@@ -15,6 +15,8 @@ general:
   reloading: "<gray>正在重载配置...</gray>"
   reload_success: "<green>配置已重载</green>"
   reload_summary: "<gray>已重载配方 %recipes% 个, GUI 资源 %resources% 个</gray>"
+  # 玩家: 重载失败已回滚到旧配置; 占位符: %reason%
+  reload_failed: "<red>重载失败, 已回滚到旧配置: </red>%reason%"
 
 command:
   help:
@@ -66,6 +68,10 @@ command:
     store_not_ready: "<red>工位状态存储尚未就绪</red>"
     reindex_started: "<gray>正在重建工位位置索引...</gray>"
     reindex_done: "<green>工位索引重建完成:</green> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed%"
+    # 玩家: 工位索引重建部分失败; 占位符: %legacy_yaml%, %loaded_pdc%, %total_indexed%, %failures%
+    reindex_partial: "<red>工位索引重建未完全成功:</red> <gray>legacy_yaml=</gray>%legacy_yaml% <gray>loaded_pdc=</gray>%loaded_pdc% <gray>total_indexed=</gray>%total_indexed% <gray>失败: </gray>%failures%"
+    # 玩家: 工位索引重建整体失败; 占位符: %reason%
+    reindex_failed: "<red>工位索引重建失败: </red>%reason%"
   # 玩家: 重载耗时; 占位符: %elapsed_ms%
   reload_elapsed: "<gray>重载耗时: <white>%elapsed_ms%ms</white></gray>"
 

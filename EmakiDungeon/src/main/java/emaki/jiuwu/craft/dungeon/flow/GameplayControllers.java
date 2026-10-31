@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -319,6 +320,11 @@ public final class GameplayControllers implements FlowControllers {
                 }
 
                 @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.GLOBAL;
+                }
+
+                @Override
                 public void execute() {
                     Bukkit.getPluginManager().callEvent(
                             new emaki.jiuwu.craft.dungeon.api.event.DungeonSealPathEvent(
@@ -405,7 +411,23 @@ public final class GameplayControllers implements FlowControllers {
 
     private void sealRegions(FlowRuntime runtime, FlowModules.OptionCase optionCase) {
         for (FlowRegion region : optionCase.sealRegions()) {
+            FlowPoint center = region.center();
             instance.commands().submit(new WorldCommand() {
+                @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.LOCATION;
+                }
+
+                @Override
+                public String worldName() {
+                    return instance.instanceId();
+                }
+
+                @Override
+                public double[] anchor() {
+                    return new double[] {center.x(), center.y(), center.z()};
+                }
+
                 @Override
                 public int blockCost() {
                     return (int) ((Math.floor(Math.max(region.minX(), region.maxX()))

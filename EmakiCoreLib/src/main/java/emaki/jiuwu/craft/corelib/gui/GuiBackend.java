@@ -26,6 +26,10 @@ public interface GuiBackend {
         return null;
     }
 
+    default boolean shutdownRequiresOwnerThread() {
+        return true;
+    }
+
     default CompletionStage<Void> shutdownAsync() {
         try {
             shutdown();

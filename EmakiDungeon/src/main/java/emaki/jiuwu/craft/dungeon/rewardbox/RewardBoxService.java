@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
@@ -69,6 +70,10 @@ public final class RewardBoxService {
         return store;
     }
 
+    public CompletableFuture<Boolean> drainWrites() {
+        return store.drainWrites();
+    }
+
     public boolean enabled() {
         return appConfig.get().rewardboxEnabled();
     }
@@ -78,8 +83,7 @@ public final class RewardBoxService {
     }
 
     public void storeBox(UUID playerId, List<ItemStack> items) {
-        RewardBoxStore.Box box = store.load(playerId);
-        append(playerId, box, items);
+        append(playerId, items);
     }
 
     public List<ItemStack> deposit(UUID playerId, List<ItemStack> items) {
@@ -108,23 +112,24 @@ public final class RewardBoxService {
             if (!enabled()) {
                 return leftover;
             }
-            List<ItemStack> still = append(playerId, box, leftover);
-            return still;
+            return append(playerId, leftover);
         }
-        return append(playerId, box, accepted);
+        return append(playerId, accepted);
     }
 
-    private List<ItemStack> append(UUID playerId, RewardBoxStore.Box box, List<ItemStack> items) {
+    private List<ItemStack> append(UUID playerId, List<ItemStack> items) {
         List<ItemStack> rejected = new ArrayList<>();
-        for (ItemStack stack : items) {
-            if (box.items().size() >= capacitySlots) {
-                rejected.add(stack);
-                continue;
+        boolean saved = store.update(playerId, box -> {
+            for (ItemStack stack : items) {
+                if (box.items().size() >= capacitySlots) {
+                    rejected.add(stack);
+                    continue;
+                }
+                box.items().add(stack);
             }
-            box.items().add(stack);
-        }
-        if (rejected.size() != items.size()) {
-            store.saveAsync(playerId, box);
+        });
+        if (!saved) {
+            return new ArrayList<>(items);
         }
         return rejected;
     }
@@ -150,9 +155,7 @@ public final class RewardBoxService {
     }
 
     public void setAutoFlow(UUID playerId, boolean autoFlow) {
-        RewardBoxStore.Box box = store.load(playerId);
-        box.setAutoFlow(autoFlow);
-        store.saveAsync(playerId, box);
+        store.updateAsync(playerId, box -> box.setAutoFlow(autoFlow));
     }
 
     public int maxPages(Player player) {

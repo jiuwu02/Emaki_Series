@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 public final class RollbackService implements Runnable {
 
@@ -124,18 +125,40 @@ public final class RollbackService implements Runnable {
         }
     }
 
-    public void settle(GenerationJob job) {
+    public boolean settle(GenerationJob job) {
         GenerationJournal journal = job.journal();
         if (journal == null) {
-            return;
+            return true;
         }
         if (job.outcome() == GenerationJob.Outcome.COMPLETED) {
-            journal.commit();
-            return;
+            return commitJournal(job, journal);
         }
         List<GenerationJournal.Entry> entries = journal.entries();
-        journal.closeQuietly();
+        if (!journal.close()) {
+            plugin.getLogger().warning("回滚日志未可靠落盘, 仍按现有内容回滚 "
+                    + journal.file().getFileName());
+        }
         enqueue(job.id().toString(), journal.file(), entries, false);
+        return true;
+    }
+
+    private boolean commitJournal(GenerationJob job, GenerationJournal journal) {
+        try {
+            if (journal.commit()) {
+                return true;
+            }
+            plugin.getLogger().warning("回滚日志删除失败, 已保留日志供下次启动处理 "
+                    + journal.file().getFileName());
+            return true;
+        } catch (GenerationJournal.JournalWriteException exception) {
+            plugin.getLogger().log(Level.WARNING, "回滚日志提交失败, 已保留日志并立即补偿回滚 "
+                    + journal.file().getFileName(), exception);
+            List<GenerationJournal.Entry> entries = journal.entries();
+            if (!entries.isEmpty()) {
+                enqueue(job.id().toString(), journal.file(), entries, false);
+            }
+            return false;
+        }
     }
 
     public void recoverStartup() {

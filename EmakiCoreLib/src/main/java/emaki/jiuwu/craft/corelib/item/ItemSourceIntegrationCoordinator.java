@@ -18,6 +18,7 @@ import org.bukkit.event.server.PluginEnableEvent;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceProvider;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRegistration;
 import emaki.jiuwu.craft.corelib.api.itemsource.LifecycleState;
@@ -232,13 +233,42 @@ public final class ItemSourceIntegrationCoordinator implements Listener, AutoClo
             HandlerList.unregisterAll(this);
         }
         for (ItemSourceRegistration registration : List.copyOf(registrations.values())) {
-            registration.close();
+            closeRegistration(registration);
         }
         registrations.clear();
         managedProviders.clear();
         lastStatuses.clear();
         loadEventBindings.clear();
         initialized = false;
+    }
+
+    private void closeRegistration(ItemSourceRegistration registration) {
+        if (registration == null) {
+            return;
+        }
+        try {
+            registration.close();
+        } catch (Throwable throwable) {
+            warnCloseFailed(describeCloseFailure(registration, throwable));
+        }
+    }
+
+    private String describeCloseFailure(ItemSourceRegistration registration, Throwable throwable) {
+        String kind;
+        try {
+            kind = Texts.toStringSafe(registration.kind());
+        } catch (RuntimeException exception) {
+            kind = "<unknown>";
+        }
+        return "来源=" + kind + ", error=" + AsyncFailures.describe(throwable);
+    }
+
+    private void warnCloseFailed(String detail) {
+        try {
+            messageService.warning("console.item_source_bridge_close_failed", Map.of("detail", detail));
+        } catch (RuntimeException exception) {
+            plugin.getLogger().warning("[item-source] 来源注册关闭失败: " + detail);
+        }
     }
 
     private String defaultWaitingDetail(String library, String detail) {

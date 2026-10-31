@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,12 +24,19 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 final class CookingDeliveryLedgerStore {
 
     private static final int SCHEMA_VERSION = 1;
+    private static final int CONFIRMED_CACHE_LIMIT = 512;
 
     private final Path directory;
     private final FileScope fileScope;
     private final boolean memoryOnly;
     private final ConcurrentMap<Path, Object> synchronousPathLocks = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Receipt> confirmed = new ConcurrentHashMap<>();
+    private final Map<String, Receipt> confirmed = Collections.synchronizedMap(
+            new LinkedHashMap<>(32, 0.75F, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Receipt> eldest) {
+                    return size() > CONFIRMED_CACHE_LIMIT;
+                }
+            });
 
     CookingDeliveryLedgerStore(JavaPlugin plugin, FileScope fileScope) {
         this(Objects.requireNonNull(plugin, "plugin").getDataFolder(), fileScope, false);

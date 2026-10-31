@@ -12,6 +12,9 @@ import java.util.function.Supplier;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.dummy.config.AppConfig;
 import emaki.jiuwu.craft.dummy.log.DummyLogger;
 import emaki.jiuwu.craft.dummy.log.LogLevel;
@@ -49,15 +52,17 @@ public final class DummyManager {
     private final Supplier<AppConfig> config;
     private final DummyLogger logger;
     private final DummyTransport transport;
+    private final ExecutionDispatcher dispatcher;
     private final Map<String, DummySession> sessions = new ConcurrentHashMap<>();
     private final Set<String> reconcileWarned = ConcurrentHashMap.newKeySet();
 
     public DummyManager(JavaPlugin plugin, Supplier<AppConfig> config, DummyLogger logger,
-            DummyTransport transport) {
+            DummyTransport transport, ExecutionDispatcher dispatcher) {
         this.plugin = plugin;
         this.config = config;
         this.logger = logger;
         this.transport = transport;
+        this.dispatcher = dispatcher;
     }
 
     public Collection<DummySession> all() {
@@ -126,18 +131,11 @@ public final class DummyManager {
         session.applyConnectStart();
         sessions.put(name.toLowerCase(Locale.ROOT), session);
         TransportEndpoint endpoint = endpoint();
-        try {
-            TransportLink link = transport.open(name, endpoint, callbacks(session));
-            session.link(link);
-        } catch (RuntimeException failure) {
+        if (!openLink(session, endpoint, false)) {
             sessions.remove(name.toLowerCase(Locale.ROOT));
             session.destroy();
-            logger.log(LogLevel.ERROR, name, "connect_failed endpoint="
-                    + endpoint.host() + ":" + endpoint.port() + " reason=" + singleLine(failure.getMessage()));
-            return new JoinResult(JoinOutcome.FAILED, singleLine(failure.getMessage()));
+            return new JoinResult(JoinOutcome.FAILED, "transport_unavailable");
         }
-        logger.log(LogLevel.ACTION, name, "join -> connecting endpoint="
-                + endpoint.host() + ":" + endpoint.port());
         return new JoinResult(JoinOutcome.OK, name);
     }
 
@@ -368,15 +366,124 @@ public final class DummyManager {
         }
         session.applyConnectStart();
         TransportEndpoint endpoint = endpoint();
-        try {
-            TransportLink link = transport.open(session.name(), endpoint, callbacks(session));
-            session.link(link);
-            logger.log(LogLevel.ACTION, session.name(), "reconnect -> connecting endpoint="
-                    + endpoint.host() + ":" + endpoint.port());
-        } catch (RuntimeException failure) {
-            logger.log(LogLevel.ERROR, session.name(), "reconnect_failed reason="
-                    + singleLine(failure.getMessage()));
+        if (!openLink(session, endpoint, true)) {
             scheduleReconnect(session);
+        }
+    }
+
+    private boolean openLink(DummySession session, TransportEndpoint endpoint, boolean reconnect) {
+        ExecutionDispatcher activeDispatcher = dispatcher;
+        if (activeDispatcher == null) {
+            logger.log(LogLevel.ERROR, session.name(), "connect_unscheduled reason=dispatcher_unavailable"
+                    + " endpoint=" + endpoint.host() + ":" + endpoint.port());
+            return false;
+        }
+        int generation = session.nextConnectGeneration();
+        TaskToken token;
+        try {
+            token = activeDispatcher.runAsync(plugin,
+                    () -> connectAsync(session, endpoint, generation, reconnect));
+        } catch (RuntimeException failure) {
+            logger.log(LogLevel.ERROR, session.name(), "connect_unscheduled reason="
+                    + singleLine(AsyncFailures.describe(failure)));
+            return false;
+        }
+        if (token == null) {
+            logger.log(LogLevel.ERROR, session.name(), "connect_unscheduled reason=executor_rejected");
+            return false;
+        }
+        return true;
+    }
+
+    private void connectAsync(DummySession session, TransportEndpoint endpoint, int generation,
+            boolean reconnect) {
+        TransportLink link;
+        try {
+            link = transport.open(session.name(), endpoint, callbacks(session, generation));
+        } catch (RuntimeException failure) {
+            applyConnectFailure(session, endpoint, generation, reconnect, failure);
+            return;
+        }
+        boolean applied = runOnOwner(session, () -> {
+            if (!acceptGeneration(session, generation)) {
+                logger.log(LogLevel.ACTION, session.name(), "connect_discarded endpoint="
+                        + endpoint.host() + ":" + endpoint.port());
+                closeLinkAsync(session, link);
+                return;
+            }
+            session.link(link);
+            logger.log(LogLevel.ACTION, session.name(), (reconnect ? "reconnect" : "join")
+                    + " -> connecting endpoint=" + endpoint.host() + ":" + endpoint.port());
+        });
+        if (!applied) {
+            discardLink(session, link);
+        }
+    }
+
+    private void applyConnectFailure(DummySession session, TransportEndpoint endpoint, int generation,
+            boolean reconnect, RuntimeException failure) {
+        String reason = singleLine(AsyncFailures.describe(failure));
+        runOnOwner(session, () -> {
+            if (!acceptGeneration(session, generation)) {
+                return;
+            }
+            logger.log(LogLevel.ERROR, session.name(), (reconnect ? "reconnect_failed" : "connect_failed")
+                    + " endpoint=" + endpoint.host() + ":" + endpoint.port() + " reason=" + reason);
+            if (reconnect) {
+                scheduleReconnect(session);
+                return;
+            }
+            sessions.remove(session.name().toLowerCase(Locale.ROOT));
+            session.destroy();
+        });
+    }
+
+    private boolean acceptGeneration(DummySession session, int generation) {
+        return session.isConnectGeneration(generation)
+                && !session.gracefulLeave()
+                && session.state() != DummyState.DESTROYED
+                && find(session.name()) == session;
+    }
+
+    private void closeLinkAsync(DummySession session, TransportLink link) {
+        ExecutionDispatcher activeDispatcher = dispatcher;
+        if (activeDispatcher != null) {
+            try {
+                if (activeDispatcher.runAsync(plugin, () -> discardLink(session, link)) != null) {
+                    return;
+                }
+            } catch (RuntimeException failure) {
+                logger.log(LogLevel.ERROR, session.name(), "connect_release_unscheduled reason="
+                        + singleLine(AsyncFailures.describe(failure)));
+            }
+        }
+        discardLink(session, link);
+    }
+
+    private void discardLink(DummySession session, TransportLink link) {
+        if (link == null) {
+            return;
+        }
+        try {
+            link.close();
+        } catch (RuntimeException failure) {
+            logger.log(LogLevel.ERROR, session.name(), "discard_failed reason="
+                    + singleLine(AsyncFailures.describe(failure)));
+        }
+    }
+
+    private boolean runOnOwner(DummySession session, Runnable task) {
+        ExecutionDispatcher activeDispatcher = dispatcher;
+        if (activeDispatcher == null) {
+            logger.log(LogLevel.ERROR, session.name(), "connect_apply_skipped reason=dispatcher_unavailable");
+            return false;
+        }
+        try {
+            return activeDispatcher.runGlobal(plugin, task) != null;
+        } catch (RuntimeException failure) {
+            logger.log(LogLevel.ERROR, session.name(), "connect_apply_failed reason="
+                    + singleLine(AsyncFailures.describe(failure)));
+            return false;
         }
     }
 
@@ -397,7 +504,7 @@ public final class DummyManager {
         return session;
     }
 
-    private TransportCallbacks callbacks(DummySession session) {
+    private TransportCallbacks callbacks(DummySession session, int generation) {
         return new TransportCallbacks() {
             @Override
             public void onProtocolPacket(String direction, String packetName) {
@@ -412,6 +519,9 @@ public final class DummyManager {
 
             @Override
             public void onJoined(int entityId) {
+                if (!session.isConnectGeneration(generation)) {
+                    return;
+                }
                 boolean reconciled = session.applyProtocolJoin(entityId);
                 logger.log(LogLevel.RECV, session.name(), "join_game entity=" + entityId);
                 if (reconciled) {
@@ -459,6 +569,10 @@ public final class DummyManager {
             @Override
             public void onClosed(String reason) {
                 boolean graceful = session.gracefulLeave();
+                if (!graceful && !session.isConnectGeneration(generation)) {
+                    logger.log(LogLevel.ACTION, session.name(), "closed stale | " + singleLine(reason));
+                    return;
+                }
                 session.applyTransportClose();
                 if (graceful) {
                     logger.log(LogLevel.ACTION, session.name(), "closed | " + singleLine(reason));

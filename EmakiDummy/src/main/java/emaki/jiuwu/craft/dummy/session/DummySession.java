@@ -23,6 +23,7 @@ public final class DummySession {
     private volatile UUID bukkitUniqueId;
     private int walkStepCounter;
     private int reconnectAttempts;
+    private int connectGeneration;
 
     public DummySession(String name) {
         this.name = name;
@@ -112,6 +113,16 @@ public final class DummySession {
     public synchronized void destroy() {
         state = DummyState.DESTROYED;
         walkActive = false;
+        connectGeneration++;
+    }
+
+    public synchronized int nextConnectGeneration() {
+        connectGeneration++;
+        return connectGeneration;
+    }
+
+    public synchronized boolean isConnectGeneration(int generation) {
+        return connectGeneration == generation;
     }
 
     private boolean promoteJoined() {

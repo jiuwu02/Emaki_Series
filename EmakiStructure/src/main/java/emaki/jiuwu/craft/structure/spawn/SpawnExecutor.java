@@ -9,6 +9,7 @@ import org.bukkit.entity.LivingEntity;
 import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 public final class SpawnExecutor {
 
@@ -76,9 +77,14 @@ public final class SpawnExecutor {
         }
         if (journal != null) {
             Location spawnedLocation = spawned.getLocation();
-            journal.appendEntity(spawnedLocation.getWorld().getName(), spawned.getUniqueId(),
-                    spawnedLocation.getBlockX(), spawnedLocation.getBlockY(),
-                    spawnedLocation.getBlockZ());
+            try {
+                journal.appendEntity(spawnedLocation.getWorld().getName(), spawned.getUniqueId(),
+                        spawnedLocation.getBlockX(), spawnedLocation.getBlockY(),
+                        spawnedLocation.getBlockZ());
+            } catch (GenerationJournal.JournalWriteException exception) {
+                plugin.getLogger().log(Level.WARNING, "生物回滚日志写入失败 " + templateId,
+                        exception);
+            }
         }
     }
 

@@ -36,8 +36,11 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 public final class GenerationFinalizer {
+
+    private static final String DETAIL_JOURNAL_FAILED = "回滚日志写入失败";
 
     private record BlockEntityWrite(int x, int y, int z, NbtValue.CompoundTag nbt) {
     }
@@ -122,6 +125,11 @@ public final class GenerationFinalizer {
                 "blocks", template.blockCount(),
                 "millis", elapsedMillis,
                 "initiator", request.initiatorName()));
+        runStageTwo(request, job);
+        if (!rollbackService.settle(job)) {
+            reportSettleFailure(request, job);
+            return;
+        }
         plugin.messageService().send(request.initiator(), "command.place_done", Map.of(
                 "template", template.id(),
                 "facing", request.facing().configValue(),
@@ -129,11 +137,31 @@ public final class GenerationFinalizer {
                 "y", request.anchorY(),
                 "z", request.anchorZ(),
                 "overwritten", overwritten.get()));
-        runStageTwo(request, job);
-        rollbackService.settle(job);
+    }
+
+    private void reportSettleFailure(GenerationService.Request request, GenerationJob job) {
+        plugin.getLogger().warning("回滚日志提交失败, 事务 " + job.id()
+                + " 已中止, 模板 " + request.template().id());
+        plugin.messageService().send(request.initiator(), "error.generate.failed",
+                Map.of("reason", DETAIL_JOURNAL_FAILED));
+    }
+
+    private boolean journalWritable(GenerationJob job) {
+        GenerationJournal journal = job.journal();
+        if (journal == null) {
+            return true;
+        }
+        if (journal.isHealthy()) {
+            return true;
+        }
+        plugin.getLogger().warning("回滚日志已写入失败, 跳过生成后处理, 事务 " + job.id());
+        return false;
     }
 
     private void runStageTwo(GenerationService.Request request, GenerationJob job) {
+        if (!journalWritable(job)) {
+            return;
+        }
         GenerationJournal journal = job.journal();
         StructureTemplate template = request.template();
         World world = request.world();
@@ -224,6 +252,8 @@ public final class GenerationFinalizer {
                 journal.appendEntity(location.getWorld().getName(), spawned.getUniqueId(),
                         location.getBlockX(), location.getBlockY(), location.getBlockZ());
             }
+        } catch (GenerationJournal.JournalWriteException exception) {
+            plugin.getLogger().log(Level.WARNING, "模板实体回滚日志写入失败 " + entity.type(), exception);
         } catch (RuntimeException exception) {
             plugin.getLogger().warning("模板实体生成失败 " + entity.type() + ": " + exception.getMessage());
         }
@@ -296,6 +326,8 @@ public final class GenerationFinalizer {
                         entityLocation.getBlockX(), entityLocation.getBlockY(),
                         entityLocation.getBlockZ());
             }
+        } catch (GenerationJournal.JournalWriteException exception) {
+            plugin.getLogger().log(Level.WARNING, "家具回滚日志写入失败 " + templateId, exception);
         } catch (RuntimeException exception) {
             plugin.messageService().warning("console.furniture_place_failed", Map.of(
                     "template", templateId,

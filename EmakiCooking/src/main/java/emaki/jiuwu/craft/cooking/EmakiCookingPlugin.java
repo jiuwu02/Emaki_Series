@@ -21,6 +21,7 @@ import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
@@ -268,9 +269,15 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (editorService != null) {
             editorService.flushAll();
         }
+        boolean previousReady = publicApiReady;
         publicApiReady = false;
         publishLoading();
-        lifecycleCoordinator.reload(this);
+        try {
+            lifecycleCoordinator.reload(this);
+        } catch (RuntimeException exception) {
+            restoreReadiness(previousReady, exception);
+            throw exception;
+        }
         logConfigPrecheckReport();
         publicApiReady = true;
         publishReady();
@@ -280,14 +287,30 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (editorService != null) {
             editorService.flushAll();
         }
+        boolean previousReady = publicApiReady;
         publicApiReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, null)
-                .thenRun(() -> {
+                .whenComplete((_, failure) -> {
+                    if (failure != null) {
+                        restoreReadiness(previousReady, failure);
+                        return;
+                    }
                     logConfigPrecheckReport();
                     publicApiReady = true;
                     publishReady();
                 });
+    }
+
+    private void restoreReadiness(boolean previousReady, Throwable failure) {
+        publicApiReady = previousReady;
+        if (previousReady) {
+            publishReady();
+        } else {
+            publishLoading();
+        }
+        getLogger().warning("[reload] 烹饪重载失败, 就绪状态已恢复为 "
+                + (previousReady ? "ready" : "loading") + ": " + AsyncFailures.describe(failure));
     }
 
     private void publishReady() {

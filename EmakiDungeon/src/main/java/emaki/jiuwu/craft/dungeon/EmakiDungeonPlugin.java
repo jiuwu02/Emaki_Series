@@ -5,10 +5,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.logging.Level;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -92,6 +99,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private static final String MODULE = "dungeon";
     private static final String ROOT_COMMAND = "edg";
+    private static final long SHUTDOWN_DRAIN_SECONDS = 5L;
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
     private static final String API_VERSION = "1.0.0";
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
@@ -175,6 +183,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (!shutdownStarted.compareAndSet(false, true)) {
             return;
         }
+        AtomicInteger shutdownFailures = new AtomicInteger();
+        CompletableFuture<Boolean> rewardBoxDrain = rewardBox == null
+                ? CompletableFuture.completedFuture(Boolean.TRUE)
+                : rewardBox.drainWrites();
         if (challenge != null) {
             challenge.shutdown();
             challenge = null;
@@ -208,7 +220,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             guiService = null;
         }
         if (parties != null) {
-            parties.shutdown();
+            if (!parties.shutdown()) {
+                shutdownFailures.incrementAndGet();
+            }
             parties = null;
         }
         if (commandGuard != null) {
@@ -216,7 +230,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             commandGuard = null;
         }
         if (coordinator != null) {
-            coordinator.shutdown();
+            if (!coordinator.shutdown()) {
+                shutdownFailures.incrementAndGet();
+            }
             coordinator = null;
         }
         if (performanceMonitor != null) {
@@ -234,6 +250,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (teleportGuard != null) {
             teleportGuard = null;
         }
+        if (!awaitRewardBoxDrain(rewardBoxDrain)) {
+            shutdownFailures.incrementAndGet();
+        }
+        rewardBox = null;
+        rewardBoxGui = null;
+        if (shutdownFailures.get() > 0) {
+            getLogger().warning("[shutdown] 停服保存未干净完成: failed=" + shutdownFailures.get());
+        }
         recovery = null;
         snapshots = null;
         router = null;
@@ -246,6 +270,33 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
         }
+    }
+
+    private boolean awaitRewardBoxDrain(CompletableFuture<Boolean> drain) {
+        if (drain == null) {
+            return true;
+        }
+        try {
+            return Boolean.TRUE.equals(drain.get(SHUTDOWN_DRAIN_SECONDS, TimeUnit.SECONDS));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            getLogger().warning("[shutdown] 等待奖励箱落盘时被中断, 停服结果不完整");
+            return false;
+        } catch (ExecutionException | CancellationException failure) {
+            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘失败, 停服结果不完整: "
+                    + describeShutdownFailure(failure), failure);
+            return false;
+        } catch (TimeoutException timeout) {
+            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘在 " + SHUTDOWN_DRAIN_SECONDS
+                    + " 秒内未完成, 停服结果不完整", timeout);
+            return false;
+        }
+    }
+
+    private String describeShutdownFailure(Throwable failure) {
+        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+        return cause.getClass().getSimpleName()
+                + (cause.getMessage() == null ? "" : ": " + cause.getMessage());
     }
 
     @Override
@@ -592,7 +643,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator(),
                 new emaki.jiuwu.craft.dungeon.flow.TriggerCounter());
         var runtime = new emaki.jiuwu.craft.dungeon.flow.FlowRuntime(
-                instance, definition, adjudicator, messageService, teleportGuard::permit);
+                instance, definition, adjudicator, messageService, teleportGuard::permit,
+                this, EmakiCoreLibPlugin.lookup().executionDispatcher());
         var gateController = new emaki.jiuwu.craft.dungeon.flow.GateController(this, instance, debugLogger());
         var waveController = new emaki.jiuwu.craft.dungeon.flow.WaveController(
                 this, EmakiCoreLibPlugin.lookup().executionDispatcher(), instance,

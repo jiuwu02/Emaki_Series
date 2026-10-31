@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.script;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -27,6 +29,7 @@ import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import java.time.Duration;
 import java.util.LinkedHashMap;
@@ -350,19 +353,60 @@ public final class DungeonScriptSession implements AutoCloseable {
             }
 
             @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
             public void execute() {
                 World world = Bukkit.getWorld(instance.instanceId());
                 if (world == null) {
                     return;
                 }
+                List<UUID> audience = new ArrayList<>();
                 for (Player member : world.getPlayers()) {
-                    messages.send(member, "script.stopped_chat", Map.of());
+                    audience.add(member.getUniqueId());
+                }
+                for (UUID memberId : audience) {
+                    submitStoppedChat(memberId);
                 }
             }
         });
         if (failOnError && controllers != null) {
             controllers.triggerFail(runtime, "script_error");
         }
+    }
+
+    private void submitStoppedChat(UUID playerId) {
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
+            }
+
+            @Override
+            public void execute() {
+                Player member = Bukkit.getPlayer(playerId);
+                if (member != null) {
+                    messages.send(member, "script.stopped_chat", Map.of());
+                }
+            }
+        });
     }
 
     private String describe(PolyglotException exception) {

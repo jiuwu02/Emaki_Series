@@ -72,7 +72,11 @@ final class CoreLibLifecycleCoordinator
                 new CorePluginLifecycle(plugin::finalizeCoreRuntimeAsync);
         corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
-        GuiBackendRegistry guiBackendRegistry = new GuiBackendRegistry(messageService);
+        GuiBackendRegistry guiBackendRegistry = new GuiBackendRegistry(
+                messageService,
+                plugin,
+                plugin.executionDispatcher(),
+                plugin.threadOwnership());
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
         GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
         GuiBackend guiBackend = new RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);

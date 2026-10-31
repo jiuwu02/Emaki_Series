@@ -122,9 +122,9 @@ public final class PartyService {
         cleanupTask = dispatcher.runGlobalTimer(plugin, this::cleanupOnce, CLEANUP_PERIOD_TICKS, CLEANUP_PERIOD_TICKS);
     }
 
-    public void shutdown() {
+    public boolean shutdown() {
         cleanupTask.cancel();
-        store.saveSync();
+        return store.saveSync();
     }
 
     public Party partyOf(UUID playerId) {

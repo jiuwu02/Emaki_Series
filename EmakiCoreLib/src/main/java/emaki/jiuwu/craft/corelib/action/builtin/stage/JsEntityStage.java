@@ -51,8 +51,9 @@ public final class JsEntityStage extends BaseStage {
             timeoutMs = DEFAULT_TIMEOUT_MS;
         }
 
+        BukkitPlayerExport playerExport = new BukkitPlayerExport(player);
         Map<String, Object> bindings = new HashMap<>();
-        bindings.put("player", new BukkitPlayerExport(player));
+        bindings.put("player", playerExport);
         bindings.put("context", new EmakiContextExport(context));
 
         ScriptResult result = GraalJsEngine.getInstance().eval(code, bindings, timeoutMs);
@@ -69,6 +70,10 @@ public final class JsEntityStage extends BaseStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.script.eval.error",
                     Map.of("error_message", message));
+        }
+
+        if (playerExport.hasPatches() && player.isOnline()) {
+            playerExport.applyPatches(player);
         }
 
         Object value = result.getValue();

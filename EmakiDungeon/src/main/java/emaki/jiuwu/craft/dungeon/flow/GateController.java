@@ -10,6 +10,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import org.bukkit.block.data.BlockData;
 
 public final class GateController {
@@ -57,10 +58,26 @@ public final class GateController {
     }
 
     private void submitAir(FlowRegion region) {
+        FlowPoint center = region.center();
         instance.commands().submit(new WorldCommand() {
             @Override
             public int blockCost() {
                 return regionVolume(region);
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
+            public double[] anchor() {
+                return new double[] {center.x(), center.y(), center.z()};
             }
 
             @Override
@@ -92,6 +109,21 @@ public final class GateController {
             @Override
             public int blockCost() {
                 return cost;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
+            public double[] anchor() {
+                return new double[] {point.x(), point.y(), point.z()};
             }
 
             @Override

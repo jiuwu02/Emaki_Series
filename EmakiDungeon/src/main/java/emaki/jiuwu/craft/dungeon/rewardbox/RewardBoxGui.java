@@ -188,24 +188,24 @@ public final class RewardBoxGui implements Listener {
     }
 
     private void saveContents(BoxHolder holder, Inventory inventory) {
-        RewardBoxStore.Box box = service.store().load(holder.playerId);
         int pageStart = holder.page * CONTENT_SLOTS;
         int contentShown = Math.min(CONTENT_SLOTS,
                 Math.max(0, holder.visibleCount - pageStart));
-        List<ItemStack> merged = new ArrayList<>();
-        if (pageStart > 0) {
-            merged.addAll(box.items().subList(0, Math.min(pageStart, box.items().size())));
-        }
-        for (int slot = 0; slot < CONTENT_SLOTS; slot++) {
-            ItemStack stack = inventory.getItem(slot);
-            if (stack != null && stack.getType() != Material.AIR) {
-                merged.add(stack.clone());
+        service.store().update(holder.playerId, box -> {
+            List<ItemStack> merged = new ArrayList<>();
+            if (pageStart > 0) {
+                merged.addAll(box.items().subList(0, Math.min(pageStart, box.items().size())));
             }
-        }
-        int tailFrom = Math.min(box.items().size(), pageStart + contentShown);
-        merged.addAll(box.items().subList(tailFrom, box.items().size()));
-        box.items().clear();
-        box.items().addAll(merged);
-        service.store().saveAsync(holder.playerId, box);
+            for (int slot = 0; slot < CONTENT_SLOTS; slot++) {
+                ItemStack stack = inventory.getItem(slot);
+                if (stack != null && stack.getType() != Material.AIR) {
+                    merged.add(stack.clone());
+                }
+            }
+            int tailFrom = Math.min(box.items().size(), pageStart + contentShown);
+            merged.addAll(box.items().subList(tailFrom, box.items().size()));
+            box.items().clear();
+            box.items().addAll(merged);
+        });
     }
 }

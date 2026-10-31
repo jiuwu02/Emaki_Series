@@ -24,8 +24,8 @@ public abstract class YamlDirectoryLoader<T> {
 
     protected final JavaPlugin plugin;
     protected final Object stateLock = new Object();
-    protected final Map<String, T> items = new LinkedHashMap<>();
-    protected final Map<String, LoadedYamlEntry<T>> loadedEntries = new LinkedHashMap<>();
+    protected Map<String, T> items = new LinkedHashMap<>();
+    protected Map<String, LoadedYamlEntry<T>> loadedEntries = new LinkedHashMap<>();
     protected final List<String> issues = new ArrayList<>();
     protected boolean loaded;
 
@@ -35,10 +35,7 @@ public abstract class YamlDirectoryLoader<T> {
 
     public final int load() {
         synchronized (stateLock) {
-            items.clear();
-            loadedEntries.clear();
             issues.clear();
-            loaded = false;
             File directory = new File(plugin.getDataFolder(), directoryName());
             if (!directory.exists()) {
                 try {
@@ -47,8 +44,14 @@ public abstract class YamlDirectoryLoader<T> {
                     onDirectoryCreateFailed(directory);
                 }
             }
+            if (!directory.isDirectory()) {
+                loaded = false;
+                return items.size();
+            }
             List<File> files = collectYamlFiles(directory);
             if (files.isEmpty()) {
+                items = new LinkedHashMap<>();
+                loadedEntries = new LinkedHashMap<>();
                 loaded = true;
                 return 0;
             }
@@ -56,7 +59,12 @@ public abstract class YamlDirectoryLoader<T> {
                 beforeFilesLoaded(directory, List.copyOf(files));
             } catch (RuntimeException exception) {
                 onPreparationFailure(directory, exception);
+                loaded = false;
+                return items.size();
             }
+            Map<String, T> candidateItems = new LinkedHashMap<>();
+            Map<String, LoadedYamlEntry<T>> candidateEntries = new LinkedHashMap<>();
+            int failedFiles = 0;
             for (File file : files) {
                 try {
                     YamlSection configuration = YamlFiles.load(file);
@@ -69,16 +77,23 @@ public abstract class YamlDirectoryLoader<T> {
                         onBlankId(file);
                         continue;
                     }
-                    if (items.containsKey(id)) {
+                    if (candidateItems.containsKey(id)) {
                         onDuplicateId(file, id);
                         continue;
                     }
-                    items.put(id, value);
-                    loadedEntries.put(id, new LoadedYamlEntry<>(id, file, cloneConfiguration(configuration), value));
+                    candidateItems.put(id, value);
+                    candidateEntries.put(id, new LoadedYamlEntry<>(id, file, cloneConfiguration(configuration), value));
                 } catch (Exception exception) {
+                    failedFiles++;
                     onLoadFailure(file, exception);
                 }
             }
+            if (candidateItems.isEmpty() && failedFiles > 0) {
+                loaded = false;
+                return items.size();
+            }
+            items = candidateItems;
+            loadedEntries = candidateEntries;
             loaded = true;
             return items.size();
         }

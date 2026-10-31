@@ -1,33 +1,41 @@
 package emaki.jiuwu.craft.dungeon.flow;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 
+import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.script.TriggerSink;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import java.time.Duration;
 import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.function.Consumer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.Sound;
+import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 public final class FlowRuntime {
@@ -37,12 +45,17 @@ public final class FlowRuntime {
     private final Adjudicator adjudicator;
     private final MessageService messages;
     private final Consumer<UUID> teleportPermit;
+    private final Plugin plugin;
+    private final ExecutionDispatcher dispatcher;
     private volatile FlowControllers controllers;
     private volatile PlayerStateHook stateHook;
     private volatile TriggerSink scriptSink;
     private volatile boolean scriptTakeover;
     private volatile DebugLogger debug;
 
+    private final AtomicLong generation = new AtomicLong();
+    private final Set<TaskToken> scheduledTasks = ConcurrentHashMap.newKeySet();
+    private volatile boolean running = true;
     private final Map<String, Object> facts = new ConcurrentHashMap<>();
     private final Set<String> openedGates = ConcurrentHashMap.newKeySet();
     private final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
@@ -53,12 +66,16 @@ public final class FlowRuntime {
             FlowDefinition definition,
             Adjudicator adjudicator,
             MessageService messages,
-            Consumer<UUID> teleportPermit) {
+            Consumer<UUID> teleportPermit,
+            Plugin plugin,
+            ExecutionDispatcher dispatcher) {
         this.instance = instance;
         this.definition = definition;
         this.adjudicator = adjudicator;
         this.messages = messages;
         this.teleportPermit = teleportPermit;
+        this.plugin = plugin;
+        this.dispatcher = dispatcher;
         if (!definition.rooms().isEmpty()) {
             this.currentRoomOrder = definition.rooms().get(0).order() - 1;
         }
@@ -89,6 +106,59 @@ public final class FlowRuntime {
         if (logger != null) {
             logger.logRaw("dungeon", (UUID) null, message);
         }
+    }
+
+    public long instanceGeneration() {
+        return generation.get();
+    }
+
+    public boolean isCurrentGeneration(long expected) {
+        return running && generation.get() == expected;
+    }
+
+    public void shutdown() {
+        running = false;
+        generation.incrementAndGet();
+        for (TaskToken token : scheduledTasks) {
+            if (!token.cancelled()) {
+                token.cancel();
+            }
+        }
+        scheduledTasks.clear();
+    }
+
+    private boolean schedule(Supplier<TaskToken> action, String description) {
+        if (!running) {
+            return false;
+        }
+        TaskToken token;
+        try {
+            token = action.get();
+        } catch (RuntimeException exception) {
+            DebugLogger logger = debug;
+            if (logger != null) {
+                logger.logRaw("dungeon", (UUID) null, "调度失败 | instance=" + instance.instanceId()
+                        + " | task=" + description + " | error=" + exception.getMessage());
+            }
+            return false;
+        }
+        if (token == null || token.cancelled()) {
+            return false;
+        }
+        scheduledTasks.add(token);
+        return true;
+    }
+
+    public boolean scheduleGlobal(long delayTicks, String description, Runnable task) {
+        long expected = generation.get();
+        return schedule(() -> dispatcher.runGlobalLater(plugin, () -> {
+            if (!isCurrentGeneration(expected)) {
+                anchor("scheduled task discarded | instance=" + instance.instanceId()
+                        + " | task=" + description + " | reason=实例代际已失效");
+                return;
+            }
+            task.run();
+        }, delayTicks), description);
     }
 
     public boolean isScriptTakeover() {
@@ -414,21 +484,59 @@ public final class FlowRuntime {
             }
 
             @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.GLOBAL;
+            }
+
+            @Override
             public void execute() {
                 World world = target.getWorld();
                 if (world == null) {
                     return;
                 }
+                List<UUID> stragglers = new ArrayList<>();
                 for (Player member : world.getPlayers()) {
                     if (member.getUniqueId().equals(arrivingPlayer)) {
                         continue;
                     }
                     Location location = member.getLocation();
                     if (region.contains(location.getX(), location.getY(), location.getZ())) {
-                        teleportPermit.accept(member.getUniqueId());
-                        member.teleport(target);
+                        stragglers.add(member.getUniqueId());
                     }
                 }
+                for (UUID straggler : stragglers) {
+                    submitTeleportTo(straggler, target);
+                }
+            }
+        });
+    }
+
+    private void submitTeleportTo(UUID playerId, Location destination) {
+        Location target = destination.clone();
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
+            }
+
+            @Override
+            public void execute() {
+                Player player = Bukkit.getPlayer(playerId);
+                if (player == null) {
+                    return;
+                }
+                teleportPermit.accept(playerId);
+                player.teleportAsync(target);
             }
         });
     }
@@ -587,27 +695,39 @@ public final class FlowRuntime {
                     + " | timer=" + roomTimer.head().id());
             return;
         }
+        long expected = generation.get();
+        long deadline = System.currentTimeMillis() + roomTimer.seconds() * 1000L;
+        boolean scheduled = schedule(() -> dispatcher.runGlobalLater(plugin,
+                () -> fireRoomTimer(roomTimer, playerId, expected), roomTimer.seconds() * 20L),
+                "房间倒计时 " + roomTimer.head().id());
+        if (!scheduled) {
+            anchor("room timer aborted | instance=" + instance.instanceId()
+                    + " | timer=" + roomTimer.head().id() + " | reason=调度被拒绝");
+            return;
+        }
         setFact(key, true);
+        setFact(key + ":deadline", deadline);
         anchor("room timer scheduled | instance=" + instance.instanceId()
                 + " | timer=" + roomTimer.head().id() + " | seconds=" + roomTimer.seconds());
-        long deadline = System.currentTimeMillis() + roomTimer.seconds() * 1000L;
-        Bukkit.getScheduler().runTaskLater(
-                Bukkit.getPluginManager().getPlugin("EmakiDungeon"),
-                () -> {
-                    anchor("room timer fired | instance=" + instance.instanceId()
-                            + " | timer=" + roomTimer.head().id());
-                    if (instance.commands() == null) {
-                        anchor("room timer aborted | instance=" + instance.instanceId()
-                                + " | reason=commands_null");
-                        return;
-                    }
-                    setFact(Facts.timerMark(roomTimer.head().id()), true);
-                    setFact(Facts.TIMER_REMAINING, 0);
-                    executeActions(List.of(roomTimer.onZero()),
-                            new EvalContext(playerId, Map.of()), playerId);
-                },
-                roomTimer.seconds() * 20L);
-        setFact(key + ":deadline", deadline);
+    }
+
+    private void fireRoomTimer(FlowModules.RoomTimerDef roomTimer, UUID playerId, long expected) {
+        if (!isCurrentGeneration(expected)) {
+            anchor("room timer discarded | instance=" + instance.instanceId()
+                    + " | timer=" + roomTimer.head().id() + " | reason=实例代际已失效");
+            return;
+        }
+        anchor("room timer fired | instance=" + instance.instanceId()
+                + " | timer=" + roomTimer.head().id());
+        if (instance.commands() == null) {
+            anchor("room timer aborted | instance=" + instance.instanceId()
+                    + " | reason=commands_null");
+            return;
+        }
+        setFact(Facts.timerMark(roomTimer.head().id()), true);
+        setFact(Facts.TIMER_REMAINING, 0);
+        executeActions(List.of(roomTimer.onZero()),
+                new EvalContext(playerId, Map.of()), playerId);
     }
 
     public void executeActions(List<FlowActionDef> actions, EvalContext context, UUID playerId) {
@@ -674,10 +794,21 @@ public final class FlowRuntime {
         if (playerId == null || effectZone.effects().isEmpty()) {
             return;
         }
+        List<String> effects = List.copyOf(effectZone.effects());
         instance.commands().submit(new WorldCommand() {
             @Override
             public int blockCost() {
                 return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
             }
 
             @Override
@@ -686,31 +817,35 @@ public final class FlowRuntime {
                 if (player == null) {
                     return;
                 }
-                for (String raw : effectZone.effects()) {
-                    String[] parts = raw.split(":");
-                    if (parts.length == 0 || parts[0].isBlank()) {
-                        continue;
-                    }
-                    try {
-                        PotionEffectType type =
-                                PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
-                        if (type == null) {
-                            continue;
-                        }
-                        int amplifier = parts.length > 1 ? parseSafe(parts[1], 0) : 0;
-                        int duration = parts.length > 2 ? parseSafe(parts[2], 100) : 100;
-                        boolean clear = "clear".equalsIgnoreCase(parts[0]);
-                        if (clear) {
-                            player.removePotionEffect(type);
-                        } else {
-                            player.addPotionEffect(new org.bukkit.potion.PotionEffect(
-                                    type, duration, amplifier, true, true));
-                        }
-                    } catch (IllegalArgumentException ignored) {
-                    }
-                }
+                applyEffectSpecs(player, effects);
             }
         });
+    }
+
+    private void applyEffectSpecs(Player player, List<String> effects) {
+        for (String raw : effects) {
+            String[] parts = raw.split(":");
+            if (parts.length == 0 || parts[0].isBlank()) {
+                continue;
+            }
+            try {
+                PotionEffectType type =
+                        PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
+                if (type == null) {
+                    continue;
+                }
+                int amplifier = parts.length > 1 ? parseSafe(parts[1], 0) : 0;
+                int duration = parts.length > 2 ? parseSafe(parts[2], 100) : 100;
+                boolean clear = "clear".equalsIgnoreCase(parts[0]);
+                if (clear) {
+                    player.removePotionEffect(type);
+                } else {
+                    player.addPotionEffect(new PotionEffect(
+                            type, duration, amplifier, true, true));
+                }
+            } catch (IllegalArgumentException ignored) {
+            }
+        }
     }
 
     private static int parseSafe(String raw, int fallback) {
@@ -722,58 +857,105 @@ public final class FlowRuntime {
     }
 
     private void submitHint(UUID playerId, String text, String channel) {
-        instance.commands().submit(new WorldCommand() {
-            @Override
-            public int blockCost() {
-                return 0;
-            }
+        List<UUID> audience = audienceOf(playerId);
+        if (audience.isEmpty()) {
+            return;
+        }
+        Component component = MiniMessages.parse(text);
+        for (UUID memberId : audience) {
+            instance.commands().submit(new WorldCommand() {
+                @Override
+                public int blockCost() {
+                    return 0;
+                }
 
-            @Override
-            public void execute() {
-                World world = Bukkit.getWorld(instance.instanceId());
-                if (world == null) {
-                    return;
+                @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.ENTITY;
                 }
-                var component = MiniMessages.parse(text);
-                for (Player player : world.getPlayers()) {
-                    if ("title".equals(channel)) {
-                        player.showTitle(Title.title(
-                                component, Component.empty(),
-                                Title.Times.times(
-                                Duration.ofMillis(100),
-                                Duration.ofMillis(600),
-                                Duration.ofMillis(100))));
-                    } else if ("actionbar".equals(channel)) {
-                        player.sendActionBar(component);
-                    } else {
-                        player.sendMessage(component);
+
+                @Override
+                public UUID entityId() {
+                    return memberId;
+                }
+
+                @Override
+                public void execute() {
+                    Player player = Bukkit.getPlayer(memberId);
+                    if (player == null) {
+                        return;
                     }
+                    showHint(player, component, channel);
                 }
-            }
-        });
+            });
+        }
+    }
+
+    private void showHint(Player player, Component component, String channel) {
+        if ("title".equals(channel)) {
+            player.showTitle(Title.title(
+                    component, Component.empty(),
+                    Title.Times.times(
+                    Duration.ofMillis(100),
+                    Duration.ofMillis(600),
+                    Duration.ofMillis(100))));
+        } else if ("actionbar".equals(channel)) {
+            player.sendActionBar(component);
+        } else {
+            player.sendMessage(component);
+        }
     }
 
     private void submitMessage(UUID playerId, String key, String channel) {
         if (key.isEmpty()) {
             return;
         }
-        instance.commands().submit(new WorldCommand() {
-            @Override
-            public int blockCost() {
-                return 0;
-            }
-
-            @Override
-            public void execute() {
-                World world = Bukkit.getWorld(instance.instanceId());
-                if (world == null) {
-                    return;
+        List<UUID> audience = audienceOf(playerId);
+        if (audience.isEmpty()) {
+            return;
+        }
+        for (UUID memberId : audience) {
+            instance.commands().submit(new WorldCommand() {
+                @Override
+                public int blockCost() {
+                    return 0;
                 }
-                for (Player player : world.getPlayers()) {
+
+                @Override
+                public WorldCommandTarget target() {
+                    return WorldCommandTarget.ENTITY;
+                }
+
+                @Override
+                public UUID entityId() {
+                    return memberId;
+                }
+
+                @Override
+                public void execute() {
+                    Player player = Bukkit.getPlayer(memberId);
+                    if (player == null) {
+                        return;
+                    }
                     messages.send(player, key, Map.of());
                 }
-            }
-        });
+            });
+        }
+    }
+
+    private List<UUID> audienceOf(UUID playerId) {
+        if (playerId != null) {
+            return List.of(playerId);
+        }
+        World world = Bukkit.getWorld(instance.instanceId());
+        if (world == null) {
+            return List.of();
+        }
+        List<UUID> audience = new ArrayList<>();
+        for (Player player : world.getPlayers()) {
+            audience.add(player.getUniqueId());
+        }
+        return audience;
     }
 
     private void submitConsoleCommand(String commandLine) {
@@ -784,6 +966,11 @@ public final class FlowRuntime {
             @Override
             public int blockCost() {
                 return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.GLOBAL;
             }
 
             @Override
@@ -804,6 +991,16 @@ public final class FlowRuntime {
             }
 
             @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
+            }
+
+            @Override
             public void execute() {
                 Player player = Bukkit.getPlayer(playerId);
                 World world = Bukkit.getWorld(instance.instanceId());
@@ -811,7 +1008,7 @@ public final class FlowRuntime {
                     return;
                 }
                 teleportPermit.accept(playerId);
-                player.teleport(new Location(world, point.x(), point.y(), point.z(),
+                player.teleportAsync(new Location(world, point.x(), point.y(), point.z(),
                         point.yaw(), point.pitch()));
             }
         });
@@ -822,6 +1019,26 @@ public final class FlowRuntime {
             @Override
             public int blockCost() {
                 return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
+            public double[] anchor() {
+                World world = Bukkit.getWorld(instance.instanceId());
+                if (world == null) {
+                    return null;
+                }
+                Location spawn = world.getSpawnLocation();
+                return new double[] {spawn.getX(), spawn.getY(), spawn.getZ()};
             }
 
             @Override
@@ -864,6 +1081,21 @@ public final class FlowRuntime {
             @Override
             public int blockCost() {
                 return 1;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
+            public double[] anchor() {
+                return new double[] {point.x(), point.y(), point.z()};
             }
 
             @Override

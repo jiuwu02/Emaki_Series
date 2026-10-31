@@ -24,6 +24,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import java.util.LinkedHashMap;
 
@@ -72,6 +73,16 @@ public final class RewardChestService implements Listener {
             }
 
             @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
             public void execute() {
                 World world = Bukkit.getWorld(instance.instanceId());
                 if (world == null) {
@@ -115,6 +126,16 @@ public final class RewardChestService implements Listener {
             @Override
             public int blockCost() {
                 return 1;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
             }
 
             @Override

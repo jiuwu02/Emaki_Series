@@ -10,7 +10,11 @@ import emaki.jiuwu.craft.dungeon.flow.FlowControllers;
 import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
+import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import org.bukkit.potion.PotionEffectType;
 
 public final class ScriptHostObject {
@@ -187,12 +191,53 @@ public final class ScriptHostObject {
             }
 
             @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.LOCATION;
+            }
+
+            @Override
+            public String worldName() {
+                return instance.instanceId();
+            }
+
+            @Override
             public void execute() {
                 World world = Bukkit.getWorld(instance.instanceId());
                 if (world == null) {
                     return;
                 }
+                List<UUID> audience = new ArrayList<>();
                 for (Player member : world.getPlayers()) {
+                    audience.add(member.getUniqueId());
+                }
+                for (UUID memberId : audience) {
+                    submitEntryEffect(memberId, spec);
+                }
+            }
+        });
+    }
+
+    private void submitEntryEffect(UUID playerId, String spec) {
+        instance.commands().submit(new WorldCommand() {
+            @Override
+            public int blockCost() {
+                return 0;
+            }
+
+            @Override
+            public WorldCommandTarget target() {
+                return WorldCommandTarget.ENTITY;
+            }
+
+            @Override
+            public UUID entityId() {
+                return playerId;
+            }
+
+            @Override
+            public void execute() {
+                Player member = Bukkit.getPlayer(playerId);
+                if (member != null) {
                     applySpec(member, spec);
                 }
             }

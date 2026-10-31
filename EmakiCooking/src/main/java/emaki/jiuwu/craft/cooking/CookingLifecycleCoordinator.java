@@ -9,6 +9,7 @@ import java.util.function.Consumer;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
@@ -307,6 +308,17 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     public void reload(EmakiCookingPlugin plugin) {
+        AppConfig previousAppConfig = plugin.appConfigLoader().current();
+        String previousLanguage = plugin.languageLoader().currentLanguage();
+        try {
+            applyReload(plugin);
+        } catch (RuntimeException exception) {
+            rollbackReload(plugin, previousAppConfig, previousLanguage, exception);
+            throw exception;
+        }
+    }
+
+    private void applyReload(EmakiCookingPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
         plugin.guiTemplateLoader().load();
@@ -335,6 +347,8 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
         AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AppConfig previousAppConfig = plugin.appConfigLoader().current();
+        String previousLanguage = plugin.languageLoader().currentLanguage();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<Void, Void>(
                 "cooking",
                 "config-load",
@@ -381,12 +395,28 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 },
                 null,
                 null,
-                null,
+                failure -> rollbackReload(plugin, previousAppConfig, previousLanguage, failure),
                 (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
                         "stage", stage,
-                        "error", String.valueOf(ex.getMessage()))),
+                        "error", AsyncFailures.describe(ex))),
                 progressListener
         ));
+    }
+
+    private void rollbackReload(EmakiCookingPlugin plugin,
+            AppConfig previousAppConfig,
+            String previousLanguage,
+            Throwable cause) {
+        if (previousAppConfig != null) {
+            plugin.appConfigLoader().overrideCurrent(previousAppConfig);
+        }
+        String language = previousLanguage == null || previousLanguage.isBlank()
+                ? (previousAppConfig == null ? null : previousAppConfig.language())
+                : previousLanguage;
+        if (language != null && !language.isBlank()) {
+            plugin.languageLoader().setLanguage(language);
+        }
+        plugin.getLogger().warning("[reload] 烹饪重载失败, 已回滚到旧配置: " + AsyncFailures.describe(cause));
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {

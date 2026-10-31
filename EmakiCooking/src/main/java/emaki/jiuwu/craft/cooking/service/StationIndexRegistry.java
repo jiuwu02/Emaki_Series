@@ -17,7 +17,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 import java.util.stream.Stream;
@@ -86,8 +85,8 @@ final class StationIndexRegistry {
             }
             boolean loaded = loadIndexFiles();
             if (!loaded || entries.isEmpty()) {
-                int legacyCount = scanLegacyYamlSync();
-                if (legacyCount > 0) {
+                LegacyScanResult legacy = scanLegacyYamlSync();
+                if (legacy.states() > 0) {
                     flushDirtyIndexesAsync();
                 }
             }
@@ -403,121 +402,165 @@ final class StationIndexRegistry {
     CompletableFuture<StationStateStore.ReindexReport> reindexAsync() {
         ensureIndexLoaded();
         dirtyIndexWorlds.addAll(resetIndexForRebuild());
-        return scanLegacyYamlAsync().thenCompose(legacyCount -> scanLoadedPdcStationsAsync()
-                .thenCompose(pdcCount -> flushDirtyIndexesAsync()
-                        .thenApply(_ -> new StationStateStore.ReindexReport(legacyCount, pdcCount, entries.size()))));
+        return scanLegacyYamlAsync().thenCompose(legacy -> scanLoadedPdcStationsAsync()
+                .thenCompose(loaded -> flushDirtyIndexesAsync()
+                        .thenApply(_ -> buildReindexReport(legacy, loaded))));
     }
 
-    private int scanLegacyYamlSync() {
+    private StationStateStore.ReindexReport buildReindexReport(LegacyScanResult legacy, PdcScanResult loaded) {
+        Collection<String> failures = new LinkedHashSet<>(legacy.failures());
+        failures.addAll(loaded.failures());
+        return new StationStateStore.ReindexReport(
+                legacy.states(),
+                loaded.states(),
+                entries.size(),
+                List.copyOf(failures));
+    }
+
+    private LegacyScanResult scanLegacyYamlSync() {
         Path root = fileStore.stationsRoot();
         if (!Files.exists(root)) {
-            return 0;
+            return new LegacyScanResult(0, List.of());
         }
         int count = 0;
+        Collection<String> failures = new LinkedHashSet<>();
         try (Stream<Path> stream = Files.walk(root)) {
             for (Path file : stream.filter(Files::isRegularFile)
                     .filter(fileStore::isYamlFile)
                     .filter(path -> !path.startsWith(indexRoot()))
                     .toList()) {
-                YamlSection state = YamlFiles.load(file.toFile());
-                StationType type = fileStore.stationType(state);
-                StationCoordinates coordinates = StationCoordinates.fromSection(state);
-                if (type == null || coordinates == null) {
-                    continue;
+                StationCoordinates coordinates = recordLegacyYamlStation(file, failures);
+                if (coordinates != null) {
+                    count++;
                 }
-                YamlSection normalized = fileStore.normalizeLoadedState(coordinates, state);
-                StoredState selected = arbiter.latestState(
-                        normalized == null ? null : new StoredState(
-                                normalized,
-                                fileStore.stateVersion(normalized),
-                                fileStore.tombstone(normalized),
-                                StationStorageBackend.YAML_FALLBACK),
-                        fileStore.readTombstoneCandidate(coordinates)
-                );
-                if (selected == null || selected.tombstone() || selected.state() == null) {
-                    continue;
-                }
-                normalized = selected.state();
-                fileStore.cacheYamlState(coordinates, normalized);
-                fileStore.rememberStationSource(coordinates, fileStore.stationSource(normalized));
-                recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, fileStore.stationSource(normalized), fileStore.savedAt(normalized), true);
-                count++;
             }
         } catch (IOException exception) {
             plugin.getLogger().warning("[persistence] 扫描旧版工位 YAML 失败: " + exception.getMessage());
+            failures.add("扫描旧版工位 YAML 失败: " + exception.getMessage());
         }
-        return count;
+        return new LegacyScanResult(count, List.copyOf(failures));
     }
 
-    private CompletableFuture<Integer> scanLegacyYamlAsync() {
+    private StationCoordinates recordLegacyYamlStation(Path file, Collection<String> failures) {
+        try {
+            YamlSection state = YamlFiles.load(file.toFile());
+            StationType type = fileStore.stationType(state);
+            StationCoordinates coordinates = StationCoordinates.fromSection(state);
+            if (type == null || coordinates == null) {
+                return null;
+            }
+            YamlSection normalized = fileStore.normalizeLoadedState(coordinates, state);
+            StoredState selected = arbiter.latestState(
+                    normalized == null ? null : new StoredState(
+                            normalized,
+                            fileStore.stateVersion(normalized),
+                            fileStore.tombstone(normalized),
+                            StationStorageBackend.YAML_FALLBACK),
+                    fileStore.readTombstoneCandidate(coordinates)
+            );
+            if (selected == null || selected.tombstone() || selected.state() == null) {
+                return null;
+            }
+            normalized = selected.state();
+            fileStore.cacheYamlState(coordinates, normalized);
+            fileStore.rememberStationSource(coordinates, fileStore.stationSource(normalized));
+            recordIndex(coordinates, type, StationStorageBackend.YAML_FALLBACK, fileStore.stationSource(normalized), fileStore.savedAt(normalized), true);
+            return coordinates;
+        } catch (RuntimeException exception) {
+            String reason = StationStateStore.rootCauseMessage(exception);
+            plugin.getLogger().warning("[persistence] 旧版工位 YAML " + file.getFileName() + " 解析失败: " + reason);
+            failures.add("旧版工位 YAML " + file.getFileName() + " 解析失败: " + reason);
+            return null;
+        }
+    }
+
+    private CompletableFuture<LegacyScanResult> scanLegacyYamlAsync() {
         if (fileScope == null) {
             return CompletableFuture.completedFuture(scanLegacyYamlSync());
         }
         return fileScope.read("station-index-scan-legacy-yaml", this::scanLegacyYamlSync)
                 .exceptionally(throwable -> {
-                    plugin.getLogger().warning("[persistence] 旧版工位 YAML 扫描失败: " + StationStateStore.rootCauseMessage(throwable));
-                    return 0;
+                    String reason = StationStateStore.rootCauseMessage(throwable);
+                    plugin.getLogger().warning("[persistence] 旧版工位 YAML 扫描失败: " + reason);
+                    return new LegacyScanResult(0, List.of("旧版工位 YAML 扫描失败: " + reason));
                 });
     }
 
-    private CompletableFuture<Integer> scanLoadedPdcStationsAsync() {
-        CompletableFuture<List<LoadedChunkRef>> snapshotFuture = taskScheduler.submitGlobal(plugin, () -> {
-            List<LoadedChunkRef> chunks = new ArrayList<>();
-            for (World world : Bukkit.getWorlds()) {
-                for (Chunk chunk : world.getLoadedChunks()) {
-                    chunks.add(new LoadedChunkRef(world.getName(), chunk.getX(), chunk.getZ()));
-                }
+    private CompletableFuture<PdcScanResult> scanLoadedPdcStationsAsync() {
+        return taskScheduler.submitGlobal(plugin, this::launchLoadedPdcScans)
+                .thenCompose(this::combinePdcScanResults)
+                .exceptionally(throwable -> {
+                    String reason = StationStateStore.rootCauseMessage(throwable);
+                    plugin.getLogger().warning("[persistence] 已加载 TileState 的 PDC 重建索引失败: " + reason);
+                    return new PdcScanResult(0, List.of("已加载 TileState 的 PDC 重建索引失败: " + reason));
+                });
+    }
+
+    private CompletableFuture<PdcScanResult> combinePdcScanResults(List<CompletableFuture<PdcScanResult>> futures) {
+        if (futures.isEmpty()) {
+            return CompletableFuture.completedFuture(new PdcScanResult(0, List.of()));
+        }
+        return CompletableFuture.allOf(futures.stream()
+                .map(future -> future.exceptionally(throwable -> null))
+                .toArray(CompletableFuture<?>[]::new)).thenApply(_ -> {
+            PdcScanResult merged = new PdcScanResult(0, List.of());
+            for (CompletableFuture<PdcScanResult> future : futures) {
+                merged = merged.merge(future.getNow(new PdcScanResult(0, List.of())));
             }
-            return List.copyOf(chunks);
-        });
-        return snapshotFuture.thenCompose(chunks -> {
-            if (chunks.isEmpty()) {
-                return CompletableFuture.completedFuture(0);
-            }
-            List<CompletableFuture<Integer>> futures = new ArrayList<>();
-            for (LoadedChunkRef chunk : chunks) {
-                futures.add(scanLoadedPdcChunkAsync(chunk));
-            }
-            return CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new))
-                    .thenApply(_ -> futures.stream().mapToInt(future -> future.getNow(0)).sum());
-        }).exceptionally(throwable -> {
-            plugin.getLogger().warning("[persistence] 已加载 TileState 的 PDC 重建索引失败: " + StationStateStore.rootCauseMessage(throwable));
-            return 0;
+            return merged;
         });
     }
 
-    private CompletableFuture<Integer> scanLoadedPdcChunkAsync(LoadedChunkRef chunkRef) {
-        CompletableFuture<Integer> future = new CompletableFuture<>();
-        if (chunkRef == null) {
-            future.complete(0);
+    private List<CompletableFuture<PdcScanResult>> launchLoadedPdcScans() {
+        Collection<CompletableFuture<PdcScanResult>> futures = new ArrayList<>();
+        for (World world : Bukkit.getWorlds()) {
+            if (world == null) {
+                continue;
+            }
+            for (Chunk chunk : world.getLoadedChunks()) {
+                futures.add(scheduleLoadedPdcChunkScan(new ChunkScanTarget(world.getName(), chunk.getX(), chunk.getZ()), world));
+            }
+        }
+        return List.copyOf(futures);
+    }
+
+    private CompletableFuture<PdcScanResult> scheduleLoadedPdcChunkScan(ChunkScanTarget target, World world) {
+        CompletableFuture<PdcScanResult> future = new CompletableFuture<>();
+        Location anchor = new Location(world, (target.chunkX() << 4) + 8D, 0D, (target.chunkZ() << 4) + 8D);
+        TaskToken handle;
+        try {
+            handle = taskScheduler.runAtLocation(plugin, anchor, () -> scanLoadedPdcChunkOnRegionThread(target, future));
+        } catch (Throwable throwable) {
+            String reason = StationStateStore.rootCauseMessage(throwable);
+            plugin.getLogger().warning("[persistence] 区块 " + target.worldName() + " " + target.chunkX() + "," + target.chunkZ()
+                    + " 的 TileState 扫描调度失败: " + reason);
+            future.complete(PdcScanResult.failed(target, reason));
             return future;
         }
-        try {
-            World world = Bukkit.getWorld(chunkRef.worldName());
-            if (world == null) {
-                future.complete(0);
-                return future;
-            }
-            Location location = new Location(world, (chunkRef.chunkX() << 4) + 8D, 0D, (chunkRef.chunkZ() << 4) + 8D);
-            TaskToken handle = taskScheduler.runAtLocation(plugin, location, () -> {
-                try {
-                    if (!world.isChunkLoaded(chunkRef.chunkX(), chunkRef.chunkZ())) {
-                        future.complete(0);
-                        return;
-                    }
-                    future.complete(scanLoadedPdcChunkSync(world.getChunkAt(chunkRef.chunkX(), chunkRef.chunkZ())));
-                } catch (Throwable throwable) {
-                    future.completeExceptionally(throwable);
-                }
-            });
-            if (handle == null) {
-                future.completeExceptionally(new RejectedExecutionException(
-                        "位置调度器拒绝了 PDC 扫描"));
-            }
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
+        if (handle == null || handle.cancelled()) {
+            future.complete(PdcScanResult.failed(target, "位置调度器拒绝了 PDC 扫描"));
         }
         return future;
+    }
+
+    private void scanLoadedPdcChunkOnRegionThread(ChunkScanTarget target, CompletableFuture<PdcScanResult> future) {
+        try {
+            World world = Bukkit.getWorld(target.worldName());
+            if (world == null) {
+                future.complete(PdcScanResult.failed(target, "世界已卸载"));
+                return;
+            }
+            if (!world.isChunkLoaded(target.chunkX(), target.chunkZ())) {
+                future.complete(new PdcScanResult(0, List.of()));
+                return;
+            }
+            future.complete(new PdcScanResult(scanLoadedPdcChunkSync(world.getChunkAt(target.chunkX(), target.chunkZ())), List.of()));
+        } catch (Throwable throwable) {
+            String reason = StationStateStore.rootCauseMessage(throwable);
+            plugin.getLogger().warning("[persistence] 区块 " + target.worldName() + " " + target.chunkX() + "," + target.chunkZ()
+                    + " 的 TileState 扫描失败: " + reason);
+            future.complete(PdcScanResult.failed(target, reason));
+        }
     }
 
     private int scanLoadedPdcChunkSync(Chunk chunk) {
@@ -560,6 +603,40 @@ final class StationIndexRegistry {
         return ((long) chunkX << 32) | (chunkZ & 0xffffffffL);
     }
 
-    private record LoadedChunkRef(String worldName, int chunkX, int chunkZ) {
+    private record ChunkScanTarget(String worldName, int chunkX, int chunkZ) {
+
+        private ChunkScanTarget {
+            worldName = worldName == null ? "" : worldName;
+        }
+    }
+
+    private record LegacyScanResult(int states, List<String> failures) {
+
+        private LegacyScanResult {
+            failures = failures == null ? List.of() : List.copyOf(failures);
+        }
+    }
+
+    private record PdcScanResult(int states, List<String> failures) {
+
+        private PdcScanResult {
+            failures = failures == null ? List.of() : List.copyOf(failures);
+        }
+
+        private static PdcScanResult failed(ChunkScanTarget target, String reason) {
+            String name = target == null
+                    ? "<unknown>"
+                    : target.worldName() + " " + target.chunkX() + "," + target.chunkZ();
+            return new PdcScanResult(0, List.of("区块 " + name + " 的 TileState 扫描失败: " + reason));
+        }
+
+        private PdcScanResult merge(PdcScanResult other) {
+            if (other == null) {
+                return this;
+            }
+            Collection<String> mergedFailures = new LinkedHashSet<>(failures);
+            mergedFailures.addAll(other.failures);
+            return new PdcScanResult(states + other.states, List.copyOf(mergedFailures));
+        }
     }
 }
