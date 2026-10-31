@@ -1,5 +1,5 @@
 // EmakiMobsApi（原 EmakiMobsApi/pom.xml）。
-version = '1.0.10'
+version = '2.0.0'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

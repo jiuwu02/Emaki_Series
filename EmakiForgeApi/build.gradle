@@ -1,5 +1,5 @@
 // EmakiForgeApi（原 EmakiForgeApi/pom.xml）。
-version = '4.8.6'
+version = '5.0.0'
 
 dependencies {
     provided project(':EmakiCoreLibApi')
