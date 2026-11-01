@@ -4,7 +4,9 @@ version = '5.0.0'
 // libreforge 的类只在 classifier=all 的胖 Jar 中；libreforge.core 仅存在于私有仓库而
 // maven-public 返回 404，整组排除（胖 Jar 已自包含编译所需类），与根 pom 一致。
 // eco/libreforge 供 EcoItems API 签名解析（ConfigCategory/FastItemStack/Holder/Registrable）。
-def libreforgeAll = "com.willfp:libreforge:${libs.versions.libreforge.get()}:all"
+// 2026.41 起上游把 groupId 迁到 com.willfp.libreforge；旧坐标 com.willfp 会被声明在前的
+// jitpack 抢答（只有 261 字节空壳 Jar、无 -all 变体），故跟随上游新坐标。
+def libreforgeAll = "com.willfp.libreforge:libreforge:${libs.versions.libreforge.get()}:all"
 
 dependencies {
     // 原 shade artifactSet 白名单（bstats-base 由 bstats-bukkit 传递带入）。
