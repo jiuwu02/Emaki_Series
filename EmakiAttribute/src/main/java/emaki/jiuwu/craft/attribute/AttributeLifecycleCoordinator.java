@@ -13,7 +13,6 @@ import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
 import org.bukkit.event.Listener;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.listener.DamageIndicatorListener;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
@@ -26,6 +25,7 @@ import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.DamageCauseRule;
+import emaki.jiuwu.craft.attribute.editor.AttributeEditorModule;
 import emaki.jiuwu.craft.attribute.listener.CombatDamageListener;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugHandler;
 import emaki.jiuwu.craft.attribute.listener.CombatDebugListener;
@@ -51,10 +51,13 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
@@ -67,7 +70,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
         LanguageLoader languageLoader = new LanguageLoader(plugin);
@@ -88,6 +91,11 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         AttributePointsGuiService attributePointsGuiService = new AttributePointsGuiService(plugin, guiService, guiTemplateLoader);
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        AttributeEditorModule editorModule = new AttributeEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         AttributeService attributeService = new AttributeService(
                 plugin,
                 coreLibPlugin.pdcService(),
@@ -106,6 +114,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         );
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry =
                 new ContributionProviderRegistrationRegistry(attributeService);
+        AttributeScriptBridge attributeScriptBridge = new AttributeScriptBridge(plugin, attributeRegistry, messageService);
         EmakiAttributeApi.Bridge emakiAttributeBridge = new ServiceBackedEmakiAttributeBridge(
                 attributeService,
                 scheduling,
@@ -128,7 +137,8 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 itemContributionGateRegistry,
                 attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
-                guiService
+                guiService,
+                chatInputService
         );
         MythicBridge mythicBridge = Bukkit.getPluginManager().isPluginEnabled("MythicMobs")
                 ? new MythicBridge(plugin, attributeService)
@@ -146,6 +156,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 itemContributionGateRegistry,
                 attributeSlotRegistry,
                 contributionProviderRegistrationRegistry,
+                attributeScriptBridge,
                 languageLoader,
                 messageService,
                 emakiAttributeBridge,
@@ -158,7 +169,10 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                 attributeService,
                 listeners,
                 command,
-                mythicBridge
+                mythicBridge,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 
@@ -168,7 +182,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         }
         plugin.registerCommand(
                 "emakiattribute",
-                "emakiattribute command",
+                "EmakiAttribute 命令",
                 List.of("eattribute", "ea"),
                 new PaperCommandAdapter("emakiattribute", "emakiattribute.use", plugin.command(), plugin.command())
         );
@@ -212,6 +226,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.attributeService() != null) {
             plugin.attributeService().refreshCaches();
         }
+        if (plugin.attributeScriptBridge() != null) {
+            plugin.attributeScriptBridge().reload();
+        }
         plugin.ensureMythicBridge();
         if (plugin.mythicBridge() != null) {
             plugin.mythicBridge().resyncActiveMobs();
@@ -227,7 +244,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
         var executionDispatcher = coreLibPlugin.executionDispatcher();
 
@@ -326,6 +343,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             if (plugin.attributeService() != null) {
                 plugin.attributeService().refreshCaches();
             }
+            if (plugin.attributeScriptBridge() != null) {
+                plugin.attributeScriptBridge().reload();
+            }
             plugin.ensureMythicBridge();
             if (plugin.mythicBridge() != null) {
                 plugin.mythicBridge().resyncActiveMobs();
@@ -363,6 +383,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
 
     public void shutdown(EmakiAttributePlugin plugin, TaskToken currentTask) {
         cancelRegenTask(currentTask);
+        if (plugin.attributeScriptBridge() != null) {
+            plugin.attributeScriptBridge().close();
+        }
         if (plugin.itemContributionGateRegistry() != null) {
             plugin.itemContributionGateRegistry().close();
         }
@@ -382,7 +405,7 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
         if (plugin.messageService() != null) {
             plugin.messageService().info("console.plugin_stopped");
         } else {
-            plugin.getLogger().info("EmakiAttribute stopped.");
+            plugin.getLogger().info("[shutdown] 已关闭");
         }
     }
 
@@ -397,10 +420,20 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
                         "gui/attribute_points.yml",
                         plugin.dataPath("gui/attribute_points.yml").toFile()
                 );
+                YamlFiles.copyResourceIfMissing(
+                        plugin,
+                        "gui/editor_page_gui.yml",
+                        plugin.dataPath("gui/editor_page_gui.yml").toFile()
+                );
+                YamlFiles.copyResourceIfMissing(
+                        plugin,
+                        "gui/editor_browser_gui.yml",
+                        plugin.dataPath("gui/editor_browser_gui.yml").toFile()
+                );
             } catch (Exception exception) {
                 plugin.messageService().warning("loader.bundled_resource_write_failed", Map.of(
                         "type", "gui",
-                        "path", plugin.dataPath("gui/attribute_points.yml").toString(),
+                        "path", plugin.dataPath("gui").toString(),
                         "error", Texts.toStringSafe(exception.getMessage())
                 ));
             }

@@ -18,7 +18,7 @@ public sealed interface CoreActionSubject {
 
         public OfEntity {
             if (entity == null) {
-                throw new IllegalArgumentException("entity must not be null");
+                throw new IllegalArgumentException("entity 不能为 null");
             }
         }
 
@@ -38,7 +38,7 @@ public sealed interface CoreActionSubject {
 
         public OfLocation {
             if (location == null) {
-                throw new IllegalArgumentException("location must not be null");
+                throw new IllegalArgumentException("location 不能为 null");
             }
             location = location.clone();
         }

@@ -51,6 +51,12 @@ final class FermentationBarrelGuiController {
 
     boolean openGui(Player player, StationCoordinates coordinates) {
         debug(player, coordinates, "gui.fermentation_barrel.open_requested");
+        FermentationBarrelState state = runtimeService.loadStateOrEmpty(coordinates);
+        if (state == null || !state.valid() || !state.slotIdsResolved()) {
+            messageService.warning("console.station_gui_rejected_identity_migration", Map.of(
+                    "coordinate", coordinates.runtimeKey()));
+            return true;
+        }
         FermentationBarrelGuiHolder existing = findOpenSession(coordinates);
         if (existing != null && !player.getUniqueId().equals(existing.viewerId())) {
             debug(player, coordinates, "gui.fermentation_barrel.open_rejected_in_use", GuiDebugSupport.replacements(
@@ -95,6 +101,9 @@ final class FermentationBarrelGuiController {
 
     FermentationBarrelState snapshotInventoryState(StationCoordinates coordinates, Inventory inventory, UUID playerUuid, String playerName) {
         FermentationBarrelState previous = runtimeService.loadStateOrEmpty(coordinates);
+        if (previous == null || !previous.valid() || !previous.slotIdsResolved()) {
+            return previous;
+        }
         FermentationBarrelState updated = new FermentationBarrelState();
         updated.setPlayerContext(playerUuid, playerName);
         updated.setStartedAtMs(previous.startedAtMs());
@@ -127,7 +136,16 @@ final class FermentationBarrelGuiController {
                 }
                 continue;
             }
-            updated.setSlot(slot, source, codec.serializeItem(item), item.getAmount());
+            String slotId = runtimeService.resolveSlotId(item, source, player);
+            String countKey = runtimeService.resolveCountKey(item, slotId, source, player);
+            if (Texts.isBlank(slotId) || Texts.isBlank(countKey)) {
+                inventory.clear(slot);
+                if (player != null) {
+                    InventoryItemUtil.giveOrDrop(player, item);
+                }
+                continue;
+            }
+            updated.setSlot(slot, slotId, countKey, source, codec.serializeItem(item), item.getAmount());
         }
         return updated;
     }

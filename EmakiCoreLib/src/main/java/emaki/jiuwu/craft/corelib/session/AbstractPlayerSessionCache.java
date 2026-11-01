@@ -263,15 +263,15 @@ public abstract class AbstractPlayerSessionCache<K, T extends SessionData<T>> {
                 entry.lifecycle = Lifecycle.CLOSING;
             }
             if (!entry.loadWritable) {
-                if (closeAfterSave) {
-                    entries.remove(key, entry);
+                if (closeAfterSave && entries.remove(key, entry)) {
+                    forgetAuxiliary(key);
                 }
                 return null;
             }
             long revision = entry.data.revision();
             if (revision <= entry.data.persistedRevision()) {
-                if (closeAfterSave) {
-                    entries.remove(key, entry);
+                if (closeAfterSave && entries.remove(key, entry)) {
+                    forgetAuxiliary(key);
                 }
                 return null;
             }
@@ -415,7 +415,19 @@ public abstract class AbstractPlayerSessionCache<K, T extends SessionData<T>> {
         if (entry == null) {
             return false;
         }
-        return entries.remove(ticket.key(), entry);
+        if (entries.remove(ticket.key(), entry)) {
+            forgetAuxiliary(ticket.key());
+            return true;
+        }
+        return false;
+    }
+
+    private void forgetAuxiliary(K key) {
+        if (key == null) {
+            return;
+        }
+        generations.remove(key);
+        saveLanes.remove(key);
     }
 
     private CommitResult commitSaved(SaveTicket<K, T> ticket) {
@@ -437,7 +449,9 @@ public abstract class AbstractPlayerSessionCache<K, T extends SessionData<T>> {
             }
         }
         if (remove) {
-            entries.remove(ticket.key(), entry);
+            if (entries.remove(ticket.key(), entry)) {
+                forgetAuxiliary(ticket.key());
+            }
         }
         return CommitResult.COMMITTED;
     }

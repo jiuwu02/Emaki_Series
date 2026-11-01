@@ -1,0 +1,135 @@
+# ============================================================
+# EmakiForge 示例配方：可选材料组合（example_optional_materials_forge）
+# ============================================================
+# 演示功能：
+#   1. optional_material_limit 限制可选材料种类数
+#   2. capacity_cost 不同的可选材料
+#   3. capacity_bonus 效果（净容量为 0，还给配方加容量）
+#   4. quality_modify 的 minimum 效果组合
+#   5. 多个 quality_modify 同时存在时取更高的下限
+# 如何触发：
+#   安装 EmakiForge 后执行 /ef forge，放入 minecraft-paper 作为图纸，
+#   放入铁锭作为基础材料，并按需要选择金锭、紫水晶碎片、下界之星。
+# 依赖：
+#   只用原版物品；ea_attribute 在未安装 EmakiAttribute 时为空操作。
+# ============================================================
+# 容量计算：
+#   基础铁锭 4，forge_capacity 默认 12。
+#   放入下界之星本身 capacity_cost 为 0，并额外 +10 容量，
+#   因此放入它之后可以同时容纳金锭(5)与紫水晶(6)。
+# ============================================================
+
+id: "example_optional_materials_forge"
+display_name: "<yellow>示例可选材料锻造</yellow>"
+
+blueprint_requirements:
+  - id: "example_optional_blueprint"
+    item_sources:
+      - "minecraft-paper"
+    amount: 1
+
+materials:
+  # ---- 必选材料：铁锭 ----
+  - material_id: "optional_iron"
+    count_key: "optional_iron"
+    audit_id: "optional_iron"
+    item_sources:
+      - "minecraft-iron_ingot"
+    amount: 2
+    capacity_cost: 4
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 5
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 5.0
+
+  # ---- 可选材料：金锭（品质下限设为精良）----
+  - material_id: "optional_gold"
+    count_key: "optional_gold"
+    audit_id: "optional_gold"
+    item_sources:
+      - "minecraft-gold_ingot"
+    amount: 1
+    optional: true
+    capacity_cost: 5
+    effects:
+      - type: "variables"
+        variables:
+          physical_attack: 3
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_attack: 3.0
+      - type: "quality_modify"
+        mode: "minimum"
+        tier: "精良"
+
+  # ---- 可选材料：紫水晶碎片（品质下限设为优质）----
+  - material_id: "optional_amethyst"
+    count_key: "optional_amethyst"
+    audit_id: "optional_amethyst"
+    item_sources:
+      - "minecraft-amethyst_shard"
+    amount: 1
+    optional: true
+    capacity_cost: 6
+    effects:
+      - type: "variables"
+        variables:
+          physical_crit_rate: 3
+      - type: "ea_attribute"
+        ea_attributes:
+          physical_crit_rate: 3.0
+      - type: "quality_modify"
+        mode: "minimum"
+        tier: "优质"
+
+  # ---- 可选材料：下界之星（扩展容量）----
+  # capacity_bonus 让这条材料不占容量，并给整个配方追加容量。
+  - material_id: "optional_nether_star"
+    count_key: "optional_nether_star"
+    audit_id: "optional_nether_star"
+    item_sources:
+      - "minecraft-nether_star"
+    amount: 1
+    optional: true
+    capacity_cost: 0
+    effects:
+      - type: "capacity_bonus"
+        value: 10
+      - type: "name_action"
+        name_actions:
+          - action: "prepend_prefix"
+            value: "<yellow>[星辉] </yellow>"
+
+forge_capacity: 12
+optional_material_limit: 3
+
+# 不写 custom_pool，使用全局品质池；
+# quality_modify 的 tier 需要能在全局品质池中找到才会生效。
+quality:
+  enabled: true
+
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-diamond_axe"
+    name_actions:
+      - action: "replace"
+        value: "<yellow>材料试验斧</yellow>"
+    lore_actions:
+      - action: "append"
+        content:
+          - ""
+          - "<gray>锻造品质: <white>%quality_name%</white></gray>"
+          - "<gray>品质倍率: <white>%quality_multiplier%</white></gray>"
+          - "<dark_gray>EmakiForge 可选材料示例"
+
+actions:
+  pre:
+    - 'send_action_bar text="<gray>正在挑选附加材料……</gray>"'
+  success:
+    - 'send_message text="<green>锻造完成，已获得新装备。</green>"'
+  failure:
+    - 'send_message text="<red>锻造前置步骤失败，本次锻造已中止。</red>"'

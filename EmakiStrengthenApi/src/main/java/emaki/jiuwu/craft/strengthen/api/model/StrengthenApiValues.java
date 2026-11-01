@@ -8,6 +8,20 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+/**
+ * Package-local value helpers shared by the strengthen API's parsing and rendering code.
+ *
+ * <p>The methods coerce arbitrary objects without leaking {@code null}: string conversion turns a
+ * {@code null} into an empty string, ids are normalized with {@link Locale#ROOT} lower-casing and
+ * space-to-underscore substitution, MiniMessage tags are stripped for plain text, numbers are
+ * clamped or parsed with a fallback instead of throwing, and nested maps and collections convert
+ * into immutable plain data with any other value stringified. {@code evaluateNumber} and
+ * {@code evaluateMixed} additionally resolve numeric literals and {@code %variable%} references
+ * against a variable map: an unresolvable number degrades to {@code 0} in {@code evaluateNumber}
+ * and to the original text in {@code evaluateMixed}.
+ *
+ * <p>Every member is package-private and consumed inside this module only.
+ */
 final class StrengthenApiValues {
 
     private static final Pattern MINI_TAG_PATTERN = Pattern.compile("<[^>]+>");

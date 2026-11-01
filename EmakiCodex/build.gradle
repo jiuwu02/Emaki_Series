@@ -1,0 +1,21 @@
+// EmakiCodex（原 EmakiCodex/pom.xml）。
+version = '2.0.0'
+
+dependencies {
+    // 原 shade artifactSet 白名单。
+    shadeBundle project(':EmakiCodexApi')
+
+    // 原 compile 作用域。
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+    api project(':EmakiCodexApi')
+
+    // 原 provided 作用域。
+    provided project(':EmakiAttributeApi')
+    provided libs.paper.api
+    provided libs.graalvm.polyglot
+    provided libs.placeholderapi
+    provided libs.packetevents.spigot
+    provided libs.adventure.text.serializer.gson
+    provided libs.adventure.text.serializer.json
+}

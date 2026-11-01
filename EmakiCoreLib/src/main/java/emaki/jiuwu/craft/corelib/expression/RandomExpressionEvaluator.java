@@ -24,17 +24,17 @@ final class RandomExpressionEvaluator {
             int depth,
             int maxNestedDepth) {
         if (depth > maxNestedDepth) {
-            return NumericEvaluationResult.failure("Numeric config exceeded maximum nested depth "
+            return NumericEvaluationResult.failure("数值配置超过最大嵌套深度 "
                     + maxNestedDepth + ".");
         }
         if (config == null) {
-            return NumericEvaluationResult.failure("Numeric config is missing.");
+            return NumericEvaluationResult.failure("数值配置缺失。");
         }
         if (config instanceof Number number) {
             return NumericEvaluationResult.success(number.doubleValue());
         }
         if (config instanceof Boolean) {
-            return NumericEvaluationResult.failure("Boolean value cannot be used as numeric config.");
+            return NumericEvaluationResult.failure("布尔值不能用作数值配置。");
         }
         if (config instanceof String text) {
             return evaluateNumericTextDetailed(text, scope, depth + 1, maxNestedDepth);
@@ -50,7 +50,7 @@ final class RandomExpressionEvaluator {
             if (ConfigNodes.get(config, "min") != null && ConfigNodes.get(config, "max") != null) {
                 return evaluateUniformDetailed(config, scoped, depth + 1, maxNestedDepth);
             }
-            return NumericEvaluationResult.failure("Numeric config does not declare a supported type or numeric fields.");
+            return NumericEvaluationResult.failure("数值配置未声明受支持的类型或数值字段。");
         }
         return switch (type) {
             case "constant" ->
@@ -68,11 +68,11 @@ final class RandomExpressionEvaluator {
             case "expression" ->
                 evaluateRequiredChildConfig(config, "value", scoped, depth + 1, "expression", maxNestedDepth);
             case "string", "boolean" ->
-                NumericEvaluationResult.failure("Config type '" + type
-                        + "' cannot be used where a numeric config is required.");
+                NumericEvaluationResult.failure("配置类型 '" + type
+                        + "' 不能用于需要数值配置之处。");
             default ->
-                NumericEvaluationResult.failure("Unsupported numeric config type '" + type
-                        + "'. Supported types: constant, range, uniform, gaussian, skew_normal, triangle, expression.");
+                NumericEvaluationResult.failure("不支持的数值配置类型 '" + type
+                        + "'.支持的类型: constant、range、uniform、gaussian、skew_normal、triangle、expression。");
         };
     }
 
@@ -82,7 +82,7 @@ final class RandomExpressionEvaluator {
             int maxNestedDepth) {
         String prepared = Texts.trim(text);
         if (Texts.isBlank(prepared)) {
-            return NumericEvaluationResult.failure("Numeric text is blank.");
+            return NumericEvaluationResult.failure("数值文本为空。");
         }
         Matcher matcher = RANGE_PATTERN.matcher(prepared);
         if (matcher.matches()) {
@@ -100,7 +100,7 @@ final class RandomExpressionEvaluator {
             return NumericEvaluationResult.success(Numbers.tryParseDouble(prepared, 0D));
         }
         if (ExpressionEngine.parseBooleanLiteral(prepared) != null) {
-            return NumericEvaluationResult.failure("Boolean text cannot be used as numeric text: "
+            return NumericEvaluationResult.failure("布尔文本不能用作数值文本: "
                     + ExpressionEngine.abbreviate(prepared));
         }
         return ExpressionEngine.evaluateNumberDetailed(prepared, scope, depth + 1);
@@ -199,15 +199,15 @@ final class RandomExpressionEvaluator {
             int maxNestedDepth) {
         Object value = ConfigNodes.get(config, key);
         if (value == null) {
-            return NumericEvaluationResult.failure("Numeric config type '" + type
-                    + "' is missing required field '" + key + "'.");
+            return NumericEvaluationResult.failure("数值配置类型 '" + type
+                    + "' 缺少必需字段 '" + key + "'.");
         }
         NumericEvaluationResult result = evaluateRandomConfigDetailed(value, scope, depth + 1, maxNestedDepth);
         if (result.success()) {
             return result;
         }
         List<String> issues = new ArrayList<>();
-        issues.add("Numeric config field '" + key + "' for type '" + type + "' is invalid.");
+        issues.add("数值配置字段 '" + key + "'（类型 '" + type + "'）无效。");
         issues.addAll(result.issues());
         return NumericEvaluationResult.failure(issues);
     }

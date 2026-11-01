@@ -8,6 +8,10 @@ import org.jetbrains.annotations.Nullable;
 /**
  * Owner-scoped extension points for EmakiSkills.
  *
+ * <p>Two things can be contributed. A skill <em>source</em> decides which skill ids a player has unlocked, and a
+ * skill <em>definition</em> decides what a skill id actually does. Register a definition for a skill that does
+ * not exist in {@code skills/*.yml}, and a source for a skill that does — the two compose freely.</p>
+ *
  * <p>The script-action registry is gone: skill scripts are now CoreLib pipelines, so a third party adds a stage
  * by registering it with {@code EmakiCoreLib}'s stage registry rather than with EmakiSkills. One registry means
  * one place where a stage id can collide, and the stage becomes available to every module at once.</p>
@@ -41,4 +45,40 @@ public interface SkillExtensions {
      */
     @NotNull SkillSourceRegistration registerSkillSource(
             @Nullable Plugin owner, @Nullable SkillSourceProvider provider);
+
+    /**
+     * Registers an external skill definition.
+     *
+     * <p>Registrations are keyed by owner plus the definition's normalized {@link ExternalSkillDefinition#id()},
+     * so two plugins may define different skills under the same id without colliding. A registered definition
+     * takes precedence over a YAML skill with the same id.
+     *
+     * <p>Registering or removing a definition discards the compiled skill pipelines, so a replacement takes
+     * effect on the next cast without a {@code /eskills reload}. The definition survives a config reload for as
+     * long as the owning plugin stays enabled.
+     *
+     * <p><strong>Handle lifecycle:</strong> close the returned handle when your plugin tears down its
+     * integration. Closing is idempotent, a superseded handle is inert, and EmakiSkills drops every
+     * registration owned by a plugin when that plugin is disabled.
+     *
+     * <p><strong>Thread:</strong> registration is internally synchronized and may be called from any thread.
+     * The definition's accessors are read later by the runtime, including on player owner threads, so they must
+     * be side-effect-free.
+     *
+     * @param owner      the registering plugin, used for automatic cleanup on disable; {@code null} or an
+     *                   already-disabled plugin yields an inactive no-op handle instead of an exception
+     * @param definition the definition to register; {@code null}, a blank {@code id()}, an {@code id()} that
+     *                   throws, or a definition that cannot be mapped all yield an inactive no-op handle
+     * @return a closeable handle for this registration, never {@code null}; the handle is inert when the
+     *         arguments were rejected or EmakiSkills is unavailable
+     */
+    @NotNull SkillDefinitionRegistration registerSkillDefinition(
+            @Nullable Plugin owner, @Nullable ExternalSkillDefinition definition);
+
+    /**
+     * Removes every external skill definition a plugin registered.
+     *
+     * @param owner the plugin whose registrations are removed
+     */
+    void unregisterSkillDefinitions(@Nullable Plugin owner);
 }

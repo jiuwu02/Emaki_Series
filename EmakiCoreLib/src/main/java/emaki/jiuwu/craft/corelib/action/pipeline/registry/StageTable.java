@@ -54,7 +54,10 @@ public final class StageTable {
     }
 
     public @NotNull StageLookup lookup(@Nullable String id) {
-        String key = Texts.lower(id);
+        return lookupKey(Texts.lower(id));
+    }
+
+    public @NotNull StageLookup lookupKey(@NotNull String key) {
         RegisteredStage entry = entries.get(key);
         if (entry != null) {
             return entry.ownerEnabled() || entry.owner() == null
@@ -75,6 +78,11 @@ public final class StageTable {
             return entry.ownerName();
         }
         return Texts.toStringSafe(tombstones.get(key));
+    }
+
+    public boolean active(@Nullable String id, long generation) {
+        RegisteredStage entry = entries.get(Texts.lower(id));
+        return entry != null && entry.generation() == generation;
     }
 
     public boolean revoke(@Nullable String id, long generation) {

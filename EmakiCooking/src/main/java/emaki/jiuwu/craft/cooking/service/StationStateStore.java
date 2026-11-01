@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.cooking.service;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -11,6 +12,7 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.BiConsumer;
@@ -46,6 +48,7 @@ public final class StationStateStore {
     private final StationStateFileStore fileStore;
     private final StationIndexRegistry indexRegistry;
     private final Set<CompletableFuture<?>> pendingOperations = ConcurrentHashMap.newKeySet();
+    private final AtomicBoolean indexedStatesPrewarmed = new AtomicBoolean(false);
     private final ReentrantLock pendingLock = new ReentrantLock();
     private final Condition pendingIdle = pendingLock.newCondition();
 
@@ -77,13 +80,37 @@ public final class StationStateStore {
         if (entriesByChunk.isEmpty()) {
             return;
         }
-        for (List<StationIndexEntry> entries : entriesByChunk.values()) {
-            trackOperation(runLoadedStateBatch(stationType, entries, consumer)
-                    .exceptionally(throwable -> {
-                        plugin.getLogger().warning("Station restore batch failed: " + rootCauseMessage(throwable));
-                        return null;
-                    }));
+        preloadIndexedStatesAsync().whenComplete((_, _) -> {
+            for (List<StationIndexEntry> entries : entriesByChunk.values()) {
+                trackOperation(runLoadedStateBatch(stationType, entries, consumer)
+                        .exceptionally(throwable -> {
+                            plugin.getLogger().warning("[persistence] 工位恢复批次失败: " + rootCauseMessage(throwable));
+                            return null;
+                        }));
+            }
+        });
+    }
+
+    private CompletableFuture<Void> preloadIndexedStatesAsync() {
+        if (fileScope == null) {
+            return CompletableFuture.completedFuture(null);
         }
+        if (!indexedStatesPrewarmed.compareAndSet(false, true)) {
+            return CompletableFuture.completedFuture(null);
+        }
+        Collection<StationCoordinates> coordinates = indexRegistry.indexedCoordinates();
+        if (coordinates.isEmpty()) {
+            indexedStatesPrewarmed.set(false);
+            return CompletableFuture.completedFuture(null);
+        }
+        return fileScope.<Void>read("station-state-prewarm", () -> {
+            fileStore.preloadCandidates(coordinates);
+            return null;
+        }).exceptionally(throwable -> {
+            indexedStatesPrewarmed.set(false);
+            plugin.getLogger().warning("[persistence] 工位状态预加载失败: " + rootCauseMessage(throwable));
+            return null;
+        });
     }
 
     public YamlSection load(StationCoordinates coordinates) {
@@ -227,7 +254,7 @@ public final class StationStateStore {
                     });
         }, future);
         return trackOperation(future.exceptionally(throwable -> {
-            plugin.getLogger().warning("Async save failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 工位异步保存失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         }));
     }
@@ -256,7 +283,7 @@ public final class StationStateStore {
                     yamlFuture.exceptionally(_ -> false)
             ).thenApply(_ -> true);
         }).exceptionally(throwable -> {
-            plugin.getLogger().warning("Async delete failed for station " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
+            plugin.getLogger().warning("[persistence] 工位异步删除失败 " + coordinates.runtimeKey() + ": " + rootCauseMessage(throwable));
             return false;
         });
         result.whenComplete((success, throwable) -> debugStation(plugin, "station.state_delete_result", Map.of(
@@ -299,7 +326,7 @@ public final class StationStateStore {
             return fileResult;
         }
         List<Throwable> failures = new ArrayList<>(fileResult.failures());
-        failures.add(new IllegalStateException("Station operations did not drain before shutdown"));
+        failures.add(new IllegalStateException("工位操作在关服前未排空"));
         return new DrainResult(false, fileResult.pendingOperations() + pendingOperations.size(), failures);
     }
 
@@ -366,6 +393,7 @@ public final class StationStateStore {
     }
 
     public CompletableFuture<ReindexReport> reindexAsync() {
+        indexedStatesPrewarmed.set(false);
         return indexRegistry.reindexAsync();
     }
 
@@ -395,14 +423,14 @@ public final class StationStateStore {
                     }
                     if (location == null) {
                         future.completeExceptionally(new RejectedExecutionException(
-                                "Station restore target region is unavailable"));
+                                "工位恢复目标区域不可用"));
                         return;
                     }
                     try {
                         TaskToken handle = taskScheduler.runAtLocation(plugin, location, task);
                         if (handle == null) {
                             future.completeExceptionally(new RejectedExecutionException(
-                                    "Location dispatcher rejected station restore"));
+                                    "位置调度器拒绝了工位恢复"));
                         }
                     } catch (Throwable error) {
                         future.completeExceptionally(error);
@@ -452,7 +480,7 @@ public final class StationStateStore {
             return;
         }
         if (fileStore.backendForCurrentBlock(entry.coordinates()) == StationStorageBackend.YAML_FALLBACK) {
-            plugin.getLogger().warning("Station restore report: lost_block_entity_replaced type=" + entry.type().folderName()
+            plugin.getLogger().warning("[persistence] 工位恢复报告: 方块实体丢失已替换 type=" + entry.type().folderName()
                     + " coordinate=" + entry.coordinates().runtimeKey());
         }
     }
@@ -473,7 +501,7 @@ public final class StationStateStore {
         if (location == null) {
             if (future != null) {
                 future.completeExceptionally(new RejectedExecutionException(
-                        "Station operation target region is unavailable"));
+                        "工位操作目标区域不可用"));
             }
             return;
         }
@@ -489,7 +517,7 @@ public final class StationStateStore {
             });
             if (handle == null && future != null) {
                 future.completeExceptionally(new RejectedExecutionException(
-                        "Location dispatcher rejected station operation"));
+                        "位置调度器拒绝了工位操作"));
             }
         } catch (Throwable throwable) {
             if (future != null) {
@@ -585,7 +613,22 @@ public final class StationStateStore {
         }
     }
 
-    public record ReindexReport(int legacyYamlStates, int loadedPdcStates, int totalIndexedStates) {
+    public record ReindexReport(int legacyYamlStates,
+            int loadedPdcStates,
+            int totalIndexedStates,
+            List<String> failures) {
+
+        public ReindexReport {
+            failures = failures == null ? List.of() : List.copyOf(failures);
+        }
+
+        public boolean success() {
+            return failures.isEmpty();
+        }
+
+        public String failureSummary() {
+            return String.join("; ", failures);
+        }
     }
 
     record StoredState(YamlSection state,

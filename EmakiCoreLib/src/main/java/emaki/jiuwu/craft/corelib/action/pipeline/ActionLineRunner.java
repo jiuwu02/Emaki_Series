@@ -8,13 +8,13 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.logging.Logger;
 
-import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.CompileDiagnostic;
@@ -52,13 +52,18 @@ public final class ActionLineRunner {
             @Nullable String phase,
             boolean silent,
             @Nullable Map<String, ?> placeholders) {
-        Location origin = caster == null ? null : caster.getLocation();
         PipelineContext context = PipelineContext.root(owner,
                 caster == null ? CoreActionSubject.absent() : CoreActionSubject.of(caster),
-                origin, phase, silent, bridge());
+                null, phase, silent, bridge());
         return placeholders == null || placeholders.isEmpty()
                 ? context
                 : context.withVariables(placeholders);
+    }
+
+    public @NotNull PipelineContext context(@Nullable CoreActionExecutionContext input) {
+        CoreActionExecutionContext resolved = input == null ? CoreActionExecutionContext.builder().build() : input;
+        return PipelineContext.root(owner, resolved.caster(), resolved.targets(), resolved.origin().orElse(null),
+                resolved.phase(), resolved.silent(), resolved.variables(), resolved.data(), bridge());
     }
 
     public @NotNull CompletableFuture<Boolean> run(@Nullable List<String> lines,
@@ -73,12 +78,12 @@ public final class ActionLineRunner {
             boolean stopOnFailure) {
         ActionEngine engine = engineSupplier.get();
         if (engine == null) {
-            logger().warning("Pipeline lines skipped: the action engine is not available yet.");
+            logger().warning("[pipeline] 管道行已跳过: 动作引擎尚不可用");
             return CompletableFuture.completedFuture(false);
         }
         PhaseContract resolved = phase == null ? phaseContract(context) : phase;
         return batchRunner.compileAndRun(owner, engine, lines, context, resolved, stopOnFailure,
-                diagnostic -> logger().warning("Pipeline line rejected: "
+                diagnostic -> logger().warning("[pipeline] 管道行被拒绝: "
                         + diagnosticFormatter.apply(diagnostic)));
     }
 

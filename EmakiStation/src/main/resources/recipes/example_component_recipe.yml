@@ -1,0 +1,113 @@
+# EmakiStation 材料判定示例配方
+# 与 example_recipe.yml 分开放，不影响那条开箱即用的铁块压制配方。
+# 本示范默认全部使用纯 item_sources 材料，保证仓库可以直接供料、开箱可用；
+# matcher（物品组件条件）的完整语法保留在下方注释中，需要时按说明启用。
+# ┌── 服主必须先知道的行为约束 ────────────────────────────────────────────┐
+# │                                                                        │
+# │ 【重要】材料一旦声明 matcher，该材料就【只能从背包供料】，仓库检索会跳过  │
+# │ 它：matcher 判定的是具体物品栈上的组件，而仓库只按物品模板记数、拿不到    │
+# │ 逐栈组件，无法参与判定。插件在加载时会就此告警一次                       │
+# │ （lang 里的 storage_unreachable_material），看到该提示即为此原因。       │
+# │ → 一条配方里只要出现任意一个 matcher，整条配方就切换到"栈模型"：         │
+# │   改用最大二分匹配分配材料，并且【只从背包扣料、不再走仓库通道】。        │
+# │ → 需要仓库供料的配方，请只写 item_sources、不写 matcher（本示范默认形态）。│
+# │                                                                        │
+# └────────────────────────────────────────────────────────────────────────┘
+id: "component_demo_blade"
+display_name: "<light_purple>材料判定示例</light_purple>"
+
+station_ids:
+  - "blacksmith"
+
+tags:
+  - "blacksmith"
+
+permission: ""
+
+# 设为 false 可以让这条示范配方彻底不出现在目录里。
+visible: true
+
+duration_seconds: 10
+
+# 货币成本必须写在嵌套的 cost.currency 子节下（type: vault | excellent）；
+# 注释掉整个 cost 节即为免费。扁平写法会在加载时告警并按免费处理。
+cost:
+  currency:
+    type: "vault"
+    amount: 25
+
+# 材料需求。
+# 形状速查：
+#   物品源简写用【连字符】：minecraft-iron_ingot、emakiitem-example_item
+#   matcher 内的组件 ID 与 path 资源 ID 用【冒号】：
+#     component: custom_name   等价于 minecraft:custom_name
+#     path: sharpness          等价于 minecraft:sharpness
+# ⚠ matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+# matcher 组合五态（type 取值）：
+#   all_of（别名 all / and）        全部子条件满足
+#   any_of（别名 any / or）         任一子条件满足
+#   none_of（别名 none / not）      全部子条件都不满足
+#   at_least + required_count       至少 N 条满足
+#   exactly  + required_count       恰好 N 条满足
+# matcher 内 component 的 operator 全集：
+#   exists / absent
+#   == / != / > / >= / < / <=
+#   contains / starts_with / ends_with
+#   regex
+#   has_key / has_value
+#   size
+materials:
+  # 第 1 条：纯 item_sources（本示范的推荐形态）。
+  # 仓库按该物品源检索库存，背包与仓库合并供料，界面有正常图标。
+  - material_id: refined_iron
+    requirement_id: refined_iron_input
+    count_key: refined_iron
+    item_sources:
+      - "minecraft-iron_ingot"
+    amount: 2
+    consume: true
+
+  # 第 2 条：纯 item_sources + 可选的 matcher 追加条件（默认注释）。
+  # 解除 matcher 注释后语义变为"钻石剑，且自定义名含'炎'"：
+  #   item_sources 与 matcher 按同级 AND 同时成立才算命中；
+  #   ⚠ 该材料将只能从背包供料，见文件头部说明。
+  - material_id: epic_blade
+    requirement_id: epic_blade_input
+    count_key: epic_blade
+    item_sources:
+      - "minecraft-diamond_sword"
+    amount: 1
+    consume: true
+    # matcher:
+    #   type: component
+    #   component: custom_name
+    #   operator: contains
+    #   value: "炎"
+
+  # 第 3 条：consume: false 表示只校验持有、不扣除。
+  # 这里的含义是"背包里需要有一把铁镐"。
+  # 需要表达"不能带某个组件"这类反向条件时，用 none_of 组合 matcher（同样只能背包供料）：
+  #   matcher:
+  #     type: none_of
+  #     matchers:
+  #       - type: component
+  #         component: unbreakable
+  #         operator: exists
+  - material_id: plain_iron_pickaxe
+    requirement_id: plain_iron_pickaxe_input
+    count_key: plain_iron_pickaxe
+    item_sources:
+      - "minecraft-iron_pickaxe"
+    amount: 1
+    consume: false
+
+result:
+  outputs:
+    - item_source: "minecraft-iron_block"
+      amount: 1
+
+condition:
+  invalid_as_failure: true
+
+display_condition:
+  invalid_as_failure: false

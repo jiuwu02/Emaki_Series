@@ -1,0 +1,418 @@
+# EmakiDungeon 简体中文语言资源
+# 消息使用 MiniMessage; 保留消息分组旁标明的占位符
+# version 由资源同步流程维护, 用于合并新增默认键
+
+version: "1.0.13"
+
+general:
+  prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
+  no_permission: "<red>你没有权限执行此命令</red>"
+  player_only: "<red>此命令只能由玩家执行</red>"
+  invalid_args: "<red>参数错误</red>"
+  unknown_command: "<red>未知命令, 请使用 /edg help 查看帮助</red>"
+  reloading: "<gray>正在重载配置...</gray>"
+  reload_success: "<green>配置已重载</green>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#1E3A8A:#8B5CF6>EmakiDungeon 命令</gradient><gray> ==========</gray>
+    <gray>/edg help</gray> <white>查看命令帮助</white>
+    <gray>/edg list</gray> <white>查看副本列表</white>
+    <gray>/edg enter <副本ID></gray> <white>进入副本 (组队时由队长发起)</white>
+    <gray>/edg leave</gray> <white>退出当前副本</white>
+    <gray>/edg cancel</gray> <white>取消进入等待</white>
+    <gray>/edg ready</gray> <white>确认准备</white>
+    <gray>/edg rewards</gray> <white>打开奖励箱领取奖励</white>
+    <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>组队操作</white>
+    <gray>/edg stats [玩家] [副本ID]</gray> <white>查询次数与成绩</white>
+    <gray>/edg rank <副本ID></gray> <white>查看排行榜</white>
+    <gray>/edg globalchat <on|off></gray> <white>切换全局消息收听</white>
+    <gray>/edg editor <副本ID></gray> <white>打开地图内编辑器</white>
+    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>管理命令</white>
+  unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
+  list:
+    empty: "<yellow>暂无可用副本</yellow>"
+    header: "<gray>可用副本:</gray>"
+    entry: "<gray>- </gray><white><dungeon></white>"
+  enter:
+    usage: "<red>用法: /edg enter <副本ID></red>"
+  leave:
+    no_instance: "<red>你当前不在副本实例中</red>"
+    confirm_hint: "<yellow>输入 确认 退出本次副本, 输入 取消 放弃</yellow>"
+    aborted: "<gray>已取消退出</gray>"
+  party:
+    usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  stats:
+    header: "<gray>玩家 <player> 的副本统计:</gray>"
+    entry: "<gray>- <dungeon>: </gray><limits>"
+    limit_daily: "<gray>日: </gray><white><used>/<total></white>"
+    limit_weekly: "<gray>周: </gray><white><used>/<total></white>"
+    limit_monthly: "<gray>月: </gray><white><used>/<total></white>"
+    limit_cooldown: "<gray>冷却: </gray><white><seconds>s</white>"
+    no_limits: "<white>无次数限制</white>"
+    limit_windows: "<gray>可挑战窗口: </gray><white>月[<monthly>] 周[<weekly>] 日[<daily>]</white>"
+    best: "<gray>  最佳成绩: </gray><white><score></white> <gray>| 用时 </gray><white><duration></white>"
+  rank:
+    usage: "<red>用法: /edg rank <副本ID></red>"
+    empty: "<yellow>副本 <dungeon> 暂无排行记录</yellow>"
+    header: "<gray>副本 <dungeon> 排行榜 (前 10):</gray>"
+    entry: "<gold>#<place></gold> <white><score></white> <gray>分 | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
+  globalchat:
+    usage: "<red>用法: /edg globalchat <on|off></red>"
+  denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
+  denied_mode: "<red>该命令在本副本受限 (命令管控): <command></red>"
+  admin:
+    usage: "<red>用法: /edg admin <instances|stop|status|reload|validate|poolreset|clearslots></red>"
+    instances_header: "<gray>实例列表 (共 <count> 个):</gray>"
+    instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| 队伍 </gray><party> <gray>| 写队列 </gray><queue>"
+    stop_missing: "<red>实例不存在: <instance></red>"
+    stopped: "<green>已强制结束实例: <instance></green>"
+    status_header: "<gray>运行状态: 实例 <instances> | 存活虚拟线程 <threads> | 副本模板 <templates></gray>"
+    status_pool: "<gray>- 池占用 </gray><dungeon> <gray>: 世界 </gray><worlds> <gray> 补位 </gray><reserves>"
+    status_queue: "<gray>- 写队列 </gray><instance> <gray>: 积压 </gray><pending> <gray> 累计顺延 </gray><deferred>"
+    status_queue_empty: "<gray>写队列无积压</gray>"
+    reloaded: "<green>配置已重载 (全局与全部副本)</green>"
+    reload_failed: "<red>配置重载失败: <error></red>"
+    validate_ok: "<gray>- </gray><dungeon> <gray>: </gray><green>OK</green>"
+    validate_flow_missing: "<gray>- </gray><dungeon> <gray>: </gray><red>缺少 flow.yml</red>"
+    validate_error: "<gray>- </gray><dungeon> <gray>: </gray><red><error></red>"
+    validate_empty: "<yellow>未发现任何副本模板</yellow>"
+    pool_reset: "<green>池补位已强制重置: <dungeon></green>"
+    pool_missing: "<red>副本不存在: <dungeon></red>"
+    slots_cleared: "<green>占位已清理</green>"
+
+challenge:
+  entered: "<green>已进入副本 <dungeon> (<instance>)</green>"
+  preparing: "<yellow>准备确认开始, 输入 /edg ready 或点击确认按钮 (<seconds> 秒内)</yellow>"
+  preparing_expired: "<red>准备确认超时, 挑战作废</red>"
+  member_ready: "<gray><player> 已准备 (<ready>/<total>)</gray>"
+  cancelled: "<yellow>挑战已作废 (原因: <reason>)</yellow>"
+  wait:
+    bossbar: "正在准备副本世界: <dungeon> (任一队员可 /edg cancel 取消)"
+    chat: "<yellow>正在准备副本世界: <dungeon>, 任一队员可 /edg cancel 取消, 等待超时自动作废</yellow>"
+    sidebar: "进入等待: <dungeon>"
+  enter:
+    dungeon_missing: "<red>副本不存在或配置无效: <dungeon></red>"
+    no_dungeon_permission: "<red>你没有进入副本 <dungeon> 的权限</red>"
+    party_error: "<red>队伍创建失败: <code></red>"
+    not_leader: "<red>仅队长可发起挑战</red>"
+    already_started: "<yellow>本队伍已有进行中的挑战流程</yellow>"
+    party_busy: "<yellow>本队伍已有进行中的副本挑战</yellow>"
+    invalid_difficulty: "<red>无效的难度: <difficulty></red>"
+    invalid_mode: "<red>无效的掉落分配模式: <mode></red>"
+    party_missing: "<red>队伍信息丢失, 挑战作废</red>"
+    member_offline: "<red>有队员不在线, 无法发起挑战</red>"
+    dungeon_full: "<yellow>副本当前满载, 请等待已有队伍结束后重试</yellow>"
+    full: "<yellow>副本当前满载 (已达池或全局上限), 请等待已有队伍结束后重试</yellow>"
+    cooldown: "<yellow><player> 仍在进入冷却中, 剩余 <seconds> 秒</yellow>"
+    daily_limit: "<yellow><player> 的进入次数已用尽, 请等待周期重置 (<seconds> 秒)</yellow>"
+    weekly_limit: "<yellow><player> 本周可挑战次数已用尽, <seconds> 秒后重置</yellow>"
+    monthly_limit: "<yellow><player> 本月可挑战次数已用尽, <seconds> 秒后重置</yellow>"
+    daily_window: "<red>当前不在每日可挑战时段内, <seconds> 秒后重试</red>"
+    weekly_day: "<red>今天不在可挑战周几内, <seconds> 秒后重试</red>"
+    monthly_week: "<red>当前不在可挑战的月周次内, <seconds> 秒后重试</red>"
+  cancel:
+    no_session: "<yellow>当前没有可取消的挑战</yellow>"
+  ready:
+    no_session: "<yellow>当前没有可确认准备的挑战</yellow>"
+
+gui:
+  difficulty:
+    title: "选择难度"
+    name: "<white>难度: <option></white>"
+    lore: "<gray>点击选择该难度</gray>"
+  mode:
+    title: "选择掉落分配模式"
+    name: "<white>分配模式: <option></white>"
+    lore: "<gray>点击选择该模式</gray>"
+  confirm:
+    title: "准备确认"
+    name: "<green>点击准备</green>"
+    lore: "<gray>点击确认进入副本</gray>"
+  wait:
+    title: "进入等待"
+    cancel_name: "<red>取消进入</red>"
+    cancel_lore: "<gray>点击取消本次挑战</gray>"
+
+party:
+  chat_format: "<gradient:#1E3A8A:#8B5CF6>[队伍]</gradient> <gold><player></gold>: <white><message></white>"
+  invite_sent: "<yellow>已邀请 <player> 加入队伍</yellow>"
+  invite_received: "<yellow><player> 邀请你加入队伍, /edg party accept 接受, /edg party deny 拒绝</yellow>"
+  apply_received: "<yellow><player> 申请加入你的队伍, /edg party accept 批准, /edg party deny 拒绝</yellow>"
+  apply_denied: "<yellow><player> 拒绝了你的入队申请</yellow>"
+  kicked: "<red>你已被 <player> 移出队伍</red>"
+  leader_transferred: "<yellow>队长已移交给 <player></yellow>"
+  member_joined: "<green><player> 加入了队伍</green>"
+  chat_enabled: "<green>已开启队伍频道, 你的消息仅队伍可见</green>"
+  chat_disabled: "<yellow>已关闭队伍频道</yellow>"
+  result:
+    already_in_party: "<red>你已在队伍中</red>"
+    target_in_party: "<red>目标玩家已在其他队伍中</red>"
+    target_busy: "<red>目标玩家正在副本挑战中</red>"
+    party_full: "<red>队伍已满员</red>"
+    not_leader: "<red>仅队长可执行此操作</red>"
+    not_in_party: "<red>你不在队伍中</red>"
+    mode_denied: "<red>当前邀请模式为仅邀请, 需先被邀请才能加入</red>"
+    invalid_target: "<red>目标玩家不在线或无效: <player></red>"
+    busy_party: "<yellow>本队伍正在副本挑战中, 暂不接纳新成员</yellow>"
+
+recovery:
+  reconnected: "<green>重连成功, 已回到副本实例 (<instance>)</green>"
+  orphan_restored: "<yellow>实例已结束, 已按进入快照恢复背包与状态并送回原位置</yellow>"
+  exited: "<green>已退出副本并还原状态 (<instance>)</green>"
+  evacuated: "<yellow>副本已结束, 已按快照还原并送回原位置</yellow>"
+
+snapshot:
+  missing: "<red>快照缺失, 无法还原 (<instance>)</red>"
+
+guard:
+  teleport_blocked: "<red>副本内禁止传送出该世界</red>"
+  boundary_pullback: "<yellow>已超出副本边界, 已拉回出生点</yellow>"
+
+globalchat:
+  enabled: "<green>已开启全局消息收听, 实例内外互通</green>"
+  disabled: "<yellow>已关闭全局消息收听, 消息仅实例内闭环</yellow>"
+
+editor:
+  usage: "<red>用法: /edg editor <副本ID></red>"
+  usage_session: "<gray>会话子命令: exit | pos1 | pos2 | mark <类型> [id] | marks | fill <方块> | test</gray>"
+  unknown_dungeon: "<red>副本不存在或配置无效: <dungeon></red>"
+  locked: "<yellow>副本 <dungeon> 已有编辑会话, 同一模板同时只允许一个</yellow>"
+  already_open: "<yellow>你已有进行中的编辑会话</yellow>"
+  no_session: "<red>你当前没有编辑会话</red>"
+  opening: "<gray>正在准备编辑世界 (<dungeon>)...</gray>"
+  opened: "<green>已进入编辑世界 <world> (<dungeon>)</green>"
+  open_failed: "<red>编辑世界准备失败: <error></red>"
+  in_instance: "<yellow>你正在副本实例中, 请先结束挑战再打开编辑器</yellow>"
+  busy_challenge: "<yellow>你正处于挑战流程中, 请先取消或结束再打开编辑器</yellow>"
+  instance_active: "<yellow>测试开局尚未结束, 请先退出副本实例再退出编辑会话</yellow>"
+  exit_dirty: "<red>存在未保存改动, 请先保存或放弃</red>"
+  exit_done: "<green>已退出编辑会话 (未保存改动已丢弃)</green>"
+  rejoined: "<green>已恢复编辑会话 (<dungeon>)</green>"
+  not_ready: "<red>编辑世界尚未准备完成, 请稍候</red>"
+  not_in_edit_world: "<red>请在该副本的编辑世界内执行此操作</red>"
+  no_target: "<red>视线 16 格内没有可标记的方块</red>"
+  pos_set: "<green>角点<which> 已记录: <coord></green>"
+  pos_missing: "<red>缺少角点<which>, 请用 /edg editor pos<which> 记录</red>"
+  pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edg editor pos2 记录后重试</gray>"
+  mark_usage: "<red>用法: /edg editor mark <spawn|room|gate|option|trigger|chest> [id]</red>"
+  mark_unknown_type: "<red>未知标记类型: <type></red>"
+  mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
+  mark_dup: "<red>已存在同名模块: <id></red>"
+  mark_failed: "<red>标记写入失败: <error></red>"
+  marks_empty: "<yellow>暂无已暂存标记</yellow>"
+  marks_header: "<gray>暂存标记 (<count>):</gray>"
+  marks_entry: "<gray>- </gray><white><mark></white>"
+  test_started: "<green>测试开局启动中 (<dungeon>), 走正常进入流程且不计次数、不上榜</green>"
+  test_failed: "<red>测试开局失败: <code></red>"
+  test_dirty: "<red>存在未保存改动, 测试开局须从已保存模板进行, 请先保存</red>"
+  save_nothing: "<yellow>没有需要保存的改动</yellow>"
+  save_busy: "<yellow>方块写入队列尚未完成, 请稍候再保存</yellow>"
+  save_failed: "<red>保存失败 (改动仍在会话中): <error></red>"
+  saved: "<green>已保存并回写模板 (<dungeon>), 世代 <generation>, 地形变更: <terrain></green>"
+  discarded: "<green>已放弃编辑会话, 未保存的配置与地形改动全部丢弃</green>"
+  fill_usage: "<red>用法: /edg editor fill <方块> (需先用 pos1/pos2 圈定区域)</red>"
+  fill_invalid: "<red>无效的方块或方块状态: <block></red>"
+  fill_busy: "<yellow>方块写入队列繁忙, 请稍候重试</yellow>"
+  fill_started: "<gray>已提交区域填充 <count> 格, 分帧写入中</gray>"
+  fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
+  help_mark: |
+    <gray>===== 标记速查 =====</gray>
+    <white>单点(视线方块): /edg editor mark <spawn|option|chest> [id]</white>
+    <white>区域(两点): /edg editor mark <room|gate|trigger> [id]</white>
+    <white>角点: /edg editor pos1 与 /edg editor pos2</white>
+    <white>区域填充: /edg editor fill <方块></white>
+    <white>列出暂存: /edg editor marks | 测试: /edg editor test</white>
+    <gray>标记与面板改动在点「保存」后才写入模板</gray>
+  input_prompt: "<yellow>请输入 <field> 的新值 (输入 取消 放弃)</yellow>"
+  input_invalid: "<red>输入无效: <value></red>"
+  field_updated: "<green>已更新 <field> -> <value> (保存后生效)</green>"
+  field_failed: "<red>字段写入失败: <error></red>"
+  gui:
+    title: "<gradient:#1E3A8A:#8B5CF6>副本编辑器</gradient> <gray><dungeon></gray>"
+    meta: "<white>副本元数据</white>"
+    waves: "<white>刷怪点与波次</white>"
+    gates: "<white>门禁</white>"
+    branches: "<white>分支选项</white>"
+    help: "<yellow>标记用法速查</yellow>"
+    pos1: "<white>角点1: <coord></white>"
+    pos2: "<white>角点2: <coord></white>"
+    status: "<white>标记<marks> · <state> · 世代<generation></white>"
+    state_dirty: "<red>未保存</red>"
+    state_clean: "<green>已保存</green>"
+    save: "<green>保存并回写模板</green>"
+    discard: "<red>放弃全部未保存改动</red>"
+    discard_confirm: "<gold>再次点击确认放弃</gold>"
+    test: "<yellow>测试开局 (不计次数、不上榜)</yellow>"
+    exit: "<white>退出编辑会话</white>"
+    close: "<red>关闭面板</red>"
+    filler: ""
+    back: "<white>返回上级</white>"
+    back_main: "<white>返回主面板</white>"
+    back_waves: "<white>返回刷怪点列表</white>"
+    back_spawn: "<white>返回该刷怪点</white>"
+    back_gates: "<white>返回门禁列表</white>"
+    back_branches: "<white>返回分支列表</white>"
+    back_option: "<white>返回该选项节点</white>"
+    prev: "<white>上一页</white>"
+    next: "<white>下一页</white>"
+    page: "<gray>第 <page>/<total> 页</gray>"
+    add: "<green>新增模块</green>"
+    wave_add: "<green>新增波次</green>"
+    case_add: "<green>新增候选项</green>"
+    region_add: "<green>用角点1+2追加区域</green>"
+    region_remove: "<red>移除最后一个区域</red>"
+    value: "<gray>当前: <value></gray>"
+    wave_count: "<gray>波次: <count></gray>"
+    mob_count: "<gray>怪物条目: <count></gray>"
+    region_count: "<gray>区域: <count></gray>"
+    wave_item: "<white>波次</white>"
+    case_item: "<white>候选项</white>"
+    field:
+      display_name: "显示名称"
+      description: "副本描述"
+      difficulty_group: "难度分组"
+      prepare_window: "准备确认窗口 (秒)"
+      pool_max: "池世界上限"
+      leaderboard_max: "排行榜条数上限"
+      interval: "波次间隔"
+      drop_loot: "波次掉落"
+      drop_loot_on: "<green>波次掉落: 开</green>"
+      drop_loot_off: "<red>波次掉落: 关</red>"
+      mobs: "怪物列表"
+      logic: "门禁条件逻辑 (AND/OR)"
+      open_mode: "开门方式"
+      door_regions: "封门区域"
+      conditions: "条件 (只读)"
+      select_mode: "选择模式"
+      select_mode_single: "<lime>单选 (single)</lime>"
+      select_mode_multi: "<gold>多选 (multi)</gold>"
+      time_limit: "选择时限 (秒, 0=不限)"
+      min_select: "最少选择数"
+      max_select: "最多选择数"
+      safe_point: "安全点 (记为当前位置)"
+      ending_map: "组合结局映射"
+      add_wave: "新增波次"
+      add_case: "新增候选项"
+      case_label: "候选项显示文本"
+      case_value: "候选项 case 值"
+      case_ending: "结局 id (- 清空)"
+      seal_regions: "封路区域"
+
+drop:
+  chest_locked: "<red>该奖励箱需在结算后统一分配, 局内暂不可拾取</red>"
+  box_stored: "<gray><item> x<amount> 已暂存本局, 通关后发放</gray>"
+  payout_done: "<green>本局暂存奖励已发放 (<count> 件)</green>"
+  voided: "<red>本局未通关, 你暂存的奖励已全部作废</red>"
+  roll:
+    won: "<green>ROLL 获得: <white><item></white> x<amount> (已暂存本局, 通关发放)</green>"
+    distributed: "<gray>本批掉落已自动 ROLL 分配, 通关后发放 (<count> 件)</gray>"
+
+rewardbox:
+  disabled: "<yellow>奖励箱功能当前未启用, 副本奖励将直接进入背包</yellow>"
+  gui:
+    title: "<gradient:#1E3A8A:#8B5CF6>奖励箱</gradient> <gray>(<page>/<total>) · <items> 件</gray>"
+    prev: "<white>上一页</white>"
+    next: "<white>下一页</white>"
+    toggle_on: "<green>自动流入: 开</green><gray> (点击关闭)</gray>"
+    toggle_off: "<red>自动流入: 关</red><gray> (点击开启)</gray>"
+    info: "<yellow>拖拽物品到背包即可领取</yellow>"
+    close: "<red>关闭</red>"
+    filler: ""
+    auto_enabled: "<green>已开启自动流入: 之后的奖励将直接进入背包 (背包满时仍留奖励箱)</green>"
+    auto_disabled: "<yellow>已关闭自动流入: 之后的奖励将存入奖励箱, /edg rewards 手动领取</yellow>"
+
+settle:
+  partial: "<yellow>结算部分完成, 部分奖励可能未发放, 已记录审计</yellow>"
+  rewards_hint: "<yellow>副本奖励已存入奖励箱, 输入 </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> 打开领取</yellow>"
+
+flow:
+  option:
+    prompt: "<yellow>请选择: </yellow><gray>%options%</gray><yellow> (输入序号或标识)</yellow>"
+    confirm_prompt: "<yellow>已选: </yellow><gray><options></gray><yellow> 输入 确认 定案, 超时自动定案, 输入 取消 放弃</yellow>"
+    bounds: "<red>选择数量须在 <min>~<max> 之间, 请重新输入</red>"
+    expired: "<yellow>选择超时, 未做出选择</yellow>"
+    aborted: "<gray>已取消本次选择</gray>"
+    invalid: "<red>无效的选择</red>"
+  spectator:
+    entered: "<yellow>重生次数已用尽, 已转入观战模式</yellow>"
+  fail:
+    returned: "<red>副本失败 (%reason%), 已送回进入前位置</red>"
+  temp_item:
+    full: "<yellow>背包已满, 部分临时物品 <item> 未能发放</yellow>"
+  timer:
+    warning: "<yellow>剩余 <seconds> 秒</yellow>"
+
+player:
+  died: "<red>%player% 阵亡, 剩余重生次数: %remaining%</red>"
+
+console:
+  plugin_starting: "EmakiDungeon 正在启动"
+  plugin_started: "EmakiDungeon 已启动完成"
+  plugin_stopped: "EmakiDungeon 已停止"
+  world_create_failed: "创建实例世界失败 | 副本=%dungeon% | 世界=%world% | 错误=%error%, 30 秒后重试"
+  world_dispose_held: "实例世界卸载删除失败, 已挂起待重启清理 | 副本=%dungeon% | 世界=%world%"
+  instances_load_failed: "instances.yml 加载失败, 跳过启动残留自检 | 错误=%error%"
+  residual_delete_failed: "启动自检删除残留目录失败 | 世界=%world%"
+  residual_cleaned: "启动自检已清理残留世界 | 数量=%count%"
+  active_world_missing: "有人挑战实例的世界句柄丢失, 转入销毁回收 | 副本=%dungeon% | 世界=%world%"
+  pool_reserve_invalidated: "补位世界巡检作废, 将按模板重建 | 副本=%dungeon% | 世界=%world%"
+  dungeon_config_invalid: "副本配置非法, 已跳过 | 副本=%dungeon% | 错误=%error%"
+  world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
+  parties_load_failed: "parties.yml 加载失败, 队伍快照未恢复 | 错误=%error%"
+  command_map_wrap_failed: "CommandMap 包装失败, 插件代执行拦截入口未生效 | 错误=%error%"
+  action_corelib_unavailable: "CoreLib Action 接口不可用, 段注册跳过"
+  action_dispatch_failed: "Action 段派发失败 | 段=%segment% | 错误=%error%"
+  instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
+  flow_file_failed: "流程 YAML 创建失败 | 副本=%dungeon% | 错误=%error%"
+  flow_load_failed: "流程 YAML 加载失败, 使用空定义 | 实例=%instance% | 错误=%error%"
+  editor_worlds_swept: "启动清扫编辑世界残留 | 数量=%count%"
+  editor_template_saved: "编辑模板已回写 | 副本=%dungeon% | 世代=%generation%"
+  script_disabled: "GraalJS 脚本宿主已由配置关闭"
+  script_engine_unavailable: "[script] 未检测到 GraalJS 运行库, 脚本宿主降级禁用, 插件其余功能不受影响"
+  script_load_failed: "实例脚本装载失败, 该脚本已停用, 实例继续运行 | 实例=%instance% | 错误=%error%"
+  script_stopped: "脚本处理器异常或超时, 脚本已停用, 实例继续运行 | 实例=%instance% | 脚本=%script% | 触发=%trigger% | 错误=%error%"
+  script_api_failed: "脚本触发器 API 处理器异常 | 触发=%trigger% | 错误=%error%"
+  monitor_mspt_high: "MSPT P95 超过告警阈值 | P95=%p95%ms | 阈值=%threshold%ms"
+  monitor_memory_slope: "堆内存斜率超过告警阈值 | 斜率=%slope%MB/min | 阈值=%threshold%MB/min"
+  monitor_queue_backlog: "写队列持续积压超阈值 | 实例=%instance% | 持续=%seconds%s | 阈值=%threshold%s"
+  audit_write_failed: "审计日志写入失败 | 文件=%file% | 错误=%error%"
+  instance_disposing_stuck: "实例卡滞在销毁阶段超 60 秒 | 实例=%instance% | 已滞留=%seconds%s"
+
+script:
+  stopped_chat: "副本脚本异常已停用, 本局继续运行"
+
+debug:
+  instance_created: "实例已创建 | 世界=%instance%"
+  instance_destroyed: "实例已销毁 | 世界=%instance% | 触发=%trigger%"
+  pool_reserve: "池额度占位 | 副本=%dungeon% | 活跃=%active%"
+  player_entered: "玩家进入实例 | 玩家=%player% -> 世界=%instance%"
+  party_created: "队伍已创建 | 队伍=%party%"
+  party_invite_sent: "队伍邀请已发送 | 队伍=%party% | 目标=%target%"
+  party_apply_sent: "入队申请已发送 | 队伍=%party% | 目标=%target%"
+  party_join: "玩家入队 | 队伍=%party% | 玩家=%player%"
+  party_leave: "玩家离队 | 队伍=%party% | 玩家=%player%"
+  challenge_opened: "挑战发起 | 副本=%dungeon% | 队伍=%party%"
+  challenge_start: "难度与模式选定 | 副本=%dungeon% | 难度=%difficulty% | 模式=%mode%"
+  ready_all: "全员准备就绪 | 副本=%dungeon% | 队伍=%party%"
+  instance_full: "副本满载拒绝 | 副本=%dungeon%"
+  instance_assigned: "补位世界分配 | 世界=%instance% | 副本=%dungeon%"
+  command_denied: "命令被拒绝 | 命令=%command% | 来源=%source%"
+  snapshot_repacked: "快照已重拍 | 实例=%instance%"
+  reconnected_instance: "断线重连回实例 | 实例=%instance%"
+  orphan_restored: "孤儿快照还原 | 实例=%instance%"
+  exit_restored: "退出还原 | 实例=%instance% | 原因=%reason%"
+  temp_item_granted: "临时物品发放 | 实例=%instance% | 物品=%item% | 数量=%amount%"
+  temp_item_removed: "临时物品收回 | 实例=%instance% | 物品=%items%"
+  player_died: "玩家阵亡 | 玩家=%player% | 实例=%instance% | 剩余=%remaining%"
+  limit_recorded: "次数已计入 | 副本=%dungeon% | 日桶=%day%"
+  limit_denied: "次数限制拒绝 | 副本=%dungeon% | 玩家=%member% | 判定=%verdict%"
+  settle_step_failed: "结算步骤失败 | 命令=%command% | 错误=%error% | 实例=%instance%"
+  settle_step_skipped: "结算步骤跳过 | 命令=%command% | 玩家=%player% | 实例=%instance%"
+  script_session_created: "实例脚本已装载 | 实例=%instance% | 副本=%dungeon% | 脚本=%script%"
+  script_session_absent: "未找到副本脚本, 本局未启用脚本宿主 | 副本=%dungeon%"
+  script_session_closed: "实例脚本已释放 | 实例=%instance%"
+  script_takeover: "流程脚本已接管整局推进 | 实例=%instance% | 副本=%dungeon%"
+  script_entry_registered: "词条已注册 | 实例=%instance% | 词条=%entry%"
+  script_entry_cleared: "词条已随实例销毁摘除 | 实例=%instance% | 数量=%count%"
+  script_stopped: "脚本已停用, 实例继续运行 | 实例=%instance% | 脚本=%script%"

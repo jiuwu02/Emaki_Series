@@ -11,15 +11,11 @@ sources:
     anti_abuse:
       exp_cooldown_ticks: 1
     rules:
-      - matcher:
-          type: item_source
-          sources:
-            - "minecraft-iron_ingot"
-            - "minecraft-copper_ingot"
-            - "minecraft-gold_ingot"
+      - item_sources:
+          - "minecraft-iron_ingot"
+          - "minecraft-copper_ingot"
+          - "minecraft-gold_ingot"
         exp_formula: "3 * %result_amount%"
-      - matcher:
-          type: item_source
-          sources:
-            - minecraft-netherite_scrap
+      - item_sources:
+          - minecraft-netherite_scrap
         exp_formula: "20 * %result_amount%"

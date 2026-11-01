@@ -8,6 +8,7 @@ import org.bukkit.event.Listener;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
+import emaki.jiuwu.craft.attribute.editor.AttributeEditorModule;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -20,11 +21,14 @@ import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.ContributionProviderRegistrationRegistry;
 import emaki.jiuwu.craft.attribute.service.AttributeSlotRegistry;
 import emaki.jiuwu.craft.attribute.service.ItemContributionGateRegistry;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.attribute.service.PdcAttributeService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -41,6 +45,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
         ItemContributionGateRegistry itemContributionGateRegistry,
         AttributeSlotRegistry attributeSlotRegistry,
         ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry,
+        AttributeScriptBridge attributeScriptBridge,
         LanguageLoader languageLoader,
         MessageService messageService,
         EmakiAttributeApi.Bridge emakiAttributeBridge,
@@ -53,7 +58,10 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
         AttributeService attributeService,
         List<Listener> listeners,
         AttributeCommand command,
-        MythicBridge mythicBridge) implements RuntimeComponents {
+        MythicBridge mythicBridge,
+        ChatInputService chatInputService,
+        AttributeEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {
@@ -69,6 +77,7 @@ record AttributeRuntimeComponents(EmakiScheduling scheduling,
                 RuntimeComponents.component(ItemContributionGateRegistry.class, itemContributionGateRegistry),
                 RuntimeComponents.component(AttributeSlotRegistry.class, attributeSlotRegistry),
                 RuntimeComponents.component(ContributionProviderRegistrationRegistry.class, contributionProviderRegistrationRegistry),
+                RuntimeComponents.component(AttributeScriptBridge.class, attributeScriptBridge),
                 RuntimeComponents.component(LanguageLoader.class, languageLoader),
                 RuntimeComponents.component(MessageService.class, messageService),
                 RuntimeComponents.component(EmakiAttributeApi.Bridge.class, emakiAttributeBridge),

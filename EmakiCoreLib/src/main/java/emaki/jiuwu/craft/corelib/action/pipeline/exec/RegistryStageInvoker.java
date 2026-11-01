@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
 
 public final class RegistryStageInvoker implements StageInvoker {
@@ -37,7 +38,7 @@ public final class RegistryStageInvoker implements StageInvoker {
 
     @Override
     public @Nullable Handle resolve(@Nullable String id) {
-        RegisteredStage entry = live(id);
+        RegisteredStage entry = liveKey(Texts.lower(id));
         if (entry == null) {
             return null;
         }
@@ -66,7 +67,7 @@ public final class RegistryStageInvoker implements StageInvoker {
             @NotNull CoreStageContext context,
             @NotNull CoreActionSubject target,
             @NotNull Map<String, String> rawArguments) {
-        RegisteredStage entry = live(handle.id());
+        RegisteredStage entry = liveKey(Texts.lower(handle.id()));
         if (entry == null) {
             return ExecutionDomain.SERVER_GLOBAL;
         }
@@ -88,7 +89,7 @@ public final class RegistryStageInvoker implements StageInvoker {
     public @NotNull CoreSourceResult invokeSource(@NotNull Handle handle,
             @NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
-        RegisteredStage entry = live(handle.id());
+        RegisteredStage entry = liveKey(Texts.lower(handle.id()));
         if (entry == null || entry.kind() != CoreStageKind.SOURCE) {
             return CoreSourceResult.invalid("action.run.stage_unavailable");
         }
@@ -100,7 +101,7 @@ public final class RegistryStageInvoker implements StageInvoker {
             @NotNull CoreStageContext context,
             @NotNull List<CoreActionSubject> inbound,
             @NotNull CoreResolvedArguments arguments) {
-        RegisteredStage entry = live(handle.id());
+        RegisteredStage entry = liveKey(Texts.lower(handle.id()));
         if (entry == null || entry.kind() != CoreStageKind.GATE) {
             return CoreGateResult.invalid("action.run.stage_unavailable");
         }
@@ -111,7 +112,7 @@ public final class RegistryStageInvoker implements StageInvoker {
     public @NotNull CoreActionOutcome invokeAction(@NotNull Handle handle,
             @NotNull CoreStageContext context,
             @NotNull CoreResolvedArguments arguments) {
-        RegisteredStage entry = live(handle.id());
+        RegisteredStage entry = liveKey(Texts.lower(handle.id()));
         if (entry == null || entry.kind() != CoreStageKind.ACTION) {
             return CoreActionOutcome.failure(
                     CoreActionFailureKind.OWNER_DISABLED,
@@ -120,16 +121,16 @@ public final class RegistryStageInvoker implements StageInvoker {
         return ((CoreActionStage) entry.stage()).execute(context, arguments);
     }
 
-    private RegisteredStage live(String id) {
-        StageLookup source = registry.sources().lookup(id);
+    private RegisteredStage liveKey(String key) {
+        StageLookup source = registry.sources().lookupKey(key);
         if (source instanceof StageLookup.Found found) {
             return found.entry();
         }
-        StageLookup gate = registry.gates().lookup(id);
+        StageLookup gate = registry.gates().lookupKey(key);
         if (gate instanceof StageLookup.Found found) {
             return found.entry();
         }
-        return registry.actions().lookup(id) instanceof StageLookup.Found found ? found.entry() : null;
+        return registry.actions().lookupKey(key) instanceof StageLookup.Found found ? found.entry() : null;
     }
 
     private static ExecutionDomain toDomain(CoreActionExecutionTarget target) {

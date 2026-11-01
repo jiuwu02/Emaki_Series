@@ -1,0 +1,36 @@
+# ============================================================
+# EmakiAttribute 示例 - 挖掘强度（自定义通用属性）
+# ============================================================
+# 演示功能：
+#   - 自定义 GENERIC 属性，不需要原版属性映射，可用于展示、条件与第三方玩法读取。
+#   - EmakiLevel 的 types/mining.yml 通过 attributes.values.mining_power 注入该属性，
+#     使“挖掘等级”真正产生可见的属性加成。
+# 使用方式：物品 effects 写 type: ea_attribute，再配置 mining_power: 10。
+# 说明：通用属性的实际玩法效果由读取方决定；本示例仅打通等级 → 属性 → Lore 展示链。
+# ============================================================
+
+id: mining_power
+
+display_name: "挖掘强度"
+
+value_kind: FLAT
+
+target_type: GENERIC
+
+target_id: mining_power
+
+default_value: 0.0
+
+min_value: 0.0
+
+max_value: 1000.0
+
+allow_negative: false
+
+priority: 90
+
+lore_format_id: default_flat
+
+attribute_power: 1.0
+
+description: "示例自定义属性：供 EmakiLevel 挖掘等级注入，其他玩法可按需读取。"

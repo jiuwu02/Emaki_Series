@@ -3,6 +3,7 @@
 # 结算后触发结果对应的 CoreLib Action 分组。
 
 # 配方唯一 ID，缺失则整份配方被跳过
+schema_version: 2
 id: example_equipment_enhance
 
 # 配方模式，决定语义分组；缺失则整份配方被跳过
@@ -17,13 +18,13 @@ target:
   filter:
     item_type: SWORD
 
-# 材料槽列表：matcher 为 CoreLib Matcher 配置，quantity 为 CoreLib Quantity 配置
-# consume 取值：always / success / failure / never（默认 always）
+# 材料槽列表：item_sources 与 matcher 是同级判定条件，两者按 AND 同时成立才命中。
+# 只写 item_sources 表示只看物品源；只写 matcher 表示不限来源、只看组件等条件。
+# matcher 内禁止写物品源条件，物品源一律写在同级 item_sources。
+# quantity 为 CoreLib Quantity 配置；consume 取值：always / success / failure / never（默认 always）
 materials:
-  - matcher:
-      type: item_source
-      sources:
-        - "minecraft-diamond"
+  - item_sources:
+      - "minecraft-diamond"
     quantity: 2
     consume: always
   - matcher:

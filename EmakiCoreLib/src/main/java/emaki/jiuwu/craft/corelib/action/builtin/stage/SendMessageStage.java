@@ -17,9 +17,9 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 public final class SendMessageStage extends BaseStage {
 
     public SendMessageStage() {
-        super("send_message", "message", "Sends a MiniMessage chat message.",
+        super("send_message", "message", "发送一条 MiniMessage 聊天消息。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("text", CoreStageParameterType.STRING, "Message text"));
+                CoreStageParameter.required("text", CoreStageParameterType.STRING, "消息文本"));
     }
 
     @Override

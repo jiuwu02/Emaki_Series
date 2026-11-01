@@ -90,6 +90,35 @@ public final class AttributeBalanceRegistry {
         return configuration;
     }
 
+    public boolean validateCandidate(YamlSection candidate, File file) {
+        if (candidate == null || file == null) {
+            return false;
+        }
+        validateSchema(candidate, file);
+        if (!entrySection(candidate.get("attributes")) || !entrySection(candidate.get("scores"))) {
+            return false;
+        }
+        if (!numericEntries(candidate.get("scores"))) {
+            return false;
+        }
+        parseSemantics(candidate.get("attributes"));
+        parseScores(candidate.get("scores"));
+        return true;
+    }
+
+    private static boolean entrySection(Object raw) {
+        return raw == null || raw instanceof Map<?, ?> || raw instanceof YamlSection;
+    }
+
+    private static boolean numericEntries(Object raw) {
+        for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
+            if (Numbers.tryParseDouble(entry.getValue(), null) == null) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void validateSchema(YamlSection configuration, File file) {
         if (configuration == null) {
             return;

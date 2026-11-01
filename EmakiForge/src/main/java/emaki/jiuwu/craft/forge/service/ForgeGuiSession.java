@@ -55,6 +55,7 @@ public final class ForgeGuiSession {
     private long previewSeed = ThreadLocalRandom.current().nextLong();
     private long previewForgedAt = System.currentTimeMillis();
     private ForgeService.PreparedForge preparedForge;
+    private List<Recipe> candidateRecipes;
 
     public ForgeGuiSession(Player player, Recipe recipe, String templateId, ForgeRuntimeSnapshot runtimeSnapshot) {
         this.player = player;
@@ -91,6 +92,19 @@ public final class ForgeGuiSession {
 
     public void setRecipe(Recipe recipe) {
         this.recipe = recipe;
+        this.candidateRecipes = null;
+    }
+
+    public List<Recipe> candidateRecipes() {
+        return candidateRecipes;
+    }
+
+    public void cacheCandidateRecipes(List<Recipe> recipes) {
+        this.candidateRecipes = recipes;
+    }
+
+    public void invalidateCandidateRecipes() {
+        this.candidateRecipes = null;
     }
 
     public Recipe previewRecipe() {

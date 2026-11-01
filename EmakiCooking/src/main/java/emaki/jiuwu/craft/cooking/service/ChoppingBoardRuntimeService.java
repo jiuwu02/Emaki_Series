@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import emaki.jiuwu.craft.cooking.CookingPermissions;
@@ -61,6 +62,7 @@ public final class ChoppingBoardRuntimeService {
     private final ItemSourceService itemSourceService;
     private final CookingDisplayService displayService;
     private final CookingTextDisplayService textDisplayService;
+    private final Map<StationCoordinates, String> renderedProgress = new ConcurrentHashMap<>();
     private CookingCompletionCoordinator completionCoordinator;
 
     public ChoppingBoardRuntimeService(EmakiCookingPlugin plugin,
@@ -110,7 +112,7 @@ public final class ChoppingBoardRuntimeService {
                 ChoppingBoardState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed chopping-board state"));
+                            new IllegalArgumentException("已提交的砧板状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -127,6 +129,7 @@ public final class ChoppingBoardRuntimeService {
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
                         .thenCompose(_ -> CookingCompletionStateAccesses.runAtStation(plugin, coordinates, () -> {
                             clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
+                            renderedProgress.remove(coordinates);
                             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
                         }));
             }
@@ -135,6 +138,7 @@ public final class ChoppingBoardRuntimeService {
 
     public void reload() {
         displayService.removeStationType(StationType.CHOPPING_BOARD);
+        renderedProgress.clear();
         textDisplayService.removeStationType(StationType.CHOPPING_BOARD);
         stateStore.forEachLoadedState(StationType.CHOPPING_BOARD, this::restoreStoredState);
     }
@@ -148,13 +152,17 @@ public final class ChoppingBoardRuntimeService {
         Block block = coordinates.block();
         if (state == null) {
             clearDisplay(coordinates, null, null);
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
             return false;
         }
         if (!blockMatcher.matches(block, StationType.CHOPPING_BOARD, stationSource)) {
             clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=chopping_board coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "chopping_board",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         if (state.hasInputSource()) {
@@ -182,6 +190,7 @@ public final class ChoppingBoardRuntimeService {
             return;
         }
         displayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+        renderedProgress.remove(coordinates);
         textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
     }
 
@@ -520,6 +529,7 @@ public final class ChoppingBoardRuntimeService {
                     "type", StationType.CHOPPING_BOARD.folderName()
             ));
             clearDisplay(coordinates, null, null);
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
             return false;
         }
@@ -529,6 +539,7 @@ public final class ChoppingBoardRuntimeService {
             }
         }
         clearDisplay(coordinates, state.displayEntityId(), state.inputSource());
+        renderedProgress.remove(coordinates);
         textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
         stateStore.deleteAsync(coordinates);
         return true;
@@ -667,11 +678,12 @@ public final class ChoppingBoardRuntimeService {
         if (source == null) {
             return false;
         }
-        return CookingMatchers.accepts(settingsService.choppingToolMatcher(), itemStack, source, null);
+        return CookingMatchers.accepts(settingsService.choppingToolRequirement(), itemStack, source, null);
     }
 
     private void returnStoredInput(Player player, StationCoordinates coordinates, ChoppingBoardState state) {
         clearDisplay(coordinates, state == null ? null : state.displayEntityId(), state == null ? null : state.inputSource());
+        renderedProgress.remove(coordinates);
         textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
         stateStore.deleteAsync(coordinates);
         if (state == null || !state.hasInputSource()) {
@@ -878,12 +890,20 @@ public final class ChoppingBoardRuntimeService {
     private void refreshText(StationCoordinates coordinates, ChoppingBoardState state) {
         if (!settingsService.textDisplayEnabled(StationType.CHOPPING_BOARD)
                 || coordinates == null || state == null || !state.hasInputSource()) {
+            if (coordinates != null) {
+                renderedProgress.remove(coordinates);
+            }
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
             return;
         }
         Location baseLocation = coordinates.location(0D, 0D, 0D);
         if (baseLocation == null || baseLocation.getWorld() == null) {
+            renderedProgress.remove(coordinates);
             textDisplayService.removeStation(StationType.CHOPPING_BOARD, coordinates);
+            return;
+        }
+        String progressKey = state.inputSource() + '|' + state.inputAmount() + '|' + state.cutCount();
+        if (progressKey.equals(renderedProgress.get(coordinates))) {
             return;
         }
         StringBuilder builder = new StringBuilder();
@@ -916,6 +936,7 @@ public final class ChoppingBoardRuntimeService {
                 baseLocation,
                 settingsService.textDisplayProfile(StationType.CHOPPING_BOARD)
         ));
+        renderedProgress.put(coordinates, progressKey);
     }
 
     private void appendLine(StringBuilder builder, String line) {

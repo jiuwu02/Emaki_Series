@@ -15,10 +15,13 @@ import org.bukkit.inventory.PlayerInventory;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class StageSupport {
+
+    private static final CacheManager<String, Material> MATERIAL_CACHE = new CacheManager<>(512, 0);
 
     private StageSupport() {
     }
@@ -128,6 +131,18 @@ public final class StageSupport {
         if (Texts.isBlank(raw)) {
             return null;
         }
+        Material cached = MATERIAL_CACHE.get(raw);
+        if (cached != null) {
+            return cached;
+        }
+        Material resolved = resolveMaterial(raw);
+        if (resolved != null) {
+            MATERIAL_CACHE.put(raw, resolved);
+        }
+        return resolved;
+    }
+
+    private static Material resolveMaterial(String raw) {
         Material resolved = ItemSourceUtil.resolveVanillaMaterial(raw);
         if (resolved != null) {
             return resolved;

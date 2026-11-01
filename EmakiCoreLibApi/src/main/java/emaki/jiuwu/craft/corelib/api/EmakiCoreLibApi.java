@@ -5,7 +5,9 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.ApiStatus;
@@ -17,9 +19,21 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRebuildRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationDefinition;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationListener;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationPlaybackHandle;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
@@ -154,7 +168,7 @@ public final class EmakiCoreLibApi {
             @Nullable Map<String, ?> replacements) {
         Bridge resolved = bridge;
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.createConfiguredItem(definition, replacements == null ? Map.of() : replacements);
     }
 
@@ -187,7 +201,7 @@ public final class EmakiCoreLibApi {
             @Nullable Map<String, ?> replacements) {
         Bridge resolved = bridge;
         return resolved == null
-                ? ItemBuildResult.unavailable("EmakiCoreLib is unavailable.")
+                ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.applyConfiguredItem(itemStack, definition, replacements == null ? Map.of() : replacements);
     }
 
@@ -213,6 +227,67 @@ public final class EmakiCoreLibApi {
         return itemComponentCapabilities().stream()
                 .filter(capability -> capability.componentId().equals(normalized))
                 .findFirst();
+    }
+
+    /**
+     * Compiles and executes one action pipeline line through EmakiCoreLib's shared action engine.
+     *
+     * <p>The method may be called from any thread. It does not promise a fixed completion thread: the
+     * future may complete on the calling thread for immediate validation results, or on the final stage's
+     * execution domain. Schedule through {@link #scheduling()} before touching Bukkit state in a
+     * continuation.</p>
+     *
+     * <p>Compilation and business failures complete normally as a structured result. The runtime parser,
+     * compiled representation and interpreter remain internal implementation details.</p>
+     *
+     * @param owner plugin that owns the execution lifecycle
+     * @param line one complete action pipeline line
+     * @param context immutable caster, target, origin and typed-data input; defaults when {@code null}
+     * @return a future carrying compile diagnostics and the final execution outcome
+     */
+    public static @NotNull CompletableFuture<CoreActionExecutionResult> executeActionLineAsync(
+            @Nullable Plugin owner,
+            @Nullable String line,
+            @Nullable CoreActionExecutionContext context) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(
+                        CoreActionExecutionResult.unavailable("action.execution.corelib_unavailable"))
+                : resolved.executeActionLineAsync(owner, line, context);
+    }
+
+    /** {@return immutable metadata for every currently registered action stage} */
+    public static @NotNull List<CoreActionStageDescriptor> actionStages() {
+        Bridge resolved = bridge;
+        return resolved == null ? List.of() : List.copyOf(resolved.actionStages());
+    }
+
+    /**
+     * Looks up one registered stage by id.
+     *
+     * @param stageId stage id, matched case-insensitively
+     * @return the immutable descriptor, or an empty optional
+     */
+    public static @NotNull Optional<CoreActionStageDescriptor> actionStage(@Nullable String stageId) {
+        Bridge resolved = bridge;
+        return resolved == null ? Optional.empty() : resolved.actionStage(stageId);
+    }
+
+    /** {@return immutable metadata for every currently registered action trigger} */
+    public static @NotNull List<CoreActionTriggerDescriptor> actionTriggers() {
+        Bridge resolved = bridge;
+        return resolved == null ? List.of() : List.copyOf(resolved.actionTriggers());
+    }
+
+    /**
+     * Looks up one registered trigger by id.
+     *
+     * @param triggerId namespaced trigger id, matched case-insensitively
+     * @return the immutable descriptor, or an empty optional
+     */
+    public static @NotNull Optional<CoreActionTriggerDescriptor> actionTrigger(@Nullable String triggerId) {
+        Bridge resolved = bridge;
+        return resolved == null ? Optional.empty() : resolved.actionTrigger(triggerId);
     }
 
     /**
@@ -286,23 +361,87 @@ public final class EmakiCoreLibApi {
      * {@code NOT_FOUND}. The future may complete on any stage's execution domain; schedule through
      * {@link #scheduling()} before touching Bukkit state in continuations.
      */
-    public static @NotNull java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+    public static @NotNull CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
             @Nullable Plugin owner,
             @Nullable String triggerId,
             @Nullable CoreTriggerDispatch dispatch) {
         Bridge resolved = bridge;
         return resolved == null
-                ? java.util.concurrent.CompletableFuture.completedFuture(EmakiResult.unavailable())
+                ? CompletableFuture.completedFuture(EmakiResult.unavailable())
                 : resolved.dispatchTriggerAsync(owner, triggerId, dispatch);
     }
 
     /**
      * Registers a stage/trigger re-registration callback for reload. A second callback for the same owner
      * replaces the first; owner disable removes it automatically.
+     *
+     * <p>This compatibility method retains replacement semantics. Prefer
+     * {@link #addStageRegistryRebuildListener} when one plugin has independent registrars.</p>
      */
     public static boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister) {
         Bridge resolved = bridge;
         return resolved != null && resolved.onStageRegistryRebuilt(owner, reregister);
+    }
+
+    /**
+     * Registers one independent stage/trigger re-registration callback for reload.
+     *
+     * <p>Callbacks from the same owner do not replace each other. Keep and close the returned handle when
+     * the registrar is retired; owner disable also prevents future replay.</p>
+     *
+     * @param owner plugin that owns the callback lifecycle
+     * @param reregister registration routine to replay after a registry rebuild
+     * @return a revocable registration, inactive when CoreLib is unavailable or input is invalid
+     */
+    public static @NotNull CoreStageRebuildRegistration addStageRegistryRebuildListener(
+            @Nullable Plugin owner,
+            @Nullable Runnable reregister) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreStageRebuildRegistration.inactive()
+                : resolved.addStageRegistryRebuildListener(owner, reregister);
+    }
+
+    /**
+     * Registers one typed target condition for use in {@code action.selectors} condition blocks.
+     *
+     * <p>Node types resolve against CoreLib's built-ins first, so a plugin cannot shadow a built-in
+     * name; a duplicate id is rejected with a stable reason key naming the current owner. Keep the
+     * handle and close it on disable. Unlike the action stage table, this registry survives an
+     * EmakiCoreLib reload, so no rebuild callback is required.</p>
+     *
+     * @param owner     plugin that owns the condition lifecycle
+     * @param condition the condition implementation
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreTargetRegistration registerTargetCondition(@Nullable Plugin owner,
+            @Nullable CoreTargetCondition condition) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
+                        "action.register.runtime_unsupported")
+                : resolved.registerTargetCondition(owner, condition);
+    }
+
+    /**
+     * Registers one mob-system identity provider for the shared target selector.
+     *
+     * <p>CoreLib answers {@code mythicmobs} itself; other systems, including the Emaki gameplay modules,
+     * publish their own provider here. The same lifecycle rules as
+     * {@link #registerTargetCondition(Plugin, CoreTargetCondition)} apply: close the handle on disable,
+     * duplicate system ids are rejected, and the registration survives an EmakiCoreLib reload.</p>
+     *
+     * @param owner    plugin that owns the provider lifecycle
+     * @param provider the identity provider
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
+            @Nullable CoreTargetIdentityProvider provider) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
+                        "action.register.runtime_unsupported")
+                : resolved.registerTargetIdentityProvider(owner, provider);
     }
 
     /**
@@ -403,6 +542,91 @@ public final class EmakiCoreLibApi {
     }
 
     /**
+     * Registers one animation definition into EmakiCoreLib's shared animation registry.
+     *
+     * <p>A definition carries timing and keyframes only; rendering the underlying model animation is the
+     * consumer's job through its own model backend bridge, driven by {@link AnimationListener#onPlay}.
+     * Keep the handle and close it on disable. Unlike the action stage table, the animation definition
+     * registry survives an EmakiCoreLib reload, so no rebuild callback is required.</p>
+     *
+     * @param owner      plugin that owns the definition lifecycle
+     * @param definition the animation definition; invalid definitions fail with a stable reason key
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull AnimationRegistration registerAnimation(@Nullable Plugin owner,
+            @Nullable AnimationDefinition definition) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? AnimationRegistration.unavailable("corelib_unavailable")
+                : resolved.registerAnimation(owner, definition);
+    }
+
+    /**
+     * Starts one playback of a registered animation on an entity.
+     *
+     * <p>May be called from any thread. The future completes when the playback has been accepted or
+     * rejected; its completion thread is not guaranteed. Rejections are structured: unknown definition,
+     * owner disabled, or a
+     * {@link emaki.jiuwu.craft.corelib.api.animation.AnimationConflictPolicy#REJECT} conflict. A higher-priority playback
+     * pre-empts the current one; equal priorities follow the definition's conflict policy.</p>
+     *
+     * <p>Keyframe action lines run with {@code context} as their execution input (the playing entity is
+     * added as caster when the context has none). Bukkit access inside keyframes happens on the entity's
+     * owner thread.</p>
+     *
+     * @param owner        plugin that owns the playback lifecycle
+     * @param entity       the entity to animate
+     * @param definitionId registered definition id, matched case-insensitively
+     * @param context      execution context for keyframe action lines; defaults when {@code null}
+     * @return a future carrying the playback handle or a structured failure
+     */
+    public static @NotNull CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(
+            @Nullable Plugin owner,
+            @Nullable Entity entity,
+            @Nullable String definitionId,
+            @Nullable CoreActionExecutionContext context) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? CompletableFuture.completedFuture(EmakiResult.unavailable())
+                : resolved.playAnimationAsync(owner, entity, definitionId, context);
+    }
+
+    /**
+     * Stops the playback of one definition on one entity, if any.
+     *
+     * @param owner        plugin that owns the playback
+     * @param entity       the animated entity
+     * @param definitionId definition id, matched case-insensitively; {@code null} or blank stops all
+     *                     playbacks owned by {@code owner} on that entity
+     * @return whether a live playback was stopped
+     */
+    public static boolean stopAnimation(@Nullable Plugin owner,
+            @Nullable Entity entity,
+            @Nullable String definitionId) {
+        Bridge resolved = bridge;
+        return resolved != null && resolved.stopAnimation(owner, entity, definitionId);
+    }
+
+    /**
+     * Registers an animation playback listener.
+     *
+     * <p>Callbacks run on the playing entity's owner thread. The same owner replaces its previous
+     * listener; owner disable removes it automatically. Keep and close the handle when the listener is
+     * retired independently.</p>
+     *
+     * @param owner    plugin that owns the listener lifecycle
+     * @param listener the listener
+     * @return a revocable handle; an inactive handle when EmakiCoreLib is unavailable
+     */
+    public static @NotNull AnimationRegistration addAnimationListener(@Nullable Plugin owner,
+            @Nullable AnimationListener listener) {
+        Bridge resolved = bridge;
+        return resolved == null
+                ? AnimationRegistration.unavailable("corelib_unavailable")
+                : resolved.addAnimationListener(owner, listener);
+    }
+
+    /**
      * Bridge contract implemented by EmakiCoreLib. Third-party plugins must not implement it.
      */
     @ApiStatus.NonExtendable
@@ -478,6 +702,49 @@ public final class EmakiCoreLibApi {
         List<ItemComponentCapability> itemComponentCapabilities();
 
         /**
+         * Backs {@link EmakiCoreLibApi#executeActionLineAsync(Plugin, String, CoreActionExecutionContext)}.
+         * A default unavailable result keeps a newer API facade safe when it encounters an older runtime
+         * bridge that does not implement the execution boundary yet.
+         *
+         * @param owner plugin that owns the execution lifecycle
+         * @param line one complete action pipeline line
+         * @param context immutable execution input
+         * @return the structured execution result
+         */
+        @NotNull
+        default CompletableFuture<CoreActionExecutionResult> executeActionLineAsync(
+                @Nullable Plugin owner,
+                @Nullable String line,
+                @Nullable CoreActionExecutionContext context) {
+            return CompletableFuture.completedFuture(
+                    CoreActionExecutionResult.unavailable("action.execution.runtime_unsupported"));
+        }
+
+        /** {@return immutable metadata for every registered action stage} */
+        @NotNull
+        default List<CoreActionStageDescriptor> actionStages() {
+            return List.of();
+        }
+
+        /** {@return one stage descriptor, or an empty optional} */
+        @NotNull
+        default Optional<CoreActionStageDescriptor> actionStage(@Nullable String stageId) {
+            return Optional.empty();
+        }
+
+        /** {@return immutable metadata for every registered action trigger} */
+        @NotNull
+        default List<CoreActionTriggerDescriptor> actionTriggers() {
+            return List.of();
+        }
+
+        /** {@return one trigger descriptor, or an empty optional} */
+        @NotNull
+        default Optional<CoreActionTriggerDescriptor> actionTrigger(@Nullable String triggerId) {
+            return Optional.empty();
+        }
+
+        /**
          * Backs {@link EmakiCoreLibApi#registerActionStage(Plugin, CoreActionStage)} by delegating to the
          * runtime stage registry. Returns an inactive handle carrying a stable {@code reasonKey} when the
          * registry has not been built yet, instead of throwing.
@@ -537,7 +804,7 @@ public final class EmakiCoreLibApi {
          * @return a future carrying the run outcome
          */
         @NotNull
-        java.util.concurrent.CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
+        CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(
                 @Nullable Plugin owner,
                 @Nullable String triggerId,
                 @Nullable CoreTriggerDispatch dispatch);
@@ -552,6 +819,48 @@ public final class EmakiCoreLibApi {
          * @return whether the callback was accepted
          */
         boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#addStageRegistryRebuildListener(Plugin, Runnable)} with an
+         * independent owner-scoped registration.
+         */
+        @NotNull
+        default CoreStageRebuildRegistration addStageRegistryRebuildListener(@Nullable Plugin owner,
+                @Nullable Runnable reregister) {
+            return CoreStageRebuildRegistration.inactive();
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerTargetCondition(Plugin, CoreTargetCondition)} by
+         * delegating to the runtime target condition registry. An older runtime bridge that predates the
+         * target selector returns an inactive handle instead of throwing.
+         *
+         * @param owner     plugin that owns the condition lifecycle
+         * @param condition the condition implementation
+         * @return a revocable handle
+         */
+        @NotNull
+        default CoreTargetRegistration registerTargetCondition(@Nullable Plugin owner,
+                @Nullable CoreTargetCondition condition) {
+            return CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
+                    "action.register.runtime_unsupported");
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerTargetIdentityProvider(Plugin, CoreTargetIdentityProvider)}
+         * by delegating to the runtime identity registry. An older runtime bridge returns an inactive
+         * handle instead of throwing.
+         *
+         * @param owner    plugin that owns the provider lifecycle
+         * @param provider the identity provider
+         * @return a revocable handle
+         */
+        @NotNull
+        default CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
+                @Nullable CoreTargetIdentityProvider provider) {
+            return CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
+                    "action.register.runtime_unsupported");
+        }
 
         /**
          * Backs {@link EmakiCoreLibApi#publishCapabilities(Plugin, Set)} by delegating to the runtime
@@ -640,5 +949,63 @@ public final class EmakiCoreLibApi {
         ReadinessRegistration addModuleListener(@Nullable Plugin owner,
                 @Nullable String moduleName,
                 @Nullable ModuleReadinessListener listener);
+
+        /**
+         * Backs {@link EmakiCoreLibApi#registerAnimation(Plugin, AnimationDefinition)}. An older runtime
+         * bridge that predates the animation subsystem returns an inactive handle instead of throwing.
+         *
+         * @param owner      plugin that owns the definition lifecycle
+         * @param definition the animation definition
+         * @return a revocable handle
+         */
+        @NotNull
+        default AnimationRegistration registerAnimation(@Nullable Plugin owner,
+                @Nullable AnimationDefinition definition) {
+            return AnimationRegistration.unavailable("animation.runtime_unsupported");
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#playAnimationAsync(Plugin, Entity, String, CoreActionExecutionContext)}.
+         * An older runtime bridge returns an unavailable future instead of throwing.
+         *
+         * @param owner        plugin that owns the playback lifecycle
+         * @param entity       the entity to animate
+         * @param definitionId registered definition id
+         * @param context      execution context for keyframe action lines
+         * @return a future carrying the playback handle or a structured failure
+         */
+        @NotNull
+        default CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(@Nullable Plugin owner,
+                @Nullable Entity entity,
+                @Nullable String definitionId,
+                @Nullable CoreActionExecutionContext context) {
+            return CompletableFuture.completedFuture(EmakiResult.unavailable());
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#stopAnimation(Plugin, Entity, String)}. An older runtime bridge
+         * returns {@code false}.
+         *
+         * @param owner        plugin that owns the playback
+         * @param entity       the animated entity
+         * @param definitionId definition id, or blank to stop all of the owner's playbacks on the entity
+         * @return whether a live playback was stopped
+         */
+        default boolean stopAnimation(@Nullable Plugin owner, @Nullable Entity entity, @Nullable String definitionId) {
+            return false;
+        }
+
+        /**
+         * Backs {@link EmakiCoreLibApi#addAnimationListener(Plugin, AnimationListener)}. An older runtime
+         * bridge returns an inactive handle instead of throwing.
+         *
+         * @param owner    plugin that owns the listener lifecycle
+         * @param listener the listener
+         * @return a revocable handle
+         */
+        @NotNull
+        default AnimationRegistration addAnimationListener(@Nullable Plugin owner, @Nullable AnimationListener listener) {
+            return AnimationRegistration.unavailable("animation.runtime_unsupported");
+        }
     }
 }

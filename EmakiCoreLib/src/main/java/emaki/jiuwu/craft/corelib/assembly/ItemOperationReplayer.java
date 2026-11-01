@@ -428,8 +428,8 @@ final class ItemOperationReplayer {
         if (loreLine.equals(target)) {
             return true;
         }
-        String strippedLore = loreLine.replaceAll("<[^>]+>", "").trim();
-        String strippedTarget = target.replaceAll("<[^>]+>", "").trim();
+        String strippedLore = Texts.stripMiniTags(loreLine).trim();
+        String strippedTarget = Texts.stripMiniTags(target).trim();
         return !strippedLore.isEmpty() && strippedLore.equals(strippedTarget);
     }
 

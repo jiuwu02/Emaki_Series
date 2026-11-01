@@ -8,11 +8,27 @@ import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
+/**
+ * Structured display definition of one namespace layer: how the item's base name is derived plus
+ * the name and lore fragments the layer contributes.
+ *
+ * <p>The compact constructor normalizes the definition: a {@code null} policy becomes
+ * {@link BaseNamePolicy#SOURCE_EFFECTIVE_NAME}, {@code baseNameTemplate} is stringified, name
+ * contributions with a blank template are dropped, empty lore sections are dropped, and both
+ * lists become immutable copies that are never {@code null}. The record is immutable once built.
+ *
+ * @param baseNamePolicy how the item's base display name is derived
+ * @param baseNameTemplate template rendered as the base name under
+ *                         {@link BaseNamePolicy#EXPLICIT_TEMPLATE}
+ * @param nameContributions name fragments to layer onto the base name
+ * @param loreSections lore blocks to append to the item's lore
+ */
 public record EmakiStructuredPresentation(BaseNamePolicy baseNamePolicy,
         String baseNameTemplate,
         List<EmakiNameContribution> nameContributions,
         List<EmakiLoreSectionContribution> loreSections) {
 
+    /** Normalizes and filters the raw components as described in the type documentation. */
     public EmakiStructuredPresentation {
         baseNamePolicy = baseNamePolicy == null ? BaseNamePolicy.SOURCE_EFFECTIVE_NAME : baseNamePolicy;
         baseNameTemplate = Texts.toStringSafe(baseNameTemplate);
@@ -20,10 +36,21 @@ public record EmakiStructuredPresentation(BaseNamePolicy baseNamePolicy,
         loreSections = copyLoreSections(loreSections);
     }
 
+    /**
+     * {@return {@code true} when the definition carries no base name template, no name
+     * contributions and no lore sections}
+     */
     public boolean isEmpty() {
         return Texts.isBlank(baseNameTemplate) && nameContributions.isEmpty() && loreSections.isEmpty();
     }
 
+    /**
+     * {@return the definition as a plain map with the {@code base_name_policy},
+     * {@code base_name_template}, {@code name_contributions} and {@code lore_sections} keys}
+     *
+     * <p>{@code base_name_template} is omitted when blank and {@code null} list elements are
+     * skipped.
+     */
     public Map<String, Object> toMap() {
         Map<String, Object> map = new LinkedHashMap<>();
         map.put("base_name_policy", baseNamePolicy.name());
@@ -47,6 +74,18 @@ public record EmakiStructuredPresentation(BaseNamePolicy baseNamePolicy,
         return map;
     }
 
+    /**
+     * Reads a definition back from its {@link #toMap()} form.
+     *
+     * <p>Malformed entries are skipped rather than failing the parse: contributions without a
+     * stable id, lore sections without an id or without lines, and elements that are not maps.
+     *
+     * @param map plain map; {@code null} and empty are accepted
+     * @return the parsed definition, or {@code null} when the map is {@code null} or empty, or
+     *         when nothing usable was parsed (an empty definition is never returned); a missing
+     *         policy falls back to {@link BaseNamePolicy#SOURCE_EFFECTIVE_NAME} and a missing
+     *         template to an empty string
+     */
     public static EmakiStructuredPresentation fromMap(Map<String, Object> map) {
         if (map == null || map.isEmpty()) {
             return null;

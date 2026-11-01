@@ -28,15 +28,15 @@ public final class CodexAdvancementStage implements CoreActionStage {
 
     public enum Operation {
 
-        GRANT("codex_grant_advancement", "Grants an EmakiCodex advancement to the target."),
+        GRANT("codex_grant_advancement", "为目标授予一项 EmakiCodex 成就。"),
 
-        REVOKE("codex_revoke_advancement", "Revokes an EmakiCodex advancement from the target."),
+        REVOKE("codex_revoke_advancement", "撤销目标的一项 EmakiCodex 成就。"),
 
-        RESYNC("codex_resync_advancement", "Resends the EmakiCodex advancement tree to the target."),
+        RESYNC("codex_resync_advancement", "向目标重新推送 EmakiCodex 成就树。"),
 
-        RESET_PAGE("codex_reset_page", "Revokes every EmakiCodex advancement on one page for the target."),
+        RESET_PAGE("codex_reset_page", "撤销目标在某一页上的所有 EmakiCodex 成就。"),
 
-        RESET_ALL("codex_reset_all", "Revokes every registered EmakiCodex advancement for the target.");
+        RESET_ALL("codex_reset_all", "撤销目标所有已注册的 EmakiCodex 成就。");
 
         private final String id;
         private final String description;
@@ -78,9 +78,9 @@ public final class CodexAdvancementStage implements CoreActionStage {
     public @NotNull List<CoreStageParameter> parameters() {
         return switch (operation) {
             case GRANT, REVOKE -> List.of(CoreStageParameter.required("advancement",
-                    CoreStageParameterType.STRING, "Advancement id"));
+                    CoreStageParameterType.STRING, "成就 id"));
             case RESET_PAGE -> List.of(CoreStageParameter.required("page",
-                    CoreStageParameterType.STRING, "Codex page id"));
+                    CoreStageParameterType.STRING, "图鉴页面 id"));
             case RESYNC, RESET_ALL -> List.of();
         };
     }

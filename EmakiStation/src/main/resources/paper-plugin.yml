@@ -1,0 +1,36 @@
+name: EmakiStation
+main: emaki.jiuwu.craft.station.EmakiStationPlugin
+version: ${project.version}
+api-version: "26.1"
+folia-supported: true
+dependencies:
+  server:
+    EmakiCoreLib:
+      load: BEFORE
+      required: true
+      join-classpath: true
+    EmakiStorage:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+permissions:
+  emakistation.use:
+    default: true
+  # 购买队列位还要求全局与工作站购买开关同时启用；queue.* 保留给长度分级。
+  emakistation.purchase:
+    default: true
+  # 使用分解界面（/emakistation dismantle <工作站>）。
+  emakistation.dismantle:
+    default: true
+  emakistation.reload:
+    default: op
+  emakistation.edit:
+    default: op
+  emakistation.debug:
+    default: op
+  emakistation.admin:
+    default: op

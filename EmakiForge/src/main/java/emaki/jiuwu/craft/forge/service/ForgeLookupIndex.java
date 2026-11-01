@@ -115,11 +115,13 @@ public final class ForgeLookupIndex {
                     continue;
                 }
                 recordSourceType(sourceTypes, material.source());
-                String key = shorthand(material.source());
-                if (!key.isBlank()) {
-                    materialIndex.putIfAbsent(key, material);
+                for (ItemSourceRef source : material.itemSources()) {
+                    String key = shorthand(source);
+                    if (!key.isBlank()) {
+                        materialIndex.putIfAbsent(key, material);
+                    }
                 }
-                String materialId = Texts.lower(material.key());
+                String materialId = Texts.lower(material.materialId());
                 if (!materialId.isBlank()) {
                     materialIdIndex.putIfAbsent(materialId, material);
                 }
@@ -128,10 +130,12 @@ public final class ForgeLookupIndex {
                 if (requirement == null) {
                     continue;
                 }
-                recordSourceType(sourceTypes, requirement.source());
-                String key = shorthand(requirement.source());
-                if (!key.isBlank()) {
-                    blueprintIndex.putIfAbsent(key, requirement);
+                for (ItemSourceRef source : requirement.itemSources()) {
+                    recordSourceType(sourceTypes, source);
+                    String key = shorthand(source);
+                    if (!key.isBlank()) {
+                        blueprintIndex.putIfAbsent(key, requirement);
+                    }
                 }
             }
         }

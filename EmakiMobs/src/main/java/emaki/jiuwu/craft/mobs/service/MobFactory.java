@@ -4,10 +4,14 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.mobs.api.event.EmakiMobSpawnEvent;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
+import org.bukkit.Difficulty;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.Enemy;
+import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -30,6 +34,9 @@ public final class MobFactory {
     @Nullable
     private BossBarManager bossBarManager;
 
+    @Nullable
+    private MobModelManager modelManager;
+
     public MobFactory(Supplier<Map<String, MobSpec>> registry,
                       ComponentMapper componentMapper,
                       MobIdentifier mobIdentifier,
@@ -50,6 +57,10 @@ public final class MobFactory {
         this.bossBarManager = bossBarManager;
     }
 
+    public void setModelManager(@Nullable MobModelManager modelManager) {
+        this.modelManager = modelManager;
+    }
+
     public Optional<LivingEntity> spawn(Location location, String mobId) {
         MobSpec spec = registry.get().get(mobId);
         if (spec == null) {
@@ -57,6 +68,9 @@ public final class MobFactory {
         }
         World world = location.getWorld();
         if (world == null) {
+            return Optional.empty();
+        }
+        if (blockedByDifficulty(world, spec.entityType())) {
             return Optional.empty();
         }
         Entity spawned = world.spawnEntity(location, spec.entityType());
@@ -75,8 +89,17 @@ public final class MobFactory {
         }
         scheduleHealthTopUp(entity, spec);
         if (bossBarManager != null) bossBarManager.registerIfConfigured(entity, mobId);
+        if (modelManager != null) modelManager.attachMob(entity, mobId);
         if (skillExecutor != null) skillExecutor.executeForTrigger(entity, mobId, "on_spawn");
         return Optional.of(entity);
+    }
+
+    public static boolean blockedByDifficulty(World world, EntityType entityType) {
+        if (world.getDifficulty() != Difficulty.PEACEFUL) {
+            return false;
+        }
+        Class<? extends Entity> entityClass = entityType.getEntityClass();
+        return entityClass != null && Enemy.class.isAssignableFrom(entityClass);
     }
 
     private void scheduleHealthTopUp(LivingEntity entity, MobSpec spec) {

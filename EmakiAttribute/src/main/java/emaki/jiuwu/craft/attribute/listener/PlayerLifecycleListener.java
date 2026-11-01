@@ -28,12 +28,14 @@ public final class PlayerLifecycleListener implements Listener {
     public void onQuit(PlayerQuitEvent event) {
         attributeService.parentAttributeService().unload(event.getPlayer().getUniqueId(), true);
         attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
+        attributeService.plugin().damageIndicatorService().clearPlayer(event.getPlayer().getUniqueId());
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onKick(PlayerKickEvent event) {
         attributeService.parentAttributeService().unload(event.getPlayer().getUniqueId(), true);
         attributeService.cleanupEntityState(event.getPlayer().getUniqueId());
+        attributeService.plugin().damageIndicatorService().clearPlayer(event.getPlayer().getUniqueId());
     }
 
     @EventHandler

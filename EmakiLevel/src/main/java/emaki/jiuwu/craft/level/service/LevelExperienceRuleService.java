@@ -15,6 +15,7 @@ public final class LevelExperienceRuleService {
     private final Map<String, Map<UUID, Map<String, Double>>> dailyGains = new ConcurrentHashMap<>();
     private AppConfig config = AppConfig.defaults();
     private ZoneId zoneId = ZoneId.systemDefault();
+    private volatile String lastExpiredDay = "";
 
     public void config(AppConfig config) {
         if (config != null) {
@@ -28,7 +29,7 @@ public final class LevelExperienceRuleService {
         }
     }
 
-    public synchronized LevelExperienceAdjustment preview(UUID uuid,
+    public LevelExperienceAdjustment preview(UUID uuid,
             String typeId,
             double amount,
             String reason) {
@@ -52,7 +53,7 @@ public final class LevelExperienceRuleService {
                 : LevelExperienceAdjustment.applied(amount, multiplier, multiplied, dailyLimit, gained, actual);
     }
 
-    public synchronized LevelExperienceAdjustment record(UUID uuid,
+    public LevelExperienceAdjustment record(UUID uuid,
             String typeId,
             double approvedAmount,
             LevelExperienceAdjustment preview) {
@@ -90,12 +91,17 @@ public final class LevelExperienceRuleService {
                 actual);
     }
 
-    public synchronized void clearExpired() {
+    public void clearExpired() {
+        lastExpiredDay = "";
         clearExpired(LocalDate.now(zoneId).toString());
     }
 
     private void clearExpired(String today) {
+        if (today.equals(lastExpiredDay)) {
+            return;
+        }
         dailyGains.keySet().removeIf(day -> !day.equals(today));
+        lastExpiredDay = today;
     }
 
     private double resolveMultiplier(String typeId, String reason) {

@@ -18,8 +18,16 @@ public interface GuiBackend {
 
     String name();
 
+    default boolean supportsInPlaceSwitch() {
+        return false;
+    }
+
     default ConfiguredItemService configuredItemService() {
         return null;
+    }
+
+    default boolean shutdownRequiresOwnerThread() {
+        return true;
     }
 
     default CompletionStage<Void> shutdownAsync() {

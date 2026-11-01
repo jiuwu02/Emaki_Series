@@ -44,6 +44,7 @@ final class ForgeGuiStateSupport {
         if (state == null) {
             return;
         }
+        state.invalidateCandidateRecipes();
         state.setPreviewRecipe(resolvePreviewRecipe(state));
         state.setMaxCapacity(resolveMaxCapacity(state));
         state.setCurrentCapacity(calculateCurrentCapacity(state));
@@ -117,6 +118,7 @@ final class ForgeGuiStateSupport {
         if (state == null || state.guiSession() == null) {
             return;
         }
+        state.invalidateCandidateRecipes();
         Inventory inventory = state.guiSession().getInventory();
         state.blueprintItems().clear();
         for (int slot : slotsForType(state, "blueprint_inputs")) {
@@ -153,13 +155,13 @@ final class ForgeGuiStateSupport {
             }
             optionalLimit = Math.max(optionalLimit, recipe.optionalMaterialLimit());
             for (ForgeMaterial material : recipe.requiredMaterials()) {
-                if (material != null && !requiredIds.contains(material.key())) {
-                    requiredIds.add(material.key());
+                if (material != null && !requiredIds.contains(material.materialId())) {
+                    requiredIds.add(material.materialId());
                 }
             }
             for (ForgeMaterial material : recipe.optionalMaterials()) {
-                if (material != null && !optionalIds.contains(material.key())) {
-                    optionalIds.add(material.key());
+                if (material != null && !optionalIds.contains(material.materialId())) {
+                    optionalIds.add(material.materialId());
                 }
             }
         }
@@ -177,11 +179,10 @@ final class ForgeGuiStateSupport {
             }
             ForgeMaterial material = recipe.findMaterialMatching(context);
             if (material != null) {
-                return material.key();
+                return material.materialId();
             }
         }
-        ForgeMaterial material = findMaterialBySource(state, source);
-        return material == null ? "" : material.key();
+        return "";
     }
 
     public boolean acceptsBlueprint(ForgeGuiSession state, ItemStack itemStack, ItemSourceRef source) {
@@ -209,6 +210,16 @@ final class ForgeGuiStateSupport {
         if (state == null) {
             return List.of();
         }
+        List<Recipe> cached = state.candidateRecipes();
+        if (cached != null) {
+            return cached;
+        }
+        List<Recipe> computed = List.copyOf(computeCandidateRecipes(state));
+        state.cacheCandidateRecipes(computed);
+        return computed;
+    }
+
+    private List<Recipe> computeCandidateRecipes(ForgeGuiSession state) {
         if (state.recipe() != null) {
             return List.of(state.recipe());
         }
@@ -293,7 +304,7 @@ final class ForgeGuiStateSupport {
             return;
         }
         if (player == null) {
-            throw new IllegalStateException("Forge item return has no player owner.");
+            throw new IllegalStateException("锻造物品返还没有玩家所有者。");
         }
         InventoryItemUtil.giveOrDrop(player, clone);
     }
@@ -357,7 +368,7 @@ final class ForgeGuiStateSupport {
             Player player = state.player();
             ItemStack pending = cloneNonAir(state.pendingReturn());
             if (player == null || pending == null) {
-                throw new IllegalStateException("Forge item return has no valid pending owner item.");
+                throw new IllegalStateException("锻造物品返还没有有效的待处理所有者物品。");
             }
             if (state.pendingReturnInventoryAttempted()) {
                 player.getWorld().dropItemNaturally(player.getLocation(), pending);

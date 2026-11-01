@@ -1,0 +1,68 @@
+# ============================================================
+# EmakiAttribute 示例：自定义元素伤害类型
+# ============================================================
+# 演示功能：
+#   - stages 多阶段管线：FLAT_PERCENT + CUSTOM
+#   - kind: FLAT_PERCENT / CUSTOM 与 source: ATTACKER / TARGET
+#   - mode: ADD 叠加，stage 顺序即伤害传递顺序
+#   - recovery 复用内置吸血属性
+# 说明：本类型默认不 hard_lock 原版事件，仅由显式伤害请求或
+#       allowed_events 匹配后进入管线。
+# 依赖：attributes/example_custom_attribute.yml 的 example_spirit
+# ============================================================
+
+id: example_elemental
+
+display_name: "元素伤害"
+
+aliases:
+  - elemental_damage
+  - elem
+
+allowed_events:
+  - ENTITY_ATTACK
+
+# false 表示不强制接管原版事件；需要完全接管时改为 true。
+hard_lock: false
+
+stages:
+  # 平坦加成：攻击方 example_spirit，再叠加法术伤害百分比。
+  - id: attack
+    kind: FLAT_PERCENT
+    source: ATTACKER
+    mode: ADD
+    flat_attributes:
+      - example_spirit
+    percent_attributes:
+      - spell_damage_bonus
+
+  # 暴击阶段：概率属性命中后按暴击伤害倍率放大。
+  - id: crit
+    kind: CUSTOM
+    source: ATTACKER
+    chance_attributes:
+      - spell_crit_rate
+    multiplier_attributes:
+      - spell_crit_damage
+    expression: "%input% * (1 + (%crit% * (%multiplier% / 100)))"
+
+  # 防御阶段：从目标读取法术防御并做下限 0 的削减。
+  - id: defense
+    kind: CUSTOM
+    source: TARGET
+    flat_attributes:
+      - spell_defense
+    expression: "max(0, %input% - %flat%)"
+
+# 结算后的吸血 / 回复配置，属性均来自内置定义。
+recovery:
+  source: ATTACKER
+  resistance_source: TARGET
+  flat_attributes:
+    - percentage_lifesteal
+  percent_attributes:
+    - lifesteal
+  resistance_attributes:
+    - lifesteal_resistance
+
+description: "示例元素伤害管线：攻击、暴击、防御三个阶段。"

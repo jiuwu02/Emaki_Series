@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.level.command;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -43,8 +44,10 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return handleInfo(sender, new String[0]);
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "help" -> handleHelp(sender);
             case "info" -> handleInfo(sender, tail(args));
             case "gui", "open" -> handleGui(sender, tail(args));
+            case "edit" -> handleEdit(sender, tail(args));
             case "levelup", "up" -> handleLevelUp(sender, tail(args));
             case "top" -> handleTop(sender, tail(args));
             case "topgui", "topopen" -> handleTopGui(sender, tail(args));
@@ -63,6 +66,30 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 yield true;
             }
         };
+    }
+
+    private boolean handleHelp(CommandSender sender) {
+        var messages = plugin.messages();
+        messages.sendRaw(sender, messages.message("command.help.header"));
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("info [type]", messages.message("command.help.commands.info"));
+        lines.put("gui [type]", messages.message("command.help.commands.gui"));
+        lines.put("levelup <type>", messages.message("command.help.commands.levelup"));
+        lines.put("top [type]", messages.message("command.help.commands.top"));
+        lines.put("topgui [type]", messages.message("command.help.commands.topgui"));
+        lines.put("edit [id]", messages.message("command.help.commands.edit"));
+        lines.put("addexp|takeexp|setexp <player> <type> <amount>",
+                messages.message("command.help.commands.exp"));
+        lines.put("addlevel|takelevel|setlevel <player> <type> <amount>",
+                messages.message("command.help.commands.level"));
+        lines.put("reset <player> <type>", messages.message("command.help.commands.reset"));
+        lines.put("reload", messages.message("command.help.commands.reload"));
+        lines.put("convert-legacy", messages.message("command.help.commands.convert_legacy"));
+        lines.put("debug", messages.message("command.help.commands.debug"));
+        lines.forEach((usage, description) -> messages.sendRaw(sender,
+                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
+        messages.sendRaw(sender, messages.message("command.help.footer"));
+        return true;
     }
 
     private boolean handleInfo(CommandSender sender, String[] args) {
@@ -140,9 +167,13 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         }
         String typeId = args.length > 0 ? args[0] : plugin.appConfig().primaryType();
         int index = 1;
-        plugin.messages().sendRaw(sender, "<gold>===== EmakiLevel Top: " + typeId + " =====</gold>");
+        plugin.messages().send(sender, "command.top_header", Map.of("type", String.valueOf(typeId)));
         for (LevelTopService.TopEntry entry : plugin.topService().top(typeId, 10)) {
-            plugin.messages().sendRaw(sender, "<yellow>#" + index++ + "</yellow> <white>" + entry.name() + "</white> <gray>Lv." + entry.level() + " / " + PlayerLevelService.format(entry.totalExp()) + " total</gray>");
+            plugin.messages().send(sender, "command.top_entry", Map.of(
+                    "rank", String.valueOf(index++),
+                    "player", String.valueOf(entry.name()),
+                    "level", String.valueOf(entry.level()),
+                    "total_exp", PlayerLevelService.format(entry.totalExp())));
         }
         return true;
     }
@@ -153,7 +184,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 3) {
-            plugin.messages().sendRaw(sender, "<red>/elv " + mode + "exp <player> <type> <amount></red>");
+            plugin.messages().send(sender, "command.usage_exp", Map.of("mode", mode));
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[0]);
@@ -180,7 +211,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 3) {
-            plugin.messages().sendRaw(sender, "<red>/elv " + mode + "level <player> <type> <amount></red>");
+            plugin.messages().send(sender, "command.usage_level", Map.of("mode", mode));
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[0]);
@@ -207,7 +238,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             return true;
         }
         if (args.length < 2) {
-            plugin.messages().sendRaw(sender, "<red>/elv reset <player> <type></red>");
+            plugin.messages().send(sender, "command.usage_reset");
             return true;
         }
         Player target = Bukkit.getPlayerExact(args[0]);
@@ -217,6 +248,28 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         }
         LevelOperationResult result = plugin.levelService().reset(target.getUniqueId(), args[1]);
         sendOperationResult(sender, result);
+        return true;
+    }
+
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(LevelPermissions.EDIT)) {
+            plugin.messages().send(sender, "command.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messages().send(sender, "command.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length == 0) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[0]) == null) {
+            plugin.messages().send(sender, "editor.open_failed", Map.of("id", args[0]));
+        }
         return true;
     }
 
@@ -230,7 +283,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
         plugin.reloadPluginState();
         long elapsedMs = System.currentTimeMillis() - startTime;
         plugin.messages().send(sender, "command.reload_success");
-        plugin.messages().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+        plugin.messages().send(sender, "command.reload_time", Map.of("elapsed", String.valueOf(elapsedMs)));
         return true;
     }
 
@@ -247,7 +300,11 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             }
             double required = plugin.requirementService().requiredExp(type, null, targetLevel);
             String source = plugin.requirementService().debugSource(type, targetLevel);
-            plugin.messages().sendRaw(sender, "<gray>Requirement " + type.id() + " -> " + targetLevel + ": <yellow>" + PlayerLevelService.format(required) + "</yellow> <dark_gray>(" + source + ")</dark_gray></gray>");
+            plugin.messages().send(sender, "command.debug_requirement", Map.of(
+                    "type", String.valueOf(type.id()),
+                    "level", String.valueOf(targetLevel),
+                    "required", PlayerLevelService.format(required),
+                    "source", String.valueOf(source)));
             return true;
         }
         if (args.length >= 2 && "pdc".equalsIgnoreCase(args[0])) {
@@ -257,7 +314,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 return true;
             }
             plugin.levelService().syncAllOnline();
-            plugin.messages().sendRaw(sender, "<green>PDC synced for " + target.getName() + ".</green>");
+            plugin.messages().send(sender, "command.debug_pdc_synced", Map.of("player", String.valueOf(target.getName())));
             return true;
         }
         return plugin.debugCommand().handle(sender, args, plugin.debugMessageService());
@@ -273,9 +330,14 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
 
     private void sendOperationResult(CommandSender sender, LevelOperationResult result) {
         if (result.success()) {
-            plugin.messages().sendRaw(sender, "<green>操作成功: " + result.typeId() + " Lv." + result.oldLevel() + " → Lv." + result.newLevel() + ", exp " + PlayerLevelService.format(result.oldExp()) + " → " + PlayerLevelService.format(result.newExp()) + "</green>");
+            plugin.messages().send(sender, "command.operation_success", Map.of(
+                    "type", String.valueOf(result.typeId()),
+                    "old_level", String.valueOf(result.oldLevel()),
+                    "new_level", String.valueOf(result.newLevel()),
+                    "old_exp", PlayerLevelService.format(result.oldExp()),
+                    "new_exp", PlayerLevelService.format(result.newExp())));
         } else {
-            plugin.messages().sendRaw(sender, "<red>操作失败: " + failure(result.reason()) + "</red>");
+            plugin.messages().send(sender, "command.operation_failed", Map.of("reason", String.valueOf(failure(result.reason()))));
         }
     }
 
@@ -317,12 +379,20 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("info", "gui", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
+            for (String candidate : List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
                 addIfStarts(result, candidate, args[0]);
             }
             return result;
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
+        if ("edit".equals(sub) && args.length == 2) {
+            if (plugin.editorModule() != null) {
+                for (String id : plugin.editorModule().completeIds()) {
+                    addIfStarts(result, id, args[1]);
+                }
+            }
+            return result;
+        }
         if (List.of("giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset").contains(sub)) {
             if (args.length == 2) {
                 result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));

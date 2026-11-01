@@ -22,6 +22,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 
 public final class CorePluginLifecycle {
 
+    private static final long SHUTDOWN_GRACE_NANOS = TimeUnit.SECONDS.toNanos(1L);
+
     public enum State {
         NEW,
         RUNNING,
@@ -49,7 +51,6 @@ public final class CorePluginLifecycle {
     private State state = State.NEW;
     private AsyncFileService fileService;
     private AsyncTaskScheduler taskScheduler;
-    private ShutdownReport lastReport = new ShutdownReport(true, true, 0, List.of());
     private CompletableFuture<ShutdownReport> shutdownFuture;
 
     public CorePluginLifecycle() {
@@ -62,7 +63,7 @@ public final class CorePluginLifecycle {
 
     public synchronized void start(AsyncFileService fileService, AsyncTaskScheduler taskScheduler) {
         if (state != State.NEW) {
-            throw new IllegalStateException("Core plugin lifecycle already started: " + state);
+            throw new IllegalStateException("核心插件生命周期已启动: " + state);
         }
         this.fileService = Objects.requireNonNull(fileService, "fileService");
         this.taskScheduler = Objects.requireNonNull(taskScheduler, "taskScheduler");
@@ -117,9 +118,39 @@ public final class CorePluginLifecycle {
         return created;
     }
 
-    public synchronized ShutdownReport shutdown(long timeout, TimeUnit unit) {
-        shutdownAsync(timeout, unit);
-        return lastReport;
+    public ShutdownReport shutdown(long timeout, TimeUnit unit) {
+        Objects.requireNonNull(unit, "unit");
+        long timeoutNanos = Math.max(1L, unit.toNanos(timeout));
+        CompletableFuture<ShutdownReport> completion = shutdownAsync(timeout, unit);
+        long deadline = deadlineAfter(withFinalizeGrace(timeoutNanos));
+        try {
+            return completion.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+        } catch (TimeoutException exception) {
+            return incompleteReport(exception);
+        } catch (InterruptedException exception) {
+            Thread.currentThread().interrupt();
+            return incompleteReport(exception);
+        } catch (ExecutionException exception) {
+            return incompleteReport(exception);
+        } catch (CancellationException exception) {
+            return incompleteReport(exception);
+        }
+    }
+
+    private ShutdownReport incompleteReport(Throwable throwable) {
+        return new ShutdownReport(false, false, pendingFileOperations(), List.of(safeUnwrap(throwable)));
+    }
+
+    private synchronized int pendingFileOperations() {
+        AsyncFileService service = fileService;
+        return service == null ? 0 : service.pendingWriteCount();
+    }
+
+    private static long withFinalizeGrace(long timeoutNanos) {
+        if (timeoutNanos >= Long.MAX_VALUE - SHUTDOWN_GRACE_NANOS) {
+            return Long.MAX_VALUE;
+        }
+        return timeoutNanos + SHUTDOWN_GRACE_NANOS;
     }
 
     private void finalizeShutdown(long timeoutNanos,
@@ -127,70 +158,77 @@ public final class CorePluginLifecycle {
             CompletableFuture<ShutdownReport> completion) {
         long deadline = deadlineAfter(timeoutNanos);
         List<Throwable> failures = new ArrayList<>();
-        awaitDependents(dependents, deadline, failures);
-        awaitPreDrainShutdown(deadline, failures);
-
-        DrainResult fileResult;
+        boolean drained = false;
+        int pendingOperations = 0;
+        boolean schedulerTerminated = false;
         try {
-            fileResult = fileService == null
-                    ? new DrainResult(true, 0, List.of())
-                    : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
-            fileResult = new DrainResult(false,
-                    fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
-        }
-        failures.addAll(fileResult.failures());
+            awaitDependents(dependents, deadline, failures);
+            awaitPreDrainShutdown(deadline, failures);
 
-        boolean schedulerTerminated;
+            DrainResult fileResult;
+            try {
+                fileResult = fileService == null
+                        ? new DrainResult(true, 0, List.of())
+                        : fileService.closeAndDrain(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+            } catch (Throwable throwable) {
+                failures.add(safeUnwrap(throwable));
+                fileResult = new DrainResult(false,
+                        fileService == null ? 0 : fileService.pendingWriteCount(), List.of());
+            }
+            failures.addAll(fileResult.failures());
+            drained = fileResult.drained();
+            pendingOperations = fileResult.pendingOperations();
+
+            try {
+                schedulerTerminated = taskScheduler == null
+                        || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
+            } catch (Throwable throwable) {
+                failures.add(safeUnwrap(throwable));
+                schedulerTerminated = false;
+            }
+        } catch (Throwable throwable) {
+            failures.add(safeUnwrap(throwable));
+        } finally {
+
+            ShutdownReport report = new ShutdownReport(
+                    drained,
+                    schedulerTerminated,
+                    pendingOperations,
+                    failures
+            );
+            finishShutdown(completion, report);
+        }
+    }
+
+    private static Throwable safeUnwrap(Throwable throwable) {
         try {
-            schedulerTerminated = taskScheduler == null
-                    || taskScheduler.shutdownGracefully(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
-            schedulerTerminated = false;
-        }
+            return AsyncFailures.unwrap(throwable);
+        } catch (Throwable failure) {
 
-        ShutdownReport report = new ShutdownReport(
-                fileResult.drained(),
-                schedulerTerminated,
-                fileResult.pendingOperations(),
-                failures
-        );
-        finishShutdown(completion, report);
+            return throwable;
+        }
     }
 
     private void awaitDependents(Map<String, Future<?>> dependents,
             long deadline,
             List<Throwable> failures) {
         for (Map.Entry<String, Future<?>> entry : dependents.entrySet()) {
-            if (!awaitFuture("Dependent shutdown " + entry.getKey(), entry.getValue(), deadline, failures)) {
+            if (!awaitFuture("依赖关闭 " + entry.getKey(), entry.getValue(), deadline, failures)) {
                 return;
             }
         }
     }
 
     private void awaitPreDrainShutdown(long deadline, List<Throwable> failures) {
-        CompletableFuture<? extends CompletionStage<?>> invocation = CompletableFuture.supplyAsync(preDrainShutdown);
         CompletionStage<?> stage;
         try {
-            stage = invocation.get(remainingNanos(deadline), TimeUnit.NANOSECONDS);
-        } catch (TimeoutException exception) {
-            failures.add(new TimeoutException("Core runtime finalization dispatch timed out"));
-            return;
-        } catch (InterruptedException exception) {
-            Thread.currentThread().interrupt();
-            failures.add(exception);
-            return;
-        } catch (ExecutionException exception) {
-            failures.add(AsyncFailures.unwrap(exception));
-            return;
+            stage = preDrainShutdown.get();
         } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
+            failures.add(safeUnwrap(throwable));
             return;
         }
         if (stage != null) {
-            awaitFuture("Core runtime finalization", futureForStage(stage), deadline, failures);
+            awaitFuture("核心运行时收尾", futureForStage(stage), deadline, failures);
         }
     }
 
@@ -201,11 +239,11 @@ public final class CorePluginLifecycle {
                 if (throwable == null) {
                     completion.complete(null);
                 } else {
-                    completion.completeExceptionally(AsyncFailures.unwrap(throwable));
+                    completion.completeExceptionally(safeUnwrap(throwable));
                 }
             });
         } catch (Throwable throwable) {
-            completion.completeExceptionally(AsyncFailures.unwrap(throwable));
+            completion.completeExceptionally(safeUnwrap(throwable));
         }
         return completion;
     }
@@ -219,27 +257,26 @@ public final class CorePluginLifecycle {
             future.get(remainingNanos, TimeUnit.NANOSECONDS);
             return true;
         } catch (TimeoutException exception) {
-            failures.add(new TimeoutException(label + " timed out"));
+            failures.add(new TimeoutException(label + " 超时"));
             return false;
         } catch (InterruptedException exception) {
             Thread.currentThread().interrupt();
             failures.add(exception);
             return false;
         } catch (ExecutionException exception) {
-            failures.add(AsyncFailures.unwrap(exception));
+            failures.add(safeUnwrap(exception));
             return true;
         } catch (CancellationException exception) {
             failures.add(exception);
             return true;
         } catch (Throwable throwable) {
-            failures.add(AsyncFailures.unwrap(throwable));
+            failures.add(safeUnwrap(throwable));
             return true;
         }
     }
 
     private synchronized void finishShutdown(CompletableFuture<ShutdownReport> completion,
             ShutdownReport report) {
-        lastReport = report;
         state = State.CLOSED;
         completion.complete(report);
     }

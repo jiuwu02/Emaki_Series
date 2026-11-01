@@ -59,7 +59,7 @@ public final class GuiItemBuilder {
             Map<String, ?> replacements,
             ConfiguredItemService configuredItemService) {
         return configuredItemService == null
-                ? ItemBuildResult.unavailable("Configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("配置物品服务不可用。")
                 : configuredItemService.create(definition, replacements);
     }
 
@@ -68,7 +68,7 @@ public final class GuiItemBuilder {
             Map<String, ?> replacements,
             ConfiguredItemService configuredItemService) {
         ItemBuildResult result = configuredItemService == null
-                ? ItemBuildResult.unavailable("Configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("配置物品服务不可用。")
                 : configuredItemService.apply(baseItem, definition, replacements);
         ItemStack itemStack = result.itemStack();
         return itemStack == null || result.hasErrors()

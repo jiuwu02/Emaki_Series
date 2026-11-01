@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -42,50 +43,82 @@ public final class BootstrapService {
         } : hooks;
     }
 
-    public synchronized boolean bootstrap() {
+    public boolean bootstrap() {
+        return bootstrapResult().success();
+    }
+
+    public synchronized BootstrapResult bootstrapResult() {
         info("console.bootstrap_start");
+        List<String> criticalFailures = new ArrayList<>();
+        List<String> degradations = new ArrayList<>();
         hooks.beforeBootstrap();
-        ensureDirectory(plugin.getDataFolder().toPath());
+        ensureDirectory(plugin.getDataFolder().toPath(), criticalFailures);
         for (String directory : extraDirectories) {
-            ensureDirectory(dataPath(directory));
+            ensureDirectory(dataPath(directory), criticalFailures);
         }
         for (String file : versionedFiles) {
-            ensureDefaultFile(file);
-            mergeVersionedFile(file);
+            ensureDefaultFile(file, true, criticalFailures, degradations);
+            mergeVersionedFile(file, criticalFailures);
         }
         for (String file : staticFiles) {
-            ensureDefaultFile(file);
+            ensureDefaultFile(file, false, criticalFailures, degradations);
         }
         if (hooks.shouldInstallDefaultData()) {
             for (String file : defaultDataFiles) {
-                ensureDefaultFile(file);
+                ensureDefaultFile(file, false, criticalFailures, degradations);
             }
         } else if (!defaultDataFiles.isEmpty()) {
             info("console.bootstrap_skip");
         }
         hooks.afterBootstrap();
-        info("console.bootstrap_complete");
-        return true;
+        BootstrapResult result = new BootstrapResult(
+                criticalFailures.isEmpty(),
+                List.copyOf(criticalFailures),
+                List.copyOf(degradations));
+        if (result.success()) {
+            info("console.bootstrap_complete");
+        } else {
+            plugin.getLogger().warning("[loader] 关键默认资源缺失或写入失败: "
+                    + String.join(", ", result.criticalFailures()));
+        }
+        return result;
     }
 
-    private void ensureDefaultFile(String relativePath) {
+    private void ensureDefaultFile(String relativePath,
+            boolean critical,
+            List<String> criticalFailures,
+            List<String> degradations) {
         Path target = dataPath(relativePath);
         try {
             byte[] bundled = readBundledResource(relativePath);
             if (bundled == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
+                record(critical, relativePath, criticalFailures, degradations);
                 return;
             }
             if (Files.exists(target)) {
                 return;
             }
-            ensureDirectory(target.getParent());
+            if (!ensureDirectory(target.getParent(), criticalFailures)) {
+                record(critical, relativePath, criticalFailures, degradations);
+                return;
+            }
             Files.write(target, bundled);
         } catch (IOException exception) {
             warning("console.bootstrap_copy_failed", Map.of(
                     "path", relativePath,
                     "error", String.valueOf(exception.getMessage())
             ));
+            record(critical, relativePath, criticalFailures, degradations);
+        }
+    }
+
+    private static void record(boolean critical, String relativePath, List<String> criticalFailures,
+            List<String> degradations) {
+        if (critical) {
+            criticalFailures.add(relativePath);
+        } else {
+            degradations.add(relativePath);
         }
     }
 
@@ -95,25 +128,49 @@ public final class BootstrapService {
         }
     }
 
-    private void mergeVersionedFile(String relativePath) {
+    private void mergeVersionedFile(String relativePath, List<String> criticalFailures) {
         try {
-            VersionedYamlFile versionedFile = YamlFiles.syncVersionedResource(
-                    plugin,
-                    dataPath(relativePath).toFile(),
-                    relativePath,
-                    VERSION_KEY,
-                    document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
-            );
+            Path targetPath = dataPath(relativePath);
+            VersionedYamlFile cached = YamlFiles.pollStartupCache(targetPath.toFile());
+            VersionedYamlFile versionedFile = cached != null
+                    ? cached
+                    : YamlFiles.syncVersionedResource(
+                            plugin,
+                            targetPath.toFile(),
+                            relativePath,
+                            VERSION_KEY,
+                            document -> hooks.afterVersionedMerge(relativePath, document.root(), document.defaults())
+                    );
             if (versionedFile == null) {
                 warning("console.default_file_missing", Map.of("path", relativePath));
+                criticalFailures.add(relativePath);
                 return;
             }
             logVersionUpdate(relativePath, versionedFile);
         } catch (IOException exception) {
             warning("console.bootstrap_save_failed", Map.of(
                     "path", relativePath,
-                    "error", String.valueOf(exception.getMessage())
+                    "error", describeFailure(exception)
             ));
+            criticalFailures.add(relativePath);
+        }
+    }
+
+    private static String describeFailure(IOException exception) {
+        StringBuilder builder = new StringBuilder();
+        appendDetail(builder, exception);
+        for (Throwable suppressed : exception.getSuppressed()) {
+            builder.append(" | ");
+            appendDetail(builder, suppressed);
+        }
+        return builder.toString();
+    }
+
+    private static void appendDetail(StringBuilder builder, Throwable throwable) {
+        builder.append(throwable.getClass().getSimpleName());
+        String message = throwable.getMessage();
+        if (message != null && !message.isBlank()) {
+            builder.append(": ").append(message);
         }
     }
 
@@ -123,19 +180,22 @@ public final class BootstrapService {
         }
         info("console.versioned_file_updated", Map.of(
                 "path", relativePath,
-                "old_version", versionedFile.previousVersion().isBlank() ? "unknown" : versionedFile.previousVersion(),
+                "old_version", versionedFile.previousVersion().isBlank() ? "未知" : versionedFile.previousVersion(),
                 "new_version", versionedFile.updatedVersion()
         ));
     }
 
-    private void ensureDirectory(Path path) {
+    private boolean ensureDirectory(Path path, List<String> criticalFailures) {
         if (path == null) {
-            return;
+            return true;
         }
         try {
             YamlFiles.ensureDirectory(path);
+            return true;
         } catch (IOException exception) {
             warning("console.directory_create_failed", Map.of("path", path.toString()));
+            criticalFailures.add(path.toString());
+            return false;
         }
     }
 
@@ -161,4 +221,12 @@ public final class BootstrapService {
         }
     }
 
+    public record BootstrapResult(boolean success, List<String> criticalFailures, List<String> degradations) {
+
+        public BootstrapResult {
+            criticalFailures = criticalFailures == null ? List.of() : List.copyOf(criticalFailures);
+            degradations = degradations == null ? List.of() : List.copyOf(degradations);
+            success = success && criticalFailures.isEmpty();
+        }
+    }
 }

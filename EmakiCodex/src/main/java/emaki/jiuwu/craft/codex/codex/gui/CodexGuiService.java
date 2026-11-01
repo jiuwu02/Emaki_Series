@@ -61,7 +61,7 @@ public final class CodexGuiService {
         }
         GuiTemplate template = guiTemplateLoader.get(TEMPLATE_CODEX_GUI);
         if (template == null) {
-            plugin.getLogger().warning("Codex GUI template '" + TEMPLATE_CODEX_GUI + "' is not loaded");
+            messageService.warning("console.gui_template_missing", Map.of("template", TEMPLATE_CODEX_GUI));
             return false;
         }
         List<CodexCategory> categories = categories();

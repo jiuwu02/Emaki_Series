@@ -7,6 +7,20 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+/**
+ * Package-local value helpers shared by the attribute API's mapping and reading code.
+ *
+ * <p>The methods coerce arbitrary objects without leaking {@code null}: string conversion turns a
+ * {@code null} into an empty string, mapped lookups fall back to a supplied default, ids are
+ * normalized with {@link Locale#ROOT} lower-casing and space-to-underscore substitution, and the
+ * {@code tryParse*} helpers accept either a {@link Number} or a numeric string and return the
+ * supplied default when the input is null or unparsable instead of throwing. {@code entries}
+ * flattens a mapping into string keys while skipping null keys, and {@code toPlainData}
+ * recursively converts nested maps and collections into plain maps and lists, passing anything
+ * else through unchanged.
+ *
+ * <p>Every member is package-private and consumed inside this module only.
+ */
 final class AttributeApiValues {
 
     private AttributeApiValues() {

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.service;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -137,8 +138,9 @@ final class StrengthenGuiInteractionController {
         try {
             actions = triggerResultActions(state, result, itemTarget);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Strengthen result action dispatch failed | operationId="
-                    + result.operationId() + " | error=" + exception.getMessage());
+            plugin.messageService().warning("console.gui_result_action_dispatch_failed", Map.of(
+                    "operation_id", result.operationId(),
+                    "error", String.valueOf(exception.getMessage())));
             pending.markReady();
             resumePendingSettlement(pending.player());
             return;
@@ -192,22 +194,23 @@ final class StrengthenGuiInteractionController {
                     () -> settlePendingOnOwner(pending),
                     () -> {
                         pending.releaseSchedule();
-                        plugin.getLogger().warning("Strengthen committed result owner retired; settlement remains pending | operationId="
-                                + pending.operationId());
+                        plugin.messageService().warning("console.gui_owner_retired", Map.of(
+                                "operation_id", pending.operationId()));
                     },
                     1L
             );
             if (scheduled == null) {
                 pending.releaseSchedule();
-                plugin.getLogger().severe("Strengthen committed result scheduling was rejected; settlement remains pending | operationId="
-                        + pending.operationId());
+                plugin.messageService().severe("console.gui_schedule_rejected", Map.of(
+                        "operation_id", pending.operationId()));
                 return false;
             }
             return true;
         } catch (RuntimeException | LinkageError exception) {
             pending.releaseSchedule();
-            plugin.getLogger().severe("Strengthen committed result scheduling failed; settlement remains pending | operationId="
-                    + pending.operationId() + " | error=" + exception.getMessage());
+            plugin.messageService().severe("console.gui_schedule_failed", Map.of(
+                    "operation_id", pending.operationId(),
+                    "error", String.valueOf(exception.getMessage())));
             return false;
         }
     }
@@ -220,8 +223,9 @@ final class StrengthenGuiInteractionController {
                 completed = pending.settle(player);
             }
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().severe("Strengthen committed result settlement failed and will be retried | operationId="
-                    + pending.operationId() + " | error=" + exception.getMessage());
+            plugin.messageService().severe("console.gui_settlement_retry", Map.of(
+                    "operation_id", pending.operationId(),
+                    "error", String.valueOf(exception.getMessage())));
         } finally {
             pending.releaseSchedule();
             if (completed) {
@@ -262,8 +266,9 @@ final class StrengthenGuiInteractionController {
                 plugin.messageService().send(player, "gui.attempt_failed", Map.of("star", result.resultingStar()));
             }
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().warning("Strengthen committed result notification failed after settlement | operationId="
-                    + result.operationId() + " | error=" + exception.getMessage());
+            plugin.messageService().warning("console.gui_notification_failed", Map.of(
+                    "operation_id", result.operationId(),
+                    "error", String.valueOf(exception.getMessage())));
         }
         return true;
     }
@@ -276,8 +281,8 @@ final class StrengthenGuiInteractionController {
             try {
                 plugin.messageService().send(player, "gui.inventory_full");
             } catch (RuntimeException | LinkageError exception) {
-                plugin.getLogger().warning("Strengthen inventory-full notification failed | error="
-                        + exception.getMessage());
+                plugin.messageService().warning("console.gui_inventory_full_notify_failed", Map.of(
+                        "error", String.valueOf(exception.getMessage())));
             }
         }
     }
@@ -294,13 +299,15 @@ final class StrengthenGuiInteractionController {
         if (state == null || preview == null) {
             return;
         }
+        Map<Integer, Integer> consumedByInput = new LinkedHashMap<>();
+        for (AttemptMaterial material : preview.optionalMaterials()) {
+            if (material != null && material.inputIndex() >= 0 && material.consumedAmount() > 0) {
+                consumedByInput.merge(material.inputIndex(), material.consumedAmount(), Integer::sum);
+            }
+        }
         for (int index = 0; index < state.materialInputs().size(); index++) {
             ItemStack itemStack = state.materialInput(index);
-            AttemptMaterial material = index < preview.optionalMaterials().size()
-                    ? preview.optionalMaterials().get(index)
-                    : null;
-            int consumeAmount = material == null ? 0 : material.consumedAmount();
-            returnRemaining(player, itemStack, consumeAmount);
+            returnRemaining(player, itemStack, consumedByInput.getOrDefault(index, 0));
             state.setMaterialInput(index, null);
         }
     }

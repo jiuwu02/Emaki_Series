@@ -1,0 +1,74 @@
+# ============================================================
+# EmakiLevel 等级类型示例 - 威望等级
+# ============================================================
+# 演示点：
+# 1. 独立升级曲线（requirement.group 指向 requirements.yml 的 prestige 分组）
+# 2. 材料消耗与「可降级」的经济消耗：economy.enabled 默认 false，
+#    未安装经济插件时只扣材料，不会因为找不到经济提供器而卡住升级
+# 3. 按等级区间发放升级奖励
+# 4. 升级动作与属性贡献（属性 ID 取自 EmakiAttribute attributes/ 定义）
+# 字段依据：docs/modules/level/configuration.md 的「types/*.yml」章节。
+# ============================================================
+
+id: "example_prestige"
+enabled: true
+display_name: "<light_purple>威望等级</light_purple>"
+description:
+  - "<gray>通过长期积累与材料投入提升的荣誉等级。</gray>"
+primary: false
+start_level: 1
+max_level: 50
+requirement:
+  group: "prestige"
+  formula: ""
+upgrade:
+  enabled: true
+  auto_upgrade: true
+  manual_upgrade: true
+  cost:
+    enabled: true
+    # 经济可降级：enabled 为 false 时完全不检查经济，只扣下方的材料。
+    # 需要收费时改成 true，并保留 currencies 配置。
+    economy:
+      enabled: false
+      currencies:
+        - provider: "auto"
+          currency_id: ""
+          base_cost: 100
+          cost_formula: "%base_cost% * %target_level%"
+          display_name: "<gold>金币</gold>"
+    materials:
+      - item_sources:
+          - "minecraft-emerald"
+        base_amount: 2
+        amount_formula: "%base_amount% + floor(%target_level% / 10)"
+      - item_sources:
+          - "minecraft-gold_ingot"
+        base_amount: 4
+        amount_formula: "%base_amount%"
+  rewards:
+    items:
+      - levels: "*"
+        item_source: "minecraft-experience_bottle"
+        amount: 1
+      - levels: "5,10,15"
+        item_source: "minecraft-diamond"
+        amount: 2
+      - levels: "20-29"
+        item_source: "minecraft-emerald"
+        amount: 3
+  actions:
+    gain:
+      - 'send_action_bar text="<gray>威望经验 +%var.amount%</gray>"'
+    success:
+      - 'send_message text="<light_purple>威望等级提升：</light_purple> <yellow>%var.old_level%</yellow> <gray>→</gray> <yellow>%var.new_level%</yellow>"'
+    failure:
+      - 'send_message text="<red>威望升级失败：%var.failure_reason%</red>"'
+pdc:
+  enabled: true
+attributes:
+  enabled: true
+  values:
+    physical_attack: "%level% * 0.35"
+    physical_defense: "%level% * 0.25"
+    movement_speed: "%level% * 0.002"

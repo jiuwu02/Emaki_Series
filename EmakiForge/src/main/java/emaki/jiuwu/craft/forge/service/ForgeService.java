@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -76,7 +77,8 @@ public final class ForgeService {
                         EmakiItemAssemblyService itemAssemblyService,
                         ActionLineRunner actionLines,
                         ExecutionDispatcher executionDispatcher,
-                        ThreadOwnership threadOwnership) {
+                        ThreadOwnership threadOwnership,
+                        PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.masteryService = new ForgeMasteryService(plugin == null ? null : plugin.playerDataStore());
@@ -138,7 +140,7 @@ public final class ForgeService {
                 plugin,
                 layerSnapshotBuilder,
                 pdcAttributeWriter,
-                new ItemOperationLedger(plugin::debugLogger)
+                new ItemOperationLedger(plugin::debugLogger, placeholderRegistry)
         );
         this.recipeMatchingService = new RecipeMatchingService(
                 this::candidateRecipes,
@@ -319,16 +321,16 @@ public final class ForgeService {
                 task.run();
             } else if (executionDispatcher == null) {
                 future.completeExceptionally(new RejectedExecutionException(
-                        "Forge preparation requires an execution dispatcher."));
+                        "Forge 准备需要执行调度器。"));
             } else {
                 var scheduled = player == null
                         ? executionDispatcher.runGlobal(plugin, task)
                         : executionDispatcher.runEntity(plugin, player, task,
                                 () -> future.completeExceptionally(new RejectedExecutionException(
-                                        "Forge player preparation retired before execution.")));
+                                        "Forge 玩家准备在执行前已退役。")));
                 if (scheduled == null) {
                     future.completeExceptionally(new RejectedExecutionException(
-                            "Forge preparation scheduling was rejected."));
+                            "Forge 准备调度被拒绝。"));
                 }
             }
         } catch (Throwable throwable) {
@@ -400,7 +402,7 @@ public final class ForgeService {
         RequestPermit permit = acquire(runtimeGeneration);
         if (permit == null) {
             plugin.runtimeMetrics().recordExecutionStale();
-            return CompletableFuture.completedFuture(unavailableResult("forge runtime is not accepting requests"));
+            return CompletableFuture.completedFuture(unavailableResult("锻造运行时当前不接受请求"));
         }
         try {
             ValidationResult validation = validationService.canForge(player, recipe, guiItems);
@@ -409,7 +411,7 @@ public final class ForgeService {
                     : plugin.playerDataStore().ensureCurrentGeneration(player.getUniqueId());
             if (player != null && !plugin.playerDataStore().isSessionWritable(player.getUniqueId())) {
                 permit.close();
-                ForgeResult result = unavailableResult("player data is not ready");
+                ForgeResult result = unavailableResult("玩家数据尚未就绪");
                 return CompletableFuture.completedFuture(result);
             }
             CompletableFuture<ForgeResult> execution = forgeExecutionService.execute(
@@ -428,7 +430,7 @@ public final class ForgeService {
             if (execution == null) {
                 permit.close();
                 return CompletableFuture.failedFuture(new IllegalStateException(
-                        "Forge execution returned no completion future."));
+                        "Forge 执行未返回完成 Future。"));
             }
             return execution.whenComplete((ignored, throwable) -> permit.close());
         } catch (Throwable throwable) {

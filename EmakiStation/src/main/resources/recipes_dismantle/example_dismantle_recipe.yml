@@ -1,0 +1,68 @@
+# EmakiStation 分解配方示例
+# 分解配方：玩家将符合 item_sources 与 matcher（若声明）的物品放入分解槽，
+# 同级条件按 AND 处理；点击确认后按 rolls 次从 pool 中随机抽取产物。
+# 一个文件只放一条配方，文件名不影响加载，配方 ID 由文件内的 id 字段决定。
+id: "example_dismantle"
+display_name: "<yellow>铁块分解示例</yellow>"
+
+# 工作站通过 station_id 直接绑定，或通过 tags 让工作站按标签引用。
+# 留空则需要工作站的 recipe_tags/recipe_ids 显式引用。
+station_id: ""
+tags:
+  - "blacksmith"
+
+# 使用该配方需要的权限，留空表示不限制。
+permission: ""
+
+# 分解费用（可选）。点击确认分解时从玩家货币中扣除，余额不足则拒绝分解。
+# 结构与普通配方的 cost 一致：type 支持 vault（Vault）与 excellent（ExcellentEconomy）。
+# 整节删除或注释掉 cost 即为免费分解。
+# 注意必须写成嵌套的 cost.currency 形态——把 type/amount 直接写在 cost 下
+# 会被判定为缺少 currency 子节并在加载时告警，配方按免费处理。
+cost:
+  currency:
+    type: "vault"
+    amount: 100
+
+# 输入物品来源条件。格式与普通配方的 item_source 一致，用【连字符】：
+#   minecraft-iron_block、emakiitem-example_item
+item_sources:
+  - "minecraft-iron_block"
+
+# 可选：输入物品的组件条件；与 item_sources 同级并按 AND 处理。
+# matcher 不表达物品源条件；物品源条件请写在 item_sources。
+# 组件 ID 与 path 资源 ID 用【冒号】形状（enchantments 等价于 minecraft:enchantments，
+# path 里的 sharpness 等价于 minecraft:sharpness）。
+# 组合五态：all_of(all/and)、any_of(any/or)、none_of(none/not)、
+#          at_least + required_count、exactly + required_count
+# component operator 支持 exists / absent、比较、字符串、regex、键值存在性和 size；
+# 例如 enchantments/sharpness >= 3 仅接受锋利 III 及以上物品。
+
+# rolls 接受正整数或包含两端的 min/max 范围。
+rolls:
+  min: 2
+  max: 3
+
+# 产物概率池。每次投掷从这里随机选一项。
+# weight 是相对权重（默认 1.0，必须 > 0）。
+# amount 支持固定值或范围。
+pool:
+  - item_source: "minecraft-iron_ingot"
+    amount:
+      min: 2
+      max: 4
+    weight: 6.0
+
+  - item_source: "minecraft-nugget"
+    amount: 3
+    weight: 3.0
+
+  - item_source: "minecraft-iron_nugget"
+    amount:
+      min: 5
+      max: 9
+    weight: 1.0
+
+# 提交前的条件门，与普通配方一致。不满足时分解按钮被拒绝。
+condition:
+  invalid_as_failure: true

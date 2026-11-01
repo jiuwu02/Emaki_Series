@@ -12,11 +12,11 @@ import java.util.function.Consumer;
 import org.bukkit.Bukkit;
 import org.bukkit.event.HandlerList;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.forge.integration.ForgeAttributeBridge;
@@ -40,6 +41,7 @@ import emaki.jiuwu.craft.forge.action.ForgeStageRegistrar;
 import emaki.jiuwu.craft.forge.api.EmakiForgeApi;
 import emaki.jiuwu.craft.forge.config.AppConfig;
 import emaki.jiuwu.craft.forge.config.ForgeConfigPrecheckContributor;
+import emaki.jiuwu.craft.forge.editor.ForgeEditorModule;
 import emaki.jiuwu.craft.forge.legacy.ForgeLegacyTargets;
 import emaki.jiuwu.craft.forge.loader.PlayerDataStore;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
@@ -95,6 +97,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private ForgeService forgeService;
     private ForgeGuiService forgeGuiService;
     private RecipeBookGuiService recipeBookGuiService;
+    private ChatInputService chatInputService;
+    private ForgeEditorModule editorModule;
+    private EditorService editorService;
     private ForgePlaceholderExpansion placeholderExpansion;
     private TaskToken autoSaveTask;
     private DebugCommand debugCommand;
@@ -129,7 +134,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerEventHandlers();
         registerPublicApiService();
         ensurePlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -144,11 +149,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         registerCoreShutdownBarrier(coreLibPlugin, shutdownFuture);
         if (!runtimeInitialized) {
             try {
-                transitionRuntime(ForgeRuntimeStatus.CLOSING, "plugin disabling before runtime initialization");
-                transitionRuntime(ForgeRuntimeStatus.CLOSED, "plugin disabled before runtime initialization");
+                transitionRuntime(ForgeRuntimeStatus.CLOSING, "运行时初始化前收到插件停用请求");
+                transitionRuntime(ForgeRuntimeStatus.CLOSED, "运行时初始化前插件已停用");
                 shutdownFuture.complete(null);
             } catch (Throwable terminalFailure) {
-                getLogger().warning("[Shutdown] Early runtime close failed: "
+                getLogger().warning("[shutdown] 早期运行时关闭失败: "
                         + String.valueOf(terminalFailure.getMessage()));
                 shutdownFuture.completeExceptionally(terminalFailure);
             }
@@ -156,7 +161,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         }
         CompletableFuture<Void> shutdownPipeline;
         try {
-            transitionRuntime(ForgeRuntimeStatus.CLOSING, "plugin disabling");
+            transitionRuntime(ForgeRuntimeStatus.CLOSING, "插件停用中");
+            if (editorService != null) {
+                editorService.closeAll();
+            }
+            if (chatInputService != null) {
+                chatInputService.close();
+            }
             autoSaveTask = lifecycleCoordinator.cancelAutoSave(autoSaveTask);
             ConfigPrecheckLifecycleSupport.unregister("forge");
             HandlerList.unregisterAll(this);
@@ -178,14 +189,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             Throwable terminalFailure = throwable;
             if (throwable != null) {
                 Throwable cause = AsyncFailures.unwrapOnce(throwable);
-                getLogger().warning("[Shutdown] Forge cleanup failed: "
+                getLogger().warning("[shutdown] Forge 清理失败: "
                         + cause.getClass().getSimpleName() + ": " + String.valueOf(cause.getMessage()));
             }
             if (metrics != null) {
                 try {
                     metrics.close();
                 } catch (Throwable metricsFailure) {
-                    getLogger().warning("[Shutdown] Metrics close failed: "
+                    getLogger().warning("[shutdown] 指标关闭失败: "
                             + String.valueOf(metricsFailure.getMessage()));
                     if (terminalFailure == null) {
                         terminalFailure = metricsFailure;
@@ -198,9 +209,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             }
             runtimeInitialized = false;
             try {
-                transitionRuntime(ForgeRuntimeStatus.CLOSED, "plugin disabled");
+                transitionRuntime(ForgeRuntimeStatus.CLOSED, "插件已停用");
             } catch (Throwable closeFailure) {
-                getLogger().warning("[Shutdown] Final runtime transition failed: "
+                getLogger().warning("[shutdown] 最终运行时状态切换失败: "
                         + String.valueOf(closeFailure.getMessage()));
                 if (terminalFailure == null) {
                     terminalFailure = closeFailure;
@@ -220,7 +231,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             return coreLib();
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] CoreLib lookup failed: " + String.valueOf(throwable.getMessage()));
+            getLogger().warning("[shutdown] CoreLib 查找失败: " + String.valueOf(throwable.getMessage()));
             return null;
         }
     }
@@ -228,15 +239,15 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerCoreShutdownBarrier(EmakiCoreLibPlugin coreLibPlugin,
             CompletableFuture<Void> shutdownFuture) {
         if (coreLibPlugin == null) {
-            getLogger().warning("[Shutdown] CoreLib dependent shutdown barrier is unavailable.");
+            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障不可用");
             return;
         }
         try {
             if (!coreLibPlugin.registerDependentShutdown("forge", shutdownFuture)) {
-                getLogger().warning("[Shutdown] CoreLib rejected the Forge dependent shutdown barrier.");
+                getLogger().warning("[shutdown] CoreLib 拒绝了 Forge 依赖关闭屏障");
             }
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] CoreLib dependent shutdown barrier registration failed: "
+            getLogger().warning("[shutdown] CoreLib 依赖关闭屏障注册失败: "
                     + String.valueOf(throwable.getMessage()));
         }
     }
@@ -245,13 +256,13 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             playerDataListener.clearSessionsForShutdown();
         } catch (Throwable throwable) {
-            getLogger().warning("[Shutdown] Player session cleanup failed: " + String.valueOf(throwable.getMessage()));
+            getLogger().warning("[shutdown] 玩家会话清理失败: " + String.valueOf(throwable.getMessage()));
         }
         if (stageRegistrar != null) {
             try {
                 stageRegistrar.unregister();
             } catch (Throwable throwable) {
-                getLogger().warning("[Shutdown] Forge stage cleanup failed: "
+                getLogger().warning("[shutdown] Forge 阶段清理失败: "
                         + String.valueOf(throwable.getMessage()));
             }
             stageRegistrar = null;
@@ -263,6 +274,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public CompletableFuture<ForgeReloadResult> reloadPluginStateAsync(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         return lifecycleCoordinator.reloadAsync(this, closeOpenInventories, null)
                 .thenApply(result -> {
                     if (result.installed()) {
@@ -302,6 +316,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         forgeService = components.forgeService();
         forgeGuiService = components.forgeGuiService();
         recipeBookGuiService = components.recipeBookGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         commandRouter = new ForgeCommandRouter(this, executionDispatcher, threadOwnership);
         itemRefreshListener = new ForgeItemRefreshListener(this, executionDispatcher);
         setDebugLogger(buildDebugLogger(languageLoader));
@@ -323,7 +340,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakiforge command",
+                "EmakiForge 命令",
                 List.of("eforge", "ef"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakiforge.use", commandRouter, commandRouter)
         );
@@ -336,6 +353,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
 
     private void registerEventHandlers() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
+        }
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(itemRefreshListener, this);
     }
@@ -419,7 +439,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {
@@ -469,6 +489,18 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     public RecipeBookGuiService recipeBookGuiService() {
         ForgeRuntimeComponents components = runtimeSnapshot.get().components();
         return components == null ? recipeBookGuiService : components.recipeBookGuiService();
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public ForgeEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public DebugCommand debugCommand() {
@@ -542,11 +574,11 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 || previous.status() == ForgeRuntimeStatus.CLOSING
                 || previous.status() == ForgeRuntimeStatus.CLOSED
                 || !isGenerationRequested(candidate.generation())) {
-            throw new IllegalStateException("Forge runtime candidate is no longer installable.");
+            throw new IllegalStateException("Forge 运行时候选已不可安装。");
         }
         ForgeRuntimeComponents previousComponents = previous.components();
         if (previousComponents == null) {
-            throw new IllegalStateException("Forge runtime components are unavailable for candidate installation.");
+            throw new IllegalStateException("安装候选时 Forge 运行时组件不可用。");
         }
         EmakiCoreLibPlugin coreLibPlugin = coreLib();
         ForgeService nextForgeService = new ForgeService(
@@ -556,12 +588,14 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 coreLibPlugin.itemAssemblyService(),
                 actionLines(),
                 previousComponents.executionDispatcher(),
-                previousComponents.threadOwnership()
+                previousComponents.threadOwnership(),
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeItemRefreshService nextItemRefreshService = new ForgeItemRefreshService(
                 this,
                 coreLibPlugin.itemAssemblyService(),
-                previousComponents.executionDispatcher()
+                previousComponents.executionDispatcher(),
+                coreLibPlugin.placeholderRegistry()
         );
         ForgeGuiService nextForgeGuiService = new ForgeGuiService(
                 this,
@@ -589,7 +623,10 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
                 nextItemRefreshService,
                 nextForgeService,
                 nextForgeGuiService,
-                nextRecipeBookGuiService
+                nextRecipeBookGuiService,
+                previousComponents.chatInputService(),
+                previousComponents.editorModule(),
+                previousComponents.editorService()
         );
         ForgeRuntimeSnapshot next = ForgeRuntimeSnapshot.active(candidate, activeComponents)
                 .withStatus(ForgeRuntimeStatus.RELOADING);
@@ -601,7 +638,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             nextForgeService.installLookupSnapshot(candidate.lookupSnapshot());
             if (!runtimeSnapshot.compareAndSet(previous, next)) {
-                throw new IllegalStateException("Forge runtime changed before candidate publication.");
+                throw new IllegalStateException("候选发布前 Forge 运行时已变化。");
             }
             committed = true;
             applyRuntimeFields(next);
@@ -716,6 +753,9 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
             forgeService = components.forgeService();
             forgeGuiService = components.forgeGuiService();
             recipeBookGuiService = components.recipeBookGuiService();
+            chatInputService = components.chatInputService();
+            editorModule = components.editorModule();
+            editorService = components.editorService();
             return;
         }
         appConfigLoader = snapshot.appConfigLoader();
@@ -789,7 +829,7 @@ public class EmakiForgePlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiForge readiness publication skipped: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 }

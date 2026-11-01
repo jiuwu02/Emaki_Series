@@ -64,10 +64,10 @@ final class MaterialValidationService {
             if (matched == null) {
                 continue;
             }
-            counts.merge(matched.key(), itemStack.getAmount(), Integer::sum);
+            counts.merge(matched.blueprintId(), itemStack.getAmount(), Integer::sum);
         }
         for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
-            if (counts.getOrDefault(requirement.key(), 0) < requirement.amount()) {
+            if (counts.getOrDefault(requirement.blueprintId(), 0) < requirement.amount()) {
                 return ValidationResult.fail("blueprint.count_not_enough");
             }
         }
@@ -80,7 +80,7 @@ final class MaterialValidationService {
         }
         Map<String, Integer> counts = countMaterials(player, recipe, guiItems.requiredMaterials(), false);
         for (ForgeMaterial material : recipe.requiredMaterials()) {
-            if (counts.getOrDefault(material.key(), 0) < Math.max(1, material.amount())) {
+            if (counts.getOrDefault(material.countKey(), 0) < Math.max(1, material.amount())) {
                 return ValidationResult.fail("material.count_not_enough");
             }
         }
@@ -148,7 +148,7 @@ final class MaterialValidationService {
             }
             ForgeMaterial material = recipe.findMaterialMatching(
                     matchContext(player, itemStack, identify(itemStack)), optional);
-            String key = material == null ? "" : material.key();
+            String key = material == null ? "" : material.countKey();
             if (!key.isBlank()) {
                 counts.merge(key, itemStack.getAmount(), Integer::sum);
             }

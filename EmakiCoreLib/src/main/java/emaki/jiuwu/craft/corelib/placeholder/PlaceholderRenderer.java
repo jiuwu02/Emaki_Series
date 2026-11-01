@@ -22,6 +22,8 @@ public final class PlaceholderRenderer {
 
     private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
 
+    private static volatile Boolean placeholderApiEnabled;
+
     private PlaceholderRenderer() {
     }
 
@@ -68,8 +70,13 @@ public final class PlaceholderRenderer {
         }
         Map<String, Object> values = normalizeVariables(variables);
         if (values.isEmpty()) {
-            debugMissingPlaceholders(text, debugLogger, player, source, List.of(), placeholdersIn(text));
+            if (debugLogger != null) {
+                debugMissingPlaceholders(text, debugLogger, player, source, List.of(), placeholdersIn(text));
+            }
             return text;
+        }
+        if (debugLogger == null) {
+            return replacePlaceholders(text, values);
         }
         Matcher matcher = PERCENT_PLACEHOLDER.matcher(text);
         StringBuffer buffer = new StringBuffer();
@@ -92,6 +99,43 @@ public final class PlaceholderRenderer {
         matcher.appendTail(buffer);
         debugMissingPlaceholders(text, debugLogger, player, source, hits, missing);
         return buffer.toString();
+    }
+
+    private static String replacePlaceholders(String text, Map<String, Object> values) {
+        Matcher matcher = PERCENT_PLACEHOLDER.matcher(text);
+        StringBuilder builder = new StringBuilder(text.length());
+        int cursor = 0;
+        while (matcher.find()) {
+            String rawKey = matcher.group(1);
+            Object value;
+            if (values.containsKey(rawKey)) {
+                value = values.get(rawKey);
+            } else {
+                String key = Texts.lower(rawKey);
+                if (!values.containsKey(key)) {
+                    continue;
+                }
+                value = values.get(key);
+            }
+            builder.append(text, cursor, matcher.start());
+            builder.append(Texts.toStringSafe(value));
+            cursor = matcher.end();
+        }
+        return builder.append(text, cursor, text.length()).toString();
+    }
+
+    static boolean placeholderApiAvailable() {
+        Boolean cached = placeholderApiEnabled;
+        if (cached != null) {
+            return cached;
+        }
+        boolean enabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
+        placeholderApiEnabled = enabled;
+        return enabled;
+    }
+
+    static void refreshPlaceholderApiState() {
+        placeholderApiEnabled = null;
     }
 
     public static String render(ActionContext context,
@@ -120,7 +164,7 @@ public final class PlaceholderRenderer {
         if (player == null || Texts.isBlank(text) || text.indexOf('%') < 0) {
             return text;
         }
-        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+        if (!placeholderApiAvailable()) {
             return text;
         }
         try {

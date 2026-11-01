@@ -1,7 +1,7 @@
 name: EmakiMobs
 main: emaki.jiuwu.craft.mobs.EmakiMobsPlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:
@@ -21,7 +21,11 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    PlaceholderAPI:
+    ModelEngine:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    BetterModel:
       load: BEFORE
       required: false
       join-classpath: true
@@ -39,6 +43,8 @@ permissions:
   emakimobs.count:
     default: op
   emakimobs.debug:
+    default: op
+  emakimobs.edit:
     default: op
   emakimobs.admin:
     default: op

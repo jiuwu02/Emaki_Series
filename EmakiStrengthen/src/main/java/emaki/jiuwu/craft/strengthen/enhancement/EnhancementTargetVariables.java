@@ -13,12 +13,15 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.components.CustomModelDataComponent;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
 import emaki.jiuwu.craft.strengthen.api.model.TargetSnapshotCategory;
@@ -296,6 +299,31 @@ public final class EnhancementTargetVariables {
         return false;
     }
 
+    private static @Nullable Object customModelData(ItemMeta meta) {
+        if (!meta.hasCustomModelDataComponent()) {
+            return null;
+        }
+        CustomModelDataComponent component = meta.getCustomModelDataComponent();
+        if (component == null) {
+            return null;
+        }
+        List<Float> floats = component.getFloats();
+        if (floats.isEmpty() && component.getFlags().isEmpty()
+                && component.getStrings().isEmpty() && component.getColors().isEmpty()) {
+            return null;
+        }
+        // 旧的整数 custom model data 等价于只有一个 float 的组件，这里还原成整数以保持变量与签名兼容。
+        if (floats.size() == 1 && component.getFlags().isEmpty()
+                && component.getStrings().isEmpty() && component.getColors().isEmpty()) {
+            float value = floats.getFirst();
+            if (value == Math.rint(value) && !Float.isInfinite(value)) {
+                return (int) value;
+            }
+            return value;
+        }
+        return List.copyOf(floats);
+    }
+
     private static Map<String, Object> readMeta(ItemStack target) {
         if (target == null || target.getType().isAir()) {
             return Map.of();
@@ -306,14 +334,16 @@ public final class EnhancementTargetVariables {
         if (meta == null) {
             return Map.copyOf(values);
         }
-        if (meta.hasDisplayName()) {
-            values.put("display_name", meta.getDisplayName());
+        if (ItemTextBridge.hasCustomName(meta)) {
+            values.put("display_name", MiniMessages.serialize(ItemTextBridge.customName(meta)));
         }
-        if (meta.hasLore() && meta.getLore() != null) {
-            values.put("lore", List.copyOf(meta.getLore()));
+        List<String> loreLines = ItemTextBridge.loreLines(meta);
+        if (loreLines != null && !loreLines.isEmpty()) {
+            values.put("lore", List.copyOf(loreLines));
         }
-        if (meta.hasCustomModelData()) {
-            values.put("custom_model_data", meta.getCustomModelData());
+        Object customModelData = customModelData(meta);
+        if (customModelData != null) {
+            values.put("custom_model_data", customModelData);
         }
         values.put("unbreakable", meta.isUnbreakable());
         if (meta instanceof Damageable damageable && damageable.hasDamage()) {

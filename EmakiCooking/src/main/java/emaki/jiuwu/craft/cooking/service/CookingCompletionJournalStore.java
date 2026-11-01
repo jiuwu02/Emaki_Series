@@ -34,6 +34,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
 import emaki.jiuwu.craft.cooking.model.StationType;
 import emaki.jiuwu.craft.cooking.service.CookingCompletionOperation.CommitMode;
@@ -79,7 +80,7 @@ public final class CookingCompletionJournalStore {
 
     public CookingCompletionJournalStore(File dataFolder, Logger logger, FileScope fileScope) {
         Path dataRoot = Objects.requireNonNull(dataFolder, "dataFolder").toPath().resolve("data/completions");
-        this.logger = logger == null ? Logger.getLogger(CookingCompletionJournalStore.class.getName()) : logger;
+        this.logger = logger == null ? EmakiLog.of("EmakiCooking") : logger;
         this.fileScope = fileScope;
         this.activeDirectory = dataRoot.resolve("active");
         this.archiveDirectory = dataRoot.resolve("archive");
@@ -137,7 +138,7 @@ public final class CookingCompletionJournalStore {
                     && conflict != null
                     && !conflict.operationId().equals(operation.operationId())) {
                 return CompletableFuture.failedFuture(new IllegalStateException(
-                        "Completion key already has an active operation: " + operation.completionKey()));
+                        "完成键已存在进行中的操作: " + operation.completionKey()));
             }
             previous = activeById.put(operation.operationId(), operation);
             if (previous != null) {
@@ -254,7 +255,7 @@ public final class CookingCompletionJournalStore {
         }
         List<CompletableFuture<Void>> moves = new ArrayList<>();
         for (LoadedOperation duplicate : duplicates) {
-            String error = "Duplicate active completion key during journal load: "
+            String error = "[journal] 日志加载时出现重复的活动完成键: "
                     + duplicate.operation().completionKey();
             logger.warning(error + " operation=" + duplicate.operation().operationId());
             CookingCompletionOperation quarantined = duplicate.operation()
@@ -298,10 +299,10 @@ public final class CookingCompletionJournalStore {
         try {
             Files.createDirectories(quarantineDirectory);
             moveReplacing(source, target);
-            logger.warning("Quarantined corrupt cooking completion journal '" + fileName + "': "
+            logger.warning("[journal] 已隔离损坏的烹饪完成日志 '" + fileName + "': "
                     + rootCauseMessage(throwable));
         } catch (IOException moveFailure) {
-            logger.warning("Failed to load cooking completion journal '" + fileName + "': "
+            logger.warning("[journal] 加载烹饪完成日志失败 '" + fileName + "': "
                     + rootCauseMessage(throwable) + "; quarantine move failed: " + rootCauseMessage(moveFailure));
         }
     }
@@ -453,14 +454,14 @@ public final class CookingCompletionJournalStore {
 
     private <T> CompletableFuture<T> rejectedFuture() {
         return CompletableFuture.failedFuture(new RejectedExecutionException(
-                "Cooking completion journal is sealed"));
+                "烹饪完成日志已封存"));
     }
 
     private String rootCauseMessage(Throwable throwable) {
         Throwable current = AsyncFailures.unwrap(throwable);
         String message = current == null ? null : current.getMessage();
         return message == null || message.isBlank()
-                ? current == null ? "unknown error" : current.getClass().getSimpleName()
+                ? current == null ? "未知错误" : current.getClass().getSimpleName()
                 : message;
     }
 
@@ -513,7 +514,7 @@ public final class CookingCompletionJournalStore {
     private CookingCompletionOperation decode(Map<String, Object> root) {
         int schemaVersion = intValue(root.get("schema_version"), -1);
         if (schemaVersion != SCHEMA_VERSION) {
-            throw new IllegalArgumentException("Unsupported completion journal schema: " + schemaVersion);
+            throw new IllegalArgumentException("不支持的完成日志架构版本: " + schemaVersion);
         }
         Map<String, Object> coordinates = mapValue(root.get("station_coordinates"));
         StationCoordinates stationCoordinates = new StationCoordinates(
@@ -525,7 +526,7 @@ public final class CookingCompletionJournalStore {
         if (stationCoordinates.x() == Integer.MIN_VALUE
                 || stationCoordinates.y() == Integer.MIN_VALUE
                 || stationCoordinates.z() == Integer.MIN_VALUE) {
-            throw new IllegalArgumentException("Invalid station coordinates");
+            throw new IllegalArgumentException("无效的工位坐标");
         }
         return new CookingCompletionOperation(
                 requiredString(root, "operation_id"),
@@ -551,7 +552,7 @@ public final class CookingCompletionJournalStore {
             return List.of();
         }
         if (!(value instanceof List<?> list)) {
-            throw new IllegalArgumentException("Unit collection must be a list");
+            throw new IllegalArgumentException("单元集合必须是列表");
         }
         List<Unit> units = new ArrayList<>(list.size());
         for (Object entry : list) {
@@ -577,7 +578,7 @@ public final class CookingCompletionJournalStore {
             return section.asMap();
         }
         if (!(value instanceof Map<?, ?> map)) {
-            throw new IllegalArgumentException("Expected a map, got " + value.getClass().getSimpleName());
+            throw new IllegalArgumentException("期望映射，实际为 " + value.getClass().getSimpleName());
         }
         Map<String, Object> normalized = new LinkedHashMap<>();
         for (Map.Entry<?, ?> entry : map.entrySet()) {
@@ -591,7 +592,7 @@ public final class CookingCompletionJournalStore {
     private String requiredString(Map<String, Object> values, String key) {
         String value = stringValue(values.get(key)).trim();
         if (value.isBlank()) {
-            throw new IllegalArgumentException("Missing journal value: " + key);
+            throw new IllegalArgumentException("缺少日志值: " + key);
         }
         return value;
     }

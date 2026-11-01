@@ -19,9 +19,9 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class RunCommandAsOpStage extends BaseStage {
 
     public RunCommandAsOpStage() {
-        super("run_command_as_op", "command", "Runs a command as the target with temporary operator status.",
+        super("run_command_as_op", "command", "以临时 OP 身份为目标执行命令。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("command", CoreStageParameterType.STRING, "Command line"));
+                CoreStageParameter.required("command", CoreStageParameterType.STRING, "命令行"));
     }
 
     @Override

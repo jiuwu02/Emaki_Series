@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.quantity.Quantity;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.CurrencyConfig;
+import emaki.jiuwu.craft.strengthen.enhancement.cost.EnhancementMaterialSchema;
 import emaki.jiuwu.craft.strengthen.enhancement.cost.MaterialSlotConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityCounterConfig;
 import emaki.jiuwu.craft.strengthen.enhancement.pity.PityDecayConfig;
@@ -36,6 +37,10 @@ public final class EnhancementRecipeParser {
             return null;
         }
 
+        int schemaVersion = section.getInt("schema_version", EnhancementMaterialSchema.LEGACY_VERSION);
+        if (!EnhancementMaterialSchema.supported(schemaVersion)) {
+            return null;
+        }
         String id = section.getString("id");
         if (Texts.isBlank(id)) {
             return null;
@@ -262,8 +267,8 @@ public final class EnhancementRecipeParser {
         List<String> rawIsolate = section.getStringList("isolate");
         List<PityIsolationEnum> isolate = PityIsolationEnum.parseAll(rawIsolate);
         if (rawIsolate != null && isolate.size() != new LinkedHashSet<>(rawIsolate).size()) {
-            throw new IllegalArgumentException("pity isolate declares unknown or duplicate dimension in "
-                    + rawIsolate + "; legal values are " + PityIsolationEnum.legalTokens());
+            throw new IllegalArgumentException("pity isolate 在 "
+                    + rawIsolate + " 中声明了未知或重复的维度；合法取值为 " + PityIsolationEnum.legalTokens());
         }
 
         return new EnhancementRecipe.PityConfig(counter, trigger, effect, decay, isolate);

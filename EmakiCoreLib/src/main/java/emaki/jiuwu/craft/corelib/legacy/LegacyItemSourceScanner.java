@@ -33,17 +33,17 @@ public final class LegacyItemSourceScanner {
             return;
         }
         if (!convertible.isEmpty()) {
-            logger.warning("检测到 " + convertible.size() + " 份配置仍在用旧 item_sources 识别格式，共 "
+            logger.warning("[legacy] 检测到 " + convertible.size() + " 份配置仍在用旧 item_sources 识别格式，共 "
                     + report.occurrences() + " 处");
             for (FileReport file : convertible) {
-                logger.warning("  " + file.fileName() + " (" + file.occurrences() + " 处)");
+                logger.warning("[legacy]   " + file.fileName() + " (" + file.occurrences() + " 处)");
             }
-            logger.warning("执行 /" + command + " convert-legacy 预览，/" + command
+            logger.warning("[legacy] 执行 /" + command + " convert-legacy 预览，/" + command
                     + " convert-legacy confirm 应用");
         }
         for (FileReport file : report.files()) {
             if (file.status() == Status.UNCONVERTIBLE && Texts.isNotBlank(file.detail())) {
-                logger.warning("  " + file.fileName() + " 无法自动转换: " + file.detail());
+                logger.warning("[legacy]   " + file.fileName() + " 无法自动转换: " + file.detail());
             }
         }
     }

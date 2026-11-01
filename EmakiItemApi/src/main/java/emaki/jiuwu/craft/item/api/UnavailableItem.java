@@ -10,6 +10,8 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.contract.EmakiResult;
 import emaki.jiuwu.craft.corelib.api.contract.Unit;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
+import emaki.jiuwu.craft.item.api.effect.ItemEffectRegistration;
+import emaki.jiuwu.craft.item.api.effect.ItemEffectType;
 import emaki.jiuwu.craft.item.api.model.ItemRefreshSummary;
 import emaki.jiuwu.craft.item.api.model.MigrationOutcome;
 import emaki.jiuwu.craft.item.api.model.MigrationPreview;
@@ -17,6 +19,7 @@ import emaki.jiuwu.craft.item.api.model.RepairOutcome;
 import emaki.jiuwu.craft.item.api.model.RepairQuoteView;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewProvider;
 import emaki.jiuwu.craft.item.api.preview.ItemLayerPreviewRegistration;
+import java.util.Optional;
 
 /** Shared no-op layers used while no EmakiItem runtime bridge is installed. */
 final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, ItemMigration, ItemExtensions, ItemState {
@@ -60,6 +63,11 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
 
     @Override
     public EmakiResult<Boolean> conditionPasses(Player player, String itemId, String trigger, ItemStack itemStack) {
+        return EmakiResult.unavailable();
+    }
+
+    @Override
+    public EmakiResult<Boolean> conditionSatisfied(Player player, ItemStack itemStack) {
         return EmakiResult.unavailable();
     }
 
@@ -150,6 +158,16 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     }
 
     @Override
+    public ItemEffectRegistration registerEffectType(Plugin owner, ItemEffectType type) {
+        return ItemEffectRegistration.noop();
+    }
+
+    @Override
+    public void unregisterEffectTypes(Plugin owner) {
+        // No registrations exist in the unavailable implementation.
+    }
+
+    @Override
     public ItemStateSnapshot snapshot(ItemStack item) {
         return new ItemStateSnapshot(item, Map.of(), ItemStateMetadata.empty());
     }
@@ -160,8 +178,8 @@ final class UnavailableItem implements ItemCatalog, ItemOperations, ItemRepair, 
     }
 
     @Override
-    public <T> java.util.Optional<T> get(ItemStack item, ItemStateKey<T> key) {
-        return java.util.Optional.empty();
+    public <T> Optional<T> get(ItemStack item, ItemStateKey<T> key) {
+        return Optional.empty();
     }
 
     @Override

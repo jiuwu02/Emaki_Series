@@ -3,17 +3,22 @@ package emaki.jiuwu.craft.mobs.command;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.mobs.service.MobFactory;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.logging.Level;
 
 public final class MobsCommandRouter {
@@ -24,10 +29,13 @@ public final class MobsCommandRouter {
     private static final String PERMISSION_INFO = "emakimobs.info";
     private static final String PERMISSION_COUNT = "emakimobs.count";
     private static final String PERMISSION_DEBUG = "emakimobs.debug";
+    private static final String PERMISSION_EDIT = "emakimobs.edit";
     private static final String PERMISSION_ADMIN = "emakimobs.admin";
     private static final int PAGE_SIZE = 10;
+    private static final int FIND_LIST_LIMIT = 20;
     private static final List<String> SUBCOMMANDS =
-            List.of("spawn", "reload", "list", "info", "kill", "count", "debug");
+            List.of("help", "spawn", "reload", "list", "info", "kill", "count", "find", "tp",
+                    "debug", "edit");
 
     private final EmakiMobsPlugin plugin;
     private final ManagedMobCommandService managedMobService;
@@ -43,13 +51,17 @@ public final class MobsCommandRouter {
             return;
         }
         switch (args[0].toLowerCase(Locale.ROOT)) {
+            case "help" -> sendHelp(sender);
             case "spawn" -> handleSpawn(sender, args);
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
             case "info" -> handleInfo(sender, args);
             case "kill" -> handleKill(sender, args);
             case "count" -> handleCount(sender, args);
+            case "find" -> handleFind(sender, args);
+            case "tp" -> handleTp(sender, args);
             case "debug" -> handleDebug(sender, args);
+            case "edit" -> handleEdit(sender, args);
             default -> plugin.messageService().send(sender, "command.usage");
         }
     }
@@ -59,20 +71,30 @@ public final class MobsCommandRouter {
             String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
             List<String> result = new ArrayList<>();
             for (String subcommand : SUBCOMMANDS) {
-                if (subcommand.startsWith(prefix) && sender.hasPermission(permissionFor(subcommand))) {
+                if (subcommand.startsWith(prefix) && ("help".equals(subcommand)
+                        || sender.hasPermission(permissionFor(subcommand)))) {
                     result.add(subcommand);
                 }
             }
             return result;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
-        if (!sender.hasPermission(permissionFor(subcommand))) {
+        if (!"help".equals(subcommand) && !sender.hasPermission(permissionFor(subcommand))) {
             return List.of();
         }
         if (("spawn".equals(subcommand) || "info".equals(subcommand)
-                || "kill".equals(subcommand) || "count".equals(subcommand))
+                || "count".equals(subcommand) || "find".equals(subcommand))
                 && args.length == 2) {
             return mobIdSuggestions(args[1]);
+        }
+        if ("kill".equals(subcommand) && args.length == 2) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            List<String> result = new ArrayList<>();
+            if ("all".startsWith(prefix)) {
+                result.add("all");
+            }
+            result.addAll(mobIdSuggestions(args[1]));
+            return result;
         }
         if ("spawn".equals(subcommand) && args.length == 3) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
@@ -84,6 +106,15 @@ public final class MobsCommandRouter {
         }
         if ("list".equals(subcommand) && args.length == 2 && "1".startsWith(args[1])) {
             return List.of("1");
+        }
+        if ("edit".equals(subcommand) && args.length == 2) {
+            if (plugin.editorModule() == null) {
+                return List.of();
+            }
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            return plugin.editorModule().completeIds().stream()
+                    .filter(id -> id.toLowerCase(Locale.ROOT).startsWith(prefix))
+                    .toList();
         }
         if ("debug".equals(subcommand) && plugin.debugCommand() != null) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -111,6 +142,11 @@ public final class MobsCommandRouter {
         }
         if (target == null || !target.isOnline()) {
             plugin.messageService().send(sender, "command.spawn_no_target");
+            return;
+        }
+        MobSpec spec = plugin.mobRegistry().get().get(mobId);
+        if (spec != null && MobFactory.blockedByDifficulty(target.getWorld(), spec.entityType())) {
+            plugin.messageService().send(sender, "command.spawn_blocked", Map.of("mob_id", mobId));
             return;
         }
         var result = plugin.mobFactory().spawn(target.getLocation(), mobId);
@@ -221,8 +257,9 @@ public final class MobsCommandRouter {
             plugin.messageService().send(sender, "command.kill_usage");
             return;
         }
-        String mobId = args[1];
-        if (!plugin.mobRegistry().get().containsKey(mobId)) {
+        boolean all = "all".equalsIgnoreCase(args[1]);
+        String mobId = all ? null : args[1];
+        if (!all && !plugin.mobRegistry().get().containsKey(mobId)) {
             plugin.messageService().send(sender, "command.unknown_mob", Map.of("mob_id", mobId));
             return;
         }
@@ -245,10 +282,145 @@ public final class MobsCommandRouter {
                 reportOperationFailure(sender, "kill", throwable);
                 return;
             }
-            deliver(sender, "command.kill_success", Map.of(
-                    "mob_id", mobId,
+            deliver(sender, all ? "command.kill_all_success" : "command.kill_success", Map.of(
+                    "mob_id", all ? "all" : mobId,
                     "count", count));
         });
+    }
+
+    private void handleFind(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_COUNT)) {
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "command.find_usage");
+            return;
+        }
+        String mobId = args[1];
+        if (!plugin.mobRegistry().get().containsKey(mobId)) {
+            plugin.messageService().send(sender, "command.unknown_mob", Map.of("mob_id", mobId));
+            return;
+        }
+        double radius = -1D;
+        if (args.length >= 3) {
+            radius = parseNonNegativeDouble(args[2]);
+            if (radius < 0D) {
+                plugin.messageService().send(sender, "command.invalid_radius", Map.of("radius", args[2]));
+                return;
+            }
+        }
+        double selectionRadius = radius;
+        managedMobService.find(mobId, player.getLocation(), selectionRadius).whenComplete((found, throwable) -> {
+            if (throwable != null) {
+                reportOperationFailure(sender, "find", throwable);
+                return;
+            }
+            List<ManagedMobCommandService.Match> matches = new ArrayList<>(found);
+            matches.sort(Comparator.comparingDouble(ManagedMobCommandService.Match::distanceSquared));
+            List<ManagedMobCommandService.Match> ordered = List.copyOf(matches);
+            dispatchTo(player, () -> sendFindResult(player, mobId, selectionRadius, ordered));
+        });
+    }
+
+    private void sendFindResult(Player player, String mobId, double radius,
+                                List<ManagedMobCommandService.Match> matches) {
+        plugin.messageService().send(player, "command.find_header", Map.of(
+                "mob_id", mobId,
+                "count", matches.size(),
+                "radius", radius < 0D ? "∞" : String.valueOf(Math.round(radius))));
+        if (matches.isEmpty()) {
+            plugin.messageService().send(player, "command.find_empty");
+            return;
+        }
+        int shown = Math.min(matches.size(), FIND_LIST_LIMIT);
+        for (int index = 0; index < shown; index++) {
+            ManagedMobCommandService.Match match = matches.get(index);
+            long distance = Math.round(Math.sqrt(match.distanceSquared()));
+            String hover = plugin.messageService().message("command.find_entry_hover", Map.of(
+                    "mob_id", match.mobId(),
+                    "uuid", match.uuid().toString(),
+                    "health", formatNumber(match.health()),
+                    "max_health", formatNumber(match.maxHealth())));
+            plugin.messageService().sendRaw(player, plugin.messageService().message(
+                    "command.find_entry", Map.of(
+                            "hover", hover,
+                            "uuid", match.uuid().toString(),
+                            "mob_id", match.mobId(),
+                            "distance", distance,
+                            "world", match.worldName(),
+                            "x", match.blockX(),
+                            "y", match.blockY(),
+                            "z", match.blockZ())));
+        }
+        if (matches.size() > shown) {
+            plugin.messageService().send(player, "command.find_truncated", Map.of(
+                    "count", matches.size() - shown));
+        }
+    }
+
+    private void handleTp(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_ADMIN)) {
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return;
+        }
+        if (args.length < 2) {
+            plugin.messageService().send(sender, "command.tp_usage");
+            return;
+        }
+        UUID targetId;
+        try {
+            targetId = UUID.fromString(args[1]);
+        } catch (IllegalArgumentException exception) {
+            plugin.messageService().send(sender, "command.tp_invalid", Map.of("value", args[1]));
+            return;
+        }
+        Entity entity = Bukkit.getEntity(targetId);
+        if (!(entity instanceof LivingEntity living) || !living.isValid() || living.isDead()
+                || !plugin.mobIdentifier().isManaged(living)) {
+            plugin.messageService().send(sender, "command.tp_not_managed", Map.of("value", args[1]));
+            return;
+        }
+        Location destination = living.getLocation();
+        TaskToken token = plugin.executionDispatcher().runEntity(plugin, player, () -> {
+            player.teleport(destination);
+            plugin.messageService().send(player, "command.tp_success", Map.of("value", args[1]));
+        }, () -> plugin.messageService().send(player, "command.tp_failed"));
+        if (token == null || token.cancelled()) {
+            plugin.messageService().send(player, "command.tp_failed");
+        }
+    }
+
+    private static String formatNumber(double value) {
+        return value == Math.floor(value) && !Double.isInfinite(value)
+                ? String.valueOf((long) value)
+                : String.format(Locale.ROOT, "%.1f", value);
+    }
+
+    private void handleEdit(CommandSender sender, String[] args) {
+        if (!requirePermission(sender, PERMISSION_EDIT)) {
+            return;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed", Map.of("id", args[1]));
+        }
     }
 
     private void handleDebug(CommandSender sender, String[] args) {
@@ -264,30 +436,34 @@ public final class MobsCommandRouter {
     }
 
     private void deliver(CommandSender sender, String key, Map<String, ?> replacements) {
-        if (!plugin.isEnabled() || plugin.isShutdownStarted()) {
-            return;
-        }
-        Runnable delivery = () -> {
+        dispatchTo(sender, () -> {
             if (plugin.isEnabled() && !plugin.isShutdownStarted()) {
                 plugin.messageService().send(sender, key, replacements);
             }
-        };
+        });
+    }
+
+    private void dispatchTo(CommandSender sender, Runnable delivery) {
+        if (!plugin.isEnabled() || plugin.isShutdownStarted()) {
+            return;
+        }
         TaskToken token;
         if (sender instanceof Player player) {
             token = plugin.executionDispatcher().runEntity(plugin, player, delivery,
-                    () -> plugin.getLogger().warning(
-                            "[EmakiMobs] Command result recipient retired before delivery."));
+                    () -> plugin.messageService().warning("console.command_result_recipient_retired"));
         } else {
             token = plugin.executionDispatcher().runGlobal(plugin, delivery);
         }
         if (token == null || token.cancelled()) {
-            plugin.getLogger().warning("[EmakiMobs] Unable to schedule command result delivery.");
+            plugin.messageService().warning("console.command_result_schedule_failed");
         }
     }
 
     private void reportOperationFailure(CommandSender sender, String operation, Throwable throwable) {
         plugin.getLogger().log(Level.WARNING,
-                "[EmakiMobs] Managed mob command operation failed: " + operation, throwable);
+                "[command] " + plugin.messageService().message("console.command_operation_failed",
+                        Map.of("operation", operation)),
+                throwable);
         deliver(sender, "command.operation_failed", Map.of("operation", operation));
     }
 
@@ -307,6 +483,24 @@ public final class MobsCommandRouter {
                 .toList();
     }
 
+    private void sendHelp(CommandSender sender) {
+        var messages = plugin.messageService();
+        messages.sendRaw(sender, messages.message("command.help.header"));
+        Map<String, String> lines = new LinkedHashMap<>();
+        lines.put("spawn <mob_id> [玩家]", messages.message("command.help.commands.spawn"));
+        lines.put("list [页码]", messages.message("command.help.commands.list"));
+        lines.put("info <mob_id>", messages.message("command.help.commands.info"));
+        lines.put("count <mob_id>", messages.message("command.help.commands.count"));
+        lines.put("find <mob_id> [半径]", messages.message("command.help.commands.find"));
+        lines.put("kill <mob_id|all> [半径]", messages.message("command.help.commands.kill"));
+        lines.put("edit [id]", messages.message("command.help.commands.edit"));
+        lines.put("reload", messages.message("command.help.commands.reload"));
+        lines.put("debug", messages.message("command.help.commands.debug"));
+        lines.forEach((usage, description) -> messages.sendRaw(sender,
+                messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
+        messages.sendRaw(sender, messages.message("command.help.footer"));
+    }
+
     private String permissionFor(String subcommand) {
         return switch (subcommand) {
             case "spawn" -> PERMISSION_SPAWN;
@@ -315,7 +509,10 @@ public final class MobsCommandRouter {
             case "info" -> PERMISSION_INFO;
             case "kill" -> PERMISSION_ADMIN;
             case "count" -> PERMISSION_COUNT;
+            case "find" -> PERMISSION_COUNT;
+            case "tp" -> PERMISSION_ADMIN;
             case "debug" -> PERMISSION_DEBUG;
+            case "edit" -> PERMISSION_EDIT;
             default -> "emakimobs.use";
         };
     }

@@ -22,7 +22,6 @@ import org.jetbrains.annotations.Nullable;
  *                          custom item source instead
  * @param itemName          the configured plain item name; empty when the definition renders its name
  *                          dynamically
- * @param amount            the default stack size the definition produces
  * @param rarity            vanilla rarity such as {@code common} or {@code epic}; empty when unset
  * @param equipSlot         the equipment slot this item occupies; empty when it is not equipment
  * @param skillIds          EmakiSkills skill ids this item grants
@@ -35,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 public record ItemDefinitionView(@NotNull String id,
                                  @Nullable Material material,
                                  @NotNull String itemName,
-                                 int amount,
                                  @NotNull String rarity,
                                  @NotNull String equipSlot,
                                  @NotNull List<String> skillIds,
@@ -51,7 +49,6 @@ public record ItemDefinitionView(@NotNull String id,
      * @param id                canonical lowercase definition id
      * @param material          base vanilla material
      * @param itemName          configured plain item name
-     * @param amount            default stack size
      * @param rarity            vanilla rarity
      * @param equipSlot         equipment slot
      * @param skillIds          granted skill ids
@@ -63,7 +60,6 @@ public record ItemDefinitionView(@NotNull String id,
     public ItemDefinitionView {
         id = id == null ? "" : id;
         itemName = itemName == null ? "" : itemName;
-        amount = Math.max(1, amount);
         rarity = rarity == null ? "" : rarity;
         equipSlot = equipSlot == null ? "" : equipSlot;
         skillIds = skillIds == null ? List.of() : List.copyOf(skillIds);

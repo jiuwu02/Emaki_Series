@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.mobs.api.event.EmakiMobSkillTriggerEvent;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.plugin.java.JavaPlugin;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
@@ -97,9 +96,9 @@ public final class MobSkillExecutor {
                     compiled.add(r.pipeline());
                 } else {
                     int lineNum = i + 1;
-                    logger.warning("[EmakiMobs] 技能编译错误: mob='" + mobId
-                            + "' trigger='" + trigger + "' line=" + lineNum
-                            + " reason=" + r.diagnostics());
+                    logger.warning("[script] 技能编译错误: 生物='" + mobId
+                            + "' 触发器='" + trigger + "' 行=" + lineNum
+                            + " 原因=" + r.diagnostics());
                 }
             }
             if (!compiled.isEmpty()) {
@@ -111,7 +110,7 @@ public final class MobSkillExecutor {
 
     private ActionEngine engine() {
         try {
-            EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+            EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
             return coreLib == null ? null : coreLib.actionEngine();
         } catch (Exception e) {
             return null;

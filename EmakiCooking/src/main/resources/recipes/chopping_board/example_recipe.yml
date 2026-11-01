@@ -12,13 +12,12 @@ display_name: "切制胡萝卜"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放在砧板上的原料物品。
+# 放在砧板上的原料物品。判定由同级 item_sources 与 matcher 取 AND，
+# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
 # amount: 每次完成切割需要并消耗的数量；砧板会一次性接收主手整叠并累计数量。
 input:
-  matcher:
-    type: item_source
-    sources:
-      - "minecraft-carrot"
+  item_sources:
+    - "minecraft-carrot"
   amount: 1
 
   # ----------------------------------------------------------
@@ -65,8 +64,7 @@ condition:
 result:
   success:
     outputs:
-      - item_sources:
-          - "minecraft-golden_carrot"
+      - item_source: "minecraft-golden_carrot"
         amount: 1
     actions:
       - 'send_message text="<green>砧板处理完成。</green>"'

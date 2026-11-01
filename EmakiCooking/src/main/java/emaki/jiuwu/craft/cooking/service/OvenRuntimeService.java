@@ -63,7 +63,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
         this.recipeService = recipeService;
         this.itemSourceService = itemSourceService;
         this.codec = new OvenStateCodec();
-        this.tickProcessor = new OvenTickProcessor(settingsService, recipeService, rewardService, itemSourceService, codec);
+        this.tickProcessor = new OvenTickProcessor(plugin, settingsService, recipeService, rewardService, itemSourceService, codec);
         this.guiController = new OvenGuiController(plugin, messageService, settingsService, itemSourceService, recipeService, codec);
         this.guiController.setRuntimeService(this);
     }
@@ -403,7 +403,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
             return null;
         }
         for (CookingSettingsService.OvenFuelRule rule : settingsService.ovenFuels()) {
-            if (rule != null && CookingMatchers.accepts(rule.matcher(), itemStack, identified, null)) {
+            if (rule != null && CookingMatchers.accepts(rule.requirement(), itemStack, identified, null)) {
                 return rule;
             }
         }

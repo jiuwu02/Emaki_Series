@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.MatchContext;
+import java.util.function.Function;
 
 public final class Recipe {
     public record QualityConfig(boolean enabled,
@@ -224,7 +225,7 @@ public final class Recipe {
             return new ResultConfig(null, List.of(), List.of(), List.of());
         }
         Object outputItem = firstResultOutput(ConfigNodes.get(success, "outputs"));
-        ItemSourceRef parsedOutputItem = ItemSourceUtil.parse(outputItem);
+        ItemSourceRef parsedOutputItem = parseOutputSource(outputItem);
         if (outputItem != null && parsedOutputItem == null) {
             return null;
         }
@@ -243,6 +244,29 @@ public final class Recipe {
             }
         }
         return null;
+    }
+
+    private static ItemSourceRef parseOutputSource(Object output) {
+        if (output == null) {
+            return null;
+        }
+        boolean canonical = ConfigNodes.contains(output, "item_source");
+        boolean legacy = ConfigNodes.contains(output, "item_sources");
+        if (canonical && legacy || ConfigNodes.contains(output, "matcher")) {
+            return null;
+        }
+        if (canonical) {
+            Object raw = ConfigNodes.get(output, "item_source");
+            if (raw instanceof Iterable<?> && !(raw instanceof String)) {
+                return null;
+            }
+            return ItemSourceUtil.parse(raw);
+        }
+        if (!legacy) {
+            return null;
+        }
+        List<Object> values = ConfigNodes.asObjectList(ConfigNodes.get(output, "item_sources"));
+        return values.size() == 1 ? ItemSourceUtil.parse(values.getFirst()) : null;
     }
 
     private static ActionPhases parseAction(Object raw) {
@@ -359,17 +383,72 @@ public final class Recipe {
         return null;
     }
 
-    public ForgeMaterial findMaterialByItem(String item) {
-        if (Texts.isBlank(item)) {
+    public ForgeMaterial findMaterialByIdentity(String identity) {
+        return findFirstMaterial(identity, ForgeMaterial::materialId);
+    }
+
+    public ForgeMaterial findMaterialByCountKey(String identity) {
+        return findUniqueMaterial(identity, ForgeMaterial::countKey);
+    }
+
+    public ForgeMaterial findMaterialByAuditId(String identity) {
+        return findFirstMaterial(identity, ForgeMaterial::auditId);
+    }
+
+    private ForgeMaterial findFirstMaterial(String identity,
+            Function<ForgeMaterial, String> keyExtractor) {
+        if (Texts.isBlank(identity)) {
             return null;
         }
-        String normalized = Texts.lower(item);
+        String normalized = Texts.lower(identity);
         for (ForgeMaterial material : materials) {
-            if (normalized.equals(material.key())) {
+            if (material != null && normalized.equals(Texts.lower(keyExtractor.apply(material)))) {
                 return material;
             }
         }
         return null;
+    }
+
+    private ForgeMaterial findUniqueMaterial(String identity, Function<ForgeMaterial, String> keyExtractor) {
+        if (Texts.isBlank(identity)) {
+            return null;
+        }
+        String normalized = Texts.lower(identity);
+        ForgeMaterial match = null;
+        for (ForgeMaterial material : materials) {
+            if (material == null || !normalized.equals(Texts.lower(keyExtractor.apply(material)))) {
+                continue;
+            }
+            if (match != null) {
+                return null;
+            }
+            match = material;
+        }
+        return match;
+    }
+
+    public ForgeMaterial findMaterialByItem(String item) {
+        ForgeMaterial exact = findMaterialByIdentity(item);
+        if (exact != null) {
+            return exact;
+        }
+        if (Texts.isBlank(item)) {
+            return null;
+        }
+        String normalized = Texts.lower(item);
+        ForgeMaterial legacy = null;
+        for (ForgeMaterial material : materials) {
+            if (material == null || material.itemSources().stream()
+                    .map(ItemSourceUtil::toShorthand)
+                    .noneMatch(source -> normalized.equals(Texts.lower(source)))) {
+                continue;
+            }
+            if (legacy != null) {
+                return null;
+            }
+            legacy = material;
+        }
+        return legacy;
     }
 
     public List<ForgeMaterial> requiredMaterials() {

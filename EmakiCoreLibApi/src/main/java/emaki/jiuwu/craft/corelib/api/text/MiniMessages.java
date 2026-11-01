@@ -12,6 +12,7 @@ public final class MiniMessages {
     private static final MiniMessage MINI_MESSAGE = MiniMessage.miniMessage();
     private static final PlainTextComponentSerializer PLAIN = PlainTextComponentSerializer.plainText();
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final LegacyComponentSerializer LEGACY_AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
 
     private static volatile boolean defaultNoItalic;
 
@@ -38,6 +39,24 @@ public final class MiniMessages {
             return applyDefaults(MINI_MESSAGE.deserialize(text));
         } catch (Exception _) {
             return applyDefaults(Component.text(Texts.toStringSafe(text)));
+        }
+    }
+
+    /**
+     * 将使用 {@code &} 传统格式字符的外部文本转换为可安全嵌入模板的 MiniMessage 文本。
+     *
+     * @param text 外部传统格式文本
+     * @return 保留可见内容和格式的 MiniMessage 文本
+     */
+    public static String legacyAmpersandToMiniMessage(String text) {
+        if (Texts.isBlank(text)) {
+            return "";
+        }
+        String value = Texts.toStringSafe(text);
+        try {
+            return serialize(LEGACY_AMPERSAND.deserialize(value));
+        } catch (Exception _) {
+            return value;
         }
     }
 

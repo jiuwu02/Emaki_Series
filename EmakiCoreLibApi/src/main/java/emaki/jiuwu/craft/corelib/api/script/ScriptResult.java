@@ -50,7 +50,7 @@ public final class ScriptResult {
      */
     public static @NotNull ScriptResult error(@NotNull Throwable error) {
         if (error == null) {
-            throw new IllegalArgumentException("error cannot be null");
+            throw new IllegalArgumentException("error 不能为 null");
         }
         return new ScriptResult(false, null, error, false, false);
     }

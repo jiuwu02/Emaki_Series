@@ -19,6 +19,9 @@ final class ForgeAuditBuilder {
             long forgedAt) {
         Map<String, Object> audit = new LinkedHashMap<>();
         audit.put("recipe_id", recipe == null ? "" : recipe.id());
+        audit.put("schema", "forge_audit_v2");
+        audit.put("schema_version", 2);
+        audit.put("stage", "forge");
         audit.put("quality", qualityTier == null ? "" : qualityTier.name());
         audit.put("multiplier", multiplier);
         audit.put("forged_at", forgedAt);

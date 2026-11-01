@@ -26,9 +26,9 @@ public class GuiTemplateLoader extends YamlDirectoryLoader<GuiTemplate> {
     @Override
     protected GuiTemplate parse(File file, YamlSection configuration) {
         return GuiTemplateParser.parse(configuration, message -> {
-            String detail = file.getName() + ": " + message;
+            String detail = "[gui] " + file.getName() + ": " + message;
             issues.add(detail);
-            plugin.getLogger().warning("[gui] " + detail);
+            plugin.getLogger().warning(detail);
         });
     }
 

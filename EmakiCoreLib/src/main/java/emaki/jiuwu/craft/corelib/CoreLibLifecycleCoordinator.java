@@ -1,5 +1,11 @@
 package emaki.jiuwu.craft.corelib;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.async.AsyncFileService;
@@ -27,6 +33,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.runtime.CorePluginLifecycle;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 
 final class CoreLibLifecycleCoordinator
@@ -65,7 +72,11 @@ final class CoreLibLifecycleCoordinator
                 new CorePluginLifecycle(plugin::finalizeCoreRuntimeAsync);
         corePluginLifecycle.start(asyncFileService, asyncTaskScheduler);
         languageLoader.load();
-        GuiBackendRegistry guiBackendRegistry = new GuiBackendRegistry(messageService);
+        GuiBackendRegistry guiBackendRegistry = new GuiBackendRegistry(
+                messageService,
+                plugin,
+                plugin.executionDispatcher(),
+                plugin.threadOwnership());
         guiBackendRegistry.setConfiguredName(config.guiConfig().backend());
         GuiClickThrottle.configureIntervalMs(config.guiConfig().clickIntervalMs());
         GuiBackend guiBackend = new RegistryBackedGuiBackend(guiBackendRegistry, configuredItemService);
@@ -73,7 +84,8 @@ final class CoreLibLifecycleCoordinator
                 plugin.namespaceRegistry(),
                 plugin.itemLayerCodecRegistry,
                 itemSourceService,
-                debugLogger
+                debugLogger,
+                plugin.placeholderRegistry()
         );
         itemAssemblyService.configureAsync(
                 asyncTaskScheduler, plugin.executionDispatcher(), plugin, performanceMonitor);
@@ -86,6 +98,12 @@ final class CoreLibLifecycleCoordinator
                 plugin, displayBackend, displaySettings, plugin.executionDispatcher());
         ItemDisplayService itemDisplayService = DisplayServiceFactory.createItemService(
                 plugin, displayBackend, displaySettings, plugin.executionDispatcher());
+        debugLogger.log("display", (UUID) null, "common.display.backend_selected", Map.of(
+                "requested_backend", displayBackend,
+                "text_backend", textDisplayService.backendName(),
+                "item_backend", itemDisplayService.backendName()
+        ));
+        releaseExampleDialogIfNeeded(plugin, config.dialogConfig().directory());
         DialogService dialogService = new DialogService(
                 plugin,
                 new DialogLoader(plugin, config.dialogConfig().directory()),
@@ -119,5 +137,21 @@ final class CoreLibLifecycleCoordinator
                 itemDisplayService,
                 dialogService,
                 gameplayEventPublisher);
+    }
+
+    private static void releaseExampleDialogIfNeeded(EmakiCoreLibPlugin plugin, String directoryName) {
+        Path dialogsDirectory = plugin.getDataFolder().toPath().resolve(directoryName);
+        if (Files.isDirectory(dialogsDirectory)) {
+            return;
+        }
+        for (String fileName : List.of("example_notice.yml", "example_shop.yml", "example_confirm.yml")) {
+            try {
+                YamlFiles.copyResourceIfMissing(plugin, "dialogs/" + fileName,
+                        dialogsDirectory.resolve(fileName).toFile());
+            } catch (Exception exception) {
+                plugin.getLogger().warning("[loader] 释放示例对话 dialogs/" + fileName + " 失败: "
+                        + exception.getMessage());
+            }
+        }
     }
 }

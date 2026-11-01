@@ -1,0 +1,67 @@
+# ============================================================
+# EmakiMobs 生物定义示例 - 远程骷髅弓手
+# 演示：装备组件、EmakiAttribute 属性、威胁仇恨表、目标选择器
+#       与周期目标锁定。装备只在刷出时应用，刷新不会补回。
+# target_selector 引用 target_selectors.yml 里的 highest_threat。
+# ============================================================
+id: example_skeleton_archer
+type: skeleton
+display_name: "<gray>示例骷髅弓手</gray>"
+
+components:
+  max_health: 40.0
+  movement_speed: 0.26
+  follow_range: 32.0
+  armor: 2.0
+  custom_name: "<gray>示例骷髅弓手</gray>"
+  custom_name_visible: true
+  persistent: true
+  # 装备只在刷出时应用：drop_chance 0.0 表示死亡不掉落该装备
+  equipment:
+    main_hand:
+      item: "minecraft:bow"
+      drop_chance: 0.05
+    head:
+      item: "minecraft:chainmail_helmet"
+      drop_chance: 0.0
+    chest:
+      item: "minecraft:chainmail_chestplate"
+      drop_chance: 0.0
+
+# 击杀经验；配套掉落表见 loot_tables/example_skeleton_archer.yml
+experience: 25
+
+# 需要安装 EmakiAttribute 才生效；键名必须是属性定义里的 id
+ea_attributes:
+  strength: 12
+  agility: 8
+  physical_attack: 6
+  physical_crit_rate: 15
+  physical_defense: 4
+
+# 威胁表：受伤与治疗都会累计仇恨，超出 max_range 的玩家在下一轮衰减时移除
+threat:
+  enabled: true
+  max_range: 40.0
+  weights:
+    damage: 1.0
+    healing: 0.3
+  decay:
+    rate: 0.04
+    out_of_range: true
+
+# 设置后按选择器挑目标，优先于威胁表；lock_target 只在二者同时存在时生效
+target_selector: highest_threat
+lock_target:
+  enabled: true
+  interval_ticks: 40
+
+actions:
+  on_spawn:
+    - "nearby radius=16 include_players=true | send_message text='<gray>骷髅弓手已就位。'"
+  on_shoot:
+    - "nearby radius=16 include_players=true | play_sound sound=minecraft:entity.arrow.shoot volume=0.8 pitch=1.2"
+  on_target:
+    - "nearby radius=16 include_players=true | play_sound sound=minecraft:entity.skeleton.ambient volume=0.7 pitch=1.1"
+  on_death:
+    - "killer | give_exp amount=25"

@@ -61,7 +61,7 @@ public final class CookingInspectService {
         }
         Block block = player.getTargetBlockExact(6);
         if (block == null || block.getType().isAir()) {
-            messageService.sendRaw(sender, "<gray>No target block within 6 blocks.</gray>");
+            messageService.send(sender, "command.inspect.no_target_block");
             return true;
         }
         StorageInspection inspection = stationStateStore == null ? null : stationStateStore.inspect(block);
@@ -73,7 +73,7 @@ public final class CookingInspectService {
                 && stationType != null
                 && block.getWorld() != null
                 && settingsService.isInteractionDisabled(stationType, block.getWorld().getName());
-        messageService.sendRaw(sender, "<gold>Station block inspect</gold>");
+        messageService.sendRaw(sender, messageService.message("command.inspect.block_header"));
         messageService.sendRaw(sender, line("station", stationType == null ? "-" : stationType.folderName()));
         messageService.sendRaw(sender, line("source", inspection == null || inspection.stationSource().isBlank() ? "-" : inspection.stationSource()));
         messageService.sendRaw(sender, line("block", block.getType().getKey().toString()));
@@ -84,7 +84,9 @@ public final class CookingInspectService {
         messageService.sendRaw(sender, line("indexed", inspection != null && inspection.indexed() ? "yes" : "no"));
         messageService.sendRaw(sender, line("index_backend", inspection == null || inspection.indexedBackend() == null ? "-" : inspection.indexedBackend().name()));
         messageService.sendRaw(sender, line("legacy_yaml", inspection != null && inspection.legacyYamlPresent() ? "present" : "absent"));
-        messageService.sendRaw(sender, line("interaction", disabled ? "disabled (world blacklist)" : "enabled"));
+        messageService.sendRaw(sender, line("interaction", messageService.message(disabled
+                ? "command.inspect.interaction_disabled"
+                : "command.inspect.interaction_enabled")));
         return true;
     }
 

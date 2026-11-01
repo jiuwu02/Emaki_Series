@@ -34,7 +34,7 @@ public sealed interface CoreGateResult {
                 CoreActionKey<?> key = entry.getKey();
                 Object value = entry.getValue();
                 if (key == null || value == null || !key.type().isInstance(value)) {
-                    throw new IllegalArgumentException("Gate context update does not match its typed key.");
+                    throw new IllegalArgumentException("Gate 上下文更新与其类型化 key 不匹配。");
                 }
             }
         }

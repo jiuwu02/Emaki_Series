@@ -86,6 +86,12 @@ public final class TriggerRegistry {
         return entry == null ? "" : entry.ownerName();
     }
 
+    public boolean active(@Nullable String triggerId, long generation) {
+        String key = Texts.lower(Texts.trim(Texts.toStringSafe(triggerId)));
+        RegisteredTrigger entry = entries.get(key);
+        return entry != null && entry.generation() == generation;
+    }
+
     public boolean revoke(@Nullable String triggerId, long generation) {
         String key = Texts.lower(Texts.trim(Texts.toStringSafe(triggerId)));
         synchronized (writeLock) {
@@ -199,7 +205,7 @@ public final class TriggerRegistry {
 
         @Override
         public boolean active() {
-            return active;
+            return active && registry.active(triggerId, generation);
         }
 
         @Override

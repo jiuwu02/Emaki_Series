@@ -1,0 +1,8 @@
+// EmakiCodexApi（原 EmakiCodexApi/pom.xml）。
+version = '2.0.0'
+
+dependencies {
+    provided project(':EmakiCoreLibApi')
+    provided libs.paper.api
+    provided libs.jetbrains.annotations
+}

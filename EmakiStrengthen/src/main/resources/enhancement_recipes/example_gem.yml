@@ -2,18 +2,17 @@
 # recipe id 必须与 GemDefinition.id 相同；Gem Provider 会把宝石定义 ID 作为 recipe id。
 # Strengthen 负责材料、货币、成功率、保底和动作，Gem Provider 只负责宝石等级/阶段与矩阵写回。
 
+schema_version: 2
 id: example_gem
 mode: gem
 
 target:
   provider: gem
 
-# item_source 的原版简写必须写成 "minecraft-<物品名>"；带冒号的命名空间写法会被判为非法并解析为空。
+# item_sources 的原版简写必须写成 "minecraft-<物品名>"；带冒号的命名空间写法会被判为非法并解析为空。
 materials:
-  - matcher:
-      type: item_source
-      sources:
-        - "minecraft-amethyst_shard"
+  - item_sources:
+      - "minecraft-amethyst_shard"
     quantity: 1
     consume: always
 

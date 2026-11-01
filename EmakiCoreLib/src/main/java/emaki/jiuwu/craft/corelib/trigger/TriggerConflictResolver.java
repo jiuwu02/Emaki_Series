@@ -7,9 +7,11 @@ import java.util.Map;
 import java.util.Set;
 import java.util.logging.Logger;
 
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
+
 public final class TriggerConflictResolver {
 
-    private static final Logger LOGGER = Logger.getLogger(TriggerConflictResolver.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
 
     private final Map<String, Set<String>> conflictMatrix = new HashMap<>();
 
@@ -23,8 +25,8 @@ public final class TriggerConflictResolver {
         for (TriggerDefinition def : definitions.values()) {
             for (String other : def.incompatibleWith()) {
                 if (!definitions.containsKey(other)) {
-                    LOGGER.warning("Trigger '" + def.id()
-                            + "' declares incompatibility with unknown trigger '" + other + "'");
+                    LOGGER.warning("[trigger] 触发器 '" + def.id()
+                            + "' 声明了与未知触发器 '" + other + "' 的不兼容");
                     continue;
                 }
                 conflictMatrix.computeIfAbsent(def.id(), k -> new HashSet<>()).add(other);

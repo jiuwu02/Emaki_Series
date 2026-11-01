@@ -2,6 +2,8 @@ package emaki.jiuwu.craft.mobs.listener;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.mobs.api.MobActionKeys;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
+import emaki.jiuwu.craft.mobs.model.StandardAnimation;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
 import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
@@ -19,6 +21,7 @@ import org.bukkit.event.entity.EntityTargetLivingEntityEvent;
 import org.bukkit.event.entity.EntityTeleportEvent;
 import org.bukkit.event.entity.EntityTransformEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Map;
 
@@ -28,11 +31,18 @@ public final class MobTriggerListener implements Listener {
     private final MobSkillExecutor skillExecutor;
     private final HealthPhaseTracker healthPhaseTracker;
 
+    @Nullable
+    private MobModelManager modelManager;
+
     public MobTriggerListener(MobIdentifier mobIdentifier, MobSkillExecutor skillExecutor,
                               HealthPhaseTracker healthPhaseTracker) {
         this.mobIdentifier = mobIdentifier;
         this.skillExecutor = skillExecutor;
         this.healthPhaseTracker = healthPhaseTracker;
+    }
+
+    public void setModelManager(@Nullable MobModelManager modelManager) {
+        this.modelManager = modelManager;
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -43,6 +53,9 @@ public final class MobTriggerListener implements Listener {
         String mobId = mobIdentifier.readId(entity);
         if (mobId == null) {
             return;
+        }
+        if (modelManager != null) {
+            modelManager.onDeath(entity, mobId);
         }
         LivingEntity killer = entity.getKiller();
         if (killer != null) {
@@ -82,6 +95,9 @@ public final class MobTriggerListener implements Listener {
         if (mobId == null) {
             return;
         }
+        if (modelManager != null) {
+            modelManager.playStandard(attacker, mobId, StandardAnimation.ATTACK);
+        }
         if (event.getEntity() instanceof LivingEntity target) {
             skillExecutor.executeForTrigger(attacker, mobId, "on_damage_give",
                     Map.of(MobActionKeys.TARGET, target));
@@ -102,12 +118,21 @@ public final class MobTriggerListener implements Listener {
 
         if (event instanceof EntityDamageByEntityEvent dmgEvent) {
             if (dmgEvent.getDamager() instanceof LivingEntity attacker) {
+                if (modelManager != null) {
+                    modelManager.playStandard(target, mobId, StandardAnimation.HURT);
+                }
                 skillExecutor.executeForTrigger(target, mobId, "on_damage_take",
                         Map.of(MobActionKeys.ATTACKER, attacker));
             } else {
+                if (modelManager != null) {
+                    modelManager.playStandard(target, mobId, StandardAnimation.HURT);
+                }
                 skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
             }
         } else {
+            if (modelManager != null) {
+                modelManager.playStandard(target, mobId, StandardAnimation.HURT);
+            }
             skillExecutor.executeForTrigger(target, mobId, "on_damage_take");
         }
 

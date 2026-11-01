@@ -19,7 +19,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class SetGate extends BaseGate {
 
     public SetGate() {
-        super("set", "Writes pipeline variables readable as %var.name%.", CoreGateThread.PURE);
+        super("set", "写入可通过 %var.name% 读取的管道变量。", CoreGateThread.PURE);
     }
 
     @Override

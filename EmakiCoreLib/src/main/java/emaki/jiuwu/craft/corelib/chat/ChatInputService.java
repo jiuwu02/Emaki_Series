@@ -98,7 +98,7 @@ public final class ChatInputService implements Listener {
         finishOnDisconnect(event.getPlayer(), "common.chat_input.player_quit_cancelled");
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPlayerKick(PlayerKickEvent event) {
         finishOnDisconnect(event.getPlayer(), "common.chat_input.player_kick_cancelled");
     }
@@ -168,9 +168,9 @@ public final class ChatInputService implements Listener {
                             input.request,
                             Map.of("status", result.status().name())
                     )));
-            owner.getLogger().warning("Chat input callback failed for "
+            owner.getLogger().warning("[chat] 聊天输入回调失败，玩家 "
                     + input.request.player().getName()
-                    + " (status=" + result.status().name() + "): "
+                    + "(状态=" + result.status().name() + "): "
                     + throwable.getClass().getSimpleName()
                     + ": " + throwable.getMessage());
         }

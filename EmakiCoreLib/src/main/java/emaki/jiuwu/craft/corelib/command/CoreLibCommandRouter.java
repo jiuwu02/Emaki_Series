@@ -24,10 +24,13 @@ import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckMessages;
+import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckFixResult;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
+import emaki.jiuwu.craft.corelib.debug.ActionDebugRunner;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import java.util.Arrays;
 
 public final class CoreLibCommandRouter implements TabExecutor {
 
@@ -38,7 +41,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
     private static final List<String> CHECK_MODES = List.of("report", "--fix");
     private static final List<String> PDC_CONVERT_SCOPES = List.of("players", "containers", "entities", "all");
     private static final String DRY_RUN_FLAG = "--dry-run";
-    private static final List<String> DEBUG_MODES = List.of("loops", "all");
+    private static final List<String> DEBUG_MODES = List.of("loops", "all", "action");
+    private static final List<String> DEBUG_ACTION_MODES = List.of("run", "check", "registry");
+    private static final List<String> DEBUG_ACTION_RUN_MODES = List.of("shadow", "execute");
     private static final List<String> DEBUG_ALL_MODES = List.of("on", "off", "status");
     private static final List<String> LOOP_DEBUG_MODES = List.of("list", "player", "key", "cancel", "cancel-player");
 
@@ -86,6 +91,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);
+        } else if (args.length == 3 && "check".equalsIgnoreCase(args[0])
+                && "--fix".equalsIgnoreCase(args[1])) {
+            complete(args[2], plugin.configPrecheckService().registry().moduleIds(), result);
         } else if (args.length == 2 && isActionCommand(args[0])) {
             complete(args[1], ACTION_MODES, result);
             complete(args[1], stageIds(), result);
@@ -101,6 +109,11 @@ public final class CoreLibCommandRouter implements TabExecutor {
             complete(args[2], DEBUG_ALL_MODES, result);
         } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1])) {
             complete(args[2], LOOP_DEBUG_MODES, result);
+        } else if (args.length == 3 && "debug".equalsIgnoreCase(args[0]) && "action".equalsIgnoreCase(args[1])) {
+            complete(args[2], DEBUG_ACTION_MODES, result);
+        } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "action".equalsIgnoreCase(args[1])
+                && "run".equalsIgnoreCase(args[2])) {
+            complete(args[3], DEBUG_ACTION_RUN_MODES, result);
         } else if (args.length == 4 && "debug".equalsIgnoreCase(args[0]) && "loops".equalsIgnoreCase(args[1]) && "player".equalsIgnoreCase(args[2])) {
             String prefix = args[3].toLowerCase(Locale.ROOT);
             for (Player player : Bukkit.getOnlinePlayers()) {
@@ -131,13 +144,28 @@ public final class CoreLibCommandRouter implements TabExecutor {
             return true;
         }
         if (args.length >= 2 && "--fix".equalsIgnoreCase(args[1])) {
-            sendLang(sender, "command.check_fix_unavailable");
-            return true;
+            return handleCheckFix(sender, args.length >= 3 ? args[2] : null);
         }
         ConfigPrecheckReport report = args.length >= 2 && !"report".equalsIgnoreCase(args[1])
                 ? plugin.configPrecheckService().checkModule(plugin.configModel(), args[1])
                 : (args.length >= 2 ? plugin.configPrecheckService().lastReport() : plugin.configPrecheckService().checkAll(plugin.configModel()));
         sendReport(sender, report);
+        return true;
+    }
+
+    private boolean handleCheckFix(CommandSender sender, String module) {
+        ConfigPrecheckFixResult result = plugin.configPrecheckService().fix(plugin.configModel(), module);
+        if (result.fixed() == 0 && result.failed() == 0) {
+            sendLang(sender, "command.check_fix_none");
+        } else {
+            sendLang(sender, "command.check_fix_summary", Map.of(
+                    "fixed", String.valueOf(result.fixed()),
+                    "failed", String.valueOf(result.failed())));
+            if (result.fixed() > 0) {
+                sendLang(sender, "command.check_fix_reload_hint");
+            }
+        }
+        sendReport(sender, result.report());
         return true;
     }
 
@@ -234,7 +262,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             boolean dryRun) {
         if (throwable != null || reports == null) {
             sendLang(sender, "command.pdc_convert_failed", Map.of(
-                    "error", throwable == null ? "No result returned." : Texts.toStringSafe(throwable.getMessage())
+                    "error", throwable == null ? "没有返回结果。" : Texts.toStringSafe(throwable.getMessage())
             ));
             return;
         }
@@ -302,7 +330,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
             return;
         }
         if (outcome == null) {
-            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "No result returned."));
+            sendLang(sender, "command.action_execute_failed", Map.of("stage", "-", "error", "没有返回结果。"));
             return;
         }
         if (outcome.status() == PipelineOutcome.Status.FAILURE) {
@@ -373,6 +401,9 @@ public final class CoreLibCommandRouter implements TabExecutor {
         if (args.length >= 2 && "all".equalsIgnoreCase(args[1])) {
             return handleGlobalDebug(sender, args);
         }
+        if (args.length >= 2 && "action".equalsIgnoreCase(args[1])) {
+            return handleDebugAction(sender, args);
+        }
         if (args.length < 2 || !"loops".equalsIgnoreCase(args[1])) {
             sendHelp(sender, "corelib");
             return true;
@@ -417,6 +448,33 @@ public final class CoreLibCommandRouter implements TabExecutor {
         return true;
     }
 
+    private boolean handleDebugAction(CommandSender sender, String[] args) {
+        ActionDebugRunner.MessageWriter writer =
+                ActionDebugRunner.MessageWriter.of(plugin.messageService(), sender);
+        String[] tail = args.length > 2
+                ? Arrays.copyOfRange(args, 2, args.length)
+                : new String[0];
+        ActionDebugRunner.Invocation invocation = ActionDebugRunner.parse(tail);
+        if (invocation == null) {
+            writer.send("command.action_debug_usage");
+            return true;
+        }
+        ActionEngine engine = plugin.actionEngine();
+        if (invocation.mode() == ActionDebugRunner.Mode.CHECK) {
+            ActionDebugRunner.check(engine, sender, invocation.rawLine(), writer);
+            return true;
+        }
+        if (invocation.mode() == ActionDebugRunner.Mode.REGISTRY) {
+            ActionDebugRunner.registry(plugin.stageRegistry(), writer);
+            return true;
+        }
+        Player player = sender instanceof Player resolved ? resolved : null;
+        ActionDebugRunner.run(engine, plugin, player, sender, invocation.rawLine(),
+                invocation.mode() == ActionDebugRunner.Mode.SHADOW, writer,
+                task -> dispatchSender(sender, task));
+        return true;
+    }
+
     private boolean handleGlobalDebug(CommandSender sender, String[] args) {
         String mode = args.length >= 3 ? args[2].toLowerCase(Locale.ROOT) : "status";
         switch (mode) {
@@ -451,11 +509,13 @@ public final class CoreLibCommandRouter implements TabExecutor {
         sendLang(sender, "command.loop_header", Map.of("count", String.valueOf(snapshots.size())));
         for (PipelineTaskService.TaskSnapshot snapshot : snapshots) {
             String player = snapshot.playerUuid() == null ? "-" : snapshot.playerUuid().toString();
-            plugin.messageService().sendRaw(sender, "<gray>- key=<aqua>" + snapshot.key()
-                    + "</aqua> plugin=<yellow>" + snapshot.pluginName()
-                    + "</yellow> index=<white>" + snapshot.index() + "/" + snapshot.times()
-                    + "</white> interval=<white>" + snapshot.intervalTicks() + "t"
-                    + "</white> player=<gray>" + player + "</gray></gray>");
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.loop_task_entry", Map.of(
+                    "key", snapshot.key(),
+                    "plugin", snapshot.pluginName(),
+                    "index", String.valueOf(snapshot.index()),
+                    "times", String.valueOf(snapshot.times()),
+                    "interval_ticks", String.valueOf(snapshot.intervalTicks()),
+                    "player", player)));
         }
     }
 

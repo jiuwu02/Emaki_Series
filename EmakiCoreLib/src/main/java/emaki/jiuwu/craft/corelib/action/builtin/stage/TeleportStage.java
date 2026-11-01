@@ -22,15 +22,15 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class TeleportStage extends BaseStage {
 
     public TeleportStage() {
-        super("teleport", "entity", "Teleports the target to a coordinate.",
+        super("teleport", "entity", "把目标传送到指定坐标。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
                 CoreStageParameter.optional("world", CoreStageParameterType.STRING, "",
-                        "Destination world, defaults to the target's own"),
-                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X, supports ~"),
-                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y, supports ~"),
-                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z, supports ~"),
-                CoreStageParameter.optional("yaw", CoreStageParameterType.DOUBLE, "", "Yaw"),
-                CoreStageParameter.optional("pitch", CoreStageParameterType.DOUBLE, "", "Pitch"));
+                        "目标世界，默认使用目标自身所在世界"),
+                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X 坐标，支持 ~"),
+                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y 坐标，支持 ~"),
+                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z 坐标，支持 ~"),
+                CoreStageParameter.optional("yaw", CoreStageParameterType.DOUBLE, "", "偏航角"),
+                CoreStageParameter.optional("pitch", CoreStageParameterType.DOUBLE, "", "俯仰角"));
     }
 
     @Override

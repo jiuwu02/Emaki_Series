@@ -23,6 +23,7 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.monitor.PerformanceMonitor;
@@ -69,11 +70,31 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
         Player viewer = request.viewer();
         UUID viewerId = viewer.getUniqueId();
+        GuiBackend backend = resolveBackend();
         debug(viewer, "common.gui.sync_open_requested", GuiDebugSupport.replacements(
-                "backend", resolveBackend().name()
+                "backend", backend.name()
         ));
-        close(viewerId);
+        GuiSession previous = sessions.get(viewerId);
+        boolean sameSize = previous != null && previous.backend() == backend
+                && previous.template() != null
+                && previous.template().slotCount() == request.template().slotCount();
+        boolean sameTemplate = sameSize && request.template().id() != null
+                && request.template().id().equals(previous.template().id());
+        boolean switchable = sameSize && !sameTemplate && backend.supportsInPlaceSwitch();
+        boolean sameWindow = sameSize && !sameTemplate && !switchable && sameVisibleWindow(previous, request);
+        boolean reusable = sameTemplate || switchable || sameWindow;
+        if (reusable) {
+            sessions.remove(viewerId, previous);
+            if (switchable) {
+                previous.handler().onClose(previous, new SessionGuiCloseContext(previous));
+            }
+        } else {
+            close(viewerId);
+        }
         GuiSession session = newSession(request);
+        if (sameTemplate || sameWindow) {
+            session.adoptInventory(previous.getInventory());
+        }
         sessions.put(viewerId, session);
         try {
             session.open();
@@ -103,7 +124,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         Runnable outerRetired = () -> {
             debug(request.viewer(), "common.gui.async_open_retired_initial_dispatch");
             future.completeExceptionally(new RejectedExecutionException(
-                    "GUI viewer retired before open scheduling completed."));
+                    "GUI 查看者在打开调度完成前已退役。"));
         };
         try {
             if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
@@ -117,7 +138,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
                         debug(request.viewer(), "common.gui.async_open_retired_apply_render",
                                 GuiDebugSupport.sessionFields(session));
                         future.completeExceptionally(new RejectedExecutionException(
-                                "GUI viewer retired before rendered slots could be applied."));
+                                "GUI 查看者在渲染槽位应用前已退役。"));
                     };
                     try {
                         if (executionDispatcher.runEntity(owner, request.viewer(), () -> {
@@ -163,6 +184,15 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             future.completeExceptionally(throwable);
         }
         return future;
+    }
+
+    private static boolean sameVisibleWindow(GuiSession previous, GuiOpenRequest request) {
+        if (previous == null || previous.plainTitle() == null) {
+            return false;
+        }
+        String requestedTitle = GuiSession.resolveTitleString(request.template(), request.replacements());
+        String requestedPlain = MiniMessages.plain(MiniMessages.parse(requestedTitle));
+        return previous.plainTitle().equals(requestedPlain);
     }
 
     private GuiSession newSession(GuiOpenRequest request) {
@@ -219,7 +249,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             Runnable retired = () -> {
                 debug(session.viewer(), "common.gui.async_close_retired", GuiDebugSupport.sessionFields(session));
                 future.completeExceptionally(new RejectedExecutionException(
-                        "GUI viewer retired before close could complete: " + viewerId));
+                        "GUI 查看者在关闭完成前已退役: " + viewerId));
             };
             if (executionDispatcher.runEntity(
                     session.owner() == null ? plugin : session.owner(),
@@ -283,19 +313,21 @@ public final class GuiService implements Listener, GuiSessionRegistry {
             return;
         }
         GuiClickContext click = new BukkitGuiClickContext(event);
-        debug(session.viewer(), "common.gui.bukkit_click", GuiDebugSupport.sessionFields(
-                session,
-                GuiDebugSupport.replacements(
-                        "raw_slot", event.getRawSlot(),
-                        "click_type", event.getClick(),
-                        "action", event.getAction(),
-                        "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
-                        "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
-                        "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
-                        "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor()),
-                        "top_inventory", event.getClickedInventory() == session.getInventory()
-                )
-        ));
+        if (GuiDebugSupport.shouldLog(plugin, session.viewer())) {
+            debug(session.viewer(), "common.gui.bukkit_click", GuiDebugSupport.sessionFields(
+                    session,
+                    GuiDebugSupport.replacements(
+                            "raw_slot", event.getRawSlot(),
+                            "click_type", event.getClick(),
+                            "action", event.getAction(),
+                            "current_item_type", GuiDebugSupport.itemType(event.getCurrentItem()),
+                            "current_item_amount", GuiDebugSupport.itemAmount(event.getCurrentItem()),
+                            "cursor_item_type", GuiDebugSupport.itemType(event.getCursor()),
+                            "cursor_item_amount", GuiDebugSupport.itemAmount(event.getCursor()),
+                            "top_inventory", event.getClickedInventory() == session.getInventory()
+                    )
+            ));
+        }
         boolean topInventory = event.getClickedInventory() == session.getInventory();
         if (topInventory) {
             event.setCancelled(true);
@@ -349,7 +381,7 @@ public final class GuiService implements Listener, GuiSessionRegistry {
         }
     }
 
-    @EventHandler
+    @EventHandler(ignoreCancelled = true)
     public void onPlayerKick(PlayerKickEvent event) {
         if (event.getPlayer() != null) {
             debug(event.getPlayer(), "common.gui.player_kick_close_active_session");

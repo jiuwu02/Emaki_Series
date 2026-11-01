@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,12 +24,19 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 final class CookingDeliveryLedgerStore {
 
     private static final int SCHEMA_VERSION = 1;
+    private static final int CONFIRMED_CACHE_LIMIT = 512;
 
     private final Path directory;
     private final FileScope fileScope;
     private final boolean memoryOnly;
     private final ConcurrentMap<Path, Object> synchronousPathLocks = new ConcurrentHashMap<>();
-    private final ConcurrentMap<String, Receipt> confirmed = new ConcurrentHashMap<>();
+    private final Map<String, Receipt> confirmed = Collections.synchronizedMap(
+            new LinkedHashMap<>(32, 0.75F, true) {
+                @Override
+                protected boolean removeEldestEntry(Map.Entry<String, Receipt> eldest) {
+                    return size() > CONFIRMED_CACHE_LIMIT;
+                }
+            });
 
     CookingDeliveryLedgerStore(JavaPlugin plugin, FileScope fileScope) {
         this(Objects.requireNonNull(plugin, "plugin").getDataFolder(), fileScope, false);
@@ -58,7 +66,7 @@ final class CookingDeliveryLedgerStore {
         if (cached != null) {
             if (!matches(cached, expected)) {
                 return CompletableFuture.failedFuture(new IllegalStateException(
-                        "Cooking delivery unit id was reused with different kind or payload: " + expected.unitId()));
+                        "烹饪交付单元 ID 被以不同的类型或载荷重复使用: " + expected.unitId()));
             }
             return CompletableFuture.completedFuture(cached.state() == ReceiptState.CONFIRMED);
         }
@@ -132,7 +140,7 @@ final class CookingDeliveryLedgerStore {
         String stableId = Texts.toStringSafe(unitId).trim();
         String stableKind = Texts.toStringSafe(kind).trim();
         if (stableId.isBlank() || stableKind.isBlank()) {
-            throw new IllegalArgumentException("Cooking delivery ledger requires unit id and kind");
+            throw new IllegalArgumentException("烹饪交付账本需要单元 ID 与类型");
         }
         String payloadDigest = CookingCompletionStateDigest.digest(payload == null ? Map.of() : payload);
         return new Receipt(stableId, stableKind, payloadDigest, state, System.currentTimeMillis());
@@ -145,7 +153,7 @@ final class CookingDeliveryLedgerStore {
         YamlSection root = YamlFiles.load(path.toFile());
         int schemaVersion = root.getInt("schema_version", -1);
         if (schemaVersion != SCHEMA_VERSION) {
-            throw new IllegalArgumentException("Unsupported cooking delivery ledger schema: " + schemaVersion);
+            throw new IllegalArgumentException("不支持的烹饪交付账本架构版本: " + schemaVersion);
         }
         return new Receipt(
                 required(root, "unit_id"),
@@ -173,7 +181,7 @@ final class CookingDeliveryLedgerStore {
 
     private void requireMatching(Receipt actual, Receipt expected) {
         if (!matches(actual, expected)) {
-            throw new IllegalStateException("Cooking delivery unit id was reused with different kind or payload: "
+            throw new IllegalStateException("烹饪交付单元 ID 被以不同的类型或载荷重复使用: "
                     + expected.unitId());
         }
     }
@@ -189,7 +197,7 @@ final class CookingDeliveryLedgerStore {
     private String required(YamlSection root, String key) {
         String value = root.getString(key, "").trim();
         if (value.isBlank()) {
-            throw new IllegalArgumentException("Missing cooking delivery ledger value: " + key);
+            throw new IllegalArgumentException("缺少烹饪交付账本值: " + key);
         }
         return value;
     }

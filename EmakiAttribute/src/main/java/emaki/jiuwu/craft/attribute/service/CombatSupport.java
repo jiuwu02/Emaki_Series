@@ -63,7 +63,7 @@ public final class CombatSupport {
             EmakiScheduling sched = scheduling != null ? scheduling : plugin.scheduling();
             if (sched == null) {
                 future.completeExceptionally(new IllegalStateException(
-                        dispatcherName + " damage dispatcher is unavailable."));
+                        dispatcherName + " 伤害分派器不可用。"));
                 return future;
             }
             var scheduled = sched.runForEntity(
@@ -93,11 +93,11 @@ public final class CombatSupport {
                         }
                     },
                     () -> future.completeExceptionally(new IllegalStateException(
-                            dispatcherName + " damage entity retired before execution."))
+                            dispatcherName + " 伤害实体在执行前已退役。"))
             );
             if (scheduled == null) {
                 future.completeExceptionally(new IllegalStateException(
-                        dispatcherName + " damage scheduling was rejected."));
+                        dispatcherName + " 伤害调度被拒绝。"));
             }
         } catch (Throwable throwable) {
             future.completeExceptionally(throwable);

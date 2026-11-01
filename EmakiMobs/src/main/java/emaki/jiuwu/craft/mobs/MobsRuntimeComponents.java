@@ -1,7 +1,11 @@
 package emaki.jiuwu.craft.mobs;
 
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -21,6 +25,7 @@ import emaki.jiuwu.craft.mobs.skill.HealthPhaseTracker;
 import emaki.jiuwu.craft.mobs.skill.MobSkillExecutor;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
 import emaki.jiuwu.craft.mobs.selector.TargetSelectorConfig;
@@ -32,6 +37,7 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRule;
 import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
+import emaki.jiuwu.craft.mobs.editor.MobsEditorModule;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
 
 import java.util.List;
@@ -69,7 +75,13 @@ record MobsRuntimeComponents(
         ThreatTableManager threatTableManager,
         BossBarManager bossBarManager,
         MobAttributeRegistrar mobAttributeRegistrar,
-        DefaultMobExtensions mobExtensions
+        MobModelManager mobModelManager,
+        DefaultMobExtensions mobExtensions,
+        GuiService guiService,
+        GuiTemplateLoader guiTemplateLoader,
+        ChatInputService chatInputService,
+        MobsEditorModule editorModule,
+        EditorService editorService
 ) implements RuntimeComponents {
 
     @Override

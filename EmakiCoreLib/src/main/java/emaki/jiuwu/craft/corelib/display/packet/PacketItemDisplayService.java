@@ -245,8 +245,8 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         int translationIndex = ENTITY_METADATA_BASE + 3;
 
         Transformation transformation = display.spec.transformation();
-        org.joml.Vector3f originalTranslation = transformation.getTranslation();
-        org.joml.Vector3f scale = transformation.getScale();
+        var originalTranslation = transformation.getTranslation();
+        var scale = transformation.getScale();
         Quaternionf rightRotation = transformation.getRightRotation();
 
         Vector3f animatedTranslation = new Vector3f(
@@ -290,8 +290,25 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
     }
 
     private void refreshAll() {
-        for (VirtualDisplay display : List.copyOf(displays.values())) {
-            refreshEntry(display);
+        List<VirtualDisplay> snapshot = List.copyOf(displays.values());
+        if (snapshot.isEmpty()) {
+            return;
+        }
+        Set<UUID> onlinePlayers = ConcurrentHashMap.newKeySet();
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            onlinePlayers.add(player.getUniqueId());
+            executionDispatcher.runEntity(plugin, player, () -> {
+                for (VirtualDisplay display : snapshot) {
+                    refreshVisibilityForPlayer(display, player);
+                }
+            }, () -> {
+                for (VirtualDisplay display : snapshot) {
+                    display.visiblePlayers.remove(player.getUniqueId());
+                }
+            });
+        }
+        for (VirtualDisplay display : snapshot) {
+            display.visiblePlayers.removeIf(playerId -> !onlinePlayers.contains(playerId));
         }
     }
 
@@ -419,7 +436,7 @@ public final class PacketItemDisplayService implements ItemDisplayService, Liste
         int itemStackIndex = ENTITY_METADATA_BASE + 15;
 
         Transformation transformation = spec.transformation();
-        org.joml.Vector3f scale = transformation.getScale();
+        var scale = transformation.getScale();
 
         List<EntityData<?>> metadata = new ArrayList<>();
         metadata.add(new EntityData<>(ENTITY_METADATA_BASE, EntityDataTypes.INT, 0));

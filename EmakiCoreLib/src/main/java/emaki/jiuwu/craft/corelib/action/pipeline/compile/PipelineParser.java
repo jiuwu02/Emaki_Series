@@ -10,6 +10,8 @@ import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
+import java.util.Set;
 
 public final class PipelineParser {
 
@@ -21,7 +23,34 @@ public final class PipelineParser {
 
     public static final String WEIGHT = "weight";
 
+    public static final String ON_ERROR = "on_error";
+
+    public static final String UNION = "union";
+
+    public static final String PARSE_IF = "parse_if";
+
+    public static final String RETRY = "retry";
+
+    public static final String RETRY_DELAY = "retry_delay";
+
+    private static final int MAX_ALIAS_DEPTH = 8;
+
+    private static final Set<String> RESERVED_KEYWORDS = Set.of(
+            IF, ELSE, RUN, WEIGHT, ON_ERROR, UNION, PARSE_IF);
+
     private final PipelineLexer lexer = new PipelineLexer();
+
+    private final Map<String, String> aliases;
+
+    public PipelineParser() {
+        this(Map.of());
+    }
+
+    public PipelineParser(@Nullable Map<String, String> aliases) {
+        this.aliases = aliases == null || aliases.isEmpty()
+                ? Map.of()
+                : Map.copyOf(aliases);
+    }
 
     public @NotNull Result parse(@Nullable String line) {
         String raw = line == null ? "" : line.trim();
@@ -35,7 +64,11 @@ public final class PipelineParser {
         if (lexed.tokens().isEmpty()) {
             return Result.empty();
         }
-        Cursor cursor = new Cursor(lexed.tokens());
+        ExpandResult expanded = expandAliases(lexed.tokens());
+        if (expanded.diagnostic() != null) {
+            return Result.failed(expanded.diagnostic());
+        }
+        Cursor cursor = new Cursor(expanded.tokens());
         List<ActionAst> nodes = parseSequence(cursor, false);
         if (cursor.diagnostic != null) {
             return Result.failed(cursor.diagnostic);
@@ -47,6 +80,75 @@ public final class PipelineParser {
             return Result.failed(CompileDiagnostic.at("action.parse.empty_pipeline", cursor.lastConsumed()));
         }
         return Result.ok(List.copyOf(nodes));
+    }
+
+    private ExpandResult expandAliases(List<PipelineToken> tokens) {
+        if (aliases.isEmpty()) {
+            return new ExpandResult(tokens, null);
+        }
+        return expandAliases(tokens, 0, null);
+    }
+
+    private ExpandResult expandAliases(List<PipelineToken> tokens, int depth, PipelineToken site) {
+        if (depth > MAX_ALIAS_DEPTH) {
+            return new ExpandResult(List.of(), CompileDiagnostic.at(
+                    "action.parse.alias_cycle",
+                    site == null ? tokens.get(0) : site,
+                    Map.of("alias", site == null ? "" : Texts.lower(site.text()),
+                            "max", MAX_ALIAS_DEPTH)));
+        }
+        List<PipelineToken> output = new ArrayList<>(tokens.size());
+        PipelineToken expandAt = null;
+        String expandName = null;
+        for (PipelineToken token : tokens) {
+            if (expandAt != null) {
+                output.add(token);
+                continue;
+            }
+            if (token.kind() != PipelineToken.Kind.WORD || token.isKeyValue() || token.quoted()) {
+                output.add(token);
+                continue;
+            }
+            String name = Texts.lower(token.text());
+            if (RESERVED_KEYWORDS.contains(name) || !aliases.containsKey(name)) {
+                output.add(token);
+                continue;
+            }
+            expandAt = token;
+            expandName = name;
+        }
+        if (expandAt == null) {
+            return new ExpandResult(output, null);
+        }
+        PipelineLexer.Result lexed = lexer.lex(aliases.get(expandName));
+        if (!lexed.successful()) {
+            return new ExpandResult(List.of(), lexed.diagnostic());
+        }
+        if (lexed.tokens().isEmpty()) {
+            return new ExpandResult(List.of(), CompileDiagnostic.at(
+                    "action.parse.alias_empty", expandAt, Map.of("alias", expandName)));
+        }
+        List<PipelineToken> replaced = new ArrayList<>(output.size() + lexed.tokens().size());
+        boolean placed = false;
+        for (PipelineToken token : output) {
+            if (!placed && token.equals(expandAt)) {
+                for (PipelineToken fragmentToken : lexed.tokens()) {
+                    replaced.add(shift(fragmentToken, token.column()));
+                }
+                placed = true;
+                continue;
+            }
+            replaced.add(token);
+        }
+        return expandAliases(replaced, depth + 1, expandAt);
+    }
+
+    private static PipelineToken shift(PipelineToken token, int baseColumn) {
+        return new PipelineToken(token.kind(), token.text(),
+                token.column() + baseColumn - 1, token.quoted(), token.keySplit());
+    }
+
+    private record ExpandResult(List<PipelineToken> tokens, CompileDiagnostic diagnostic) {
     }
 
     private List<ActionAst> parseSequence(Cursor cursor, boolean insideBracket) {
@@ -108,6 +210,16 @@ public final class PipelineParser {
         if (WEIGHT.equals(name) && !head.quoted()) {
             return parseWeighted(cursor);
         }
+        if (ON_ERROR.equals(name) && !head.quoted()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.on_error_without_body", head));
+            return null;
+        }
+        if (UNION.equals(name) && !head.quoted()) {
+            return parseUnion(cursor);
+        }
+        if (PARSE_IF.equals(name) && !head.quoted()) {
+            return parseParseIf(cursor);
+        }
         return parseStage(cursor);
     }
 
@@ -141,6 +253,69 @@ public final class PipelineParser {
             elseBranch = parsed;
         }
         return new ActionAst.Branch(condition.toString(), thenBranch, elseBranch, ifToken.column());
+    }
+
+    private ActionAst parseUnion(Cursor cursor) {
+        PipelineToken unionToken = cursor.next();
+        List<ActionAst> sources = parseBracketBody(cursor, unionToken);
+        if (sources == null) {
+            return null;
+        }
+        if (sources.isEmpty()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.union_empty", unionToken));
+            return null;
+        }
+        for (ActionAst source : sources) {
+            if (!(source instanceof ActionAst.Stage)) {
+                cursor.fail(CompileDiagnostic.at("action.parse.union_only_sources", unionToken));
+                return null;
+            }
+        }
+        return new ActionAst.Union(sources, unionToken.column());
+    }
+
+    private ActionAst parseParseIf(Cursor cursor) {
+        PipelineToken parseIfToken = cursor.next();
+        StringBuilder condition = new StringBuilder();
+        while (cursor.hasNext() && cursor.peek().kind() == PipelineToken.Kind.WORD) {
+            PipelineToken token = cursor.peek();
+            if (token.kind() == PipelineToken.Kind.BRACKET_OPEN) {
+                break;
+            }
+            if (!condition.isEmpty()) {
+                condition.append(' ');
+            }
+            condition.append(cursor.next().text());
+        }
+        if (condition.isEmpty()) {
+            cursor.fail(CompileDiagnostic.at("action.parse.parse_if_missing_condition", parseIfToken));
+            return null;
+        }
+        List<ActionAst> body = parseBracketBody(cursor, parseIfToken);
+        if (body == null) {
+            return null;
+        }
+        String raw = condition.toString();
+        if (containsPlaceholder(raw)) {
+            cursor.fail(CompileDiagnostic.at("action.parse.parse_if_placeholder", parseIfToken,
+                    Map.of("condition", raw)));
+            return null;
+        }
+        Boolean evaluated = ExpressionEngine
+                .evaluateBoolean(raw);
+        if (evaluated == null) {
+            cursor.fail(CompileDiagnostic.at("action.parse.parse_if_not_evaluable", parseIfToken,
+                    Map.of("condition", raw)));
+            return null;
+        }
+        return evaluated
+                ? new ActionAst.Inline(body, parseIfToken.column())
+                : new ActionAst.Inline(List.of(), parseIfToken.column());
+    }
+
+    private static boolean containsPlaceholder(String value) {
+        int first = value.indexOf('%');
+        return first >= 0 && value.indexOf('%', first + 1) > first;
     }
 
     private ActionAst parseWeighted(Cursor cursor) {
@@ -245,11 +420,22 @@ public final class PipelineParser {
             return null;
         }
         Map<String, String> arguments = new LinkedHashMap<>();
+        Map<String, String> decorator = new LinkedHashMap<>();
         List<String> positional = new ArrayList<>();
         while (cursor.hasNext() && cursor.peek().kind() == PipelineToken.Kind.WORD) {
             PipelineToken token = cursor.peek();
             if (ELSE.equals(Texts.lower(token.text())) && !token.quoted()) {
                 break;
+            }
+            if (ON_ERROR.equals(Texts.lower(token.text())) && !token.quoted()) {
+                cursor.next();
+                List<ActionAst> handler = parseBracketBody(cursor, token);
+                if (handler == null) {
+                    return null;
+                }
+                ActionAst.Stage stage = new ActionAst.Stage(id, CoreStageKind.ACTION,
+                        arguments, positional, nameToken.column());
+                return new ActionAst.OnError(List.of(stage), handler, nameToken.column());
             }
             cursor.next();
             if (token.isKeyValue()) {
@@ -259,12 +445,27 @@ public final class PipelineParser {
                             Map.of("argument", key)));
                     return null;
                 }
+                if (RETRY.equals(key) || RETRY_DELAY.equals(key)) {
+                    decorator.put(key, token.value());
+                    continue;
+                }
                 arguments.put(key, token.value());
                 continue;
             }
             positional.add(token.text());
         }
-        return new ActionAst.Stage(id, CoreStageKind.ACTION, arguments, positional, nameToken.column());
+        int retryTimes = 0;
+        long retryDelayTicks = 0L;
+        String retryRaw = decorator.get(RETRY);
+        if (!Texts.isBlank(retryRaw)) {
+            retryTimes = ValueParsers.parseInt(retryRaw, -1);
+        }
+        String retryDelayRaw = decorator.get(RETRY_DELAY);
+        if (!Texts.isBlank(retryDelayRaw)) {
+            retryDelayTicks = ValueParsers.parseTicks(retryDelayRaw);
+        }
+        return new ActionAst.Stage(id, CoreStageKind.ACTION, arguments, positional,
+                nameToken.column(), retryTimes, retryDelayTicks);
     }
 
     private static final class Cursor {

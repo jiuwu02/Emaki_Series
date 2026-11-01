@@ -78,6 +78,10 @@ public final class DamageIndicatorService {
         rates.clear();
     }
 
+    public void clearPlayer(UUID playerId) {
+        rates.remove(playerId);
+    }
+
     private void show(LivingEntity target,
             LivingEntity attacker,
             String id,

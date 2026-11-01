@@ -33,10 +33,10 @@ public final class ConfiguredItemParser {
             return new ConfiguredItemDefinition(Texts.trim(source), 1, Map.of());
         }
         if (!(raw instanceof Map<?, ?>) && !(raw instanceof YamlSection)) {
-            throw new IllegalArgumentException("Configured item must be a YAML section, plain map, or source string.");
+            throw new IllegalArgumentException("配置物品必须是 YAML 段、普通 map 或来源字符串。");
         }
 
-        String source = normalizeSource(ConfigNodes.get(raw, "source"));
+        String source = normalizeSource(firstPresent(raw, "item_source", "source"));
         int amount = Math.max(1, Numbers.tryParseInt(ConfigNodes.get(raw, "amount"), 1));
         Map<String, ItemComponentPatch> patches = parseComponents(ConfigNodes.get(raw, "components"));
         return new ConfiguredItemDefinition(source, amount, patches);
@@ -47,7 +47,7 @@ public final class ConfiguredItemParser {
             return Map.of();
         }
         if (!(raw instanceof Map<?, ?>) && !(raw instanceof YamlSection)) {
-            throw new IllegalArgumentException("Configured item components must be a YAML section or plain map.");
+            throw new IllegalArgumentException("配置物品的 components 必须是 YAML 段或普通 map。");
         }
         Map<String, ItemComponentPatch> patches = new LinkedHashMap<>();
         for (Map.Entry<String, Object> entry : ConfigNodes.entries(raw).entrySet()) {
@@ -75,6 +75,12 @@ public final class ConfiguredItemParser {
                     ? ItemComponentPatch.unset()
                     : ItemComponentPatch.reset());
         }
+    }
+
+    private static Object firstPresent(Object raw, String preferredKey, String fallbackKey) {
+        return ConfigNodes.contains(raw, preferredKey)
+                ? ConfigNodes.get(raw, preferredKey)
+                : ConfigNodes.get(raw, fallbackKey);
     }
 
     private String normalizeSource(Object raw) {

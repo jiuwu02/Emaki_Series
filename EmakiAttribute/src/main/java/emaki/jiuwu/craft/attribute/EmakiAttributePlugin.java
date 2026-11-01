@@ -11,7 +11,6 @@ import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.attribute.service.DamageIndicatorService;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -23,6 +22,7 @@ import emaki.jiuwu.craft.attribute.bridge.MythicBridge;
 import emaki.jiuwu.craft.attribute.command.AttributeCommand;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.config.AttributeConfigPrecheckContributor;
+import emaki.jiuwu.craft.attribute.editor.AttributeEditorModule;
 import emaki.jiuwu.craft.attribute.loader.AttributeBalanceRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributePresetRegistry;
 import emaki.jiuwu.craft.attribute.loader.AttributeRegistry;
@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.attribute.loader.LoreFormatRegistry;
 import emaki.jiuwu.craft.attribute.loader.PdcReadRuleLoader;
 import emaki.jiuwu.craft.attribute.papi.AttributePlaceholderExpansion;
+import emaki.jiuwu.craft.attribute.script.AttributeScriptBridge;
 import emaki.jiuwu.craft.attribute.service.AttributePointsGuiService;
 import emaki.jiuwu.craft.attribute.service.AttributeService;
 import emaki.jiuwu.craft.attribute.service.AttributeServiceFacade;
@@ -42,19 +43,21 @@ import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeDataStore;
 import emaki.jiuwu.craft.attribute.service.ParentAttributeService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.attribute.api.EmakiAttributeApi;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 
-public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
+public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
 
     private static final String STARTUP_ASCII = """
   ______  __    __  ______  __  __   __  ______  ______  ______  ______  __  ______  __  __  ______  ______
@@ -86,6 +89,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private AttributePresetRegistry presetRegistry;
     private PdcReadRuleLoader pdcReadRuleLoader;
     private ItemContributionGateRegistry itemContributionGateRegistry;
+    private AttributeScriptBridge attributeScriptBridge;
     private AttributeSlotRegistry attributeSlotRegistry;
     private ContributionProviderRegistrationRegistry contributionProviderRegistrationRegistry;
     private LanguageLoader languageLoader;
@@ -97,6 +101,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     private GuiService guiService;
     private AttributePointsGuiService attributePointsGuiService;
     private AttributeService attributeService;
+    private ChatInputService chatInputService;
+    private AttributeEditorModule editorModule;
+    private EditorService editorService;
     private List<Listener> listeners = List.of();
     private AttributeCommand command;
     private MythicBridge mythicBridge;
@@ -122,6 +129,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
                 STARTUP_ASCII_END_COLOR
         );
         reloadPluginState(true);
+        attributeScriptBridge.loadFromConfig();
         ensureMmoItemsBridge();
         ensureBetterHudBridge();
         lifecycleCoordinator.registerCommand(this);
@@ -138,6 +146,12 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         ConfigPrecheckLifecycleSupport.unregister("attribute");
         EmakiAttributeApi.uninstall(emakiAttributeBridge);
         Bukkit.getServicesManager().unregisterAll(this);
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         lifecycleCoordinator.shutdown(this, regenTask);
         if (metrics != null) {
             metrics.close();
@@ -216,6 +230,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     public void reloadPluginState(boolean resyncPlayers) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publishLoading();
         regenTask = lifecycleCoordinator.reload(this, regenTask, resyncPlayers);
         registerCoreLibActions();
@@ -223,6 +240,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean resyncPlayers, Consumer<String> progressListener) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         publishLoading();
         CompletableFuture<Void> reload = startReloadAsync(resyncPlayers, progressListener);
 
@@ -279,7 +299,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiAttribute readiness publication skipped: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -297,6 +317,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         presetRegistry = components.presetRegistry();
         pdcReadRuleLoader = components.pdcReadRuleLoader();
         itemContributionGateRegistry = components.itemContributionGateRegistry();
+        attributeScriptBridge = components.attributeScriptBridge();
         attributeSlotRegistry = components.attributeSlotRegistry();
         contributionProviderRegistrationRegistry = components.contributionProviderRegistrationRegistry();
         languageLoader = components.languageLoader();
@@ -305,7 +326,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         damageIndicatorService = new DamageIndicatorService(
                 () -> {
                     EmakiCoreLibPlugin coreLib =
-                            getPlugin(EmakiCoreLibPlugin.class);
+                            EmakiCoreLibPlugin.lookup();
                     return coreLib == null ? null : coreLib.textDisplayService();
                 },
                 () -> configModel() == null ? null : configModel().damageIndicator(),
@@ -316,6 +337,9 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         guiService = components.guiService();
         attributePointsGuiService = components.attributePointsGuiService();
         attributeService = components.attributeService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         listeners = components.listeners();
         command = components.command();
         mythicBridge = components.mythicBridge();
@@ -392,6 +416,10 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return itemContributionGateRegistry;
     }
 
+    public AttributeScriptBridge attributeScriptBridge() {
+        return attributeScriptBridge;
+    }
+
     public AttributeSlotRegistry attributeSlotRegistry() {
         return attributeSlotRegistry;
     }
@@ -440,6 +468,18 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
         return command;
     }
 
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public AttributeEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
+    }
+
     public MythicBridge mythicBridge() {
         return mythicBridge;
     }
@@ -453,7 +493,7 @@ public final class EmakiAttributePlugin extends AbstractEmakiPlugin implements L
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     private void registerCoreLibActions() {

@@ -26,11 +26,11 @@ public final class NutritionOperationStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("cooking_add_nutrition", "Adds to one of the target's nutrition values."),
+        ADD("cooking_add_nutrition", "增加目标的一项营养值。"),
 
-        REMOVE("cooking_remove_nutrition", "Removes from one of the target's nutrition values."),
+        REMOVE("cooking_remove_nutrition", "减少目标的一项营养值。"),
 
-        SET("cooking_set_nutrition", "Sets one of the target's nutrition values.");
+        SET("cooking_set_nutrition", "设置目标的一项营养值。");
 
         private final String id;
         private final String description;
@@ -71,9 +71,9 @@ public final class NutritionOperationStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("type", CoreStageParameterType.STRING, "Nutrition type id"),
+                CoreStageParameter.required("type", CoreStageParameterType.STRING, "营养类型 ID"),
                 CoreStageParameter.required("amount", CoreStageParameterType.EXPRESSION,
-                        "Amount, may be an arithmetic expression"));
+                        "数值，可以是算术表达式"));
     }
 
     @Override

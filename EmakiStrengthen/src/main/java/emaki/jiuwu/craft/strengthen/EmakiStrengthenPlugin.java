@@ -9,13 +9,14 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -37,6 +38,7 @@ import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.apiimpl.DefaultEmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
 import emaki.jiuwu.craft.strengthen.config.StrengthenConfigPrecheckContributor;
+import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
@@ -58,7 +60,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
 
-public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "emakistrengthen";
     private static final Set<String> DEBUG_MODULES = Set.of("attempt", "state", "gui", "pdc", "pity");
@@ -118,6 +120,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private StrengthenPlaceholderExpansion placeholderExpansion;
     private EmakiStrengthenApi.Bridge strengthenApiBridge;
     private StrengthenStageRegistrar stageRegistrar;
+    private ChatInputService chatInputService;
+    private StrengthenEditorModule editorModule;
+    private EditorService editorService;
 
     public EmakiStrengthenPlugin() {
         super(AppConfig::defaults);
@@ -143,7 +148,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         registerEventHandlers();
         itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -156,6 +161,12 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         }
         ConfigPrecheckLifecycleSupport.unregister("strengthen");
         itemLayerPreviewLifecycle.close();
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         lifecycleCoordinator.shutdown(this);
         if (placeholderExpansion != null) {
             placeholderExpansion.unregister();
@@ -175,6 +186,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     public void reloadPluginState(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         if (pityRetryScheduler != null) {
@@ -189,6 +203,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync(boolean closeOpenInventories) {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
         contentReady = false;
         publishLoading();
         if (pityRetryScheduler != null) {
@@ -222,9 +239,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiStrengthen readiness publication skipped: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -266,6 +283,9 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
         pityRetryScheduler = new PityPersistenceRetryScheduler(this);
         affixSelectionService = components.affixSelectionService();
         affixGuiService = components.affixGuiService();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         setDebugLogger(new DebugLogger(this, languageLoader));
         debugLogger().setFallbackLoader(coreLib().languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
@@ -285,7 +305,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "emakistrengthen command",
+                "EmakiStrengthen 命令",
                 List.of("estrengthen"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakistrengthen.use", commandRouter, commandRouter)
         );
@@ -367,7 +387,7 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {
@@ -446,5 +466,17 @@ public final class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin
 
     public DebugCommand debugCommand() {
         return debugCommand;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public StrengthenEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 }

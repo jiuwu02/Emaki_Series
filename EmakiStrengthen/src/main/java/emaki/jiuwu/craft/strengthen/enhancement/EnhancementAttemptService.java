@@ -569,14 +569,15 @@ public final class EnhancementAttemptService {
         return (player == null ? "-" : player.getUniqueId().toString()) + ":" + operationId;
     }
 
-
     private int attemptFingerprint(@Nullable EnhancementRecipe recipe,
             @Nullable ItemStack target,
             @Nullable List<ItemStack> supplied) {
-        return Objects.hash(recipe == null ? "" : recipe.id(), target,
+        List<String> materialIdentities = recipe == null ? List.of() : recipe.materials().stream()
+                .map(slot -> slot.materialId() + "|" + slot.countKey())
+                .toList();
+        return Objects.hash(recipe == null ? "" : recipe.id(), materialIdentities, target,
                 supplied == null ? List.of() : supplied);
     }
-
 
     private AttemptStart beginOperation(String journalKey, @Nullable UUID playerId, int fingerprint) {
         CraftOperationJournal.Entry<JournalEntry> existing = operationJournal.beginIfAbsent(
@@ -610,7 +611,6 @@ public final class EnhancementAttemptService {
     private void finishInFlight(String journalKey) {
         operationJournal.release(journalKey);
     }
-
 
     private void pruneJournal() {
         operationJournal.prune(entry -> {
@@ -649,8 +649,8 @@ public final class EnhancementAttemptService {
 
     private void warn(String message, Throwable throwable) {
         if (plugin != null && plugin.getLogger() != null) {
-            plugin.getLogger().warning(message + ": "
-                    + (throwable == null ? "unknown" : String.valueOf(throwable.getMessage())));
+            plugin.getLogger().warning("[attempt] " + message + ": "
+                    + (throwable == null ? "未知" : String.valueOf(throwable.getMessage())));
         }
     }
 
@@ -685,7 +685,7 @@ public final class EnhancementAttemptService {
         warn("目标 Provider 刷新阶段失败，未扣费即拒绝 | 原因键=" + reasonKey, null);
         debug(player, "debug.attempt.refresh_failed", Map.of(
                 "provider", safeProviderId(provider),
-                "reason", refresh.failureKind() == null ? "unknown" : refresh.failureKind().name(),
+                "reason", refresh.failureKind() == null ? "未知" : refresh.failureKind().name(),
                 "error_key", reasonKey));
         return reasonKey;
     }
@@ -805,7 +805,6 @@ public final class EnhancementAttemptService {
         return builder.build();
     }
 
-
     private @Nullable List<MaterialMatch> matchMaterials(EnhancementRecipe recipe,
             Player player,
             ItemStack target,
@@ -842,7 +841,8 @@ public final class EnhancementAttemptService {
                     continue;
                 }
                 int take = Math.min(available, remaining);
-                slotMatches.add(new MaterialMatch(candidate, take, slot.consumeTiming()));
+                slotMatches.add(new MaterialMatch(candidate, take, slot.consumeTiming(),
+                        slot.materialId(), slot.countKey(), slotIndex));
                 consumedPerStack.merge(candidate, take, Integer::sum);
                 remaining -= take;
             }
@@ -875,9 +875,9 @@ public final class EnhancementAttemptService {
             }
             MatchContext context = new MatchContext(candidate, identifySource(candidate), player,
                     target, targetSource, effective);
-            return slot.matcher().test(context);
+            return slot.requirement().test(context);
         } catch (RuntimeException | LinkageError exception) {
-            warn("材料 Matcher 判定抛出异常，视为不匹配", exception);
+            warn("材料判定抛出异常，视为不匹配", exception);
             return false;
         }
     }
@@ -1027,7 +1027,7 @@ public final class EnhancementAttemptService {
                 }
             }
             result.add(new EnhancementAttemptPreview.MaterialRequirement(
-                    "material_" + (index + 1), required, available, slot.consumeTiming()));
+                    slot.materialId(), required, available, slot.consumeTiming()));
         }
         return List.copyOf(result);
     }
@@ -1400,7 +1400,12 @@ public final class EnhancementAttemptService {
         return (int) Math.ceil(value);
     }
 
-    record MaterialMatch(ItemStack stack, int amount, ConsumeTimingEnum timing) {
+    record MaterialMatch(ItemStack stack,
+            int amount,
+            ConsumeTimingEnum timing,
+            String materialId,
+            String countKey,
+            int slotIndex) {
     }
 
     private record PreparedLevel(@Nullable ItemStack itemStack, String errorKey) {
@@ -1434,12 +1439,10 @@ public final class EnhancementAttemptService {
         }
     }
 
-
     private record AttemptStart(boolean started,
             @Nullable EnhancementAttemptResult existingResult,
             String errorKey) {
     }
-
 
     private record JournalEntry(int fingerprint, @Nullable EnhancementAttemptResult result) {
     }

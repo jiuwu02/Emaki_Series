@@ -11,4 +11,8 @@ public interface ConfigPrecheckContributor {
     default boolean supportsFix() {
         return false;
     }
+
+    default boolean applyFix(ConfigPrecheckFixAction fix) {
+        return false;
+    }
 }

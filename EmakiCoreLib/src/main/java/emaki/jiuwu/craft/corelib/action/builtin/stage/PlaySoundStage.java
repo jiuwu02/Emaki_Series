@@ -21,11 +21,11 @@ import emaki.jiuwu.craft.corelib.gui.SoundParser;
 public final class PlaySoundStage extends BaseStage {
 
     public PlaySoundStage() {
-        super("play_sound", "feedback", "Plays a sound to the target.",
+        super("play_sound", "feedback", "向目标播放音效。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY,
-                CoreStageParameter.required("sound", CoreStageParameterType.SOUND, "Sound key"),
-                CoreStageParameter.optional("volume", CoreStageParameterType.DOUBLE, "1", "Volume"),
-                CoreStageParameter.optional("pitch", CoreStageParameterType.DOUBLE, "1", "Pitch"));
+                CoreStageParameter.required("sound", CoreStageParameterType.SOUND, "音效键"),
+                CoreStageParameter.optional("volume", CoreStageParameterType.DOUBLE, "1", "音量"),
+                CoreStageParameter.optional("pitch", CoreStageParameterType.DOUBLE, "1", "音高"));
     }
 
     @Override

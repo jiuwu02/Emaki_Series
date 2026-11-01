@@ -10,21 +10,25 @@ import java.util.function.Consumer;
 import org.bukkit.entity.Player;
 
 import org.bukkit.plugin.ServicePriority;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
@@ -37,6 +41,7 @@ import emaki.jiuwu.craft.cooking.api.EmakiCookingApi;
 import emaki.jiuwu.craft.cooking.action.CookingStageRegistrar;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
 import emaki.jiuwu.craft.cooking.config.CookingConfigPrecheckContributor;
+import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
 import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.listener.MmoItemsNutritionListener;
 import emaki.jiuwu.craft.cooking.listener.NeigeItemsNutritionListener;
@@ -75,7 +80,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
 
-public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
+public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
     private static final String ROOT_COMMAND = "ecooking";
 
@@ -100,6 +105,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private CookingPlaceholderExpansion placeholderExpansion;
     private DebugCommand debugCommand;
     private CookingStageRegistrar stageRegistrar;
+    private GuiService guiService;
+    private GuiTemplateLoader guiTemplateLoader;
+    private ChatInputService chatInputService;
+    private CookingEditorModule editorModule;
+    private EditorService editorService;
 
     private EmakiScheduling taskScheduler;
     private ExecutionDispatcher executionDispatcher;
@@ -171,7 +181,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerActions();
         registerPublicApiService();
         registerPlaceholderExpansion();
-        metrics = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -180,7 +190,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         publicApiReady = false;
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("cooking");
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
@@ -197,7 +207,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (nutritionDataStore != null) {
             var flushResult = nutritionDataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.success()) {
-                getLogger().warning("Nutrition data drain incomplete: pending="
+                getLogger().warning("[shutdown] 营养数据排空未完成: pending="
                         + flushResult.pendingFileOperations()
                         + ", dirty=" + flushResult.remainingDirtyEntries()
                         + ", failures=" + flushResult.failures().size());
@@ -221,7 +231,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (completionCoordinator != null) {
             var drainResult = completionCoordinator.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("Cooking completion journal drain incomplete: pending="
+                getLogger().warning("[shutdown] 烹饪完成日志排空未完成: pending="
                         + drainResult.pendingOperations()
                         + ", failures=" + drainResult.failures().size());
             }
@@ -229,7 +239,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         if (stationStateStore != null) {
             var drainResult = stationStateStore.sealAndDrain(5L, TimeUnit.SECONDS);
             if (!drainResult.drained() || !drainResult.failures().isEmpty()) {
-                getLogger().warning("Station state drain incomplete: pending="
+                getLogger().warning("[shutdown] 工位状态排空未完成: pending="
                         + drainResult.pendingOperations()
                         + ", failures=" + drainResult.failures().size());
             }
@@ -244,29 +254,63 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
             metrics.close();
             metrics = null;
         }
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         if (messageService != null) {
             messageService.info("console.plugin_stopped");
         }
     }
 
     public void reloadPluginState() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
+        boolean previousReady = publicApiReady;
         publicApiReady = false;
         publishLoading();
-        lifecycleCoordinator.reload(this);
+        try {
+            lifecycleCoordinator.reload(this);
+        } catch (RuntimeException exception) {
+            restoreReadiness(previousReady, exception);
+            throw exception;
+        }
         logConfigPrecheckReport();
         publicApiReady = true;
         publishReady();
     }
 
     public CompletableFuture<Void> reloadPluginStateAsync() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
+        boolean previousReady = publicApiReady;
         publicApiReady = false;
         publishLoading();
         return lifecycleCoordinator.reloadAsync(this, null)
-                .thenRun(() -> {
+                .whenComplete((_, failure) -> {
+                    if (failure != null) {
+                        restoreReadiness(previousReady, failure);
+                        return;
+                    }
                     logConfigPrecheckReport();
                     publicApiReady = true;
                     publishReady();
                 });
+    }
+
+    private void restoreReadiness(boolean previousReady, Throwable failure) {
+        publicApiReady = previousReady;
+        if (previousReady) {
+            publishReady();
+        } else {
+            publishLoading();
+        }
+        getLogger().warning("[reload] 烹饪重载失败, 就绪状态已恢复为 "
+                + (previousReady ? "ready" : "loading") + ": " + AsyncFailures.describe(failure));
     }
 
     private void publishReady() {
@@ -283,9 +327,9 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class));
+            action.accept(EmakiCoreLibPlugin.lookup());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiCooking readiness publication skipped: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -295,7 +339,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         }
         completionCoordinator.recover().whenComplete((_, error) -> {
             if (error != null) {
-                getLogger().warning("Cooking completion recovery failed: " + error.getMessage());
+                messageService.warning("console.completion_recovery_failed", Map.of("error", String.valueOf(error.getMessage())));
             }
         });
     }
@@ -345,6 +389,11 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         nutritionTypeRegistry = components.nutritionTypeRegistry();
         nutritionDataStore = components.nutritionDataStore();
         nutritionService = components.nutritionService();
+        guiService = components.guiService();
+        guiTemplateLoader = components.guiTemplateLoader();
+        chatInputService = components.chatInputService();
+        editorModule = components.editorModule();
+        editorService = components.editorService();
         stationTracker = new CookingStationTracker();
         stationListener = new CookingStationListener(choppingBoardRuntimeService, wokRuntimeService, grinderRuntimeService, steamerRuntimeService, ovenRuntimeService, juicerRuntimeService, fermentationBarrelRuntimeService, blockMatcher, settingsService);
         stationLocator = new CookingStationLocator(this);
@@ -366,13 +415,19 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     private void registerCommandHandler() {
         registerCommand(
                 ROOT_COMMAND,
-                "ecooking command",
+                "EmakiCooking 命令",
                 List.of("ec"),
                 new PaperCommandAdapter(ROOT_COMMAND, "emakicooking.use", commandRouter, commandRouter)
         );
     }
 
     private void registerEventHandlers() {
+        if (guiService != null) {
+            getServer().getPluginManager().registerEvents(guiService, this);
+        }
+        if (chatInputService != null) {
+            getServer().getPluginManager().registerEvents(chatInputService, this);
+        }
         if (stationListener == null) {
             return;
         }
@@ -399,6 +454,8 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
         registerItemsAdderEventHandlers();
         registerNexoEventHandlers();
         registerOraxenEventHandlers();
+        coreLib().furnitureEventRelay().subscribe(this,
+                new CookingFurnitureEventSubscriber(stationListener));
         registerNutritionEventHandlers();
     }
 
@@ -557,7 +614,7 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 
     public ActionLineRunner actionLines() {
@@ -678,6 +735,26 @@ public final class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<Ap
 
     public NutritionService nutritionService() {
         return nutritionService;
+    }
+
+    public GuiService guiService() {
+        return guiService;
+    }
+
+    public GuiTemplateLoader guiTemplateLoader() {
+        return guiTemplateLoader;
+    }
+
+    public ChatInputService chatInputService() {
+        return chatInputService;
+    }
+
+    public CookingEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
     }
 
     public DebugCommand debugCommand() {

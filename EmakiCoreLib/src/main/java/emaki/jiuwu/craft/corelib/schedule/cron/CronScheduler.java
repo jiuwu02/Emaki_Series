@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.schedule.cron;
 
+import java.time.Duration;
 import org.bukkit.plugin.Plugin;
 
 import java.time.ZoneId;
@@ -8,6 +9,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
+
+import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
 public final class CronScheduler {
 
@@ -19,17 +22,29 @@ public final class CronScheduler {
 
     public CronTaskHandle schedule(Plugin plugin, String cronExpression, int maxExecutions, Runnable task) {
         CronExpression expr = CronExpression.parse(cronExpression);
-        DefaultHandle handle = new DefaultHandle(maxExecutions);
-        handles.add(handle);
+        DefaultHandle handle = new DefaultHandle(this, maxExecutions);
+        synchronized (handles) {
+            handles.add(handle);
+        }
         scheduleNext(plugin, expr, task, handle);
         return handle;
     }
 
     public void cancelAll() {
-        for (DefaultHandle h : handles) {
+        List<DefaultHandle> snapshot;
+        synchronized (handles) {
+            snapshot = List.copyOf(handles);
+            handles.clear();
+        }
+        for (DefaultHandle h : snapshot) {
             h.cancel();
         }
-        handles.clear();
+    }
+
+    private void forget(DefaultHandle handle) {
+        synchronized (handles) {
+            handles.remove(handle);
+        }
     }
 
     private void scheduleNext(Plugin plugin, CronExpression expr, Runnable task, DefaultHandle handle) {
@@ -42,16 +57,17 @@ public final class CronScheduler {
             return;
         }
 
-        long delayMillis = java.time.Duration.between(now, next).toMillis();
+        long delayMillis = Duration.between(now, next).toMillis();
         long delayTicks = Math.max(1L, delayMillis / 50L);
+        int generation = handle.openGeneration();
 
-        plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, scheduledTask -> {
-            if (handle.isCancelled()) return;
+        ScheduledTask scheduledTask = plugin.getServer().getGlobalRegionScheduler().runDelayed(plugin, ignored -> {
+            if (!handle.acceptGeneration(generation)) return;
 
             try {
                 task.run();
             } catch (Throwable t) {
-                plugin.getLogger().warning("[CronScheduler] Task threw exception: " + t.getMessage());
+                plugin.getLogger().warning("[scheduler] 任务抛出异常: " + t.getMessage());
             }
 
             int remaining = handle.decrementAndGet();
@@ -61,15 +77,37 @@ public final class CronScheduler {
             }
             scheduleNext(plugin, expr, task, handle);
         }, delayTicks);
+        handle.attach(scheduledTask, generation);
     }
 
     private static final class DefaultHandle implements CronTaskHandle {
 
+        private final CronScheduler owner;
         private final AtomicInteger remaining;
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
+        private final AtomicInteger generation = new AtomicInteger();
+        private ScheduledTask scheduledTask;
 
-        DefaultHandle(int maxExecutions) {
+        DefaultHandle(CronScheduler owner, int maxExecutions) {
+            this.owner = owner;
             this.remaining = new AtomicInteger(maxExecutions <= 0 ? -1 : maxExecutions);
+        }
+
+        int openGeneration() {
+            return generation.incrementAndGet();
+        }
+
+        boolean acceptGeneration(int expected) {
+            return !cancelled.get() && generation.get() == expected;
+        }
+
+        synchronized void attach(ScheduledTask task, int expected) {
+            if (task == null) return;
+            if (cancelled.get() || generation.get() != expected) {
+                task.cancel();
+                return;
+            }
+            scheduledTask = task;
         }
 
         int decrementAndGet() {
@@ -79,12 +117,27 @@ public final class CronScheduler {
         }
 
         void markDone() {
+            cease();
+            owner.forget(this);
+        }
+
+        private void cease() {
             cancelled.set(true);
+            generation.incrementAndGet();
+            ScheduledTask pending;
+            synchronized (this) {
+                pending = scheduledTask;
+                scheduledTask = null;
+            }
+            if (pending != null) {
+                pending.cancel();
+            }
         }
 
         @Override
         public void cancel() {
-            cancelled.set(true);
+            cease();
+            owner.forget(this);
         }
 
         @Override

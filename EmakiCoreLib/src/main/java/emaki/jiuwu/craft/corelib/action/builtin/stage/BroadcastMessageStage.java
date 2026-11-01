@@ -18,9 +18,9 @@ import net.kyori.adventure.text.Component;
 public final class BroadcastMessageStage extends BaseStage {
 
     public BroadcastMessageStage() {
-        super("broadcast_message", "message", "Broadcasts a MiniMessage chat message.",
+        super("broadcast_message", "message", "广播一条 MiniMessage 聊天消息。",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
-                CoreStageParameter.required("text", CoreStageParameterType.STRING, "Message text"));
+                CoreStageParameter.required("text", CoreStageParameterType.STRING, "消息文本"));
     }
 
     @Override

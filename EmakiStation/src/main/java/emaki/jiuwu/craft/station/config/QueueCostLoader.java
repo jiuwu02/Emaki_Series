@@ -1,0 +1,158 @@
+package emaki.jiuwu.craft.station.config;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.logging.Logger;
+
+import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.station.recipe.RecipeCost;
+
+public final class QueueCostLoader {
+
+    private QueueCostLoader() {
+    }
+
+    public static QueueCostConfig load(File file, Logger logger, boolean reportMissingFile) {
+        YamlSection section = file == null ? null : YamlFiles.load(file);
+        if (section == null || section.isEmpty()) {
+            if (reportMissingFile && logger != null) {
+                logger.warning("[config] " + (file == null ? "queue_costs.yml" : file.getName())
+                        + " 缺失或为空；在提供之前付费队列槽位将被禁用");
+            }
+            return QueueCostConfig.empty();
+        }
+        List<QueueCostConfig.Tier> tiers = new ArrayList<>();
+        for (Map<?, ?> raw : section.getMapList("tiers")) {
+            QueueCostConfig.Tier tier = parseTier(raw, logger);
+            if (tier != null) {
+                tiers.add(tier);
+            }
+        }
+        QueueCostConfig.Fallback fallback = parseFallback(section.getSection("fallback"), logger);
+        QueueCostConfig.Batch batch = parseBatch(section.getSection("batch"));
+        return new QueueCostConfig(tiers, fallback, batch);
+    }
+
+    private static QueueCostConfig.Tier parseTier(Map<?, ?> raw, Logger logger) {
+        if (raw == null) {
+            return null;
+        }
+        String range = ConfigNodes.string(raw, "count_range", null);
+        int[] bounds = parseRange(range);
+        if (bounds == null) {
+            warn(logger, "跳过 count_range 无效的队列费用档位: " + range);
+            return null;
+        }
+        QueueCostConfig.CurrencyCost currency = parseCurrency(ConfigNodes.get(raw, "currency"), logger);
+        QueueCostConfig.ItemCost item = parseItem(ConfigNodes.get(raw, "item"));
+        if (currency == null && item == null) {
+            warn(logger, "跳过队列费用档位 " + range + ": 没有可用的价格");
+            return null;
+        }
+        return new QueueCostConfig.Tier(bounds[0], bounds[1], currency, item);
+    }
+
+    private static QueueCostConfig.Fallback parseFallback(YamlSection section, Logger logger) {
+        if (section == null) {
+            return null;
+        }
+        QueueCostConfig.CurrencyCost currency = parseCurrency(section.get("currency"), logger);
+        QueueCostConfig.ItemCost item = parseItem(section.get("item"));
+        if (currency == null && item == null) {
+            return null;
+        }
+        Double maxAmount = section.getDouble("max_amount", null);
+        if (maxAmount == null || maxAmount <= 0.0D) {
+
+            warn(logger, "queue_costs.yml 的 fallback 需要正数 max_amount 作为保护值；"
+                    + "超出已定义档位的付费队列槽位将被禁用");
+            return null;
+        }
+        return new QueueCostConfig.Fallback(currency, item, maxAmount);
+    }
+
+    private static QueueCostConfig.Batch parseBatch(YamlSection section) {
+        if (section == null) {
+            return QueueCostConfig.Batch.defaults();
+        }
+        List<Integer> options = new ArrayList<>();
+        for (Object option : section.getList("options", List.of())) {
+            if (option instanceof Number number && number.intValue() > 0) {
+                options.add(number.intValue());
+            }
+        }
+        Boolean enabled = section.getBoolean("enabled", Boolean.TRUE);
+        return new QueueCostConfig.Batch(enabled == null || enabled,
+                options.isEmpty() ? QueueCostConfig.Batch.defaults().options() : options);
+    }
+
+    private static QueueCostConfig.CurrencyCost parseCurrency(Object raw, Logger logger) {
+        if (raw == null) {
+            return null;
+        }
+        String token = ConfigNodes.string(raw, "type", "vault");
+        RecipeCost resolved = RecipeCost.fromToken(token, 1L);
+        if (resolved == null) {
+            warn(logger, "无法识别的队列费用货币类型: " + token);
+            return null;
+        }
+        String providerId = resolved.providerId();
+        Object amount = ConfigNodes.get(raw, "amount");
+        if (amount instanceof Number number) {
+            return number.doubleValue() <= 0.0D
+                    ? null
+                    : new QueueCostConfig.CurrencyCost(providerId, number.doubleValue(), null);
+        }
+        if (amount instanceof String expression && !expression.isBlank()) {
+            return new QueueCostConfig.CurrencyCost(providerId, 0.0D,
+                    expression.replace("%count%", "count"));
+        }
+        return null;
+    }
+
+    private static QueueCostConfig.ItemCost parseItem(Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        String source = ConfigNodes.string(raw, "source", null);
+        if (source == null || source.isBlank()) {
+            return null;
+        }
+        Object amount = ConfigNodes.get(raw, "amount");
+        int count = amount instanceof Number number ? number.intValue() : 1;
+        return count <= 0 ? null : new QueueCostConfig.ItemCost(source.trim(), count);
+    }
+
+    private static int[] parseRange(String range) {
+        if (range == null || range.isBlank()) {
+            return null;
+        }
+        String normalized = range.trim().toLowerCase(Locale.ROOT);
+        int dash = normalized.indexOf('-');
+        try {
+            if (dash < 0) {
+                int single = Integer.parseInt(normalized);
+                return single <= 0 ? null : new int[] {single, single};
+            }
+            int min = Integer.parseInt(normalized.substring(0, dash).trim());
+            int max = Integer.parseInt(normalized.substring(dash + 1).trim());
+            if (min <= 0 || max < min) {
+                return null;
+            }
+            return new int[] {min, max};
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private static void warn(Logger logger, String message) {
+        if (logger != null) {
+            logger.warning("[config] " + message);
+        }
+    }
+}

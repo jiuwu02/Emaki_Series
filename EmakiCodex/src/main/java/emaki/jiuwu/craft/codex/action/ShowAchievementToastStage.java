@@ -41,6 +41,9 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     private static final long DEFAULT_REMOVE_DELAY_TICKS = 20L;
 
     private static final ConcurrentMap<String, UUID> REMOVAL_TOKENS = new ConcurrentHashMap<>();
+    private static final ConcurrentMap<String, Method> BRIDGE_METHODS = new ConcurrentHashMap<>();
+    private static volatile Class<?> bridgeClass;
+    private static volatile Boolean packetEventsPresent;
 
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
@@ -57,7 +60,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Shows a client-side advancement toast to the target.";
+        return "向目标显示一个客户端成就弹窗。";
     }
 
     @Override
@@ -68,17 +71,17 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("title", CoreStageParameterType.STRING, "Toast title"),
+                CoreStageParameter.required("title", CoreStageParameterType.STRING, "弹窗标题"),
                 CoreStageParameter.optional("description", CoreStageParameterType.STRING, "",
-                        "Toast description"),
+                        "弹窗描述"),
                 CoreStageParameter.optional("icon", CoreStageParameterType.STRING, DEFAULT_ICON,
-                        "Toast icon item source"),
+                        "弹窗图标物品来源"),
                 CoreStageParameter.optional("frame", CoreStageParameterType.STRING, DEFAULT_FRAME,
-                        "Toast frame: task, goal, or challenge"),
+                        "弹窗边框：task、goal 或 challenge"),
                 CoreStageParameter.optional("id", CoreStageParameterType.STRING, "",
-                        "Client-side toast id"),
+                        "客户端弹窗 id"),
                 CoreStageParameter.optional("remove_delay", CoreStageParameterType.DURATION,
-                        DEFAULT_REMOVE_DELAY, "Delay before withdrawing the toast"));
+                        DEFAULT_REMOVE_DELAY, "撤回弹窗前的延迟"));
     }
 
     @Override
@@ -178,12 +181,19 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     }
 
     private boolean isPacketEventsPresent() {
+        Boolean cached = packetEventsPresent;
+        if (cached != null) {
+            return cached;
+        }
+        boolean present;
         try {
             Class.forName("com.github.retrooper.packetevents.PacketEvents");
-            return true;
+            present = true;
         } catch (ClassNotFoundException exception) {
-            return false;
+            present = false;
         }
+        packetEventsPresent = present;
+        return present;
     }
 
     private boolean invokeBridge(String methodName,
@@ -193,14 +203,28 @@ public final class ShowAchievementToastStage implements CoreActionStage {
             String description,
             ItemStack icon,
             String frame) throws Throwable {
-        Class<?> bridge = Class.forName(PACKET_BRIDGE_CLASS);
-        Method method = bridge.getMethod(methodName, Player.class, String.class, String.class,
-                String.class, ItemStack.class, String.class);
+        Method method = bridgeMethod(methodName);
         try {
             return Boolean.TRUE.equals(method.invoke(null, target, key, title, description, icon, frame));
         } catch (InvocationTargetException exception) {
             throw exception.getCause() == null ? exception : exception.getCause();
         }
+    }
+
+    private Method bridgeMethod(String methodName) throws ClassNotFoundException, NoSuchMethodException {
+        Method cached = BRIDGE_METHODS.get(methodName);
+        if (cached != null) {
+            return cached;
+        }
+        Class<?> bridge = bridgeClass;
+        if (bridge == null) {
+            bridge = Class.forName(PACKET_BRIDGE_CLASS);
+            bridgeClass = bridge;
+        }
+        Method method = bridge.getMethod(methodName, Player.class, String.class, String.class,
+                String.class, ItemStack.class, String.class);
+        BRIDGE_METHODS.putIfAbsent(methodName, method);
+        return method;
     }
 
     private void scheduleRemoval(Player target, String key, long removeDelayTicks) {

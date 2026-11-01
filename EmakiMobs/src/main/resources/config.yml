@@ -1,7 +1,7 @@
 # EmakiMobs 主配置
 # 控制自定义生物定义、掉落表、自然生成规则与原版类型覆写。
 
-version: "1.0.0"
+version: "2.0.0"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -9,5 +9,43 @@ language: "zh_CN"
 # 是否在启动时释放插件内置的默认生物与掉落示例数据。
 release_default_data: true
 
-# 兼容保留项；当前实现不使用该值控制停用排空。
-drain_timeout_seconds: 30
+# 实体模型渲染与动画设置。
+model:
+  # 使用的模型后端：auto 自动选择（优先 ModelEngine，其次 BetterModel）、
+  # model_engine 强制 ModelEngine、better_model 强制 BetterModel。
+  # 对应后端插件未安装时模型功能静默降级为无模型模式。
+  # 生物定义文件可在 model.api 按生物覆盖此后端选择。
+  api: "auto"
+  # 模型视距（格）：NEAR 档按该值设置模型可见范围；
+  # MID 档 ModelEngine 收缩到 min(view_distance, mid)、BetterModel 只向该距离内的玩家生成模型；
+  # FAR 档 ModelEngine 视距归零、BetterModel 暂停 tracker。
+  view_distance: 48.0
+  # 距离分级（LOD）边界（格）。判据是该生物到最近玩家的距离，
+  # 每 movement_check_interval_ticks 评估一次，仅在档位变化时下发给模型后端：
+  #   距离 ≤ near        → NEAR（全量视距）
+  #   near < 距离 ≤ mid  → MID（降级视距）
+  #   距离 > mid         → FAR（隐藏；mid–far 之间同样是 FAR）
+  # 请保持 far ≥ mid，否则 MID 档部分距离不可达；
+  # far 同时用于远距早退判定（超出该距离直接视为 FAR）。
+  # 生物定义文件可在 model.lod 按生物覆盖本组边界。
+  lod:
+    near: 16.0
+    mid: 32.0
+    far: 48.0
+  # 移动状态（idle/walk/run）检测周期（tick）。
+  movement_check_interval_ticks: 5
+  # 死亡动画播完后延迟多少 tick 再卸载模型实体。
+  death_detach_delay_ticks: 40
+  # 判定为行走与奔跑的水平速度阈值（格/tick）。
+  walk_speed_threshold: 0.12
+  run_speed_threshold: 0.28
+  # 各标准动作切换时的过渡混合时长（tick）。
+  transitions:
+    idle_fade_ticks: 5
+    walk_fade_ticks: 5
+    run_fade_ticks: 5
+    death_fade_ticks: 0
+    hurt_fade_ticks: 2
+    attack_fade_ticks: 3
+    skill_fade_ticks: 3
+    interact_fade_ticks: 3

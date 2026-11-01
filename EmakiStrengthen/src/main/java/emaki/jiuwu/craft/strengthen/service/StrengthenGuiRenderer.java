@@ -114,11 +114,12 @@ final class StrengthenGuiRenderer {
                         + " <gray>(" + material.availableAmount() + "/" + material.requiredAmount() + ")</gray>");
             }
         }
-        boolean hasOptional = preview.optionalMaterials().stream().anyMatch(material -> material != null && Texts.isNotBlank(material.item()));
+        boolean hasOptional = preview.optionalMaterials().stream()
+                .anyMatch(material -> material != null && material.optional() && Texts.isNotBlank(material.item()));
         if (hasOptional) {
             lore.add(msg("gui.preview.optional_materials_header"));
             for (AttemptMaterial material : preview.optionalMaterials()) {
-                if (material == null || Texts.isBlank(material.item())) {
+                if (material == null || !material.optional() || Texts.isBlank(material.item())) {
                     continue;
                 }
                 lore.add("<aqua> - " + materialDisplayName(material.item()) + " x" + material.availableAmount() + "</aqua>");

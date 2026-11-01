@@ -49,23 +49,27 @@ public final class YamlConfigLoader<T> {
     }
 
     public T load() {
+        return loadResult().value();
+    }
+
+    public LoadResult<T> loadResult() {
         try {
             File file = file();
             VersionedYamlFile versionedFile = YamlFiles.loadCurrentResource(plugin, file, resourcePath);
             YamlSection configuration = versionedFile == null ? null : versionedFile.root();
-            if (configuration == null || configuration.isEmpty()) {
-                current = defaultsSupplier.get();
-                return current;
-            }
-            current = parser.apply(configuration);
+            T candidate = configuration == null || configuration.isEmpty()
+                    ? defaultsSupplier.get()
+                    : parser.apply(configuration);
+            current = candidate;
+            return new LoadResult<>(true, candidate, "");
         } catch (Exception exception) {
+            String error = String.valueOf(exception.getMessage());
             warning(loadFailureKey, Map.of(
                     "path", relativePath,
-                    "error", String.valueOf(exception.getMessage())
+                    "error", error
             ));
-            current = defaultsSupplier.get();
+            return new LoadResult<>(false, current, error);
         }
-        return current;
     }
 
     public T current() {
@@ -92,5 +96,12 @@ public final class YamlConfigLoader<T> {
             return provider.messageService();
         }
         return null;
+    }
+
+    public record LoadResult<T>(boolean success, T value, String error) {
+
+        public LoadResult {
+            error = error == null ? "" : error;
+        }
     }
 }

@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -72,11 +73,7 @@ public final class LegacyMatchRuleConverter {
 
     public static @NotNull Conversion convert(@Nullable LegacyMatchRule rule) {
         LegacyMatchRule source = rule == null ? LegacyMatchRule.none() : rule;
-        List<Map<String, Object>> parts = new ArrayList<>();
-        if (!source.sourceIds().isEmpty()) {
-            parts.add(itemSourceMatcher(source.sourceIds()));
-        }
-        parts.addAll(loreMatchers(source.loreContains()));
+        List<Map<String, Object>> parts = new ArrayList<>(loreMatchers(source.loreContains()));
         Map<String, List<String>> promoted = new LinkedHashMap<>();
         if (!source.slotGroups().isEmpty()) {
             promoted.put(FIELD_SLOT_GROUPS, source.slotGroups());
@@ -84,8 +81,15 @@ public final class LegacyMatchRuleConverter {
         if (!source.statsAny().isEmpty()) {
             promoted.put(FIELD_STATS_ANY, source.statsAny());
         }
-        if (!source.sourcePatterns().isEmpty()) {
-            promoted.put(FIELD_SOURCE_PATTERNS, source.sourcePatterns());
+        List<String> patterns = new ArrayList<>(source.sourcePatterns());
+        for (String sourceId : source.sourceIds()) {
+            String anchored = anchoredSourcePattern(sourceId);
+            if (!anchored.isEmpty() && !patterns.contains(anchored)) {
+                patterns.add(anchored);
+            }
+        }
+        if (!patterns.isEmpty()) {
+            promoted.put(FIELD_SOURCE_PATTERNS, List.copyOf(patterns));
         }
         List<String> unconvertible = source.sourceTypes().isEmpty()
                 ? List.of()
@@ -93,11 +97,9 @@ public final class LegacyMatchRuleConverter {
         return new Conversion(combine(parts), promoted, unconvertible);
     }
 
-    public static @NotNull Map<String, Object> itemSourceMatcher(@NotNull List<String> sources) {
-        Map<String, Object> node = new LinkedHashMap<>();
-        node.put("type", "item_source");
-        node.put("sources", List.copyOf(sources));
-        return node;
+    private static @NotNull String anchoredSourcePattern(@Nullable String sourceId) {
+        String token = Texts.toStringSafe(sourceId).trim();
+        return token.isEmpty() ? "" : "^" + Pattern.quote(token) + "$";
     }
 
     public static @NotNull List<Map<String, Object>> loreMatchers(@NotNull List<String> fragments) {

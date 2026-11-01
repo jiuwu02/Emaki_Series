@@ -21,7 +21,7 @@ public final class EnhancementRecipeLoader extends YamlDirectoryLoader<Enhanceme
 
     @Override
     protected String typeName() {
-        return "Enhancement Recipe";
+        return "词条强化配方";
     }
 
     @Override

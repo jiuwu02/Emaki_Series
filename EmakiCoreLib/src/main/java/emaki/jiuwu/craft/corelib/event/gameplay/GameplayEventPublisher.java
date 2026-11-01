@@ -35,6 +35,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.plugin.Plugin;
 
+import com.destroystokyo.paper.event.entity.EntityRemoveFromWorldEvent;
+
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -105,6 +107,11 @@ public final class GameplayEventPublisher implements Listener {
         if (snapshot != null) {
             eventBus.publish(new MythicKillEvent(killer, entity, snapshot.mobId(), snapshot.level()));
         }
+    }
+
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onEntityRemove(EntityRemoveFromWorldEvent event) {
+        lastDamagers.remove(event.getEntity().getUniqueId());
     }
 
     private Player playerDamager(Entity damager) {
@@ -228,8 +235,18 @@ public final class GameplayEventPublisher implements Listener {
 
     private void recordBrewer(Location location, Player player) {
         if (location != null && player != null) {
+            pruneExpiredBrewers();
             brewers.put(locationKey(location), new BrewerUser(player.getUniqueId(), System.currentTimeMillis()));
         }
+    }
+
+    private void pruneExpiredBrewers() {
+        if (brewers.isEmpty()) {
+            return;
+        }
+        long expireTicks = config().brewAttributionExpireTicks();
+        long now = System.currentTimeMillis();
+        brewers.entrySet().removeIf(entry -> (now - entry.getValue().time()) / 50L > expireTicks);
     }
 
     private String firstPotionType(ItemStack[] contents) {

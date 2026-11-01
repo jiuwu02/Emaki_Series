@@ -22,6 +22,14 @@ public final class GuiDebugSupport {
         log(plugin, player, langKey, Map.of());
     }
 
+    public static boolean shouldLog(Plugin plugin, Player player) {
+        if (!(plugin instanceof DebugLoggerProvider provider)) {
+            return false;
+        }
+        DebugLogger logger = provider.debugLogger();
+        return logger != null && logger.shouldLog(MODULE, player);
+    }
+
     public static void log(Plugin plugin, Player player, String langKey, Map<String, ?> replacements) {
         if (!(plugin instanceof DebugLoggerProvider provider)) {
             return;
@@ -37,7 +45,7 @@ public final class GuiDebugSupport {
             return new LinkedHashMap<>();
         }
         if (entries.length % 2 != 0) {
-            throw new IllegalArgumentException("entries must contain key-value pairs");
+            throw new IllegalArgumentException("entries 必须包含键值对");
         }
         Map<String, Object> replacements = new LinkedHashMap<>();
         for (int index = 0; index < entries.length; index += 2) {

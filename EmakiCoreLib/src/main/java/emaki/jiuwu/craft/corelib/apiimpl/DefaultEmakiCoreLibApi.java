@@ -2,29 +2,47 @@ package emaki.jiuwu.craft.corelib.apiimpl;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
-import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
+import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegisteredTrigger;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionFailureKind;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionGate;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionStage;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionTrigger;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageRebuildRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetCondition;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetIdentityProvider;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerDispatch;
 import emaki.jiuwu.craft.corelib.api.action.CoreTriggerRegistration;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionStageDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.descriptor.CoreActionTriggerDescriptor;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionContext;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionResult;
+import emaki.jiuwu.craft.corelib.api.action.execution.CoreActionExecutionStatus;
+import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.PhaseContract;
 import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationDefinition;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationListener;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationPlaybackHandle;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationRegistration;
 import emaki.jiuwu.craft.corelib.api.capability.ApiCapability;
 import emaki.jiuwu.craft.corelib.api.capability.CapabilityRegistration;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
@@ -49,11 +67,15 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     private static final CoreLibDialogs UNAVAILABLE_DIALOGS = new UnavailableDialogs();
 
     private final EmakiCoreLibPlugin plugin;
+    private final ActionExecutionApiService actionExecution;
+    private final ActionDescriptorApiService actionDescriptors;
     private volatile CoreLibDialogs dialogBridge;
     private volatile EmakiScheduling schedulingBridge;
 
     public DefaultEmakiCoreLibApi(EmakiCoreLibPlugin plugin) {
         this.plugin = plugin;
+        actionExecution = new ActionExecutionApiService(plugin);
+        actionDescriptors = new ActionDescriptorApiService(plugin);
     }
 
     @Override
@@ -122,7 +144,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public ItemBuildResult createConfiguredItem(ConfiguredItemDefinition definition, Map<String, ?> replacements) {
         ConfiguredItemService service = plugin.configuredItemService();
         return service == null
-                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("CoreLib 配置物品服务不可用。")
                 : service.create(definition, replacements);
     }
 
@@ -132,7 +154,7 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             Map<String, ?> replacements) {
         ConfiguredItemService service = plugin.configuredItemService();
         return service == null
-                ? ItemBuildResult.unavailable("CoreLib configured item service is unavailable.")
+                ? ItemBuildResult.unavailable("CoreLib 配置物品服务不可用。")
                 : service.apply(itemStack, definition, replacements);
     }
 
@@ -140,6 +162,33 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     public List<ItemComponentCapability> itemComponentCapabilities() {
         ConfiguredItemService service = plugin.configuredItemService();
         return service == null ? List.of() : service.capabilities();
+    }
+
+    @Override
+    public CompletableFuture<CoreActionExecutionResult> executeActionLineAsync(Plugin owner,
+            String line,
+            CoreActionExecutionContext context) {
+        return actionExecution.execute(owner, line, context);
+    }
+
+    @Override
+    public List<CoreActionStageDescriptor> actionStages() {
+        return actionDescriptors.stages();
+    }
+
+    @Override
+    public Optional<CoreActionStageDescriptor> actionStage(String stageId) {
+        return actionDescriptors.stage(stageId);
+    }
+
+    @Override
+    public List<CoreActionTriggerDescriptor> actionTriggers() {
+        return actionDescriptors.triggers();
+    }
+
+    @Override
+    public Optional<CoreActionTriggerDescriptor> actionTrigger(String triggerId) {
+        return actionDescriptors.trigger(triggerId);
     }
 
     @Override
@@ -172,9 +221,23 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     }
 
     @Override
+    public CoreTargetRegistration registerTargetCondition(Plugin owner, CoreTargetCondition condition) {
+        return plugin.targetConditionRegistry().register(owner, condition);
+    }
+
+    @Override
+    public CoreTargetRegistration registerTargetIdentityProvider(Plugin owner, CoreTargetIdentityProvider provider) {
+        return plugin.targetIdentityRegistry().register(owner, provider);
+    }
+
+    @Override
     public CompletableFuture<EmakiResult<Unit>> dispatchTriggerAsync(Plugin owner,
             String triggerId,
             CoreTriggerDispatch dispatch) {
+        if (owner == null) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.invalidInput("action.trigger.dispatch.no_owner"));
+        }
         if (Texts.isBlank(triggerId)) {
             return CompletableFuture.completedFuture(
                     EmakiResult.invalidInput("action.trigger.dispatch.blank_id"));
@@ -184,35 +247,48 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
                     EmakiResult.invalidInput("action.trigger.dispatch.no_dispatch"));
         }
 
-        TriggerContract contract = plugin.triggerRegistry().contractOf(triggerId);
-        if (contract == null) {
+        RegisteredTrigger registered = plugin.triggerRegistry().lookup(triggerId);
+        if (registered == null) {
             return CompletableFuture.completedFuture(
                     EmakiResult.notFound("action.trigger.dispatch.unknown_trigger"));
+        }
+        if (registered.owner() != owner) {
+            return CompletableFuture.completedFuture(
+                    EmakiResult.failure(FailureKind.REJECTED, "action.trigger.dispatch.owner_mismatch"));
         }
         if (dispatch.lines().isEmpty()) {
             return CompletableFuture.completedFuture(EmakiResult.ok());
         }
-        ActionLineRunner runner = plugin.actionLineRunner(owner);
-        if (!runner.available()) {
-            return CompletableFuture.completedFuture(EmakiResult.failure(FailureKind.UNAVAILABLE,
-                    "action.trigger.dispatch.engine_unavailable"));
-        }
 
-        Player caster = dispatch.casterId() == null ? null : Bukkit.getPlayer(dispatch.casterId());
-        PipelineContext context = runner.context(caster, dispatch.phase(), dispatch.silent(),
-                dispatch.variables());
-        if (dispatch.hasTriggerName()) {
-            context = context.with(CoreActionKeys.TRIGGER, dispatch.triggerName());
-        }
-        return runner.run(dispatch.lines(), context, contract, false)
-                .thenApply(succeeded -> succeeded
-                        ? EmakiResult.ok()
-                        : EmakiResult.partial(Unit.INSTANCE, "action.trigger.dispatch.line_failed"));
+        CompletableFuture<Player> caster = dispatch.casterId() == null
+                ? CompletableFuture.completedFuture(null)
+                : plugin.executionDispatcher().submitGlobal(owner, () -> Bukkit.getPlayer(dispatch.casterId()));
+        TriggerContract contract = registered.contract();
+        return caster.thenCompose(player -> {
+            CoreActionExecutionContext.Builder contextBuilder = CoreActionExecutionContext.builder()
+                    .caster(player == null ? null : CoreActionSubject.of(player))
+                    .phase(dispatch.phase())
+                    .silent(dispatch.silent())
+                    .variables(dispatch.variables());
+            if (dispatch.hasTriggerName()) {
+                contextBuilder.data(CoreActionKeys.TRIGGER, dispatch.triggerName());
+            }
+            return executeTriggerLines(owner, dispatch.lines(), contextBuilder.build(),
+                    contract.phase(dispatch.phase()), 0, false, null);
+        }).thenApply(DefaultEmakiCoreLibApi::triggerResult)
+                .exceptionally(throwable -> EmakiResult.failure(FailureKind.INTERNAL_ERROR,
+                        "action.trigger.dispatch.exception",
+                        Map.of("error", Texts.toStringSafe(unwrap(throwable).getMessage()))));
     }
 
     @Override
     public boolean onStageRegistryRebuilt(Plugin owner, Runnable reregister) {
         return plugin.stageRebuildListeners().register(owner, reregister);
+    }
+
+    @Override
+    public CoreStageRebuildRegistration addStageRegistryRebuildListener(Plugin owner, Runnable reregister) {
+        return plugin.stageRebuildListeners().add(owner, reregister);
     }
 
     @Override
@@ -243,8 +319,8 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     @Override
     public ReadinessRegistration whenReady(Plugin owner, String moduleName, Runnable callback) {
         return plugin.moduleReadinessRegistry().whenReady(owner, moduleName, callback,
-                failure -> plugin.getLogger().warning("Readiness callback failed for " + failure.owner()
-                        + " waiting on " + failure.moduleName() + ": " + failure.error()));
+                failure -> plugin.getLogger().warning("[startup] 就绪回调失败，插件 " + failure.owner()
+                        + " 正在等待 " + failure.moduleName() + ": " + failure.error()));
     }
 
     @Override
@@ -257,5 +333,150 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
             String moduleName,
             ModuleReadinessListener listener) {
         return plugin.moduleReadinessRegistry().addListener(owner, moduleName, listener);
+    }
+
+    @Override
+    public AnimationRegistration registerAnimation(Plugin owner, AnimationDefinition definition) {
+        if (owner == null || definition == null || !definition.valid()) {
+            return AnimationRegistration.unavailable("animation.definition_invalid");
+        }
+        plugin.animationRegistry().register(owner, definition);
+        return new LiveAnimationRegistration(definition.id(),
+                () -> plugin.animationRegistry().revoke(owner, definition.id()));
+    }
+
+    @Override
+    public CompletableFuture<EmakiResult<AnimationPlaybackHandle>> playAnimationAsync(Plugin owner,
+            Entity entity,
+            String definitionId,
+            CoreActionExecutionContext context) {
+        return plugin.animationPlaybackService().play(owner, entity, definitionId, context);
+    }
+
+    @Override
+    public boolean stopAnimation(Plugin owner, Entity entity, String definitionId) {
+        return plugin.animationPlaybackService().stop(owner, entity, definitionId);
+    }
+
+    @Override
+    public AnimationRegistration addAnimationListener(Plugin owner, AnimationListener listener) {
+        if (owner == null || listener == null) {
+            return AnimationRegistration.unavailable("animation.listener_invalid");
+        }
+        plugin.animationRegistry().addListener(owner, listener);
+        return new LiveAnimationRegistration("", () -> plugin.animationRegistry().removeListener(owner));
+    }
+
+    private static final class LiveAnimationRegistration implements AnimationRegistration {
+
+        private final String definitionId;
+        private final Runnable revoke;
+        private volatile boolean active = true;
+
+        private LiveAnimationRegistration(String definitionId, Runnable revoke) {
+            this.definitionId = definitionId;
+            this.revoke = revoke;
+        }
+
+        @Override
+        public boolean successful() {
+            return true;
+        }
+
+        @Override
+        public String definitionId() {
+            return definitionId;
+        }
+
+        @Override
+        public String reasonKey() {
+            return "";
+        }
+
+        @Override
+        public boolean active() {
+            return active;
+        }
+
+        @Override
+        public void close() {
+            if (active) {
+                active = false;
+                revoke.run();
+            }
+        }
+    }
+
+    private CompletableFuture<TriggerExecution> executeTriggerLines(Plugin owner,
+            List<String> lines,
+            CoreActionExecutionContext context,
+            PhaseContract phase,
+            int index,
+            boolean partial,
+            CoreActionExecutionResult firstFailure) {
+        if (index >= lines.size()) {
+            return CompletableFuture.completedFuture(new TriggerExecution(partial, firstFailure));
+        }
+        String line = lines.get(index);
+        if (Texts.isBlank(line)) {
+            return executeTriggerLines(owner, lines, context, phase, index + 1, partial, firstFailure);
+        }
+        return actionExecution.execute(owner, line, context, phase).thenCompose(result -> {
+            boolean nextPartial = partial || result.status() == CoreActionExecutionStatus.PARTIAL;
+            CoreActionExecutionResult nextFailure = firstFailure == null && triggerFailed(result)
+                    ? result
+                    : firstFailure;
+            return executeTriggerLines(owner, lines, context, phase, index + 1, nextPartial, nextFailure);
+        });
+    }
+
+    private static boolean triggerFailed(CoreActionExecutionResult result) {
+        return switch (result.status()) {
+            case COMPILE_FAILED, EXECUTION_FAILED, INVALID_REQUEST, UNAVAILABLE -> true;
+            case SUCCESS, SKIPPED, PARTIAL -> false;
+        };
+    }
+
+    private static EmakiResult<Unit> triggerResult(TriggerExecution execution) {
+        CoreActionExecutionResult failure = execution.failure();
+        if (failure == null) {
+            return execution.partial()
+                    ? EmakiResult.partial(Unit.INSTANCE, "action.trigger.dispatch.partial")
+                    : EmakiResult.ok();
+        }
+        FailureKind kind = switch (failure.status()) {
+            case UNAVAILABLE -> FailureKind.UNAVAILABLE;
+            case INVALID_REQUEST, COMPILE_FAILED -> FailureKind.INVALID_INPUT;
+            case EXECUTION_FAILED -> failureKind(failure.failureKind());
+            case SUCCESS, SKIPPED, PARTIAL -> FailureKind.INTERNAL_ERROR;
+        };
+        String reasonKey = Texts.isBlank(failure.reasonKey())
+                ? "action.trigger.dispatch.line_failed"
+                : failure.reasonKey();
+        return EmakiResult.failure(kind, reasonKey, failure.reasonArguments());
+    }
+
+    private static FailureKind failureKind(CoreActionFailureKind kind) {
+        if (kind == null) {
+            return FailureKind.INTERNAL_ERROR;
+        }
+        return switch (kind) {
+            case INVALID_CONFIG -> FailureKind.INVALID_INPUT;
+            case MISSING_CONTEXT, REJECTED -> FailureKind.REJECTED;
+            case WRONG_THREAD -> FailureKind.WRONG_THREAD;
+            case OWNER_DISABLED -> FailureKind.UNAVAILABLE;
+            case TIMEOUT, INTERNAL_ERROR -> FailureKind.INTERNAL_ERROR;
+        };
+    }
+
+    private record TriggerExecution(boolean partial, CoreActionExecutionResult failure) {
+    }
+
+    private static Throwable unwrap(Throwable throwable) {
+        Throwable current = throwable;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 }

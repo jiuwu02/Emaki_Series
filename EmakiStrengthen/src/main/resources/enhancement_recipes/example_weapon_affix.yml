@@ -1,0 +1,67 @@
+# ============================================================
+# EmakiStrengthen 词条强化示例：武器词条
+# ============================================================
+# 演示功能：mode: affix 词条强化（武器向）。演示 target.filter 按物品类型
+#   精确绑定、materials 材料槽、costs 物品费用、chance 公式、
+#   pity_tracks 多轨保底与 isolate 分桶。
+# 目标装备：钻石剑（example_item 的示例之刃就是钻石剑）。
+#   词条池由目标物品自身的属性来源决定：武器常见
+#   physical_attack / physical_crit_rate / physical_crit_damage 等，
+#   与 example_armor_affix 的护甲词条方向不同。
+# 依赖：EmakiCoreLib（必需）；target.provider 使用内置 affix；
+#   EmakiAttribute 负责词条属性写回；费用不依赖 Vault。
+# ============================================================
+
+schema_version: 2
+
+id: "example_weapon_affix"
+
+mode: "affix"
+
+target:
+  provider: "affix"
+  filter:
+    item_type: "DIAMOND_SWORD"
+
+materials:
+  - item_sources:
+      - "minecraft-lapis_lazuli"
+    quantity: 2
+    consume: "always"
+  - item_sources:
+      - "minecraft-amethyst_shard"
+    quantity: 1
+    consume: "success"
+    required: false
+    target_compare: "same_affix"
+
+costs:
+  - provider: "items"
+    currency_id: "minecraft-gold_ingot"
+    amount:
+      type: formula
+      expression: "2 + floor(target.level / 2)"
+
+chance:
+  type: formula
+  expression: "max(0.1, 0.8 - target.level * 0.05)"
+
+# 多轨保底：按词条分桶累计 5 次失败后必定成功
+pity_tracks:
+  - scope: "item"
+    group: "example_weapon_affix"
+    threshold: 5
+    effect: "force_success"
+    isolate:
+      - "affix"
+    decay:
+      type: "reset"
+      value: 0
+
+actions:
+  on_success:
+    - 'send_message text="<gold>武器词条强化成功。</gold>"'
+    - "sound: BLOCK_ENCHANTMENT_TABLE_USE"
+  on_failure:
+    - 'send_message text="<red>武器词条强化失败，失败次数已累计。</red>"'
+    - "sound: BLOCK_ANVIL_LAND"

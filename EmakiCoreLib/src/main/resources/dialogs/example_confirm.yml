@@ -1,0 +1,33 @@
+# ============================================================
+# EmakiCoreLib 对话框示例 - 二选一确认
+# 演示：confirmation 类型必须提供两个按钮，第一个是确认、
+#       第二个是取消；按钮可分别配置点击动作。
+# 说明：动作以玩家身份执行，示例使用原版 /me；
+#       实际使用时请替换成自己的命令并配置相应权限。
+# ============================================================
+id: "example_confirm"
+
+type: "confirmation"
+title: "<gold>确认操作</gold>"
+# 关闭 ESC 以强制玩家二选一；改为 true 可允许直接关闭
+can_close_with_escape: false
+pause: false
+after_action: "close"
+
+body:
+  - "<gray>你确定要执行这个示例操作吗？</gray>"
+  - text: "<red>确认后将执行一次示例命令。</red>"
+    width: 320
+
+buttons:
+  - label: "<green>确认</green>"
+    tooltip: "<gray>执行示例命令</gray>"
+    width: 120
+    action:
+      type: "command_template"
+      template: "me 已确认示例操作"
+  - label: "<red>取消</red>"
+    tooltip: "<gray>什么都不做</gray>"
+    width: 120
+    action:
+      type: "none"

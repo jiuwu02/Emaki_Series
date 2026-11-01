@@ -9,10 +9,10 @@ public record PityEffectConfig(
 ) {
     public PityEffectConfig {
         if (bonusValue != null && !Double.isFinite(bonusValue)) {
-            throw new IllegalArgumentException("Bonus value must be finite");
+            throw new IllegalArgumentException("加成值必须为有限数");
         }
         if (type == PityEffectTypeEnum.CHANCE_BONUS && (bonusValue == null || bonusValue <= 0)) {
-            throw new IllegalArgumentException("Bonus value must be positive for CHANCE_BONUS type");
+            throw new IllegalArgumentException("CHANCE_BONUS 类型的加成值必须为正数");
         }
     }
 

@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import org.bukkit.plugin.java.JavaPlugin;
 
 public abstract class DirectoryLoader<T> {
 
@@ -178,7 +177,7 @@ public abstract class DirectoryLoader<T> {
         int separator = safeKey.lastIndexOf('.');
         String token = (separator < 0 ? safeKey : safeKey.substring(separator + 1)).replace('_', ' ').trim();
         String label = Texts.isBlank(token)
-                ? "Configuration loader issue"
+                ? "配置加载问题"
                 : Character.toUpperCase(token.charAt(0)) + token.substring(1);
         if (safeReplacements.isEmpty()) {
             return label;
@@ -246,7 +245,7 @@ public abstract class DirectoryLoader<T> {
     protected abstract String idOf(T value);
 
     private AsyncTaskScheduler resolveAsyncScheduler() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
     }
 
     private void notifyProgress(Consumer<LoadProgress> progressCallback,

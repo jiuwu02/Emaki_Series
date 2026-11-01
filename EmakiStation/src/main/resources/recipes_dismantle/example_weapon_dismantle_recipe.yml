@@ -1,0 +1,83 @@
+# ============================================================
+# EmakiStation 分解配方：示例武器分解（example_weapon_dismantle）
+# ============================================================
+# 演示功能：
+#   1. station_id 绑定配套分解站 example_weapon_dismantle_station
+#   2. item_sources + matcher 共同判定输入（两者是 AND 关系）
+#   3. rolls 投掷次数（支持固定值或 min/max 范围）
+#   4. pool 概率池与 weight 相对权重
+# 如何触发：
+#   执行 /emakistation dismantle example_weapon_dismantle_station。
+#   界面会扫描背包，取第一件能匹配本配方的物品；
+#   点击确认消耗 1 把钻石剑，按 rolls 从 pool 中抽取产物。
+# 依赖：
+#   只用原版物品；分解不经过仓库通道，只读取玩家背包。
+# ============================================================
+# 注意：
+#   item_sources 与 matcher 是“且”的关系：两者都成立才会命中。
+#   matcher 内不能写物品源条件，物品源一律写在顶层 item_sources。
+#   产物目标都放不下时，当前实现会清空这次已抽到的产物，
+#   开放玩法前请确认玩家背包或仓库还有余量。
+# ============================================================
+
+id: "example_weapon_dismantle"
+display_name: "<aqua>示例武器分解</aqua>"
+
+# 单数形式，绑定的分解站 id。
+# 留空表示任何分解站都可以使用这条配方。
+station_id: "example_weapon_dismantle_station"
+
+# tags 当前只解析并保存，没有任何地方读取；这里保留仅为示例完整性。
+tags:
+  - "example_weapon_dismantle_station"
+
+permission: ""
+
+# 输入物品来源；连字符简写。
+item_sources:
+  - "minecraft-diamond_sword"
+
+# 输入物品的组件条件。
+# damage >= 0 对正常耐久范围内的钻石剑都成立，
+# 用来演示 matcher 数值比较而不阻塞正常分解。
+# 组件 ID 用冒号形式时可以省略命名空间，这里用的是组件名 damage。
+matcher:
+  type: component
+  component: damage
+  operator: ">="
+  value: 0
+
+# 每次分解的投掷次数，范围含两端。
+rolls:
+  min: 2
+  max: 4
+
+# 产物概率池：每次投掷独立按 weight 抽取一项。
+pool:
+  - item_source: "minecraft-diamond"
+    amount:
+      min: 1
+      max: 2
+    weight: 2.0
+
+  - item_source: "minecraft-iron_ingot"
+    amount:
+      min: 1
+      max: 3
+    weight: 4.0
+
+  - item_source: "minecraft-stick"
+    amount:
+      min: 2
+      max: 4
+    weight: 5.0
+
+  - item_source: "minecraft-gold_nugget"
+    amount:
+      min: 3
+      max: 6
+    weight: 3.0
+
+# 当前版本只解析、不执行分解侧条件。
+condition:
+  invalid_as_failure: true

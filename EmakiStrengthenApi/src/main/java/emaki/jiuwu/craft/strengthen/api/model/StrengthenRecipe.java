@@ -129,23 +129,73 @@ public final class StrengthenRecipe {
     /**
      * A material requirement of a single star stage.
      *
-     * @param item        the material item id
-     * @param amount      the amount required (defaults to 1 when 0)
-     * @param optional    whether the material is optional
-     * @param protection  whether the material protects against failure
-     * @param temperBoost temper bonus granted; clamped to {@code >= 0}
+     * @param item          the legacy material item id view
+     * @param amount        the amount required (defaults to 1 when 0)
+     * @param optional      whether the material is optional
+     * @param protection    whether the material protects against failure
+     * @param temperBoost   temper bonus granted; clamped to {@code >= 0}
+     * @param materialId    the canonical rule and selection identity
+     * @param countKey      the quantity aggregation and consumption identity
+     * @param itemSources   accepted item source ids
+     * @param matcherConfig the readable matcher configuration
      */
     public record StarStageMaterial(String item,
             int amount,
             boolean optional,
             boolean protection,
-            int temperBoost) {
+            int temperBoost,
+            String materialId,
+            String countKey,
+            List<String> itemSources,
+            Object matcherConfig,
+            boolean legacyInput) {
 
-        /** Canonical constructor; normalizes the item id and clamps counts. */
         public StarStageMaterial {
             item = StrengthenApiValues.toStringSafe(item);
             amount = amount == 0 ? 1 : amount;
             temperBoost = Math.max(0, temperBoost);
+            materialId = StrengthenApiValues.isBlank(materialId)
+                    ? StrengthenApiValues.toStringSafe(item) : StrengthenApiValues.toStringSafe(materialId);
+            countKey = StrengthenApiValues.isBlank(countKey)
+                    ? materialId : StrengthenApiValues.toStringSafe(countKey);
+            itemSources = itemSources == null ? List.of() : List.copyOf(itemSources);
+            matcherConfig = StrengthenApiValues.toPlainData(matcherConfig);
+        }
+
+        public StarStageMaterial(String item,
+                int amount,
+                boolean optional,
+                boolean protection,
+                int temperBoost,
+                String materialId,
+                String countKey,
+                List<String> itemSources,
+                Object matcherConfig) {
+            this(item, amount, optional, protection, temperBoost, materialId, countKey, itemSources, matcherConfig, false);
+        }
+
+        public StarStageMaterial(String item,
+                int amount,
+                boolean optional,
+                boolean protection,
+                int temperBoost) {
+            this(item, amount, optional, protection, temperBoost, item, item,
+                    StrengthenApiValues.isBlank(item) ? List.of() : List.of(item), null, true);
+        }
+
+        public StarStageMaterial(String materialId,
+                String countKey,
+                List<String> itemSources,
+                Object matcherConfig,
+                int amount,
+                boolean optional,
+                boolean protection,
+                int temperBoost) {
+            this(materialId, amount, optional, protection, temperBoost, materialId, countKey, itemSources, matcherConfig, false);
+        }
+
+        public List<String> sources() {
+            return itemSources;
         }
     }
 

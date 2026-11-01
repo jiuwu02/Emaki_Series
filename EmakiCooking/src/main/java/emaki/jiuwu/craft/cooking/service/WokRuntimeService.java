@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplaySpec;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
@@ -114,7 +115,7 @@ public final class WokRuntimeService {
                 WokState state = readState(new MapYamlSection(committedState));
                 if (state == null) {
                     return CompletableFuture.failedFuture(
-                            new IllegalArgumentException("Invalid committed wok state"));
+                            new IllegalArgumentException("已提交的炒锅状态无效"));
                 }
                 return stateStore.saveAsync(coordinates, committedState)
                         .thenCompose(CookingCompletionStateAccesses::requireSaved)
@@ -150,7 +151,9 @@ public final class WokRuntimeService {
         if (!blockMatcher.matches(block, StationType.WOK, stationSource)) {
             displayService.removeStation(StationType.WOK, coordinates);
             textDisplayService.removeStation(StationType.WOK, coordinates);
-            plugin.getLogger().warning("Station restore report: skipped_mismatch type=wok coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_skipped_mismatch", Map.of(
+                    "type", "wok",
+                    "coordinate", coordinates.runtimeKey()));
             return false;
         }
         refreshDisplays(coordinates, state);
@@ -328,7 +331,10 @@ public final class WokRuntimeService {
         refreshText(coordinates, updated);
         Location particleLocation = block.getLocation().add(0.5D, 1.05D, 0.5D);
         if (particleLocation.getWorld() != null) {
-            particleLocation.getWorld().spawnParticle(Particle.CLOUD, particleLocation, 4, 0.15D, 0.1D, 0.15D, 0.01D);
+            Bukkit.dispatchCommand(Bukkit.getConsoleSender(),
+                    "execute in " + particleLocation.getWorld().getKey() + " run particle " + Particle.CLOUD.getKey()
+                            + " " + particleLocation.getX() + " " + particleLocation.getY() + " " + particleLocation.getZ()
+                            + " 0.15 0.1 0.15 0.01 4 force");
         }
         plugin.effectService().playActions(StationType.WOK, "stir", player);
         if (settingsService.wokStirAnimationEnabled() && !displayService.isAnimating(StationType.WOK, coordinates)) {
@@ -765,10 +771,10 @@ public final class WokRuntimeService {
             return configured;
         }
         if (Texts.isNotBlank(settingsService.wokInvalidResultSource())) {
-            return Map.of("item_sources", List.of(settingsService.wokInvalidResultSource()), "amount", 1);
+            return Map.of("item_source", settingsService.wokInvalidResultSource(), "amount", 1);
         }
         if (Texts.isNotBlank(settingsService.wokFailureOutputSource())) {
-            return Map.of("item_sources", List.of(settingsService.wokFailureOutputSource()), "amount", 1);
+            return Map.of("item_source", settingsService.wokFailureOutputSource(), "amount", 1);
         }
         return Map.of();
     }
@@ -1013,7 +1019,7 @@ public final class WokRuntimeService {
         if (source == null) {
             return false;
         }
-        return CookingMatchers.accepts(settingsService.wokSpatulaMatcher(), itemStack, source, null);
+        return CookingMatchers.accepts(settingsService.wokSpatulaRequirement(), itemStack, source, null);
     }
 
     private boolean isPlainBowl(ItemStack itemStack) {

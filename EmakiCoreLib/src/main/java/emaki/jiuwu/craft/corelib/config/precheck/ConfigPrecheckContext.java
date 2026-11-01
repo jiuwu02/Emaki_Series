@@ -16,18 +16,22 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.StaticValidator;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.ConfiguredSequenceRepository;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.RegistryStageResolver;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
+import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
 
 public final class ConfigPrecheckContext {
 
     private final PipelineParser parser = new PipelineParser();
     private final StaticValidator validator;
     private final boolean compilable;
+    private final StageRegistry registry;
 
     private ConfigPrecheckContext(@Nullable StageResolver stages,
             @Nullable SequenceCatalog sequences,
-            @Nullable PipelineLimits limits) {
+            @Nullable PipelineLimits limits,
+            @Nullable StageRegistry registry) {
         this.compilable = stages != null;
         this.validator = new StaticValidator(stages, sequences, limits);
+        this.registry = registry;
     }
 
     public static @NotNull ConfigPrecheckContext of(@Nullable StageRegistry registry,
@@ -37,7 +41,11 @@ public final class ConfigPrecheckContext {
 
         SequenceCatalog catalog = ConfiguredSequenceRepository.build(sequenceDefinitions,
                 (sequence, line, self) -> null);
-        return new ConfigPrecheckContext(resolver, catalog, limits);
+        return new ConfigPrecheckContext(resolver, catalog, limits, registry);
+    }
+
+    public boolean knowsSource(@Nullable String id) {
+        return registry != null && registry.kindOf(id) == CoreStageKind.SOURCE;
     }
 
     public boolean canCompile() {

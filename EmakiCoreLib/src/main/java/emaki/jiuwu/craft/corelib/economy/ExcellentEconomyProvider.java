@@ -54,7 +54,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         return api.deposit(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to add ExcellentEconomy balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "增加 ExcellentEconomy 余额失败。");
     }
 
     @Override
@@ -72,11 +72,11 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         double balance = api.getBalance(player, currency);
         if (balance < amount) {
-            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient ExcellentEconomy balance for currency '" + currencyId + "'.");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "ExcellentEconomy 余额不足，货币 '" + currencyId + "'。");
         }
         return api.withdraw(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to remove ExcellentEconomy balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "扣除 ExcellentEconomy 余额失败。");
     }
 
     @Override
@@ -94,7 +94,7 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
         }
         return api.setBalance(player, currency, amount)
                 ? ActionResult.ok()
-                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "Failed to set ExcellentEconomy balance.");
+                : ActionResult.failure(ActionErrorType.EXECUTION_EXCEPTION, "设置 ExcellentEconomy 余额失败。");
     }
 
     private ExcellentCurrency resolveCurrency(String currencyId) {
@@ -115,10 +115,10 @@ public final class ExcellentEconomyProvider implements EconomyProvider {
     }
 
     private ActionResult unavailable() {
-        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "ExcellentEconomy provider is unavailable.");
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "ExcellentEconomy 提供者不可用。");
     }
 
     private ActionResult missingCurrency(String currencyId) {
-        return ActionResult.failure(ActionErrorType.CURRENCY_NOT_FOUND, "ExcellentEconomy currency not found: " + currencyId);
+        return ActionResult.failure(ActionErrorType.CURRENCY_NOT_FOUND, "未找到 ExcellentEconomy 货币: " + currencyId);
     }
 }

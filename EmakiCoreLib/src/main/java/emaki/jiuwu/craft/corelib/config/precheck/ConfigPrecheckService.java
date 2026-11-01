@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import org.jetbrains.annotations.Nullable;
+
 import emaki.jiuwu.craft.corelib.CoreLibConfig;
 import emaki.jiuwu.craft.corelib.action.pipeline.registry.StageRegistry;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
@@ -67,6 +69,40 @@ public final class ConfigPrecheckService {
 
     public ConfigPrecheckReport lastReport() {
         return lastReport;
+    }
+
+    public ConfigPrecheckFixResult fix(CoreLibConfig config, @Nullable String module) {
+        List<ConfigPrecheckContributor> contributors;
+        if (Texts.isBlank(module)) {
+            contributors = registry.all();
+        } else {
+            ConfigPrecheckContributor contributor = registry.get(module);
+            if (contributor == null) {
+                ConfigPrecheckReport unknown = checkModule(config, module);
+                return new ConfigPrecheckFixResult(0, 0, unknown);
+            }
+            contributors = List.of(contributor);
+        }
+        ConfigPrecheckReport before = run(config, contributors);
+        int fixed = 0;
+        int failed = 0;
+        for (ConfigPrecheckIssue issue : before.issues()) {
+            if (issue.fix() == null) {
+                continue;
+            }
+            ConfigPrecheckContributor contributor = registry.get(issue.module());
+            if (contributor == null || !contributor.supportsFix()) {
+                failed++;
+                continue;
+            }
+            if (contributor.applyFix(issue.fix())) {
+                fixed++;
+            } else {
+                failed++;
+            }
+        }
+        ConfigPrecheckReport after = run(config, contributors);
+        return new ConfigPrecheckFixResult(fixed, failed, after);
     }
 
     private ConfigPrecheckReport run(CoreLibConfig config, List<ConfigPrecheckContributor> contributors) {

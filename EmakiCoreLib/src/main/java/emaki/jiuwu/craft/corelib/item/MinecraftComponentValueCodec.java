@@ -1,18 +1,24 @@
 package emaki.jiuwu.craft.corelib.item;
 
 import java.lang.reflect.Method;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import net.kyori.adventure.text.Component;
 
 public final class MinecraftComponentValueCodec {
 
-    private static final Logger LOGGER = Logger.getLogger(MinecraftComponentValueCodec.class.getName());
+    private static final Logger LOGGER = EmakiLog.of("EmakiCoreLib");
+
+    private static final Pattern NEWLINE_SPLIT = Pattern.compile("<newline>|\\R", Pattern.CASE_INSENSITIVE);
 
     private final AtomicBoolean gsonWarningLogged = new AtomicBoolean();
 
@@ -24,7 +30,7 @@ public final class MinecraftComponentValueCodec {
             if (value == null || Boolean.TRUE.equals(value) || value instanceof Map<?, ?> map && map.isEmpty()) {
                 return "{}";
             }
-            throw new IllegalArgumentException("Non-valued component " + componentId + " accepts only true, null, or an empty map.");
+            throw new IllegalArgumentException("非值组件 " + componentId + " 只接受 true、null 或空 map。");
         }
         if ("minecraft:custom_name".equals(componentId) || "minecraft:item_name".equals(componentId)) {
             return encodeTextComponent(value);
@@ -44,23 +50,35 @@ public final class MinecraftComponentValueCodec {
 
     private String encodeLore(Object value) {
         if (value instanceof String text) {
-            return "[" + serializeComponent(MiniMessages.parse(text)) + "]";
+            return "[" + encodeLoreEntries(List.of(text)) + "]";
         }
         if (value instanceof Collection<?> collection) {
-            StringBuilder builder = new StringBuilder("[");
-            Iterator<?> iterator = collection.iterator();
-            while (iterator.hasNext()) {
-                Object entry = iterator.next();
-                builder.append(entry instanceof String text
-                        ? serializeComponent(MiniMessages.parse(text))
-                        : encodeGeneric(entry));
-                if (iterator.hasNext()) {
-                    builder.append(',');
-                }
-            }
-            return builder.append(']').toString();
+            return "[" + encodeLoreEntries(new ArrayList<>(collection)) + "]";
         }
         return encodeGeneric(value);
+    }
+
+    private String encodeLoreEntries(List<?> entries) {
+        StringBuilder builder = new StringBuilder();
+        boolean first = true;
+        for (Object entry : entries) {
+            if (entry instanceof String text) {
+                for (String line : NEWLINE_SPLIT.split(text, -1)) {
+                    if (!first) {
+                        builder.append(',');
+                    }
+                    first = false;
+                    builder.append(serializeComponent(MiniMessages.parse(line)));
+                }
+            } else {
+                if (!first) {
+                    builder.append(',');
+                }
+                first = false;
+                builder.append(encodeGeneric(entry));
+            }
+        }
+        return builder.toString();
     }
 
     private String encodeGeneric(Object value) {
@@ -76,7 +94,7 @@ public final class MinecraftComponentValueCodec {
         if (value instanceof Number number) {
             if (number instanceof Double doubleValue && !Double.isFinite(doubleValue)
                     || number instanceof Float floatValue && !Float.isFinite(floatValue)) {
-                throw new IllegalArgumentException("Component numbers must be finite.");
+                throw new IllegalArgumentException("组件数值必须是有限数。");
             }
             return number.toString();
         }
@@ -84,7 +102,7 @@ public final class MinecraftComponentValueCodec {
             if (map.size() == 1 && map.containsKey("$snbt")) {
                 Object raw = map.get("$snbt");
                 if (!(raw instanceof String text) || text.isBlank()) {
-                    throw new IllegalArgumentException("$snbt must contain a non-empty string.");
+                    throw new IllegalArgumentException("$snbt 必须包含非空字符串。");
                 }
                 return text;
             }
@@ -93,7 +111,7 @@ public final class MinecraftComponentValueCodec {
             while (iterator.hasNext()) {
                 Map.Entry<?, ?> entry = iterator.next();
                 if (entry.getKey() == null) {
-                    throw new IllegalArgumentException("Component maps cannot contain null keys.");
+                    throw new IllegalArgumentException("组件 map 不能包含 null 键。");
                 }
                 builder.append(quote(String.valueOf(entry.getKey())))
                         .append(':')
@@ -115,7 +133,7 @@ public final class MinecraftComponentValueCodec {
             }
             return builder.append(']').toString();
         }
-        throw new IllegalArgumentException("Unsupported component value type: " + value.getClass().getName());
+        throw new IllegalArgumentException("不支持的组件值类型: " + value.getClass().getName());
     }
 
     private String serializeComponent(Component component) {
@@ -135,8 +153,8 @@ public final class MinecraftComponentValueCodec {
             }
         } catch (ReflectiveOperationException | LinkageError | RuntimeException exception) {
             if (gsonWarningLogged.compareAndSet(false, true)) {
-                LOGGER.warning("Adventure GsonComponentSerializer is unavailable, falling back to plain-text"
-                        + " component encoding: " + describe(exception));
+                LOGGER.warning("[component] Adventure GsonComponentSerializer 不可用，回退为纯文本"
+                        + "组件编码: " + describe(exception));
             }
         }
         return "{\"text\":" + quote(MiniMessages.plain(component)) + "}";

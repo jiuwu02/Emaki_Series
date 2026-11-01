@@ -13,6 +13,8 @@ public final class VaultEconomyProvider implements EconomyProvider {
 
     private final Plugin plugin;
 
+    private volatile Economy cachedEconomy;
+
     public VaultEconomyProvider(Plugin plugin) {
         this.plugin = plugin;
     }
@@ -53,7 +55,7 @@ public final class VaultEconomyProvider implements EconomyProvider {
         }
         double balance = economy.getBalance(player);
         if (balance < amount) {
-            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Insufficient Vault balance.");
+            return ActionResult.failure(ActionErrorType.INSUFFICIENT_BALANCE, "Vault 余额不足。");
         }
         EconomyResponse response = economy.withdrawPlayer(player, amount);
         return response.transactionSuccess()
@@ -78,14 +80,21 @@ public final class VaultEconomyProvider implements EconomyProvider {
     }
 
     private Economy economy() {
-        if (plugin == null || plugin.getServer().getPluginManager().getPlugin("Vault") == null) {
+        if (plugin == null || !plugin.getServer().getPluginManager().isPluginEnabled("Vault")) {
+            cachedEconomy = null;
             return null;
         }
+        Economy cached = cachedEconomy;
+        if (cached != null) {
+            return cached;
+        }
         RegisteredServiceProvider<Economy> registration = plugin.getServer().getServicesManager().getRegistration(Economy.class);
-        return registration == null ? null : registration.getProvider();
+        Economy provider = registration == null ? null : registration.getProvider();
+        cachedEconomy = provider;
+        return provider;
     }
 
     private ActionResult unavailable() {
-        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Vault economy provider is unavailable.");
+        return ActionResult.failure(ActionErrorType.PROVIDER_UNAVAILABLE, "Vault 经济提供者不可用。");
     }
 }

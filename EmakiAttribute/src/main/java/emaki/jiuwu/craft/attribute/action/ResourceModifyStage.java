@@ -30,13 +30,13 @@ public final class ResourceModifyStage implements CoreActionStage {
 
     public enum Operation {
 
-        ADD("attribute_resource_add", "Adds to one of the target's resources."),
+        ADD("attribute_resource_add", "为目标的一项资源增加数值。"),
 
-        SET("attribute_resource_set", "Sets one of the target's resources."),
+        SET("attribute_resource_set", "设置目标的一项资源数值。"),
 
-        REMOVE("attribute_resource_remove", "Removes from one of the target's resources."),
+        REMOVE("attribute_resource_remove", "从目标的一项资源中扣除数值。"),
 
-        CONSUME("attribute_resource_consume", "Consumes one of the target's resources.");
+        CONSUME("attribute_resource_consume", "消耗目标的一项资源。");
 
         private final String id;
         private final String description;
@@ -78,8 +78,8 @@ public final class ResourceModifyStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("resource", CoreStageParameterType.STRING, "Resource id"),
-                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Amount"));
+                CoreStageParameter.required("resource", CoreStageParameterType.STRING, "资源 ID"),
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "数量"));
     }
 
     @Override

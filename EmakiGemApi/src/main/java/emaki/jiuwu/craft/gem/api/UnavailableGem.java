@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.gem.api.model.GemRelationshipCheck;
 import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
+import java.util.UUID;
 
 /** No-op layers used while EmakiGem has no installed bridge. */
 final class UnavailableGem implements GemCatalog, GemOperations {
@@ -80,7 +81,7 @@ final class UnavailableGem implements GemCatalog, GemOperations {
     }
 
     @Override
-    public Optional<GemRerollSessionView> rerollSession(java.util.UUID operatorId) {
+    public Optional<GemRerollSessionView> rerollSession(UUID operatorId) {
         return Optional.empty();
     }
 

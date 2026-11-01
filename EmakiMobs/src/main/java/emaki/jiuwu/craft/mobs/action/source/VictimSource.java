@@ -15,7 +15,7 @@ public final class VictimSource extends BaseSource {
 
     public VictimSource() {
         super("victim", 
-              "The entity killed by the caster (from on_kill trigger).",
+              "被施法者击杀的实体（来自 on_kill 触发器）。",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

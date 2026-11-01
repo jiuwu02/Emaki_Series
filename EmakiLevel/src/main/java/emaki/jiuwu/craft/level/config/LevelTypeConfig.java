@@ -5,8 +5,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 
 public record LevelTypeConfig(String id,
         boolean enabled,
@@ -149,17 +151,54 @@ public record LevelTypeConfig(String id,
                 return defaults();
             }
             List<ItemReward> items = new ArrayList<>();
+            int index = 0;
             for (Map<?, ?> entry : section.getMapList("items")) {
-                items.add(ItemReward.parse(entry));
+                items.add(ItemReward.parse(entry, index));
+                index++;
             }
             return new Rewards(items);
         }
     }
 
-    public record ItemReward(String levels, List<String> itemSources, int amount) {
+    public record ItemReward(String levels, String itemSource, int amount) {
 
-        static ItemReward parse(Map<?, ?> values) {
-            return new ItemReward(string(values, "levels", "*"), stringList(values.get("item_sources")), (int) Math.max(1, Math.round(number(values, "amount", 1D))));
+        static ItemReward parse(Map<?, ?> values, int index) {
+            String path = "upgrade.rewards.items[" + index + "]";
+            if (values == null) {
+                throw new IllegalArgumentException(path + ": 输出条目必须是映射");
+            }
+            if (values.containsKey("item_source") && values.containsKey("item_sources")) {
+                throw new IllegalArgumentException(path + ": 不能同时声明 item_source 与 item_sources");
+            }
+            if (values.containsKey("matcher")) {
+                throw new IllegalArgumentException(path + ".matcher: 输出节点不允许使用 matcher");
+            }
+            String source;
+            if (values.containsKey("item_source")) {
+                Object raw = values.get("item_source");
+                if (raw instanceof Iterable<?> && !(raw instanceof String)) {
+                    throw new IllegalArgumentException(path + ".item_source: 规范 item_source 必须是单一来源");
+                }
+                source = string(values, "item_source", "");
+            } else if (values.containsKey("item_sources")) {
+                List<String> legacy = stringList(values.get("item_sources"));
+                if (legacy.size() != 1) {
+                    throw new IllegalArgumentException(path + ".item_sources: 旧 item_sources 必须恰好包含一个来源");
+                }
+                source = legacy.getFirst();
+            } else {
+                throw new IllegalArgumentException(path + ".item_source: 输出必须声明 item_source");
+            }
+            ItemSourceRef parsed = ItemSourceUtil.parse(source);
+            if (parsed == null) {
+                throw new IllegalArgumentException(path + ".item_source: 无效的物品来源");
+            }
+            return new ItemReward(string(values, "levels", "*"), ItemSourceUtil.toShorthand(parsed),
+                    (int) Math.max(1, Math.round(number(values, "amount", 1D))));
+        }
+
+        public List<String> itemSources() {
+            return itemSource.isBlank() ? List.of() : List.of(itemSource);
         }
     }
 

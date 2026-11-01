@@ -28,10 +28,10 @@ public record ItemSourceRef(@NotNull ItemSourceKind kind, @NotNull String identi
      */
     public ItemSourceRef {
         if (kind == null) {
-            throw new IllegalArgumentException("item source kind must not be null");
+            throw new IllegalArgumentException("物品来源 kind 不能为 null");
         }
         if (identifier == null || identifier.isBlank()) {
-            throw new IllegalArgumentException("item source identifier must not be blank");
+            throw new IllegalArgumentException("物品来源标识符不能为空");
         }
         identifier = identifier.trim().toLowerCase(Locale.ROOT).replace(' ', '_');
     }

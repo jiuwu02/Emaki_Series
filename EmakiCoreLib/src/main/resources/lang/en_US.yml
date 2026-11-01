@@ -1,102 +1,119 @@
-# EmakiCoreLib English language resource.
-# Messages use MiniMessage; preserve placeholders documented beside message groups.
-# version is maintained by resource synchronization when default keys are merged.
+# EmakiCoreLib English language resource
+# Messages use MiniMessage; preserve placeholders documented beside message groups
+# version is maintained by resource synchronization when default keys are merged
 
-version: "4.8.0"
+version: "5.0.0"
 
 general:
   prefix: "<gray>[ <gradient:#FF80FF:#00FFFF>EmakiCoreLib</gradient> ]</gray>"
 
 gui:
   backend:
-    packet_backend_missing: "<yellow>Menu backend is set to packet, but PacketEvents is not installed (or the packet backend failed to register); falling back to the Bukkit (entity) backend.</yellow>"
-    unknown_value: "<yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit (entity) backend.</yellow>"
+    packet_backend_missing: "[gui] <yellow>Menu backend is set to packet, but PacketEvents is not installed  (or the packet backend failed to register); falling back to the Bukkit  (entity) backend</yellow>"
+    unknown_value: "[gui] <yellow>Unknown menu backend <aqua>%value%</aqua>; using the default Bukkit  (entity) backend</yellow>"
 
 console:
-  plugin_starting: "<gray>Starting...</gray>"
-  plugin_started: "<green>Started</green>"
-  plugin_stopped: "<yellow>Stopped</yellow>"
-  config_precheck_passed: "<gray>Config precheck passed: <yellow>%issues%</yellow> issue(s).</gray>"
-  config_precheck_failed: "<red>Config precheck failed: <yellow>%issues%</yellow> issue(s).</red>"
-  config_precheck_issue: "<gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
-  config_precheck_issue_warn: "<yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
-  config_precheck_issue_error: "<red>[%severity%] %module%:%path% -> %message%%hint%</red>"
+  plugin_starting: "[startup] <gray>Starting...</gray>"
+  plugin_started: "[startup] <green>Started</green>"
+  plugin_stopped: "[shutdown] <yellow>Stopped</yellow>"
+  gui_backend_shutdown_failed: "[shutdown] <yellow>Menu backend <aqua>%backend%</aqua> failed to shut down: <red>%error%</red></yellow>"
+  gui_backend_shutdown_deferred: "[shutdown] <yellow>Menu backend <aqua>%backend%</aqua> could not be shut down on its owner thread and was skipped: <red>%reason%</red></yellow>"
+  item_source_bridge_close_failed: "[item-source] <yellow>Failed to close an item source registration; skipping it: <white>%detail%</white></yellow>"
+  config_precheck_passed: "[config] <gray>Config precheck passed: <yellow>%issues%</yellow> issue (s)</gray>"
+  config_precheck_failed: "[config] <red>Config precheck failed: <yellow>%issues%</yellow> issue (s)</red>"
+  config_precheck_issue: "[config] <gray>[<aqua>%severity%</aqua>] <yellow>%module%</yellow>:<white>%path%</white> -> %message%%hint%</gray>"
+  config_precheck_issue_warn: "[config] <yellow>[%severity%] %module%:%path% -> %message%%hint%</yellow>"
+  config_precheck_issue_error: "[config] <red>[%severity%] %module%:%path% -> %message%%hint%</red>"
   config_precheck:
     severity:
       fatal: "Fatal"
       error: "Error"
       warn: "Warning"
       info: "Info"
-    hint: " <dark_gray>(%hint%)</dark_gray>"
+    hint: " <dark_gray> (%hint%)</dark_gray>"
     messages:
-      passed: "CoreLib config precheck passed."
-      required_file_missing: "Required file does not exist."
-      path_not_file: "Path is not a file."
-      file_not_readable: "File is not readable."
-      required_directory_missing: "Required directory does not exist."
-      path_not_directory: "Path is not a directory."
-      directory_not_readable: "Directory is not readable."
+      passed: "CoreLib config precheck passed"
+      required_file_missing: "Required file does not exist"
+      path_not_file: "Path is not a file"
+      file_not_readable: "File is not readable"
+      required_directory_missing: "Required directory does not exist"
+      path_not_directory: "Path is not a directory"
+      directory_not_readable: "Directory is not readable"
+      config_keys_missing: "Missing %count% bundled default key (s)"
+      fixable_hint: "run check --fix to repair automatically"
+      fix_failed: "Auto-fix failed: %path%  (%kind%): %error%"
       unknown_module: "Unknown config precheck module. Available modules: %modules%"
       contributor_failed: "Config precheck contributor failed: %error%"
-      loop_max_times_invalid: "max_times must be greater than 0."
-      loop_min_sync_interval_invalid: "min_sync_interval cannot be lower than 1 tick."
-      loop_min_async_interval_invalid: "min_async_interval cannot be lower than 1 tick."
-      loop_active_limits_invalid: "Active loop limits must be greater than 0."
-      template_blank_id: "Template ID cannot be blank."
+      loop_max_times_invalid: "max_times must be greater than 0"
+      loop_min_sync_interval_invalid: "min_sync_interval cannot be lower than 1 tick"
+      loop_min_async_interval_invalid: "min_async_interval cannot be lower than 1 tick"
+      loop_active_limits_invalid: "Active loop limits must be greater than 0"
+      template_blank_id: "Template ID cannot be blank"
       template_action_unregistered: "Action is not registered during precheck: %action%"
       template_invalid_syntax: "Invalid action syntax at line %line%: %error%"
       template_missing_reference: "Template references a missing template: %template%"
-      loop_template_required: "%action% requires template."
+      selector_missing_source: "Selector %selector% has no source"
+      selector_recursive_source: "Selector %selector% cannot use select as its own source"
+      selector_unknown_source: "Selector %selector% references source %source%, which is not registered; when another module provides it, check that the module is installed"
+      selector_condition_missing_field: "Condition %type% requires field %field%"
+      selector_condition_invalid_state: "State condition names an unknown state %state%; valid values: %states%"
+      loop_template_required: "%action% requires template"
       loop_template_missing: "%action% references a missing template: %template%"
-      loop_times_numeric: "%action% requires numeric times."
-      loop_times_positive: "%action% times must be greater than 0."
-      loop_times_exceeds_max: "%action% times exceeds max_times."
-      loop_interval_invalid: "%action% requires a valid interval."
-      loop_interval_below_min: "%action% interval is lower than the configured minimum."
-      loop_initial_delay_invalid: "%action% initial_delay is invalid."
+      loop_times_numeric: "%action% requires numeric times"
+      loop_times_positive: "%action% times must be greater than 0"
+      loop_times_exceeds_max: "%action% times exceeds max_times"
+      loop_interval_invalid: "%action% requires a valid interval"
+      loop_interval_below_min: "%action% interval is lower than the configured minimum"
+      loop_initial_delay_invalid: "%action% initial_delay is invalid"
       loop_async_nested_template: "loopasync template cannot include nested usetemplate: %template%"
       loop_async_unsafe_action: "loopasync template contains a non-async-safe action: %action%"
       loop_async_invalid_syntax: "Invalid loopasync template syntax at line %line%: %error%"
-      cancel_loop_key_required: "cancelloop requires key."
-      cancel_loop_match_invalid: "cancelloop match must be exact or prefix."
-      cancel_loop_silent_invalid: "cancelloop silent must be boolean."
-      loop_mode_invalid: "%action% mode must be replace, refresh, ignore, or allow_duplicate."
-      loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean."
-      loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean."
-      loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean."
-  versioned_file_updated: "<green>Updated bundled file version: <yellow>%path%</yellow> <gray>(%old_version% → %new_version%)</gray></green>"
-  economy_bridge_ready: "<gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
-  block_source_bridge_ready: "<gray>Block source connected: <aqua>%provider%</aqua></gray>"
-  bstats_registered: "<gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%)</dark_gray></gray>"
-  bstats_register_failed: "<yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray>(pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
-  bstats_closed: "<gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
-  bstats_close_failed: "<yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray>(%error%)</dark_gray></yellow>"
-  bstats_config_directory_create_failed: "<yellow>Failed to create bStats config directory: %path%</yellow>"
-  bstats_config_write_failed: "<yellow>Failed to write bStats config: %path% (%error%)</yellow>"
-  action_config_load_failed: "<red>Failed to load action config: %error%</red>"
-  item_source_bridge_ready: "<gray>Item source connected: <aqua>%library%</aqua></gray>"
-  item_source_bridge_waiting: "<gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
-  item_source_bridge_incompatible: "<yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
+      cancel_loop_key_required: "cancelloop requires key"
+      cancel_loop_match_invalid: "cancelloop match must be exact or prefix"
+      cancel_loop_silent_invalid: "cancelloop silent must be boolean"
+      loop_mode_invalid: "%action% mode must be replace, refresh, ignore, or allow_duplicate"
+      loop_stop_if_offline_invalid: "%action% stop_if_offline must be boolean"
+      loop_stop_if_dead_invalid: "%action% stop_if_dead must be boolean"
+      loop_stop_on_failure_invalid: "%action% stop_on_failure must be boolean"
+  versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
+  economy_bridge_ready: "[integration] <gray>Economy bridge connected: <aqua>%provider%</aqua></gray>"
+  block_source_bridge_ready: "[integration] <gray>Block source connected: <aqua>%provider%</aqua></gray>"
+  bstats_registered: "[metrics] <gray>bStats metrics registered: <aqua>%plugin%</aqua> <dark_gray> (pluginId=%plugin_id%)</dark_gray></gray>"
+  bstats_register_failed: "[metrics] <yellow>bStats metrics registration failed and was skipped: <aqua>%plugin%</aqua> <dark_gray> (pluginId=%plugin_id%, %error%)</dark_gray></yellow>"
+  bstats_closed: "[metrics] <gray>bStats metrics closed: <aqua>%plugin%</aqua></gray>"
+  bstats_close_failed: "[metrics] <yellow>Failed to close bStats metrics: <aqua>%plugin%</aqua> <dark_gray> (%error%)</dark_gray></yellow>"
+  bstats_config_directory_create_failed: "[config] <yellow>Failed to create bStats config directory: %path%</yellow>"
+  bstats_config_write_failed: "[config] <yellow>Failed to write bStats config: %path%  (%error%)</yellow>"
+  action_config_load_failed: "[config] <red>Failed to load action config: %error%</red>"
+  item_source_bridge_ready: "[integration] <gray>Item source connected: <aqua>%library%</aqua></gray>"
+  item_source_bridge_waiting: "[integration] <gray>Detected <aqua>%library%</aqua>, waiting for item registration: %detail%</gray>"
+  item_source_bridge_incompatible: "[integration] <yellow><aqua>%library%</aqua> item source not connected: %detail%</yellow>"
   item_source:
     waiting_detail:
-      itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete."
-      craftengine: "The plugin is enabled, but its item table has not finished reloading. Wait for its reload event to complete."
-      neigeitems: "The plugin is enabled, but its item library has not finished refreshing. Wait for its reload to complete."
-      nexo: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
-      oraxen: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete."
-      ecoitems: "The plugin is enabled, but its item registry is not ready yet. Wait for its loading to complete."
-      default: "External item registration has not finished. Wait for the dependency plugin to finish loading."
-    incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter."
+      itemsadder: "The plugin is enabled, but item registration has not finished. Wait for its loading flow to complete"
+      craftengine: "The plugin is enabled, but its item table has not finished reloading. Wait for its reload event to complete"
+      neigeitems: "The plugin is enabled, but its item library has not finished refreshing. Wait for its reload to complete"
+      nexo: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete"
+      oraxen: "The plugin is enabled, but its item table has not finished initializing. Wait for its load event to complete"
+      ecoitems: "The plugin is enabled, but its item registry is not ready yet. Wait for its loading to complete"
+      default: "External item registration has not finished. Wait for the dependency plugin to finish loading"
+    incompatible_detail: "%library% was detected, but its current API shape is incompatible with the CoreLib adapter"
+  scripts:
+    engine_unavailable: "[script] <red>Script extensions are unavailable; script loading was skipped: %reason%</red>"
+    disabled: "[script] <gray>Script extensions are disabled in the config; no scripts were loaded</gray>"
+    loaded: "[script] <gray>Script loading finished: <green>%loaded%</green> file (s) loaded, <yellow>%skipped%</yellow> skipped</gray>"
+    file_error: "[script] <red>Script file failed to load: <yellow>%file%</yellow> -> %error%</red>"
+    register_error: "[script] <red>Script registration was rejected: %error%</red>"
 
 loader:
-  lang_directory_create_failed: "<red>Failed to create language directory: %path%</red>"
-  bundled_language_load_failed: "<red>Failed to load bundled language: %error%</red>"
-  bundled_resource_missing: "<red>Bundled resource missing: %resource%, cannot write to %path%</red>"
-  bundled_resource_write_failed: "<red>Failed to write bundled resource: %path% (%error%)</red>"
-  directory_create_failed: "<red>Failed to create directory: %path%</red>"
-  invalid_blank_id: "<red>%type% file %file% has a blank ID.</red>"
-  duplicate_id: "<red>Skipped duplicate %type% ID %id%: %file%</red>"
-  load_failed: "<red>Failed to load %type% file %file%: %error%</red>"
+  lang_directory_create_failed: "[loader] <red>Failed to create language directory: %path%</red>"
+  bundled_language_load_failed: "[loader] <red>Failed to load bundled language: %error%</red>"
+  bundled_resource_missing: "[loader] <red>Bundled resource missing: %resource%, cannot write to %path%</red>"
+  bundled_resource_write_failed: "[loader] <red>Failed to write bundled resource: %path%  (%error%)</red>"
+  directory_create_failed: "[loader] <red>Failed to create directory: %path%</red>"
+  invalid_blank_id: "[loader] <red>%type% file %file% has a blank ID</red>"
+  duplicate_id: "[loader] <red>Skipped duplicate %type% ID %id%: %file%</red>"
+  load_failed: "[loader] <red>Failed to load %type% file %file%: %error%</red>"
 
 action:
   debug_execution: "<gray>[Action]</gray> <white>phase=%phase%</white>
@@ -111,12 +128,15 @@ action:
       (%requirement%); registration refused</red>"
     key_type_conflict: "<red>[Pipeline] Context key %key% type conflict: existing %existing%,
       %stage% declares %declared%</red>"
+    condition_reserved: "<red>[Pipeline] The target condition id collides with a built-in condition; registration refused</red>"
+  selector:
+    condition_conflict: "<red>[Pipeline] Selector %selector% writes both %field% and entries under condition; use only one</red>"
   diagnostic:
-    at_column: "<gray>(column %column%)</gray>"
-    at_file: "<gray>(%file% at %key_path%, line %line% column %column%)</gray>"
+    at_column: "<gray> (column %column%)</gray>"
+    at_file: "<gray> (%file% at %key_path%, line %line% column %column%)</gray>"
     candidates: "<gray> Valid values: <white>%candidates%</white></gray>"
-    more_problems: "<gray> This line has <yellow>%count%</yellow> more problem(s); they will be reported once this one is fixed.</gray>"
-    unknown_reason: "<red>[Pipeline] Validation failed (diagnostic key %reason% has no message yet; please report this key)</red>"
+    more_problems: "<gray> This line has <yellow>%count%</yellow> more problem (s); they will be reported once this one is fixed</gray>"
+    unknown_reason: "<red>[Pipeline] Validation failed  (diagnostic key %reason% has no message yet; please report this key)</red>"
   lex:
     unclosed_quote: "<red>[Pipeline] Unclosed quote; the quote opened at column %column% has no closing quote</red>"
   parse:
@@ -138,15 +158,29 @@ action:
     run_missing_sequence: "<red>[Pipeline] run has no sequence name; write it as run <sequence> name=value</red>"
     run_positional_parameter: "<red>[Pipeline] run parameters must be written as name=value; got the bare argument %token%</red>"
     duplicate_argument: "<red>[Pipeline] Argument %argument% appears twice; each argument may only be given once per stage</red>"
-    stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form (%token%); a stage name cannot contain =</red>"
+    stage_name_is_argument: "<red>[Pipeline] The stage name position holds a name=value form  (%token%); a stage name cannot contain =</red>"
+    on_error_without_body: "<red>[Pipeline] on_error cannot stand alone as a stage; it must follow a stage and wrap its handler in [ ], for example damage amount=3 on_error [ send_message \"failed\" ]</red>"
+    alias_empty: "<red>[Pipeline] Alias %alias% expands to nothing</red>"
+    alias_cycle: "<red>[Pipeline] Alias %alias% expands past %max% levels; aliases likely reference each other in a cycle</red>"
+    union_empty: "<red>[Pipeline] union must wrap at least one source stage</red>"
+    union_only_sources: "<red>[Pipeline] Only source stages may appear inside union [ ]</red>"
+    parse_if_missing_condition: "<red>[Pipeline] parse_if is missing a condition; write it as parse_if <static condition> [ ... ]</red>"
+    parse_if_placeholder: "<red>[Pipeline] The parse_if condition %condition% contains a placeholder; parse_if is evaluated at compile time and cannot use runtime placeholders  (use if instead)</red>"
+    parse_if_not_evaluable: "<red>[Pipeline] The parse_if condition %condition% cannot be evaluated at compile time</red>"
   validate:
     empty_pipeline: "<red>[Pipeline] This line contains no stages; at least one stage is required</red>"
     missing_self_source: "<red>[Pipeline] Omitting the source needs the builtin self source, which is
       currently unavailable; write an explicit source stage at the start of the line</red>"
     unknown_stage: "<red>[Pipeline] Unknown stage %token%</red>"
+    union_not_source: "<red>[Pipeline] %stage% inside union is not a source stage</red>"
+    nested_on_error: "<red>[Pipeline] An on_error handler cannot nest another on_error; split it into
+      separate pipelines or use retry instead</red>"
+    invalid_retry_times: "<red>[Pipeline] retry count is not a valid non-negative integer</red>"
+    retry_limit_exceeded: "<red>[Pipeline] retry count %value% exceeds the limit %maximum%;
+      adjust action.pipeline.max_retry_times</red>"
     stage_owner_disabled: "<red>[Pipeline] Stage %stage% is provided by plugin %owner%,
       which is currently disabled</red>"
-    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second</red>"
+    multiple_sources: "<red>[Pipeline] A pipeline may only have one source stage; %stage% is the second. To combine several sources, write union [ ... ]</red>"
     source_after_action: "<red>[Pipeline] Source stage %stage% cannot follow an action stage; a source must
       come first on the line</red>"
     gate_after_action: "<red>[Pipeline] Gate stage %stage% cannot follow an action stage; the target
@@ -161,7 +195,7 @@ action:
       got %actual%</red>"
     argument_both_named_and_positional: "<red>[Pipeline] Argument %token% was given both named
       and bare</red>"
-    missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key%(%type%),
+    missing_context_key: "<red>[Pipeline] Stage %stage% requires context %key% (%type%),
       which phase %phase% does not provide</red>"
     missing_variable: "<red>[Pipeline] Variable %variable% is not provided by phase %phase% or an earlier stage</red>"
     bare_variable_reference: "<red>[Pipeline] Variable %variable% must be written as %expected%, not as a bare placeholder</red>"
@@ -177,7 +211,7 @@ action:
     invalid_weight: "<red>[Pipeline] Weight %value% is not a valid number; a weight must be a
       non-negative number, expression, or placeholder</red>"
     negative_weight: "<red>[Pipeline] Weight %value% is negative; a weight must be greater than or
-      equal to 0 (use 0 to disable that branch)</red>"
+      equal to 0  (use 0 to disable that branch)</red>"
     weight_total_not_positive: "<red>[Pipeline] The weight total is %total%; at least one branch must
       have a weight above 0, otherwise this stage can never select a branch</red>"
     unknown_sequence: "<red>[Pipeline] Unknown sequence %token%</red>"
@@ -186,7 +220,7 @@ action:
     sequence_cycle: "<red>[Pipeline] Sequence calls form a cycle: %path%</red>"
     thread_domain_undeclared: "<red>[Pipeline] Stage %stage% declared no thread domain</red>"
     async_stage_requires_target: "<red>[Pipeline] Stage %stage% declares the async domain but
-      requires a target (%requirement%)</red>"
+      requires a target  (%requirement%)</red>"
   run:
     empty_pipeline: "<gray>[Pipeline] This pipeline has no executable stages</gray>"
     stage_unavailable: "<red>[Pipeline] Stage is currently unavailable</red>"
@@ -215,7 +249,7 @@ action:
     player_limit_reached: "<red>[Pipeline] That player's active task limit has been reached</red>"
     plugin_limit_reached: "<red>[Pipeline] That plugin's active task limit has been reached</red>"
     exception: "<red>[Pipeline] Stage threw an exception: %error%</red>"
-  # Builtin source-stage diagnostics.
+  # Builtin source-stage diagnostics
   source:
     self:
       no_caster: "<gray>[Pipeline] The self source has no caster</gray>"
@@ -247,10 +281,60 @@ action:
     player_by_name:
       name_required: "<red>[Pipeline] player_by_name requires name</red>"
       not_online: "<gray>[Pipeline] The player named by player_by_name is not online</gray>"
+    select:
+      name_required: "<red>[Pipeline] select requires a selector id</red>"
+      unknown_selector: "<red>[Pipeline] select references selector %name%, which is not defined under action.selectors; defined: %selectors%</red>"
+      missing_source: "<red>[Pipeline] Selector %selector% has no source configured</red>"
+      unknown_source: "<red>[Pipeline] Selector %selector% references source %source%, which is not registered</red>"
+      unknown_argument: "<red>[Pipeline] Source %source% referenced by selector %selector% has no argument %argument%</red>"
+      no_match: "<gray>[Pipeline] select found no matching target</gray>"
+    all_players:
+      no_match: "<gray>[Pipeline] all_players found no online player</gray>"
+    world_players:
+      no_world: "<gray>[Pipeline] world_players could not resolve the target world</gray>"
+      no_match: "<gray>[Pipeline] world_players found no player in the target world</gray>"
+    ring:
+      no_origin: "<gray>[Pipeline] The ring source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] ring found no entity within [min_radius, max_radius]</gray>"
+      unknown_entity_type: "<red>[Pipeline] ring entity type %type% is unknown</red>"
+    region:
+      no_origin: "<gray>[Pipeline] The region source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] region found no entity in the specified area</gray>"
+      unknown_entity_type: "<red>[Pipeline] region entity type %type% is unknown</red>"
+    op_players:
+      no_match: "<gray>[Pipeline] op_players found no online OP</gray>"
+    random:
+      no_pool: "<gray>[Pipeline] random has an empty pool to draw from</gray>"
+    faction_members:
+      no_members: "<red>[Pipeline] faction_members requires a member list</red>"
+      no_online: "<gray>[Pipeline] faction_members has no online member</gray>"
+    party:
+      no_permission: "<red>[Pipeline] party requires a permission node</red>"
+      no_match: "<gray>[Pipeline] party found no online player with that permission node</gray>"
+    dropped_items:
+      no_origin: "<gray>[Pipeline] The dropped_items source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] dropped_items found no item entity</gray>"
+    highest_block:
+      no_origin: "<gray>[Pipeline] The highest_block source has no usable origin</gray>"
+      no_block: "<gray>[Pipeline] highest_block found no block in that column</gray>"
+    players_in_region:
+      no_origin: "<gray>[Pipeline] The players_in_region source has no usable origin</gray>"
+      no_match: "<gray>[Pipeline] players_in_region found no player in the area</gray>"
+    vertical_block:
+      no_origin: "<gray>[Pipeline] The vertical_block source has no usable origin</gray>"
+    players_by_gamemode:
+      unknown_gamemode: "<red>[Pipeline] players_by_gamemode game mode %gamemode% is unknown</red>"
+      no_match: "<gray>[Pipeline] players_by_gamemode found no online player in that mode</gray>"
+    players_with_material:
+      unknown_material: "<red>[Pipeline] players_with_material material %material% is unknown</red>"
+      no_match: "<gray>[Pipeline] players_with_material found no online player holding that material</gray>"
   gate:
     where:
       condition_required: "<red>[Pipeline] where requires a condition</red>"
       invalid_condition: "<red>[Pipeline] The where condition %condition% cannot be evaluated</red>"
+    filter:
+      condition_required: "<red>[Pipeline] filter requires predicates</red>"
+      invalid_condition: "<red>[Pipeline] The filter predicates %condition% cannot be parsed at %token%  (column %position%); available keys: %keys%</red>"
     chance:
       chance_required: "<red>[Pipeline] chance requires a probability</red>"
       invalid_chance: "<red>[Pipeline] The chance probability must be between 0 and 1</red>"
@@ -264,6 +348,14 @@ action:
       no_assignment: "<red>[Pipeline] set requires at least one assignment</red>"
     stop:
       stopped: "<gray>[Pipeline] Ended by the stop stage</gray>"
+    sample:
+      invalid_count: "<red>[Pipeline] sample count must be a non-negative integer</red>"
+    distance_filter:
+      no_origin: "<gray>[Pipeline] distance_filter has no usable origin</gray>"
+    where_any:
+      conditions_required: "<red>[Pipeline] where_any requires at least one predicate</red>"
+    where_all:
+      conditions_required: "<red>[Pipeline] where_all requires at least one predicate</red>"
   stage:
     common:
       not_entity: "<gray>[Pipeline] This stage requires an entity target</gray>"
@@ -271,6 +363,37 @@ action:
       not_player: "<gray>[Pipeline] This stage requires a player target</gray>"
       not_location: "<gray>[Pipeline] This stage requires a location target</gray>"
       no_location: "<gray>[Pipeline] This stage requires a target with a position</gray>"
+      invalid_amount: "<red>[Pipeline] The amount %amount% is invalid; it must be a non-negative number</red>"
+      invalid_positive_amount: "<red>[Pipeline] The amount %amount% is invalid; it must be greater than 0</red>"
+    set_game_rule:
+      no_world: "<gray>[Pipeline] set_game_rule has no usable world</gray>"
+      unknown_rule: "<red>[Pipeline] Unknown game rule %rule%</red>"
+      invalid_value: "<red>[Pipeline] Value %value% is invalid for game rule %rule%</red>"
+    set_world_time:
+      no_world: "<gray>[Pipeline] set_world_time has no usable world</gray>"
+      invalid_time: "<red>[Pipeline] Time %time% is invalid</red>"
+    set_weather:
+      no_world: "<gray>[Pipeline] set_weather has no usable world</gray>"
+      unknown_weather: "<red>[Pipeline] Unknown weather %weather%; expected clear / rain / thunder</red>"
+    set_difficulty:
+      no_world: "<gray>[Pipeline] set_difficulty has no usable world</gray>"
+      unknown_difficulty: "<red>[Pipeline] Unknown difficulty %difficulty%; expected peaceful / easy / normal / hard</red>"
+    spawn_particle_at:
+      no_origin: "<gray>[Pipeline] spawn_particle_at has no usable origin</gray>"
+      unknown_particle: "<red>[Pipeline] Unknown particle %particle%</red>"
+    set_item_cooldown:
+      unknown_material: "<red>[Pipeline] Unknown material %material%</red>"
+    set_gamemode:
+      unknown_gamemode: "<red>[Pipeline] Unknown game mode %gamemode%</red>"
+    knockback:
+      no_caster: "<gray>[Pipeline] knockback has no caster</gray>"
+      world_mismatch: "<gray>[Pipeline] knockback caster and target are in different worlds</gray>"
+    set_world_spawn:
+      no_origin: "<gray>[Pipeline] set_world_spawn has no usable origin</gray>"
+    set_bed_spawn:
+      no_origin: "<gray>[Pipeline] set_bed_spawn has no usable origin</gray>"
+    set_compass_target:
+      no_origin: "<gray>[Pipeline] set_compass_target has no usable origin</gray>"
     script:
       eval:
         empty_code: "<gray>[Script] Script code is empty, skipped</gray>"
@@ -305,7 +428,7 @@ action:
       key_required: "<red>[Pipeline] stop_task requires a key</red>"
       none_matched: "<gray>[Pipeline] No task matched that key</gray>"
     item:
-      invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid</red>"
+      invalid_item_source: "<red>[Pipeline] Item source %item_source% is invalid: item sources always use dash separators (e.g. minecraft-stone, emakiitem-example_item); colon syntax is not supported</red>"
       service_unavailable: "<red>[Pipeline] The item source service is currently unavailable</red>"
       create_failed: "<red>[Pipeline] Unable to create an item from source %item_source%</red>"
       created_air: "<gray>[Pipeline] The item created from that source was air</gray>"
@@ -315,12 +438,13 @@ action:
       source_mismatch: "<gray>[Pipeline] The item in that slot did not match the requested
         source</gray>"
       not_enough: "<gray>[Pipeline] Not enough matching items</gray>"
+      insufficient: "<gray>[Pipeline] Not enough matching items: %required% required, only %available% available</gray>"
       remove_failed: "<red>[Pipeline] Failed to remove the matching items</red>"
       not_damageable: "<gray>[Pipeline] That item is not damageable</gray>"
       no_durability: "<gray>[Pipeline] That item has no durability</gray>"
       already_repaired: "<gray>[Pipeline] That item is already fully repaired</gray>"
       zero_damage: "<gray>[Pipeline] The damage amount must be greater than zero</gray>"
-       # EmakiItem stages share this namespace with builtin item stages.
+       # EmakiItem stages share this namespace with builtin item stages
       inspector_unavailable: "<red>[Pipeline] The EmakiItem component inspector is currently unavailable</red>"
       empty_hand: "<gray>[Pipeline] The target's main hand is empty</gray>"
       no_result: "<red>[Pipeline] EmakiItem returned no item</red>"
@@ -364,11 +488,16 @@ action:
     teleport:
       world_not_found: "<red>[Pipeline] Teleport destination world %world% does not exist</red>"
       rejected: "<red>[Pipeline] The teleport was rejected</red>"
+    food:
+      insufficient: "<gray>[Pipeline] Not enough food: %required% required, only %current% available</gray>"
+    exp:
+      insufficient: "<gray>[Pipeline] Not enough experience: %required% required  (%mode%), only %current% available</gray>"
     money:
       service_unavailable: "<red>[Pipeline] The economy service is currently unavailable</red>"
       provider_unavailable: "<red>[Pipeline] The economy provider is unavailable: %error%</red>"
       currency_not_found: "<red>[Pipeline] The currency does not exist: %error%</red>"
       insufficient_balance: "<red>[Pipeline] Insufficient balance: %error%</red>"
+      invalid_amount: "<red>[Pipeline] The economy amount %amount% is invalid: give_money/take_money must be greater than 0, set_money must be non-negative</red>"
       invalid_argument: "<red>[Pipeline] Invalid economy argument: %error%</red>"
       failed: "<red>[Pipeline] The economy operation failed: %error%</red>"
       no_result: "<red>[Pipeline] The economy operation returned no result</red>"
@@ -459,7 +588,7 @@ action:
       refresh_interrupted: "<red>[Pipeline] The server-wide forged item refresh was interrupted</red>"
       refresh_failed: "<red>[Pipeline] The server-wide forged item refresh failed: %error%</red>"
       generation_changed: "<red>[Pipeline] The EmakiForge runtime generation changed during the refresh; the result is stale</red>"
-      partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player(s)</red>"
+      partial_refresh: "<red>[Pipeline] Failed to refresh forged items for %failed% online player (s)</red>"
 
 capability:
   publish:
@@ -467,12 +596,12 @@ capability:
     empty: "<red>[Capability] The capability set is empty; publication refused</red>"
     duplicate: "<red>[Capability] That capability identifier is already taken; publication refused</red>"
 
-# Material allocation shortage; wording is combined, not single-slot attribution.
+# Material allocation shortage; wording is combined, not single-slot attribution
 allocation:
   shortage:
-    combined: "<red>This material set cannot be satisfied: <yellow>%slots%</yellow> slot(s) are short <yellow>%missing%</yellow> matching item(s) in total</red>"
+    combined: "<red>This material set cannot be satisfied: <yellow>%slots%</yellow> slot (s) are short <yellow>%missing%</yellow> matching item (s) in total</red>"
     slot_detail: "<gray>- Slot <aqua>%slot%</aqua> needs <yellow>%required%</yellow>, currently allocatable <yellow>%allocated%</yellow></gray>"
-    hint: "<gray>Note: several slots may compete for the same items, so topping up one slot may not clear the shortage. Prepare the combined amount above.</gray>"
+    hint: "<gray>Note: several slots may compete for the same items, so topping up one slot may not clear the shortage. Prepare the combined amount above</gray>"
 
 debug:
   common:
@@ -567,9 +696,17 @@ debug:
       packet_close_receive: "Packet GUI close received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
       packet_close_handler_failed: "Packet GUI close handler failed | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title% | error_type=%error_type% | error=%error_message%"
       packet_quit_cleanup: "Packet GUI cleaned up after player quit | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
-      packet_receive_close: "Packet GUI close packet received | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_click: "Packet GUI click received | click=%click_type% | raw_slot=%raw_slot% | button=%button% | incoming_state=%incoming_state_id% | carried_item=%carried_item_type%x%carried_item_amount% | changed_items=%changed_item_count% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_click_state_absent: "Packet GUI click received without a state ID | click=%click_type% | raw_slot=%raw_slot% | button=%button% | carried_item=%carried_item_type%x%carried_item_amount% | changed_items=%changed_item_count% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_cursor_return: "Packet GUI window cursor returned | item=%cursor_item_type%x%cursor_item_amount% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+      packet_receive_close: "Packet GUI close packet received | cursor=%cursor_item_type%x%cursor_item_amount% | window=%window_id% | state=%window_state_id% | top_size=%window_top_size% | session=%session_id% | owner=%session_owner% | backend=%session_backend% | title=%session_title%"
+    display:
+      backend_selected: "Display backends selected | requested=%requested_backend% | text_actual=%text_backend% | item_actual=%item_backend%"
+      packet_created: "Packet text display created | backend=%display_backend% | key=%display_key% | targeted=%targeted% | viewers=%viewers%"
+      packet_updated: "Packet text display updated | backend=%display_backend% | key=%display_key% | targeted=%targeted% | viewers=%viewers%"
+      packet_viewer_added: "Packet text display viewer added | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
+      packet_viewer_removed: "Packet text display viewer removed | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
+      packet_viewer_pruned: "Packet text display viewer pruned | backend=%display_backend% | key=%display_key% | viewer=%viewer% | visible=%visible% | visible_players=%visible_players% | viewers=%viewers%"
     chat_input:
       await_registered: "Chat input await registered | owner=%request_owner% | timeout=%request_timeout_seconds%s | cancel_keywords=%request_cancel_keywords%"
       await_replaced_previous: "New chat input await replaced the previous one | previous_owner=%request_owner% | previous_timeout=%request_timeout_seconds%s | previous_cancel_keywords=%request_cancel_keywords%"
@@ -599,9 +736,9 @@ debug:
     player_removed: "<yellow>Stopped tracking player: <aqua>%player%</aqua></yellow>"
     module_enabled: "<green>Module tracking enabled: <yellow>%module%</yellow></green>"
     module_disabled: "<yellow>Module tracking disabled: <gray>%module%</gray></yellow>"
-    all_enabled: "<green>Current-module debug enabled (all players + all modules)</green>"
+    all_enabled: "<green>Current-module debug enabled  (all players + all modules)</green>"
     all_disabled: "<yellow>All current-module debug tracking disabled</yellow>"
-    global_all_enabled: "<green>CoreLib global debug enabled (all Emaki modules)</green>"
+    global_all_enabled: "<green>CoreLib global debug enabled  (all Emaki modules)</green>"
     global_all_disabled: "<yellow>CoreLib global debug disabled</yellow>"
     player_not_found: "<red>Online player not found: %player%</red>"
     available_modules: "<gray>Available modules: <yellow>%modules%</yellow></gray>"
@@ -610,6 +747,9 @@ debug:
     execute_start: "Execute Action | type=%type% | player=%player% | params=%params%"
     execute_result: "Action completed | type=%type% | result=%result%"
     template_resolve: "Template resolve | template=%template% | expanded=%expanded%"
+    audit:
+      success: "Action numeric audit | timestamp=%timestamp% | stage=%stage% | operation=%operation% | target=%target% | target_uuid=%target_uuid% | before=%before% | after=%after% | amount=%amount% | source=%source% | phase=%phase%"
+      failure: "Action numeric audit failure | timestamp=%timestamp% | stage=%stage% | operation=%operation% | target=%target% | target_uuid=%target_uuid% | amount=%amount% | source=%source% | phase=%phase% | reason=%reason% | details=%details%"
   item_source:
     resolve: "Resolve item source | input=%input% | result=%result%"
     create: "Create item | source=%source% | amount=%amount% | success=%success%"
@@ -625,33 +765,64 @@ command:
   reload_success: "<green>EmakiCoreLib has been reloaded</green>"
   reload_failed_precheck: "<red>EmakiCoreLib precheck failed. Reload was cancelled and the previous config is still active</red>"
   check_no_report: "<yellow>No precheck report is available. Run /corelib check first</yellow>"
-  check_fix_unavailable: "<yellow>This version only supports read-only prechecks; automatic fixes are not enabled yet</yellow>"
+  check_fix_none: "<gray>No automatically fixable issues were found</gray>"
+  check_fix_summary: "<green>Fixed <yellow>%fixed%</yellow> issue (s), <yellow>%failed%</yellow> failed; re-check results:</green>"
+  check_fix_reload_hint: "<gray>Hint: reload the affected module or restart the server for fixed files to take effect</gray>"
   loop_empty: "<gray>There are no active long-running tasks</gray>"
   loop_header: "<aqua>Active long-running tasks: </aqua><yellow>%count%</yellow>"
   loop_cancelled: "<green>Cancelled long-running task: <aqua>%key%</aqua></green>"
   loop_not_found: "<red>No long-running task matches that key: <aqua>%key%</aqua></red>"
-  loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> long-running task(s) for <aqua>%player%</aqua></green>"
-  action_unavailable: "<red>The action pipeline is not ready yet.</red>"
+  loop_player_cancelled: "<green>Cancelled <yellow>%count%</yellow> long-running task (s) for <aqua>%player%</aqua></green>"
+  # Command: debug long-running task list entry; placeholders: %key%, %plugin%, %index%, %times%, %interval_ticks%, %player%
+  loop_task_entry: "<gray>- key=<aqua>%key%</aqua> plugin=<yellow>%plugin%</yellow> index=<white>%index%/%times%</white> interval=<white>%interval_ticks%t</white> player=<gray>%player%</gray></gray>"
+  action_unavailable: "<red>The action pipeline is not ready yet</red>"
   action_usage: "<yellow>Usage: /corelib action run <action line></yellow>"
   action_list_header: "<aqua>Currently registered stages: </aqua><yellow>%count%</yellow>"
   action_list_empty: "<gray>No stages are currently registered</gray>"
   action_list_item: "<gray>- <aqua>%id%</aqua> <dark_gray>[%kind%]</dark_gray> owner=<yellow>%owner%</yellow></gray>"
   action_execute_started: "<gray>Executing action line: <aqua>%line%</aqua></gray>"
   action_compile_failed: "<red>Action line failed to compile: <aqua>%line%</aqua> - %reason%</red>"
-  action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage(s)</green>"
+  action_execute_success: "<green>Action line completed: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage (s)</green>"
   action_execute_failed: "<red>Action line failed: stage <aqua>%stage%</aqua> - %error%</red>"
+  # Command: usage hint for /emaki debug action
+  action_debug_usage: "<yellow>Usage: debug action run [shadow|execute] <pipeline line> | debug action check <pipeline line> | debug action registry</yellow>"
+  # Command: debug action check passed; placeholders: %line%
+  action_debug_check_ok: "<green>Check passed: %line%</green>"
+  # Command: debug action check failed header; placeholders: %line%, %count%
+  action_debug_check_failed_header: "<red>Check failed  (%count% problem (s)): %line%</red>"
+  # Command: debug action check failed item
+  action_debug_check_item: "<gray>- %reason%</gray>"
+  # Command: debug action run dry-run header; placeholder: %line%
+  action_debug_dry_run_header: "<aqua>[Dry run] Previewing the pipeline step by step:</aqua> <white>%line%</white>"
+  # Command: debug action run execute header; placeholder: %line%
+  action_debug_execute_header: "<aqua>[Execute] Running the pipeline for real with step-by-step output:</aqua> <white>%line%</white>"
+  # Command: debug action step output - source; placeholders: %stage%, %count%, %reason%
+  action_debug_source: "<gray>  Source <aqua>%stage%</aqua> matched <yellow>%count%</yellow> target (s) <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - gate; placeholders: %stage%, %inbound%, %outbound%, %reason%
+  action_debug_gate: "<gray>  Gate <aqua>%stage%</aqua> in <yellow>%inbound%</yellow> -> out <yellow>%outbound%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - action; placeholders: %stage%, %success%, %failure%, %skipped%, %reason%
+  action_debug_action: "<gray>  Action <aqua>%stage%</aqua> ok <green>%success%</green> fail <red>%failure%</red> skip <yellow>%skipped%</yellow> <dark_gray>%reason%</dark_gray></gray>"
+  # Command: debug action step output - control flow; placeholders: %keyword%, %detail%
+  action_debug_control: "<dark_gray>  Control flow <white>%keyword%</white> %detail%</dark_gray>"
+  # Command: debug action step output - retry; placeholders: %stage%, %attempt%, %max%, %reason%
+  action_debug_retry: "<yellow>  Retrying <aqua>%stage%</aqua> attempt %attempt%/%max%: %reason%</yellow>"
+  # Command: debug action step output - on_error fired; placeholders: %stage%, %kind%, %reason%
+  action_debug_on_error: "<red>  on_error fired, failure kind %kind%, reason %reason%</red>"
+  # Command: debug action summary; placeholders: %status%, %stages%
+  action_debug_summary: "<gray>Finished: status <yellow>%status%</yellow>, <yellow>%stages%</yellow> stage (s)</gray>"
   help_header: "<aqua>EmakiCoreLib commands:</aqua>"
   help_reload: "<green>%root% reload</green><gray> - Reload CoreLib configuration</gray>"
   help_check: "<green>%root% check [module|report|--fix]</green><gray> - Run config prechecks or show the latest report</gray>"
   help_action: "<green>%root% action [list|run <action line>]</green><gray> - List registered stages, or run one action line directly</gray>"
+  help_debug_action: "<green>%root% debug action [run|check] <pipeline line></green><gray> - Dry-run preview or statically check one action pipeline</gray>"
   help_debug_all: "<green>%root% debug all [on|off|status]</green><gray> - Control global Debug for every Emaki module; config takes effect after reload</gray>"
   help_debug_loops: "<green>%root% debug loops [list|player|key|cancel|cancel-player]</green><gray> - View or cancel long-running pipeline tasks</gray>"
   help_pdc_convert: "<green>%root% pdc-convert <players|containers|entities|all> [--dry-run]</green><gray> - Convert legacy dotted PDC keys to flat keys</gray>"
   pdc_convert_usage: "<yellow>Usage: /corelib pdc-convert <%scopes%> [--dry-run]</yellow>"
   pdc_convert_started: "<gray>Converting legacy PDC keys, scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
-  pdc_convert_started_dry_run: "<gray>Starting dry run (no data is written), scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
+  pdc_convert_started_dry_run: "<gray>Starting dry run  (no data is written), scope <aqua>%scope%</aqua>; a report follows on completion</gray>"
   pdc_convert_header: "<aqua>Legacy PDC key conversion result:</aqua>"
-  pdc_convert_header_dry_run: "<aqua>Legacy PDC key dry-run result (nothing was written):</aqua>"
+  pdc_convert_header_dry_run: "<aqua>Legacy PDC key dry-run result  (nothing was written):</aqua>"
   pdc_convert_scope: "<gray>- <aqua>%scope%</aqua> scanned=<white>%scanned%</white> keys=<yellow>%migrated%</yellow> skipped=<gray>%skipped%</gray> failed=<red>%failed%</red></gray>"
-  pdc_convert_total: "<green>Converted <yellow>%migrated%</yellow> keys. Offline players and unloaded chunks are handled by lazy conversion on read; no manual action is required.</green>"
+  pdc_convert_total: "<green>Converted <yellow>%migrated%</yellow> keys. Offline players and unloaded chunks are handled by lazy conversion on read; no manual action is required</green>"
   pdc_convert_failed: "<red>Legacy PDC key conversion failed: %error%</red>"

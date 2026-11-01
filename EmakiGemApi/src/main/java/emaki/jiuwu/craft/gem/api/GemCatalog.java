@@ -16,6 +16,7 @@ import emaki.jiuwu.craft.gem.api.model.GemRelationshipCheck;
 import emaki.jiuwu.craft.gem.api.model.GemRerollSessionView;
 import emaki.jiuwu.craft.gem.api.model.GemResonanceView;
 import emaki.jiuwu.craft.gem.api.model.GemStateView;
+import java.util.UUID;
 
 /**
  * Read-only queries against EmakiGem's loaded definitions and item gem layers.
@@ -150,5 +151,5 @@ public interface GemCatalog {
      * @return the current candidate session, empty when none is open
      */
     @NotNull
-    Optional<GemRerollSessionView> rerollSession(@Nullable java.util.UUID operatorId);
+    Optional<GemRerollSessionView> rerollSession(@Nullable UUID operatorId);
 }

@@ -22,12 +22,12 @@ public final class StopTaskStage extends BaseStage {
     private final PipelineTaskService tasks;
 
     public StopTaskStage(@Nullable PipelineTaskService tasks) {
-        super("stop_task", "task", "Cancels running tasks by key.",
+        super("stop_task", "task", "按键取消正在运行的任务。",
                 CoreTargetRequirement.NONE, CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.required("key", CoreStageParameterType.STRING,
-                        "Key of the task to cancel"),
+                        "要取消的任务键"),
                 CoreStageParameter.optional("match", CoreStageParameterType.STRING, "exact",
-                        "exact or prefix"));
+                        "exact 或 prefix"));
         this.tasks = tasks;
     }
 

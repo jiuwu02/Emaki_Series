@@ -16,7 +16,7 @@ public final class AttackerSource extends BaseSource {
 
     public AttackerSource() {
         super("attacker", 
-              "The entity that attacked the caster (from on_damage_take trigger).",
+              "攻击施法者的实体（来自 on_damage_take 触发器）。",
               CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

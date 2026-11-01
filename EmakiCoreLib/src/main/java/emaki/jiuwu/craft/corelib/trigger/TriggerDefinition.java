@@ -24,10 +24,10 @@ public record TriggerDefinition(
 
     public TriggerDefinition {
         if (id == null || id.isBlank()) {
-            throw new IllegalArgumentException("Trigger id must not be null or blank");
+            throw new IllegalArgumentException("触发器 id 不能为 null 或空");
         }
         if (displayName == null || displayName.isBlank()) {
-            throw new IllegalArgumentException("Trigger displayName must not be null or blank");
+            throw new IllegalArgumentException("触发器 displayName 不能为 null 或空");
         }
         incompatibleWith = incompatibleWith == null
                 ? Set.of()

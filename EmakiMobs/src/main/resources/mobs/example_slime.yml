@@ -1,0 +1,39 @@
+# ============================================================
+# EmakiMobs 生物定义示例 - 洞穴史莱姆
+# 演示：特殊生物字段（slime_size / no_ai）、刷出时药水效果、
+#       掉落与留存行为（can_pick_up_loot / remove_when_far）。
+# 本生物没有同名 loot_tables/example_slime.yml，因此保留原版
+# 史莱姆掉落；想接管掉落时再新建同名表即可。
+# 配套自主刷新规则见 spawn_rules/example_cave.yml。
+# ============================================================
+id: example_slime
+type: slime
+display_name: "<green>示例洞穴史莱姆</green>"
+
+components:
+  max_health: 24.0
+  movement_speed: 0.24
+  attack_damage: 4.0
+  # 史莱姆体型：1 = 小，2 = 中，4 = 大
+  slime_size: 2
+  # false 表示保留 AI；设为 true 可做成不会移动的纯场景装饰
+  no_ai: false
+  # 不允许捡起地上的物品
+  can_pick_up_loot: false
+  # true 时玩家走远会被移除，会覆盖 persistent；这里保持 false
+  remove_when_far: false
+  persistent: true
+  custom_name: "<green>示例洞穴史莱姆</green>"
+  custom_name_visible: true
+  # 药水效果只在刷出时应用，冒号分隔：<效果>:<持续 tick>[:<等级>]
+  potion_effect:
+    - "speed:600:1"
+    - "fire_resistance:200"
+
+experience: 12
+
+actions:
+  on_spawn:
+    - "self | spawn_particle particle=SLIME count=20 offset_x=0.5 offset_y=0.5 offset_z=0.5"
+  on_death:
+    - "killer | give_exp amount=12"

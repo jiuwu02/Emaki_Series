@@ -35,10 +35,10 @@ public final class CoreActionKey<T> {
      */
     public static <T> @NotNull CoreActionKey<T> of(@NotNull String name, @NotNull Class<T> type) {
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("key name must not be blank");
+            throw new IllegalArgumentException("key 名称不能为空");
         }
         if (type == null) {
-            throw new IllegalArgumentException("key type must not be null");
+            throw new IllegalArgumentException("key 类型不能为 null");
         }
         return new CoreActionKey<>(name.trim().toLowerCase(Locale.ROOT), type);
     }

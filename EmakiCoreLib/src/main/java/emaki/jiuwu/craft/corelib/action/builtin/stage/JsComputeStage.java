@@ -3,7 +3,6 @@ package emaki.jiuwu.craft.corelib.action.builtin.stage;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
@@ -17,7 +16,6 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.script.ScriptResult;
 import emaki.jiuwu.craft.corelib.script.GraalJsEngine;
-import emaki.jiuwu.craft.corelib.script.exports.BukkitPlayerExport;
 import emaki.jiuwu.craft.corelib.script.exports.EmakiContextExport;
 
 public final class JsComputeStage extends BaseStage {
@@ -48,10 +46,6 @@ public final class JsComputeStage extends BaseStage {
         Map<String, Object> bindings = new HashMap<>();
         bindings.put("context", new EmakiContextExport(context));
 
-        if (context.currentTarget().entityOrNull() instanceof Player player) {
-            bindings.put("player", new BukkitPlayerExport(player));
-        }
-
         ScriptResult result = GraalJsEngine.getInstance().eval(code, bindings, timeoutMs);
 
         if (result.isTimeout()) {
@@ -62,7 +56,7 @@ public final class JsComputeStage extends BaseStage {
         }
         if (!result.isSuccess()) {
             Throwable error = result.getError();
-            String message = error != null ? error.getMessage() : "unknown";
+            String message = error != null ? error.getMessage() : "未知";
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.script.eval.error",
                     Map.of("error_message", message));

@@ -127,13 +127,13 @@ public interface ItemSourceProvider {
         String providerId = kind().key();
         if (!supports(ref)) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INVALID_SOURCE, ref, providerId,
-                    "This provider does not handle the given item source.");
+                    "该提供者不处理给定的物品来源。");
         }
         try {
             ItemStack created = create(ref, 1);
             return created == null || created.getType().isAir()
                     ? ItemSourceProbeResult.of(ItemSourceProbeState.SOURCE_NOT_FOUND, ref, providerId,
-                            "The provider holds no item under this identifier.")
+                            "该提供者在标识符下没有持有物品。")
                     : ItemSourceProbeResult.ready(ref, providerId);
         } catch (LinkageError exception) {
             return ItemSourceProbeResult.of(ItemSourceProbeState.INCOMPATIBLE, ref, providerId,
@@ -178,7 +178,7 @@ public interface ItemSourceProvider {
 
     private static String describe(Throwable throwable) {
         if (throwable == null) {
-            return "Unknown resolution failure";
+            return "未知的解析失败";
         }
         String message = throwable.getMessage();
         return message == null || message.isBlank() ? throwable.getClass().getSimpleName() : message;

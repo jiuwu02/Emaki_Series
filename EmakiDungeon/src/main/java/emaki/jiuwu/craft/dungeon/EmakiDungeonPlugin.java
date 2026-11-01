@@ -1,0 +1,732 @@
+package emaki.jiuwu.craft.dungeon;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.logging.Level;
+
+import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
+
+import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
+import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.debug.DebugCommand;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
+import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.dungeon.action.ActionBridge;
+import emaki.jiuwu.craft.dungeon.api.EmakiDungeonApi;
+import emaki.jiuwu.craft.dungeon.apiimpl.ServiceBackedDungeonBridge;
+import emaki.jiuwu.craft.dungeon.audit.AuditService;
+import emaki.jiuwu.craft.dungeon.challenge.ChallengeGuiService;
+import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
+import emaki.jiuwu.craft.dungeon.command.DungeonCommandAdapter;
+import emaki.jiuwu.craft.dungeon.command.DungeonCommandRouter;
+import emaki.jiuwu.craft.dungeon.config.AppConfig;
+import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.drop.DropRouter;
+import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
+import emaki.jiuwu.craft.dungeon.editor.EditorGui;
+import emaki.jiuwu.craft.dungeon.editor.EditorService;
+import emaki.jiuwu.craft.dungeon.editor.EditorStateStore;
+import emaki.jiuwu.craft.dungeon.flow.FlowDefinition;
+import emaki.jiuwu.craft.dungeon.flow.FlowLoader;
+import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
+import emaki.jiuwu.craft.dungeon.flow.RegionTracker;
+import emaki.jiuwu.craft.dungeon.guard.BoundaryGuard;
+import emaki.jiuwu.craft.dungeon.guard.CommandGuard;
+import emaki.jiuwu.craft.dungeon.guard.TeleportGuard;
+import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
+import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
+import emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore;
+import emaki.jiuwu.craft.dungeon.limit.LimitService;
+import emaki.jiuwu.craft.dungeon.listener.DungeonChatListener;
+import emaki.jiuwu.craft.dungeon.listener.DungeonLifecycleListener;
+import emaki.jiuwu.craft.dungeon.listener.FlowEventListeners;
+import emaki.jiuwu.craft.dungeon.listener.PlayerStateListener;
+import emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor;
+import emaki.jiuwu.craft.dungeon.orchestration.DestroyArbiter;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
+import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.party.PartiesStore;
+import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui;
+import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
+import emaki.jiuwu.craft.dungeon.score.ScoreTracker;
+import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
+import emaki.jiuwu.craft.dungeon.settlement.SettlementService;
+import emaki.jiuwu.craft.dungeon.snapshot.PlayersDataStore;
+import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.snapshot.SnapshotsStore;
+import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
+import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
+import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
+import emaki.jiuwu.craft.dungeon.world.WorldCloner;
+import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
+import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldNames;
+import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import java.io.IOException;
+import java.util.Collection;
+import java.util.UUID;
+import org.bukkit.permissions.Permission;
+import org.bukkit.permissions.PermissionDefault;
+import org.bukkit.plugin.PluginManager;
+
+public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> {
+
+    private static final String MODULE = "dungeon";
+    private static final String ROOT_COMMAND = "edg";
+    private static final long SHUTDOWN_DRAIN_SECONDS = 5L;
+    private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
+    private static final String API_VERSION = "1.0.0";
+    private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
+
+    private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
+
+    private YamlConfigLoader<AppConfig> appConfigLoader;
+    private MessageService messageService;
+    private LanguageLoader languageLoader;
+    private ServiceBackedDungeonBridge bridge;
+    private DebugCommand debugCommand;
+    private InstanceCoordinator coordinator;
+    private ChallengeService challenge;
+    private PartyService parties;
+    private RecoveryService recovery;
+    private SnapshotManager snapshots;
+    private CommandGuard commandGuard;
+    private BoundaryGuard boundaryGuard;
+    private TeleportGuard teleportGuard;
+    private ChatInputService chatInputService;
+    private GuiService guiService;
+    private DungeonCommandRouter router;
+    private RegionTracker regionTracker;
+    private PlayerStateService stateService;
+    private ActionBridge actionBridge;
+    private ScoreTracker scoreTracker;
+    private LeaderboardStore leaderboard;
+    private SettlementService settlement;
+    private RewardBoxService rewardBox;
+    private RewardBoxGui rewardBoxGui;
+    private RewardChestService rewardChests;
+    private EditorService editorService;
+    private ScriptRuntimeManager scriptManager;
+    private AuditService auditService;
+    private PerformanceMonitor performanceMonitor;
+    private InstanceRegistry registry;
+    private Function<String, DungeonConfig> configOf;
+    private boolean runtimeInitialized;
+    private final Set<String> registeredDungeonPermissions =
+            ConcurrentHashMap.newKeySet();
+
+    public EmakiDungeonPlugin() {
+        super(AppConfig::defaults);
+    }
+
+    @Override
+    public void onEnable() {
+        shutdownStarted.set(false);
+        languageLoader = new LanguageLoader(this);
+        messageService = new MessageService(this, "EmakiDungeon",
+                languageLoader::getMessage,
+                (key, replacements) -> {
+                    String template = languageLoader.getMessage(key);
+                    Map<String, ?> safe = replacements == null ? Map.of() : replacements;
+                    String converted = template;
+                    for (Map.Entry<String, ?> entry : safe.entrySet()) {
+                        if (entry.getKey() == null || entry.getKey().isBlank()) {
+                            continue;
+                        }
+                        converted = converted.replace("<" + entry.getKey() + ">",
+                                "%" + entry.getKey() + "%");
+                    }
+                    return Texts.formatTemplate(converted, safe);
+                },
+                false);
+        appConfigLoader = new YamlConfigLoader<>(this, "config.yml", AppConfig::defaults, AppConfig::parse);
+        appConfigLoader.load();
+        setDebugLogger(new DebugLogger(this, languageLoader));
+        debugLogger().setFallbackLoader(EmakiCoreLibPlugin.lookup().languageLoader());
+        debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
+        bootstrapInstanceRuntime();
+        registerCommandHandler();
+        installPublicApi();
+        runtimeInitialized = true;
+        messageService.info("console.plugin_starting");
+        messageService.info("console.plugin_started");
+    }
+
+    @Override
+    public void onDisable() {
+        if (!shutdownStarted.compareAndSet(false, true)) {
+            return;
+        }
+        AtomicInteger shutdownFailures = new AtomicInteger();
+        CompletableFuture<Boolean> rewardBoxDrain = rewardBox == null
+                ? CompletableFuture.completedFuture(Boolean.TRUE)
+                : rewardBox.drainWrites();
+        if (challenge != null) {
+            challenge.shutdown();
+            challenge = null;
+        }
+        if (regionTracker != null) {
+            regionTracker.shutdown();
+            regionTracker = null;
+        }
+        if (stateService != null) {
+            stateService.shutdown();
+            stateService = null;
+        }
+        if (actionBridge != null) {
+            actionBridge.closeAll();
+            actionBridge = null;
+        }
+        if (boundaryGuard != null) {
+            boundaryGuard.shutdown();
+            boundaryGuard = null;
+        }
+        if (editorService != null) {
+            editorService.closeAll();
+            editorService = null;
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+            chatInputService = null;
+        }
+        if (guiService != null) {
+            guiService.closeAll();
+            guiService = null;
+        }
+        if (parties != null) {
+            if (!parties.shutdown()) {
+                shutdownFailures.incrementAndGet();
+            }
+            parties = null;
+        }
+        if (commandGuard != null) {
+            commandGuard.restoreCommandMap();
+            commandGuard = null;
+        }
+        if (coordinator != null) {
+            if (!coordinator.shutdown()) {
+                shutdownFailures.incrementAndGet();
+            }
+            coordinator = null;
+        }
+        if (performanceMonitor != null) {
+            performanceMonitor.close();
+            performanceMonitor = null;
+        }
+        if (auditService != null) {
+            auditService.close();
+            auditService = null;
+        }
+        if (scriptManager != null) {
+            scriptManager.close();
+            scriptManager = null;
+        }
+        if (teleportGuard != null) {
+            teleportGuard = null;
+        }
+        if (!awaitRewardBoxDrain(rewardBoxDrain)) {
+            shutdownFailures.incrementAndGet();
+        }
+        rewardBox = null;
+        rewardBoxGui = null;
+        if (shutdownFailures.get() > 0) {
+            getLogger().warning("[shutdown] 停服保存未干净完成: failed=" + shutdownFailures.get());
+        }
+        recovery = null;
+        snapshots = null;
+        router = null;
+        if (bridge != null) {
+            EmakiDungeonApi.uninstall(bridge);
+            bridge = null;
+        }
+        debugCommand = null;
+        runtimeInitialized = false;
+        if (messageService != null) {
+            messageService.info("console.plugin_stopped");
+        }
+    }
+
+    private boolean awaitRewardBoxDrain(CompletableFuture<Boolean> drain) {
+        if (drain == null) {
+            return true;
+        }
+        try {
+            return Boolean.TRUE.equals(drain.get(SHUTDOWN_DRAIN_SECONDS, TimeUnit.SECONDS));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            getLogger().warning("[shutdown] 等待奖励箱落盘时被中断, 停服结果不完整");
+            return false;
+        } catch (ExecutionException | CancellationException failure) {
+            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘失败, 停服结果不完整: "
+                    + describeShutdownFailure(failure), failure);
+            return false;
+        } catch (TimeoutException timeout) {
+            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘在 " + SHUTDOWN_DRAIN_SECONDS
+                    + " 秒内未完成, 停服结果不完整", timeout);
+            return false;
+        }
+    }
+
+    private String describeShutdownFailure(Throwable failure) {
+        Throwable cause = failure.getCause() == null ? failure : failure.getCause();
+        return cause.getClass().getSimpleName()
+                + (cause.getMessage() == null ? "" : ": " + cause.getMessage());
+    }
+
+    @Override
+    public YamlConfigLoader<AppConfig> appConfigLoader() {
+        return appConfigLoader;
+    }
+
+    public MessageService messageService() {
+        return messageService;
+    }
+
+    public LanguageLoader languageLoader() {
+        return languageLoader;
+    }
+
+    public DebugCommand debugCommand() {
+        return debugCommand;
+    }
+
+    public InstanceCoordinator instanceCoordinator() {
+        return coordinator;
+    }
+
+    public ChallengeService challengeService() {
+        return challenge;
+    }
+
+    public PartyService partyService() {
+        return parties;
+    }
+
+    public RecoveryService recoveryService() {
+        return recovery;
+    }
+
+    public boolean runtimeInitialized() {
+        return runtimeInitialized;
+    }
+
+    private void registerCommandHandler() {
+        registerCommand(ROOT_COMMAND, "EmakiDungeon 命令", List.of("dungeon", "edungeon"),
+                new DungeonCommandAdapter(router, "emakidungeon.play"));
+    }
+
+    private void installPublicApi() {
+        String version = getPluginMeta().getVersion();
+        bridge = new ServiceBackedDungeonBridge(
+                ApiStatus.ready(getName(), version, API_VERSION),
+                challenge, parties, registry, coordinator, configOf, scriptManager);
+        EmakiDungeonApi.install(bridge);
+    }
+
+    private void bootstrapInstanceRuntime() {
+        AppConfig appConfig = appConfigLoader.current();
+        if (appConfig.debugEnabled()) {
+            debugLogger().enableAll();
+        }
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        ExecutionDispatcher dispatcher = coreLib.executionDispatcher();
+        File worldContainer = Bukkit.getWorldContainer();
+        TemplateRepository templates = new TemplateRepository(this, getDataFolder());
+
+        Map<String, DungeonConfig> configCache = new ConcurrentHashMap<>();
+        List<String> dungeons = new ArrayList<>();
+        templates.ensureDefaultConfigs();
+        for (String dungeonId : templates.discoverDungeons()) {
+            try {
+                configCache.put(dungeonId, templates.loadConfig(dungeonId));
+                dungeons.add(dungeonId);
+            } catch (RuntimeException exception) {
+                messageService.warning("console.dungeon_config_invalid", Map.of(
+                        "dungeon", dungeonId,
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            }
+        }
+        registerDungeonPermissions(templates.discoverDungeons());
+        Function<String, DungeonConfig> configOf = configCache::get;
+        this.configOf = configOf;
+        Function<String, Integer> poolMaxOf = dungeonId -> {
+            DungeonConfig config = configCache.get(dungeonId);
+            return config == null ? null : config.poolMaxWorlds();
+        };
+        Function<String, Integer> warmOf = dungeonId -> {
+            DungeonConfig config = configCache.get(dungeonId);
+            return config == null ? null : config.poolWarmReserves();
+        };
+        Supplier<AppConfig> appConfigSupplier = appConfigLoader::current;
+
+        InstanceSlotAllocator allocator = new InstanceSlotAllocator(
+                appConfig.maxInstances(),
+                foliaDetected(),
+                appConfig.foliaHeldWorldsMax(),
+                poolMaxOf
+        );
+        registry = new InstanceRegistry();
+        auditService = new emaki.jiuwu.craft.dungeon.audit.AuditService(
+                getDataFolder(), appConfigSupplier, messageService);
+        performanceMonitor = new emaki.jiuwu.craft.dungeon.monitor.PerformanceMonitor(
+                this, dispatcher, registry, messageService, auditService, appConfigSupplier);
+        scriptManager = new emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager(
+                this, messageService, debugLogger(), appConfigSupplier, configOf,
+                registry, getDataFolder(), auditService);
+        scriptManager.startup();
+        DestroyArbiter arbiter = new DestroyArbiter();
+        InstancesStore store = new InstancesStore(this, dispatcher, getDataFolder());
+        WorldNames names = new WorldNames(worldContainer);
+        WorldCloner cloner = new WorldCloner(this, dispatcher, worldContainer);
+        WorldDisposer disposer = new WorldDisposer(this, dispatcher, worldContainer);
+        EditorStateStore editorStates =
+                new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, getDataFolder());
+        editorStates.loadAll(templates.discoverDungeons());
+        WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
+                allocator, registry, store, poolMaxOf, warmOf, editorStates::generationOf, messageService);
+        pool.bindAudit(auditService);
+
+        teleportGuard = new TeleportGuard(messageService, registry);
+        SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
+        PlayersDataStore playersDataStore = new PlayersDataStore(this, dispatcher, getDataFolder(),
+                appConfig.globalChatDefault());
+        snapshots = new SnapshotManager(snapshotsStore, playersDataStore, messageService);
+
+        LimitService limitService =
+                new emaki.jiuwu.craft.dungeon.limit.LimitService(playersDataStore, configOf,
+                        appConfigSupplier, debugLogger(), (dungeonId, period) -> {
+                            debugLogger().logRaw("dungeon", (UUID) null,
+                                    "daily_reset | dungeon=" + dungeonId + " | period=" + period);
+                            if (scriptManager != null) {
+                                scriptManager.fireTrigger(
+                                        TriggerType.onDailyReset,
+                                        null, dungeonId, Map.of("period", period));
+                            }
+                        });
+        leaderboard = new emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore(
+                this, dispatcher, getDataFolder());
+
+        PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
+        parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
+                appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
+        parties.bindScriptManager(scriptManager);
+        parties.start();
+
+        recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
+                teleportGuard::permit);
+        recovery.bindScriptManager(scriptManager);
+        recovery.bindAudit(auditService);
+
+        coordinator = new InstanceCoordinator(this, dispatcher, pool, disposer, allocator, registry, arbiter,
+                store, messageService, debugLogger(), recovery::evacuate);
+        coordinator.bindScriptManager(scriptManager);
+        coordinator.bindAudit(auditService);
+
+        guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
+                coreLib.performanceMonitor(), coreLib.guiBackend());
+        chatInputService = new ChatInputService(this, dispatcher);
+        editorService = new emaki.jiuwu.craft.dungeon.editor.EditorService(this, dispatcher, messageService,
+                chatInputService, cloner, disposer, templates, editorStates, worldContainer, getDataFolder());
+        editorService.bindPool(pool);
+        editorService.bindConfigCache(configCache);
+        EditorGui editorGui =
+                new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
+                        chatInputService);
+        editorService.bindGui(editorGui);
+        ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
+        challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
+                parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
+        challenge.bindLimitService(limitService);
+        challenge.bindScriptManager(scriptManager);
+        challenge.bindAudit(auditService);
+        challenge.bindMonitor(performanceMonitor);
+        challenge.start();
+        editorService.bindChallenge(challenge);
+
+        ActionBridge actionBridge =
+                new ActionBridge(this, appConfigSupplier, registry, messageService);
+        TempItemManager tempItemManager =
+                new TempItemManager(messageService, debugLogger());
+        RewardChestService rewardChests =
+                new emaki.jiuwu.craft.dungeon.drop.RewardChestService(registry, messageService);
+        this.rewardChests = rewardChests;
+        rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
+                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),
+                messageService, appConfigSupplier);
+        rewardBox.loadGuiConfig(this);
+        rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);
+        DropRouter dropRouter =
+                new emaki.jiuwu.craft.dungeon.drop.DropRouter(registry, parties, messageService,
+                        rewardChests, rewardBox, configOf, this, dispatcher);
+        MessageIsolation isolation =
+                new emaki.jiuwu.craft.dungeon.isolation.MessageIsolation(registry, playersDataStore, messageService);
+        stateService = new PlayerStateService(this, dispatcher, coordinator, registry,
+                parties, recovery, messageService, debugLogger(), configOf, languageLoader);
+        stateService.bindScriptManager(scriptManager);
+        stateService.start();
+        regionTracker = new RegionTracker(this, dispatcher, registry);
+        regionTracker.bindDebug(debugLogger());
+        scoreTracker = new emaki.jiuwu.craft.dungeon.score.ScoreTracker();
+        coordinator.bindScoreTracker(scoreTracker);
+        coordinator.bindDropCleanup(instanceId -> rewardChests.remove(instanceId));
+        recovery.bindStaging(rewardChests::clearStaging);
+        settlement = new emaki.jiuwu.craft.dungeon.settlement.SettlementService(
+                this, dispatcher, registry, parties, scoreTracker, snapshots, recovery,
+                rewardChests, leaderboard, coordinator,
+                new emaki.jiuwu.craft.dungeon.settlement.SettlementCommandRunner(debugLogger()),
+                rewardBox, messageService, debugLogger(), configOf);
+        settlement.bindActionBridge(actionBridge);
+        settlement.bindScriptManager(scriptManager);
+        settlement.bindAudit(auditService);
+        stateService.bindSettlement(settlement);
+        this.actionBridge = actionBridge;
+
+        recovery.bindActionBridge(actionBridge);
+        recovery.bindTempItems(tempItemManager);
+        stateService.bindActionBridge(actionBridge);
+        coordinator.bindActionBridge(actionBridge);
+        challenge.bindActionBridge(actionBridge);
+        challenge.bindInstanceHooks(
+                instance -> buildFlowRuntime(instance, stateService, actionBridge, tempItemManager),
+                stateService, tempItemManager);
+
+        commandGuard = new CommandGuard(this, messageService, debugLogger(), registry,
+                appConfigSupplier, configOf);
+        commandGuard.installCommandMap();
+
+        boundaryGuard = new BoundaryGuard(this, dispatcher, registry, teleportGuard, messageService);
+        boundaryGuard.start();
+        regionTracker.start();
+
+        router = new DungeonCommandRouter(this, messageService, challenge, parties, recovery, snapshots,
+                chatInputService, templates, coordinator, registry, isolation);
+        router.bindOperations(limitService, leaderboard, configOf);
+        router.bindAdmin(pool, allocator, () -> reloadTemplates(templates, configCache));
+        router.bindAudit(auditService);
+        router.bindRewardBox(rewardBoxGui);
+        router.bindEditor(editorService);
+
+        getServer().getPluginManager().registerEvents(
+                new DungeonLifecycleListener(recovery, parties, scriptManager), this);
+        getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(chatInputService, this);
+        getServer().getPluginManager().registerEvents(editorService, this);
+        getServer().getPluginManager().registerEvents(editorGui, this);
+        getServer().getPluginManager().registerEvents(
+                new DungeonChatListener(parties, isolation, languageLoader.getMessage("party.chat_format")), this);
+        getServer().getPluginManager().registerEvents(commandGuard, this);
+        getServer().getPluginManager().registerEvents(teleportGuard, this);
+        getServer().getPluginManager().registerEvents(
+                new PlayerStateListener(registry, stateService), this);
+        getServer().getPluginManager().registerEvents(
+                new FlowEventListeners(registry, scriptManager), this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.script.TriggerBridge(scriptManager), this);
+        getServer().getPluginManager().registerEvents(
+                new emaki.jiuwu.craft.dungeon.score.CombatDataListener(registry, scoreTracker), this);
+        getServer().getPluginManager().registerEvents(dropRouter, this);
+        getServer().getPluginManager().registerEvents(rewardChests, this);
+        getServer().getPluginManager().registerEvents(rewardBoxGui, this);
+        getServer().getPluginManager().registerEvents(isolation, this);
+
+        actionBridge.registerAll();
+
+        for (String dungeonId : dungeons) {
+            try {
+                templates.ensureFlowFile(dungeonId);
+            } catch (IOException exception) {
+                messageService.warning("console.flow_file_failed", Map.of(
+                        "dungeon", dungeonId,
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            }
+        }
+
+        editorService.sweepLeftoverWorlds();
+        coordinator.startupScan();
+        coordinator.warmupAll(dungeons);
+        coordinator.startInspection();
+    }
+
+    private void reloadTemplates(TemplateRepository templates,
+            Map<String, DungeonConfig> configCache) {
+        appConfigLoader.load();
+        templates.ensureDefaultConfigs();
+        for (String dungeonId : templates.discoverDungeons()) {
+            try {
+                configCache.put(dungeonId, templates.loadConfig(dungeonId));
+            } catch (RuntimeException exception) {
+                messageService.warning("console.dungeon_config_invalid", Map.of(
+                        "dungeon", dungeonId,
+                        "error", String.valueOf(exception.getMessage())
+                ));
+            }
+        }
+        registerDungeonPermissions(templates.discoverDungeons());
+    }
+
+    private void registerDungeonPermissions(Collection<String> dungeonIds) {
+        PluginManager pluginManager = getServer().getPluginManager();
+        for (String dungeonId : dungeonIds) {
+            String node = "emakidungeon.dungeon." + dungeonId;
+            if (pluginManager.getPermission(node) == null) {
+                pluginManager.addPermission(new org.bukkit.permissions.Permission(
+                        node,
+                        "EmakiDungeon 副本 " + dungeonId + " 的进入许可",
+                        PermissionDefault.TRUE));
+            }
+            registeredDungeonPermissions.add(node);
+        }
+        registeredDungeonPermissions.removeIf(node -> {
+            if (dungeonIds.contains(node.substring("emakidungeon.dungeon.".length()))) {
+                return false;
+            }
+            Permission registered = pluginManager.getPermission(node);
+            if (registered == null
+                    || registered.getDefault() != PermissionDefault.TRUE) {
+                return false;
+            }
+            pluginManager.removePermission(registered);
+            return true;
+        });
+    }
+
+    private FlowRuntime buildFlowRuntime(
+            DungeonInstance instance,
+            PlayerStateService stateService,
+            ActionBridge actionBridge,
+            TempItemManager tempItemManager) {
+        var flowLoader = new emaki.jiuwu.craft.dungeon.flow.FlowLoader();
+        FlowDefinition definition;
+        File flowFile = WorldFolders
+                .dataDir(worldContainerOf(), instance.instanceId())
+                .resolve("flow.yml").toFile();
+        File templateFlow = new File(new File(getDataFolder(), "world"),
+                instance.dungeonId() + File.separator + "flow.yml");
+        try {
+            definition = flowLoader.load(flowFile.isFile() ? flowFile : templateFlow);
+        } catch (RuntimeException exception) {
+            messageService.warning("console.flow_load_failed", Map.of(
+                    "instance", instance.instanceId(),
+                    "error", String.valueOf(exception.getMessage())
+            ));
+            definition = new emaki.jiuwu.craft.dungeon.flow.FlowDefinition();
+        }
+        var adjudicator = new emaki.jiuwu.craft.dungeon.flow.Adjudicator(
+                new emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator(),
+                new emaki.jiuwu.craft.dungeon.flow.TriggerCounter());
+        var runtime = new emaki.jiuwu.craft.dungeon.flow.FlowRuntime(
+                instance, definition, adjudicator, messageService, teleportGuard::permit,
+                this, EmakiCoreLibPlugin.lookup().executionDispatcher());
+        var gateController = new emaki.jiuwu.craft.dungeon.flow.GateController(this, instance, debugLogger());
+        var waveController = new emaki.jiuwu.craft.dungeon.flow.WaveController(
+                this, EmakiCoreLibPlugin.lookup().executionDispatcher(), instance,
+                new emaki.jiuwu.craft.dungeon.flow.MobSource(), debugLogger(), configOf);
+        gateController.bindWaveController(waveController);
+        var controllers = new emaki.jiuwu.craft.dungeon.flow.GameplayControllers(
+                this, instance, messageService, chatInputService, debugLogger(),
+                gateController, waveController);
+        controllers.bindHandlers(
+                reason -> stateService.fail(instance, reason),
+                (itemId, amount) -> dispatchTempItemGrant(instance, itemId, amount, tempItemManager));
+        controllers.bindSettlementHandlers(
+                cause -> settlement.beginComplete(instance, cause),
+                (optionCase, endingId) -> settlement.onEnding(instance, optionCase, endingId));
+        controllers.bindRewardChests(rewardChests);
+        waveController.bindListeners(
+                (spawnId, wave) -> {
+                    actionBridge.dispatch("dungeon_wave_start", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "spawnId", spawnId,
+                            "wave", String.valueOf(wave)
+                    ));
+                    if (scriptManager != null) {
+                        scriptManager.fireTrigger(
+                                TriggerType.onWaveStart,
+                                instance.instanceId(), instance.dungeonId(),
+                                Map.of("spawnId", spawnId, "wave", String.valueOf(wave)));
+                    }
+                },
+                (gateId, condition) -> {
+                    actionBridge.dispatch("dungeon_gate_open", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "gateId", gateId,
+                            "condition", condition
+                    ));
+                    Bukkit.getPluginManager().callEvent(
+                            new emaki.jiuwu.craft.dungeon.api.event.DungeonGateOpenEvent(
+                                    instance.instanceId(), instance.dungeonId(), gateId, condition));
+                },
+                roomId -> {
+                    actionBridge.dispatch("dungeon_room_clear", null, Map.of(
+                            "instanceId", instance.instanceId(),
+                            "roomId", roomId
+                    ));
+                    Bukkit.getPluginManager().callEvent(
+                            new emaki.jiuwu.craft.dungeon.api.event.DungeonRoomClearEvent(
+                                    instance.instanceId(), instance.dungeonId(), roomId));
+                });
+        runtime.bindControllers(controllers);
+        runtime.bindStateHook(stateService::onPlayerDeath);
+        runtime.bindDebug(debugLogger());
+        if (scriptManager != null) {
+            runtime.bindScript(scriptManager.sink());
+            waveController.bindTriggerSink(scriptManager);
+            scriptManager.createSession(instance, runtime, controllers);
+        }
+        return runtime;
+    }
+
+    private void dispatchTempItemGrant(DungeonInstance instance, String itemId, int amount,
+            TempItemManager tempItemManager) {
+        EmakiCoreLibPlugin.lookup().executionDispatcher().runGlobal(this, () -> {
+            var world = Bukkit.getWorld(instance.instanceId());
+            if (world == null) {
+                return;
+            }
+            for (Player member : world.getPlayers()) {
+                tempItemManager.grant(instance.instanceId(), member, itemId, amount);
+            }
+        });
+    }
+
+    private File worldContainerOf() {
+        return Bukkit.getWorldContainer();
+    }
+
+    private static boolean foliaDetected() {
+        try {
+            Class.forName(FOLIA_MARKER, false, EmakiDungeonPlugin.class.getClassLoader());
+            return true;
+        } catch (ClassNotFoundException | LinkageError exception) {
+            return false;
+        }
+    }
+}

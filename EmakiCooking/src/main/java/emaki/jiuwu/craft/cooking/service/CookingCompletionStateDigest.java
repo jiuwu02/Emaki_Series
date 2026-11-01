@@ -73,7 +73,7 @@ public final class CookingCompletionStateDigest {
             scalar(digest, "enum", enumeration.name());
             return;
         }
-        throw new IllegalArgumentException("Unsupported state value: " + value.getClass().getName());
+        throw new IllegalArgumentException("不支持的状态值: " + value.getClass().getName());
     }
 
     private static void appendMap(MessageDigest digest, Map<?, ?> map) {
@@ -156,7 +156,7 @@ public final class CookingCompletionStateDigest {
         try {
             return MessageDigest.getInstance("SHA-256");
         } catch (NoSuchAlgorithmException exception) {
-            throw new IllegalStateException("SHA-256 is unavailable", exception);
+            throw new IllegalStateException("SHA-256 不可用", exception);
         }
     }
 

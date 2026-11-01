@@ -11,10 +11,10 @@ public record PityTriggerConfig(
 ) {
     public PityTriggerConfig {
         if (threshold == null && formula == null) {
-            throw new IllegalArgumentException("Either threshold or formula must be provided");
+            throw new IllegalArgumentException("必须提供阈值或公式之一");
         }
         if (threshold != null && threshold <= 0) {
-            throw new IllegalArgumentException("Threshold must be positive");
+            throw new IllegalArgumentException("阈值必须为正数");
         }
     }
 

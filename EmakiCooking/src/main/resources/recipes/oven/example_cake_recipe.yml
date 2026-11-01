@@ -1,0 +1,91 @@
+# ============================================================
+# EmakiCooking 烤炉配方示例 - 蜜糖蛋糕
+# ============================================================
+# 演示点：
+# 1. 烤炉是单输入工位，input.item_sources 可写多个可接受的来源
+#    （多材料同时投入请参考炒锅与发酵桶示例）
+# 2. result 的 success / perfect / overbaked 三路结果分支
+# 3. 分支 actions 演示 give_exp、give_potion_effect 与营养动作
+# 4. condition 演示完成时的等级门槛与失败阻断
+# 字段依据：docs/modules/cooking/recipes.md 的「烤炉示例」章节。
+# ============================================================
+
+id: "example_cake"
+display_name: "蜜糖蛋糕"
+
+# ============================================================
+# 输入食材
+# ============================================================
+# input.item_sources 与 input.matcher 取 AND，两者都不写则配方永不命中。
+# matcher 内禁止写物品源条件。
+# 这里放三种可选烘焙原料，放入其中任意一种都能启动本配方。
+input:
+  item_sources:
+    - "minecraft-wheat"
+    - "minecraft-sugar"
+    - "minecraft-egg"
+
+# ============================================================
+# 烘烤参数
+# ============================================================
+# bake_time_seconds：基础烘烤时间（秒）
+# perfect_heat：完美火力区间
+# perfect_required_ratio：处于完美火力区间的时间占比要求
+# overbake_seconds：完成后继续加热多久进入过烤
+bake_time_seconds: 25
+
+baking:
+  perfect_heat:
+    min: 50
+    max: 70
+  perfect_required_ratio: 0.8
+  overbake_seconds: 8
+
+permission: "emakicooking.recipe.example_cake"
+
+# ============================================================
+# 完成条件
+# ============================================================
+condition:
+  type: all_of
+  entries:
+    - "%player_level% >= 3"
+  on_pass:
+    actions:
+      - 'send_message text="<green>蛋糕烤制条件满足。</green>"'
+  on_fail:
+    actions:
+      - 'send_message text="<red>厨艺等级不足，蛋糕无法完成。</red>"'
+    block_output: true
+
+# ============================================================
+# 烘烤结果
+# ============================================================
+# outputs 永远是列表；产物可写 amount、chance、amount_range。
+result:
+  success:
+    outputs:
+      - item_source: "minecraft-bread"
+        amount: 2
+    actions:
+      - 'send_message text="<gold>烤制完成，得到两份面包。</gold>"'
+      - "give_exp amount=8"
+  perfect:
+    outputs:
+      - item_source: "minecraft-cake"
+        amount: 1
+      - item_source: "minecraft-sugar"
+        amount: 2
+        chance: 50
+    actions:
+      - 'send_message text="<green>火候完美，蛋糕蓬松柔软。</green>"'
+      - "give_exp amount=20"
+      - "give_potion_effect type=saturation level=1 duration=200"
+      # 与 nutrition/example_elemental.yml 的营养类型 id 保持一致。
+      - "cooking_add_nutrition type=example_elemental amount=15"
+  overbaked:
+    outputs:
+      - item_source: "minecraft-charcoal"
+        amount: 1
+    actions:
+      - 'send_message text="<red>蛋糕烤焦了，只剩焦炭。</red>"'

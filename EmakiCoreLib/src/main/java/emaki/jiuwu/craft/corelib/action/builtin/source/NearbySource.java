@@ -22,13 +22,13 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class NearbySource extends BaseSource {
 
     public NearbySource() {
-        super("nearby", "Entities around the pipeline origin.",
+        super("nearby", "管道原点周围的实体。",
                 CoreActionExecutionDomain.LOCATION_REGION,
-                CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "1", "Search radius"),
-                CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "1", "Maximum entities"),
-                CoreStageParameter.optional("type", CoreStageParameterType.ENTITY_TYPE, "", "Entity type filter"),
+                CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "1", "搜索半径"),
+                CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "1", "最大实体数"),
+                CoreStageParameter.optional("type", CoreStageParameterType.ENTITY_TYPE, "", "实体类型过滤"),
                 CoreStageParameter.optional("include_players", CoreStageParameterType.BOOLEAN, "false",
-                        "Allow player targets"));
+                        "允许以玩家为目标"));
     }
 
     @Override

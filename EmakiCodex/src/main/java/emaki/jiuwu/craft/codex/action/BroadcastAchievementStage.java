@@ -44,7 +44,7 @@ public final class BroadcastAchievementStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Announces an achievement to the whole server with a vanilla-style sentence.";
+        return "以原版风格的一句话向全服公告一项成就。";
     }
 
     @Override
@@ -55,17 +55,17 @@ public final class BroadcastAchievementStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("title", CoreStageParameterType.STRING, "Achievement title"),
+                CoreStageParameter.required("title", CoreStageParameterType.STRING, "成就标题"),
                 CoreStageParameter.optional("description", CoreStageParameterType.STRING, "",
-                        "Hover tooltip content"),
+                        "悬停提示内容"),
                 CoreStageParameter.optional("frame", CoreStageParameterType.STRING, DEFAULT_FRAME,
-                        "Default sentence to use: task, goal, or challenge"),
+                        "默认句式：task、goal 或 challenge"),
                 CoreStageParameter.optional("format", CoreStageParameterType.STRING, "",
-                        "Overrides the default sentence entirely when non-empty"),
+                        "非空时完全覆盖默认句式"),
                 CoreStageParameter.optional("permission", CoreStageParameterType.STRING, "",
-                        "Only players holding this permission receive the announcement"),
+                        "只有持有该权限的玩家才会收到公告"),
                 CoreStageParameter.optional("console", CoreStageParameterType.BOOLEAN, "true",
-                        "Whether to echo the announcement to the console"));
+                        "是否同时把公告输出到控制台"));
     }
 
     @Override

@@ -17,7 +17,8 @@ public final class DamageTypeRegistry extends DirectoryLoader<DamageTypeDefiniti
     private static final List<String> BUNDLED_RESOURCES = List.of(
             "physical.yml",
             "projectile.yml",
-            "spell.yml"
+            "spell.yml",
+            "example_elemental.yml"
     );
     private final AttributeRegistry attributeRegistry;
     private final Map<String, DamageTypeDefinition> aliasIndex = new LinkedHashMap<>();

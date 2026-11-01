@@ -1,0 +1,91 @@
+# ============================================================
+# EmakiStation 示例配方：祭坛武器合成（example_weapon_station）
+# ============================================================
+# 演示功能：
+#   1. station_ids 归属到 example_altar
+#   2. materials 无序集合匹配（只看种类与总数）
+#   3. duration_seconds 合成耗时
+#   4. result.outputs 固定产物
+#   5. actions.pre / success / failure 阶段动作（当前只解析、不执行）
+# 如何触发：
+#   执行 /emakistation open example_altar，在配方目录中选择本条配方。
+# 依赖：
+#   只用原版物品，不依赖 EmakiItem / EmakiSkills / EmakiAttribute。
+# ============================================================
+# 关于 cost：
+#   货币成本必须写在 cost.currency 子节下（type: vault | excellent）。
+#   一旦写入收费配置，服务器又没有安装 Vault / ExcellentEconomy，
+#   提交时会因余额不足被拒绝（源码走 EconomyManager 的余额检查）。
+#   为了让示例在“无经济插件”环境也能即插即用，这里默认把 cost 整节注释掉，
+#   即免费合成；需要收费时取消下面注释并确认经济插件已安装。
+# cost:
+#   currency:
+#     type: "vault"
+#     amount: 50
+# ============================================================
+
+id: "example_weapon_station"
+display_name: "<gold>祭坛武器合成</gold>"
+
+# 声明配方所属工作站；比较时会转小写。
+# 留空表示对所有工作站开放。
+station_ids:
+  - "example_altar"
+
+# tags 仅保留给 API 查询，不再决定配方归属。
+tags:
+  - "example_altar"
+
+permission: ""
+visible: true
+
+# 单次合成耗时（秒）。0 表示立即完成、不进队列。
+duration_seconds: 20
+
+materials:
+  - material_id: "altar_iron"
+    requirement_id: "altar_iron_input"
+    count_key: "altar_iron"
+    item_sources:
+      - "minecraft-iron_ingot"
+    amount: 3
+    consume: true
+
+  - material_id: "altar_gold"
+    requirement_id: "altar_gold_input"
+    count_key: "altar_gold"
+    item_sources:
+      - "minecraft-gold_ingot"
+    amount: 1
+    consume: true
+
+  - material_id: "altar_stick"
+    requirement_id: "altar_stick_input"
+    count_key: "altar_stick"
+    item_sources:
+      - "minecraft-stick"
+    amount: 2
+    consume: true
+
+result:
+  outputs:
+    - item_source: "minecraft-diamond_sword"
+      amount: 1
+
+# 阶段动作行。当前版本会解析并保存，但运行时不会执行。
+actions:
+  pre:
+    - 'send_action_bar text="<gray>祭坛开始运转……</gray>"'
+  success:
+    - 'send_message text="<green>祭坛合成完成。</green>"'
+  failure:
+    - 'send_message text="<red>祭坛合成失败，材料已按规则退回。</red>"'
+
+# 提交前的条件门：不满足时配方仍在目录里，但点击会被拒绝。
+condition:
+  invalid_as_failure: true
+
+# 解锁条件：不满足时显示为灰色占位，点击无反应。
+# 写得太复杂会拖慢每次目录绘制，这里保持空条件（恒解锁）。
+display_condition:
+  invalid_as_failure: false

@@ -29,11 +29,11 @@ public final class ForgeRefreshStage implements CoreActionStage {
 
     public enum Operation {
 
-        HELD_ITEM("forge_refresh_held", "Re-renders the target's held forged item."),
+        HELD_ITEM("forge_refresh_held", "重新渲染目标主手中的锻造物品。"),
 
-        PLAYER_INVENTORY("forge_refresh_player", "Re-renders every forged item in the target's inventory."),
+        PLAYER_INVENTORY("forge_refresh_player", "重新渲染目标背包中的每个锻造物品。"),
 
-        ONLINE_PLAYERS("forge_refresh_all", "Re-renders forged items for every online player.");
+        ONLINE_PLAYERS("forge_refresh_all", "为所有在线玩家重新渲染锻造物品。");
 
         private final String id;
         private final String description;
@@ -119,7 +119,7 @@ public final class ForgeRefreshStage implements CoreActionStage {
         if (original == null || original.getType().isAir()) {
             return CoreActionOutcome.skipped("action.stage.forge.empty_hand");
         }
-        ItemStack refreshed = refreshService.refreshItem(original);
+        ItemStack refreshed = refreshService.refreshItem(target, original);
         boolean changed = refreshed != original;
         if (changed) {
             target.getInventory().setItemInMainHand(refreshed);

@@ -60,7 +60,7 @@ public class FrameworkException extends RuntimeException {
             result += " {" + contextAsString() + "}";
         }
         if (getCause() != null) {
-            result += " (caused by: " + getCause().getClass().getSimpleName() + ": " + getCause().getMessage() + ")";
+            result += "（起因: " + getCause().getClass().getSimpleName() + ": " + getCause().getMessage() + "）";
         }
         return result;
     }

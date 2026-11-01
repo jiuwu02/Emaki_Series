@@ -1,5 +1,8 @@
 package emaki.jiuwu.craft.corelib.action.pipeline;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
@@ -19,6 +22,9 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 public final class ResolvedArguments implements CoreResolvedArguments {
 
     private static final ResolvedArguments EMPTY = new ResolvedArguments(Map.of(), Map.of());
+
+    private static final Cache<Iterable<CoreStageParameter>, Map<String, String>> DECLARED_DEFAULTS =
+            Caffeine.newBuilder().weakKeys().maximumSize(512).build();
 
     private final Map<String, String> values;
     private final Map<String, String> defaults;
@@ -43,16 +49,21 @@ public final class ResolvedArguments implements CoreResolvedArguments {
                 normalized.put(Texts.lower(entry.getKey()), Texts.toStringSafe(entry.getValue()));
             }
         }
-        Map<String, String> declaredDefaults = new LinkedHashMap<>();
-        if (declared != null) {
-            for (CoreStageParameter parameter : declared) {
-                if (parameter == null || Texts.isBlank(parameter.name())) {
-                    continue;
-                }
-                declaredDefaults.put(Texts.lower(parameter.name()), parameter.defaultValue());
+        Map<String, String> declaredDefaults = declared == null
+                ? Map.of()
+                : DECLARED_DEFAULTS.get(declared, ResolvedArguments::declaredDefaults);
+        return new ResolvedArguments(Map.copyOf(normalized), declaredDefaults);
+    }
+
+    private static Map<String, String> declaredDefaults(Iterable<CoreStageParameter> declared) {
+        Map<String, String> defaults = new LinkedHashMap<>();
+        for (CoreStageParameter parameter : declared) {
+            if (parameter == null || Texts.isBlank(parameter.name())) {
+                continue;
             }
+            defaults.put(Texts.lower(parameter.name()), parameter.defaultValue());
         }
-        return new ResolvedArguments(Map.copyOf(normalized), Map.copyOf(declaredDefaults));
+        return Map.copyOf(defaults);
     }
 
     @Override

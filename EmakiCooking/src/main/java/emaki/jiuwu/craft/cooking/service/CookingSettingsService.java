@@ -24,6 +24,7 @@ import org.joml.Vector3f;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.matcher.Matcher;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -77,6 +78,7 @@ public final class CookingSettingsService {
     private volatile Map<String, ItemDisplayAdjustmentOverride> itemAdjustments = Map.of();
     private volatile Set<String> globalDisabledWorlds = Set.of();
     private volatile Map<StationType, Set<String>> stationDisabledWorlds = Map.of();
+    private volatile Map<StationType, List<ItemSourceRef>> stationBlockSourceCache = Map.of();
 
     private final ChoppingBoardSettings choppingBoardSettings;
     private final GrinderSettings grinderSettings;
@@ -104,13 +106,47 @@ public final class CookingSettingsService {
         ovenGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("oven.yml").toFile());
         juicerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("juicer.yml").toFile());
         fermentationBarrelGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("fermentation_barrel.yml").toFile());
+        warnLegacyMatcherKeys();
         itemAdjustments = loadItemAdjustments();
         globalDisabledWorlds = disabledWorldSet(configuration.get("station.disabled_worlds"));
         stationDisabledWorlds = loadStationDisabledWorlds();
+        stationBlockSourceCache = loadStationBlockSources();
+    }
+
+    private void warnLegacyMatcherKeys() {
+        warnLegacyMatcherKeys("stations.chopping_board", "tool", "tool_item_sources", "tool_matcher");
+        warnLegacyMatcherKeys("stations.wok", "spatula", "spatula_item_sources", "spatula_matcher");
+        warnLegacyMatcherKeys("stations.juicer", "container", "container_item_sources", "container_matcher");
+        int index = 0;
+        for (Map<?, ?> raw : configuration.getMapList("stations.steamer.moisture_rules")) {
+            Map<String, Object> rule = MapYamlSection.normalizeMap(raw);
+            if (rule.containsKey("input_item_sources") || rule.containsKey("input_matcher")) {
+                boolean nested = rule.get("input") instanceof Map<?, ?>;
+                plugin.getLogger().warning("[config] stations.steamer.moisture_rules[" + index
+                        + "] 处的旧版烹饪匹配键已弃用；请使用 input.item_sources 与 input.matcher，"
+                        + (nested ? "嵌套输入配置优先" : "旧键仅作兼容读取"));
+            }
+            index++;
+        }
+    }
+
+    private void warnLegacyMatcherKeys(String ownerPath, String nestedKey, String legacySourcesKey, String legacyMatcherKey) {
+        YamlSection owner = configuration.getSection(ownerPath);
+        if (owner == null || (!owner.contains(legacySourcesKey) && !owner.contains(legacyMatcherKey))) {
+            return;
+        }
+        YamlSection nested = owner.getSection(nestedKey);
+        plugin.getLogger().warning("[config] " + ownerPath + "." + legacySourcesKey + "/" + legacyMatcherKey
+                + " 处的旧版烹饪匹配键已弃用；请使用 " + ownerPath + "." + nestedKey + ".item_sources 与 .matcher，"
+                + (nested != null && !nested.isEmpty() ? "嵌套配置优先" : "旧键仅作兼容读取"));
     }
 
     public List<ItemSourceRef> stationBlockSources(StationType stationType) {
-        return parseSources(configuration.get(stationPath(stationType) + ".block_item_sources"));
+        if (stationType == null) {
+            return List.of();
+        }
+        List<ItemSourceRef> sources = stationBlockSourceCache.get(stationType);
+        return sources == null ? List.of() : sources;
     }
 
     public ItemSourceRef stationBlockSource(StationType stationType) {
@@ -274,8 +310,8 @@ public final class CookingSettingsService {
         return choppingBoardSettings.interactionDelayMs();
     }
 
-    public Matcher choppingToolMatcher() {
-        return choppingBoardSettings.toolMatcher();
+    public ItemRequirement choppingToolRequirement() {
+        return choppingBoardSettings.toolRequirement();
     }
 
     public boolean choppingCutDamageEnabled() {
@@ -314,8 +350,8 @@ public final class CookingSettingsService {
         return wokSettings.timeoutMs();
     }
 
-    public Matcher wokSpatulaMatcher() {
-        return wokSettings.spatulaMatcher();
+    public ItemRequirement wokSpatulaRequirement() {
+        return wokSettings.spatulaRequirement();
     }
 
     public List<HeatLevelRule> wokHeatLevels() {
@@ -462,8 +498,8 @@ public final class CookingSettingsService {
         return juicerSettings.requireContainer();
     }
 
-    public Matcher juicerContainerMatcher() {
-        return juicerSettings.containerMatcher();
+    public ItemRequirement juicerContainerRequirement() {
+        return juicerSettings.containerRequirement();
     }
 
     public int juicerMaxFluidMl() {
@@ -639,6 +675,14 @@ public final class CookingSettingsService {
         DisplayAdjustmentSpec stationDefaults = parseDisplayAdjustmentSpec(
                 configuration.getSection("display_adjustments.station_defaults." + stationType.folderName() + "." + kind.path()));
         return stationDefaults == null ? resolved : stationDefaults.resolve(resolved);
+    }
+
+    private Map<StationType, List<ItemSourceRef>> loadStationBlockSources() {
+        EnumMap<StationType, List<ItemSourceRef>> result = new EnumMap<>(StationType.class);
+        for (StationType stationType : StationType.values()) {
+            result.put(stationType, parseSources(configuration.get(stationPath(stationType) + ".block_item_sources")));
+        }
+        return Map.copyOf(result);
     }
 
     private Map<StationType, Set<String>> loadStationDisabledWorlds() {
@@ -839,12 +883,20 @@ public final class CookingSettingsService {
         public SteamerFuelRule(ItemSourceRef source, int durationSeconds) {
             this(source, durationSeconds, null);
         }
+
+        public ItemRequirement requirement() {
+            return requirementOf(source, matcher);
+        }
     }
 
     public record SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture, Matcher matcher) {
 
         public SteamerMoistureRule(ItemSourceRef inputSource, ItemSourceRef outputSource, int moisture) {
             this(inputSource, outputSource, moisture, null);
+        }
+
+        public ItemRequirement inputRequirement() {
+            return requirementOf(inputSource, matcher);
         }
     }
 
@@ -853,6 +905,15 @@ public final class CookingSettingsService {
         public OvenFuelRule(ItemSourceRef source, int durationSeconds, int heat) {
             this(source, durationSeconds, heat, null);
         }
+
+        public ItemRequirement requirement() {
+            return requirementOf(source, matcher);
+        }
+    }
+
+    static ItemRequirement requirementOf(ItemSourceRef source, Matcher matcher) {
+        List<ItemSourceRef> sources = source == null ? List.of() : List.of(source);
+        return new ItemRequirement(sources, matcher, ItemRequirement.sourceIdentity(sources));
     }
 
     private enum DisplayAdjustmentKind {

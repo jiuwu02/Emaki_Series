@@ -11,12 +11,11 @@ display_name: "清蒸鳕鱼"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入蒸笼的原料物品。判定完全由 matcher 决定，必填，缺失这条配方永不命中。
+# 放入蒸笼的原料物品。判定由同级 item_sources 与 matcher 取 AND，
+# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
 input:
-  matcher:
-    type: item_source
-    sources:
-      - minecraft-cod
+  item_sources:
+    - minecraft-cod
 
 # ============================================================
 # 蒸制参数
@@ -51,8 +50,7 @@ condition:
 result:
   success:
     outputs:
-      - item_sources:
-          - "minecraft-cooked_cod"
+      - item_source: "minecraft-cooked_cod"
         amount: 1
     actions:
       - 'send_message text="<aqua>蒸制完成。</aqua>"'

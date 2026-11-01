@@ -1,0 +1,31 @@
+# ============================================================
+# EmakiMobs 刷新规则示例 - 夜晚原版拦截
+# 演示 natural（原版事件拦截）的可用字段：worlds / biomes /
+# y_range / light_level_max / replacement_chance / max_nearby /
+# count。满足条件时按概率把原版刷出的生物替换成自定义生物。
+# 注意：natural 规则没有 time_of_day 字段，condition 也没有
+# 玩家与世界上下文，因此"夜晚"通过 light_level_max 表达；
+# 需要严格时段控制时请改用 autonomous + time_of_day。
+# mob_id 引用 mobs/example_skeleton_archer.yml 中已定义的生物。
+# ============================================================
+rules:
+  - mob_id: example_skeleton_archer
+    type: natural
+    # 维度/世界限制：只影响主世界
+    worlds:
+      - world
+    biomes:
+      - plains
+      - forest
+      - taiga
+      - dark_forest
+    y_range:
+      - 50
+      - 120
+    # 光照等级不超过 7 才会替换，等价于夜晚或洞穴等暗处
+    light_level_max: 7
+    replacement_chance: 0.08
+    max_nearby: 2
+    count:
+      min: 1
+      max: 1

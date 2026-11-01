@@ -155,7 +155,7 @@ final class ForgeGuiRenderer {
                 continue;
             }
             int required = Math.max(1, material.amount());
-            int placed = placedAmounts.getOrDefault(material.key(), 0);
+            int placed = placedAmounts.getOrDefault(material.countKey(), 0);
             lines.add(text(state, placed >= required
                     ? "gui.blueprint.requirement_satisfied"
                     : "gui.blueprint.requirement_missing", Map.of(

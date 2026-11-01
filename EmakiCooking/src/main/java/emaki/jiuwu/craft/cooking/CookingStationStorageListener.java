@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.cooking;
 
+import java.util.Map;
 import java.util.Set;
 
 import org.bukkit.World;
@@ -104,8 +105,9 @@ final class CookingStationStorageListener implements Listener {
         if (indexedBackend == StationStorageBackend.BLOCK_PDC
                 && stateStore.backendFor(coordinates.block()) == StationStorageBackend.YAML_FALLBACK) {
             String type = indexedType == null ? "unknown" : indexedType.folderName();
-            plugin.getLogger().warning("Station restore report: lost_block_entity_replaced type=" + type
-                    + " coordinate=" + coordinates.runtimeKey());
+            plugin.messageService().warning("console.station_restore_lost_block_entity", Map.of(
+                    "type", type,
+                    "coordinate", coordinates.runtimeKey()));
         }
     }
 

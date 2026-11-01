@@ -1,0 +1,21 @@
+# ============================================================
+# EmakiAttribute 示例：渐变 Lore 格式
+# ============================================================
+# 演示功能：
+#   - format 使用 %name% / %sign% / %value% 模板变量
+#   - MiniMessage gradient 标签只用于展示，读取正则按纯文本匹配
+#   - read_priority: 70，低于内置 default_percent(100) 但高于 flat(50)
+# 使用方式：在属性定义中写 lore_format_id: example_gradient
+# ============================================================
+
+id: example_gradient
+
+format: "<gradient:#FDE047:#F97316>%name%</gradient> <gradient:#22D3EE:#818CF8>%sign%%value%</gradient>"
+
+precision: 2
+
+read_priority: 70
+
+# %Key% 匹配属性 display_name；%Value% 支持单值与 a-b / a~b 区间。
+read_patterns:
+  - "%Key%.*?: ?%Value%$"

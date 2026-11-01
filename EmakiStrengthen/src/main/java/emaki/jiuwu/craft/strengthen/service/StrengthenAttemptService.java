@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -16,6 +17,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionItemTarget;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
@@ -31,6 +33,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.CraftRollEngine;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRenderer;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
@@ -77,7 +80,8 @@ public final class StrengthenAttemptService {
             StrengthenSnapshotBuilder snapshotBuilder,
             StrengthenActionCoordinator actionCoordinator,
             EmakiItemAssemblyService itemAssemblyService,
-            ThreadOwnership threadOwnership) {
+            ThreadOwnership threadOwnership,
+            PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.recipeResolver = recipeResolver;
         this.materialPlanResolver = new MaterialPlanResolver(recipeResolver, plugin);
@@ -88,7 +92,7 @@ public final class StrengthenAttemptService {
         this.itemAssemblyService = itemAssemblyService;
         this.threadOwnership = threadOwnership;
         this.pdcAttributeWriter = new StrengthenPdcAttributeWriter(plugin, PDC_ATTRIBUTE_SOURCE_ID);
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
     }
 
     public boolean canStrengthen(ItemStack itemStack) {
@@ -209,13 +213,16 @@ public final class StrengthenAttemptService {
         }
 
         AttemptResult result = null;
+        AttemptPreview preview = null;
         try {
             logOperation(player, operationId, "started", AttemptOutcome.NOT_COMMITTED);
-            result = attemptOnce(player, safeContext, operationId);
+            preview = preview(player, safeContext);
+            result = attemptOnce(player, safeContext, preview, operationId);
         } catch (RuntimeException | LinkageError exception) {
-            plugin.getLogger().severe("Strengthen attempt failed closed | operationId=" + operationId
-                    + " | error=" + exception.getMessage());
-            result = internalFailure(player, safeContext, operationId);
+            plugin.messageService().severe("console.strengthen_attempt_failed_closed", Map.of(
+                    "operation_id", Texts.toStringSafe(operationId),
+                    "error", String.valueOf(exception.getMessage())));
+            result = internalFailure(player, safeContext, preview, operationId);
         } finally {
             if (result == null) {
                 result = AttemptResult.failure("strengthen.error.internal", null, Map.of(), operationId);
@@ -227,9 +234,12 @@ public final class StrengthenAttemptService {
         return result;
     }
 
-    private AttemptResult internalFailure(Player player, AttemptContext context, String operationId) {
+    private AttemptResult internalFailure(Player player,
+            AttemptContext context,
+            AttemptPreview resolvedPreview,
+            String operationId) {
         try {
-            AttemptPreview failedPreview = preview(player, context);
+            AttemptPreview failedPreview = resolvedPreview == null ? preview(player, context) : resolvedPreview;
             return AttemptResult.failure("strengthen.error.internal", failedPreview,
                     replacements(failedPreview, failedPreview.currentStar()), operationId);
         } catch (RuntimeException | LinkageError ignored) {
@@ -237,8 +247,10 @@ public final class StrengthenAttemptService {
         }
     }
 
-    private AttemptResult attemptOnce(Player player, AttemptContext context, String operationId) {
-        AttemptPreview preview = preview(player, context);
+    private AttemptResult attemptOnce(Player player,
+            AttemptContext context,
+            AttemptPreview preview,
+            String operationId) {
         if (!preview.eligible()) {
             return finishAttempt(player, AttemptResult.failure(preview.errorKey(), preview,
                     replacements(preview, preview.currentStar()), operationId));
@@ -304,7 +316,8 @@ public final class StrengthenAttemptService {
                 currentState.branchPath()
         );
 
-        ItemStack rebuilt = rebuildWithState(context.targetItem(), updated, buildMaterialsSignature(preview));
+        ItemStack rebuilt = rebuildWithState(context.targetItem(), updated, buildMaterialsSignature(preview),
+                player == null ? null : ActionContext.create(player, "attempt", true));
         if (rebuilt == null) {
             return finishAttempt(player, AttemptResult.failure("strengthen.error.rebuild_failed", preview,
                     replacements(preview, resultStar), operationId));
@@ -328,8 +341,9 @@ public final class StrengthenAttemptService {
             try {
                 Bukkit.getPluginManager().callEvent(new StrengthenAttemptEvent(player, result));
             } catch (RuntimeException | LinkageError exception) {
-                plugin.getLogger().warning("Strengthen result event dispatch failed | operationId="
-                        + result.operationId() + " | error=" + exception.getMessage());
+                plugin.messageService().warning("console.strengthen_result_dispatch_failed", Map.of(
+                        "operation_id", Texts.toStringSafe(result.operationId()),
+                        "error", String.valueOf(exception.getMessage())));
             }
         }
         return result;
@@ -422,6 +436,10 @@ public final class StrengthenAttemptService {
     }
 
     public ItemStack rebuild(ItemStack itemStack) {
+        return rebuild(null, itemStack);
+    }
+
+    public ItemStack rebuild(Player player, ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return itemStack;
         }
@@ -430,10 +448,15 @@ public final class StrengthenAttemptService {
         if (!state.hasLayer() || Texts.isBlank(state.recipeId())) {
             return itemStack;
         }
-        return rebuildWithState(itemStack, state, resolvedState.stored().materialsSignature());
+        return rebuildWithState(itemStack, state, resolvedState.stored().materialsSignature(),
+                player == null ? null : ActionContext.create(player, "rebuild", true));
     }
 
     public ItemStack applyAdminState(ItemStack itemStack, Integer star, Integer temper, String recipeId) {
+        return applyAdminState(null, itemStack, star, temper, recipeId);
+    }
+
+    public ItemStack applyAdminState(Player player, ItemStack itemStack, Integer star, Integer temper, String recipeId) {
         StrengthenState current = readState(itemStack);
         if (Texts.isBlank(current.baseSource())) {
             return null;
@@ -458,10 +481,16 @@ public final class StrengthenAttemptService {
                 System.currentTimeMillis(),
                 current.branchPath()
         );
-        return rebuildWithState(itemStack, updated, readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature());
+        return rebuildWithState(itemStack, updated,
+                readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()), current.baseSourceSignature()).materialsSignature(),
+                player == null ? null : ActionContext.create(player, "admin", true));
     }
 
     public BranchSelection selectBranch(ItemStack itemStack, String childId) {
+        return selectBranch(null, itemStack, childId);
+    }
+
+    public BranchSelection selectBranch(Player player, ItemStack itemStack, String childId) {
         StrengthenState current = readState(itemStack);
         if (!current.eligible()) {
             return BranchSelection.failure(Texts.isBlank(current.eligibleReason())
@@ -513,7 +542,8 @@ public final class StrengthenAttemptService {
         );
         ItemStack rebuilt = rebuildWithState(itemStack, updated,
                 readStoredState(itemStack, ItemSourceUtil.parse(current.baseSource()),
-                        current.baseSourceSignature()).materialsSignature());
+                        current.baseSourceSignature()).materialsSignature(),
+                player == null ? null : ActionContext.create(player, "branch", true));
         if (rebuilt == null) {
             return BranchSelection.failure("strengthen.branch.apply_failed");
         }
@@ -677,7 +707,8 @@ public final class StrengthenAttemptService {
         return flags;
     }
 
-    private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature) {
+    private ItemStack rebuildWithState(ItemStack itemStack, StrengthenState state, String materialsSignature,
+            ActionContext actionContext) {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
@@ -699,12 +730,13 @@ public final class StrengthenAttemptService {
             rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
             pdcAttributeWriter.preserveOtherAttributePayloads(itemStack, rebuilt);
             pdcAttributeWriter.applyPdcAttributes(rebuilt, recipe, state);
-            applyStrengthenOperations(rebuilt, recipe, state);
+            applyStrengthenOperations(rebuilt, recipe, state, actionContext);
         }
         return rebuilt;
     }
 
-    private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state) {
+    private void applyStrengthenOperations(ItemStack itemStack, StrengthenRecipe recipe, StrengthenState state,
+            ActionContext actionContext) {
         Object nameActions = recipe.cumulativeNameActions(state.currentStar(), state.branchPath());
         Object loreActions = recipe.cumulativeLoreActions(state.currentStar(), state.branchPath());
         if ((nameActions instanceof List<?> nameList && nameList.isEmpty())
@@ -721,20 +753,36 @@ public final class StrengthenAttemptService {
         variables.put("temper", state.temperLevel());
         variables.put("max_temper", recipe.limits().maxTemper());
         operationLedger.revertAll(itemStack, OPERATION_NAMESPACE);
-        operationLedger.apply(itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
+        operationLedger.apply(actionContext, itemStack, operationId, OPERATION_NAMESPACE, nameActions, loreActions, variables);
     }
 
     private String buildMaterialsSignature(AttemptPreview preview) {
-        List<Object> signatureData = new ArrayList<>();
-        if (preview != null && preview.optionalMaterials() != null) {
-            for (AttemptMaterial material : preview.optionalMaterials()) {
-                if (material == null || Texts.isBlank(material.item()) || material.consumedAmount() <= 0) {
+        return SignatureUtil.stableSignature(materialSignatureRows(
+                preview == null ? List.of() : preview.optionalMaterials()));
+    }
+
+    static List<Object> materialSignatureRows(List<AttemptMaterial> materials) {
+        Map<String, Integer> amountsByIdentity = new TreeMap<>();
+        Map<String, MaterialSignatureEntry> identities = new TreeMap<>();
+        if (materials != null) {
+            for (AttemptMaterial material : materials) {
+                if (material == null || material.consumedAmount() <= 0) {
                     continue;
                 }
-                signatureData.add(Map.of("item", material.item(), "amount", material.consumedAmount()));
+                MaterialSignatureEntry identity = new MaterialSignatureEntry(
+                        material.materialId(), material.countKey(), 0);
+                String key = identity.materialId() + "\u0000" + identity.countKey();
+                identities.putIfAbsent(key, identity);
+                amountsByIdentity.merge(key, material.consumedAmount(), Integer::sum);
             }
         }
-        return SignatureUtil.stableSignature(signatureData);
+        List<Object> signatureData = new ArrayList<>();
+        for (Map.Entry<String, MaterialSignatureEntry> entry : identities.entrySet()) {
+            MaterialSignatureEntry identity = entry.getValue();
+            signatureData.add(new MaterialSignatureEntry(identity.materialId(), identity.countKey(),
+                    amountsByIdentity.getOrDefault(entry.getKey(), 0)).row());
+        }
+        return List.copyOf(signatureData);
     }
 
     private Map<String, Object> replacements(AttemptPreview preview, int star) {
@@ -772,7 +820,7 @@ public final class StrengthenAttemptService {
         var message = plugin.messageService() == null
                 ? ""
                 : plugin.messageService().message("strengthen.misc.free_cost");
-        return Texts.isBlank(message) ? "Free" : message;
+        return Texts.isBlank(message) ? "免费" : message;
     }
 
     private Set<Integer> collectFirstReach(Set<Integer> currentFlags, int targetStar) {

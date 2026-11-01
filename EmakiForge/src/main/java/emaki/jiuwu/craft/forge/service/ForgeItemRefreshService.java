@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
@@ -21,24 +22,40 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
+import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemLayerSnapshot;
 import emaki.jiuwu.craft.corelib.api.assembly.ItemOperationEntry;
 import emaki.jiuwu.craft.corelib.assembly.ItemOperationLedger;
+import emaki.jiuwu.craft.corelib.cache.CacheManager;
 import emaki.jiuwu.craft.corelib.api.config.ConfigNodes;
+import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
+import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.item.PlayerItemRefreshService;
+import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
+import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.corelib.placeholder.PlaceholderRegistry;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.ForgeMaterial;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
 public final class ForgeItemRefreshService implements PlayerItemRefreshService {
+
+    private static final int PLAN_CACHE_SIZE = 512;
+    private static final long PLAN_CACHE_TTL_MILLIS = 60_000L;
+    private static final int FIRST_ARMOR_SLOT = 36;
+    private static final int OFF_HAND_SLOT = 40;
+    private static final String[] ARMOR_SLOT_TARGETS = {"feet", "legs", "chest", "head"};
+    private static final String ASSEMBLY_SIGNATURE_FIELD = "assembly_signature";
+    private static final String LEGACY_ITEM_PARTITION = "item";
 
     private final EmakiForgePlugin plugin;
     private final EmakiItemAssemblyService itemAssemblyService;
@@ -48,16 +65,22 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     private final ForgeQualityModifierResolver qualityModifierResolver = new ForgeQualityModifierResolver();
     private final ItemOperationLedger operationLedger;
     private final Set<String> warningCache = new LinkedHashSet<>();
+    private final CacheManager<String, CachedPlan> planCache = new CacheManager<>(PLAN_CACHE_SIZE, PLAN_CACHE_TTL_MILLIS);
+    private final PdcService pdcService;
+    private final PdcPartition itemPartition;
 
     public ForgeItemRefreshService(EmakiForgePlugin plugin,
                                    EmakiItemAssemblyService itemAssemblyService,
-                                   ExecutionDispatcher executionDispatcher) {
+                                   ExecutionDispatcher executionDispatcher,
+                                   PlaceholderRegistry placeholderRegistry) {
         this.plugin = plugin;
         this.itemAssemblyService = itemAssemblyService;
         this.executionDispatcher = executionDispatcher;
         this.snapshotBuilder = new ForgeLayerSnapshotBuilder(plugin);
         this.pdcAttributeWriter = new ForgePdcAttributeWriter(plugin);
-        this.operationLedger = new ItemOperationLedger(plugin::debugLogger);
+        this.operationLedger = new ItemOperationLedger(plugin::debugLogger, placeholderRegistry);
+        this.pdcService = new PdcService("emaki", "forge", plugin.debugLogger());
+        this.itemPartition = pdcService.partition("item");
     }
 
     public CompletableFuture<RefreshSummary> refreshOnlinePlayers() {
@@ -69,6 +92,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         synchronized (warningCache) {
             warningCache.clear();
         }
+        planCache.clear();
         List<Player> players = List.copyOf(Bukkit.getOnlinePlayers());
         if (players.isEmpty()) {
             return CompletableFuture.completedFuture(new RefreshSummary(generation, 0, 0, 0, 0,
@@ -78,7 +102,21 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         AtomicInteger skipped = new AtomicInteger();
         AtomicInteger failed = new AtomicInteger();
         List<CompletableFuture<Void>> refreshes = new ArrayList<>(players.size());
+        ThreadOwnership ownership = plugin.threadOwnership();
         for (Player player : players) {
+            if (ownership != null && ownership.isEntityOwned(player)) {
+                try {
+                    if (!player.isOnline() || !plugin.isGenerationActive(generation)) {
+                        skipped.incrementAndGet();
+                    } else {
+                        refreshPlayerInventory(player);
+                        refreshed.incrementAndGet();
+                    }
+                } catch (Throwable throwable) {
+                    failed.incrementAndGet();
+                }
+                continue;
+            }
             CompletableFuture<Void> refresh = new CompletableFuture<>();
             refreshes.add(refresh);
             try {
@@ -107,7 +145,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                 if (scheduled == null) {
                     failed.incrementAndGet();
                     refresh.completeExceptionally(new RejectedExecutionException(
-                            "Forge player refresh scheduling was rejected."));
+                            "Forge 玩家刷新调度被拒绝。"));
                 }
             } catch (Throwable throwable) {
                 failed.incrementAndGet();
@@ -154,6 +192,77 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     @Override
+    public void refreshPlayerSlots(Player player, Set<Integer> slots, boolean full) {
+        if (player == null || !player.isOnline()) {
+            return;
+        }
+        if (full) {
+            refreshPlayerInventory(player);
+            return;
+        }
+        PlayerInventory inventory = player.getInventory();
+        ItemStack[] storage = null;
+        boolean storageChanged = false;
+        ItemStack[] armor = null;
+        boolean armorChanged = false;
+        for (int slot : orderedSlots(slots)) {
+            if (slot < FIRST_ARMOR_SLOT) {
+                if (storage == null) {
+                    storage = inventory.getStorageContents();
+                }
+                if (slot >= storage.length) {
+                    continue;
+                }
+                ItemStack original = storage[slot];
+                ItemStack refreshed = refreshItem(player, "storage:" + slot, original, true);
+                if (refreshed != original) {
+                    storage[slot] = refreshed;
+                    storageChanged = true;
+                }
+            } else if (slot < OFF_HAND_SLOT) {
+                if (armor == null) {
+                    armor = inventory.getArmorContents();
+                }
+                int index = slot - FIRST_ARMOR_SLOT;
+                if (index >= armor.length) {
+                    continue;
+                }
+                String target = "armor:" + (index < ARMOR_SLOT_TARGETS.length ? ARMOR_SLOT_TARGETS[index] : index);
+                ItemStack original = armor[index];
+                ItemStack refreshed = refreshItem(player, target, original, true);
+                if (refreshed != original) {
+                    armor[index] = refreshed;
+                    armorChanged = true;
+                }
+            } else if (slot == OFF_HAND_SLOT) {
+                ItemStack offHand = inventory.getItemInOffHand();
+                ItemStack refreshedOffHand = refreshItem(player, "offhand", offHand, true);
+                if (refreshedOffHand != offHand) {
+                    inventory.setItemInOffHand(refreshedOffHand);
+                }
+            }
+        }
+        if (storageChanged) {
+            inventory.setStorageContents(storage);
+        }
+        if (armorChanged) {
+            inventory.setArmorContents(armor);
+        }
+        ItemStack cursor = player.getItemOnCursor();
+        ItemStack refreshedCursor = refreshItem(player, "cursor", cursor, true);
+        if (refreshedCursor != cursor) {
+            player.setItemOnCursor(refreshedCursor);
+        }
+    }
+
+    private Set<Integer> orderedSlots(Set<Integer> slots) {
+        if (slots == null || slots.isEmpty()) {
+            return Set.of();
+        }
+        return new TreeSet<>(slots);
+    }
+
+    @Override
     public void refreshDroppedItem(Item itemEntity) {
         if (itemEntity == null || !itemEntity.isValid()) {
             return;
@@ -168,6 +277,10 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         return refreshItem(null, "direct", itemStack);
     }
 
+    public ItemStack refreshItem(Player player, ItemStack itemStack) {
+        return refreshItem(player, "held", itemStack);
+    }
+
     private ItemStack refreshItem(Player player, String target, ItemStack itemStack) {
         return refreshItem(player, target, itemStack, false);
     }
@@ -180,6 +293,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemAssemblyService == null) {
             return itemStack;
         }
+        ActionContext context = player == null ? null : ActionContext.create(player, "forge.refresh", true);
         debugForgeRefresh(player, target, "input", plan, itemStack);
         EmakiItemLayerSnapshot snapshot = snapshotBuilder.buildLayerSnapshot(
                 plan.recipe(),
@@ -205,7 +319,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
                     Map.of("recipe", plan.recipe().id())
             );
             if (failOnRefreshError) {
-                throw new IllegalStateException("Forge item assembly failed for recipe '" + plan.recipe().id() + "'.");
+                throw new IllegalStateException("配方 '" + plan.recipe().id() + "' 的锻造物品组装失败。");
             }
             return itemStack;
         }
@@ -214,14 +328,14 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (stateLoss.detected()) {
             debugForgeStateLoss(player, target, plan, stateLoss, itemStack, rebuilt);
             if (failOnRefreshError) {
-                throw new IllegalStateException("Forge item refresh would discard persistent state for recipe '"
-                        + plan.recipe().id() + "'.");
+                throw new IllegalStateException("刷新配方 '"
+                        + plan.recipe().id() + "' 的锻造物品会丢弃持久化状态。");
             }
             return itemStack;
         }
         rebuilt.setAmount(Math.max(1, itemStack.getAmount()));
         pdcAttributeWriter.apply(plan.recipe(), plan.materials(), plan.multiplier(), plan.qualityTier(), rebuilt);
-        applyRefreshOperations(rebuilt, plan);
+        applyRefreshOperations(rebuilt, plan, context);
         debugForgeRefresh(player, target, "output", plan, rebuilt);
         return rebuilt;
     }
@@ -264,6 +378,29 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         if (itemStack == null || itemStack.getType().isAir()) {
             return null;
         }
+        String signature = assemblySignature(itemStack);
+        if (signature == null) {
+            return computeRefreshPlan(itemStack);
+        }
+        long generation = plugin.runtimeGeneration();
+        CachedPlan cached = planCache.get(signature);
+        if (cached != null && cached.generation() == generation) {
+            return cached.plan();
+        }
+        RefreshPlan plan = computeRefreshPlan(itemStack);
+        if (plan != null) {
+            planCache.put(signature, new CachedPlan(generation, plan));
+        }
+        return plan;
+    }
+
+    private String assemblySignature(ItemStack itemStack) {
+        String signature = pdcService.getMigrating(itemStack, itemPartition,
+                LEGACY_ITEM_PARTITION, ASSEMBLY_SIGNATURE_FIELD, PersistentDataType.STRING);
+        return Texts.isBlank(signature) ? null : signature;
+    }
+
+    private RefreshPlan computeRefreshPlan(ItemStack itemStack) {
         if (itemAssemblyService == null || !itemAssemblyService.isEmakiItem(itemStack)) {
             return null;
         }
@@ -277,7 +414,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             warnOnce(
                     "missing_recipe_id|" + snapshotIdentity(audit),
                     "console.forge_refresh_invalid_audit",
-                    Map.of("reason", "missing recipe_id")
+                    Map.of("reason", "缺少 recipe_id")
             );
             return null;
         }
@@ -301,13 +438,20 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
             );
             return null;
         }
-        List<ForgeMaterialContribution> materials = resolveAuditMaterials(recipeId, audit.get("materials"), snapshotIdentity(audit));
-        if (materials == null) {
+        ResolvedAuditMaterials resolvedMaterials = resolveAuditMaterials(
+                recipe,
+                audit.get("materials"),
+                snapshotIdentity(audit)
+        );
+        if (resolvedMaterials == null) {
             return null;
         }
+        List<ForgeMaterialContribution> materials = resolvedMaterials.materials();
         String signature = snapshotBuilder.buildMaterialsSignature(materials);
         String oldSignature = Texts.toStringSafe(audit.get("materials_signature"));
-        boolean shouldRefresh = Texts.isBlank(oldSignature) || !oldSignature.equals(signature);
+        boolean shouldRefresh = resolvedMaterials.requiresIdentityMigration()
+                || Texts.isBlank(oldSignature)
+                || !oldSignature.equals(signature);
         if (!shouldRefresh) {
             return new RefreshPlan(false, recipe, materials, storedTier, storedTier.multiplier(), readForgedAt(audit), signature);
         }
@@ -319,47 +463,70 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         return new RefreshPlan(true, recipe, materials, refreshedTier, refreshedTier.multiplier(), readForgedAt(audit), signature);
     }
 
-    private List<ForgeMaterialContribution> resolveAuditMaterials(String recipeId, Object rawMaterials, String snapshotId) {
+    private ResolvedAuditMaterials resolveAuditMaterials(Recipe recipe, Object rawMaterials, String snapshotId) {
+        if (recipe == null) {
+            return null;
+        }
         List<ForgeMaterialContribution> result = new ArrayList<>();
+        boolean requiresIdentityMigration = false;
         int fallbackSequence = 0;
         for (Object rawEntry : ConfigNodes.asObjectList(rawMaterials)) {
             Map<String, Object> entry = ConfigNodes.entries(rawEntry);
-            String materialItem = ConfigNodes.string(entry, "material_item", null);
-            if (Texts.isBlank(materialItem)) {
-                warnOnce(
-                        "invalid_material_entry|" + recipeId + "|" + snapshotId + "|" + fallbackSequence,
-                        "console.forge_refresh_invalid_audit",
-                        Map.of("reason", "missing material_item")
-                );
-                return null;
-            }
-            Recipe recipe = plugin.recipeLoader().all().get(recipeId);
-            ForgeMaterial material = recipe == null ? null : recipe.findMaterialByItem(materialItem);
+            ForgeAuditIdentityResolver.Resolution<ForgeMaterial> resolution = ForgeAuditIdentityResolver.resolve(
+                    entry,
+                    recipe::findMaterialByAuditId,
+                    recipe::findMaterialByIdentity,
+                    recipe::findMaterialByCountKey,
+                    recipe::findMaterialByItem);
+            ForgeMaterial material = resolution.value();
             if (material == null) {
-                warnOnce(
-                        "missing_material|" + recipeId + "|" + materialItem + "|" + snapshotId,
-                        "console.forge_refresh_missing_material",
-                        Map.of("recipe", recipeId, "material", materialItem)
-                );
+                String lookupIdentity = resolution.lookupIdentity();
+                if (Texts.isBlank(lookupIdentity)) {
+                    warnOnce(
+                            "invalid_material_entry|" + recipe.id() + "|" + snapshotId + "|" + fallbackSequence,
+                            "console.forge_refresh_invalid_audit",
+                            Map.of("reason", "缺少材料标识")
+                    );
+                } else {
+                    warnOnce(
+                            "missing_material|" + recipe.id() + "|" + lookupIdentity + "|" + snapshotId,
+                            "console.forge_refresh_missing_material",
+                            Map.of("recipe", recipe.id(), "material", lookupIdentity)
+                    );
+                }
                 return null;
             }
-            int amount = Numbers.tryParseInt(entry.get("amount"), 0);
-            if (amount <= 0) {
+            requiresIdentityMigration |= resolution.requiresMigration();
+            int amount = resolution.fields().contributionAmount();
+            int amountConsumed = resolution.fields().amountConsumed();
+            if (amount <= 0 || amountConsumed <= 0) {
                 fallbackSequence++;
                 continue;
             }
+            int slot = Numbers.tryParseInt(entry.get("slot"), -1);
             int sequence = Numbers.tryParseInt(entry.get("sequence"), fallbackSequence);
             result.add(new ForgeMaterialContribution(
                     material,
                     amount,
-                    Numbers.tryParseInt(entry.get("slot"), -1),
+                    amountConsumed,
+                    slot,
                     ConfigNodes.string(entry, "category", ""),
                     sequence,
-                    material.source()
+                    resolveMatchedSource(entry, material),
+                    List.of(Map.of("slot", slot, "amount", amountConsumed))
             ));
             fallbackSequence = Math.max(fallbackSequence + 1, sequence + 1);
         }
-        return result;
+        return new ResolvedAuditMaterials(result, requiresIdentityMigration);
+    }
+
+    private ItemSourceRef resolveMatchedSource(Map<String, Object> entry, ForgeMaterial material) {
+        String raw = ConfigNodes.string(entry, "matched_source", ConfigNodes.string(entry, "source", ""));
+        ItemSourceRef source = ItemSourceUtil.parse(raw);
+        if (source != null) {
+            return source;
+        }
+        return material == null ? null : material.source();
     }
 
     private long readForgedAt(Map<String, Object> audit) {
@@ -508,7 +675,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         plugin.messageService().warning(messageKey, replacements);
     }
 
-    private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan) {
+    private void applyRefreshOperations(ItemStack itemStack, RefreshPlan plan, ActionContext context) {
         if (plan == null || plan.recipe() == null) {
             return;
         }
@@ -560,7 +727,7 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
         String operationId = "forge:" + recipe.id();
         Object nameActionsToApply = allNameActions.size() == 1 ? allNameActions.get(0) : allNameActions;
         Object loreActionsToApply = allLoreActions.size() == 1 ? allLoreActions.get(0) : allLoreActions;
-        operationLedger.apply(itemStack, operationId, "forge",
+        operationLedger.apply(context, itemStack, operationId, "forge",
                 allNameActions.isEmpty() ? null : nameActionsToApply,
                 allLoreActions.isEmpty() ? null : loreActionsToApply,
                 variables);
@@ -596,6 +763,13 @@ public final class ForgeItemRefreshService implements PlayerItemRefreshService {
     }
 
     private record StateLoss(boolean detected, List<String> missingPdc, List<String> missingOperations) {
+    }
+
+    private record ResolvedAuditMaterials(List<ForgeMaterialContribution> materials,
+                                          boolean requiresIdentityMigration) {
+    }
+
+    private record CachedPlan(long generation, RefreshPlan plan) {
     }
 
     private record RefreshPlan(boolean shouldRefresh,

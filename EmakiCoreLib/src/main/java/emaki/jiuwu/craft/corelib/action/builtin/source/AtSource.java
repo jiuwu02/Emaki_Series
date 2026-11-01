@@ -11,23 +11,32 @@ import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
 import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.action.builtin.StageSupport;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 public final class AtSource extends BaseSource {
 
     public AtSource() {
-        super("at", "An absolute or origin-relative coordinate.",
+        super("at", "绝对坐标，或相对原点的坐标。",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
                 CoreStageParameter.optional("world", CoreStageParameterType.STRING, "",
-                        "World name or key, defaults to the origin world"),
-                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X, supports ~"),
-                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y, supports ~"),
-                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z, supports ~"));
+                        "世界名称或键，默认使用原点所在世界"),
+                CoreStageParameter.optional("x", CoreStageParameterType.STRING, "~", "X 坐标，支持 ~"),
+                CoreStageParameter.optional("y", CoreStageParameterType.STRING, "~", "Y 坐标，支持 ~"),
+                CoreStageParameter.optional("z", CoreStageParameterType.STRING, "~", "Z 坐标，支持 ~"));
+    }
+
+    @Override
+    public @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
+        return context.caster().entityOrNull() == null
+                ? CoreActionExecutionTarget.global()
+                : CoreActionExecutionTarget.contextEntity();
     }
 
     @Override

@@ -14,11 +14,11 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.cooking.model.NutritionOperationResult;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.cooking.legacy.CookingLegacyEntry;
-
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -26,6 +26,7 @@ final class CookingCommandRouter implements TabExecutor {
     private static final String PERMISSION_RELOAD = CookingPermissions.RELOAD;
     private static final String PERMISSION_INSPECT = CookingPermissions.INSPECT;
     private static final String PERMISSION_ADMIN = CookingPermissions.ADMIN;
+    private static final String PERMISSION_EDIT = CookingPermissions.EDIT;
     private static final String PERMISSION_DEBUG = "emakicooking.debug";
 
     private final EmakiCookingPlugin plugin;
@@ -45,6 +46,7 @@ final class CookingCommandRouter implements TabExecutor {
                 sendHelp(sender);
                 yield true;
             }
+            case "edit" -> handleEdit(sender, args);
             case "reload" -> handleReload(sender);
             case "inspect" -> handleInspect(sender, args);
             case "station" -> handleStation(sender, args);
@@ -62,7 +64,8 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "reload", "inspect", "station", "nutrition", "convert-legacy", "debug")) {
+            for (String sub : List.of("help", "edit", "reload", "inspect", "station", "nutrition",
+                    "convert-legacy", "debug")) {
                 if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(sub);
                 }
@@ -71,6 +74,17 @@ final class CookingCommandRouter implements TabExecutor {
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
+        }
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0])) {
+            String prefix = args[1].toLowerCase(Locale.ROOT);
+            if (plugin.editorModule() != null) {
+                for (String id : plugin.editorModule().knownIds()) {
+                    if (id.startsWith(prefix)) {
+                        result.add(id);
+                    }
+                }
+            }
+            return result;
         }
         if ("nutrition".equalsIgnoreCase(args[0])) {
             return nutritionTabComplete(args);
@@ -118,6 +132,29 @@ final class CookingCommandRouter implements TabExecutor {
         return result;
     }
 
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(PERMISSION_EDIT)) {
+            plugin.messageService().send(sender, "general.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            plugin.messageService().send(sender, "general.player_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            plugin.messageService().send(sender, "editor.open_failed",
+                    Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
+    }
+
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
             plugin.messageService().send(sender, "general.no_permission");
@@ -126,14 +163,21 @@ final class CookingCommandRouter implements TabExecutor {
         plugin.bootstrapService().bootstrap();
         plugin.messageService().send(sender, "general.reloading");
         long startTime = System.currentTimeMillis();
-        plugin.reloadPluginStateAsync().thenRun(() -> runForSender(sender, () -> {
+        plugin.reloadPluginStateAsync().whenComplete((_, failure) -> runForSender(sender, () -> {
+            if (failure != null) {
+                plugin.getLogger().warning("[cooking] 配置重载失败: " + AsyncFailures.describe(failure));
+                plugin.messageService().send(sender, "general.reload_failed", Map.of(
+                        "reason", AsyncFailures.describe(failure)
+                ));
+                return;
+            }
             long elapsedMs = System.currentTimeMillis() - startTime;
             plugin.messageService().send(sender, "general.reload_success");
             plugin.messageService().sendRaw(sender, plugin.messageService().message("general.reload_summary", Map.of(
                     "recipes", totalRecipeCount(),
                     "resources", 1
             )));
-            plugin.messageService().sendRaw(sender, "<gray>重载耗时: <white>" + elapsedMs + "ms</white></gray>");
+            plugin.messageService().send(sender, "command.reload_elapsed", Map.of("elapsed_ms", elapsedMs));
         }));
         return true;
     }
@@ -185,14 +229,39 @@ final class CookingCommandRouter implements TabExecutor {
             return true;
         }
         if (plugin.stationStateStore() == null) {
-            plugin.messageService().sendRaw(sender, "<red>Station state store is not ready.</red>");
+            plugin.messageService().send(sender, "command.station.store_not_ready");
             return true;
         }
-        plugin.messageService().sendRaw(sender, "<gray>Rebuilding station location index...</gray>");
-        plugin.stationStateStore().reindexAsync().thenAccept(report -> runForSender(sender, () -> plugin.messageService().sendRaw(sender,
-                "<green>Station index rebuilt:</green> <gray>legacy_yaml=</gray>" + report.legacyYamlStates()
-                        + " <gray>loaded_pdc=</gray>" + report.loadedPdcStates()
-                        + " <gray>total_indexed=</gray>" + report.totalIndexedStates())));
+        plugin.messageService().send(sender, "command.station.reindex_started");
+        plugin.stationStateStore().reindexAsync().whenComplete((report, failure) -> runForSender(sender, () -> {
+            if (failure != null) {
+                plugin.getLogger().warning("[persistence] 工位索引重建失败: " + AsyncFailures.describe(failure));
+                plugin.messageService().send(sender, "command.station.reindex_failed", Map.of(
+                        "reason", AsyncFailures.describe(failure)
+                ));
+                return;
+            }
+            if (report == null) {
+                plugin.messageService().send(sender, "command.station.reindex_failed", Map.of(
+                        "reason", "重建结果缺失"
+                ));
+                return;
+            }
+            if (!report.success()) {
+                plugin.getLogger().warning("[persistence] 工位索引重建部分失败: " + report.failureSummary());
+                plugin.messageService().send(sender, "command.station.reindex_partial", Map.of(
+                        "legacy_yaml", report.legacyYamlStates(),
+                        "loaded_pdc", report.loadedPdcStates(),
+                        "total_indexed", report.totalIndexedStates(),
+                        "failures", report.failureSummary()
+                ));
+                return;
+            }
+            plugin.messageService().sendRaw(sender, plugin.messageService().message("command.station.reindex_done", Map.of(
+                    "legacy_yaml", report.legacyYamlStates(),
+                    "loaded_pdc", report.loadedPdcStates(),
+                    "total_indexed", report.totalIndexedStates())));
+        }));
         return true;
     }
 
@@ -207,9 +276,10 @@ final class CookingCommandRouter implements TabExecutor {
         plugin.messageService().sendRaw(sender, plugin.messageService().message("command.help.header"));
         Map<String, String> lines = new LinkedHashMap<>();
         lines.put("help", plugin.messageService().message("command.help.desc.help"));
+        lines.put("edit [id]", plugin.messageService().message("command.help.desc.edit"));
         lines.put("reload", plugin.messageService().message("command.help.desc.reload"));
         lines.put("inspect hand|block", plugin.messageService().message("command.help.desc.inspect"));
-        lines.put("station reindex", "rebuild station storage index");
+        lines.put("station reindex", plugin.messageService().message("command.help.desc.station"));
         lines.put("nutrition get|set|add|remove", plugin.messageService().message("command.help.desc.nutrition"));
         lines.put("debug [player|module|on|off]", plugin.messageService().message("command.help.desc.debug"));
         lines.forEach((name, description) -> plugin.messageService().sendRaw(

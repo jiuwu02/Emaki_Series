@@ -61,7 +61,7 @@ advancements:
     title: "<light_purple>终极挑战</light_purple>"
     description: "<gray>完成一项艰巨的挑战。</gray>"
     frame: "challenge"
-    parent: "first_step"
+    parent: "root"
     # 坐标（需 PacketEvents）：再向右一格
     x: 2.0
     y: 1.0

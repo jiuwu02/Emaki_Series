@@ -96,7 +96,7 @@ public final class PityPersistenceRetryScheduler {
 
     private void warn(@Nullable String message) {
         if (plugin.getLogger() != null) {
-            plugin.getLogger().warning(message);
+            plugin.getLogger().warning("[persistence] " + message);
         }
     }
 }

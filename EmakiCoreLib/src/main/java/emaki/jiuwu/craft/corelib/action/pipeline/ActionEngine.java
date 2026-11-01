@@ -1,6 +1,7 @@
 package emaki.jiuwu.craft.corelib.action.pipeline;
 
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.bukkit.plugin.Plugin;
@@ -20,21 +21,63 @@ import emaki.jiuwu.craft.corelib.action.pipeline.exec.PipelineOutcome;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.SequenceRepository;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageDispatcher;
 import emaki.jiuwu.craft.corelib.action.pipeline.exec.StageInvoker;
+import emaki.jiuwu.craft.corelib.action.pipeline.exec.StepReporter;
 
 public final class ActionEngine {
 
-    private final PipelineParser parser = new PipelineParser();
+    private final PipelineParser parser;
     private final StaticValidator validator;
     private final ActionInterpreter interpreter;
+    private final StageResolver resolver;
+    private final StageInvoker invoker;
+    private final StageDispatcher dispatcher;
+    private final SequenceRepository sequences;
+    private final PipelineLimits limits;
+    private final Map<String, String> aliases;
 
     public ActionEngine(@NotNull StageResolver resolver,
             @NotNull StageInvoker invoker,
             @NotNull StageDispatcher dispatcher,
             @Nullable SequenceRepository sequences,
             @Nullable PipelineLimits limits) {
+        this(resolver, invoker, dispatcher, sequences, limits, null, false, null);
+    }
+
+    public ActionEngine(@NotNull StageResolver resolver,
+            @NotNull StageInvoker invoker,
+            @NotNull StageDispatcher dispatcher,
+            @Nullable SequenceRepository sequences,
+            @Nullable PipelineLimits limits,
+            @Nullable Map<String, String> aliases) {
+        this(resolver, invoker, dispatcher, sequences, limits, null, false, aliases);
+    }
+
+    private ActionEngine(@NotNull StageResolver resolver,
+            @NotNull StageInvoker invoker,
+            @NotNull StageDispatcher dispatcher,
+            @Nullable SequenceRepository sequences,
+            @Nullable PipelineLimits limits,
+            @Nullable StepReporter reporter,
+            boolean dryRun,
+            @Nullable Map<String, String> aliases) {
         SequenceCatalog catalog = sequences == null ? SequenceCatalog.empty() : sequences;
+        this.resolver = resolver;
+        this.invoker = invoker;
+        this.dispatcher = dispatcher;
+        this.sequences = sequences;
+        this.limits = limits;
+        this.aliases = aliases;
+        this.parser = aliases == null || aliases.isEmpty()
+                ? new PipelineParser()
+                : new PipelineParser(aliases);
         this.validator = new StaticValidator(resolver, catalog, limits);
-        this.interpreter = new ActionInterpreter(invoker, dispatcher, sequences, limits);
+        this.interpreter = new ActionInterpreter(invoker, dispatcher, sequences, limits,
+                reporter, dryRun);
+    }
+
+    public @NotNull ActionEngine withReporter(@Nullable StepReporter reporter, boolean dryRun) {
+        return new ActionEngine(resolver, invoker, dispatcher, sequences, limits,
+                reporter, dryRun, aliases);
     }
 
     public @NotNull Result compile(@Nullable String source, @Nullable PhaseContract phase) {

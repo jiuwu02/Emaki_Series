@@ -4,8 +4,6 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -33,7 +31,7 @@ public final class ConfigCommitGate {
             Supplier<T> candidateLoader,
             Consumer<T> restorer) {
         if (candidateLoader == null) {
-            return new Result(false, moduleId, List.of("config commit gate received no candidate loader"));
+            return new Result(false, moduleId, List.of("配置提交关卡未收到候选加载器"));
         }
         T previous = currentReader == null ? null : currentReader.get();
         candidateLoader.get();
@@ -47,12 +45,12 @@ public final class ConfigCommitGate {
 
     public static Result evaluate(LogMessages messages, String moduleId) {
         if (Texts.isBlank(moduleId)) {
-            return new Result(false, moduleId, List.of("config commit gate received a blank module id"));
+            return new Result(false, moduleId, List.of("配置提交关卡收到空的模块 id"));
         }
-        EmakiCoreLibPlugin coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
         if (coreLib == null || coreLib.configPrecheckService() == null) {
 
-            return new Result(false, moduleId, List.of("config precheck service is unavailable"));
+            return new Result(false, moduleId, List.of("配置预检服务不可用"));
         }
         ConfigPrecheckReport report = coreLib.configPrecheckService()
                 .checkModule(coreLib.configModel(), moduleId);
@@ -60,7 +58,7 @@ public final class ConfigCommitGate {
             ConfigPrecheckMessages.logReport(messages, moduleId, report);
         }
         if (report == null) {
-            return new Result(false, moduleId, List.of("config precheck produced no report"));
+            return new Result(false, moduleId, List.of("配置预检未产生报告"));
         }
         if (report.success()) {
             return new Result(true, moduleId, List.of());

@@ -39,6 +39,8 @@ public final class StaticValidator {
 
     public static final String SET_STAGE = "set";
 
+    public static final String SELECT_SOURCE = "select";
+
     public static final String INHERITED_SOURCE = "inherited";
 
     private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
@@ -116,6 +118,42 @@ public final class StaticValidator {
                 resolved.add(validateWeighted(weighted, weightToken, state, branchDepth));
                 continue;
             }
+            if (node instanceof ActionAst.Union union) {
+                List<ActionAst> resolvedSources = validateUnion(union, state, inheritsInboundFlow,
+                        branchDepth);
+                resolved.add(new ActionAst.Union(resolvedSources, union.column()));
+                explicitSourceSeen = true;
+                flowAvailable = true;
+                continue;
+            }
+            if (node instanceof ActionAst.Inline inline) {
+                for (ActionAst inner : validateNodes(inline.nodes(), state, inheritsInboundFlow,
+                        branchDepth)) {
+                    resolved.add(inner);
+                }
+                continue;
+            }
+            if (node instanceof ActionAst.OnError onError) {
+                if (branchDepth >= limits.maxBranchDepth()) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
+                            token(PipelineParser.ON_ERROR, onError.column()),
+                            Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
+                    continue;
+                }
+                List<ActionAst> body = validateNodes(onError.body(), state.fork(), inheritsInboundFlow,
+                        branchDepth + 1);
+                List<ActionAst> handler = validateNodes(onError.handler(), state.fork(), inheritsInboundFlow,
+                        branchDepth + 1);
+                if (containsOnError(handler)) {
+                    state.diagnostics.add(CompileDiagnostic.at("action.validate.nested_on_error",
+                            token(PipelineParser.ON_ERROR, onError.column())));
+                }
+                if (!body.isEmpty() && !handler.isEmpty()) {
+                    resolved.add(new ActionAst.OnError(body, handler, onError.column()));
+                }
+                flowAvailable = true;
+                continue;
+            }
             if (node instanceof ActionAst.SequenceCall call) {
                 for (Map.Entry<String, String> parameter : call.parameters().entrySet()) {
                     validateVariableReferences(parameter.getValue(), token(parameter.getKey(), call.column()),
@@ -178,6 +216,7 @@ public final class StaticValidator {
             validateRequiredContext(normalized, resolution.requiredContext(), state, state.diagnostics);
             validateParameterValues(normalized, resolution.parameters(), state.diagnostics);
             validateEvery(normalized, state.diagnostics);
+            validateRetry(normalized, state.diagnostics);
             resolved.add(normalized.withKind(kind));
             if (kind == CoreStageKind.GATE) {
                 state.provide(resolution.providedContext(), resolution.providedVariables());
@@ -285,7 +324,7 @@ public final class StaticValidator {
             }
         }
 
-        if (!SET_STAGE.equals(stage.id())) {
+        if (!SET_STAGE.equals(stage.id()) && !SELECT_SOURCE.equals(stage.id())) {
             for (String supplied : arguments.keySet()) {
                 if (!byName.containsKey(supplied)) {
                     diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_argument",
@@ -300,7 +339,8 @@ public final class StaticValidator {
                         token(parameter.name(), stage.column()), Map.of("argument", parameter.name())));
             }
         }
-        return new ActionAst.Stage(stage.id(), stage.kind(), arguments, List.of(), stage.column());
+        return new ActionAst.Stage(stage.id(), stage.kind(), arguments, List.of(), stage.column(),
+                stage.retryTimes(), stage.retryDelayTicks());
     }
 
     private void normalizeEveryPositional(ActionAst.Stage stage,
@@ -432,6 +472,83 @@ public final class StaticValidator {
         }
     }
 
+    private List<ActionAst> validateUnion(ActionAst.Union union,
+            ValidationState state,
+            boolean inheritsInboundFlow,
+            int branchDepth) {
+        List<ActionAst> resolved = new ArrayList<>(union.sources().size());
+        for (ActionAst node : union.sources()) {
+            if (!(node instanceof ActionAst.Stage stage)) {
+                state.diagnostics.add(CompileDiagnostic.at("action.parse.union_only_sources",
+                        token(PipelineParser.UNION, union.column())));
+                continue;
+            }
+            StageResolver.Resolution resolution = stages.resolve(stage.id());
+            PipelineToken stageToken = token(stage.id(), stage.column());
+            if (!resolution.known()) {
+                state.diagnostics.add(unknownStageDiagnostic(stage, stageToken));
+                continue;
+            }
+            if (resolution.ownerDisabled()) {
+                state.diagnostics.add(CompileDiagnostic.at("action.validate.stage_owner_disabled",
+                        stageToken,
+                        Map.of("owner", resolution.ownerName(), "stage", stage.id())));
+                continue;
+            }
+            if (resolution.kind() != CoreStageKind.SOURCE) {
+                state.diagnostics.add(CompileDiagnostic.at("action.validate.union_not_source",
+                        stageToken, Map.of("stage", stage.id())));
+                continue;
+            }
+            validateThreadDeclaration(stage, resolution, state.diagnostics);
+            validateInheritedTargets(stage, state, state.diagnostics);
+            validateVariableReferences(stage.arguments().values(), stageToken, state,
+                    state.diagnostics);
+            validateVariableReferences(stage.positional(), stageToken, state, state.diagnostics);
+            ActionAst.Stage normalized = normalizeArguments(stage, resolution.parameters(),
+                    state.diagnostics);
+            resolved.add(normalized.withKind(CoreStageKind.SOURCE));
+        }
+        return List.copyOf(resolved);
+    }
+
+    private void validateRetry(ActionAst.Stage stage, List<CompileDiagnostic> diagnostics) {
+        if (stage.retryTimes() <= 0 && stage.retryDelayTicks() <= 0L) {
+            return;
+        }
+        if (stage.retryTimes() < 0) {
+            diagnostics.add(CompileDiagnostic.at("action.validate.invalid_retry_times",
+                    token(PipelineParser.RETRY, stage.column())));
+            return;
+        }
+        if (stage.retryTimes() > limits.maxRetryTimes()) {
+            diagnostics.add(CompileDiagnostic.at("action.validate.retry_limit_exceeded",
+                    token(PipelineParser.RETRY, stage.column()),
+                    Map.of("value", stage.retryTimes(), "maximum", limits.maxRetryTimes())));
+        }
+    }
+
+    private static boolean containsOnError(List<ActionAst> nodes) {
+        for (ActionAst node : nodes) {
+            if (node instanceof ActionAst.OnError) {
+                return true;
+            }
+            if (node instanceof ActionAst.Branch branch) {
+                if (containsOnError(branch.thenBranch()) || containsOnError(branch.elseBranch())) {
+                    return true;
+                }
+            }
+            if (node instanceof ActionAst.Weighted weighted) {
+                for (ActionAst.Weighted.Option option : weighted.options()) {
+                    if (containsOnError(option.body())) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private void validateEvery(ActionAst.Stage stage, List<CompileDiagnostic> diagnostics) {
         if (!EVERY_STAGE.equals(stage.id())) {
             return;
@@ -513,14 +630,23 @@ public final class StaticValidator {
     }
 
     private boolean needsImplicitSelf(List<ActionAst> nodes) {
-        if (nodes.isEmpty()) {
+        ActionAst first = firstMeaningful(nodes);
+        if (first == null) {
             return false;
         }
-        ActionAst first = nodes.get(0);
         if (first instanceof ActionAst.Branch
                 || first instanceof ActionAst.SequenceCall
                 || first instanceof ActionAst.Weighted) {
             return true;
+        }
+        if (first instanceof ActionAst.Union) {
+            return false;
+        }
+        if (first instanceof ActionAst.OnError onError) {
+            return needsImplicitSelf(onError.body());
+        }
+        if (first instanceof ActionAst.Inline inline) {
+            return needsImplicitSelf(inline.nodes());
         }
         ActionAst.Stage stage = (ActionAst.Stage) first;
         StageResolver.Resolution resolution = stages.resolve(stage.id());
@@ -530,6 +656,20 @@ public final class StaticValidator {
         }
         return resolution.kind() != CoreStageKind.ACTION
                 || resolution.targetRequirement() != CoreTargetRequirement.NONE;
+    }
+
+    private static ActionAst firstMeaningful(List<ActionAst> nodes) {
+        for (ActionAst node : nodes) {
+            if (node instanceof ActionAst.Inline inline) {
+                ActionAst inner = firstMeaningful(inline.nodes());
+                if (inner != null) {
+                    return inner;
+                }
+                continue;
+            }
+            return node;
+        }
+        return null;
     }
 
     private static boolean validLiteral(String value, CoreStageParameterType type) {

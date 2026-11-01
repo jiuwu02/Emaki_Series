@@ -8,13 +8,13 @@ public record PityDecayConfig(
 ) {
     public PityDecayConfig {
         if (!Double.isFinite(value)) {
-            throw new IllegalArgumentException("Decay value must be finite");
+            throw new IllegalArgumentException("衰减值必须为有限数");
         }
         if (type == PityDecayTypeEnum.FIXED_DECAY && value < 0) {
-            throw new IllegalArgumentException("Fixed decay value cannot be negative");
+            throw new IllegalArgumentException("固定衰减值不能为负数");
         }
         if (type == PityDecayTypeEnum.PROPORTIONAL && (value < 0 || value > 1)) {
-            throw new IllegalArgumentException("Proportional decay value must be between 0 and 1");
+            throw new IllegalArgumentException("比例衰减值必须介于 0 与 1 之间");
         }
     }
 

@@ -80,4 +80,24 @@ public interface ItemCatalog {
                                          @Nullable String itemId,
                                          @Nullable String trigger,
                                          @Nullable ItemStack itemStack);
+
+    /**
+     * Silently evaluates the conditions configured on a concrete stack's recorded definition.
+     *
+     * <p>Unlike {@link #conditionPasses(Player, String, String, ItemStack)} this variant never runs the
+     * configured pass/fail actions and never sends the denial message, so it stays safe for contribution
+     * gating and GUI rendering, where it may be evaluated repeatedly. A definition without conditions
+     * counts as satisfied.
+     *
+     * <p>A definition that cannot be resolved is reported as a failure rather than {@code false}, so
+     * callers can tell "conditions not met" apart from "not evaluated" and decide their own fallback.
+     *
+     * <p>Must be called on the player's entity-owner thread.
+     *
+     * @param player    player used by conditions and placeholders
+     * @param itemStack concrete stack whose recorded definition is evaluated
+     * @return whether the conditions passed
+     */
+    @NotNull
+    EmakiResult<Boolean> conditionSatisfied(@Nullable Player player, @Nullable ItemStack itemStack);
 }

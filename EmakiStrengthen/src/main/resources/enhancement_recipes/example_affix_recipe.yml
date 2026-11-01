@@ -4,6 +4,7 @@
 # 执行过程不读取也不写入整件装备的星级。
 
 # 配方唯一 ID，缺失则整份配方被跳过
+schema_version: 2
 id: example_affix_enhance
 
 # 配方模式：affix 表示词条强化
@@ -20,16 +21,12 @@ target:
 # target_compare：把该槽材料与「当前目标」比较，合法值 same_affix / same_affix_set /
 #   same_item_type / same_level / level_at_least。留空表示不做目标感知比较。
 materials:
-  - matcher:
-      type: item_source
-      sources:
-        - "minecraft-lapis_lazuli"
+  - item_sources:
+      - "minecraft-lapis_lazuli"
     quantity: 1
     consume: always
-  - matcher:
-      type: item_source
-      sources:
-        - "minecraft-amethyst_shard"
+  - item_sources:
+      - "minecraft-amethyst_shard"
     quantity: 1
     consume: success
     required: false

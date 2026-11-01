@@ -1,0 +1,64 @@
+# ============================================================
+# EmakiLevel 经验来源示例 - 作物收获与方块破坏
+# ============================================================
+# 演示点：
+# 1. crop_harvest 按成熟作物匹配，block_break 按矿石匹配
+# 2. anti_abuse.ignore_player_placed_blocks 跳过玩家自己放置的方块
+# 3. anti_abuse.exp_cooldown_ticks 做来源级发经验冷却（防刷的模块内手段）
+#
+# 每日上限与经验倍率不属于 sources/*.yml 的字段，它们在 config.yml：
+#   daily_caps.types.<等级类型>   例如 example_prestige: 5000
+#   multipliers.types.<等级类型>  例如 example_prestige: 1.2
+# 因此本文件只演示规则匹配与来源级冷却；需要每日上限/倍率时改 config.yml。
+# 字段依据：docs/modules/level/sources.md 与 configuration.md。
+# ============================================================
+
+id: "example_block_source"
+enabled: true
+sources:
+  # 成熟作物收获：一次破坏会同时触发 block_break 与 crop_harvest，
+  # 这条来源只处理 crop_harvest，避免与挖掘来源重复给经验。
+  example_crop_harvest:
+    enabled: true
+    type: "farming"
+    trigger: "crop_harvest"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 4
+    rules:
+      - blocks:
+          - "WHEAT"
+          - "CARROTS"
+          - "POTATOES"
+          - "BEETROOTS"
+        exp_formula: "4"
+      - blocks:
+          - "PUMPKIN"
+          - "MELON"
+        exp_formula: "6"
+
+  # 矿石破坏：按矿种给不同经验。
+  example_ore_break:
+    enabled: true
+    type: "mining"
+    trigger: "block_break"
+    anti_abuse:
+      ignore_player_placed_blocks: true
+      exp_cooldown_ticks: 2
+    rules:
+      - blocks:
+          - "DIAMOND_ORE"
+          - "DEEPSLATE_DIAMOND_ORE"
+          - "EMERALD_ORE"
+          - "DEEPSLATE_EMERALD_ORE"
+        exp_formula: "30"
+      - blocks:
+          - "GOLD_ORE"
+          - "DEEPSLATE_GOLD_ORE"
+          - "IRON_ORE"
+          - "DEEPSLATE_IRON_ORE"
+        exp_formula: "8"
+      - blocks:
+          - "STONE"
+          - "DEEPSLATE"
+        exp_formula: "1"

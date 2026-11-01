@@ -46,10 +46,10 @@ public final class PlaceBlockStage extends BaseStage {
             CustomBlockBridge itemsAdderBlockBridge,
             CustomBlockBridge nexoBlockBridge,
             CustomBlockBridge oraxenBlockBridge) {
-        super("place_block", "world", "Places a vanilla or custom block at the target position.",
+        super("place_block", "world", "在目标位置放置原版或自定义方块。",
                 CoreTargetRequirement.REQUIRED_ANY, CoreActionExecutionDomain.LOCATION_REGION,
                 CoreStageParameter.optional("item_source", CoreStageParameterType.STRING, "",
-                        "Block item source"));
+                        "方块物品来源"));
         this.itemSourceService = itemSourceService;
         this.craftEngineBlockBridge = craftEngineBlockBridge;
         this.itemsAdderBlockBridge = itemsAdderBlockBridge;

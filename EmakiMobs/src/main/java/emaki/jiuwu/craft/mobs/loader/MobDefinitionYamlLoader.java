@@ -1,7 +1,9 @@
 package emaki.jiuwu.craft.mobs.loader;
 
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
+import emaki.jiuwu.craft.corelib.api.animation.AnimationKeyframe;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.mobs.config.ModelSettings;
 import emaki.jiuwu.craft.mobs.selector.TargetLockConfig;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -90,25 +92,30 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         boolean typeOverride = isEntityTypeName(id);
         ThreatConfig threatConfig = parseThreatConfig(config);
         BossBarConfig bossBarConfig = parseBossBarConfig(config);
+        MobModelConfig modelConfig = parseModelConfig(config, file);
         String targetSelector = normalizeOptionalId(config.getString("target_selector"));
         TargetLockConfig targetLockConfig = parseTargetLockConfig(config);
         return new MobSpec(id, entityType, displayName, components, eaAttributes, actions, experience,
-                typeOverride, threatConfig, bossBarConfig, targetSelector, targetLockConfig);
+                typeOverride, threatConfig, bossBarConfig, modelConfig, targetSelector, targetLockConfig);
     }
 
     private String resolveKey(YamlSection config, File file, String currentKey, String legacyKey) {
         if (config.getSection(currentKey) != null || config.getSection(legacyKey) == null) {
             return currentKey;
         }
-        plugin.getLogger().warning("Mob file '" + file.getName() + "' uses deprecated key '"
-                + legacyKey + "'; rename it to '" + currentKey
-                + "'. The legacy key will be removed in the next major version.");
+        plugin.getLogger().warning("[loader] 生物文件 '" + file.getName() + "' 仍在使用旧键 '"
+                + legacyKey + "'，请改为 '" + currentKey
+                + "'，旧键将在下一个大版本移除");
         return legacyKey;
     }
 
     @Override
     protected String idOf(MobSpec value) {
         return value.id();
+    }
+
+    public MobSpec parseDefinition(File file, YamlSection config) {
+        return parse(file, config);
     }
 
     private boolean isEntityTypeName(String id) {
@@ -170,6 +177,99 @@ public final class MobDefinitionYamlLoader extends YamlDirectoryLoader<MobSpec> 
         try { style = BarStyle.valueOf(styleStr.toUpperCase(Locale.ROOT)); }
         catch (IllegalArgumentException e) { style = BarStyle.SOLID; }
         return new BossBarConfig(title, color, style, range);
+    }
+
+    @Nullable
+    private MobModelConfig parseModelConfig(YamlSection config, File file) {
+        YamlSection section = config.getSection("model");
+        if (section == null) {
+            return null;
+        }
+        String blueprint = normalizeOptionalId(section.getString("blueprint"));
+        if (blueprint == null) {
+            issue("loader.model_missing_blueprint", Map.of("file", file.getName()));
+            return null;
+        }
+        String api = normalizeOptionalId(section.getString("api"));
+        if (api != null && !ModelSettings.validApiValue(api)) {
+            issue("loader.model_api_invalid", Map.of("file", file.getName(), "api", api));
+            api = null;
+        }
+        double scale = section.getDouble("scale", 1.0);
+        Map<String, String> animations = new HashMap<>();
+        YamlSection animationsSection = section.getSection("animations");
+        if (animationsSection != null) {
+            for (String key : animationsSection.getKeys(false)) {
+                String value = animationsSection.getString(key);
+                if (value != null && !value.isBlank()) {
+                    animations.put(key.toLowerCase(Locale.ROOT), value.trim());
+                }
+            }
+        }
+        Map<String, MobModelConfig.KeyframeTimeline> keyframes = new HashMap<>();
+        YamlSection keyframesSection = section.getSection("keyframes");
+        if (keyframesSection != null) {
+            for (String key : keyframesSection.getKeys(false)) {
+                MobModelConfig.KeyframeTimeline timeline = parseKeyframeTimeline(
+                        keyframesSection.getSection(key), key, file);
+                if (timeline != null) {
+                    keyframes.put(key.toLowerCase(Locale.ROOT), timeline);
+                }
+            }
+        }
+        MobModelConfig.LodBounds lod = parseLodBounds(section.getSection("lod"));
+        return new MobModelConfig(blueprint, api, scale, Map.copyOf(animations), Map.copyOf(keyframes), lod);
+    }
+
+    @Nullable
+    private MobModelConfig.KeyframeTimeline parseKeyframeTimeline(@Nullable YamlSection section,
+            String animationId, File file) {
+        if (section == null) {
+            return null;
+        }
+        int duration = section.getInt("duration_ticks", 20);
+        if (duration < 1) {
+            issue("loader.model_invalid_duration",
+                    Map.of("file", file.getName(), "animation", animationId, "duration", duration));
+            return null;
+        }
+        boolean loop = section.getBoolean("loop", false);
+        String priority = section.getString("priority", "ambient");
+        String conflict = section.getString("conflict", "replace");
+        List<AnimationKeyframe> frames = new ArrayList<>();
+        for (Map<?, ?> entry : section.getMapList("frames")) {
+            AnimationKeyframe frame = parseKeyframe(entry, animationId, file);
+            if (frame != null) {
+                frames.add(frame);
+            }
+        }
+        return new MobModelConfig.KeyframeTimeline(duration, loop, priority, conflict, List.copyOf(frames));
+    }
+
+    @Nullable
+    private AnimationKeyframe parseKeyframe(Map<?, ?> entry, String animationId, File file) {
+        Object tickValue = entry.get("tick");
+        if (!(tickValue instanceof Number tick)) {
+            issue("loader.model_keyframe_missing_tick",
+                    Map.of("file", file.getName(), "animation", animationId));
+            return null;
+        }
+        Object lineValue = entry.get("action");
+        String actionLine = lineValue == null ? "" : String.valueOf(lineValue);
+        Object labelValue = entry.get("label");
+        String label = labelValue == null ? "" : String.valueOf(labelValue);
+        return AnimationKeyframe.of(tick.intValue(), actionLine, label);
+    }
+
+    @Nullable
+    private MobModelConfig.LodBounds parseLodBounds(@Nullable YamlSection section) {
+        if (section == null) {
+            return null;
+        }
+        double near = section.getDouble("near", 16.0);
+        double mid = section.getDouble("mid", 32.0);
+        double far = section.getDouble("far", 48.0);
+        return new MobModelConfig.LodBounds(near, mid, far);
     }
 
     private Map<String, Object> extractSection(YamlSection config, String sectionKey) {

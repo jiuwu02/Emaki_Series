@@ -1,0 +1,69 @@
+# ============================================================
+# EmakiStrengthen 词条强化示例：护甲词条
+# ============================================================
+# 演示功能：mode: affix 词条强化。提升目标装备上“已有词条”的等级，
+#   演示 materials 的 target_compare（same_affix）、costs 物品费用、
+#   chance 公式与 pity 保底。
+# 目标装备：带 equippable 组件的护甲。词条池不由本配方定义，
+#   而是来自目标物品自身的 EmakiAttribute 属性来源：
+#   护甲常见 physical_defense / health / block_reduction 等。
+#   本文件与 example_weapon_affix 的差别在目标过滤、材料、费用与成功率。
+# 依赖：EmakiCoreLib（必需）；target.provider 使用内置 affix；
+#   EmakiAttribute 负责词条属性写回；费用不依赖 Vault。
+# ============================================================
+
+schema_version: 2
+
+id: "example_armor_affix"
+
+mode: "affix"
+
+target:
+  provider: "affix"
+  # 含 type 键时按通用物品匹配器解析：只接管护甲（equippable 组件存在）
+  filter:
+    type: component
+    component: equippable
+    operator: exists
+
+materials:
+  - item_sources:
+      - "minecraft-lapis_lazuli"
+    quantity: 1
+    consume: "always"
+  # 与当前选中词条相同的材料才计入可用量，不阻断强化
+  - item_sources:
+      - "minecraft-amethyst_shard"
+    quantity: 1
+    consume: "success"
+    required: false
+    target_compare: "same_affix"
+
+costs:
+  - provider: "items"
+    currency_id: "minecraft-gold_ingot"
+    amount:
+      type: formula
+      expression: "1 + floor(target.level / 3)"
+
+chance:
+  type: formula
+  expression: "max(0.15, 0.85 - target.level * 0.04)"
+
+# 玩家累计失败 8 次后，下一次词条强化必定成功
+pity:
+  scope: "player"
+  group: "example_armor_affix"
+  threshold: 8
+  effect: "force_success"
+  decay:
+    type: "reset"
+    value: 0
+
+actions:
+  on_success:
+    - 'send_message text="<green>护甲词条强化成功。</green>"'
+    - "sound: BLOCK_ENCHANTMENT_TABLE_USE"
+  on_failure:
+    - 'send_message text="<red>护甲词条强化失败，失败次数已累计。</red>"'
+    - "sound: BLOCK_ANVIL_LAND"

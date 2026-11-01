@@ -111,7 +111,7 @@ public final class LegacyItemSourceRewriter {
         for (Map.Entry<Path, List<LegacyTargetSpec>> entry : groupByFile().entrySet()) {
             reports.add(processFile(entry.getKey(), entry.getValue(), apply));
         }
-        return new RunReport(apply, reports);
+        return new RunReport(apply && reports.stream().anyMatch(report -> report.status() == Status.CONVERTED), reports);
     }
 
     private Map<Path, List<LegacyTargetSpec>> groupByFile() {
@@ -141,7 +141,7 @@ public final class LegacyItemSourceRewriter {
                     .sorted(Comparator.comparing(Path::toString, String.CASE_INSENSITIVE_ORDER))
                     .toList();
         } catch (IOException failure) {
-            logger.warning("无法列出待转换目录 " + target + ": " + failure.getMessage());
+            logger.warning("[legacy] 无法列出待转换目录 " + target + ": " + failure.getMessage());
             return List.of();
         }
     }
@@ -152,7 +152,7 @@ public final class LegacyItemSourceRewriter {
         try {
             lines = new ArrayList<>(Files.readAllLines(file, StandardCharsets.UTF_8));
         } catch (IOException | RuntimeException failure) {
-            logger.warning("读取配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[legacy] 读取配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
                     0, 0, 0, List.of(), "");
         }
@@ -187,7 +187,7 @@ public final class LegacyItemSourceRewriter {
             return new FileReport(fileName, Status.CONVERTED, "", replacements.size(), merged, duplicated,
                     diff, backupName);
         } catch (IOException failure) {
-            logger.warning("写入配置失败 " + fileName + ": " + failure.getMessage());
+            logger.warning("[legacy] 写入配置失败 " + fileName + ": " + failure.getMessage());
             return new FileReport(fileName, Status.FAILED, String.valueOf(failure.getMessage()),
                     replacements.size(), merged, duplicated, diff, "");
         }
@@ -208,16 +208,17 @@ public final class LegacyItemSourceRewriter {
                 unconvertible.add(spec.legacyKey() + " 未解析出物品源");
                 continue;
             }
-            if (match.matcher() != null && spec.semantics() == LegacyTargetSpec.RuntimeSemantics.OVERRIDE) {
+            if ("item_source".equals(spec.matcherKey())
+                    && (match.matcher() != null
+                            || YamlBlockLocator.hasSiblingAtKeyColumn(lines, hit, "item_source"))) {
+                unconvertible.add(spec.legacyKey() + " 与 item_source 同时存在，无法自动迁移");
                 continue;
             }
-            YamlBlockLocator.Hit matcherHit = spec.semantics() == LegacyTargetSpec.RuntimeSemantics.AND
-                    ? match.matcher()
-                    : null;
-            List<String> existing = matcherHit == null
-                    ? List.of()
-                    : List.copyOf(lines.subList(matcherHit.startLine() + 1, matcherHit.endLine()));
-            List<String> rendered = LegacyMatcherFragment.render(sources, hit, spec.matcherKey(), existing);
+            if ("item_source".equals(spec.matcherKey()) && sources.size() != 1) {
+                unconvertible.add(spec.legacyKey() + " 必须恰好包含一个来源，当前为 " + sources.size() + " 个");
+                continue;
+            }
+            List<String> rendered = LegacyMatcherFragment.render(sources, hit, spec.matcherKey());
             if (rendered.isEmpty()) {
                 unconvertible.add(spec.legacyKey() + " 渲染结果为空");
                 continue;
@@ -225,7 +226,7 @@ public final class LegacyItemSourceRewriter {
             if (spec.retainLegacyKey()) {
                 rendered = new ArrayList<>(withRetainedLegacy(lines, hit, rendered));
             }
-            replacements.add(new Replacement(hit, matcherHit, List.copyOf(rendered), spec.retainLegacyKey()));
+            replacements.add(new Replacement(hit, null, List.copyOf(rendered), spec.retainLegacyKey()));
         }
     }
 
@@ -329,18 +330,8 @@ public final class LegacyItemSourceRewriter {
             List<String> lines,
             String lineSeparator,
             boolean trailingNewline) throws IOException {
-        Path temp = file.resolveSibling(file.getFileName() + ".converting.tmp");
-        boolean moved = false;
-        try {
-            Files.writeString(temp, String.join(lineSeparator, lines) + (trailingNewline ? lineSeparator : ""),
-                    StandardCharsets.UTF_8);
-            Files.move(temp, file, StandardCopyOption.REPLACE_EXISTING);
-            moved = true;
-        } finally {
-            if (!moved) {
-                Files.deleteIfExists(temp);
-            }
-        }
+        Files.writeString(file, String.join(lineSeparator, lines) + (trailingNewline ? lineSeparator : ""),
+                StandardCharsets.UTF_8);
     }
 
     private record Replacement(YamlBlockLocator.Hit hit,

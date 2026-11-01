@@ -146,7 +146,7 @@ public final class ItemSourceUtil {
         } else if (normalized.startsWith("v-")) {
             normalized = normalized.substring("v-".length());
         }
-        if (normalized.startsWith("minecraft:") || normalized.contains(":")) {
+        if (normalized.contains(":")) {
             return "";
         }
         return VANILLA_IDENTIFIER_PATTERN.matcher(normalized).matches() ? normalized : "";

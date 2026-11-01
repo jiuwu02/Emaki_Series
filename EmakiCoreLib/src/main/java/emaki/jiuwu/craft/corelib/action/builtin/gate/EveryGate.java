@@ -17,11 +17,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class EveryGate extends BaseGate {
 
     public EveryGate() {
-        super("every", "Repeats every following stage on an interval.", CoreGateThread.PURE,
+        super("every", "按间隔重复其后所有段。", CoreGateThread.PURE,
                 CoreStageParameter.optional("interval", CoreStageParameterType.DURATION, "1t",
-                        "Interval such as 20t or 1s"),
+                        "间隔，例如 20t 或 1s"),
                 CoreStageParameter.optional("times", CoreStageParameterType.INTEGER, "0",
-                        "Extra runs after the first"));
+                        "首次之后的额外运行次数"));
     }
 
     @Override

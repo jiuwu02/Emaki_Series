@@ -7,12 +7,14 @@ import java.util.Map;
 
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.PipelineLimits;
 import emaki.jiuwu.craft.corelib.action.pipeline.compile.ValueParsers;
+import emaki.jiuwu.craft.corelib.action.select.SelectorDefinition;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 
 public record CoreLibConfig(
         String language,
-        boolean releaseDefaultData,
         Map<String, List<String>> actionTemplates,
+        Map<String, String> actionAliases,
+        List<SelectorDefinition> actionSelectors,
         LoopConfig loopConfig,
         PipelineConfig pipelineConfig,
         GuiConfig guiConfig,
@@ -21,15 +23,16 @@ public record CoreLibConfig(
         MiniMessageConfig miniMessageConfig,
         DialogConfig dialogConfig,
         DisplayConfig displayConfig,
-        VanillaLanguageConfig vanillaLanguageConfig
+        VanillaLanguageConfig vanillaLanguageConfig,
+        ScriptsConfig scriptsConfig
 ) {
 
     public static CoreLibConfig defaults() {
-                return new CoreLibConfig("zh_CN", true, Map.of(), LoopConfig.defaults(),
+                return new CoreLibConfig("zh_CN", Map.of(), Map.of(), List.of(), LoopConfig.defaults(),
                 PipelineConfig.defaults(), GuiConfig.defaults(),
  GameplayEventConfig.defaults(), DebugConfig.defaults(),
                 MiniMessageConfig.defaults(), DialogConfig.defaults(), DisplayConfig.defaults(),
-                VanillaLanguageConfig.defaults());
+                VanillaLanguageConfig.defaults(), ScriptsConfig.defaults());
     }
 
     public static CoreLibConfig fromConfig(YamlSection configuration) {
@@ -45,10 +48,21 @@ public record CoreLibConfig(
                 templates.put(key, List.copyOf(templatesSection.getStringList(key)));
             }
         }
+        YamlSection aliasesSection = actionSection == null ? null : actionSection.getSection("aliases");
+        Map<String, String> aliases = new LinkedHashMap<>();
+        if (aliasesSection != null) {
+            for (String key : aliasesSection.getKeys(false)) {
+                String fragment = aliasesSection.getString(key, "");
+                if (!fragment.isBlank()) {
+                    aliases.put(key.toLowerCase(Locale.ROOT), fragment);
+                }
+            }
+        }
         return new CoreLibConfig(
                 language,
-                configuration.getBoolean("release_default_data", defaults().releaseDefaultData()),
                 Map.copyOf(templates),
+                Map.copyOf(aliases),
+                SelectorDefinition.parseAll(actionSection == null ? null : actionSection.getSection("selectors")),
                 LoopConfig.fromConfig(actionSection == null ? null : actionSection.getSection("loop")),
                 PipelineConfig.fromConfig(actionSection == null ? null : actionSection.getSection("pipeline")),
                 GuiConfig.fromConfig(configuration.getSection("gui")),
@@ -57,8 +71,30 @@ public record CoreLibConfig(
                 MiniMessageConfig.fromConfig(configuration.getSection("minimessage")),
                 DialogConfig.fromConfig(configuration.getSection("dialog")),
                 DisplayConfig.fromConfig(configuration.getSection("display")),
-                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language"))
+                VanillaLanguageConfig.fromConfig(configuration.getSection("vanilla_language")),
+                ScriptsConfig.fromConfig(configuration.getSection("scripts"))
         );
+    }
+
+    public record ScriptsConfig(boolean enabled, long timeoutMs) {
+
+        public static ScriptsConfig defaults() {
+            return new ScriptsConfig(true, 5000L);
+        }
+
+        public static ScriptsConfig fromConfig(YamlSection section) {
+            ScriptsConfig defaults = defaults();
+            if (section == null) {
+                return defaults;
+            }
+            Boolean enabled = section.getBoolean("enabled", defaults.enabled());
+            Integer timeout = section.getInt("timeout_ms", (int) defaults.timeoutMs());
+            long resolvedTimeout = timeout == null || timeout <= 0 ? defaults.timeoutMs() : timeout.longValue();
+            return new ScriptsConfig(
+                    enabled == null ? defaults.enabled() : enabled,
+                    resolvedTimeout
+            );
+        }
     }
 
     public record VanillaLanguageConfig(boolean enabled, String locale) {
@@ -218,10 +254,11 @@ public record CoreLibConfig(
         }
     }
 
-    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth) {
+    public record PipelineConfig(int maxRepeatTimes, int maxSequenceDepth, int maxBranchDepth,
+            int maxRetryTimes) {
 
         public static PipelineConfig defaults() {
-            return new PipelineConfig(100, 8, 16);
+            return new PipelineConfig(100, 8, 16, PipelineLimits.DEFAULT_MAX_RETRY_TIMES);
         }
 
         public static PipelineConfig fromConfig(YamlSection section) {
@@ -232,13 +269,14 @@ public record CoreLibConfig(
             return new PipelineConfig(
                     section.getInt("max_repeat_times", defaults.maxRepeatTimes()),
                     section.getInt("max_sequence_depth", defaults.maxSequenceDepth()),
-                    section.getInt("max_branch_depth", defaults.maxBranchDepth())
+                    section.getInt("max_branch_depth", defaults.maxBranchDepth()),
+                    section.getInt("max_retry_times", defaults.maxRetryTimes())
             );
         }
 
         public PipelineLimits toLimits() {
             return new PipelineLimits(
-                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth);
+                    maxRepeatTimes, maxSequenceDepth, maxBranchDepth, maxRetryTimes);
         }
     }
 

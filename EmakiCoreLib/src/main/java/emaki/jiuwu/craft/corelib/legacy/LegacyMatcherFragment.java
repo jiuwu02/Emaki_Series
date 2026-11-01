@@ -4,13 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class LegacyMatcherFragment {
-
-    private static final String TYPE_ITEM_SOURCE = "type: item_source";
 
     private LegacyMatcherFragment() {
     }
@@ -49,6 +45,9 @@ public final class LegacyMatcherFragment {
                 continue;
             }
             String cleaned = unquote(trimmed.substring(1));
+            if (cleaned.startsWith("item_source:")) {
+                cleaned = unquote(cleaned.substring("item_source:".length()));
+            }
             if (Texts.isNotBlank(cleaned)) {
                 result.add(cleaned);
             }
@@ -68,74 +67,34 @@ public final class LegacyMatcherFragment {
 
     public static @NotNull List<String> render(@NotNull List<String> sources,
             @NotNull YamlBlockLocator.Hit hit,
-            @NotNull String matcherKey,
-            @Nullable List<String> existingMatcher) {
+            @NotNull String sourcesKey) {
         if (sources.isEmpty()) {
             return List.of();
         }
         String head = head(hit);
         String pad = " ".repeat(hit.keyColumn());
-        if (existingMatcher != null && !existingMatcher.isEmpty()) {
-            return renderMerged(sources, head, pad, matcherKey, existingMatcher);
-        }
-        if (sources.size() == 1) {
-            List<String> rendered = new ArrayList<>();
-            rendered.add(head + matcherKey + ":");
-            rendered.add(pad + "  " + TYPE_ITEM_SOURCE);
-            rendered.add(pad + "  sources:");
-            rendered.add(pad + "    - " + quote(sources.getFirst()));
+        List<String> rendered = new ArrayList<>();
+        if ("item_sources".equals(sourcesKey)) {
+            rendered.add(head + sourcesKey + ":");
+            for (String source : sources) {
+                rendered.add(pad + "  - " + quote(source));
+            }
             return List.copyOf(rendered);
         }
-        List<String> rendered = new ArrayList<>();
-        rendered.add(head + matcherKey + ":");
-        rendered.add(pad + "  " + TYPE_ITEM_SOURCE);
+        if ("item_source".equals(sourcesKey)) {
+            if (sources.size() != 1) {
+                return List.of();
+            }
+            rendered.add(head + sourcesKey + ": " + quote(sources.getFirst()));
+            return List.copyOf(rendered);
+        }
+        rendered.add(head + sourcesKey + ":");
+        rendered.add(pad + "  type: item_source");
         rendered.add(pad + "  sources:");
         for (String source : sources) {
             rendered.add(pad + "    - " + quote(source));
         }
         return List.copyOf(rendered);
-    }
-
-    private static List<String> renderMerged(List<String> sources,
-            String head,
-            String pad,
-            String matcherKey,
-            List<String> existingMatcher) {
-        List<String> rendered = new ArrayList<>();
-        rendered.add(head + matcherKey + ":");
-        rendered.add(pad + "  type: all_of");
-        rendered.add(pad + "  matchers:");
-        rendered.add(pad + "    - " + TYPE_ITEM_SOURCE);
-        rendered.add(pad + "      sources:");
-        for (String source : sources) {
-            rendered.add(pad + "        - " + quote(source));
-        }
-        for (String line : reindentChild(existingMatcher, pad + "    - ")) {
-            rendered.add(line);
-        }
-        return List.copyOf(rendered);
-    }
-
-    private static List<String> reindentChild(List<String> body, String firstPrefix) {
-        List<String> cleaned = new ArrayList<>();
-        int baseIndent = Integer.MAX_VALUE;
-        for (String line : body) {
-            if (YamlBlockLocator.skippable(line)) {
-                continue;
-            }
-            baseIndent = Math.min(baseIndent, YamlBlockLocator.indentOf(line));
-            cleaned.add(line);
-        }
-        if (cleaned.isEmpty()) {
-            return List.of();
-        }
-        List<String> result = new ArrayList<>();
-        String continuation = " ".repeat(firstPrefix.length());
-        for (int index = 0; index < cleaned.size(); index++) {
-            String stripped = cleaned.get(index).substring(baseIndent);
-            result.add((index == 0 ? firstPrefix : continuation) + stripped);
-        }
-        return List.copyOf(result);
     }
 
     private static String head(YamlBlockLocator.Hit hit) {

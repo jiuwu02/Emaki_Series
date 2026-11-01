@@ -12,7 +12,7 @@ public final class EmakiContextExport {
 
     public EmakiContextExport(@NotNull CoreStageContext context) {
         if (context == null) {
-            throw new IllegalArgumentException("context cannot be null");
+            throw new IllegalArgumentException("context 不能为 null");
         }
         this.context = context;
     }

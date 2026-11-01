@@ -45,7 +45,7 @@ final class ExpressionScorer {
             return;
         }
         String error = issues == null || issues.isEmpty()
-                ? "non-finite result"
+                ? "结果非有限值"
                 : String.join("; ", issues);
         debugLogger.log(DEBUG_MODULE, player, "target_selector_expression_failed", Map.of(
                 "expression_id", expressionId,

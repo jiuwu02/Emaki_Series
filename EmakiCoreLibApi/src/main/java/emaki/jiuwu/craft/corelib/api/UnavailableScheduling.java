@@ -80,6 +80,6 @@ final class UnavailableScheduling implements EmakiScheduling {
     @Override
     public <T> CompletableFuture<T> submitGlobal(Plugin owner, Supplier<T> task) {
         return CompletableFuture.failedFuture(
-                new UnsupportedOperationException("EmakiCoreLib is not available"));
+                new UnsupportedOperationException("EmakiCoreLib 不可用"));
     }
 }

@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -20,6 +21,8 @@ import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckLifecycleSupport;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -31,7 +34,10 @@ import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
 import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceScanner;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.level.action.LevelStageRegistrar;
 import emaki.jiuwu.craft.level.api.EmakiLevelApi;
 import emaki.jiuwu.craft.level.apiimpl.DefaultEmakiLevelApi;
@@ -39,6 +45,7 @@ import emaki.jiuwu.craft.level.bridge.MythicLevelDropBridge;
 import emaki.jiuwu.craft.level.command.LevelCommand;
 import emaki.jiuwu.craft.level.config.AppConfig;
 import emaki.jiuwu.craft.level.config.LevelConfigPrecheckContributor;
+import emaki.jiuwu.craft.level.editor.LevelEditorModule;
 import emaki.jiuwu.craft.level.listener.LevelGameplaySubscriber;
 import emaki.jiuwu.craft.level.listener.PlayerDataListener;
 import emaki.jiuwu.craft.level.legacy.LevelLegacyTargets;
@@ -61,7 +68,12 @@ import emaki.jiuwu.craft.level.service.PlayerLevelDataStore;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
 import emaki.jiuwu.craft.level.service.RequirementService;
 
-public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
+public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider {
+
+    @Override
+    public Logger getLogger() {
+        return EmakiLog.of(this);
+    }
 
     private static final int BSTATS_PLUGIN_ID = 31794;
     private static final String STARTUP_ASCII = """
@@ -91,6 +103,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             "types/forging.yml",
             "types/taming.yml",
             "types/smelting.yml",
+            "types/example_prestige.yml",
             "sources/combat.yml",
             "sources/block_actions.yml",
             "sources/fishing.yml",
@@ -98,7 +111,11 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             "sources/brewing.yml",
             "sources/taming.yml",
             "sources/smelting.yml",
-            "sources/mythicmobs.yml"
+            "sources/mythicmobs.yml",
+            "sources/example_custom_source.yml",
+            "sources/example_block_source.yml",
+            "gui/editor_page_gui.yml",
+            "gui/editor_browser_gui.yml"
     );
     private static final List<String> EXTRA_DIRECTORIES = List.of("data");
     private static final Set<String> DEBUG_MODULES = Set.of("common");
@@ -133,6 +150,9 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     private LevelPlaceholderExpansion placeholderExpansion;
     private LevelStageRegistrar stageRegistrar;
     private BStatsRegistration metrics;
+    private ChatInputService chatInputService;
+    private LevelEditorModule editorModule;
+    private EditorService editorService;
 
     private volatile boolean contentReady;
     private EmakiLevelApi.Bridge levelApiBridge;
@@ -152,7 +172,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        coreLib = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        coreLib = EmakiCoreLibPlugin.lookup();
         scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();
@@ -175,6 +195,12 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
     public void onDisable() {
         contentReady = false;
         publishAbsent();
+        if (editorService != null) {
+            editorService.closeAll();
+        }
+        if (chatInputService != null) {
+            chatInputService.close();
+        }
         if (coreLib != null) {
             ConfigPrecheckLifecycleSupport.unregister("level");
         }
@@ -203,7 +229,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         if (dataStore != null) {
             PlayerLevelDataStore.FlushResult flushResult = dataStore.flushAndSeal(5L, TimeUnit.SECONDS);
             if (!flushResult.clean()) {
-                getLogger().warning("[Shutdown] Level data drain incomplete: pending="
+                getLogger().warning("[shutdown] 等级数据排空未完成: pending="
                         + flushResult.drainResult().pendingOperations()
                         + ", ioFailures=" + flushResult.drainResult().failures().size()
                         + ", saveFailures=" + flushResult.failedEntries()
@@ -225,6 +251,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     public void reloadPluginState() {
 
+        flushDeferredEditorEdits();
         ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                 messages,
                 "level",
@@ -256,7 +283,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             playerDataListener.ensureSession(player);
         }
         topService.rebuildAsync().exceptionally(throwable -> {
-            getLogger().log(Level.WARNING, "Failed to rebuild level leaderboard", throwable);
+            getLogger().log(Level.WARNING, "[leaderboard] " + messages.message("console.leaderboard_rebuild_failed"), throwable);
             return null;
         });
         levelService.syncAllOnline();
@@ -286,7 +313,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         try {
             action.accept(coreLib());
         } catch (RuntimeException | LinkageError exception) {
-            getLogger().fine("EmakiLevel readiness publication skipped: " + exception);
+            getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
     }
 
@@ -325,6 +352,14 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                             runtime.set("console", consoleDefaults.asMap());
                         }
                     }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("等级配置", messages, getLogger(),
+                                () -> LegacyStartupMigration.fromItemSourceReport(
+                                        new LegacyItemSourceRewriter(getDataFolder().toPath(),
+                                                LevelLegacyTargets.specs(), getLogger()).run(true)));
+                    }
                 }
         );
         typeLoader = new LevelTypeLoader(this);
@@ -362,13 +397,20 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
         playerDataListener = new PlayerDataListener(this, scheduling);
         levelGuiService = new LevelGuiService(this, guiService, guiTemplateLoader);
         levelTopGuiService = new LevelTopGuiService(this, guiService, guiTemplateLoader);
+        chatInputService = new ChatInputService(this, executionDispatcher);
+        editorModule = new LevelEditorModule(this);
+        AbstractMessageService editorMessages = new AbstractMessageService(this,
+                messages.message("general.prefix"), messages::message, messages::message);
+        editorService = new EditorService(this, guiService, guiTemplateLoader, editorMessages,
+                chatInputService, editorModule);
+        editorModule.bind(editorService);
     }
 
     private void registerCommand() {
         LevelCommand command = new LevelCommand(this);
         registerCommand(
                 "emakilevel",
-                "emakilevel command",
+                "EmakiLevel 命令",
                 List.of("elv", "elevel"),
                 new PaperCommandAdapter("emakilevel", "emakilevel.use", command, command)
         );
@@ -385,6 +427,7 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     private void registerListeners() {
         getServer().getPluginManager().registerEvents(guiService, this);
+        getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(playerDataListener, this);
         getServer().getPluginManager().registerEvents(expSourceRegistry, this);
         gameplaySubscriber = new LevelGameplaySubscriber(this);
@@ -440,8 +483,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
                     appConfig);
             if (!bridge.register()) {
                 bridge.close();
-                getLogger().warning("EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
-                        + " operation=register_attribute_bridge, cause=bridge.register() returned false");
+                messages.warning("console.attribute_bridge_register_failed",
+                        Map.of("cause", "bridge.register() 返回 false"));
                 messages.info("console.attribute_bridge_unavailable");
                 return;
             }
@@ -451,8 +494,8 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
             messages.info("console.attribute_bridge_ready");
         } catch (RuntimeException | LinkageError exception) {
             getLogger().log(Level.WARNING,
-                    "EmakiAttribute bridge registration failed: provider=EmakiAttribute,"
-                            + " operation=register_attribute_bridge, cause=" + exception,
+                    messages.message("console.attribute_bridge_register_failed",
+                            Map.of("cause", String.valueOf(exception))),
                     exception);
             messages.info("console.attribute_bridge_unavailable");
         }
@@ -560,5 +603,19 @@ public final class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerPro
 
     public LevelTopGuiService levelTopGuiService() {
         return levelTopGuiService;
+    }
+
+    public LevelEditorModule editorModule() {
+        return editorModule;
+    }
+
+    public EditorService editorService() {
+        return editorService;
+    }
+
+    private void flushDeferredEditorEdits() {
+        if (editorService != null) {
+            editorService.flushAll();
+        }
     }
 }

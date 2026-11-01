@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.corelib.config.precheck;
 
+import org.jetbrains.annotations.Nullable;
+
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.config.precheck.ConfigPrecheckSeverity;
@@ -9,7 +11,8 @@ public record ConfigPrecheckIssue(
         String path,
         ConfigPrecheckSeverity severity,
         String message,
-        String hint
+        String hint,
+        @Nullable ConfigPrecheckFixAction fix
 ) {
 
     public ConfigPrecheckIssue {
@@ -21,7 +24,15 @@ public record ConfigPrecheckIssue(
     }
 
     public static ConfigPrecheckIssue of(String module, String path, ConfigPrecheckSeverity severity, String message) {
-        return new ConfigPrecheckIssue(module, path, severity, message, "");
+        return new ConfigPrecheckIssue(module, path, severity, message, "", null);
+    }
+
+    public static ConfigPrecheckIssue fixable(String module,
+            String path,
+            ConfigPrecheckSeverity severity,
+            String message,
+            ConfigPrecheckFixAction fix) {
+        return new ConfigPrecheckIssue(module, path, severity, message, "", fix);
     }
 
     public String format(LogMessages messages) {

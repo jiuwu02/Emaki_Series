@@ -38,7 +38,7 @@ public final class AttributeDamageStage implements CoreActionStage {
 
     @Override
     public @NotNull String description() {
-        return "Applies attribute-typed custom damage to the target.";
+        return "对目标施加属性类型的自定义伤害。";
     }
 
     @Override
@@ -49,10 +49,10 @@ public final class AttributeDamageStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         return List.of(
-                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "Base damage"),
-                CoreStageParameter.optional("type", CoreStageParameterType.STRING, "", "Damage type id"),
+                CoreStageParameter.required("amount", CoreStageParameterType.DOUBLE, "基础伤害"),
+                CoreStageParameter.optional("type", CoreStageParameterType.STRING, "", "伤害类型 ID"),
                 CoreStageParameter.optional("cause", CoreStageParameterType.STRING, "CUSTOM",
-                        "Bukkit damage cause"));
+                        "Bukkit 伤害原因"));
     }
 
     @Override

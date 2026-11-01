@@ -1,7 +1,7 @@
 name: EmakiAttribute
 main: emaki.jiuwu.craft.attribute.EmakiAttributePlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:
@@ -33,6 +33,8 @@ permissions:
   emakiattribute.resync:
     default: op
   emakiattribute.debug:
+    default: op
+  emakiattribute.edit:
     default: op
   emakiattribute.points:
     default: true

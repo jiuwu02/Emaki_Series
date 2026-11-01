@@ -1,7 +1,7 @@
 name: EmakiCooking
 main: emaki.jiuwu.craft.cooking.EmakiCookingPlugin
 version: ${project.version}
-api-version: "1.21.8"
+api-version: "26.1"
 folia-supported: true
 dependencies:
   server:
@@ -29,10 +29,6 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
-    PacketEvents:
-      load: BEFORE
-      required: false
-      join-classpath: true
     MMOItems:
       load: BEFORE
       required: false
@@ -45,6 +41,8 @@ permissions:
   emakicooking.use:
     default: true
   emakicooking.reload:
+    default: op
+  emakicooking.edit:
     default: op
   emakicooking.inspect:
     default: op

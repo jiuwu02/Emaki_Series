@@ -1,0 +1,125 @@
+# ============================================================
+# EmakiCodex 成就页示例 - 战斗图鉴
+# ============================================================
+# 演示点：
+# 1. 根节点 + 两条父子链，节点均写 x/y 坐标（需 PacketEvents 才生效）
+# 2. 节点用 triggers.entries 自动完成，条件里使用 %entity_type%
+# 3. 首次完成执行 actions.complete（发消息 / 给原版经验）
+# 节点 key 规则：emakicodex:<page_id>/<node_id>，本页即
+#   emakicodex:example_combat_page/first_blood
+# 字段依据：docs/modules/codex/advancements.md 与 triggers.md。
+# ============================================================
+
+page_id: "example_combat_page"
+title: "<gradient:#EF4444:#F59E0B>战斗图鉴</gradient>"
+background: "minecraft:textures/gui/advancements/backgrounds/adventure.png"
+root: "root"
+
+advancements:
+  root:
+    icon: "minecraft-enchanted_book"
+    title: "<gold>战斗之路</gold>"
+    description: "<gray>从第一场战斗开始记录你的战绩。</gray>"
+    frame: "task"
+    # 根节点不写 parent；x/y 同为 0 会被视为未指定坐标。
+    x: 0.0
+    y: 0.0
+    toast: false
+    announce: false
+    hidden: false
+
+  first_blood:
+    icon: "minecraft-iron_sword"
+    title: "<yellow>初次讨伐</yellow>"
+    description: "<gray>击败任意一种常见敌对生物。</gray>"
+    frame: "task"
+    parent: "root"
+    x: 1.0
+    y: 0.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<green>你完成了初次讨伐。</green>"
+        - "give_exp amount=10"
+    triggers:
+      entries:
+        - event: "entity_kill"
+          condition:
+            type: "any_of"
+            entries:
+              - '%entity_type% == "ZOMBIE"'
+              - '%entity_type% == "SKELETON"'
+              - '%entity_type% == "CREEPER"'
+
+  veteran:
+    icon: "minecraft-blaze_rod"
+    title: "<gold>烈焰老兵</gold>"
+    description: "<gray>击败一只烈焰人。</gray>"
+    frame: "task"
+    parent: "root"
+    x: 1.0
+    y: 1.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<gold>烈焰也挡不住你。</gold>"
+        - "give_exp amount=25"
+    triggers:
+      entries:
+        - event: "entity_kill"
+          condition:
+            type: "all_of"
+            entries:
+              - '%entity_type% == "BLAZE"'
+
+  dragon_slayer:
+    icon: "minecraft-nether_star"
+    title: "<light_purple>终局猎手</light_purple>"
+    description: "<gray>击败末影龙或凋灵。</gray>"
+    frame: "challenge"
+    parent: "root"
+    x: 2.0
+    y: 0.0
+    toast: true
+    announce: true
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<light_purple>你完成了终局挑战！</light_purple>"
+        - "give_exp amount=100"
+        - "give_item item_source=minecraft-nether_star amount=1"
+    triggers:
+      entries:
+        - event: "entity_kill"
+          condition:
+            type: "any_of"
+            entries:
+              - '%entity_type% == "ENDER_DRAGON"'
+              - '%entity_type% == "WITHER"'
+
+  arena_champion:
+    icon: "minecraft-golden_sword"
+    title: "<aqua>竞技场冠军</aqua>"
+    description: "<gray>击败一只掠夺者。</gray>"
+    frame: "goal"
+    parent: "root"
+    x: 2.0
+    y: 1.0
+    toast: true
+    announce: false
+    hidden: false
+    actions:
+      complete:
+        - "send_message text=<aqua>竞技场为你欢呼。</aqua>"
+        - "give_exp amount=40"
+    triggers:
+      entries:
+        - event: "entity_kill"
+          condition:
+            type: "all_of"
+            entries:
+              - '%entity_type% == "PILLAGER"'

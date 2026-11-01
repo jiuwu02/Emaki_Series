@@ -101,9 +101,9 @@ public final class AttributeTraceService {
             boolean itemSlotMatched = views.itemSlotMatched();
             for (Map.Entry<String, Double> entry : loreApprox.entrySet()) {
                 if (itemSlotMatched) {
-                    addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / Lore", slot, "", "lore", true, "", filter);
+                    addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / 词条", slot, "", "lore", true, "", filter);
                 } else {
-                    addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / Lore（槽位未通过）", "lore", filter);
+                    addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / 词条（槽位未通过）", "lore", filter);
                 }
             }
             for (Map.Entry<String, Double> entry : rawPdc.entrySet()) {

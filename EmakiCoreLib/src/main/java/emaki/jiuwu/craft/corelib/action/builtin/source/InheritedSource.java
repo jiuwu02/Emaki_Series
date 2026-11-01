@@ -11,7 +11,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
 public final class InheritedSource extends BaseSource {
 
     public InheritedSource() {
-        super("inherited", "Targets inherited from the caller or previous phase.",
+        super("inherited", "从调用方或上一阶段继承的目标。",
                 CoreActionExecutionDomain.SERVER_GLOBAL);
     }
 

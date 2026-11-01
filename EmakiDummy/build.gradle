@@ -1,0 +1,21 @@
+// EmakiDummy.
+version = '1.0.3'
+
+configurations.shadeBundle {
+    exclude group: 'io.netty'
+    exclude group: 'org.slf4j'
+    exclude group: 'net.kyori'
+    exclude group: 'com.google.code.gson'
+    exclude group: 'com.nukkitx.fastutil'
+    exclude group: 'org.checkerframework'
+}
+
+dependencies {
+    shadeBundle libs.mcprotocollib
+
+    api project(':EmakiCoreLibApi')
+    api project(':EmakiCoreLib')
+
+    optional libs.mcprotocollib
+    provided libs.paper.api
+}

@@ -1,0 +1,47 @@
+# ============================================================
+# EmakiCooking 营养类型示例 - 元素
+# ============================================================
+# nutrition/*.yml 只定义营养类型本身的 5 个字段：
+# id / display_name / min / max / default。
+# 单类型阈值 single、组合阈值 combo、反胃与持续 BUFF 都不在这里，
+# 而是写在 config.yml 的 nutrition 段（food_sources / thresholds），
+# 因此本文件无法直接演示阈值；下方给出可直接粘贴到 config.yml 的注释片段。
+#
+# 可粘贴到 config.yml 的示例（当前为注释，不会被读取）：
+# nutrition:
+#   food_sources:
+#     - item_sources:
+#         - "minecraft-glowstone_dust"
+#         - "minecraft-redstone"
+#       nutrition:
+#         example_elemental: 15
+#   thresholds:
+#     single:
+#       - id: "elemental_high"
+#         types: ["example_elemental"]
+#         value: 60
+#         compare: ">="
+#         actions:
+#           - 'send_message text="<aqua>元素能量充盈。</aqua>"'
+#           - 'give_potion_effect type=speed level=1 duration=200'
+#         on_recover:
+#           - 'send_message text="<gray>元素能量回落。</gray>"'
+#     combo:
+#       - id: "elemental_balanced"
+#         types: ["example_elemental", "fruit", "vegetable"]
+#         value: 40
+#         compare: ">="
+#         required_count: 3
+#         actions:
+#           - 'send_message text="<red>元素摄入过量，开始反胃……</red>"'
+#           - 'start_task sequence=nutrition_decay times=999999 interval=40t key=elemental_overeat:%player_name% on_conflict=replace stop_when_offline=true'
+#         on_recover:
+#           - 'stop_task key=elemental_overeat:%player_name%'
+# 说明：start_task 的 sequence 模板需在 CoreLib config.yml 的 action.loop.templates 下定义。
+# ============================================================
+
+id: example_elemental
+display_name: "元素"
+min: 0
+max: 100
+default: 0

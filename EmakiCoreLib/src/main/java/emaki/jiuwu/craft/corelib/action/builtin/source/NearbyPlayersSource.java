@@ -20,11 +20,11 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 public final class NearbyPlayersSource extends BaseSource {
 
     public NearbyPlayersSource() {
-        super("nearby_players", "Players around the pipeline origin.",
+        super("nearby_players", "管道原点周围的玩家。",
                 CoreActionExecutionDomain.LOCATION_REGION,
-                CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "1", "Search radius"),
+                CoreStageParameter.optional("radius", CoreStageParameterType.DOUBLE, "1", "搜索半径"),
                 CoreStageParameter.optional("limit", CoreStageParameterType.INTEGER, "0",
-                        "Maximum players, 0 for no limit"));
+                        "最大玩家数，0 表示不限制"));
     }
 
     @Override

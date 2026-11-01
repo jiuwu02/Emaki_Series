@@ -67,7 +67,7 @@ public record ItemSourceKind(@NotNull String namespace, @NotNull String id) {
      */
     public static @NotNull ItemSourceKind of(@Nullable String key) {
         if (key == null || key.isBlank()) {
-            throw new IllegalArgumentException("item source kind must not be blank");
+            throw new IllegalArgumentException("物品来源 kind 不能为空");
         }
         String trimmed = key.trim();
         int separator = trimmed.indexOf(':');
@@ -75,7 +75,7 @@ public record ItemSourceKind(@NotNull String namespace, @NotNull String id) {
             return new ItemSourceKind(EMAKI_NAMESPACE, trimmed);
         }
         if (trimmed.indexOf(':', separator + 1) >= 0) {
-            throw new IllegalArgumentException("item source kind must be \"namespace:id\": " + key);
+            throw new IllegalArgumentException("物品来源 kind 必须为 \"namespace:id\": " + key);
         }
         return new ItemSourceKind(trimmed.substring(0, separator), trimmed.substring(separator + 1));
     }
@@ -92,11 +92,11 @@ public record ItemSourceKind(@NotNull String namespace, @NotNull String id) {
 
     private static String normalize(String segment, String label) {
         if (segment == null || segment.isBlank()) {
-            throw new IllegalArgumentException("item source kind " + label + " must not be blank");
+            throw new IllegalArgumentException("物品来源 kind " + label + " 不能为空");
         }
         String normalized = segment.trim().toLowerCase(Locale.ROOT);
         if (normalized.indexOf(':') >= 0) {
-            throw new IllegalArgumentException("item source kind " + label + " must not contain ':': " + segment);
+            throw new IllegalArgumentException("物品来源 kind " + label + " 不能包含 ':': " + segment);
         }
         return normalized;
     }

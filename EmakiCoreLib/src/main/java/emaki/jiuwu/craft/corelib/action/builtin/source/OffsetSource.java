@@ -8,23 +8,32 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionDomain;
+import emaki.jiuwu.craft.corelib.api.action.CoreActionExecutionTarget;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.corelib.api.action.CoreResolvedArguments;
 import emaki.jiuwu.craft.corelib.api.action.CoreSourceResult;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageContext;
+import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameter;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 
 public final class OffsetSource extends BaseSource {
 
     public OffsetSource() {
-        super("offset", "A location offset from the pipeline origin.",
+        super("offset", "相对管道原点的位置偏移。",
                 CoreActionExecutionDomain.SERVER_GLOBAL,
-                CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X offset"),
-                CoreStageParameter.optional("y", CoreStageParameterType.DOUBLE, "0", "Y offset"),
-                CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z offset"),
+                CoreStageParameter.optional("x", CoreStageParameterType.DOUBLE, "0", "X 偏移"),
+                CoreStageParameter.optional("y", CoreStageParameterType.DOUBLE, "0", "Y 偏移"),
+                CoreStageParameter.optional("z", CoreStageParameterType.DOUBLE, "0", "Z 偏移"),
                 CoreStageParameter.optional("relative", CoreStageParameterType.BOOLEAN, "false",
-                        "Offset along the origin facing instead of world axes"));
+                        "沿原点朝向偏移，而非世界坐标轴"));
+    }
+
+    @Override
+    public @NotNull CoreActionExecutionTarget executionTarget(@NotNull CoreStagePlanningContext context) {
+        return context.caster().entityOrNull() == null
+                ? CoreActionExecutionTarget.global()
+                : CoreActionExecutionTarget.contextEntity();
     }
 
     @Override

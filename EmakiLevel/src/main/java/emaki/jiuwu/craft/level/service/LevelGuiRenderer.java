@@ -64,7 +64,7 @@ final class LevelGuiRenderer {
             lore.add(plugin.messages().message("gui.level.lore.right_click", replacements));
             lore.add(plugin.messages().message("gui.level.lore.shift_right_click", replacements));
         }
-        return buildConfiguredItem(slot, fallbackItem, "%type_display_name% <gray>Lv.%level%</gray>", lore, replacements);
+        return buildConfiguredItem(slot, fallbackItem, plugin.messages().message("gui.level.entry_name", replacements), lore, replacements);
     }
 
     private ItemStack renderPageInfo(GuiSession session, GuiSlot slot) {

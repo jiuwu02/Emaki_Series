@@ -1,0 +1,8 @@
+// EmakiAttributeApi（原 EmakiAttributeApi/pom.xml）。
+version = '5.0.0'
+
+dependencies {
+    provided libs.paper.api
+    provided project(':EmakiCoreLibApi')
+    provided libs.jetbrains.annotations
+}

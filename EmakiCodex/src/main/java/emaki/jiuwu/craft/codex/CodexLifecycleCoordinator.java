@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.codex.codex.provider.CodexProviderRegistrar;
 import emaki.jiuwu.craft.codex.codex.service.CodexEntryService;
 import emaki.jiuwu.craft.codex.codex.service.PlayerCodexStore;
 import emaki.jiuwu.craft.codex.config.AppConfig;
+import emaki.jiuwu.craft.codex.editor.CodexEditorModule;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
@@ -32,10 +33,13 @@ import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
+import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 
 final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiCodexPlugin, CodexRuntimeComponents> {
 
@@ -43,7 +47,10 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
     private static final List<String> STATIC_FILES = List.of("gui/codex_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of(
-            "advancements/example_page.yml", "codex/example_category.yml");
+            "advancements/example_page.yml", "codex/example_category.yml",
+            "advancements/example_combat_page.yml", "advancements/example_collection_page.yml",
+            "codex/example_combat.yml", "codex/example_life.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES = List.of("data", "codex");
     private static final long SHUTDOWN_FLUSH_SECONDS = 10L;
     private static final List<ConfigKeyMigration.Rename> CONFIG_RENAMES = List.of(
@@ -54,7 +61,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
 
     @Override
     public CodexRuntimeComponents initialize(EmakiCodexPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults, this::parseAppConfig);
@@ -111,6 +118,15 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         CodexGuiService codexGuiService = new CodexGuiService(plugin, guiService, guiTemplateLoader,
                 codexCategoryLoader, codexEntryService, messageService);
 
+        ChatInputService chatInputService =
+                new emaki.jiuwu.craft.corelib.chat.ChatInputService(plugin, executionDispatcher);
+        CodexEditorModule editorModule =
+                new emaki.jiuwu.craft.codex.editor.CodexEditorModule(plugin);
+        EditorService editorService =
+                new emaki.jiuwu.craft.corelib.editor.EditorService(plugin, guiService, guiTemplateLoader,
+                        messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
+
         CodexTriggerService triggerService = new CodexTriggerService(
                 plugin, advancementPageLoader, advancementService, advancementTriggerRegistry,
                 codexEntryService);
@@ -121,7 +137,8 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancementPacketGateway, advancementTriggerRegistry, triggerService,
                 executionDispatcher, threadOwnership,
                 guiService, guiTemplateLoader, codexCategoryLoader, codexStore,
-                codexProviderRegistrar, codexEntryService, codexGuiService);
+                codexProviderRegistrar, codexEntryService, codexGuiService,
+                chatInputService, editorModule, editorService);
     }
 
     public void reload(EmakiCodexPlugin plugin) {
@@ -159,6 +176,10 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         } else {
             plugin.advancementRegistrar().unregisterConfigured();
         }
+
+        if (plugin.scriptBridge() != null) {
+            plugin.scriptBridge().reload();
+        }
     }
 
     private void resyncAdvancements(EmakiCodexPlugin plugin, int registered) {
@@ -185,7 +206,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             PlayerCodexStore.FlushResult flush =
                     plugin.codexStore().flushAndSeal(SHUTDOWN_FLUSH_SECONDS, TimeUnit.SECONDS);
             if (!flush.clean()) {
-                plugin.getLogger().warning("Codex progress flush finished dirty: saved="
+                plugin.getLogger().warning("[shutdown] 进度刷新结束时仍有未落盘数据: saved="
                         + flush.savedEntries() + " failed=" + flush.failedEntries()
                         + " remaining=" + flush.remainingDirtyEntries());
             }
@@ -193,6 +214,9 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         if (plugin.advancementRegistrar() != null) {
             boolean removeConfigured = plugin.appConfig() != null && plugin.appConfig().removeOnDisable();
             plugin.advancementRegistrar().shutdown(removeConfigured);
+        }
+        if (plugin.scriptBridge() != null) {
+            plugin.scriptBridge().close();
         }
         if (plugin.advancementTriggerRegistry() != null) {
             plugin.advancementTriggerRegistry().close();
@@ -207,6 +231,7 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
             return AppConfig.defaults();
         }
         YamlSection advancement = configuration.getSection("advancement");
+        YamlSection scripts = configuration.getSection("scripts");
 
         return new AppConfig(
                 configuration.getString("language", "zh_CN"),
@@ -217,7 +242,15 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 advancement == null || legacyAwareBool(advancement, "remove_on_disable", "remove-on-disable", true),
                 advancement == null || legacyAwareBool(advancement, "packet_coordinates", "packet-coordinates", true),
                 advancement == null || legacyAwareBool(advancement, "triggers_enabled", "triggers-enabled", true),
-                bool(configuration, "op_bypass", false));
+                bool(configuration, "op_bypass", false),
+                new ScriptHostSettings(
+                        scripts == null || bool(scripts, "enabled", true),
+                        scripts == null ? 5000L : scriptTimeoutMs(scripts)));
+    }
+
+    private long scriptTimeoutMs(YamlSection scripts) {
+        Integer value = scripts.getInt("timeout_ms", 5000);
+        return value == null ? 5000L : value;
     }
 
     private boolean bool(YamlSection section, String path, boolean fallback) {
@@ -231,10 +264,10 @@ final class CodexLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         }
         if (section.contains(legacyPath)) {
             boolean legacyValue = bool(section, legacyPath, fallback);
-            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("配置键 advancement." + legacyPath
+            JavaPlugin.getPlugin(EmakiCodexPlugin.class).getLogger().warning("[config] 配置键 advancement." + legacyPath
                     + " 已更名为 advancement." + path
                     + "，当前按旧键值 " + legacyValue
-                    + " 生效，启动时会自动迁移到新键。");
+                    + " 生效，启动时会自动迁移到新键");
             return legacyValue;
         }
         return fallback;

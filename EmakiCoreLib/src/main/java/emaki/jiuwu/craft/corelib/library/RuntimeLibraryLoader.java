@@ -23,7 +23,7 @@ public final class RuntimeLibraryLoader {
     private static final String CENTRAL_REPO = "https://repo1.maven.org/maven2";
 
     private static final String ADVENTURE_VERSION = "4.26.1";
-    private static final Component LOG_PREFIX = Component.text("[LibraryLoader] ", NamedTextColor.GRAY);
+    private static final Component LOG_PREFIX = Component.text("[library_loader] ", NamedTextColor.GRAY);
 
     private static final int PROBE_TIMEOUT_MS = 3000;
     private static final int DOWNLOAD_CONNECT_TIMEOUT_MS = 8000;
@@ -34,10 +34,10 @@ public final class RuntimeLibraryLoader {
 
     public RuntimeLibraryLoader(Path dataDirectory, ComponentLogger logger) {
         if (dataDirectory == null) {
-            throw new IllegalArgumentException("CoreLib data directory cannot be null");
+            throw new IllegalArgumentException("CoreLib 数据目录不能为 null");
         }
         if (logger == null) {
-            throw new IllegalArgumentException("CoreLib plugin loader logger cannot be null");
+            throw new IllegalArgumentException("CoreLib 插件加载器 logger 不能为 null");
         }
         this.logger = logger;
         this.cacheDirectory = dataDirectory.resolve("libraries");
@@ -55,7 +55,7 @@ public final class RuntimeLibraryLoader {
 
         List<Path> prepared = new ArrayList<>(libraries.size());
         List<RuntimeLibrary> failed = new ArrayList<>();
-        info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库（共 " + libraries.size() + " 个）...");
+        info(NamedTextColor.GRAY, "正在准备 CoreLib 运行库(共 " + libraries.size() + " 个)...");
         for (RuntimeLibrary library : libraries) {
             Path localFile = resolveLocalPath(library);
             if (prepareLibrary(library, localFile, preferredRepo, fallbackRepo)) {
@@ -67,13 +67,13 @@ public final class RuntimeLibraryLoader {
         }
 
         if (!failed.isEmpty()) {
-            throw new IllegalStateException("CoreLib runtime libraries could not be prepared: " + failed);
+            throw new IllegalStateException("无法准备 CoreLib 运行时库: " + failed);
         }
-        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成（" + prepared.size() + "/" + libraries.size() + "）");
+        info(NamedTextColor.GREEN, "CoreLib 运行库准备完成(" + prepared.size() + "/" + libraries.size() + ")");
         return List.copyOf(prepared);
     }
 
-    private static final String GRAALVM_VERSION = "25.2.4";
+    private static final String GRAALVM_VERSION = "25.4.4.1.1";
 
     private List<RuntimeLibrary> libraries() {
         return List.of(
@@ -93,9 +93,9 @@ public final class RuntimeLibraryLoader {
                 RuntimeLibrary.maven("option", new LibraryCoordinate("net.kyori", "option", "1.1.0")),
 
                 RuntimeLibrary.maven("gson", new LibraryCoordinate("com.google.code.gson", "gson", "2.11.0")),
-                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.7")),
+                RuntimeLibrary.maven("boosted-yaml", new LibraryCoordinate("dev.dejvokep", "boosted-yaml", "1.3.8")),
                 RuntimeLibrary.maven("exp4j", new LibraryCoordinate("net.objecthunter", "exp4j", "0.4.8")),
-                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.2.4")),
+                RuntimeLibrary.maven("caffeine", new LibraryCoordinate("com.github.ben-manes.caffeine", "caffeine", "3.3.1")),
 
                 RuntimeLibrary.maven("polyglot", new LibraryCoordinate("org.graalvm.polyglot", "polyglot", GRAALVM_VERSION)),
                 RuntimeLibrary.maven("js-language", new LibraryCoordinate("org.graalvm.js", "js-language", GRAALVM_VERSION)),
@@ -112,7 +112,7 @@ public final class RuntimeLibraryLoader {
 
     private boolean prepareLibrary(RuntimeLibrary library, Path localFile, String preferredRepo, String fallbackRepo) {
         if (validCached(localFile)) {
-            info(NamedTextColor.GREEN, library + " 已就绪（缓存，" + formatSize(sizeKb(localFile)) + "）");
+            info(NamedTextColor.GREEN, library + " 已就绪(缓存，" + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
@@ -122,7 +122,7 @@ public final class RuntimeLibraryLoader {
             success = downloadLibrary(library.coordinate(), localFile, fallbackRepo);
         }
         if (success && validCached(localFile)) {
-            info(NamedTextColor.GREEN, library + " 下载完成（" + formatSize(sizeKb(localFile)) + "）");
+            info(NamedTextColor.GREEN, library + " 下载完成(" + formatSize(sizeKb(localFile)) + ")");
             return true;
         }
         deleteIfExists(localFile);
@@ -136,15 +136,15 @@ public final class RuntimeLibraryLoader {
         ProbeResult central = probeRepository(CENTRAL_REPO, "Maven Central");
         if (aliyun.reachable && central.reachable) {
             ProbeResult chosen = aliyun.latencyMs <= central.latencyMs ? aliyun : central;
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + chosen.name + "（延迟 " + chosen.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + chosen.name + "(延迟 " + chosen.latencyMs + "ms)");
             return chosen == aliyun ? ALIYUN_REPO : CENTRAL_REPO;
         }
         if (aliyun.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + aliyun.name + "（延迟 " + aliyun.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + aliyun.name + "(延迟 " + aliyun.latencyMs + "ms)");
             return ALIYUN_REPO;
         }
         if (central.reachable) {
-            info(NamedTextColor.GRAY, "已选择 Maven 仓库：" + central.name + "（延迟 " + central.latencyMs + "ms）");
+            info(NamedTextColor.GRAY, "已选择 Maven 仓库: " + central.name + "(延迟 " + central.latencyMs + "ms)");
             return CENTRAL_REPO;
         }
         warn(NamedTextColor.YELLOW, "Maven 仓库探测均不可达，将优先尝试阿里云镜像");
@@ -199,7 +199,7 @@ public final class RuntimeLibraryLoader {
             Files.move(tempFile, localFile, StandardCopyOption.REPLACE_EXISTING);
             return true;
         } catch (Exception exception) {
-            debug("下载请求失败：" + downloadUrl, exception);
+            debug("下载请求失败: " + downloadUrl, exception);
             deleteIfExists(tempFile);
             return false;
         } finally {
@@ -230,7 +230,7 @@ public final class RuntimeLibraryLoader {
                 return true;
             }
         } catch (IOException | SecurityException exception) {
-            debug("运行库缓存损坏：" + path, exception);
+            debug("运行库缓存损坏: " + path, exception);
             return false;
         }
     }
@@ -239,7 +239,7 @@ public final class RuntimeLibraryLoader {
         try {
             Files.deleteIfExists(path);
         } catch (IOException exception) {
-            debug("无法删除运行库缓存：" + path, exception);
+            debug("无法删除运行库缓存: " + path, exception);
         }
     }
 
@@ -247,7 +247,7 @@ public final class RuntimeLibraryLoader {
         try {
             Files.createDirectories(cacheDirectory);
         } catch (IOException exception) {
-            throw new IllegalStateException("Cannot create CoreLib runtime library cache: " + cacheDirectory, exception);
+            throw new IllegalStateException("无法创建 CoreLib 运行时库缓存: " + cacheDirectory, exception);
         }
     }
 

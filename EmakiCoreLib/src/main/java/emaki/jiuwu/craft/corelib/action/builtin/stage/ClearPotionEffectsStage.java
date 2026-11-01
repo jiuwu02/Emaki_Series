@@ -18,7 +18,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 public final class ClearPotionEffectsStage extends BaseStage {
 
     public ClearPotionEffectsStage() {
-        super("clear_potion_effects", "entity", "Removes every potion effect from the target.",
+        super("clear_potion_effects", "entity", "移除目标身上的全部药水效果。",
                 CoreTargetRequirement.REQUIRED_ENTITY, CoreActionExecutionDomain.CONTEXT_ENTITY);
     }
 

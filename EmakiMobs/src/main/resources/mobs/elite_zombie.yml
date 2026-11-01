@@ -22,8 +22,7 @@ components:
   custom_name: "<gradient:#ff4444:#ffaa00>精英僵尸</gradient>"
   custom_name_visible: true
   persistent: true
-  # loot_table 值格式：<namespace>:entities/<mob_id>
-  loot_table: "emakimobs:entities/elite_zombie"
+  # 自定义掉落表见 loot_tables/elite_zombie.yml
 
 # 击杀该生物获得的原版经验值
 experience: 80
@@ -34,9 +33,8 @@ experience: 80
 # 注意：health / mana 一类 RESOURCE 型属性对非玩家实体无效，
 # 想抬高怪物血量上限请用下方 components.max_health 或 EA 的 max_health_vanilla。
 ea_attributes:
-  STR: 15
-  VIT: 10
-  AGI: 5
+  strength: 15
+  agility: 5
 
 # ── 动作触发器（可选）──────────────────────────────────────
 # 由 EmakiCoreLib 的动作管道执行，不需要安装 EmakiSkills。
@@ -60,9 +58,9 @@ actions:
     - "nearby radius=50 type=player | send_message text='<green>✦ 精英僵尸已被击败！'"
     - "killer | give_exp amount=80"
   on_damage_give:
-    - "target | apply_effect type=SLOWNESS duration=60 amplifier=0"
+    - "target | give_potion_effect type=SLOWNESS level=1 duration=60"
   on_damage_take:
-    - "self | particle type=FLAME count=10 offset_x=0 offset_y=1 offset_z=0"
+    - "self | spawn_particle particle=FLAME count=10 offset_x=0 offset_y=1 offset_z=0"
 
 # ── 威胁仇恨表 ──────────────────────────────────────────────
 # 启用后，生物会优先攻击威胁值最高的玩家，而非距离最近的玩家。
@@ -81,9 +79,9 @@ threat:
 # 在 range 范围内的所有玩家界面顶部显示该生物的血量。
 # 移除本节可关闭 Boss 血条。
 # color:  RED / GREEN / BLUE / YELLOW / PURPLE / PINK / WHITE
-# style:  SOLID / SEGMENTED_6/10/12/20 / NOTCHED_6/10/12/20
+# style:  SOLID / SEGMENTED_6/10/12/20
 boss_bar:
   title: "<gradient:#ff4444:#ffaa00>精英僵尸</gradient>"
   color: RED
-  style: NOTCHED_10
+  style: SEGMENTED_10
   range: 60.0

@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.attribute.model.DamageStageDefinition;
 import emaki.jiuwu.craft.attribute.model.DamageStageKind;
 import emaki.jiuwu.craft.attribute.model.DamageStageMode;
 import emaki.jiuwu.craft.attribute.model.DamageStageSource;
+import emaki.jiuwu.craft.attribute.model.StageRole;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 final class StageCalculator {
@@ -32,7 +33,7 @@ final class StageCalculator {
             case CUSTOM ->
                 applyCustom(input, inputs, stage, context, roll);
         };
-        return new StageOutcome(next, stage.kind() == DamageStageKind.CUSTOM && inputs.critical());
+        return new StageOutcome(next, stage.role() == StageRole.CRITICAL && inputs.critical());
     }
 
     private double applyFlatPercent(double input, StageInputs inputs, DamageStageDefinition stage) {

@@ -19,7 +19,6 @@ import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 
 final class ForgeMaterialUsagePlanner {
-
     private final EmakiForgePlugin plugin;
     private final ItemIdentifierService itemIdentifierService;
 
@@ -38,9 +37,10 @@ final class ForgeMaterialUsagePlanner {
         if (recipe == null || guiItems == null) {
             return result;
         }
-        int sequence = 0;
-        sequence = appendRequiredContributions(result, player, recipe, guiItems, sequence);
-        appendOptionalContributions(result, player, recipe, guiItems, sequence);
+        int sequence = appendContributions(result,
+                assignMaterials(player, recipe, guiItems.requiredMaterials(), false), false, 0);
+        appendContributions(result,
+                assignMaterials(player, recipe, guiItems.optionalMaterials(), true), true, sequence);
         return result;
     }
 
@@ -49,15 +49,8 @@ final class ForgeMaterialUsagePlanner {
         if (recipe == null || guiItems == null) {
             return result;
         }
-        List<InputStack> requiredInputs = inputStacks(player, guiItems.requiredMaterials());
-        List<InputStack> optionalInputs = inputStacks(player, guiItems.optionalMaterials());
-        for (ForgeMaterial material : recipe.materials()) {
-            if (material == null || isBlank(material.key())) {
-                continue;
-            }
-            List<InputStack> inputs = material.optional() ? optionalInputs : requiredInputs;
-            result.merge(material.key(), totalAmount(inputs, material), Integer::sum);
-        }
+        appendPlaced(result, assignMaterials(player, recipe, guiItems.requiredMaterials(), false));
+        appendPlaced(result, assignMaterials(player, recipe, guiItems.optionalMaterials(), true));
         return result;
     }
 
@@ -69,13 +62,17 @@ final class ForgeMaterialUsagePlanner {
         return sumOptionalContributions(player, recipe, guiItems, ForgeMaterial::forgeCapacityBonus);
     }
 
-    private int sumOptionalContributions(Player player,
-            Recipe recipe,
-            GuiItems guiItems,
+    private int sumOptionalContributions(Player player, Recipe recipe, GuiItems guiItems,
             ToIntFunction<ForgeMaterial> extractor) {
         int total = 0;
-        for (ForgeMaterialContribution c : collectOptionalContributions(player, recipe, guiItems, 0)) {
-            total += extractor.applyAsInt(c.material()) * c.amount();
+        if (recipe == null || guiItems == null) {
+            return total;
+        }
+        List<ForgeMaterialContribution> contributions = new ArrayList<>();
+        appendContributions(contributions,
+                assignMaterials(player, recipe, guiItems.optionalMaterials(), true), true, 0);
+        for (ForgeMaterialContribution contribution : contributions) {
+            total += extractor.applyAsInt(contribution.material()) * contribution.amount();
         }
         return total;
     }
@@ -85,94 +82,53 @@ final class ForgeMaterialUsagePlanner {
         if (recipe == null || guiItems == null) {
             return result;
         }
-        appendUnconsumedItems(
-                result,
-                player,
-                guiItems.blueprints(),
-                context -> blueprintKey(recipe, context),
-                blueprintConsumption(recipe)
-        );
-        appendUnconsumedItems(
-                result,
-                player,
-                guiItems.requiredMaterials(),
-                context -> materialKey(recipe, context, false),
-                requiredMaterialConsumption(recipe)
-        );
-        appendUnconsumedItems(
-                result,
-                player,
-                guiItems.optionalMaterials(),
-                context -> materialKey(recipe, context, true),
-                optionalMaterialConsumption(player, recipe, guiItems)
-        );
+        appendUnconsumedBlueprints(result,
+                assignBlueprints(player, recipe, guiItems.blueprints()),
+                blueprintConsumption(recipe));
+        appendUnconsumedMaterials(result,
+                assignMaterials(player, recipe, guiItems.requiredMaterials(), false),
+                materialConsumption(recipe.requiredMaterials(), null));
+        List<AssignedMaterialInput> optionalInputs = assignMaterials(player, recipe, guiItems.optionalMaterials(), true);
+        appendUnconsumedMaterials(result, optionalInputs,
+                materialConsumption(recipe.optionalMaterials(), optionalInputs));
         return result;
     }
 
-    private int appendRequiredContributions(List<ForgeMaterialContribution> result,
-            Player player,
-            Recipe recipe,
-            GuiItems guiItems,
+    private int appendContributions(List<ForgeMaterialContribution> result,
+            List<AssignedMaterialInput> inputs,
+            boolean optional,
             int sequence) {
-        List<InputStack> inputs = inputStacks(player, guiItems.requiredMaterials());
+        Map<String, List<AssignedMaterialInput>> groups = new LinkedHashMap<>();
+        for (AssignedMaterialInput input : inputs) {
+            groups.computeIfAbsent(input.material().materialId(), ignored -> new ArrayList<>()).add(input);
+        }
         int nextSequence = sequence;
-        for (ForgeMaterial material : recipe.requiredMaterials()) {
-            InputStack firstInput = firstMatchingInput(inputs, material);
-            if (firstInput == null || totalAmount(inputs, material) < unitAmount(material)) {
+        for (List<AssignedMaterialInput> group : groups.values()) {
+            if (group.isEmpty()) {
                 continue;
             }
-            result.add(new ForgeMaterialContribution(
-                    material,
-                    1,
-                    firstInput.slot(),
-                    "required",
-                    nextSequence++,
-                    firstInput.source()
-            ));
+            AssignedMaterialInput first = group.get(0);
+            int unit = unitAmount(first.material());
+            int total = group.stream().mapToInt(input -> input.itemStack().getAmount()).sum();
+            int batches = optional ? total / unit : total >= unit ? 1 : 0;
+            if (batches > 0) {
+                result.add(new ForgeMaterialContribution(first.material(), batches, first.slot(),
+                        optional ? "optional" : "required", nextSequence++, first.source()));
+            }
         }
         return nextSequence;
     }
 
-    private int appendOptionalContributions(List<ForgeMaterialContribution> result,
-            Player player,
-            Recipe recipe,
-            GuiItems guiItems,
-            int sequence) {
-        int nextSequence = sequence;
-        for (ForgeMaterialContribution contribution : collectOptionalContributions(player, recipe, guiItems, sequence)) {
-            result.add(contribution);
-            nextSequence = Math.max(nextSequence, contribution.sequence() + 1);
-        }
-        return nextSequence;
-    }
-
-    private List<ForgeMaterialContribution> collectOptionalContributions(Player player,
-            Recipe recipe,
-            GuiItems guiItems,
-            int sequence) {
-        List<ForgeMaterialContribution> result = new ArrayList<>();
-        if (recipe == null || guiItems == null) {
+    private Map<String, Integer> materialUnits(List<ForgeMaterial> materials) {
+        Map<String, Integer> result = new LinkedHashMap<>();
+        if (materials == null) {
             return result;
         }
-        List<InputStack> inputs = inputStacks(player, guiItems.optionalMaterials());
-        int nextSequence = sequence;
-        for (ForgeMaterial material : recipe.optionalMaterials()) {
-            InputStack firstInput = firstMatchingInput(inputs, material);
-            if (firstInput == null) {
+        for (ForgeMaterial material : materials) {
+            if (material == null || isBlank(material.countKey())) {
                 continue;
             }
-            int batches = totalAmount(inputs, material) / unitAmount(material);
-            if (batches <= 0) {
-                continue;
-            }
-            result.add(new ForgeMaterialContribution(
-                    material,
-                    batches,
-                    firstInput.slot(),
-                    "optional",
-                    nextSequence++,
-                    firstInput.source()
-            ));
+            result.merge(material.countKey(), unitAmount(material), Math::max);
         }
         return result;
     }
@@ -183,74 +139,92 @@ final class ForgeMaterialUsagePlanner {
             return result;
         }
         for (BlueprintRequirement requirement : recipe.blueprintRequirements()) {
-            if (requirement == null || isBlank(requirement.key())) {
-                continue;
-            }
-            result.merge(requirement.key(), Math.max(1, requirement.amount()), Integer::sum);
-        }
-        return result;
-    }
-
-    private Map<String, Integer> requiredMaterialConsumption(Recipe recipe) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-        if (recipe == null) {
-            return result;
-        }
-        for (ForgeMaterial material : recipe.requiredMaterials()) {
-            if (material == null || isBlank(material.key())) {
-                continue;
-            }
-            result.merge(material.key(), unitAmount(material), Integer::sum);
-        }
-        return result;
-    }
-
-    private Map<String, Integer> optionalMaterialConsumption(Player player, Recipe recipe, GuiItems guiItems) {
-        Map<String, Integer> result = new LinkedHashMap<>();
-        if (recipe == null || guiItems == null) {
-            return result;
-        }
-        List<InputStack> inputs = inputStacks(player, guiItems.optionalMaterials());
-        for (ForgeMaterial material : recipe.optionalMaterials()) {
-            if (material == null || isBlank(material.key())) {
-                continue;
-            }
-            int unitAmount = unitAmount(material);
-            int amountToConsume = (totalAmount(inputs, material) / unitAmount) * unitAmount;
-            if (amountToConsume > 0) {
-                result.merge(material.key(), amountToConsume, Integer::sum);
+            if (requirement != null && !isBlank(requirement.blueprintId())) {
+                result.merge(requirement.blueprintId(), Math.max(1, requirement.amount()), Math::max);
             }
         }
         return result;
     }
 
-    private void appendUnconsumedItems(List<ItemStack> result,
-            Player player,
-            Map<Integer, ItemStack> inputs,
-            InputKeyResolver keyResolver,
-            Map<String, Integer> remainingConsumption) {
-        if (result == null || inputs == null || inputs.isEmpty()) {
-            return;
+    private Map<String, Integer> materialConsumption(List<ForgeMaterial> materials,
+            List<AssignedMaterialInput> inputs) {
+        Map<String, Integer> units = materialUnits(materials);
+        if (inputs == null) {
+            return ForgeAllocationMath.requiredConsumption(units);
         }
-        Map<String, Integer> consumption = new LinkedHashMap<>(remainingConsumption == null ? Map.of() : remainingConsumption);
-        for (InputStack input : inputStacks(player, inputs)) {
-            ItemStack itemStack = input.itemStack();
-            if (itemStack == null || isEmpty(itemStack)) {
-                continue;
-            }
-            String key = keyResolver == null ? "" : keyResolver.resolve(input.context());
-            int consume = isBlank(key) ? 0 : Math.min(itemStack.getAmount(), consumption.getOrDefault(key, 0));
-            if (consume > 0) {
-                consumption.computeIfPresent(key, (_, current) -> Math.max(0, current - consume));
-            }
-            int unconsumed = Math.max(0, itemStack.getAmount() - consume);
-            if (unconsumed <= 0) {
-                continue;
-            }
+        Map<String, Integer> totals = new LinkedHashMap<>();
+        appendPlaced(totals, inputs);
+        return ForgeAllocationMath.optionalConsumption(units, totals);
+    }
+
+    private void appendPlaced(Map<String, Integer> result, List<AssignedMaterialInput> inputs) {
+        for (AssignedMaterialInput input : inputs) {
+            result.merge(input.material().countKey(), input.itemStack().getAmount(), Integer::sum);
+        }
+    }
+
+    private void appendUnconsumedMaterials(List<ItemStack> result,
+            List<AssignedMaterialInput> inputs,
+            Map<String, Integer> remaining) {
+        Map<String, Integer> consumption = new LinkedHashMap<>(remaining);
+        for (AssignedMaterialInput input : inputs) {
+            appendUnconsumed(result, input.itemStack(), input.material().countKey(), consumption);
+        }
+    }
+
+    private void appendUnconsumedBlueprints(List<ItemStack> result,
+            List<AssignedBlueprintInput> inputs,
+            Map<String, Integer> remaining) {
+        Map<String, Integer> consumption = new LinkedHashMap<>(remaining);
+        for (AssignedBlueprintInput input : inputs) {
+            appendUnconsumed(result, input.itemStack(), input.requirement().blueprintId(), consumption);
+        }
+    }
+
+    private void appendUnconsumed(List<ItemStack> result, ItemStack itemStack, String key,
+            Map<String, Integer> consumption) {
+        int consume = Math.min(itemStack.getAmount(), consumption.getOrDefault(key, 0));
+        if (consume > 0) {
+            consumption.put(key, Math.max(0, consumption.getOrDefault(key, 0) - consume));
+        }
+        int unconsumed = Math.max(0, itemStack.getAmount() - consume);
+        if (unconsumed > 0) {
             ItemStack clone = itemStack.clone();
             clone.setAmount(unconsumed);
             result.add(clone);
         }
+    }
+
+    private List<AssignedMaterialInput> assignMaterials(Player player, Recipe recipe,
+            Map<Integer, ItemStack> inputs, boolean optional) {
+        List<AssignedMaterialInput> result = new ArrayList<>();
+        for (InputStack input : inputStacks(player, inputs)) {
+            ForgeMaterial material = recipe.findMaterialMatching(input.context(), optional);
+            if (material != null) {
+                result.add(new AssignedMaterialInput(input.slot(), input.itemStack(), input.source(), material));
+            }
+        }
+        return result;
+    }
+
+    private List<AssignedBlueprintInput> assignBlueprints(Player player, Recipe recipe,
+            Map<Integer, ItemStack> inputs) {
+        List<AssignedBlueprintInput> result = new ArrayList<>();
+        for (InputStack input : inputStacks(player, inputs)) {
+            BlueprintRequirement requirement = recipe.findBlueprintRequirementMatching(input.context());
+            if (requirement != null) {
+                result.add(new AssignedBlueprintInput(input.slot(), input.itemStack(), requirement));
+            }
+        }
+        return result;
+    }
+
+    private Map<String, List<AssignedMaterialInput>> groupMaterials(List<AssignedMaterialInput> inputs) {
+        Map<String, List<AssignedMaterialInput>> result = new LinkedHashMap<>();
+        for (AssignedMaterialInput input : inputs) {
+            result.computeIfAbsent(input.material().countKey(), ignored -> new ArrayList<>()).add(input);
+        }
+        return result;
     }
 
     private List<InputStack> inputStacks(Player player, Map<Integer, ItemStack> inputs) {
@@ -266,53 +240,10 @@ final class ForgeMaterialUsagePlanner {
                 continue;
             }
             ItemSourceRef source = identify(itemStack);
-            result.add(new InputStack(
-                    entry.getKey() == null ? -1 : entry.getKey(),
-                    itemStack,
-                    source,
-                    MatchContext.of(itemStack, source, player)
-            ));
+            result.add(new InputStack(entry.getKey() == null ? -1 : entry.getKey(), itemStack, source,
+                    MatchContext.of(itemStack, source, player)));
         }
         return result;
-    }
-
-    private InputStack firstMatchingInput(List<InputStack> inputs, ForgeMaterial material) {
-        if (inputs == null || material == null) {
-            return null;
-        }
-        for (InputStack input : inputs) {
-            if (input != null && material.matches(input.context())) {
-                return input;
-            }
-        }
-        return null;
-    }
-
-    private int totalAmount(List<InputStack> inputs, ForgeMaterial material) {
-        if (inputs == null || material == null) {
-            return 0;
-        }
-        int total = 0;
-        for (InputStack input : inputs) {
-            if (input == null || !material.matches(input.context())) {
-                continue;
-            }
-            total += input.itemStack().getAmount();
-        }
-        return total;
-    }
-
-    private String blueprintKey(Recipe recipe, MatchContext context) {
-        if (recipe == null || context == null) {
-            return "";
-        }
-        BlueprintRequirement requirement = recipe.findBlueprintRequirementMatching(context);
-        return requirement == null ? "" : requirement.key();
-    }
-
-    private String materialKey(Recipe recipe, MatchContext context, boolean optional) {
-        ForgeMaterial material = recipe == null ? null : recipe.findMaterialMatching(context, optional);
-        return material == null ? "" : material.key();
     }
 
     private ItemSourceRef identify(ItemStack itemStack) {
@@ -334,13 +265,14 @@ final class ForgeMaterialUsagePlanner {
         return value == null || value.isBlank();
     }
 
-    @FunctionalInterface
-    private interface InputKeyResolver {
-
-        String resolve(MatchContext context);
+    private record InputStack(int slot, ItemStack itemStack, ItemSourceRef source, MatchContext context) {
     }
 
-    private record InputStack(int slot, ItemStack itemStack, ItemSourceRef source, MatchContext context) {
+    private record AssignedMaterialInput(int slot, ItemStack itemStack, ItemSourceRef source,
+            ForgeMaterial material) {
+    }
 
+    private record AssignedBlueprintInput(int slot, ItemStack itemStack,
+            BlueprintRequirement requirement) {
     }
 }

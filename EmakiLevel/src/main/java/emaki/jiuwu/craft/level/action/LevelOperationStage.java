@@ -46,15 +46,15 @@ public final class LevelOperationStage implements CoreActionStage {
     @Override
     public @NotNull String description() {
         return switch (operationType) {
-            case ADD_EXP -> "Adds experience to the target's level type.";
-            case SET_EXP -> "Sets the target's experience for a level type.";
-            case REMOVE_EXP -> "Removes experience from the target's level type.";
-            case ADD_LEVEL -> "Adds levels to the target's level type.";
-            case SET_LEVEL -> "Sets the target's level for a level type.";
-            case REMOVE_LEVEL -> "Removes levels from the target's level type.";
-            case RESET -> "Resets the target's progress for a level type.";
-            case LEVEL_UP -> "Levels the target up once in a level type.";
-            default -> "Modifies the target's level progress.";
+            case ADD_EXP -> "为目标等级类型增加经验。";
+            case SET_EXP -> "设置目标在某个等级类型上的经验。";
+            case REMOVE_EXP -> "从目标等级类型移除经验。";
+            case ADD_LEVEL -> "为目标等级类型增加等级。";
+            case SET_LEVEL -> "设置目标在某个等级类型上的等级。";
+            case REMOVE_LEVEL -> "从目标等级类型移除等级。";
+            case RESET -> "重置目标在某个等级类型上的进度。";
+            case LEVEL_UP -> "使目标在某个等级类型上升一级。";
+            default -> "修改目标的等级进度。";
         };
     }
 
@@ -66,17 +66,17 @@ public final class LevelOperationStage implements CoreActionStage {
     @Override
     public @NotNull List<CoreStageParameter> parameters() {
         List<CoreStageParameter> parameters = new ArrayList<>();
-        parameters.add(CoreStageParameter.required("type", CoreStageParameterType.STRING, "Level type id"));
+        parameters.add(CoreStageParameter.required("type", CoreStageParameterType.STRING, "等级类型 ID"));
 
         parameters.add(CoreStageParameter.optional("amount", CoreStageParameterType.EXPRESSION, "0",
-                "Amount, may be an arithmetic expression"));
+                "数量，可为算术表达式"));
         parameters.add(CoreStageParameter.optional("reason", CoreStageParameterType.STRING, "action",
-                "Audit reason recorded with the change"));
+                "随变更记录的审计原因"));
         if (operationType == LevelOperationType.ADD_EXP) {
             parameters.add(CoreStageParameter.optional("auto_upgrade", CoreStageParameterType.BOOLEAN, "true",
-                    "Level up automatically when the threshold is crossed"));
+                    "达到阈值时自动升级"));
             parameters.add(CoreStageParameter.optional("silent", CoreStageParameterType.BOOLEAN, "false",
-                    "Suppress the level-up feedback"));
+                    "抑制升级反馈"));
         }
         return List.copyOf(parameters);
     }

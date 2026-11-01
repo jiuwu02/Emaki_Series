@@ -6,20 +6,25 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
+import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
+import emaki.jiuwu.craft.corelib.legacy.LegacyItemSourceRewriter;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.corelib.api.integration.CraftEngineBlockBridge;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -27,6 +32,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.cooking.config.AppConfig;
+import emaki.jiuwu.craft.cooking.editor.CookingEditorModule;
+import emaki.jiuwu.craft.cooking.legacy.CookingLegacyTargets;
 import emaki.jiuwu.craft.cooking.loader.ChoppingBoardRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.FermentationBarrelRecipeLoader;
 import emaki.jiuwu.craft.cooking.loader.GrinderRecipeLoader;
@@ -79,7 +86,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     @Override
     public CookingRuntimeComponents initialize(EmakiCookingPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         EmakiScheduling taskScheduler = EmakiCoreLibApi.scheduling();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
@@ -113,6 +120,14 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("烹饪配方", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.fromItemSourceReport(
+                                        new LegacyItemSourceRewriter(plugin.getDataFolder().toPath(),
+                                                CookingLegacyTargets.specs(), plugin.getLogger()).run(true)));
                     }
                 }
         );
@@ -246,6 +261,15 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 taskScheduler,
                 threadOwnership
         );
+        GuiService guiService = new GuiService(plugin, executionDispatcher,
+                coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),
+                coreLibPlugin.guiBackend());
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        CookingEditorModule editorModule = new CookingEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new CookingRuntimeComponents(
                 taskScheduler,
                 executionDispatcher,
@@ -285,13 +309,30 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 nutritionTypeLoader,
                 nutritionTypeRegistry,
                 nutritionDataStore,
-                nutritionService
+                nutritionService,
+                guiService,
+                guiTemplateLoader,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 
     public void reload(EmakiCookingPlugin plugin) {
+        AppConfig previousAppConfig = plugin.appConfigLoader().current();
+        String previousLanguage = plugin.languageLoader().currentLanguage();
+        try {
+            applyReload(plugin);
+        } catch (RuntimeException exception) {
+            rollbackReload(plugin, previousAppConfig, previousLanguage, exception);
+            throw exception;
+        }
+    }
+
+    private void applyReload(EmakiCookingPlugin plugin) {
         plugin.languageLoader().load();
         plugin.appConfigLoader().load();
+        plugin.guiTemplateLoader().load();
         plugin.languageLoader().setLanguage(plugin.appConfig().language());
         plugin.choppingBoardRecipeLoader().load();
         plugin.wokRecipeLoader().load();
@@ -302,6 +343,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
         plugin.fermentationBarrelRecipeLoader().load();
         plugin.nutritionTypeLoader().load();
         plugin.settingsService().reload();
+        plugin.recipeService().clearCaches();
         plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
         plugin.nutritionService().reload();
         plugin.choppingBoardRuntimeService().reload();
@@ -315,14 +357,17 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AppConfig previousAppConfig = plugin.appConfigLoader().current();
+        String previousLanguage = plugin.languageLoader().currentLanguage();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<Void, Void>(
                 "cooking",
                 "config-load",
-                "Loading configs...",
+                plugin.messageService().message("console.reload_loading_configs"),
                 () -> {
                     plugin.languageLoader().load();
                     plugin.appConfigLoader().load();
+                    plugin.guiTemplateLoader().load();
                     plugin.choppingBoardRecipeLoader().load();
                     plugin.wokRecipeLoader().load();
                     plugin.grinderRecipeLoader().load();
@@ -331,20 +376,21 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
                     plugin.nutritionTypeLoader().load();
-                    ConfigPrecheckReport report = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class)
+                    ConfigPrecheckReport report = EmakiCoreLibPlugin.lookup()
                             .configPrecheckService()
-                            .checkModule(JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).configModel(), "cooking");
+                            .checkModule(EmakiCoreLibPlugin.lookup().configModel(), "cooking");
                     if (!report.success()) {
-                        throw new IllegalStateException("Cooking precheck failed: "
+                        throw new IllegalStateException("Cooking 配置预检失败: "
                                 + String.join("; ", report.formatLines(plugin.messageService(), "cooking")));
                     }
                     return null;
                 },
                 "apply",
-                "Applying configuration...",
+                plugin.messageService().message("console.reload_applying"),
                 _ -> {
                     plugin.languageLoader().setLanguage(plugin.appConfig().language());
                     plugin.settingsService().reload();
+                    plugin.recipeService().clearCaches();
                     plugin.nutritionTypeRegistry().reload(plugin.nutritionTypeLoader().types());
                     plugin.nutritionService().reload();
                     plugin.choppingBoardRuntimeService().reload();
@@ -355,15 +401,33 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.juicerRuntimeService().reload();
                     plugin.fermentationBarrelRuntimeService().reload();
                     logStationRecipeCounts(plugin);
-                    notifyProgress(progressListener, "Reload complete.");
+                    notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
                     return null;
                 },
                 null,
                 null,
-                null,
-                (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage()),
+                failure -> rollbackReload(plugin, previousAppConfig, previousLanguage, failure),
+                (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed", Map.of(
+                        "stage", stage,
+                        "error", AsyncFailures.describe(ex))),
                 progressListener
         ));
+    }
+
+    private void rollbackReload(EmakiCookingPlugin plugin,
+            AppConfig previousAppConfig,
+            String previousLanguage,
+            Throwable cause) {
+        if (previousAppConfig != null) {
+            plugin.appConfigLoader().overrideCurrent(previousAppConfig);
+        }
+        String language = previousLanguage == null || previousLanguage.isBlank()
+                ? (previousAppConfig == null ? null : previousAppConfig.language())
+                : previousLanguage;
+        if (language != null && !language.isBlank()) {
+            plugin.languageLoader().setLanguage(language);
+        }
+        plugin.getLogger().warning("[reload] 烹饪重载失败, 已回滚到旧配置: " + AsyncFailures.describe(cause));
     }
 
     private void logStationRecipeCounts(EmakiCookingPlugin plugin) {

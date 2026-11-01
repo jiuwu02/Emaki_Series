@@ -1,7 +1,5 @@
 package emaki.jiuwu.craft.corelib.config.precheck;
 
-import org.bukkit.plugin.java.JavaPlugin;
-
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
@@ -35,6 +33,6 @@ public final class ConfigPrecheckLifecycleSupport {
     }
 
     private static EmakiCoreLibPlugin coreLib() {
-        return JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        return EmakiCoreLibPlugin.lookup();
     }
 }

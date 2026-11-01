@@ -42,8 +42,8 @@ public final class LevelStageRegistrar {
             if (registration.successful()) {
                 handles.add(registration);
             } else {
-                plugin.getLogger().warning("Failed to register pipeline stage '" + id
-                        + "': " + registration.reasonKey());
+                plugin.messages().warning("console.stage_register_failed",
+                        Map.of("stage", id, "reason", registration.reasonKey()));
             }
         });
         EmakiCoreLibApi.onStageRegistryRebuilt(plugin, this::register);

@@ -2,19 +2,25 @@ package emaki.jiuwu.craft.corelib.plugin;
 
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.logging.Logger;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.debug.DebugLoggerProvider;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.EmakiServiceRegistry;
 
 public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiServiceRegistry, DebugLoggerProvider {
 
-    private final Map<Class<?>, Object> serviceRegistry = new ConcurrentHashMap<>();
+    private volatile Map<Class<?>, Object> serviceRegistry = Map.of();
     private DebugLogger debugLogger;
+
+    @Override
+    public Logger getLogger() {
+        return EmakiLog.of(this);
+    }
 
     public Path dataPath(String first, String... more) {
         return getDataFolder().toPath().resolve(Path.of(first, more));
@@ -30,10 +36,7 @@ public abstract class AbstractEmakiPlugin extends JavaPlugin implements EmakiSer
     }
 
     protected final void registerServices(Map<Class<?>, Object> services) {
-        serviceRegistry.clear();
-        if (services != null) {
-            serviceRegistry.putAll(services);
-        }
+        serviceRegistry = services == null ? Map.of() : Map.copyOf(services);
     }
 
     protected final void registerServices(RuntimeComponents components) {

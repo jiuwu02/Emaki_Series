@@ -17,7 +17,7 @@ public final class ExecutionBackendLoader {
 
     public static LoadedExecution load(Server server, CapabilityProbe capabilities) {
         if (server == null) {
-            throw new IllegalStateException("Server is unavailable; execution backend cannot be initialized");
+            throw new IllegalStateException("服务器不可用；无法初始化执行后端");
         }
         CapabilityProbe detected = capabilities == null ? CapabilityProbe.detect(server) : capabilities;
         ExecutionBackend backend = detected.folia()
@@ -28,7 +28,7 @@ public final class ExecutionBackendLoader {
 
     private static ExecutionBackend loadFoliaBackend(Server server, CapabilityProbe capabilities) {
         if (!capabilities.foliaBackendReady()) {
-            throw new IllegalStateException("Folia was detected but required scheduler or ownership capabilities are unavailable");
+            throw new IllegalStateException("检测到 Folia，但所需的调度器或归属能力不可用");
         }
         try {
             Class<?> backendClass = Class.forName(
@@ -37,14 +37,14 @@ public final class ExecutionBackendLoader {
                     ExecutionBackendLoader.class.getClassLoader());
             Object backend = backendClass.getConstructor(Server.class).newInstance(server);
             if (!(backend instanceof ExecutionBackend executionBackend)) {
-                throw new IllegalStateException("Folia execution backend does not implement the CoreLib execution contract");
+                throw new IllegalStateException("Folia 执行后端未实现 CoreLib 执行契约");
             }
             return executionBackend;
         } catch (InvocationTargetException exception) {
             Throwable cause = exception.getCause() == null ? exception : exception.getCause();
-            throw new IllegalStateException("Failed to initialize the Folia execution backend", cause);
+            throw new IllegalStateException("初始化 Folia 执行后端失败", cause);
         } catch (ReflectiveOperationException | LinkageError exception) {
-            throw new IllegalStateException("Failed to link the Folia execution backend", exception);
+            throw new IllegalStateException("链接 Folia 执行后端失败", exception);
         }
     }
 

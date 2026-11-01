@@ -9,7 +9,10 @@ import emaki.jiuwu.craft.corelib.legacy.LegacyTargetSpec;
 public final class LevelLegacyTargets {
 
     private static final List<LegacyTargetSpec> SPECS = List.of(
-            LegacyTargetSpec.replace("sources", "sources.*.rules[]", "result_item_sources"));
+            LegacyTargetSpec.replace("sources", "sources.*.rules[]",
+                    "result_item_sources", "item_sources"),
+            LegacyTargetSpec.replace("types", "upgrade.rewards.items[]",
+                    "item_sources", "item_source"));
 
     private LevelLegacyTargets() {
     }

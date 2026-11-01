@@ -89,7 +89,7 @@ public final class AttributePointsGuiService {
         ParentAttributeData data = plugin.attributeService().parentAttributeService().data(session.viewer());
         Map<String, Object> replacements = replacements(session.viewer(), session.template(), page(session));
         replacements.putAll(attributeReplacements(definition, data));
-        return buildConfiguredItem(slot, "experience_bottle", "%display_name% <gray>Lv.%points%</gray>", defaultAttributeLore(), replacements);
+        return buildConfiguredItem(slot, "experience_bottle", "%display_name% <gray>等级 %points%</gray>", defaultAttributeLore(), replacements);
     }
 
     private ItemStack renderSummary(GuiSession session, GuiSlot slot) {

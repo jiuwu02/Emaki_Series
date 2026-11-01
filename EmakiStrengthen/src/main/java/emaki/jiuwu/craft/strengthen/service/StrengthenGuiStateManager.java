@@ -131,5 +131,6 @@ final class StrengthenGuiStateManager {
 
     public void clear() {
         sessions.clear();
+        pendingSettlements.clear();
     }
 }

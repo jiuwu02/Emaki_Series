@@ -2,10 +2,12 @@ package emaki.jiuwu.craft.corelib.script;
 
 import java.time.Duration;
 import java.util.Map;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +32,7 @@ public final class GraalJsEngine implements ScriptEngine {
     private final Engine sharedEngine;
     private final WatchdogExecutor watchdog;
     private final CompiledScriptCache cache;
+    private volatile boolean closed;
 
     private GraalJsEngine() {
         this.sharedEngine = Engine.newBuilder(LANGUAGE_ID)
@@ -50,18 +53,33 @@ public final class GraalJsEngine implements ScriptEngine {
         return instance;
     }
 
+    public static void shutdownInstance() {
+        GraalJsEngine current;
+        synchronized (GraalJsEngine.class) {
+            current = instance;
+            instance = null;
+        }
+        if (current != null) {
+            current.shutdown();
+        }
+    }
+
     @Override
     public @NotNull ScriptResult eval(@NotNull String code,
                                        @NotNull Map<String, Object> bindings,
                                        long timeoutMs) {
         if (code == null) {
-            throw new IllegalArgumentException("code cannot be null");
+            throw new IllegalArgumentException("code 不能为 null");
         }
         if (bindings == null) {
-            throw new IllegalArgumentException("bindings cannot be null");
+            throw new IllegalArgumentException("bindings 不能为 null");
         }
         if (timeoutMs <= 0) {
-            throw new IllegalArgumentException("timeoutMs must be positive, got: " + timeoutMs);
+            throw new IllegalArgumentException("timeoutMs 必须为正数，实际: " + timeoutMs);
+        }
+
+        if (closed) {
+            return ScriptResult.error(new IllegalStateException("脚本引擎已关停，评估请求被拒绝"));
         }
 
         Source source = cache.getOrCompile(code, "eval-" + System.currentTimeMillis());
@@ -75,8 +93,10 @@ public final class GraalJsEngine implements ScriptEngine {
     }
 
     public void shutdown() {
+        closed = true;
+        cache.clear();
         watchdog.shutdown();
-        sharedEngine.close();
+        sharedEngine.close(true);
     }
 
     private Context createContext() {
@@ -84,7 +104,6 @@ public final class GraalJsEngine implements ScriptEngine {
                 .engine(sharedEngine)
                 .allowHostAccess(HostAccess.EXPLICIT)
                 .allowHostClassLookup(className -> false)
-                .option("engine.WarnInterpreterOnly", "false")
                 .build();
     }
 
@@ -105,6 +124,8 @@ public final class GraalJsEngine implements ScriptEngine {
 
     private static final class WatchdogExecutor {
 
+        private static final long SHUTDOWN_GRACE_MILLIS = 500L;
+
         private final ScheduledExecutorService scheduler;
         private final ExecutorService evaluationExecutor;
 
@@ -124,22 +145,27 @@ public final class GraalJsEngine implements ScriptEngine {
         }
 
         ScriptResult evalWithTimeout(Context context, Source source, long timeoutMs) {
-            CompletableFuture<Value> future = CompletableFuture.supplyAsync(
-                    () -> context.eval(source), evaluationExecutor
-            );
+            CompletableFuture<Value> future;
+            ScheduledFuture<?> killer;
+            try {
+                future = CompletableFuture.supplyAsync(
+                        () -> context.eval(source), evaluationExecutor
+                );
+                killer = scheduler.schedule(
+                        () -> {
+                            try {
+                                context.interrupt(Duration.ofMillis(100));
+                            } catch (TimeoutException e) {
 
-            ScheduledFuture<?> killer = scheduler.schedule(
-                    () -> {
-                        try {
-                            context.interrupt(Duration.ofMillis(100));
-                        } catch (TimeoutException e) {
-
-                        }
-                        context.close(true);
-                    },
-                    timeoutMs,
-                    TimeUnit.MILLISECONDS
-            );
+                            }
+                            context.close(true);
+                        },
+                        timeoutMs,
+                        TimeUnit.MILLISECONDS
+                );
+            } catch (RejectedExecutionException exception) {
+                return ScriptResult.error(exception);
+            }
 
             try {
                 Value result = future.get(timeoutMs + 200, TimeUnit.MILLISECONDS);
@@ -164,12 +190,27 @@ public final class GraalJsEngine implements ScriptEngine {
                 killer.cancel(false);
                 Thread.currentThread().interrupt();
                 return ScriptResult.interrupted();
+            } catch (CancellationException exception) {
+                killer.cancel(false);
+                return ScriptResult.interrupted();
             }
         }
 
         void shutdown() {
-            scheduler.shutdownNow();
-            evaluationExecutor.shutdownNow();
+            evaluationExecutor.shutdown();
+            scheduler.shutdown();
+            try {
+                if (!evaluationExecutor.awaitTermination(SHUTDOWN_GRACE_MILLIS, TimeUnit.MILLISECONDS)) {
+                    evaluationExecutor.shutdownNow();
+                }
+                if (!scheduler.awaitTermination(SHUTDOWN_GRACE_MILLIS, TimeUnit.MILLISECONDS)) {
+                    scheduler.shutdownNow();
+                }
+            } catch (InterruptedException exception) {
+                evaluationExecutor.shutdownNow();
+                scheduler.shutdownNow();
+                Thread.currentThread().interrupt();
+            }
         }
 
         private Object convertToJava(Value value) {

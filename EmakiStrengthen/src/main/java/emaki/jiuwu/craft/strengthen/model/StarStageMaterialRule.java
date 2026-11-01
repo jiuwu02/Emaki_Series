@@ -45,12 +45,12 @@ public record StarStageMaterialRule(@NotNull TargetCompareEnum targetCompare, @N
         return new StarStageMaterialRule(compare, matcher);
     }
 
-    public static @NotNull String key(int targetStar, @Nullable String itemToken) {
-        return key("", targetStar, itemToken);
+    public static @NotNull String key(int targetStar, @Nullable String materialId) {
+        return key("", targetStar, materialId);
     }
 
-    public static @NotNull String key(@Nullable String branchPath, int targetStar, @Nullable String itemToken) {
-        return Texts.lower(branchPath) + "@" + targetStar + "|" + Texts.lower(itemToken);
+    public static @NotNull String key(@Nullable String branchPath, int targetStar, @Nullable String materialId) {
+        return StageMaterialRuleKey.of(branchPath, targetStar, materialId);
     }
 
     public static @NotNull List<String> illegalCompareTokens(@Nullable Map<?, ?> rawEntry) {

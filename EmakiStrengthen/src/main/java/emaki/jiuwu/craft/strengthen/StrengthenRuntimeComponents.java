@@ -13,7 +13,10 @@ import emaki.jiuwu.craft.corelib.runtime.RuntimeComponents;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixSelectionService;
@@ -59,7 +62,10 @@ record StrengthenRuntimeComponents(ExecutionDispatcher executionDispatcher,
         EnhancementAttemptService enhancementAttemptService,
         AffixSelectionService affixSelectionService,
         AffixGuiService affixGuiService,
-        MasteryProgressService masteryProgressService) implements RuntimeComponents {
+        MasteryProgressService masteryProgressService,
+        ChatInputService chatInputService,
+        StrengthenEditorModule editorModule,
+        EditorService editorService) implements RuntimeComponents {
 
     @Override
     public Map<Class<?>, Object> services() {

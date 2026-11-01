@@ -10,18 +10,20 @@ import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
 import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.legacy.LegacyStartupMigration;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridge;
 import emaki.jiuwu.craft.strengthen.integration.StrengthenAttributeBridgeHolder;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -32,6 +34,8 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.strengthen.config.AppConfig;
+import emaki.jiuwu.craft.strengthen.legacy.LegacyStrengthenConfigRewriter;
+import emaki.jiuwu.craft.strengthen.editor.StrengthenEditorModule;
 import emaki.jiuwu.craft.strengthen.enhancement.EnhancementAttemptService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixGuiService;
 import emaki.jiuwu.craft.strengthen.enhancement.affix.AffixLayerCodec;
@@ -61,14 +65,18 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     private static final String PDC_ATTRIBUTE_SOURCE_ID = "strengthen";
     private static final String AFFIX_PDC_ATTRIBUTE_SOURCE_ID = AffixTargetProvider.ATTRIBUTE_SOURCE_ID;
     private static final List<String> VERSIONED_FILES = List.of("config.yml", "lang/zh_CN.yml", "lang/en_US.yml");
-    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml");
+    private static final List<String> STATIC_FILES = List.of("gui/strengthen_gui.yml", "gui/affix_strengthen_gui.yml",
+            "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> DEFAULT_DATA_FILES = List.of("recipes/example_branch_recipe.yml", "recipes/example_recipe.yml",
+            "recipes/example_armor_recipe.yml",
             "enhancement_recipes/example_enhancement_recipe.yml", "enhancement_recipes/example_affix_recipe.yml",
-            "enhancement_recipes/example_gem.yml");
+            "enhancement_recipes/example_gem.yml", "enhancement_recipes/example_pity_recipe.yml",
+            "enhancement_recipes/example_armor_affix.yml", "enhancement_recipes/example_weapon_affix.yml",
+            "enhancement_recipes/example_upgradeable_gem.yml");
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
         ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
         registerAssemblyLayer(coreLibPlugin);
@@ -94,6 +102,12 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                     @Override
                     public boolean shouldInstallDefaultData() {
                         return plugin.appConfig().releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        LegacyStartupMigration.run("强化配方", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.of(migrateStrengthenRecipes(plugin)));
                     }
                 }
         );
@@ -123,7 +137,8 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 snapshotBuilder,
                 actionCoordinator,
                 coreLibPlugin.itemAssemblyService(),
-                threadOwnership
+                threadOwnership,
+                coreLibPlugin.placeholderRegistry()
         );
         StrengthenTransferService transferService = new StrengthenTransferService(plugin, attemptService);
         StrengthenRefreshService refreshService = new StrengthenRefreshService(plugin, attemptService, executionDispatcher);
@@ -162,6 +177,11 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 affixSelectionService,
                 affixLayerCodec
         );
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        StrengthenEditorModule editorModule = new StrengthenEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
         return new StrengthenRuntimeComponents(
                 executionDispatcher,
                 threadOwnership,
@@ -190,7 +210,10 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 enhancementAttemptService,
                 affixSelectionService,
                 affixGuiService,
-                masteryProgressService
+                masteryProgressService,
+                chatInputService,
+                editorModule,
+                editorService
         );
     }
 
@@ -237,23 +260,23 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class).asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
         }
         if (!freezeAndDrain(plugin, false, "reload-async")) {
             resumeAccepting(plugin);
-            return CompletableFuture.failedFuture(new IllegalStateException("Strengthen operations did not drain"));
+            return CompletableFuture.failedFuture(new IllegalStateException("强化操作未能排空"));
         }
 
         CompletableFuture<Void> closeSessions = closeInventories && plugin.strengthenGuiService() != null
                 ? plugin.strengthenGuiService().clearAllSessionsAsync()
                 : CompletableFuture.completedFuture(null);
-        notifyProgress(progressListener, "Loading configuration files...");
+        notifyProgress(progressListener, plugin.messageService().message("console.reload_loading_files"));
 
         return closeSessions.thenCompose(_ -> runReloadStageAsync(scheduler, new ReloadStageConfig<>(
-                "strengthen", "config-load", "Loading configs...", progressListener,
+                "strengthen", "config-load", plugin.messageService().message("console.reload_loading_configs"), progressListener,
                 () -> {
                     ConfigCommitGate.Result gate = ConfigCommitGate.commit(
                             plugin.messageService(),
@@ -270,13 +293,14 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                             plugin.appConfigLoader()::overrideCurrent);
                     if (gate.rejected()) {
 
-                        throw new IllegalStateException("Strengthen config precheck failed: "
+                        throw new IllegalStateException("强化配置预检失败: "
                                 + String.join("; ", gate.failures()));
                     }
                 },
-                null, (stage, ex) -> plugin.getLogger().warning("[Reload] Stage " + stage + " failed: " + ex.getMessage())
+                null, (stage, ex) -> plugin.messageService().warning("console.reload_stage_failed",
+                        Map.of("stage", stage, "error", String.valueOf(ex.getMessage())))
         )).thenCompose(_ -> {
-            notifyProgress(progressListener, "Applying configuration...");
+            notifyProgress(progressListener, plugin.messageService().message("console.reload_applying"));
             return submitGlobalStage(plugin, () -> {
                 plugin.languageLoader().setLanguage(plugin.appConfig().language());
                 StrengthenRecipeResolver.clearPatternCache();
@@ -291,7 +315,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 plugin.messageService().info("console.recipes_loaded", Map.of(
                         "count", String.valueOf(plugin.recipeLoader().all().size())
                 ));
-                notifyProgress(progressListener, "Reload complete.");
+                notifyProgress(progressListener, plugin.messageService().message("console.reload_complete"));
             });
         })).whenComplete((_, _) -> resumeAccepting(plugin));
     }
@@ -314,7 +338,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.pityStateStore() != null) {
             plugin.pityStateStore().saveToDisk();
         }
-        EmakiCoreLibPlugin coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();
@@ -345,7 +369,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             plugin.affixGuiService().clearAllSessions();
         }
         if (!attemptsDrained || !enhancementsDrained) {
-            plugin.getLogger().severe("[Lifecycle] Strengthen drain incomplete | phase=" + phase
+            plugin.getLogger().warning("[lifecycle] 强化排空未完成 | phase=" + phase
                     + " | attempts=" + (plugin.attemptService() == null ? Map.of() : plugin.attemptService().journalSnapshot())
                     + " | enhancements=" + (plugin.enhancementAttemptService() == null
                             ? Map.of() : plugin.enhancementAttemptService().journalSnapshot()));
@@ -451,6 +475,18 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
             return List.copyOf(fallback);
         }
         return List.copyOf(values);
+    }
+
+    private static List<LegacyStartupMigration.FileOutcome> migrateStrengthenRecipes(
+            EmakiStrengthenPlugin plugin) {
+        LegacyStrengthenConfigRewriter.RunReport report =
+                new LegacyStrengthenConfigRewriter(plugin.dataPath("recipes"), plugin.getLogger()).run(true);
+        List<LegacyStartupMigration.FileOutcome> outcomes = new ArrayList<>();
+        for (LegacyStrengthenConfigRewriter.FileReport file : report.files()) {
+            outcomes.add(new LegacyStartupMigration.FileOutcome(
+                    file.fileName(), file.status().name(), file.detail()));
+        }
+        return outcomes;
     }
 
     private void registerAssemblyLayer(EmakiCoreLibPlugin coreLibPlugin) {

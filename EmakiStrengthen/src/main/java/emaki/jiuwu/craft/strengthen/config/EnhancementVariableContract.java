@@ -41,19 +41,19 @@ public final class EnhancementVariableContract {
     private static void checkAliasContract(List<String> violations) {
         Map<String, List<String>> actual = EnhancementTargetVariables.forgeAliasContract();
         if (!actual.keySet().equals(EXPECTED_ALIASES.keySet())) {
-            violations.add("forge alias paths expected " + EXPECTED_ALIASES.keySet()
-                    + " but was " + actual.keySet());
+            violations.add("forge 别名路径期望为 " + EXPECTED_ALIASES.keySet()
+                    + "，实际为 " + actual.keySet());
             return;
         }
         EXPECTED_ALIASES.forEach((path, expected) -> {
             List<String> resolved = EnhancementTargetVariables.forgeAliases(path);
             if (!expected.equals(resolved)) {
-                violations.add("forge alias set for '" + path + "' expected " + expected
-                        + " but was " + resolved);
+                violations.add("forge 别名集合 '" + path + "' 期望为 " + expected
+                        + "，实际为 " + resolved);
             }
         });
         if (!EnhancementTargetVariables.forgeAliases("forge.unknown_key").isEmpty()) {
-            violations.add("unknown forge path must not resolve to any alias");
+            violations.add("未知的 forge 路径不应解析出任何别名");
         }
     }
 
@@ -76,12 +76,12 @@ public final class EnhancementVariableContract {
         double value = EnhancementTargetVariables.coerceQualityMultiplier(raw);
         boolean valid = EnhancementTargetVariables.validQualityMultiplier(raw);
         if (Double.compare(value, expectedValue) != 0) {
-            violations.add("quality multiplier for '" + raw + "' expected " + expectedValue
-                    + " but was " + value);
+            violations.add("品质倍率 '" + raw + "' 期望为 " + expectedValue
+                    + "，实际为 " + value);
         }
         if (valid != expectedValid) {
-            violations.add("quality multiplier validity for '" + raw + "' expected " + expectedValid
-                    + " but was " + valid);
+            violations.add("品质倍率有效性 '" + raw + "' 期望为 " + expectedValid
+                    + "，实际为 " + valid);
         }
     }
 
@@ -91,28 +91,28 @@ public final class EnhancementVariableContract {
         for (List<String> names : EXPECTED_ALIASES.values()) {
             for (String name : names) {
                 if (!variables.containsKey(name)) {
-                    violations.add("default variable '" + name + "' is missing from a blank capture");
+                    violations.add("默认变量 '" + name + "' 在空捕获中缺失");
                 }
             }
         }
         Object multiplier = variables.get("forge_quality_multiplier");
         if (!(multiplier instanceof Number number)
                 || Double.compare(number.doubleValue(), EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER) != 0) {
-            violations.add("default forge_quality_multiplier expected "
-                    + EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER + " but was " + multiplier);
+            violations.add("默认 forge_quality_multiplier 期望为 "
+                    + EnhancementTargetVariables.DEFAULT_QUALITY_MULTIPLIER + "，实际为 " + multiplier);
         }
         Object multiplierValid = variables.get(EnhancementTargetVariables.VARIABLE_MULTIPLIER_VALID);
         if (!(multiplierValid instanceof Number validFlag) || validFlag.intValue() != 1) {
-            violations.add("default " + EnhancementTargetVariables.VARIABLE_MULTIPLIER_VALID
-                    + " expected 1 but was " + multiplierValid);
+            violations.add("默认 " + EnhancementTargetVariables.VARIABLE_MULTIPLIER_VALID
+                    + " 期望为 1，实际为 " + multiplierValid);
         }
         Object readErrors = variables.get(EnhancementTargetVariables.VARIABLE_PDC_READ_ERRORS);
         if (!(readErrors instanceof Number errorCount) || errorCount.intValue() != 0) {
-            violations.add("default " + EnhancementTargetVariables.VARIABLE_PDC_READ_ERRORS
-                    + " expected 0 but was " + readErrors);
+            violations.add("默认 " + EnhancementTargetVariables.VARIABLE_PDC_READ_ERRORS
+                    + " 期望为 0，实际为 " + readErrors);
         }
         if (!snapshot.unreadablePdcKeys().isEmpty()) {
-            violations.add("blank capture must report no unreadable pdc keys");
+            violations.add("空捕获不应报告任何不可读的 PDC 键");
         }
     }
 }

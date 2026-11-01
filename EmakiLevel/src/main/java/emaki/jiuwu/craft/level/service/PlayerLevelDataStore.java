@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.model.PlayerLevelData;
@@ -75,7 +76,8 @@ public final class PlayerLevelDataStore {
                         && plugin.debugLogger().shouldLog(DEBUG_SESSION_MODULE, (UUID) null),
                 fields -> {
                     if (plugin.debugLogger() != null) {
-                        plugin.debugLogger().logRaw(DEBUG_SESSION_MODULE, (UUID) null, "session " + fields);
+                        plugin.debugLogger().log(DEBUG_SESSION_MODULE, (UUID) null, "session_line",
+                                Map.of("fields", fields == null ? "" : fields));
                     }
                 }
         );
@@ -93,7 +95,7 @@ public final class PlayerLevelDataStore {
             BooleanSupplier anchorGate,
             Consumer<String> anchorSink) {
         this.dataFolder = Objects.requireNonNull(dataFolder, "dataFolder");
-        this.logger = logger == null ? Logger.getLogger(PlayerLevelDataStore.class.getName()) : logger;
+        this.logger = logger == null ? EmakiLog.of("EmakiLevel") : logger;
         this.asyncYamlFilesSupplier = asyncYamlFilesSupplier;
         this.cache = new PlayerLevelDataCache(anchorGate, anchorSink);
     }
@@ -388,7 +390,7 @@ public final class PlayerLevelDataStore {
         CompletableFuture<PlayerLevelData> physicalLoad;
         if (asyncYamlFiles == null) {
             physicalLoad = CompletableFuture.failedFuture(
-                    new IllegalStateException("AsyncYamlFiles is unavailable"));
+                    new IllegalStateException("AsyncYamlFiles 不可用"));
         } else {
             physicalLoad = cache.waitForIdle(playerId)
                     .thenCompose(ignored -> asyncYamlFiles.load(file))
@@ -594,14 +596,14 @@ public final class PlayerLevelDataStore {
 
     private void logLoadFailure(UUID playerId, Throwable throwable) {
         logger.log(Level.WARNING,
-                "[LevelDataStore] Failed to load " + playerId
-                        + "; this session remains read-only to protect the existing file",
+                "[persistence] 加载失败 " + playerId
+                        + "；该会话保持只读以保护现有文件",
                 throwable);
     }
 
     private void logSaveFailure(UUID playerId, Throwable throwable) {
         logger.log(Level.WARNING,
-                "[LevelDataStore] Failed to save " + playerId,
+                "[persistence] 保存失败 " + playerId,
                 throwable);
     }
 

@@ -5,7 +5,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.model.CookingInputIngredient;
 import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 import emaki.jiuwu.craft.cooking.model.StationCoordinates;
@@ -23,18 +25,22 @@ import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 
 final class OvenTickProcessor {
 
+    private final EmakiCookingPlugin plugin;
     private final CookingSettingsService settingsService;
     private final CookingRecipeService recipeService;
     private final CookingRewardService rewardService;
     private final ItemSourceService itemSourceService;
     private final OvenStateCodec codec;
+    private final Map<String, RecipeCacheEntry> recipeCache = new ConcurrentHashMap<>();
     private CookingCompletionCoordinator completionCoordinator;
 
-    OvenTickProcessor(CookingSettingsService settingsService,
+    OvenTickProcessor(EmakiCookingPlugin plugin,
+            CookingSettingsService settingsService,
             CookingRecipeService recipeService,
             CookingRewardService rewardService,
             ItemSourceService itemSourceService,
             OvenStateCodec codec) {
+        this.plugin = plugin;
         this.settingsService = settingsService;
         this.recipeService = recipeService;
         this.rewardService = rewardService;
@@ -82,7 +88,7 @@ final class OvenTickProcessor {
         List<Integer> validSlots = new ArrayList<>();
         Map<Integer, RecipeDocument> recipesBySlot = new LinkedHashMap<>();
         for (Map.Entry<Integer, String> entry : codec.sortedSlots(state.slotSources()).entrySet()) {
-            RecipeDocument recipe = recipeService.findOvenRecipe(entry.getValue(), null);
+            RecipeDocument recipe = cachedOvenRecipe(entry.getValue());
             if (recipe != null) {
                 validSlots.add(entry.getKey());
                 recipesBySlot.put(entry.getKey(), recipe);
@@ -186,6 +192,20 @@ final class OvenTickProcessor {
         return accepted;
     }
 
+    private RecipeDocument cachedOvenRecipe(String inputSource) {
+        if (Texts.isBlank(inputSource)) {
+            return null;
+        }
+        long bucket = System.currentTimeMillis() / 1000L;
+        RecipeCacheEntry cached = recipeCache.get(inputSource);
+        if (cached != null && cached.bucket() == bucket) {
+            return cached.recipe();
+        }
+        RecipeDocument recipe = recipeService.findOvenRecipe(inputSource, null);
+        recipeCache.put(inputSource, new RecipeCacheEntry(bucket, recipe));
+        return recipe;
+    }
+
     private OvenState copyState(StationCoordinates coordinates, OvenState state) {
         return codec.readState(new MapYamlSection(codec.serializeState(coordinates, state)));
     }
@@ -234,7 +254,7 @@ final class OvenTickProcessor {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }
@@ -306,5 +326,8 @@ final class OvenTickProcessor {
     private boolean isCompleted(int slot, String source, OvenState state) {
         RecipeDocument recipe = recipeService.findOvenRecipe(source, null);
         return recipe != null && state.progressAt(slot) >= recipeService.ovenBakeTimeSeconds(recipe);
+    }
+
+    private record RecipeCacheEntry(long bucket, RecipeDocument recipe) {
     }
 }

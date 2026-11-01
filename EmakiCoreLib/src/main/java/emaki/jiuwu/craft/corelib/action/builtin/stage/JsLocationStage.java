@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.graalvm.polyglot.HostAccess;
 import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.action.builtin.BaseStage;
@@ -68,7 +69,7 @@ public final class JsLocationStage extends BaseStage {
         }
         if (!result.isSuccess()) {
             Throwable error = result.getError();
-            String message = error != null ? error.getMessage() : "unknown";
+            String message = error != null ? error.getMessage() : "未知";
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
                     "action.script.eval.error",
                     Map.of("error_message", message));
@@ -79,73 +80,91 @@ public final class JsLocationStage extends BaseStage {
     }
 
     private static final class LocationExport {
-        private final Location location;
+        private final String worldName;
+        private final double x;
+        private final double y;
+        private final double z;
+        private final int blockX;
+        private final int blockY;
+        private final int blockZ;
 
         LocationExport(Location location) {
-            this.location = location;
+            this.worldName = location.getWorld() != null ? location.getWorld().getName() : "未知";
+            this.x = location.getX();
+            this.y = location.getY();
+            this.z = location.getZ();
+            this.blockX = location.getBlockX();
+            this.blockY = location.getBlockY();
+            this.blockZ = location.getBlockZ();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getWorld() {
-            return location.getWorld() != null ? location.getWorld().getName() : "unknown";
+            return worldName;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getX() {
-            return location.getX();
+            return x;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getY() {
-            return location.getY();
+            return y;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getZ() {
-            return location.getZ();
+            return z;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockX() {
-            return location.getBlockX();
+            return blockX;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockY() {
-            return location.getBlockY();
+            return blockY;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getBlockZ() {
-            return location.getBlockZ();
+            return blockZ;
         }
     }
 
     private static final class PlayerReadOnlyExport {
-        private final Player player;
+        private final String name;
+        private final String uniqueId;
+        private final double health;
+        private final int level;
 
         PlayerReadOnlyExport(Player player) {
-            this.player = player;
+            this.name = player.getName();
+            this.uniqueId = player.getUniqueId().toString();
+            this.health = player.getHealth();
+            this.level = player.getLevel();
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getName() {
-            return player.getName();
+            return name;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public @NotNull String getUniqueId() {
-            return player.getUniqueId().toString();
+            return uniqueId;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public double getHealth() {
-            return player.getHealth();
+            return health;
         }
 
-        @org.graalvm.polyglot.HostAccess.Export
+        @HostAccess.Export
         public int getLevel() {
-            return player.getLevel();
+            return level;
         }
     }
 }

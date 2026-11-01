@@ -11,12 +11,11 @@ display_name: "骨粉研磨"
 # ============================================================
 # 输入食材
 # ============================================================
-# 放入研磨机的原料物品。判定完全由 matcher 决定，必填，缺失这条配方永不命中。
+# 放入研磨机的原料物品。判定由同级 item_sources 与 matcher 取 AND，
+# 两者都省略则这条配方永不命中。⚠ matcher 内禁止写物品源条件。
 input:
-  matcher:
-    type: item_source
-    sources:
-      - minecraft-bone
+  item_sources:
+    - minecraft-bone
 
 # ============================================================
 # 研磨参数
@@ -52,8 +51,7 @@ condition:
 result:
   success:
     outputs:
-      - item_sources:
-          - "minecraft-bone_meal"
+      - item_source: "minecraft-bone_meal"
         amount: 3
     actions:
       - 'send_message text="<gray>研磨结束。</gray>"'

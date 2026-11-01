@@ -50,7 +50,7 @@ public final class EmakiStorageApi {
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
-        emaki.jiuwu.craft.corelib.api.contract.ApiStatus status = resolved.status();
+        var status = resolved.status();
         return status == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : status;

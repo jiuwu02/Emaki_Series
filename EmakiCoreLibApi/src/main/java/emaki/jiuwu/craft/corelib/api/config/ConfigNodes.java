@@ -144,12 +144,12 @@ public final class ConfigNodes {
     public static <E extends Enum<E>> E enumOrThrow(Class<E> type, Object value) {
         String name = value == null ? "" : String.valueOf(value).trim();
         if (name.isBlank()) {
-            throw new IllegalArgumentException("Missing enum value: " + type.getSimpleName());
+            throw new IllegalArgumentException("缺少枚举值: " + type.getSimpleName());
         }
         try {
             return Enum.valueOf(type, name.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
-            throw new IllegalArgumentException("Invalid " + type.getSimpleName() + ": " + name, exception);
+            throw new IllegalArgumentException("无效的 " + type.getSimpleName() + ": " + name, exception);
         }
     }
 

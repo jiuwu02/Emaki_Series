@@ -191,7 +191,7 @@ public final class NutritionService {
         boolean ruleMatched = false;
         boolean applied = false;
         for (NutritionFoodSource rule : foodSources) {
-            if (!CookingMatchers.accepts(rule.matcher(), itemStack, source, player)) {
+            if (!CookingMatchers.accepts(rule.requirement(), itemStack, source, player)) {
                 continue;
             }
             ruleMatched = true;
@@ -249,13 +249,11 @@ public final class NutritionService {
             return;
         }
         if (taskScheduler == null) {
-            plugin.getLogger().warning("EmakiCooking skipped nutrition threshold evaluation for " + player.getName()
-                    + ": caller thread does not own the player and no execution dispatcher is available.");
+            plugin.messageService().warning("console.nutrition_threshold_skipped", Map.of("player", player.getName()));
             return;
         }
         if (taskScheduler.runForEntity(plugin, player, () -> evaluateCachedThresholds(player), null) == null) {
-            plugin.getLogger().warning("EmakiCooking failed to reroute nutrition threshold evaluation for "
-                    + player.getName() + ": entity task scheduling was rejected.");
+            plugin.messageService().warning("console.nutrition_threshold_reroute_failed", Map.of("player", player.getName()));
         }
     }
 

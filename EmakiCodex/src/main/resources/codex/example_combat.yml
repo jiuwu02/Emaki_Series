@@ -1,0 +1,85 @@
+# ============================================================
+# EmakiCodex 图鉴分类示例 - 战斗
+# ============================================================
+# 演示点：
+# 1. 分类条目与成就页的引用关系：
+#    unlock.advancements 引用 emakicodex:example_combat_page/<节点>
+# 2. unlock.triggers 与 unlock.advancements 是并列通路，任一命中即解锁
+# 3. rewards.attributes 提供长期属性，rewards.actions 在领取时执行一次
+# 属性 ID 取自 EmakiAttribute attributes/ 下的定义。
+# 字段依据：docs/modules/codex/configuration.md 与 gui.md。
+# ============================================================
+
+category_id: "example_combat"
+title: "<red>战斗图鉴</red>"
+icon: "minecraft-iron_sword"
+order: 110
+
+entries:
+  first_blood:
+    title: "<yellow>初次讨伐</yellow>"
+    description: "<gray>击败任意常见敌对生物。</gray>"
+    icon: "minecraft-iron_sword"
+    hidden: false
+    unlock:
+      triggers:
+        - event: "entity_kill"
+      advancements:
+        - "emakicodex:example_combat_page/first_blood"
+    rewards:
+      attributes:
+        physical_attack: 2.0
+      actions:
+        - "send_message text=<green>已领取初次讨伐的奖励。</green>"
+
+  veteran:
+    title: "<gold>烈焰老兵</gold>"
+    description: "<gray>击败一只烈焰人。</gray>"
+    icon: "minecraft-blaze_rod"
+    hidden: false
+    unlock:
+      triggers:
+        - event: "entity_kill"
+          condition:
+            type: "all_of"
+            entries:
+              - '%entity_type% == "BLAZE"'
+      advancements:
+        - "emakicodex:example_combat_page/veteran"
+    rewards:
+      attributes:
+        physical_defense: 3.0
+
+  dragon_slayer:
+    title: "<light_purple>终局猎手</light_purple>"
+    description: "<gray>击败末影龙或凋灵。</gray>"
+    icon: "minecraft-nether_star"
+    hidden: true
+    unlock:
+      advancements:
+        - "emakicodex:example_combat_page/dragon_slayer"
+    rewards:
+      attributes:
+        physical_crit_rate: 0.05
+      actions:
+        - "send_message text=<light_purple>终局猎手的属性已激活。</light_purple>"
+
+  arena_champion:
+    title: "<aqua>竞技场冠军</aqua>"
+    description: "<gray>击败一只掠夺者。</gray>"
+    icon: "minecraft-golden_sword"
+    hidden: true
+    unlock:
+      triggers:
+        - event: "entity_kill"
+          condition:
+            type: "all_of"
+            entries:
+              - '%entity_type% == "PILLAGER"'
+      advancements:
+        - "emakicodex:example_combat_page/arena_champion"
+    rewards:
+      attributes:
+        max_health_vanilla: 4.0
+      actions:
+        - "send_message text=<aqua>竞技场冠军称号已解锁。</aqua>"

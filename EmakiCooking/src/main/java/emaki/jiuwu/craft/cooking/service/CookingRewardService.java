@@ -14,8 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.plugin.java.JavaPlugin;
-
+import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.action.pipeline.ActionLineRunner;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.assembly.EmakiItemAssemblyRequest;
@@ -37,7 +36,7 @@ import emaki.jiuwu.craft.cooking.model.RecipeDocument;
 
 public final class CookingRewardService {
 
-    private final JavaPlugin plugin;
+    private final EmakiCookingPlugin plugin;
     @SuppressWarnings("unused")
     private final MessageService messageService;
     private final ItemSourceService itemSourceService;
@@ -45,10 +44,10 @@ public final class CookingRewardService {
     private final EmakiItemAssemblyService itemAssemblyService;
     private final EmakiScheduling taskScheduler;
     private final ThreadOwnership threadOwnership;
-    private final CookingLayerSnapshotBuilder snapshotBuilder = new CookingLayerSnapshotBuilder();
+    private final CookingLayerSnapshotBuilder snapshotBuilder;
     private CookingRecipeService recipeService;
 
-    public CookingRewardService(JavaPlugin plugin,
+    public CookingRewardService(EmakiCookingPlugin plugin,
             MessageService messageService,
             ItemSourceService itemSourceService,
             ActionLineRunner actionLines,
@@ -56,6 +55,7 @@ public final class CookingRewardService {
             EmakiScheduling taskScheduler,
             ThreadOwnership threadOwnership) {
         this.plugin = plugin;
+        this.snapshotBuilder = new CookingLayerSnapshotBuilder(plugin);
         this.messageService = messageService;
         this.itemSourceService = itemSourceService;
         this.actionLines = actionLines;
@@ -94,7 +94,7 @@ public final class CookingRewardService {
             chain = chain.thenCompose(ignored -> executeFrozen(unit.kind(), unit.payload()));
         }
         chain.exceptionally(error -> {
-            plugin.getLogger().warning("Failed to execute legacy cooking reward: " + error.getMessage());
+            messageService.warning("console.reward_legacy_execute_failed", Map.of("error", String.valueOf(error.getMessage())));
             return false;
         });
     }
@@ -179,8 +179,9 @@ public final class CookingRewardService {
             }
             ItemStack itemStack = createOutputItem(recipe, output, player, location, effectivePhase, basePlaceholders);
             if (itemStack == null || itemStack.getType().isAir()) {
-                plugin.getLogger().warning("[CookingReward] Output item is null or air. output_map=" + output
-                        + ", recipe=" + (recipe == null ? "null" : recipe.id()));
+                messageService.warning("console.reward_output_invalid", Map.of(
+                        "output", output,
+                        "recipe", recipe == null ? "null" : recipe.id()));
                 continue;
             }
             units.add(freezeItemUnit(
@@ -358,9 +359,8 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return null;
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         if (source == null) {
-            plugin.getLogger().warning("[CookingReward] Failed to parse item_sources from output: " + output.get("item_sources"));
             return null;
         }
         int amount = resolveAmount(output);
@@ -370,8 +370,9 @@ public final class CookingRewardService {
         if (itemAssemblyService == null) {
             ItemStack directItem = itemSourceService.createItem(source, amount);
             if (directItem == null) {
-                plugin.getLogger().warning("[CookingReward] itemSourceService.createItem returned null for source="
-                        + ItemSourceUtil.toShorthand(source) + " amount=" + amount);
+                messageService.warning("console.reward_source_create_null", Map.of(
+                        "source", ItemSourceUtil.toShorthand(source),
+                        "amount", amount));
             }
             return directItem;
         }
@@ -385,8 +386,10 @@ public final class CookingRewardService {
         if (itemStack == null) {
             ItemStack fallbackItem = itemSourceService.createItem(source, amount);
             if (fallbackItem == null) {
-                plugin.getLogger().warning("[CookingReward] Both assembly preview and direct createItem returned null for source="
-                        + ItemSourceUtil.toShorthand(source) + " type=" + source.kind() + " id=" + source.identifier());
+                messageService.warning("console.reward_source_resolve_null", Map.of(
+                        "source", ItemSourceUtil.toShorthand(source),
+                        "type", source.kind(),
+                        "id", source.identifier()));
             }
             return fallbackItem;
         }
@@ -567,7 +570,7 @@ public final class CookingRewardService {
         if (output == null || output.isEmpty()) {
             return "";
         }
-        ItemSourceRef source = ItemSourceUtil.parse(output.get("item_sources"));
+        ItemSourceRef source = CookingRuntimeUtil.parseOutputSource(plugin, output, "output");
         String shorthand = ItemSourceUtil.toShorthand(source);
         return shorthand == null ? "" : shorthand;
     }

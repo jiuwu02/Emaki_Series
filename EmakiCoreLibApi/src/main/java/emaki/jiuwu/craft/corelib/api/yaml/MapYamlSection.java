@@ -12,18 +12,42 @@ import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 
+/**
+ * {@link YamlSection} backed by an in-memory map: a detached snapshot that neither reads nor
+ * writes any document.
+ *
+ * <p>The constructor normalizes the source (string keys, recursively plain maps and lists),
+ * reads and writes address entries by dot paths while creating missing intermediate sections on
+ * {@link #set}, and returns immutable copies from the collection getters. Each instance owns a
+ * plain {@link LinkedHashMap} and is not synchronized; give every thread its own instance (or
+ * synchronize externally) when a section is mutated concurrently.
+ */
 public final class MapYamlSection implements YamlSection {
 
     private final Map<String, Object> values;
 
+    /** Creates an empty section. */
     public MapYamlSection() {
         this.values = new LinkedHashMap<>();
     }
 
+    /**
+     * Creates a section from a source map.
+     *
+     * @param values source data; {@code null} yields an empty section, keys are stringified,
+     *               null keys are skipped, and nested maps and lists are normalized
+     *               recursively
+     */
     public MapYamlSection(Map<String, ?> values) {
         this.values = normalizeMap(values);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>This snapshot unwraps nested nodes into plain maps and lists rather than returning
+     * nested sections; ask {@link #getSection} for a section view.
+     */
     @Override
     public Object get(String path) {
         if (Texts.isBlank(path)) {
@@ -42,6 +66,7 @@ public final class MapYamlSection implements YamlSection {
         return unwrapValue(current);
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean contains(String path) {
         if (Texts.isBlank(path)) {
@@ -61,12 +86,23 @@ public final class MapYamlSection implements YamlSection {
         return true;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Every value type is accepted: non-text nodes are read with {@code String.valueOf}.
+     */
     @Override
     public String getString(String path, String defaultValue) {
         Object value = get(path);
         return value == null ? defaultValue : String.valueOf(value);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>{@link Number} nodes are narrowed with {@code intValue()} (fractions truncate) and text
+     * nodes must be integer literals.
+     */
     @Override
     public Integer getInt(String path, Integer defaultValue) {
         Object value = get(path);
@@ -83,6 +119,12 @@ public final class MapYamlSection implements YamlSection {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>{@link Number} nodes are read with {@code doubleValue()} and text nodes are parsed with
+     * {@link Double#parseDouble}.
+     */
     @Override
     public Double getDouble(String path, Double defaultValue) {
         Object value = get(path);
@@ -99,6 +141,13 @@ public final class MapYamlSection implements YamlSection {
         }
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A present non-boolean node is read with {@code Boolean.parseBoolean} rules: only the
+     * text {@code "true"} (ignoring case) is {@code true}, every other text becomes
+     * {@code false} rather than the default.
+     */
     @Override
     public Boolean getBoolean(String path, Boolean defaultValue) {
         Object value = get(path);
@@ -111,6 +160,11 @@ public final class MapYamlSection implements YamlSection {
         return Boolean.parseBoolean(String.valueOf(value));
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Only actual list nodes match; any other node type falls back to the default.
+     */
     @Override
     public List<?> getList(String path, List<?> defaultValue) {
         Object value = get(path);
@@ -120,6 +174,11 @@ public final class MapYamlSection implements YamlSection {
         return defaultValue == null ? List.of() : List.copyOf(defaultValue);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Null elements are dropped instead of being stringified.
+     */
     @Override
     public List<String> getStringList(String path) {
         List<String> result = new ArrayList<>();
@@ -131,6 +190,11 @@ public final class MapYamlSection implements YamlSection {
         return List.copyOf(result);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Elements that are not maps after unwrapping are dropped.
+     */
     @Override
     public List<Map<?, ?>> getMapList(String path) {
         List<Map<?, ?>> result = new ArrayList<>();
@@ -143,6 +207,11 @@ public final class MapYamlSection implements YamlSection {
         return List.copyOf(result);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The result is a fresh copy: writes to it never affect this section.
+     */
     @Override
     public YamlSection getSection(String path) {
         if (Texts.isBlank(path)) {
@@ -158,6 +227,11 @@ public final class MapYamlSection implements YamlSection {
         return null;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>Deep mode walks nested maps and returns their dotted routes; every key is stringified.
+     */
     @Override
     public Set<String> getKeys(boolean deep) {
         Set<String> keys = new LinkedHashSet<>();
@@ -165,16 +239,24 @@ public final class MapYamlSection implements YamlSection {
         return Collections.unmodifiableSet(keys);
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean isString(String path) {
         return get(path) instanceof String;
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean isSection(String path) {
         return get(path) instanceof Map<?, ?>;
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>A blank path replaces the whole content: the map is cleared and refilled only when
+     * {@code value} is itself a map.
+     */
     @Override
     public void set(String path, Object value) {
         if (Texts.isBlank(path)) {
@@ -206,16 +288,23 @@ public final class MapYamlSection implements YamlSection {
         current.put(key, normalizeValue(value));
     }
 
+    /** {@inheritDoc} */
     @Override
     public boolean isEmpty() {
         return values.isEmpty();
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * <p>The returned map is a fresh normalized copy; mutating it does not affect this section.
+     */
     @Override
     public Map<String, Object> asMap() {
         return normalizeMap(values);
     }
 
+    /** {@inheritDoc} */
     @Override
     public YamlSection copy() {
         return new MapYamlSection(asMap());
@@ -246,6 +335,15 @@ public final class MapYamlSection implements YamlSection {
         return path.trim().split("\\.");
     }
 
+    /**
+     * Normalizes a map into plain form.
+     *
+     * <p>Null keys are skipped, the remaining keys are stringified, and nested values are
+     * normalized recursively; a {@code null} map yields an empty map.
+     *
+     * @param map source map; may be {@code null}
+     * @return a fresh {@link LinkedHashMap} in the source's iteration order; never {@code null}
+     */
     public static Map<String, Object> normalizeMap(Map<?, ?> map) {
         Map<String, Object> normalized = new LinkedHashMap<>();
         if (map == null) {
@@ -271,6 +369,16 @@ public final class MapYamlSection implements YamlSection {
         return normalized;
     }
 
+    /**
+     * Normalizes one value into plain form.
+     *
+     * <p>Strings, numbers and booleans pass through unchanged, {@link YamlSection} values become
+     * maps, maps and collections are normalized recursively, and any other type is returned
+     * as-is.
+     *
+     * @param value value to normalize; may be {@code null}
+     * @return the plain equivalent of the value; may be {@code null}
+     */
     public static Object normalizeValue(Object value) {
         if (value == null
                 || value instanceof String
@@ -290,6 +398,15 @@ public final class MapYamlSection implements YamlSection {
         return value;
     }
 
+    /**
+     * Unwraps section-shaped values into plain maps and lists.
+     *
+     * <p>Scalar values and unrecognized types pass through unchanged, so the result never holds
+     * a nested {@link YamlSection}.
+     *
+     * @param value value to unwrap; may be {@code null}
+     * @return a plain map, list or scalar; may be {@code null}
+     */
     public static Object unwrapValue(Object value) {
         if (value instanceof YamlSection section) {
             return section.asMap();

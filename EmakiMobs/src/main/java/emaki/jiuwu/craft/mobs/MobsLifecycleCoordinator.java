@@ -4,8 +4,14 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
+import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.chat.ChatInputService;
+import emaki.jiuwu.craft.corelib.editor.EditorService;
+import emaki.jiuwu.craft.corelib.gui.GuiService;
+import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
+import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
@@ -14,22 +20,29 @@ import emaki.jiuwu.craft.mobs.action.source.AttackerSource;
 import emaki.jiuwu.craft.mobs.action.source.KillerSource;
 import emaki.jiuwu.craft.mobs.action.source.TargetSource;
 import emaki.jiuwu.craft.mobs.action.source.VictimSource;
+import emaki.jiuwu.craft.mobs.action.stage.MobPlayAnimationStage;
+import emaki.jiuwu.craft.mobs.action.stage.MobSetModelStage;
+import emaki.jiuwu.craft.mobs.action.stage.MobStopAnimationStage;
 import emaki.jiuwu.craft.mobs.action.stage.SummonMobStage;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.mobs.config.AppConfig;
 import emaki.jiuwu.craft.mobs.config.AppConfigParser;
 import emaki.jiuwu.craft.mobs.config.MobsConfigPrecheckContributor;
+import emaki.jiuwu.craft.mobs.editor.MobsEditorModule;
 import emaki.jiuwu.craft.mobs.listener.MobDropHandler;
 import emaki.jiuwu.craft.mobs.listener.MobTriggerListener;
 import emaki.jiuwu.craft.mobs.loader.MobDefinitionYamlLoader;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
+import emaki.jiuwu.craft.mobs.migration.MobDefinitionMigrationRule;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.service.ComponentMapper;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
 import emaki.jiuwu.craft.mobs.loader.SpawnRuleLoader;
 import emaki.jiuwu.craft.mobs.service.MobIdentifier;
+import emaki.jiuwu.craft.mobs.service.MobTargetIdentityProvider;
 import emaki.jiuwu.craft.mobs.display.BossBarManager;
+import emaki.jiuwu.craft.mobs.model.MobModelManager;
 import emaki.jiuwu.craft.mobs.provider.MobAttributeRegistrar;
 import emaki.jiuwu.craft.mobs.service.MobRefreshService;
 import emaki.jiuwu.craft.mobs.selector.ScoreSnapshotService;
@@ -45,7 +58,6 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,16 +72,27 @@ final class MobsLifecycleCoordinator
     private static final List<String> VERSIONED_FILES = List.of("config.yml");
     private static final List<String> STATIC_FILES = List.of("target_selectors.yml");
     private static final List<String> DEFAULT_DATA_FILES =
-            List.of("mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
-                    "spawn_rules/overworld_elites.yml");
+            List.of("mobs/zombie.yml", "mobs/jungle_stalker.yml",
+                    "mobs/elite_zombie.yml", "mobs/bone_lord.yml",
+                    "mobs/example_zombie.yml", "loot_tables/example_zombie.yml",
+                    "mobs/example_skeleton_archer.yml", "mobs/example_boss.yml",
+                    "mobs/example_slime.yml",
+                    "loot_tables/example_skeleton_archer.yml", "loot_tables/example_boss.yml",
+                    "loot_tables/jungle_stalker.yml", "loot_tables/elite_zombie.yml",
+                    "loot_tables/bone_lord.yml",
+                    "spawn_rules/overworld.yml", "spawn_rules/overworld_elites.yml",
+                    "spawn_rules/example_cave.yml", "spawn_rules/example_night.yml",
+                    "gui/editor_page_gui.yml", "gui/editor_browser_gui.yml");
     private static final List<String> EXTRA_DIRECTORIES =
-            List.of("mobs", "loot_tables", "spawn_rules");
+            List.of("mobs", "loot_tables", "spawn_rules", "gui");
 
     private final List<CoreStageRegistration> customActionRegistrations = new ArrayList<>();
 
+    private CoreTargetRegistration targetIdentityRegistration;
+
     @Override
     public MobsRuntimeComponents initialize(EmakiMobsPlugin plugin) {
-        var coreLibPlugin = JavaPlugin.getPlugin(EmakiCoreLibPlugin.class);
+        var coreLibPlugin = EmakiCoreLibPlugin.lookup();
         var appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();
@@ -83,6 +106,12 @@ final class MobsLifecycleCoordinator
                     public boolean shouldInstallDefaultData() {
                         AppConfig current = appConfigLoader.current();
                         return current == null || current.releaseDefaultData();
+                    }
+
+                    @Override
+                    public void afterBootstrap() {
+                        new LegacyContentMigrator(plugin.getDataFolder().toPath(), "mobs", "生物定义",
+                                new MobDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true);
                     }
                 });
         var executionDispatcher = coreLibPlugin.executionDispatcher();
@@ -104,7 +133,8 @@ final class MobsLifecycleCoordinator
                 plugin, executionDispatcher);
         var mobDropHandler = new MobDropHandler(mobIdentifier, mobRegistry::get, lootRegistry::get, plugin.getLogger());
         var naturalSpawnHandler = new NaturalSpawnHandler(mobIdentifier, mobFactory);
-        var autonomousSpawnHandler = new AutonomousSpawnHandler(plugin, mobIdentifier, mobFactory);
+        var autonomousSpawnHandler = new AutonomousSpawnHandler(
+                plugin, mobIdentifier, mobFactory, executionDispatcher);
         var spawnRuleDispatcher = new SpawnRuleDispatcher(naturalSpawnHandler, autonomousSpawnHandler);
         var spawnRuleLoader = new SpawnRuleLoader(plugin);
         var spawnRegistry = new AtomicReference<>(List.<SpawnRule>of());
@@ -126,8 +156,22 @@ final class MobsLifecycleCoordinator
                 plugin, executionDispatcher, mobIdentifier, mobRegistry::get);
         var mobExtensions = new DefaultMobExtensions(plugin);
         var mobAttributeRegistrar = new MobAttributeRegistrar(plugin, mobIdentifier, mobRegistry::get);
+        var mobModelManager = new MobModelManager(
+                plugin, executionDispatcher, mobRegistry::get, appConfigLoader::current, messageService);
         mobFactory.setSkillExecutor(mobSkillExecutor);
         mobFactory.setBossBarManager(bossBarManager);
+        mobFactory.setModelManager(mobModelManager);
+        mobTriggerListener.setModelManager(mobModelManager);
+
+        GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
+        GuiService guiService = new GuiService(plugin, executionDispatcher,
+                coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),
+                coreLibPlugin.guiBackend());
+        ChatInputService chatInputService = new ChatInputService(plugin, executionDispatcher);
+        MobsEditorModule editorModule = new MobsEditorModule(plugin);
+        EditorService editorService = new EditorService(plugin, guiService, guiTemplateLoader,
+                messageService, chatInputService, editorModule);
+        editorModule.bind(editorService);
 
         return new MobsRuntimeComponents(messageService, languageLoader, executionDispatcher,
                 definitionLoader, targetSelectorLoader, targetSelectorRegistry,
@@ -139,11 +183,13 @@ final class MobsLifecycleCoordinator
                 naturalSpawnHandler, autonomousSpawnHandler,
                 mobSkillExecutor, healthPhaseTracker, mobTriggerListener,
                 typeOverrideApplicator, mobRefreshService, threatTableManager, bossBarManager,
-                mobAttributeRegistrar, mobExtensions);
+                mobAttributeRegistrar, mobModelManager, mobExtensions,
+                guiService, guiTemplateLoader, chatInputService, editorModule, editorService);
     }
 
     int reload(EmakiMobsPlugin plugin) {
         var components = plugin.components();
+        components.guiTemplateLoader().load();
         ContentSnapshot previous = new ContentSnapshot(
                 components.mobRegistry().get(),
                 components.lootRegistry().get(),
@@ -169,12 +215,14 @@ final class MobsLifecycleCoordinator
         }
         components.scoreSnapshotService().reload();
         components.threatTableManager().reload();
+        components.mobDropHandler().reload();
         components.mobSkillExecutor().invalidate();
         components.healthPhaseTracker().clearAll();
         var loadedRules = components.spawnRegistry().get();
         components.spawnRuleDispatcher().reload(loadedRules);
         components.mobRefreshService().refreshAll();
         components.mobAttributeRegistrar().register();
+        components.mobModelManager().reload();
         components.mobExtensions().notifyReload();
         return components.mobRegistry().get().size();
     }
@@ -221,12 +269,44 @@ final class MobsLifecycleCoordinator
             registered++;
         }
 
+        MobPlayAnimationStage playAnimationStage = new MobPlayAnimationStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", playAnimationStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, playAnimationStage))) {
+            registered++;
+        }
+        MobStopAnimationStage stopAnimationStage = new MobStopAnimationStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", stopAnimationStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, stopAnimationStage))) {
+            registered++;
+        }
+        MobSetModelStage setModelStage = new MobSetModelStage(
+                components.mobIdentifier(), components.mobModelManager());
+        if (rememberRegistration(plugin, "stage", setModelStage.id(),
+                EmakiCoreLibApi.registerActionStage(plugin, setModelStage))) {
+            registered++;
+        }
+
         if (!EmakiCoreLibApi.onStageRegistryRebuilt(plugin, () -> registerCustomActions(plugin))) {
             components.messageService().warning("console.custom_action_rebuild_hook_failed");
         }
+        registerTargetIdentity(plugin, components);
         components.messageService().info("console.custom_actions_registered", Map.of(
                 "registered", registered,
-                "expected", 5));
+                "expected", 8));
+    }
+
+    private void registerTargetIdentity(EmakiMobsPlugin plugin, MobsRuntimeComponents components) {
+        CoreTargetRegistration registration = EmakiCoreLibApi.registerTargetIdentityProvider(plugin,
+                new MobTargetIdentityProvider(plugin));
+        if (!registration.successful()) {
+            components.messageService().warning("console.target_identity_registration_failed", Map.of(
+                    "id", registration.targetId(),
+                    "reason", registration.reasonKey()));
+            return;
+        }
+        targetIdentityRegistration = registration;
     }
 
     void unregisterCustomActions() {
@@ -253,5 +333,9 @@ final class MobsLifecycleCoordinator
             registration.close();
         }
         customActionRegistrations.clear();
+        if (targetIdentityRegistration != null) {
+            targetIdentityRegistration.close();
+            targetIdentityRegistration = null;
+        }
     }
 }

@@ -73,6 +73,8 @@ public final class AttributeCommand implements TabExecutor {
                 diagnosticsCommand.handleTrace(sender, args);
             case "points" ->
                 pointsCommand.handlePoints(sender, args);
+            case "edit" ->
+                handleEdit(sender, args);
             case "lint" ->
                 handleLint(sender);
             case "help" -> {
@@ -90,7 +92,7 @@ public final class AttributeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "points", "lint")) {
+            for (String candidate : List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "points", "lint", "edit")) {
                 if (candidate.startsWith(args[0].toLowerCase(Locale.ROOT))) {
                     result.add(candidate);
                 }
@@ -99,6 +101,16 @@ public final class AttributeCommand implements TabExecutor {
         }
         if (args.length >= 2 && "points".equalsIgnoreCase(args[0])) {
             return completePoints(sender, args);
+        }
+        if (args.length == 2 && "edit".equalsIgnoreCase(args[0])) {
+            if (plugin.editorModule() != null) {
+                for (String id : plugin.editorModule().completeIds()) {
+                    if (id.toLowerCase(Locale.ROOT).startsWith(args[1].toLowerCase(Locale.ROOT))) {
+                        result.add(id);
+                    }
+                }
+            }
+            return result;
         }
         if (args.length == 2 && "resync".equalsIgnoreCase(args[0])) {
             result.addAll(CommandTabHelper.completeOnlinePlayers(args[1]));
@@ -258,6 +270,28 @@ public final class AttributeCommand implements TabExecutor {
         return true;
     }
 
+    private boolean handleEdit(CommandSender sender, String[] args) {
+        if (!sender.hasPermission(AttributePermissions.EDIT) && !sender.hasPermission(AttributePermissions.ADMIN)) {
+            messages().send(sender, "command.edit.no_permission");
+            return true;
+        }
+        if (!(sender instanceof Player player)) {
+            messages().send(sender, "command.edit.players_only");
+            return true;
+        }
+        if (plugin.editorService() == null || plugin.editorModule() == null) {
+            return true;
+        }
+        if (args.length < 2) {
+            plugin.editorService().openBrowser(player);
+            return true;
+        }
+        if (plugin.editorModule().openById(player, args[1]) == null) {
+            messages().send(sender, "editor.open_failed", Map.of("id", Texts.normalizeId(args[1])));
+        }
+        return true;
+    }
+
     private boolean handleLint(CommandSender sender) {
         if (!sender.hasPermission(AttributePermissions.RELOAD) && !sender.hasPermission(AttributePermissions.ADMIN)) {
             messages().send(sender, "command.lint.no_permission");
@@ -293,6 +327,7 @@ public final class AttributeCommand implements TabExecutor {
         messages().send(sender, "command.help.trace");
         messages().send(sender, "command.help.points");
         messages().send(sender, "command.help.lint");
+        messages().send(sender, "command.help.edit");
         messages().sendRaw(sender, messages().message("command.help.footer"));
     }
 

@@ -44,10 +44,21 @@ public final class MobsConfigPrecheckContributor extends AbstractModuleConfigPre
                 ? null : plugin.spawnRuleLoader().issues(), issues);
         addDeprecations(issues);
         addStackingHints(issues);
+        addModelApiIssue(issues);
         if (issues.isEmpty()) {
             addMessageIssue("config.yml", INFO, "passed", issues);
         }
         return new ConfigPrecheckResult(module(), issues);
+    }
+
+    private void addModelApiIssue(List<ConfigPrecheckIssue> issues) {
+        var loader = plugin.appConfigLoader();
+        AppConfig config = loader == null ? null : loader.current();
+        if (config == null || config.model().validApi()) {
+            return;
+        }
+        addMessageIssue("config.yml:model.api", WARN, "model_api_invalid",
+                Map.of("api", config.model().api()), issues);
     }
 
     private void addTargetSelectorIssues(List<ConfigPrecheckIssue> issues) {

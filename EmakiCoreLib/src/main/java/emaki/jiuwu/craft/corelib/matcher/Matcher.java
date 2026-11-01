@@ -14,17 +14,16 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ComponentPath;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
-import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import net.kyori.adventure.text.Component;
 
 public sealed interface Matcher permits
-        Matcher.ItemSourceMatcher,
         Matcher.PdcMatcher,
         Matcher.LoreMatcher,
         Matcher.ComponentMatcher,
@@ -43,13 +42,23 @@ public sealed interface Matcher permits
         }
         YamlSection section = asSection(config);
         if (section == null) {
-            ComponentMatcherSupport.LOGGER.warning("Matcher config is not a mapping and will never match: "
+            ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器配置不是映射，永远不会匹配: "
                     + config.getClass().getSimpleName() + " -> " + config);
             return new AnyMatcher(List.of());
         }
-        String type = Texts.lower(section.getString("type", "item_source"));
+        if (containsItemSourceField(section)) {
+            return reject("匹配器不能包含物品来源字段；请将它们移到同级 '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
+        }
+        String type = Texts.lower(section.getString("type", ""));
+        if (type.isEmpty()) {
+            return reject("匹配器缺少必需的 'type' 键；物品来源条件现在属于同级 '"
+                    + ItemRequirement.KEY_ITEM_SOURCES + "' 字段");
+        }
         return switch (type) {
-            case "item_source" -> parseItemSource(section);
+            case "item_source", "item_sources", "source", "sources" -> reject(
+                    "匹配器不再接受物品来源条件('type: " + type + "')；请将它们移到同级 '"
+                            + ItemRequirement.KEY_ITEM_SOURCES + "' 字段，该字段与匹配器按 AND 求值");
             case "pdc_match", "pdc" -> parsePdcMatch(section);
             case "lore_match", "lore" -> parseLoreMatch(section);
             case "component", "component_match" -> parseComponentMatch(section);
@@ -60,8 +69,20 @@ public sealed interface Matcher permits
             case "none_of", "none", "not" -> parseNone(section);
             case "at_least" -> parseCount(section, CountMode.AT_LEAST);
             case "exactly" -> parseCount(section, CountMode.EXACTLY);
-            default -> new AllMatcher(List.of());
+            default -> reject("未知的匹配器类型 '" + type + "'");
         };
+    }
+
+    private static boolean containsItemSourceField(@NotNull YamlSection section) {
+        return section.contains("item_sources")
+                || section.contains("item_source")
+                || section.contains("sources")
+                || section.contains("source");
+    }
+
+    private static @NotNull Matcher reject(@NotNull String reason) {
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 匹配器在加载时被拒绝，永远不会匹配: " + reason);
+        return new AnyMatcher(List.of());
     }
 
     private static @Nullable YamlSection asSection(@NotNull Object config) {
@@ -78,21 +99,6 @@ public sealed interface Matcher permits
             return new MapYamlSection(keyed);
         }
         return null;
-    }
-
-    private static @NotNull Matcher parseItemSource(@NotNull YamlSection section) {
-        List<String> sourceList = section.getStringList("sources");
-        if (sourceList.isEmpty()) {
-            sourceList = section.getStringList("source");
-        }
-        List<ItemSourceRef> sources = new ArrayList<>();
-        for (String token : sourceList) {
-            ItemSourceRef ref = ItemSourceUtil.parseShorthand(token);
-            if (ref != null) {
-                sources.add(ref);
-            }
-        }
-        return new ItemSourceMatcher(sources);
     }
 
     private static @NotNull Matcher parsePdcMatch(@NotNull YamlSection section) {
@@ -130,28 +136,28 @@ public sealed interface Matcher permits
     private static @NotNull Matcher parseComponentMatch(@NotNull YamlSection section) {
         String componentId = ItemComponentSnapshot.normalizeComponentId(section.getString("component", ""));
         if (componentId.isEmpty()) {
-            return rejectComponentMatcher("missing 'component' key");
+            return rejectComponentMatcher("缺少 'component' 键");
         }
         Object expected = section.get("value");
         String operator = Texts.lower(section.getString("operator", expected == null ? "exists" : "=="));
         ComponentOperator resolved = ComponentOperator.fromConfig(operator);
         if (resolved == null) {
-            return rejectComponentMatcher("unknown operator '" + operator + "' for component " + componentId);
+            return rejectComponentMatcher("组件 " + componentId + " 的运算符 '" + operator + "' 未知");
         }
         if (resolved.requiresValue() && expected == null) {
-            return rejectComponentMatcher("operator '" + operator + "' requires a 'value' for component " + componentId);
+            return rejectComponentMatcher("运算符 '" + operator + "' 需要组件 " + componentId + " 的 'value'");
         }
         if (ComponentMatcherSupport.isNonValued(componentId)
                 && resolved != ComponentOperator.EXISTS
                 && resolved != ComponentOperator.ABSENT) {
             return rejectComponentMatcher(componentId
-                    + " is a unit component and only supports exists/absent, got '" + operator + "'");
+                    + " 是单位组件，仅支持 exists/absent，收到 '" + operator + "'");
         }
         return new ComponentMatcher(componentId, ComponentPath.parse(section.getString("path", "")), resolved, expected);
     }
 
     private static @NotNull Matcher rejectComponentMatcher(@NotNull String reason) {
-        ComponentMatcherSupport.LOGGER.warning("Component matcher rejected at load time, it will never match: " + reason + ".");
+        ComponentMatcherSupport.LOGGER.warning("[matcher] 组件匹配器在加载时被拒绝，永远不会匹配: " + reason);
         return new AnyMatcher(List.of());
     }
 
@@ -281,31 +287,6 @@ public sealed interface Matcher permits
         }
     }
 
-    record ItemSourceMatcher(@NotNull List<ItemSourceRef> sources) implements Matcher {
-        public ItemSourceMatcher {
-            sources = List.copyOf(sources);
-        }
-
-        @Override
-        public boolean test(@NotNull MatchContext context) {
-            if (context.item() == null || context.item().getType().isAir()) {
-                return false;
-            }
-            if (sources.isEmpty()) {
-                return true;
-            }
-            if (context.itemSource() == null) {
-                return false;
-            }
-            for (ItemSourceRef source : sources) {
-                if (ItemSourceUtil.matches(source, context.itemSource())) {
-                    return true;
-                }
-            }
-            return false;
-        }
-    }
-
     record PdcMatcher(@NotNull NamespacedKey key, @NotNull PdcMatchType matchType, @NotNull String operator, @NotNull String valueStr) implements Matcher {
         @Override
         public boolean test(@NotNull MatchContext context) {
@@ -368,28 +349,61 @@ public sealed interface Matcher permits
         }
     }
 
-    record LoreMatcher(@NotNull String pattern, @NotNull LoreMatchMode mode) implements Matcher {
+    static final class LoreMatcher implements Matcher {
+
+        private final String pattern;
+        private final LoreMatchMode mode;
+        private final Pattern regex;
+
+        LoreMatcher(@NotNull String pattern, @NotNull LoreMatchMode mode) {
+            this.pattern = pattern;
+            this.mode = mode;
+            this.regex = mode == LoreMatchMode.REGEX ? compile(pattern) : null;
+        }
+
+        private static Pattern compile(String pattern) {
+            try {
+                return Pattern.compile(pattern);
+            } catch (RuntimeException _) {
+                return null;
+            }
+        }
+
+        private static List<String> loreLines(@Nullable ItemMeta meta) {
+            if (meta == null || !meta.hasLore()) {
+                return List.of();
+            }
+            List<Component> lore = meta.lore();
+            if (lore == null || lore.isEmpty()) {
+                return List.of();
+            }
+            List<String> lines = new ArrayList<>(lore.size());
+            for (Component line : lore) {
+                lines.add(MiniMessages.legacy(line));
+            }
+            return lines;
+        }
+
         @Override
         public boolean test(@NotNull MatchContext context) {
             if (context.item() == null || !context.item().hasItemMeta()) {
                 return false;
             }
-            ItemMeta meta = context.item().getItemMeta();
-            if (!meta.hasLore()) {
-                return false;
-            }
-            List<String> lore = meta.getLore();
-            if (lore == null || lore.isEmpty()) {
+            List<String> lore = loreLines(context.item().getItemMeta());
+            if (lore.isEmpty()) {
                 return false;
             }
             return switch (mode) {
                 case CONTAINS -> lore.stream().anyMatch(line -> line.contains(pattern));
                 case EXACT -> lore.stream().anyMatch(line -> line.equals(pattern));
                 case REGEX -> {
+                    Pattern compiled = regex;
+                    if (compiled == null) {
+                        yield false;
+                    }
                     try {
-                        Pattern regex = Pattern.compile(pattern);
-                        yield lore.stream().anyMatch(line -> regex.matcher(line).find());
-                    } catch (Exception _) {
+                        yield lore.stream().anyMatch(line -> compiled.matcher(line).find());
+                    } catch (RuntimeException _) {
                         yield false;
                     }
                 }

@@ -1,0 +1,81 @@
+# ============================================================
+# EmakiMobs 生物定义示例 - 分阶段 Boss
+# 演示：Boss 血条、血量阈值触发器（固定 90/75/50/25/10 五档）、
+#       阶段动作、召唤随从、威胁仇恨表。
+# 每个阈值对同一只生物只会触发一次，动作由 CoreLib 动作管道执行。
+# ============================================================
+id: example_boss
+type: zombie
+display_name: "<dark_red>示例腐化巨像</dark_red>"
+
+components:
+  max_health: 300.0
+  movement_speed: 0.23
+  attack_damage: 12.0
+  follow_range: 48.0
+  knockback_resistance: 0.6
+  armor: 6.0
+  armor_toughness: 2.0
+  custom_name: "<dark_red>示例腐化巨像</dark_red>"
+  custom_name_visible: true
+  persistent: true
+
+# 配套稀有掉落表见 loot_tables/example_boss.yml
+experience: 200
+
+ea_attributes:
+  strength: 30
+  physical_attack: 8
+  physical_defense: 12
+
+threat:
+  enabled: true
+  max_range: 64.0
+  weights:
+    damage: 1.0
+    healing: 0.8
+  decay:
+    rate: 0.02
+    out_of_range: true
+
+boss_bar:
+  title: "<dark_red>示例腐化巨像</dark_red>"
+  color: RED
+  style: SEGMENTED_10
+  range: 64.0
+
+actions:
+  on_spawn:
+    - "self | spawn_particle particle=SOUL count=60 offset_x=1 offset_y=1 offset_z=1"
+    - "nearby radius=48 include_players=true | send_message text='<dark_red>腐化巨像苏醒！'"
+    - "nearby radius=48 include_players=true | play_sound sound=minecraft:entity.wither.spawn volume=1.0 pitch=1.0"
+
+  # 75%：召唤两名弓手，并进入加速阶段
+  on_health_threshold_75:
+    - "self | summon_mob mob_id=example_skeleton_archer count=2"
+    - "self | give_potion_effect type=SPEED level=1 duration=200"
+    - "nearby radius=48 include_players=true | send_message text='<gold>巨像召唤了骷髅弓手！'"
+
+  # 50%：范围提示并强化攻击
+  on_health_threshold_50:
+    - "self | spawn_particle particle=FLAME count=80 offset_x=1.5 offset_y=1 offset_z=1.5"
+    - "self | give_potion_effect type=STRENGTH level=1 duration=300"
+    - "nearby radius=48 include_players=true | play_sound sound=minecraft:entity.wither.shoot volume=1.0 pitch=0.8"
+
+  # 25%：再召唤三名弓手
+  on_health_threshold_25:
+    - "self | summon_mob mob_id=example_skeleton_archer count=3"
+    - "nearby radius=48 include_players=true | send_message text='<red>巨像进入狂暴阶段！'"
+
+  # 10%：濒死回复，做最后一搏
+  on_health_threshold_10:
+    - "self | give_potion_effect type=REGENERATION level=1 duration=100"
+    - "self | spawn_particle particle=SMOKE count=100 offset_x=1.5 offset_y=1 offset_z=1.5"
+
+  on_damage_take:
+    - "self | spawn_particle particle=DAMAGE_INDICATOR count=12 offset_x=0.5 offset_y=1 offset_z=0.5"
+
+  on_death:
+    - "nearby radius=64 include_players=true | send_message text='<green>腐化巨像已被击败！'"
+    - "killer | give_exp amount=200"
+    - "nearby radius=64 include_players=true | play_sound sound=minecraft:entity.wither.death volume=1.0 pitch=1.0"

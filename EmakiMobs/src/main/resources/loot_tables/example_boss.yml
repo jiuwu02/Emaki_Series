@@ -1,0 +1,73 @@
+# ============================================================
+# EmakiMobs 掉落表示例 - 分阶段 Boss
+# 演示：主材料池 + 稀有池、权重与 chance 双重过滤、
+#       set_count / looting_enchant 函数、EmakiItem 集成。
+# 稀有池用低 chance 控制产出，EmakiItem 条目只在装了
+# EmakiItem 且物品已定义时才会掉落。
+# mob_id 必须与 mobs/example_boss.yml 的 id 完全一致。
+# ============================================================
+mob_id: example_boss
+
+pools:
+  # 主材料池：数量较多，受抢夺附魔加成
+  main:
+    rolls: 1
+    entries:
+      rotten_flesh:
+        item: "minecraft:rotten_flesh"
+        weight: 10
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 8
+              max: 16
+          looting:
+            type: looting_enchant
+            count:
+              min: 0
+              max: 2
+      bone:
+        item: "minecraft:bone"
+        weight: 6
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 4
+              max: 8
+      experience_bottle:
+        item: "minecraft:experience_bottle"
+        weight: 2
+        chance: 0.50
+        functions:
+          count:
+            type: set_count
+            count:
+              min: 2
+              max: 4
+
+  # 稀有池：每件都有独立 chance，权重只决定池内被抽中的相对概率
+  rare:
+    rolls: 1
+    entries:
+      example_branch_blade:
+        emaki_item: "example_branch_blade"
+        weight: 1
+        chance: 0.05
+      guardian_helmet:
+        emaki_item: "example_guardian_helmet"
+        weight: 2
+        chance: 0.10
+      guardian_chestplate:
+        emaki_item: "example_guardian_chestplate"
+        weight: 2
+        chance: 0.10
+      guardian_boots:
+        emaki_item: "example_guardian_boots"
+        weight: 2
+        chance: 0.10
+      example_necklace:
+        emaki_item: "example_necklace"
+        weight: 1
+        chance: 0.04

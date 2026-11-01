@@ -1,0 +1,418 @@
+# EmakiDungeon English language resource
+# Messages use MiniMessage; keep the placeholders noted next to each group
+# version is maintained by the resource sync flow for merging new default keys
+
+version: "1.0.13"
+
+general:
+  prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
+  no_permission: "<red>You do not have permission to run this command</red>"
+  player_only: "<red>This command can only be executed by a player</red>"
+  invalid_args: "<red>Invalid arguments</red>"
+  unknown_command: "<red>Unknown command, use /edg help for help</red>"
+  reloading: "<gray>Reloading configuration...</gray>"
+  reload_success: "<green>Configuration reloaded</green>"
+
+command:
+  help: |
+    <gray>========== </gray><gradient:#1E3A8A:#8B5CF6>EmakiDungeon Commands</gradient><gray> ==========</gray>
+    <gray>/edg help</gray> <white>Show command help</white>
+    <gray>/edg list</gray> <white>List dungeons</white>
+    <gray>/edg enter <dungeonId></gray> <white>Enter a dungeon (party leader starts a challenge)</white>
+    <gray>/edg leave</gray> <white>Leave the current dungeon</white>
+    <gray>/edg cancel</gray> <white>Cancel entering wait</white>
+    <gray>/edg ready</gray> <white>Confirm ready</white>
+    <gray>/edg rewards</gray> <white>Open the reward box</white>
+    <gray>/edg party <create|invite|accept|deny|kick|leave|disband|chat></gray> <white>Party actions</white>
+    <gray>/edg stats [player] [dungeonId]</gray> <white>Query limits and records</white>
+    <gray>/edg rank <dungeonId></gray> <white>Show leaderboard</white>
+    <gray>/edg globalchat <on|off></gray> <white>Toggle global chat listening</white>
+    <gray>/edg editor <dungeonId></gray> <white>Open the in-world editor</white>
+    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>Admin commands</white>
+  unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
+  list:
+    empty: "<yellow>No dungeons available</yellow>"
+    header: "<gray>Available dungeons:</gray>"
+    entry: "<gray>- </gray><white><dungeon></white>"
+  enter:
+    usage: "<red>Usage: /edg enter <dungeonId></red>"
+  leave:
+    no_instance: "<red>You are not inside a dungeon instance</red>"
+    confirm_hint: "<yellow>Type confirm to leave this dungeon, or cancel to stay</yellow>"
+    aborted: "<gray>Leave cancelled</gray>"
+  party:
+    usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  stats:
+    header: "<gray>Dungeon stats for <player>:</gray>"
+    entry: "<gray>- <dungeon>: </gray><limits>"
+    limit_daily: "<gray>Daily: </gray><white><used>/<total></white>"
+    limit_weekly: "<gray>Weekly: </gray><white><used>/<total></white>"
+    limit_monthly: "<gray>Monthly: </gray><white><used>/<total></white>"
+    limit_cooldown: "<gray>Cooldown: </gray><white><seconds>s</white>"
+    no_limits: "<white>No entry limits</white>"
+    limit_windows: "<gray>Allowed windows: </gray><white>month[<monthly>] week[<weekly>] day[<daily>]</white>"
+    best: "<gray>  Best: </gray><white><score></white> <gray>| time </gray><white><duration></white>"
+  rank:
+    usage: "<red>Usage: /edg rank <dungeonId></red>"
+    empty: "<yellow>No leaderboard records yet for <dungeon></yellow>"
+    header: "<gray>Leaderboard for <dungeon> (top 10):</gray>"
+    entry: "<gold>#<place></gold> <white><score></white> <gray>pts | </gray><white><duration></white> <gray>| </gray><yellow><difficulty></yellow> <gray>| </gray><white><members></white>"
+  globalchat:
+    usage: "<red>Usage: /edg globalchat <on|off></red>"
+  denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
+  denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
+  admin:
+    usage: "<red>Usage: /edg admin <instances|stop|status|reload|validate|poolreset|clearslots></red>"
+    instances_header: "<gray>Instance list (<count> total):</gray>"
+    instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| party </gray><party> <gray>| queue </gray><queue>"
+    stop_missing: "<red>Instance not found: <instance></red>"
+    stopped: "<green>Instance force-stopped: <instance></green>"
+    status_header: "<gray>Status: instances <instances> | live virtual threads <threads> | templates <templates></gray>"
+    status_pool: "<gray>- Pool </gray><dungeon> <gray>: worlds </gray><worlds> <gray> reserves </gray><reserves>"
+    status_queue: "<gray>- Write queue </gray><instance> <gray>: pending </gray><pending> <gray> deferred total </gray><deferred>"
+    status_queue_empty: "<gray>Write queues have no backlog</gray>"
+    reloaded: "<green>Configuration reloaded (global and all dungeons)</green>"
+    reload_failed: "<red>Configuration reload failed: <error></red>"
+    validate_ok: "<gray>- </gray><dungeon> <gray>: </gray><green>OK</green>"
+    validate_flow_missing: "<gray>- </gray><dungeon> <gray>: </gray><red>flow.yml missing</red>"
+    validate_error: "<gray>- </gray><dungeon> <gray>: </gray><red><error></red>"
+    validate_empty: "<yellow>No dungeon templates found</yellow>"
+    pool_reset: "<green>Pool reserves force-reset: <dungeon></green>"
+    pool_missing: "<red>Dungeon not found: <dungeon></red>"
+    slots_cleared: "<green>Slot placeholders cleared</green>"
+
+challenge:
+  entered: "<green>Entered dungeon <dungeon> (<instance>)</green>"
+  preparing: "<yellow>Prepare confirmation started, run /edg ready or click the confirm button (within <seconds>s)</yellow>"
+  preparing_expired: "<red>Prepare confirmation timed out, challenge cancelled</red>"
+  member_ready: "<gray><player> is ready (<ready>/<total>)</gray>"
+  cancelled: "<yellow>Challenge cancelled (reason: <reason>)</yellow>"
+  wait:
+    bossbar: "Preparing dungeon world: <dungeon> (any member may cancel with /edg cancel)"
+    chat: "<yellow>Preparing dungeon world: <dungeon>, any member may cancel with /edg cancel, wait timeout auto-cancels</yellow>"
+    sidebar: "Entering wait: <dungeon>"
+  enter:
+    dungeon_missing: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
+    no_dungeon_permission: "<red>You lack permission to enter dungeon <dungeon></red>"
+    party_error: "<red>Failed to create party: <code></red>"
+    not_leader: "<red>Only the leader can start a challenge</red>"
+    already_started: "<yellow>Your party already has a challenge in progress</yellow>"
+    party_busy: "<yellow>Your party already has an active dungeon challenge</yellow>"
+    invalid_difficulty: "<red>Invalid difficulty: <difficulty></red>"
+    invalid_mode: "<red>Invalid drop mode: <mode></red>"
+    party_missing: "<red>Party data missing, challenge cancelled</red>"
+    member_offline: "<red>A party member is offline, cannot start the challenge</red>"
+    dungeon_full: "<yellow>Dungeon is full right now, retry after existing parties finish</yellow>"
+    full: "<yellow>Dungeon is full (pool or global limit reached), retry after existing parties finish</yellow>"
+    cooldown: "<yellow><player> is still on entry cooldown, <seconds>s remaining</yellow>"
+    daily_limit: "<yellow><player> has used up entry attempts, wait for the period reset (<seconds>s)</yellow>"
+    weekly_limit: "<yellow><player> has used up this week's challenge attempts, resets in <seconds>s</yellow>"
+    monthly_limit: "<yellow><player> has used up this month's challenge attempts, resets in <seconds>s</yellow>"
+    daily_window: "<red>Outside the daily challenge window, retry in <seconds>s</red>"
+    weekly_day: "<red>Today is not an allowed challenge weekday, retry in <seconds>s</red>"
+    monthly_week: "<red>Current week of the month is not an allowed challenge week, retry in <seconds>s</red>"
+  cancel:
+    no_session: "<yellow>No active challenge to cancel</yellow>"
+  ready:
+    no_session: "<yellow>No active challenge to confirm</yellow>"
+
+gui:
+  difficulty:
+    title: "Select Difficulty"
+    name: "<white>Difficulty: <option></white>"
+    lore: "<gray>Click to pick this difficulty</gray>"
+  mode:
+    title: "Select Drop Mode"
+    name: "<white>Drop mode: <option></white>"
+    lore: "<gray>Click to pick this mode</gray>"
+  confirm:
+    title: "Prepare Confirmation"
+    name: "<green>Click to ready up</green>"
+    lore: "<gray>Click to confirm entering the dungeon</gray>"
+  wait:
+    title: "Entering Wait"
+    cancel_name: "<red>Cancel Entry</red>"
+    cancel_lore: "<gray>Click to cancel this challenge</gray>"
+
+party:
+  chat_format: "<gradient:#1E3A8A:#8B5CF6>[Party]</gradient> <gold><player></gold>: <white><message></white>"
+  invite_sent: "<yellow>Invited <player> to the party</yellow>"
+  invite_received: "<yellow><player> invited you to a party, /edg party accept to join, /edg party deny to refuse</yellow>"
+  apply_received: "<yellow><player> asked to join your party, /edg party accept to approve, /edg party deny to refuse</yellow>"
+  apply_denied: "<yellow><player> declined your join request</yellow>"
+  kicked: "<red>You were removed from the party by <player></red>"
+  leader_transferred: "<yellow>Leadership transferred to <player></yellow>"
+  member_joined: "<green><player> joined the party</green>"
+  chat_enabled: "<green>Party channel enabled, your messages are visible to the party only</green>"
+  chat_disabled: "<yellow>Party channel disabled</yellow>"
+  result:
+    already_in_party: "<red>You are already in a party</red>"
+    target_in_party: "<red>The target player is already in another party</red>"
+    target_busy: "<red>The target player is in a dungeon challenge</red>"
+    party_full: "<red>The party is full</red>"
+    not_leader: "<red>Only the leader can do this</red>"
+    not_in_party: "<red>You are not in a party</red>"
+    mode_denied: "<red>Invite mode is invite-only, you must be invited first</red>"
+    invalid_target: "<red>Target player is offline or invalid: <player></red>"
+    busy_party: "<yellow>Your party is in a dungeon challenge, new members are not accepted</yellow>"
+
+recovery:
+  reconnected: "<green>Reconnected, returned to dungeon instance (<instance>)</green>"
+  orphan_restored: "<yellow>Instance has ended, restored inventory and state from the entry snapshot and returned you to your origin</yellow>"
+  exited: "<green>Left the dungeon and restored your state (<instance>)</green>"
+  evacuated: "<yellow>Dungeon ended, restored from snapshot and returned you to your origin</yellow>"
+
+snapshot:
+  missing: "<red>Snapshot missing, cannot restore (<instance>)</red>"
+
+guard:
+  teleport_blocked: "<red>Teleporting out of this world is not allowed inside a dungeon</red>"
+  boundary_pullback: "<yellow>You crossed the dungeon boundary, pulled back to spawn</yellow>"
+
+globalchat:
+  enabled: "<green>Global chat listening enabled, messages reach inside and outside the dungeon</green>"
+  disabled: "<yellow>Global chat listening disabled, messages stay inside the instance</yellow>"
+
+editor:
+  usage: "<red>Usage: /edg editor <dungeonId></red>"
+  usage_session: "<gray>Session subcommands: exit | pos1 | pos2 | mark <type> [id] | marks | fill <block> | test</gray>"
+  unknown_dungeon: "<red>Dungeon does not exist or config is invalid: <dungeon></red>"
+  locked: "<yellow>Dungeon <dungeon> already has an editor session, only one session per template at a time</yellow>"
+  already_open: "<yellow>You already have an editor session in progress</yellow>"
+  no_session: "<red>You do not have an editor session</red>"
+  opening: "<gray>Preparing the edit world (<dungeon>)...</gray>"
+  opened: "<green>Entered the edit world <world> (<dungeon>)</green>"
+  open_failed: "<red>Failed to prepare the edit world: <error></red>"
+  in_instance: "<yellow>You are inside a dungeon instance, finish the challenge before opening the editor</yellow>"
+  busy_challenge: "<yellow>You are in a challenge flow, cancel or finish it before opening the editor</yellow>"
+  instance_active: "<yellow>The test run has not ended yet, leave the dungeon instance before exiting the editor session</yellow>"
+  exit_dirty: "<red>There are unsaved changes, save or discard them first</red>"
+  exit_done: "<green>Editor session closed (unsaved changes discarded)</green>"
+  rejoined: "<green>Editor session resumed (<dungeon>)</green>"
+  not_ready: "<red>The edit world is not ready yet, please wait</red>"
+  not_in_edit_world: "<red>Run this inside the edit world of that dungeon</red>"
+  no_target: "<red>No block in sight within 16 blocks to mark</red>"
+  pos_set: "<green>Corner <which> recorded: <coord></green>"
+  pos_missing: "<red>Corner <which> is missing, record it with /edg editor pos<which></red>"
+  pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edg editor pos2 and retry</gray>"
+  mark_usage: "<red>Usage: /edg editor mark <spawn|room|gate|option|trigger|chest> [id]</red>"
+  mark_unknown_type: "<red>Unknown mark type: <type></red>"
+  mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
+  mark_dup: "<red>A module with this id already exists: <id></red>"
+  mark_failed: "<red>Failed to stage the mark: <error></red>"
+  marks_empty: "<yellow>No staged marks yet</yellow>"
+  marks_header: "<gray>Staged marks (<count>):</gray>"
+  marks_entry: "<gray>- </gray><white><mark></white>"
+  test_started: "<green>Starting a test run (<dungeon>) via the normal entry flow, no attempts recorded and no leaderboard entry</green>"
+  test_failed: "<red>Test run failed to start: <code></red>"
+  test_dirty: "<red>There are unsaved changes, a test run must start from the saved template, save first</red>"
+  save_nothing: "<yellow>No changes to save</yellow>"
+  save_busy: "<yellow>The block write queue is still running, save again shortly</yellow>"
+  save_failed: "<red>Save failed (changes stay in the session): <error></red>"
+  saved: "<green>Saved and written back to the template (<dungeon>), generation <generation>, terrain changed: <terrain></green>"
+  discarded: "<green>Editor session discarded, all unsaved config and terrain changes dropped</green>"
+  fill_usage: "<red>Usage: /edg editor fill <block> (define the area with pos1/pos2 first)</red>"
+  fill_invalid: "<red>Invalid block or block state: <block></red>"
+  fill_busy: "<yellow>The block write queue is busy, retry shortly</yellow>"
+  fill_started: "<gray>Region fill queued: <count> blocks, writing in frames</gray>"
+  fill_too_large: "<red>Fill volume <count> exceeds the limit <limit></red>"
+  help_mark: |
+    <gray>===== Mark reference =====</gray>
+    <white>Single point (block in sight): /edg editor mark <spawn|option|chest> [id]</white>
+    <white>Region (two corners): /edg editor mark <room|gate|trigger> [id]</white>
+    <white>Corners: /edg editor pos1 and /edg editor pos2</white>
+    <white>Region fill: /edg editor fill <block></white>
+    <white>List staged: /edg editor marks | Test: /edg editor test</white>
+    <gray>Mark and panel changes are written to the template only when you press Save</gray>
+  input_prompt: "<yellow>Enter the new value for <field> (type cancel to abort)</yellow>"
+  input_invalid: "<red>Invalid input: <value></red>"
+  field_updated: "<green>Updated <field> -> <value> (applies on save)</green>"
+  field_failed: "<red>Failed to update the field: <error></red>"
+  gui:
+    title: "<gradient:#1E3A8A:#8B5CF6>Dungeon Editor</gradient> <gray><dungeon></gray>"
+    meta: "<white>Dungeon metadata</white>"
+    waves: "<white>Spawn points and waves</white>"
+    gates: "<white>Gates</white>"
+    branches: "<white>Branch options</white>"
+    help: "<yellow>Mark reference</yellow>"
+    pos1: "<white>Corner 1: <coord></white>"
+    pos2: "<white>Corner 2: <coord></white>"
+    status: "<white>Marks <marks> · <state> · Gen <generation></white>"
+    state_dirty: "<red>unsaved</red>"
+    state_clean: "<green>saved</green>"
+    save: "<green>Save and write back</green>"
+    discard: "<red>Discard all unsaved changes</red>"
+    discard_confirm: "<gold>Click again to confirm discard</gold>"
+    test: "<yellow>Test run (no attempts, no leaderboard)</yellow>"
+    exit: "<white>Exit editor session</white>"
+    close: "<red>Close panel</red>"
+    filler: ""
+    back: "<white>Back</white>"
+    back_main: "<white>Back to main panel</white>"
+    back_waves: "<white>Back to spawn list</white>"
+    back_spawn: "<white>Back to this spawn point</white>"
+    back_gates: "<white>Back to gate list</white>"
+    back_branches: "<white>Back to branch list</white>"
+    back_option: "<white>Back to this option node</white>"
+    prev: "<white>Previous page</white>"
+    next: "<white>Next page</white>"
+    page: "<gray>Page <page>/<total></gray>"
+    add: "<green>Add module</green>"
+    wave_add: "<green>Add wave</green>"
+    case_add: "<green>Add candidate</green>"
+    region_add: "<green>Append region from corners 1+2</green>"
+    region_remove: "<red>Remove last region</red>"
+    value: "<gray>Current: <value></gray>"
+    wave_count: "<gray>Waves: <count></gray>"
+    mob_count: "<gray>Mob entries: <count></gray>"
+    region_count: "<gray>Regions: <count></gray>"
+    wave_item: "<white>Wave</white>"
+    case_item: "<white>Candidate</white>"
+    field:
+      display_name: "Display name"
+      description: "Dungeon description"
+      difficulty_group: "Difficulty group"
+      prepare_window: "Prepare window (seconds)"
+      pool_max: "Pool world limit"
+      leaderboard_max: "Leaderboard entries limit"
+      interval: "Wave interval"
+      drop_loot: "Wave loot"
+      drop_loot_on: "<green>Wave loot: ON</green>"
+      drop_loot_off: "<red>Wave loot: OFF</red>"
+      mobs: "Mob list"
+      logic: "Gate condition logic (AND/OR)"
+      open_mode: "Gate open mode"
+      door_regions: "Door seal regions"
+      conditions: "Conditions (read-only)"
+      select_mode: "Select mode"
+      select_mode_single: "<lime>Single (single)</lime>"
+      select_mode_multi: "<gold>Multi (multi)</gold>"
+      time_limit: "Time limit (seconds, 0 = none)"
+      min_select: "Min selections"
+      max_select: "Max selections"
+      safe_point: "Safe point (records current position)"
+      ending_map: "Combined ending map"
+      add_wave: "Add wave"
+      add_case: "Add candidate"
+      case_label: "Candidate label"
+      case_value: "Candidate case value"
+      case_ending: "Ending id (- to clear)"
+      seal_regions: "Seal regions"
+
+drop:
+  chest_locked: "<red>This reward chest is distributed at settlement, loot cannot be taken during the run</red>"
+  box_stored: "<gray><item> x<amount> staged for this run, granted on completion</gray>"
+  payout_done: "<green>Staged rewards from this run have been granted (<count> items)</green>"
+  voided: "<red>This run did not complete, all your staged rewards were forfeited</red>"
+  roll:
+    won: "<green>ROLL won: <white><item></white> x<amount> (staged for this run, granted on completion)</green>"
+    distributed: "<gray>This drop batch was auto-rolled, granted on completion (<count> items)</gray>"
+
+rewardbox:
+  disabled: "<yellow>The reward box is disabled, dungeon rewards go straight to your inventory</yellow>"
+  gui:
+    title: "<gradient:#1E3A8A:#8B5CF6>Reward Box</gradient> <gray>(<page>/<total>) · <items> items</gray>"
+    prev: "<white>Previous page</white>"
+    next: "<white>Next page</white>"
+    toggle_on: "<green>Auto deposit: ON</green><gray> (click to disable)</gray>"
+    toggle_off: "<red>Auto deposit: OFF</red><gray> (click to enable)</gray>"
+    info: "<yellow>Drag items to your inventory to claim</yellow>"
+    close: "<red>Close</red>"
+    filler: ""
+    auto_enabled: "<green>Auto deposit enabled: future rewards go straight to your inventory (kept in box when full)</green>"
+    auto_disabled: "<yellow>Auto deposit disabled: future rewards go to the reward box, claim with /edg rewards</yellow>"
+
+settle:
+  partial: "<yellow>Settlement partially completed, some rewards may be missing, audited</yellow>"
+  rewards_hint: "<yellow>Your rewards are in the reward box, run </yellow><click:suggest_command:'/edg rewards'><underlined>/edg rewards</underlined></click><yellow> to claim</yellow>"
+
+flow:
+  option:
+    prompt: "<yellow>Pick an option: </yellow><gray>%options%</gray><yellow> (type a number or id)</yellow>"
+    confirm_prompt: "<yellow>Selected: </yellow><gray><options></gray><yellow> type confirm to lock in, timeout auto-confirms, type cancel to abort</yellow>"
+    bounds: "<red>You must pick between <min> and <max> options, try again</red>"
+    expired: "<yellow>Selection timed out, nothing chosen</yellow>"
+    aborted: "<gray>Selection aborted</gray>"
+    invalid: "<red>Invalid selection</red>"
+  spectator:
+    entered: "<yellow>No respawn charges left, switched to spectator mode</yellow>"
+  fail:
+    returned: "<red>Dungeon failed (%reason%), returned to your origin</red>"
+  temp_item:
+    full: "<yellow>Inventory full, some temp items (<item>) could not be granted</yellow>"
+  timer:
+    warning: "<yellow><seconds> seconds remaining</yellow>"
+
+player:
+  died: "<red>%player% died, respawn charges left: %remaining%</red>"
+
+console:
+  plugin_starting: "EmakiDungeon is starting"
+  plugin_started: "EmakiDungeon has started"
+  plugin_stopped: "EmakiDungeon has stopped"
+  world_create_failed: "Instance world creation failed | dungeon=%dungeon% | world=%world% | error=%error%, retrying in 30s"
+  world_dispose_held: "Instance world unload or delete failed, held for cleanup on restart | dungeon=%dungeon% | world=%world%"
+  instances_load_failed: "Failed to load instances.yml, startup residual scan skipped | error=%error%"
+  residual_delete_failed: "Startup scan failed to delete residual directory | world=%world%"
+  residual_cleaned: "Startup scan cleaned residual worlds | count=%count%"
+  active_world_missing: "Running instance lost its world handle, scheduled for disposal | dungeon=%dungeon% | world=%world%"
+  pool_reserve_invalidated: "Reserve world failed inspection and will be rebuilt from template | dungeon=%dungeon% | world=%world%"
+  dungeon_config_invalid: "Invalid dungeon config, skipped | dungeon=%dungeon% | error=%error%"
+  world_command_deferred: "World command dual-limit deferral | world=%world% | total=%count%"
+  parties_load_failed: "Failed to load parties.yml, party snapshots not restored | error=%error%"
+  command_map_wrap_failed: "CommandMap wrap failed, plugin-dispatch interception entry inactive | error=%error%"
+  action_corelib_unavailable: "CoreLib Action API unavailable, segment registration skipped"
+  action_dispatch_failed: "Action segment dispatch failed | segment=%segment% | error=%error%"
+  instance_crashed: "Instance loop crashed | instance=%instance% | error=%error%"
+  flow_file_failed: "Failed to create flow YAML | dungeon=%dungeon% | error=%error%"
+  flow_load_failed: "Failed to load flow YAML, empty definition used | instance=%instance% | error=%error%"
+  editor_worlds_swept: "Startup sweep removed leftover edit worlds | count=%count%"
+  editor_template_saved: "Edit template written back | dungeon=%dungeon% | generation=%generation%"
+  script_disabled: "GraalJS script host disabled by configuration"
+  script_engine_unavailable: "[script] GraalJS runtime not detected; the script host is disabled and the rest of the plugin is unaffected"
+  script_load_failed: "Instance script failed to load; that script is stopped and the run continues | instance=%instance% | error=%error%"
+  script_stopped: "Script handler failed or timed out; the script is stopped and the run continues | instance=%instance% | script=%script% | trigger=%trigger% | error=%error%"
+  script_api_failed: "Script trigger API handler failed | trigger=%trigger% | error=%error%"
+  monitor_mspt_high: "MSPT P95 exceeded the alert threshold | p95=%p95%ms | threshold=%threshold%ms"
+  monitor_memory_slope: "Heap memory slope exceeded the alert threshold | slope=%slope%MB/min | threshold=%threshold%MB/min"
+  monitor_queue_backlog: "World queue backlog lasted over threshold | instance=%instance% | seconds=%seconds%s | threshold=%threshold%s"
+  audit_write_failed: "Failed to write audit log | file=%file% | error=%error%"
+  instance_disposing_stuck: "Instance stuck in disposing for over 60s | instance=%instance% | elapsed=%seconds%s"
+
+script:
+  stopped_chat: "The dungeon script stopped after an error; this run continues"
+
+debug:
+  instance_created: "Instance created | world=%instance%"
+  instance_destroyed: "Instance destroyed | world=%instance% | trigger=%trigger%"
+  pool_reserve: "Pool reserve | dungeon=%dungeon% | active=%active%"
+  player_entered: "Player entered instance | player=%player% -> world=%instance%"
+  party_created: "Party created | party=%party%"
+  party_invite_sent: "Party invite sent | party=%party% | target=%target%"
+  party_apply_sent: "Party join apply sent | party=%party% | target=%target%"
+  party_join: "Player joined party | party=%party% | player=%player%"
+  party_leave: "Player left party | party=%party% | player=%player%"
+  challenge_opened: "Challenge opened | dungeon=%dungeon% | party=%party%"
+  challenge_start: "Difficulty and mode picked | dungeon=%dungeon% | difficulty=%difficulty% | mode=%mode%"
+  ready_all: "All members ready | dungeon=%dungeon% | party=%party%"
+  instance_full: "Dungeon full, denied | dungeon=%dungeon%"
+  instance_assigned: "Reserve world assigned | world=%instance% | dungeon=%dungeon%"
+  command_denied: "Command denied | command=%command% | source=%source%"
+  snapshot_repacked: "Snapshot repacked | instance=%instance%"
+  reconnected_instance: "Reconnected into instance | instance=%instance%"
+  orphan_restored: "Orphan snapshot restored | instance=%instance%"
+  exit_restored: "Exit restored | instance=%instance% | reason=%reason%"
+  temp_item_granted: "Temp item granted | instance=%instance% | item=%item% | amount=%amount%"
+  temp_item_removed: "Temp item removed | instance=%instance% | items=%items%"
+  player_died: "Player died | player=%player% | instance=%instance% | remaining=%remaining%"
+  limit_recorded: "Entry attempt recorded | dungeon=%dungeon% | day_bucket=%day%"
+  limit_denied: "Entry limit denied | dungeon=%dungeon% | member=%member% | verdict=%verdict%"
+  settle_step_failed: "Settlement step failed | command=%command% | error=%error% | instance=%instance%"
+  settle_step_skipped: "Settlement step skipped | command=%command% | player=%player% | instance=%instance%"
+  script_session_created: "Instance script loaded | instance=%instance% | dungeon=%dungeon% | script=%script%"
+  script_session_absent: "No dungeon script found; script host not enabled for this run | dungeon=%dungeon%"
+  script_session_closed: "Instance script released | instance=%instance%"
+  script_takeover: "Flow script took over the run | instance=%instance% | dungeon=%dungeon%"
+  script_entry_registered: "Entry registered | instance=%instance% | entry=%entry%"
+  script_entry_cleared: "Entries removed with instance destroy | instance=%instance% | count=%count%"
+  script_stopped: "Script stopped, instance continues | instance=%instance% | script=%script%"

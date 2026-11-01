@@ -12,7 +12,7 @@ public record PityConfig(
 ) {
     public PityConfig {
         if (effects == null || effects.isEmpty()) {
-            throw new IllegalArgumentException("Pity effects list cannot be null or empty");
+            throw new IllegalArgumentException("保底效果列表不能为空");
         }
         effects = List.copyOf(effects);
     }
