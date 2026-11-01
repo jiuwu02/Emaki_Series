@@ -4,6 +4,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.GameRule;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.jetbrains.annotations.NotNull;
 
@@ -87,14 +89,15 @@ public final class SetGameRuleStage extends BaseStage {
         }
         String bare = stripNamespace(name);
         String compact = compact(name);
-        for (GameRule<?> rule : GameRule.values()) {
+        for (GameRule<?> rule : Registry.GAME_RULE) {
             if (rule == null) {
                 continue;
             }
-            String ruleName = rule.getName();
-            if (Texts.isBlank(ruleName)) {
+            NamespacedKey key = rule.getKey();
+            if (key == null) {
                 continue;
             }
+            String ruleName = key.getKey();
             if (ruleName.equalsIgnoreCase(name) || ruleName.equalsIgnoreCase(bare)) {
                 return rule;
             }

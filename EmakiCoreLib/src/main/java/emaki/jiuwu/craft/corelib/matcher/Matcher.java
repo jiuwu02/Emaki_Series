@@ -14,12 +14,14 @@ import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.item.ComponentPath;
 import emaki.jiuwu.craft.corelib.item.ItemComponentSnapshot;
+import net.kyori.adventure.text.Component;
 
 public sealed interface Matcher permits
         Matcher.PdcMatcher,
@@ -367,17 +369,28 @@ public sealed interface Matcher permits
             }
         }
 
+        private static List<String> loreLines(@Nullable ItemMeta meta) {
+            if (meta == null || !meta.hasLore()) {
+                return List.of();
+            }
+            List<Component> lore = meta.lore();
+            if (lore == null || lore.isEmpty()) {
+                return List.of();
+            }
+            List<String> lines = new ArrayList<>(lore.size());
+            for (Component line : lore) {
+                lines.add(MiniMessages.legacy(line));
+            }
+            return lines;
+        }
+
         @Override
         public boolean test(@NotNull MatchContext context) {
             if (context.item() == null || !context.item().hasItemMeta()) {
                 return false;
             }
-            ItemMeta meta = context.item().getItemMeta();
-            if (!meta.hasLore()) {
-                return false;
-            }
-            List<String> lore = meta.getLore();
-            if (lore == null || lore.isEmpty()) {
+            List<String> lore = loreLines(context.item().getItemMeta());
+            if (lore.isEmpty()) {
                 return false;
             }
             return switch (mode) {

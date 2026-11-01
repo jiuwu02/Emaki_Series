@@ -14,7 +14,7 @@ final class CraftEngineFurnitureRestorer implements FurnitureRestorer {
         if (furniture == null) {
             return null;
         }
-        return furniture.baseEntity();
+        return furniture.bukkitEntity();
     }
 
     @Override

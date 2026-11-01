@@ -8,8 +8,10 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
@@ -28,7 +30,7 @@ import org.bukkit.attribute.Attribute;
 
 public final class WaveController {
 
-    private static final String META_NO_DROP = "emd_no_drop";
+    private static final NamespacedKey NO_DROP_KEY = new NamespacedKey("emakidungeon", "no_drop");
 
     private record MobOrigin(String spawnId, int waveIndex, String bossId) {
     }
@@ -174,8 +176,8 @@ public final class WaveController {
                     for (LivingEntity entity : result.spawned()) {
                         applyDifficultyTuning(entity);
                         if (!dropLoot) {
-                            entity.setMetadata(META_NO_DROP,
-                                    new org.bukkit.metadata.FixedMetadataValue(plugin, Boolean.TRUE));
+                            entity.getPersistentDataContainer().set(NO_DROP_KEY,
+                                    PersistentDataType.BYTE, (byte) 1);
                         }
                         waveRuntime.living.add(entity.getUniqueId());
                         waveRuntime.alive.incrementAndGet();
@@ -309,7 +311,8 @@ public final class WaveController {
     }
 
     public static boolean hasNoDrop(LivingEntity entity) {
-        return entity != null && entity.hasMetadata(META_NO_DROP);
+        return entity != null && entity.getPersistentDataContainer()
+                .has(NO_DROP_KEY, PersistentDataType.BYTE);
     }
 
     public void notifyRoomEntered(String roomId) {

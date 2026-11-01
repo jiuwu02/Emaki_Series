@@ -8,18 +8,19 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
+import org.bukkit.block.TileState;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryOpenEvent;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.plugin.Plugin;
+import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
@@ -30,9 +31,9 @@ import java.util.LinkedHashMap;
 
 public final class RewardChestService implements Listener {
 
-    public static final String CHEST_METADATA = "emd_reward_chest";
+    private static final NamespacedKey REWARD_CHEST_KEY =
+            new NamespacedKey("emakidungeon", "reward_chest");
 
-    private final Plugin plugin;
     private final InstanceRegistry registry;
     private final MessageService messages;
 
@@ -40,8 +41,7 @@ public final class RewardChestService implements Listener {
     private final Map<String, Map<UUID, List<ItemStack>>> staging = new ConcurrentHashMap<>();
     private final Map<String, Boolean> chestPlaced = new ConcurrentHashMap<>();
 
-    public RewardChestService(Plugin plugin, InstanceRegistry registry, MessageService messages) {
-        this.plugin = plugin;
+    public RewardChestService(InstanceRegistry registry, MessageService messages) {
         this.registry = registry;
         this.messages = messages;
     }
@@ -94,8 +94,7 @@ public final class RewardChestService implements Listener {
                 }
                 if (first || block.getType() != Material.CHEST) {
                     block.setType(Material.CHEST, false);
-                    block.setMetadata(CHEST_METADATA,
-                            new FixedMetadataValue(plugin, Boolean.TRUE));
+                    markRewardChest(block);
                 }
                 if (block.getState() instanceof Chest chest) {
                     chest.getInventory().addItem(visual.toArray(new ItemStack[0]));
@@ -147,7 +146,6 @@ public final class RewardChestService implements Listener {
                 Block block = chestBlock(world, instance);
                 if (block != null && block.getState() instanceof Chest chest) {
                     chest.getInventory().clear();
-                    block.removeMetadata(CHEST_METADATA, plugin);
                     block.setType(Material.AIR, false);
                 }
             }
@@ -226,13 +224,27 @@ public final class RewardChestService implements Listener {
         if (!(event.getInventory().getHolder() instanceof BlockState state)) {
             return;
         }
-        if (!state.getBlock().hasMetadata(CHEST_METADATA)) {
+        if (!isRewardChest(state)) {
             return;
         }
         event.setCancelled(true);
         if (event.getPlayer() instanceof Player player) {
             messages.send(player, "drop.chest_locked", Map.of());
         }
+    }
+
+    private static void markRewardChest(Block block) {
+        if (block.getState() instanceof TileState state) {
+            state.getPersistentDataContainer().set(REWARD_CHEST_KEY,
+                    PersistentDataType.BYTE, (byte) 1);
+            state.update(true, false);
+        }
+    }
+
+    private static boolean isRewardChest(BlockState state) {
+        return state instanceof TileState tileState
+                && tileState.getPersistentDataContainer().has(REWARD_CHEST_KEY,
+                        PersistentDataType.BYTE);
     }
 
     private Block chestBlock(World world, DungeonInstance instance) {

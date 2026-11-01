@@ -4,13 +4,18 @@ import emaki.jiuwu.craft.structure.EmakiStructurePlugin;
 import emaki.jiuwu.craft.structure.config.AppConfig;
 import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.world.ChunkPopulateEvent;
 import org.bukkit.generator.structure.GeneratedStructure;
+import org.bukkit.generator.structure.Structure;
 import org.bukkit.util.BoundingBox;
 
 import java.util.Collection;
@@ -72,7 +77,14 @@ public final class StructureReplaceListener implements Listener {
             List<AppConfig.ReplaceRule> rules) {
         String structureId;
         try {
-            structureId = generated.getStructure().getKey().toString().toLowerCase(Locale.ROOT);
+            Structure structure = generated.getStructure();
+            Registry<Structure> registry =
+                    RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE);
+            NamespacedKey key = structure == null ? null : registry.getKey(structure);
+            if (key == null) {
+                return;
+            }
+            structureId = key.toString().toLowerCase(Locale.ROOT);
         } catch (RuntimeException exception) {
             return;
         }

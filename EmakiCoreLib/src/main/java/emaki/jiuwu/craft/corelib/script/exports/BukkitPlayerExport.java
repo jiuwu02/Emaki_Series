@@ -5,6 +5,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Consumer;
 
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.graalvm.polyglot.HostAccess;
 import org.jetbrains.annotations.NotNull;
@@ -37,7 +39,7 @@ public final class BukkitPlayerExport {
         this.name = player.getName();
         this.uniqueId = player.getUniqueId().toString();
         this.health = player.getHealth();
-        this.maxHealth = player.getMaxHealth();
+        this.maxHealth = resolveMaxHealth(player);
         this.foodLevel = player.getFoodLevel();
         this.level = player.getLevel();
         this.exp = player.getExp();
@@ -69,7 +71,7 @@ public final class BukkitPlayerExport {
 
     @HostAccess.Export
     public void setHealth(double health) {
-        patches.add(target -> target.setHealth(Math.max(0, Math.min(health, target.getMaxHealth()))));
+        patches.add(target -> target.setHealth(Math.max(0, Math.min(health, resolveMaxHealth(target)))));
     }
 
     @HostAccess.Export
@@ -164,6 +166,11 @@ public final class BukkitPlayerExport {
             patch.accept(player);
         }
         patches.clear();
+    }
+
+    private static double resolveMaxHealth(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? player.getHealth() : attribute.getValue();
     }
 
     @Override

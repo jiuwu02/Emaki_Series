@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.script;
 
 import org.bukkit.Bukkit;
+import org.bukkit.NamespacedKey;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.graalvm.polyglot.HostAccess;
@@ -250,8 +252,8 @@ public final class ScriptHostObject {
             return;
         }
         try {
-            PotionEffectType type =
-                    PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
+            PotionEffectType type = Registry.MOB_EFFECT.get(
+                    NamespacedKey.fromString(parts[0].toLowerCase(Locale.ROOT)));
             if (type == null) {
                 return;
             }

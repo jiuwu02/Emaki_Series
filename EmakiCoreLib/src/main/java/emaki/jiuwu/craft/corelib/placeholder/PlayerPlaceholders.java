@@ -4,6 +4,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.bukkit.Bukkit;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,7 +62,12 @@ public final class PlayerPlaceholders {
         target.put("player_exp", Float.toString(player.getExp()));
         target.put("player_food", Integer.toString(player.getFoodLevel()));
         target.put("player_health", Double.toString(player.getHealth()));
-        target.put("player_max_health", Double.toString(player.getMaxHealth()));
+        target.put("player_max_health", Double.toString(maxHealth(player)));
         target.put("player_world", player.getWorld() == null ? "" : player.getWorld().getName());
+    }
+
+    private static double maxHealth(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? player.getHealth() : attribute.getValue();
     }
 }

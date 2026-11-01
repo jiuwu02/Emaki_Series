@@ -11,7 +11,6 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnTrigger;
 import io.papermc.paper.registry.RegistryAccess;
 import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Registry;
 import org.bukkit.block.Biome;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.generator.structure.Structure;
@@ -147,7 +146,9 @@ public final class SpawnRuleLoader {
         List<Structure> result = new ArrayList<>();
         for (String key : keys) {
             NamespacedKey nsk = NamespacedKey.fromString(key);
-            Structure s = nsk != null ? Registry.STRUCTURE.get(nsk) : null;
+            Structure s = nsk != null
+                    ? RegistryAccess.registryAccess().getRegistry(RegistryKey.STRUCTURE).get(nsk)
+                    : null;
             if (s == null) {
                 issue("[loader] 结构 '" + key + "' 未知 (文件 '" + fileName + "')，已跳过");
             } else {

@@ -6,6 +6,8 @@ import java.util.Locale;
 import java.util.Map;
 
 import org.bukkit.Location;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -78,7 +80,7 @@ public final class TargetFactsReader {
                 entity.getWorld() == null ? "" : entity.getWorld().getName(),
                 Texts.toStringSafe(entity.getName()),
                 living == null ? 0D : living.getHealth(),
-                living == null ? 0D : living.getMaxHealth(),
+                maxHealth(living),
                 distance(entity.getLocation(), origin),
                 player == null ? 0 : player.getLevel(),
                 player == null ? 0 : player.getFoodLevel(),
@@ -137,6 +139,14 @@ public final class TargetFactsReader {
             flags.put(FLAG_BABY, !ageable.isAdult());
         }
         return flags;
+    }
+
+    private static double maxHealth(LivingEntity living) {
+        if (living == null) {
+            return 0D;
+        }
+        AttributeInstance attribute = living.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? living.getHealth() : attribute.getValue();
     }
 
     private static Map<String, Integer> effects(LivingEntity living) {

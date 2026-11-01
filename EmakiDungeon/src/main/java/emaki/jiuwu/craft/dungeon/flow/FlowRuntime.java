@@ -13,7 +13,9 @@ import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Particle;
+import org.bukkit.Registry;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -21,6 +23,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.gui.SoundParser;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.flow.ConditionEvaluator.EvalContext;
@@ -829,8 +832,8 @@ public final class FlowRuntime {
                 continue;
             }
             try {
-                PotionEffectType type =
-                        PotionEffectType.getByName(parts[0].toUpperCase(Locale.ROOT));
+                PotionEffectType type = Registry.MOB_EFFECT.get(
+                        NamespacedKey.fromString(parts[0].toLowerCase(Locale.ROOT)));
                 if (type == null) {
                     continue;
                 }
@@ -1049,11 +1052,9 @@ public final class FlowRuntime {
                 }
                 String sound = action.param("sound", "");
                 if (!sound.isBlank()) {
-                    try {
-                        world.playSound(world.getSpawnLocation(),
-                                Sound.valueOf(sound.toUpperCase(Locale.ROOT)),
-                                1.0F, 1.0F);
-                    } catch (IllegalArgumentException ignored) {
+                    Sound resolved = SoundParser.resolve(sound);
+                    if (resolved != null) {
+                        world.playSound(world.getSpawnLocation(), resolved, 1.0F, 1.0F);
                     }
                 }
                 String particle = action.param("particle", "");

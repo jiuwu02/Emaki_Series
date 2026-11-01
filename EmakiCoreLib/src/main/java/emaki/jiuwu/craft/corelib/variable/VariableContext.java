@@ -6,6 +6,8 @@ import java.util.Objects;
 
 import org.bukkit.Bukkit;
 import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
@@ -168,8 +170,13 @@ public final class VariableContext {
         target.putIfAbsent("player_exp", player.getExp());
         target.putIfAbsent("player_food", player.getFoodLevel());
         target.putIfAbsent("player_health", player.getHealth());
-        target.putIfAbsent("player_max_health", player.getMaxHealth());
+        target.putIfAbsent("player_max_health", maxHealth(player));
         target.putIfAbsent("player_world", player.getWorld() == null ? "" : player.getWorld().getName());
+    }
+
+    private static double maxHealth(Player player) {
+        AttributeInstance attribute = player.getAttribute(Attribute.MAX_HEALTH);
+        return attribute == null ? player.getHealth() : attribute.getValue();
     }
 
     private static @Nullable Object getPlayerBuiltin(String key, Player player) {
@@ -178,7 +185,7 @@ public final class VariableContext {
             case "player_exp" -> player.getExp();
             case "player_food" -> player.getFoodLevel();
             case "player_health" -> player.getHealth();
-            case "player_max_health" -> player.getMaxHealth();
+            case "player_max_health" -> maxHealth(player);
             case "player_world" -> player.getWorld() == null ? "" : player.getWorld().getName();
             case "player_name" -> player.getName();
             case "player_uuid" -> player.getUniqueId().toString();

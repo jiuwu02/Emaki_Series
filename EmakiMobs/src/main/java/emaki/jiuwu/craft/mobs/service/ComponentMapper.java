@@ -1,6 +1,9 @@
 package emaki.jiuwu.craft.mobs.service;
 
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.util.TriState;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
 import org.bukkit.Bukkit;
 import org.bukkit.Keyed;
 import org.bukkit.loot.LootTable;
@@ -156,7 +159,7 @@ public final class ComponentMapper {
         register("absorption", RefreshMode.SPAWN_ONLY, (entity, value) ->
                 entity.setAbsorptionAmount(parseDouble(value)));
         register("visual_fire", RefreshMode.ALWAYS, (entity, value) ->
-                entity.setVisualFire(parseBoolean(value)));
+                entity.setVisualFire(TriState.byBoolean(parseBoolean(value))));
         register("freeze_ticks", RefreshMode.SPAWN_ONLY, (entity, value) ->
                 entity.setFreezeTicks(parseInt(value)));
         register("fire_ticks", RefreshMode.SPAWN_ONLY, (entity, value) ->
@@ -189,7 +192,7 @@ public final class ComponentMapper {
             boolean baby = parseBoolean(value);
             if (entity instanceof Ageable a) {
                 if (baby) a.setBaby(); else a.setAdult();
-            } else if (entity instanceof Zombie z) { z.setBaby(baby); }
+            }
         });
         register("can_break_doors", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Zombie z) z.setCanBreakDoors(parseBoolean(value));
@@ -199,7 +202,7 @@ public final class ComponentMapper {
         });
         register("cat_type", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Cat cat)
-                parseKeyed(Registry.CAT_VARIANT, String.valueOf(value)).ifPresent(cat::setCatType);
+                parseKeyed(RegistryKey.CAT_VARIANT, String.valueOf(value)).ifPresent(cat::setCatType);
         });
         register("villager_profession", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Villager v)
@@ -259,7 +262,7 @@ public final class ComponentMapper {
         });
         register("frog_variant", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Frog f)
-                parseKeyed(Registry.FROG_VARIANT, String.valueOf(value)).ifPresent(f::setVariant);
+                parseKeyed(RegistryKey.FROG_VARIANT, String.valueOf(value)).ifPresent(f::setVariant);
         });
         register("mushroom_type", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof MushroomCow mc)
@@ -271,7 +274,7 @@ public final class ComponentMapper {
         });
         register("wolf_variant", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Wolf w)
-                parseKeyed(Registry.WOLF_VARIANT, String.valueOf(value)).ifPresent(w::setVariant);
+                parseKeyed(RegistryKey.WOLF_VARIANT, String.valueOf(value)).ifPresent(w::setVariant);
         });
         register("phantom_size", RefreshMode.ALWAYS, (entity, value) -> {
             if (entity instanceof Phantom p) p.setSize(parseInt(value));
@@ -332,7 +335,7 @@ public final class ComponentMapper {
 
     private static void setSlotDropChance(EntityEquipment eq, EquipmentSlot slot, float chance) {
         switch (slot) {
-            case HAND -> eq.setItemInHandDropChance(chance);
+            case HAND -> eq.setItemInMainHandDropChance(chance);
             case OFF_HAND -> eq.setItemInOffHandDropChance(chance);
             case HEAD -> eq.setHelmetDropChance(chance);
             case CHEST -> eq.setChestplateDropChance(chance);
@@ -377,6 +380,10 @@ public final class ComponentMapper {
         } catch (IllegalArgumentException e) {
             return Optional.empty();
         }
+    }
+
+    private static <T extends Keyed> Optional<T> parseKeyed(RegistryKey<T> registryKey, String value) {
+        return parseKeyed(RegistryAccess.registryAccess().getRegistry(registryKey), value);
     }
 
     private static <T extends Keyed> Optional<T> parseKeyed(Registry<T> registry, String value) {

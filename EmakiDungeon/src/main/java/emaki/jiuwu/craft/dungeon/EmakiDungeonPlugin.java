@@ -475,7 +475,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         TempItemManager tempItemManager =
                 new TempItemManager(messageService, debugLogger());
         RewardChestService rewardChests =
-                new emaki.jiuwu.craft.dungeon.drop.RewardChestService(this, registry, messageService);
+                new emaki.jiuwu.craft.dungeon.drop.RewardChestService(registry, messageService);
         this.rewardChests = rewardChests;
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
                 new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),

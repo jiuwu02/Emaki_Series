@@ -13,7 +13,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Difficulty;
-import org.bukkit.GameRule;
+import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
@@ -224,7 +224,7 @@ public final class EditorService implements Listener {
                 throw new IllegalStateException("createWorld returned null");
             }
             world.setDifficulty(Difficulty.PEACEFUL);
-            world.setGameRule(GameRule.DO_MOB_SPAWNING, Boolean.FALSE);
+            world.setGameRule(GameRules.SPAWN_MOBS, Boolean.FALSE);
         } catch (Throwable throwable) {
             failOpen(session, String.valueOf(throwable.getMessage()));
             return;
