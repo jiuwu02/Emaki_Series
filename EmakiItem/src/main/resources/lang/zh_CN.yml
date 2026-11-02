@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "3.0.0"
+version: "3.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#30F07D:#627DF5>EmakiItem</gradient> ]</gray>"
@@ -254,6 +254,13 @@ debug:
     recursion_blocked: "状态派生递归已阻断 | 阶段=%stage% | 阈值=%threshold_id% | 深度=%depth%"
   proficiency:
     guard_blocked: "熟练度派发被拦截 | 触发器=%trigger% | 定义=%definition% | 槽位=%slot% | 裁决=%verdict%"
+  action:
+    interact: "右键/左键交互已派发 | 手=%hand% | 动作=%action% | 物品=%item% | 定义=%definition%"
+    interact_rejected: "交互未派发 | 手=%hand% | 动作=%action% | 物品=%item% | 定义=%definition% | 原因=%reason% | 损坏禁用=%repair_blocked%"
+    dispatch: "动作管道已提交 | 触发器=%trigger% | 定义=%definition% | 行数=%lines% | 首行=%first_line%"
+    dispatch_skipped: "动作管道未提交 | 触发器=%trigger% | 定义=%definition% | 行数=%lines% | 可执行=%runnable% | 首行=%first_line%"
+    result: "动作管道已结束 | 触发器=%trigger% | 成功=%success% | 错误=%error%"
+    durability: "主手耐久处理 | 操作=%operation% | 物品=%item% | 数量=%amount% | 损伤前=%damage_before% | 处理后=%damage_after% | 槽位实际=%damage_stored% | 最大损伤=%max_damage% | 已写回槽位=%written_back%"
 
 editor:
   menu:
@@ -437,11 +444,11 @@ editor:
     confirm: "确认"
     cancel: "取消"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
     skin: "<yellow>请在聊天栏输入玩家名 / 皮肤纹理 URL / 纹理 base64, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   skin:
     invalid: "<red>皮肤输入无效, 请给出玩家名, 纹理 URL 或纹理 base64</red>"
   set:
@@ -482,7 +489,7 @@ editor:
     cancel_button: "取消"
     cancelled: "<gray>已取消删除, 物品数据保留</gray>"
     references: "<yellow>以下配置仍在引用该物品: %refs%</yellow>"
-    confirm: "<red>再次点击\"删除物品\"以确认删除</red>"
+    confirm: '<red>再次点击"删除物品"以确认删除</red>'
     success: "<green>已删除物品 %id%</green>"
     failed: "<red>删除失败, 详见控制台</red>"
   create:

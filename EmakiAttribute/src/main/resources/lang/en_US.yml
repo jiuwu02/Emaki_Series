@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.0.0"
+version: "5.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -38,7 +38,8 @@ console:
   versioned_file_updated: "[loader] <green>Updated bundled file version: <yellow>%path%</yellow> <gray> (%old_version% → %new_version%)</gray></green>"
   config_load_failed: "[config] <red>Config load failed: %error%</red>"
   reload_stage_failed: "[reload] <yellow>Reload stage %stage% failed: <red>%error%</red></yellow>"
-  vanilla_attribute_resolve_failed: "[loader] <yellow>Failed to resolve vanilla attribute
+  vanilla_attribute_resolve_failed:
+    "[loader] <yellow>Failed to resolve vanilla attribute
     mapping: <red>%attribute%</red> -> <red>%target%</red></yellow>"
   attribute_key_contains_conflict: "[loader] <yellow>Keyword
     containment conflict detected: <aqua>%lower_display_name%</aqua>
@@ -51,7 +52,8 @@ console:
   mmoitems_stat_resolve_failed:
     "[integration] <yellow>MMOItems attribute mapping cannot resolve
     stat: attribute <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed: "[integration] <yellow>MMOItems attribute mapping read failed:
+  mmoitems_stat_read_failed:
+    "[integration] <yellow>MMOItems attribute mapping read failed:
     attribute <aqua>%attribute%</aqua> -> <red>%stat%</red>
     (<red>%error%</red>)</yellow>"
   attribute_registry_empty: "[loader] <yellow>No attributes loaded</yellow>"
@@ -335,6 +337,17 @@ combat_debug:
   perfect_side_effects:
     "Perfect takeover applied EA side effects: finalDamage=%final_damage%,
     attackerCooldownTicks=%attacker_cooldown_ticks%"
+  aggro_skipped: "Aggro target not written: reason=%reason%, target=%target%,
+    attacker=%attacker%, targetIsMob=%target_is_mob%"
+  aggro_applied: "Aggro target written: target=%target%, attacker=%attacker%,
+    aware=%aware_before%->%aware_after%, previousTarget=%target_before%,
+    currentTarget=%target_after%"
+  aggro_async_withheld:
+    "Async apply path never writes aggro target: target=%target%,
+    attacker=%attacker%, targetIsMob=%target_is_mob%"
+  aggro_aborted:
+    "Damage apply aborted at the event stage, aggro target not written:
+    target=%target%, attacker=%attacker%, targetIsMob=%target_is_mob%"
 
 command:
   unknown: "<red>Unknown subcommand, use /%label% help for help</red>"
@@ -636,10 +649,10 @@ editor:
   modify_failed_parse: "<red>Failed to modify %item%: definition_parse_failed. Check the console for details</red>"
   open_failed: "<red>Could not open the editor for %id%</red>"
   prompt:
-    chat: "<yellow>Type the value for \"%label%\" in chat, or type cancel to abort</yellow>"
-    map_entry: "<yellow>Type \"key=value\" to add a mapping, or type cancel to abort</yellow>"
+    chat: '<yellow>Type the value for "%label%" in chat, or type cancel to abort</yellow>'
+    map_entry: '<yellow>Type "key=value" to add a mapping, or type cancel to abort</yellow>'
   map:
-    bad_entry: "<red>Bad format, use \"key=value\"</red>"
+    bad_entry: '<red>Bad format, use "key=value"</red>'
   value:
     unset: "Not set  (empty)"
     integer: "Integer"

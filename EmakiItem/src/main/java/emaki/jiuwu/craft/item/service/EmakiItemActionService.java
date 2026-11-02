@@ -11,6 +11,8 @@ import emaki.jiuwu.craft.corelib.action.ActionContext;
 import emaki.jiuwu.craft.corelib.action.pipeline.PipelineContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionKeys;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
@@ -51,7 +53,10 @@ public final class EmakiItemActionService {
             List<String> lines,
             Map<String, ?> extraPlaceholders,
             ItemStack itemStack) {
-        if (player == null || definition == null || lines == null || lines.isEmpty()) {
+        DebugLogger debugLogger = actionDebug(player);
+        boolean runnable = player != null && definition != null && lines != null && !lines.isEmpty();
+        logDispatch(debugLogger, player, definition, trigger, lines, runnable);
+        if (!runnable) {
             return;
         }
 
@@ -59,7 +64,41 @@ public final class EmakiItemActionService {
                 .context(player, trigger, false, placeholders(player, definition, trigger, extraPlaceholders));
         plugin.actionLines().run(lines, itemStack == null
                 ? context
-                : context.with(CoreActionKeys.ITEM, itemStack), true);
+                : context.with(CoreActionKeys.ITEM, itemStack), true)
+                .whenComplete((success, error) -> logResult(debugLogger, player, trigger, success, error));
+    }
+
+    private DebugLogger actionDebug(Player player) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        return debugLogger != null && debugLogger.shouldLog("action", player) ? debugLogger : null;
+    }
+
+    private void logDispatch(DebugLogger debugLogger,
+            Player player,
+            EmakiItemDefinition definition,
+            String trigger,
+            List<String> lines,
+            boolean runnable) {
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("action", player,
+                runnable ? "action.dispatch" : "action.dispatch_skipped",
+                Map.of("trigger", Texts.toStringSafe(trigger),
+                        "definition", definition == null ? "-" : definition.id(),
+                        "lines", lines == null ? "0" : Texts.toStringSafe(lines.size()),
+                        "runnable", runnable,
+                        "first_line", lines == null || lines.isEmpty() ? "-" : Texts.toStringSafe(lines.get(0))));
+    }
+
+    private void logResult(DebugLogger debugLogger, Player player, String trigger, Boolean success, Throwable error) {
+        if (debugLogger == null) {
+            return;
+        }
+        debugLogger.log("action", player, "action.result",
+                Map.of("trigger", Texts.toStringSafe(trigger),
+                        "success", Texts.toStringSafe(success),
+                        "error", error == null ? "-" : Texts.toStringSafe(error.getMessage())));
     }
 
     ActionContext context(Player player,

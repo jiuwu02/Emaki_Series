@@ -21,6 +21,8 @@ import emaki.jiuwu.craft.corelib.api.action.CoreStageParameterType;
 import emaki.jiuwu.craft.corelib.api.action.CoreStagePlanningContext;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRequirement;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 
 public final class ItemHeldItemStage implements CoreActionStage {
@@ -112,6 +114,8 @@ public final class ItemHeldItemStage implements CoreActionStage {
         if (original == null || original.getType().isAir()) {
             return CoreActionOutcome.skipped("action.stage.item.empty_hand");
         }
+        DebugLogger debugLogger = actionDebug(target);
+        int damageBefore = debugLogger == null ? 0 : plugin.repairService().currentDamage(original);
         ItemStack updated = apply(original, arguments);
         if (updated == null || updated.getType().isAir()) {
             return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR,
@@ -121,6 +125,7 @@ public final class ItemHeldItemStage implements CoreActionStage {
         if (changed) {
             target.getInventory().setItemInMainHand(updated);
         }
+        logDurability(debugLogger, target, arguments, damageBefore, updated, changed);
         return CoreActionOutcome.success(Map.of(
                 "changed", changed,
                 "damage", plugin.repairService().currentDamage(updated),
@@ -170,6 +175,32 @@ public final class ItemHeldItemStage implements CoreActionStage {
             plugin.repairService().clearDisabled(itemStack);
         }
         return itemStack;
+    }
+
+    private DebugLogger actionDebug(Player target) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        return debugLogger != null && debugLogger.shouldLog("action", target) ? debugLogger : null;
+    }
+
+    private void logDurability(DebugLogger debugLogger,
+            Player target,
+            CoreResolvedArguments arguments,
+            int damageBefore,
+            ItemStack updated,
+            boolean writtenBack) {
+        if (debugLogger == null) {
+            return;
+        }
+        ItemStack stored = target.getInventory().getItemInMainHand();
+        debugLogger.log("action", target, "action.durability",
+                Map.of("operation", operation.id(),
+                        "item", plugin.identifier().identify(updated),
+                        "amount", Texts.toStringSafe(arguments.getInt("amount", arguments.getInt("value", 0))),
+                        "damage_before", damageBefore,
+                        "damage_after", plugin.repairService().currentDamage(updated),
+                        "damage_stored", plugin.repairService().currentDamage(stored),
+                        "max_damage", plugin.repairService().maxDamage(updated),
+                        "written_back", writtenBack));
     }
 
     private static Player player(CoreActionSubject subject) {

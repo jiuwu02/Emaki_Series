@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.0.0"
+version: "5.1.0"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -39,7 +39,8 @@ console:
   config_load_failed: "[config] <red>配置读取失败: %error%</red>"
   reload_stage_failed: "[reload] <yellow>重载阶段 %stage% 失败: <red>%error%</red></yellow>"
   vanilla_attribute_resolve_failed: "[loader] <yellow>无法解析原版属性映射: <red>%attribute%</red> -> <red>%target%</red></yellow>"
-  attribute_key_contains_conflict: "[loader] <yellow>[属性注册] 检测到词条关键字包含冲突:
+  attribute_key_contains_conflict:
+    "[loader] <yellow>[属性注册] 检测到词条关键字包含冲突:
     <aqua>%lower_display_name%</aqua>  (<white>%lower_id%</white>, 优先级
     %lower_priority%) 的关键字 <white>%lower_key%</white> 包含了
     <aqua>%higher_display_name%</aqua>  (<white>%higher_id%</white>, 优先级
@@ -47,9 +48,11 @@ console:
     <white>%higher_key%</white>, 这会因为优先级较低导致读取失效, 请提高优先级或修改
     display_name</yellow>"
   mmoitems_bridge_unavailable: "[integration] <yellow>MMOItems 属性映射桥初始化失败: <red>%error%</red></yellow>"
-  mmoitems_stat_resolve_failed: "[integration] <yellow>MMOItems 属性映射无法解析统计项: 属性
+  mmoitems_stat_resolve_failed:
+    "[integration] <yellow>MMOItems 属性映射无法解析统计项: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red></yellow>"
-  mmoitems_stat_read_failed: "[integration] <yellow>MMOItems 属性映射读取失败: 属性
+  mmoitems_stat_read_failed:
+    "[integration] <yellow>MMOItems 属性映射读取失败: 属性
     <aqua>%attribute%</aqua> -> <red>%stat%</red>  (<red>%error%</red>)</yellow>"
   attribute_registry_empty: "[loader] <yellow>未加载到任何属性</yellow>"
   attribute_registry_summary: "[loader] <gray>已加载 <yellow>%count%</yellow> 个属性</gray>"
@@ -300,6 +303,10 @@ combat_debug:
   perfect_takeover_applied: "完美接管已原地改写原版伤害 | 原因=%cause% | 最终伤害=%final_damage% | 保留吸收/格挡, 屏蔽护甲减伤, 原版副作用照常触发"
   perfect_takeover_cancelled: "完美接管结算结果无伤害, 已取消原版事件 | 原因=%cause%"
   perfect_side_effects: "完美接管补发 EA 副作用 | 最终伤害=%final_damage% | 攻击者冷却tick=%attacker_cooldown_ticks%"
+  aggro_skipped: "仇恨目标未写入 | 原因=%reason% | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
+  aggro_applied: "已写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | AI=%aware_before%->%aware_after% | 原攻击目标=%target_before% | 现攻击目标=%target_after%"
+  aggro_async_withheld: "异步落地路径不会写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
+  aggro_aborted: "伤害落地在事件阶段被终止, 不会写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
 
 command:
   unknown: "<red>未知子命令, 请使用 /%label% help 查看帮助</red>"
@@ -585,10 +592,10 @@ editor:
   modify_failed_parse: "<red>%item% 修改未成功: definition_parse_failed, 请前往控制台查看详细错误原因</red>"
   open_failed: "<red>无法打开 %id% 的编辑界面</red>"
   prompt:
-    chat: "<yellow>请在聊天栏输入\"%label%\"的内容, 输入 cancel 取消</yellow>"
-    map_entry: "<yellow>请在聊天栏输入\"键=值\"新增一条映射, 输入 cancel 取消</yellow>"
+    chat: '<yellow>请在聊天栏输入"%label%"的内容, 输入 cancel 取消</yellow>'
+    map_entry: '<yellow>请在聊天栏输入"键=值"新增一条映射, 输入 cancel 取消</yellow>'
   map:
-    bad_entry: "<red>格式错误, 请按\"键=值\"输入</red>"
+    bad_entry: '<red>格式错误, 请按"键=值"输入</red>'
   value:
     unset: "未设置 (空)"
     integer: "整数"
@@ -616,7 +623,7 @@ editor:
     delete_confirm_button: "确认删除"
     delete_cancel_button: "取消"
     delete_cancelled: "<gray>已取消删除, 定义数据保留</gray>"
-    delete_confirm: "<red>再次点击\"删除\"以确认删除</red>"
+    delete_confirm: '<red>再次点击"删除"以确认删除</red>'
     delete_success: "<green>已删除定义 %id%</green>"
     delete_failed: "<red>删除失败, 详见控制台</red>"
 

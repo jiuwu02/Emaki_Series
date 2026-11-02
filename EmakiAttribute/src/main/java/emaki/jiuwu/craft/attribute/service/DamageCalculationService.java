@@ -474,6 +474,13 @@ final class DamageCalculationService {
         }
         ResolvedDamage effectiveResolvedDamage = syntheticDamageDispatcher.dispatchIfNeeded(resolvedDamage, visualSource);
         if (effectiveResolvedDamage == null || effectiveResolvedDamage.damageContext() == null) {
+            if (shouldDebugCombat(resolvedDamage.damageContext())) {
+                debugCombat(resolvedDamage.damageContext(), "AGGRO_ABORTED", "combat_debug.aggro_aborted", Map.of(
+                        "target", service.combatDebug().entityDebugLabel(resolvedDamage.damageContext().target()),
+                        "attacker", service.combatDebug().entityDebugLabel(resolvedDamage.damageContext().attacker()),
+                        "target_is_mob", resolvedDamage.damageContext().target() instanceof Mob
+                ));
+            }
             return false;
         }
         DamageContext damageContext = effectiveResolvedDamage.damageContext();
@@ -638,6 +645,13 @@ final class DamageCalculationService {
         if (applyDamage) {
             applySyntheticKnockback(target, sourceImpact, resolvedDamage.finalDamage());
             applyDirectDamage(target, remainingDamage, sourceImpact);
+            if (shouldDebugCombat(damageContext)) {
+                debugCombat(damageContext, "AGGRO_ASYNC_WITHHELD", "combat_debug.aggro_async_withheld", Map.of(
+                        "target", service.combatDebug().entityDebugLabel(target),
+                        "attacker", service.combatDebug().entityDebugLabel(damageContext.attacker()),
+                        "target_is_mob", target instanceof Mob
+                ));
+            }
         }
 
         DamageMessageDispatcher.MessagePlan messages = messageDispatcher.prepareMessages(
@@ -773,12 +787,60 @@ final class DamageCalculationService {
     }
 
     private void applyAggroTarget(LivingEntity target, LivingEntity attacker) {
-        if (!(target instanceof Mob mob) || attacker == null || !attacker.isValid() || attacker.isDead()
-                || !target.isValid() || target.isDead() || target.getUniqueId().equals(attacker.getUniqueId())) {
+        String skipReason = aggroSkipReason(target, attacker);
+        if (skipReason != null) {
+            if (shouldDebugCombat(attacker, target, null)) {
+                debugCombat(attacker, target, null, "AGGRO_SKIPPED", "combat_debug.aggro_skipped", Map.of(
+                        "reason", skipReason,
+                        "target", service.combatDebug().entityDebugLabel(target),
+                        "attacker", service.combatDebug().entityDebugLabel(attacker),
+                        "target_is_mob", target instanceof Mob
+                ));
+            }
             return;
         }
+        Mob mob = (Mob) target;
+        boolean tracing = shouldDebugCombat(attacker, target, null);
+        boolean awareBefore = tracing && mob.isAware();
+        LivingEntity targetBefore = tracing ? mob.getTarget() : null;
         mob.setAware(true);
         mob.setTarget(attacker);
+        if (!tracing) {
+            return;
+        }
+        debugCombat(attacker, target, null, "AGGRO_APPLIED", "combat_debug.aggro_applied", Map.of(
+                "target", service.combatDebug().entityDebugLabel(target),
+                "attacker", service.combatDebug().entityDebugLabel(attacker),
+                "aware_before", awareBefore,
+                "aware_after", mob.isAware(),
+                "target_before", service.combatDebug().entityDebugLabel(targetBefore),
+                "target_after", service.combatDebug().entityDebugLabel(mob.getTarget())
+        ));
+    }
+
+    private String aggroSkipReason(LivingEntity target, LivingEntity attacker) {
+        if (!(target instanceof Mob)) {
+            return "not_mob";
+        }
+        if (attacker == null) {
+            return "attacker_absent";
+        }
+        if (!attacker.isValid()) {
+            return "attacker_invalid";
+        }
+        if (attacker.isDead()) {
+            return "attacker_dead";
+        }
+        if (!target.isValid()) {
+            return "target_invalid";
+        }
+        if (target.isDead()) {
+            return "target_dead";
+        }
+        if (target.getUniqueId().equals(attacker.getUniqueId())) {
+            return "self_target";
+        }
+        return null;
     }
 
     private void applyDirectDamage(LivingEntity target, double damage, Entity visualSource) {

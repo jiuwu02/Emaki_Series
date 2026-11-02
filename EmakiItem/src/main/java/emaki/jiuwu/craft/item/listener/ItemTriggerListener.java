@@ -31,7 +31,9 @@ import org.bukkit.persistence.PersistentDataContainer;
 import org.bukkit.persistence.PersistentDataType;
 
 import emaki.jiuwu.craft.corelib.api.item.EquipmentSlotMatcher;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.trigger.TriggerIds;
+import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.trigger.EquipmentSourceResolver;
 import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
@@ -60,7 +62,10 @@ public final class ItemTriggerListener implements Listener {
     public void onInteract(PlayerInteractEvent event) {
         Player player = event.getPlayer();
         EmakiItemDefinition definition = held(player);
-        if (definition == null || !passes(player, definition, TriggerIds.LEFT_CLICK)) {
+        DebugLogger debugLogger = interactDebug(player);
+        boolean dispatched = definition != null && passes(player, definition, TriggerIds.LEFT_CLICK);
+        logInteract(debugLogger, player, event, definition, dispatched);
+        if (!dispatched) {
             return;
         }
         switch (event.getAction()) {
@@ -347,6 +352,36 @@ public final class ItemTriggerListener implements Listener {
         run(event.getPlayer(), definition, "consume", Map.of(
                 "consumed_item", consumed.getType().name()
         ), consumed);
+    }
+
+    private DebugLogger interactDebug(Player player) {
+        DebugLogger debugLogger = plugin.debugLogger();
+        return debugLogger != null && debugLogger.shouldLog("action", player) ? debugLogger : null;
+    }
+
+    private void logInteract(DebugLogger debugLogger,
+            Player player,
+            PlayerInteractEvent event,
+            EmakiItemDefinition definition,
+            boolean dispatched) {
+        if (debugLogger == null) {
+            return;
+        }
+        boolean repairBlocked = !dispatched
+                && definition != null
+                && definition.repair().enabled()
+                && isHeldItemDisabled(player);
+        String reason = dispatched
+                ? "-"
+                : definition == null ? "no_definition" : repairBlocked ? "repair_disabled" : "condition";
+        debugLogger.log("action", player,
+                dispatched ? "action.interact" : "action.interact_rejected",
+                Map.of("hand", Texts.toStringSafe(event.getHand()),
+                        "action", Texts.toStringSafe(event.getAction()),
+                        "item", plugin.identifier().identify(heldItem(player)),
+                        "definition", definition == null ? "-" : definition.id(),
+                        "reason", reason,
+                        "repair_blocked", repairBlocked));
     }
 
     private EmakiItemDefinition held(Player player) {
