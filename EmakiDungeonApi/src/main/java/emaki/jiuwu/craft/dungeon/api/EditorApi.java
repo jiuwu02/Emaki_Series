@@ -14,8 +14,8 @@ public interface EditorApi {
      *
      * @param player the player who will operate the editor; must be online
      * @param dungeonId the dungeon to edit
-     * {@return the outcome; on success the value is the open
-     * {@link EditorSession}}
+     * @return the outcome; on success the value is the open
+     *         {@link EditorSession}
      */
     @NotNull Result<EditorSession> openEditor(@NotNull Player player, @NotNull String dungeonId);
 }

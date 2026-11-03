@@ -14,9 +14,9 @@ public interface InstanceApi {
      * normal settlement flow.
      *
      * @param instanceId the instance to stop
-     * {@return the outcome; fails with {@code INSTANCE_NOT_FOUND} when no
-     * such instance exists, or {@code ALREADY_DISPOSING} when it is already
-     * shutting down}
+     * @return the outcome; fails with {@code INSTANCE_NOT_FOUND} when no
+     *         such instance exists, or {@code ALREADY_DISPOSING} when it is already
+     *         shutting down
      */
     @NotNull Result<Void> forceStop(@NotNull UUID instanceId);
 }

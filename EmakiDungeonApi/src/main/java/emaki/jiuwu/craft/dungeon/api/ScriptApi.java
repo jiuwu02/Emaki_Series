@@ -13,9 +13,9 @@ public interface ScriptApi {
      *
      * @param dungeonId the dungeon the script is loaded for; must exist
      * @param source the script source to compile
-     * {@return the outcome; on success the value is the {@link ScriptId} of
-     * the loaded script. Failures use {@code DUNGEON_NOT_FOUND},
-     * {@code SCRIPT_COMPILE_ERROR}, or {@code ENGINE_UNAVAILABLE}}
+     * @return the outcome; on success the value is the {@link ScriptId} of
+     *         the loaded script. Failures use {@code DUNGEON_NOT_FOUND},
+     *         {@code SCRIPT_COMPILE_ERROR}, or {@code ENGINE_UNAVAILABLE}
      */
     @NotNull Result<ScriptId> loadFlowScript(@NotNull String dungeonId, @NotNull String source);
 
@@ -29,9 +29,9 @@ public interface ScriptApi {
      * @param event the name of a {@code TriggerType} constant, such as
      *         {@code onReadyAll}
      * @param handler the callback to invoke when the event fires
-     * {@return the outcome; fails with {@code TRIGGER_DUPLICATE} when the id
-     * is already registered or {@code SCRIPT_NOT_LOADED} when no script is
-     * loaded}
+     * @return the outcome; fails with {@code TRIGGER_DUPLICATE} when the id
+     *         is already registered or {@code SCRIPT_NOT_LOADED} when no script is
+     *         loaded
      * @throws IllegalArgumentException when {@code event} is not a
      *         {@code TriggerType} name or {@code triggerId} is blank
      */

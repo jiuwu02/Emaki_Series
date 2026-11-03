@@ -24,7 +24,7 @@ public interface DungeonApi {
      *
      * @param player the player requesting entry; must be online
      * @param dungeonId the id of the dungeon to enter
-     * {@return the outcome of the entry request; never {@code null}}
+     * @return the outcome of the entry request; never {@code null}
      */
     @NotNull Result<Object> enter(@NotNull Player player, @NotNull String dungeonId);
 
