@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "5.1.0"
+version: "5.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -305,7 +305,6 @@ combat_debug:
   perfect_side_effects: "完美接管补发 EA 副作用 | 最终伤害=%final_damage% | 攻击者冷却tick=%attacker_cooldown_ticks%"
   aggro_skipped: "仇恨目标未写入 | 原因=%reason% | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
   aggro_applied: "已写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | AI=%aware_before%->%aware_after% | 原攻击目标=%target_before% | 现攻击目标=%target_after%"
-  aggro_async_withheld: "异步落地路径不会写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
   aggro_aborted: "伤害落地在事件阶段被终止, 不会写入仇恨目标 | 目标=%target% | 攻击者=%attacker% | 目标是生物=%target_is_mob%"
 
 command:

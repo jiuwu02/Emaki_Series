@@ -1,5 +1,5 @@
 // EmakiAttributeApi（原 EmakiAttributeApi/pom.xml）。
-version = '5.1.0'
+version = '5.0.2'
 
 dependencies {
     provided libs.paper.api

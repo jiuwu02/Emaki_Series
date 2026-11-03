@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.bukkit.entity.Player;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.jetbrains.annotations.NotNull;
 
@@ -72,9 +72,9 @@ public final class AttributeDamageStage implements CoreActionStage {
             return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
                     "action.stage.attribute.service_unavailable");
         }
-        Player target = player(context.currentTarget());
+        LivingEntity target = livingEntity(context.currentTarget());
         if (target == null) {
-            return CoreActionOutcome.skipped("action.stage.common.not_player");
+            return CoreActionOutcome.skipped("action.stage.common.not_living_entity");
         }
         String rawCause = arguments.getString("cause", "CUSTOM");
         EntityDamageEvent.DamageCause cause = parseCause(rawCause);
@@ -92,7 +92,7 @@ public final class AttributeDamageStage implements CoreActionStage {
         damageContext.put("cause", cause.name());
         damageContext.put("action_id", id());
         damageContext.put("damage_type_id", damageTypeId);
-        boolean applied = attributeService.applyDamage(null, target, damageTypeId,
+        boolean applied = attributeService.applyDamage(caster(context), target, damageTypeId,
                 arguments.getDouble("amount", 0D), damageContext);
         return applied
                 ? CoreActionOutcome.success(Map.of("damage_type", damageTypeId))
@@ -111,7 +111,13 @@ public final class AttributeDamageStage implements CoreActionStage {
         }
     }
 
-    private static Player player(CoreActionSubject subject) {
-        return subject != null && subject.entityOrNull() instanceof Player resolved ? resolved : null;
+    private static LivingEntity livingEntity(CoreActionSubject subject) {
+        return subject != null && subject.entityOrNull() instanceof LivingEntity resolved ? resolved : null;
+    }
+
+    private static LivingEntity caster(CoreStageContext context) {
+        return context == null || context.caster() == null
+                ? null
+                : livingEntity(context.caster());
     }
 }

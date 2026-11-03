@@ -21,6 +21,7 @@ public final class AppConfig extends BaseAppConfig {
     private final ItemStateConfig itemState;
     private final ProficiencyGuardConfig proficiencyGuard;
     private final ScriptSettings scripts;
+    private final boolean actionStopOnFailure;
 
     public AppConfig(String language,
             String configVersion,
@@ -70,6 +71,22 @@ public final class AppConfig extends BaseAppConfig {
             ItemStateConfig itemState,
             ProficiencyGuardConfig proficiencyGuard,
             ScriptSettings scripts) {
+        this(language, configVersion, releaseDefaultData, directories, setBonus, mythicEnabled,
+                mythicDropsEnabled, mythicDropNames, itemState, proficiencyGuard, scripts, false);
+    }
+
+    public AppConfig(String language,
+            String configVersion,
+            boolean releaseDefaultData,
+            ItemDirectoryConfig directories,
+            SetBonusConfig setBonus,
+            boolean mythicEnabled,
+            boolean mythicDropsEnabled,
+            List<String> mythicDropNames,
+            ItemStateConfig itemState,
+            ProficiencyGuardConfig proficiencyGuard,
+            ScriptSettings scripts,
+            boolean actionStopOnFailure) {
         super(language, configVersion, "2.6.7");
         this.releaseDefaultData = releaseDefaultData;
         this.directories = directories == null ? ItemDirectoryConfig.defaults() : directories;
@@ -84,6 +101,7 @@ public final class AppConfig extends BaseAppConfig {
                 ? ProficiencyGuardConfig.defaults()
                 : proficiencyGuard;
         this.scripts = scripts == null ? ScriptSettings.defaults() : scripts;
+        this.actionStopOnFailure = actionStopOnFailure;
     }
 
     public static AppConfig defaults() {
@@ -102,6 +120,10 @@ public final class AppConfig extends BaseAppConfig {
 
     public ScriptSettings scripts() {
         return scripts;
+    }
+
+    public boolean actionStopOnFailure() {
+        return actionStopOnFailure;
     }
 
     public static List<String> defaultMythicDropNames() {

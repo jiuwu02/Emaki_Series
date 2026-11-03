@@ -2,7 +2,7 @@
 # Messages use MiniMessage; preserve placeholders documented beside message groups
 # version is maintained by resource synchronization when default keys are merged
 
-version: "5.1.0"
+version: "5.0.2"
 
 general:
   prefix: "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>"
@@ -342,9 +342,6 @@ combat_debug:
   aggro_applied: "Aggro target written: target=%target%, attacker=%attacker%,
     aware=%aware_before%->%aware_after%, previousTarget=%target_before%,
     currentTarget=%target_after%"
-  aggro_async_withheld:
-    "Async apply path never writes aggro target: target=%target%,
-    attacker=%attacker%, targetIsMob=%target_is_mob%"
   aggro_aborted:
     "Damage apply aborted at the event stage, aggro target not written:
     target=%target%, attacker=%attacker%, targetIsMob=%target_is_mob%"

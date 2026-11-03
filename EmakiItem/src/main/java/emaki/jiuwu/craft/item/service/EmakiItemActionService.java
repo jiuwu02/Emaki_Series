@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
+import emaki.jiuwu.craft.item.config.AppConfig;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 
 public final class EmakiItemActionService {
@@ -64,8 +65,13 @@ public final class EmakiItemActionService {
                 .context(player, trigger, false, placeholders(player, definition, trigger, extraPlaceholders));
         plugin.actionLines().run(lines, itemStack == null
                 ? context
-                : context.with(CoreActionKeys.ITEM, itemStack), true)
+                : context.with(CoreActionKeys.ITEM, itemStack), stopOnFailure())
                 .whenComplete((success, error) -> logResult(debugLogger, player, trigger, success, error));
+    }
+
+    private boolean stopOnFailure() {
+        AppConfig config = plugin.appConfig();
+        return config != null && config.actionStopOnFailure();
     }
 
     private DebugLogger actionDebug(Player player) {

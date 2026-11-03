@@ -2,15 +2,15 @@ package emaki.jiuwu.craft.attribute.service;
 
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.damage.DamageSource;
+import org.bukkit.damage.DamageType;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
-import emaki.jiuwu.craft.attribute.config.AttributeConfig;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
-import emaki.jiuwu.craft.corelib.api.entity.EntityPhysicsSupport;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 
 public final class CombatSupport {
@@ -37,17 +37,28 @@ public final class CombatSupport {
         return context.build();
     }
 
-    public static void applySyntheticKnockback(LivingEntity target, Entity source, double finalDamage,
-            AttributeConfig config) {
-        if (target == null || source == null || finalDamage <= 0D || !target.isValid() || target.isDead()
-                || !config.syntheticHitKnockback()) {
+    @SuppressWarnings("deprecation")
+    public static void neutralizeSyntheticMitigation(EntityDamageEvent event) {
+        if (event == null) {
             return;
         }
-        double strength = Math.max(0D, config.syntheticHitKnockbackStrength());
-        if (strength <= 0D) {
-            return;
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.INVULNERABILITY_REDUCTION);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.HARD_HAT);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.ARMOR);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.RESISTANCE);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.MAGIC);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.FREEZING);
+        zeroSyntheticModifier(event, EntityDamageEvent.DamageModifier.BLOCKING);
+    }
+
+    @SuppressWarnings("deprecation")
+    private static void zeroSyntheticModifier(EntityDamageEvent event, EntityDamageEvent.DamageModifier modifier) {
+        try {
+            if (event.isApplicable(modifier)) {
+                event.setDamage(modifier, 0D);
+            }
+        } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
         }
-        EntityPhysicsSupport.applyKnockback(target, source, strength);
     }
 
     public static CompletableFuture<Boolean> applyFallbackDamage(EmakiAttributePlugin plugin,
@@ -76,17 +87,7 @@ public final class CombatSupport {
                         }
                         try {
                             target.setNoDamageTicks(0);
-                            double remaining = Math.max(0D, damage);
-                            double absorption = Math.max(0D, target.getAbsorptionAmount());
-                            if (absorption > 0D) {
-                                double absorbed = Math.min(absorption, remaining);
-                                target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
-                                remaining -= absorbed;
-                            }
-                            target.setLastDamage(damage);
-                            if (remaining > 0D) {
-                                target.setHealth(Math.max(0D, target.getHealth() - remaining));
-                            }
+                            target.damage(Math.max(0D, damage), DamageSource.builder(DamageType.GENERIC).build());
                             future.complete(true);
                         } catch (Throwable throwable) {
                             future.completeExceptionally(throwable);

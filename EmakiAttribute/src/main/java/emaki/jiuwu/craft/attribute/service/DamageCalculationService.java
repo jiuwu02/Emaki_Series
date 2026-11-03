@@ -16,13 +16,13 @@ import java.util.logging.Level;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.damage.DamageSource;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.entity.EntityDamageEvent;
-import org.bukkit.util.Vector;
 
 import emaki.jiuwu.craft.attribute.api.event.EmakiAttributeDamageEvent;
 import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
@@ -503,7 +503,7 @@ final class DamageCalculationService {
                     "visual_source", service.combatDebug().entityDebugLabel(visualSource)
             ));
         }
-        applyDirectDamage(target, remainingDamage, visualSource);
+        applyDirectDamage(target, remainingDamage, visualSource, damageContext);
         applyAggroTarget(target, damageContext.attacker());
         int cooldownTicks = 0;
         if (damageContext.attacker() instanceof Player player) {
@@ -537,14 +537,13 @@ final class DamageCalculationService {
             return CompletableFuture.completedFuture(false);
         }
         UUID targetId = resolvedDamage.damageContext().target().getUniqueId();
-        return captureSourceImpact(visualSource).thenCompose(sourceImpact ->
-                callEntityOwner(targetId, target -> applyTargetSideEffects(
-                        resolvedDamage,
-                        target,
-                        alreadyAppliedDamage,
-                        true,
-                        sourceImpact
-                ))).thenCompose(this::applyAttackerSideEffects);
+        return callEntityOwner(targetId, target -> applyTargetSideEffects(
+                resolvedDamage,
+                target,
+                alreadyAppliedDamage,
+                true,
+                visualSource
+        )).thenCompose(this::applyAttackerSideEffects);
     }
 
     public CompletableFuture<Boolean> applyDamageSideEffectsAsync(ResolvedDamage resolvedDamage) {
@@ -562,73 +561,11 @@ final class DamageCalculationService {
         )).thenCompose(this::applyAttackerSideEffects);
     }
 
-    private CompletableFuture<SourceImpactSnapshot> captureSourceImpact(Entity source) {
-        if (source == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-        CompletableFuture<SourceImpactSnapshot> future = new CompletableFuture<>();
-        try {
-            EmakiScheduling sched = scheduling();
-            if (sched == null) {
-                future.completeExceptionally(new IllegalStateException(
-                        "伤害来源快照分派器不可用。"));
-                return future;
-            }
-            sched.runForEntity(
-                    service.plugin(),
-                    source,
-                    () -> {
-                        if (!source.isValid()) {
-                            future.complete(null);
-                            return;
-                        }
-                        var location = source.getLocation();
-                        future.complete(new SourceImpactSnapshot(
-                                location.getX(), location.getY(), location.getZ(), location.getYaw()));
-                    },
-                    () -> future.completeExceptionally(new IllegalStateException(
-                            "伤害来源在快照前已退役: " + source.getUniqueId()))
-            );
-        } catch (Throwable throwable) {
-            future.completeExceptionally(throwable);
-        }
-        return future;
-    }
-
-    private void applySyntheticKnockback(LivingEntity target,
-            SourceImpactSnapshot sourceImpact,
-            double finalDamage) {
-        if (target == null || sourceImpact == null || finalDamage <= 0D
-                || !target.isValid() || target.isDead() || !service.config().syntheticHitKnockback()) {
-            return;
-        }
-        double strength = Math.max(0D, service.config().syntheticHitKnockbackStrength());
-        if (strength <= 0D) {
-            return;
-        }
-        Vector direction = target.getLocation().toVector()
-                .subtract(new Vector(sourceImpact.x(), sourceImpact.y(), sourceImpact.z()));
-        direction.setY(0D);
-        if (direction.lengthSquared() < 1.0E-6D) {
-            double radians = Math.toRadians(sourceImpact.yaw());
-            direction = new Vector(Math.sin(radians), 0D, -Math.cos(radians)).multiply(-1D);
-        }
-        if (direction.lengthSquared() < 1.0E-6D) {
-            return;
-        }
-        direction.normalize().multiply(strength);
-        Vector velocity = target.getVelocity().clone();
-        velocity.setX(velocity.getX() + direction.getX());
-        velocity.setZ(velocity.getZ() + direction.getZ());
-        velocity.setY(Math.max(0.1D, velocity.getY() + Math.min(0.4D, strength * 0.5D)));
-        target.setVelocity(velocity);
-    }
-
     private TargetApplicationResult applyTargetSideEffects(ResolvedDamage resolvedDamage,
             LivingEntity target,
             double alreadyAppliedDamage,
             boolean applyDamage,
-            SourceImpactSnapshot sourceImpact) {
+            Entity visualSource) {
         if (target == null || !target.isValid() || target.isDead()) {
             return TargetApplicationResult.failed();
         }
@@ -643,16 +580,9 @@ final class DamageCalculationService {
                 ? Math.max(0D, resolvedDamage.finalDamage() - appliedDamage)
                 : 0D;
         if (applyDamage) {
-            applySyntheticKnockback(target, sourceImpact, resolvedDamage.finalDamage());
-            applyDirectDamage(target, remainingDamage, sourceImpact);
-            if (shouldDebugCombat(damageContext)) {
-                debugCombat(damageContext, "AGGRO_ASYNC_WITHHELD", "combat_debug.aggro_async_withheld", Map.of(
-                        "target", service.combatDebug().entityDebugLabel(target),
-                        "attacker", service.combatDebug().entityDebugLabel(damageContext.attacker()),
-                        "target_is_mob", target instanceof Mob
-                ));
-            }
+            applyDirectDamage(target, remainingDamage, visualSource, damageContext);
         }
+        applyAggroTarget(target, damageContext.attacker());
 
         DamageMessageDispatcher.MessagePlan messages = messageDispatcher.prepareMessages(
                 damageContext,
@@ -843,52 +773,17 @@ final class DamageCalculationService {
         return null;
     }
 
-    private void applyDirectDamage(LivingEntity target, double damage, Entity visualSource) {
-        Float sourceYaw = visualSource == null ? null : visualSource.getLocation().getYaw();
-        applyDirectDamage(target, damage, sourceYaw);
-    }
-
-    private void applyDirectDamage(LivingEntity target, double damage, SourceImpactSnapshot sourceImpact) {
-        applyDirectDamage(target, damage, sourceImpact == null ? null : sourceImpact.yaw());
-    }
-
-    private void applyDirectDamage(LivingEntity target, double damage, Float sourceYaw) {
+    private void applyDirectDamage(LivingEntity target, double damage, Entity visualSource, DamageContext damageContext) {
         if (target == null || damage <= 0D || !target.isValid() || target.isDead()) {
             return;
         }
+        DamageSource damageSource = syntheticDamageDispatcher.buildDamageSource(damageContext, visualSource);
         target.setNoDamageTicks(0);
-        double remainingDamage = damage;
-        double absorption = Math.max(0D, target.getAbsorptionAmount());
-        if (absorption > 0D) {
-            double absorbed = Math.min(absorption, remainingDamage);
-            target.setAbsorptionAmount(Math.max(0D, absorption - absorbed));
-            remainingDamage -= absorbed;
-        }
-        target.setLastDamage(damage);
-        if (remainingDamage <= 0D) {
-            playSyntheticImpact(target, sourceYaw);
-            return;
-        }
-        double currentHealth = Math.max(0D, target.getHealth());
-        double nextHealth = Math.max(0D, currentHealth - remainingDamage);
-        target.setHealth(nextHealth);
-        if (nextHealth > 0D) {
-            playSyntheticImpact(target, sourceYaw);
-        }
-    }
-
-    private void playSyntheticImpact(LivingEntity target, Entity visualSource) {
-        playSyntheticImpact(target, visualSource == null ? null : visualSource.getLocation().getYaw());
-    }
-
-    private void playSyntheticImpact(LivingEntity target, Float sourceYaw) {
-        if (target == null || !target.isValid() || target.isDead()) {
-            return;
-        }
-        float yaw = sourceYaw == null ? target.getLocation().getYaw() : sourceYaw;
-        target.playHurtAnimation(yaw);
-        if (service.config().syntheticHitHurtSound() && target.getHurtSound() != null) {
-            target.getWorld().playSound(target, target.getHurtSound(), 1F, 1F);
+        markSyntheticDamage(target, true);
+        try {
+            target.damage(damage, damageSource);
+        } finally {
+            markSyntheticDamage(target, false);
         }
     }
 
@@ -1161,9 +1056,6 @@ final class DamageCalculationService {
 
     private String firstNonBlank(String left, String right) {
         return Texts.isBlank(left) ? right : left;
-    }
-
-    private record SourceImpactSnapshot(double x, double y, double z, float yaw) {
     }
 
     private record TargetApplicationResult(boolean applied,

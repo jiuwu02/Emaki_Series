@@ -97,6 +97,13 @@ final class SyntheticDamageDispatcher {
                 );
     }
 
+    DamageSource buildDamageSource(DamageContext damageContext, Entity visualSource) {
+        EntityDamageEvent.DamageCause cause = damageContext == null || damageContext.cause() == null
+                ? EntityDamageEvent.DamageCause.CUSTOM
+                : damageContext.cause();
+        return buildSyntheticDamageSource(damageContext, visualSource, cause);
+    }
+
     private DamageSource buildSyntheticDamageSource(DamageContext damageContext, Entity visualSource, EntityDamageEvent.DamageCause cause) {
         DamageSource.Builder builder = DamageSource.builder(resolveSyntheticDamageType(damageContext, visualSource, cause));
         Entity directEntity = resolveDirectDamageEntity(damageContext, visualSource);

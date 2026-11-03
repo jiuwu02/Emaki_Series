@@ -110,6 +110,7 @@ public final class CombatDamageListener implements Listener {
         }
         Entity damager = event.getDamager();
         if (attributeService.isSyntheticDamage(target)) {
+            CombatSupport.neutralizeSyntheticMitigation(event);
             LivingEntity syntheticAttacker = damager instanceof LivingEntity livingEntity ? livingEntity : null;
             Projectile syntheticProjectile = damager instanceof Projectile projectile ? projectile : null;
             debugHandler.debugCombat(syntheticAttacker, target, syntheticProjectile, "SYNTHETIC_DAMAGE_BYPASS", "combat_debug.synthetic_damage_bypass_entity");
@@ -235,6 +236,7 @@ public final class CombatDamageListener implements Listener {
             return;
         }
         if (attributeService.isSyntheticDamage(target)) {
+            CombatSupport.neutralizeSyntheticMitigation(event);
             debugHandler.debugCombat(null, target, null, "SYNTHETIC_DAMAGE_BYPASS", "combat_debug.synthetic_damage_bypass_non_entity");
             return;
         }

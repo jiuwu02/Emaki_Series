@@ -121,7 +121,7 @@ script:
       - 'send_message text="%var.impact_message%"'
 
     miss:
-      - "looking_at | spawn_particle particle=smoke count=8 extra=0.01"
+      - "looking_at width=1.5 | spawn_particle particle=smoke count=8 extra=0.01"
       - 'send_message text="<gray>火球术没有命中目标。</gray>"'
 
 # ============================================================

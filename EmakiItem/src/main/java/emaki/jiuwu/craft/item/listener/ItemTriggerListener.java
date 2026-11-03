@@ -8,6 +8,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
@@ -63,6 +64,10 @@ public final class ItemTriggerListener implements Listener {
         Player player = event.getPlayer();
         EmakiItemDefinition definition = held(player);
         DebugLogger debugLogger = interactDebug(player);
+        if (event.getHand() == EquipmentSlot.OFF_HAND) {
+            logInteract(debugLogger, player, event, definition, false);
+            return;
+        }
         boolean dispatched = definition != null && passes(player, definition, TriggerIds.LEFT_CLICK);
         logInteract(debugLogger, player, event, definition, dispatched);
         if (!dispatched) {
@@ -373,7 +378,9 @@ public final class ItemTriggerListener implements Listener {
                 && isHeldItemDisabled(player);
         String reason = dispatched
                 ? "-"
-                : definition == null ? "no_definition" : repairBlocked ? "repair_disabled" : "condition";
+                : event.getHand() == EquipmentSlot.OFF_HAND
+                        ? "off_hand"
+                        : definition == null ? "no_definition" : repairBlocked ? "repair_disabled" : "condition";
         debugLogger.log("action", player,
                 dispatched ? "action.interact" : "action.interact_rejected",
                 Map.of("hand", Texts.toStringSafe(event.getHand()),

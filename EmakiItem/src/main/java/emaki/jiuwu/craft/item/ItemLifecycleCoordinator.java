@@ -541,7 +541,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 mythicDropNames,
                 ItemStateConfigParser.parse(configuration.getSection("item_state")),
                 ProficiencyGuardConfig.parse(configuration.getSection("proficiency_guard")),
-                parseScriptSettings(configuration.getSection("scripts"))
+                parseScriptSettings(configuration.getSection("scripts")),
+                configuration.getBoolean("action_pipeline.stop_on_failure", false)
         );
     }
 

@@ -1,6 +1,6 @@
 # EmakiAttribute 主配置
 
-version: "5.1.0"
+version: "5.0.2"
 
 # 对应 lang/<language>.yml。
 language: "zh_CN"
@@ -101,10 +101,12 @@ shield:
   facing_angle_degrees: 180
 
 synthetic_hit_feedback:
-  # 仅 vanilla_event_damage.enabled = false 时补发击退与受伤音效。
-  knockback: true
+  # 已废弃: 合成伤害改走原版伤害入口后, 击退、受伤音效与受伤动画都由原版统一产生,
+  # 这里再补发一次会造成双重反馈, 因此下面三项不再生效。
+  # 保留该段落仅为了旧配置文件不报错, 后续大版本会移除。
+  knockback: false
   knockback_strength: 0.4
-  hurt_sound: true
+  hurt_sound: false
 
 # 伤害飘字覆盖普通攻击、暴击、恢复与闪避。
 # EmakiCoreLib packet 后端遵循 visible_to；bukkit 后端为附近玩家可见的真实实体。

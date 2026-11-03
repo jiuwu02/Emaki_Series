@@ -36,7 +36,7 @@ script:
   actions:
     cast:
       - "self | projectile speed=1.2 gravity=0 lifetime=80 hit_radius=0.8 pierce=0 homing=true homing_strength=0.15 particle=flame damage=15 direction=look"
-      - "looking_at range=20 | keep"
+      - "looking_at range=20 width=2 | keep"
 
     hit:
       - "nearby radius=3 limit=20 | damage amount=8"

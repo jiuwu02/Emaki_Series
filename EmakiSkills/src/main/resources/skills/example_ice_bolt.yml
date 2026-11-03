@@ -76,7 +76,7 @@ script:
       # projectile 命中实体/位置时不会写回目标流，因此用 looking_at + keep
       # 记录爆炸中心，供 hit 阶段的范围效果使用。
       - "self | projectile speed=1.4 gravity=0.02 lifetime=70 hit_radius=0.7 particle=snowflake damage=12 direction=look"
-      - "looking_at range=20 | keep"
+      - "looking_at range=20 width=2 | keep"
       - "self | play_sound sound=minecraft:entity.arrow.shoot volume=0.9 pitch=1.7"
 
     hit:

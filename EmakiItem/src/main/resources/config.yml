@@ -2,7 +2,7 @@
 # 控制物品/套装数据扫描、套装刷新与 MythicMobs 集成。
 
 # version 是配置结构标记，由项目资源同步流程维护，不是功能开关。
-version: "3.1.0"
+version: "3.0.2"
 
 # 语言文件名，对应 lang/<language>.yml。
 language: "zh_CN"
@@ -82,6 +82,15 @@ item_state:
     scan_holder: true
     # 派生刷新与阈值奖励的最大递归深度，用于阻断自触发循环。
     max_depth: 2
+
+# 动作管道设置。
+# 作用于物品 actions 中每个触发器的全部行。
+action_pipeline:
+  # 某一行动作返回失败后, 是否中止同一触发器的后续行。
+  # false: 失败只记录, 后续行继续执行 (默认)。集成类动作 (如未装 MythicMobs 时的
+  #        cast_mythic_skill) 必然失败, 不应因此吞掉排在其后的效果。
+  # true: 首行失败即中止整个触发器 (旧行为)。
+  stop_on_failure: false
 
 # 熟练度派发防刷设置。
 # 作用于 damage_dealt / kill_entity / kill_player 的槽位派发。
