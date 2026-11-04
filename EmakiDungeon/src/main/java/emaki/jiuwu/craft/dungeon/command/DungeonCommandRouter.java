@@ -65,9 +65,14 @@ public final class DungeonCommandRouter {
     private volatile Function<String, DungeonConfig> configOf;
     private volatile RewardBoxGui rewardBoxGui;
     private volatile EditorService editor;
+    private volatile emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
 
     public void bindEditor(EditorService editor) {
         this.editor = editor;
+    }
+
+    public void bindExitService(emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService) {
+        this.exitService = exitService;
     }
 
     public void bindRewardBox(RewardBoxGui rewardBoxGui) {
@@ -392,6 +397,11 @@ public final class DungeonCommandRouter {
     }
 
     private void completeLeave(Player player, String instanceId) {
+        emaki.jiuwu.craft.dungeon.exit.InstanceExitService service = exitService;
+        if (service != null) {
+            service.leave(player, "voluntary");
+            return;
+        }
         UUID playerId = player.getUniqueId();
         Party party = parties.partyOf(playerId);
         boolean soleMember = party != null && party.size() == 1;

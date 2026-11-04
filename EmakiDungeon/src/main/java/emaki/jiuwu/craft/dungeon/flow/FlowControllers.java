@@ -22,6 +22,8 @@ public interface FlowControllers {
 
     void handleOptionTrigger(FlowRuntime runtime, String optionId, UUID playerId);
 
+    void handleExitPoint(FlowRuntime runtime, FlowModules.ExitPointDef exitPoint, UUID playerId);
+
     void handleMobDeath(FlowRuntime runtime, UUID entityId);
 
     void syncBossPoints(FlowRuntime runtime);

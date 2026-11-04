@@ -48,6 +48,7 @@ public final class GameplayControllers implements FlowControllers {
     private volatile Consumer<String> completeHandler;
     private volatile BiConsumer<String, String> endingHandler;
     private volatile RewardChestService rewardChests;
+    private volatile emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
 
     public GameplayControllers(Plugin plugin,
             DungeonInstance instance,
@@ -78,6 +79,29 @@ public final class GameplayControllers implements FlowControllers {
 
     public void bindRewardChests(RewardChestService rewardChests) {
         this.rewardChests = rewardChests;
+    }
+
+    public void bindExitService(emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService) {
+        this.exitService = exitService;
+    }
+
+    @Override
+    public void handleExitPoint(FlowRuntime runtime, FlowModules.ExitPointDef exitPoint, UUID playerId) {
+        if (exitPoint == null || playerId == null) {
+            return;
+        }
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null) {
+            return;
+        }
+        emaki.jiuwu.craft.dungeon.exit.InstanceExitService service = exitService;
+        if (service == null) {
+            return;
+        }
+        debug.logRaw("dungeon", playerId, "exit point triggered | exit=" + exitPoint.head().id()
+                + " | instance=" + instance.instanceId()
+                + " | needConfirm=" + exitPoint.needConfirm());
+        service.requestLeaveFromFlow(player, exitPoint.needConfirm(), "exit_point");
     }
 
     @Override

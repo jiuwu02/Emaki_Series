@@ -115,6 +115,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private ChallengeService challenge;
     private PartyService parties;
     private RecoveryService recovery;
+    private emaki.jiuwu.craft.dungeon.exit.InstanceExitService exitService;
     private SnapshotManager snapshots;
     private CommandGuard commandGuard;
     private BoundaryGuard boundaryGuard;
@@ -460,6 +461,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
                         chatInputService);
         editorService.bindGui(editorGui);
+        editorService.bindMarkers(new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
+                this, dispatcher, messageService));
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
@@ -469,6 +472,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         challenge.bindMonitor(performanceMonitor);
         challenge.start();
         editorService.bindChallenge(challenge);
+        exitService = new emaki.jiuwu.craft.dungeon.exit.InstanceExitService(this, dispatcher,
+                messageService, chatInputService, challenge, parties, recovery, snapshots, coordinator,
+                registry);
 
         ActionBridge actionBridge =
                 new ActionBridge(this, appConfigSupplier, registry, messageService);
@@ -532,6 +538,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router.bindAudit(auditService);
         router.bindRewardBox(rewardBoxGui);
         router.bindEditor(editorService);
+        router.bindExitService(exitService);
 
         getServer().getPluginManager().registerEvents(
                 new DungeonLifecycleListener(recovery, parties, scriptManager), this);
@@ -660,6 +667,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 cause -> settlement.beginComplete(instance, cause),
                 (optionCase, endingId) -> settlement.onEnding(instance, optionCase, endingId));
         controllers.bindRewardChests(rewardChests);
+        controllers.bindExitService(exitService);
         waveController.bindListeners(
                 (spawnId, wave) -> {
                     actionBridge.dispatch("dungeon_wave_start", null, Map.of(

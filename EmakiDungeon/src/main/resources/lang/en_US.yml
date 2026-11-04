@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.13"
+version: "1.0.14"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -195,7 +195,7 @@ editor:
   pos_set: "<green>Corner <which> recorded: <coord></green>"
   pos_missing: "<red>Corner <which> is missing, record it with /edg editor pos<which></red>"
   pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edg editor pos2 and retry</gray>"
-  mark_usage: "<red>Usage: /edg editor mark <spawn|room|gate|option|trigger|chest> [id]</red>"
+  mark_usage: "<red>Usage: /edg editor mark <spawn|room|gate|option|trigger|chest|exit> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
   mark_dup: "<red>A module with this id already exists: <id></red>"
@@ -218,12 +218,33 @@ editor:
   fill_too_large: "<red>Fill volume <count> exceeds the limit <limit></red>"
   help_mark: |
     <gray>===== Mark reference =====</gray>
-    <white>Single point (block in sight): /edg editor mark <spawn|option|chest> [id]</white>
+    <white>Single point (block in sight): /edg editor mark <spawn|option|chest|exit> [id]</white>
     <white>Region (two corners): /edg editor mark <room|gate|trigger> [id]</white>
+    <white>Leave dungeon: /edg editor mark exit [id] (a player stepping on it leaves the current instance)</white>
     <white>Corners: /edg editor pos1 and /edg editor pos2</white>
     <white>Region fill: /edg editor fill <block></white>
     <white>List staged: /edg editor marks | Test: /edg editor test</white>
     <gray>Mark and panel changes are written to the template only when you press Save</gray>
+  marker:
+    spawn: "Spawn point"
+    room: "Room"
+    gate: "Gate"
+    option: "Branch option"
+    trigger: "Trigger zone"
+    chest: "Reward chest"
+    exit: "Leave dungeon"
+    checkpoint: "Checkpoint"
+    respawn: "Respawn point"
+    teleport: "Teleport zone"
+    boundary: "Boundary zone"
+    effect: "Effect zone"
+    hint: "Hint point"
+    fx: "FX point"
+    boss: "Boss point"
+    block: "Block interaction"
+    item: "Item interaction"
+    mechanism: "Mechanism"
+    room_timer: "Room timer"
   input_prompt: "<yellow>Enter the new value for <field> (type cancel to abort)</yellow>"
   input_invalid: "<red>Invalid input: <value></red>"
   field_updated: "<green>Updated <field> -> <value> (applies on save)</green>"
@@ -235,6 +256,10 @@ editor:
     gates: "<white>Gates</white>"
     branches: "<white>Branch options</white>"
     help: "<yellow>Mark reference</yellow>"
+    exits: "<white>Leave-dungeon points</white>"
+    exit_mode_direct: "<red>Leaves immediately on step</red>"
+    exit_mode_confirm: "<green>Asks for confirmation on step</green>"
+    exit_item: "<white>Leave-dungeon point</white>"
     pos1: "<white>Corner 1: <coord></white>"
     pos2: "<white>Corner 2: <coord></white>"
     status: "<white>Marks <marks> · <state> · Gen <generation></white>"
@@ -298,6 +323,8 @@ editor:
       case_value: "Candidate case value"
       case_ending: "Ending id (- to clear)"
       seal_regions: "Seal regions"
+    need_confirm_on: "<green>Leave confirmation: ON</green>"
+    need_confirm_off: "<red>Leave confirmation: OFF</red>"
 
 drop:
   chest_locked: "<red>This reward chest is distributed at settlement, loot cannot be taken during the run</red>"
@@ -355,6 +382,7 @@ console:
   instances_load_failed: "Failed to load instances.yml, startup residual scan skipped | error=%error%"
   residual_delete_failed: "Startup scan failed to delete residual directory | world=%world%"
   residual_cleaned: "Startup scan cleaned residual worlds | count=%count%"
+  shutdown_cleaned: "Shutdown cleaned instance worlds | count=%count%"
   active_world_missing: "Running instance lost its world handle, scheduled for disposal | dungeon=%dungeon% | world=%world%"
   pool_reserve_invalidated: "Reserve world failed inspection and will be rebuilt from template | dungeon=%dungeon% | world=%world%"
   dungeon_config_invalid: "Invalid dungeon config, skipped | dungeon=%dungeon% | error=%error%"

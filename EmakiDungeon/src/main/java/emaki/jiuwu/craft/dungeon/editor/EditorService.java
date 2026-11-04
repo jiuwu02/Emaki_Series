@@ -53,7 +53,7 @@ public final class EditorService implements Listener {
     private static final List<String> REGION_SUBDIRS = List.of("region", "entities");
 
     private static final List<String> MARK_TYPES = List.of(
-            "spawn", "room", "gate", "option", "trigger", "chest"
+            "spawn", "room", "gate", "option", "trigger", "chest", "exit"
     );
     private static final Map<String, String> MARK_SECTIONS = Map.of(
             "spawn", "spawn_points",
@@ -61,7 +61,8 @@ public final class EditorService implements Listener {
             "gate", "gates",
             "option", "options",
             "trigger", "trigger_zones",
-            "chest", "rewards"
+            "chest", "rewards",
+            "exit", "exit_points"
     );
     private static final Map<String, String> MARK_PREFIXES = Map.of(
             "spawn", "spawn",
@@ -69,7 +70,8 @@ public final class EditorService implements Listener {
             "gate", "gate",
             "option", "option",
             "trigger", "trigger",
-            "chest", "chest"
+            "chest", "chest",
+            "exit", "exit"
     );
 
     public static List<String> markTypes() {
@@ -91,6 +93,7 @@ public final class EditorService implements Listener {
     private volatile Map<String, DungeonConfig> configCache;
     private volatile ChallengeService challenge;
     private volatile EditorGui gui;
+    private volatile EditorModuleMarkers markers;
 
     public EditorService(JavaPlugin plugin,
             ExecutionDispatcher dispatcher,
@@ -128,6 +131,18 @@ public final class EditorService implements Listener {
 
     public void bindGui(EditorGui gui) {
         this.gui = gui;
+    }
+
+    public void bindMarkers(EditorModuleMarkers markers) {
+        this.markers = markers;
+    }
+
+    /** 重建该会话的功能模块边框与居中文本（编辑态可视化）。 */
+    public void refreshMarkers(EditorSession session) {
+        EditorModuleMarkers bound = markers;
+        if (bound != null && session != null) {
+            bound.refresh(session);
+        }
     }
 
     public boolean hasSession(UUID playerId) {
@@ -248,6 +263,7 @@ public final class EditorService implements Listener {
                     "dungeon", session.dungeonId(),
                     "world", session.editWorldName()
             ));
+            refreshMarkers(session);
             if (gui != null) {
                 gui.openMain(player);
             }
@@ -345,6 +361,7 @@ public final class EditorService implements Listener {
         String coord = region ? formatRegion(first, second) : formatPoint(point);
         String mark = type + ":" + assigned[0] + " @ " + coord;
         session.stagedMarks().add(mark);
+        refreshMarkers(session);
         messages.send(player, "editor.mark_ok", Map.of(
                 "type", type,
                 "id", assigned[0],
@@ -686,6 +703,10 @@ public final class EditorService implements Listener {
                 node.put("loot_table", "");
                 node.put("conditions", new ArrayList<>());
             }
+            case "exit" -> {
+                node.put("location", locationMap(point));
+                node.put("need_confirm", true);
+            }
             default -> {
             }
         }
@@ -792,6 +813,10 @@ public final class EditorService implements Listener {
         }
         session.configDoc().discard();
         session.flowDoc().discard();
+        EditorModuleMarkers bound = markers;
+        if (bound != null) {
+            bound.clear(session);
+        }
         Location origin = session.origin();
         Runnable unload = () -> {
             preservePlayerDataWhenOffline(session);
@@ -827,6 +852,10 @@ public final class EditorService implements Listener {
             if (pump != null) {
                 pump.cancel();
             }
+            EditorModuleMarkers bound = markers;
+            if (bound != null) {
+                bound.clear(session);
+            }
             Player player = Bukkit.getPlayer(session.playerId());
             Location origin = session.origin();
             if (player != null && origin != null && player.getWorld() == session.editWorld()) {
@@ -847,6 +876,11 @@ public final class EditorService implements Listener {
                     Bukkit.unloadWorld(world, false);
                 } catch (Throwable ignored) {
                 }
+            }
+            // 停服同样要删掉编辑世界目录，否则 emd_edit_* 会在 world 目录里残留。
+            try {
+                disposer.deleteResidual(session.editWorldName());
+            } catch (Throwable ignored) {
             }
             states.release(session.dungeonId());
         }

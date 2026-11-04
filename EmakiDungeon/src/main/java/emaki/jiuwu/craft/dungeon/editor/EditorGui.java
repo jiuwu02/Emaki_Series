@@ -43,6 +43,7 @@ public final class EditorGui implements Listener {
     private static final int SLOT_INFO = 50;
     private static final int SLOT_CLOSE = 53;
     private static final int SLOT_HELP = 14;
+    private static final int SLOT_EXITS = 15;
     private static final int SLOT_POS1 = 20;
     private static final int SLOT_POS2 = 21;
     private static final int SLOT_STATUS = 26;
@@ -58,7 +59,7 @@ public final class EditorGui implements Listener {
     private static final int LIST_PAGE_SIZE = 45;
 
     enum Panel {
-        MAIN, META, WAVES, SPAWN, WAVE, GATES, GATE, BRANCHES, OPTION, CASE
+        MAIN, META, WAVES, SPAWN, WAVE, GATES, GATE, BRANCHES, OPTION, CASE, EXITS
     }
 
     static final class EditorHolder implements InventoryHolder {
@@ -158,6 +159,7 @@ public final class EditorGui implements Listener {
             case BRANCHES -> renderOptionList(inventory, session, holder);
             case OPTION -> renderOption(inventory, session, holder);
             case CASE -> renderCase(inventory, session, holder);
+            case EXITS -> renderExitList(inventory, session, holder);
             default -> {
             }
         }
@@ -171,6 +173,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_GATES, navItem(Material.IRON_DOOR, "editor.gui.gates"));
         inventory.setItem(SLOT_BRANCHES, navItem(Material.SPRUCE_SAPLING, "editor.gui.branches"));
         inventory.setItem(SLOT_HELP, navItem(Material.COMPASS, "editor.gui.help"));
+        inventory.setItem(SLOT_EXITS, navItem(Material.RED_BED, "editor.gui.exits"));
         inventory.setItem(SLOT_POS1, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos1",
                 "coord", pointText(session.pos1())));
         inventory.setItem(SLOT_POS2, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos2",
@@ -290,6 +293,24 @@ public final class EditorGui implements Listener {
         renderNav(inventory, holder, 1, null);
         inventory.setItem(SLOT_ACTION, navItem(Material.LIME_DYE, "editor.gui.region_add"));
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_gates"));
+    }
+
+    private void renderExitList(Inventory inventory, EditorSession session, EditorHolder holder) {
+        YamlTextDocument view = session.flowDoc().view();
+        List<String> ids = mapKeys(view, "exit_points");
+        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
+        for (int index = range[0]; index < range[1]; index++) {
+            String id = ids.get(index);
+            Object confirm = view.value("exit_points", id, "need_confirm");
+            String mode = Boolean.FALSE.equals(confirm)
+                    ? messages.message("editor.gui.exit_mode_direct", Map.of())
+                    : messages.message("editor.gui.exit_mode_confirm", Map.of());
+            inventory.setItem(index - range[0], item(Material.RED_BED, "editor.gui.exit_item",
+                    List.of(valueLine(id), valueLine(mode))));
+        }
+        int pages = pageCount(ids.size(), LIST_PAGE_SIZE);
+        renderNav(inventory, holder, pages, Material.COMPASS);
+        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
     }
 
     private void renderOptionList(Inventory inventory, EditorSession session, EditorHolder holder) {
@@ -522,6 +543,7 @@ public final class EditorGui implements Listener {
             case BRANCHES -> handleOptionList(player, holder, session, slot);
             case OPTION -> handleOption(player, holder, session, slot);
             case CASE -> handleCase(player, holder, session, slot);
+            case EXITS -> handleExitList(player, holder, session, slot);
             default -> {
             }
         }
@@ -719,6 +741,29 @@ public final class EditorGui implements Listener {
             }, "field.door_regions", "-1");
             default -> {
             }
+        }
+    }
+
+    private void handleExitList(Player player, EditorHolder holder, EditorSession session, int slot) {
+        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
+            return;
+        }
+        if (slot == SLOT_ACTION) {
+            service.mark(player, "exit", null);
+            reopen(player, holder);
+            return;
+        }
+        List<String> ids = mapKeys(session.flowDoc().view(), "exit_points");
+        int[] range = pageRange(holder.page, ids.size(), LIST_PAGE_SIZE);
+        int index = range[0] + slot;
+        if (slot >= 0 && slot < CONTENT_SLOTS && index < range[1]) {
+            String exitId = ids.get(index);
+            Object confirm = session.flowDoc().view().value("exit_points", exitId, "need_confirm");
+            boolean next = Boolean.FALSE.equals(confirm);
+            applyEdit(player, holder, session, false,
+                    doc -> doc.set(next, "exit_points", exitId, "need_confirm"),
+                    next ? "need_confirm_on" : "need_confirm_off",
+                    String.valueOf(next));
         }
     }
 

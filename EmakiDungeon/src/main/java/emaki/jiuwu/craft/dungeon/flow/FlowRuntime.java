@@ -367,6 +367,30 @@ public final class FlowRuntime {
                 controllers.handleOptionTrigger(this, option.optionId(), playerId);
             }
         }
+
+        FlowModules.ExitPointDef exitPoint = definition.exitPoints().get(zoneId);
+        if (exitPoint != null && exitPoint.head().enabled()
+                && Boolean.TRUE.equals(payload.get(Facts.REGION_ENTERED)) && playerId != null) {
+            EvalContext exitContext = new EvalContext(playerId, payload);
+            if (adjudicator.adjudicate(exitPoint.head(), List.of(), exitContext, playerId).allowed()
+                    && controllers != null) {
+                anchor("exit point triggered | instance=" + instance.instanceId()
+                        + " | exit=" + exitPoint.head().id());
+                // 退出链路会恢复玩家位置并投递 Bukkit 事件，必须回到主线程执行，
+                // 否则会把实例虚拟线程上的事件派发变成异步调用而被拒绝。
+                dispatcher.runGlobal(plugin, () -> {
+                    FlowControllers bound = controllers;
+                    if (bound == null) {
+                        return;
+                    }
+                    org.bukkit.entity.Player player = plugin.getServer().getPlayer(playerId);
+                    if (player == null || !player.isOnline()) {
+                        return;
+                    }
+                    bound.handleExitPoint(this, exitPoint, playerId);
+                });
+            }
+        }
     }
 
     private void handleRoomZone(String roomId, UUID playerId, Map<String, Object> payload) {

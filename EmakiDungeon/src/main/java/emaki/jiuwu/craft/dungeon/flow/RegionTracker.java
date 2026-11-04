@@ -143,6 +143,12 @@ public final class RegionTracker {
             boolean present = point != null && distanceSquared(point, x, y, z) <= POINT_RADIUS * POINT_RADIUS;
             zoneTransition(runtime, player, optionId, present, now, base);
         }
+        for (String exitId : definition.exitPoints().keySet()) {
+            FlowModules.ExitPointDef exitPoint = definition.exitPoints().get(exitId);
+            FlowPoint point = exitPoint.point();
+            boolean present = point != null && distanceSquared(point, x, y, z) <= POINT_RADIUS * POINT_RADIUS;
+            zoneTransition(runtime, player, exitId, present, now, base);
+        }
         for (String spawnId : definition.spawnPoints().keySet()) {
             FlowModules.SpawnPointModuleDef spawnPoint = definition.spawnPoints().get(spawnId);
             if (!spawnPoint.head().enabled()) {

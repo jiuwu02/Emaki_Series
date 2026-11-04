@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.dungeon.orchestration;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +24,8 @@ import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
+import emaki.jiuwu.craft.dungeon.world.WorldFolders;
+import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -98,16 +102,21 @@ public final class InstanceCoordinator {
     }
 
     public void startupScan() {
+        boolean loaded = true;
         try {
             store.load();
         } catch (RuntimeException exception) {
+            loaded = false;
             messages.warning("console.instances_load_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())
             ));
-            return;
         }
-        List<String> worlds = new ArrayList<>(store.snapshot().instances().keySet());
-        worlds.addAll(store.snapshot().residual());
+        List<String> worlds = new ArrayList<>();
+        if (loaded) {
+            worlds.addAll(store.snapshot().instances().keySet());
+            worlds.addAll(store.snapshot().residual());
+        }
+        worlds.addAll(scanInstanceWorlds());
         int cleaned = 0;
         for (String worldName : worlds) {
             World world = Bukkit.getWorld(worldName);
@@ -129,6 +138,26 @@ public final class InstanceCoordinator {
         if (cleaned > 0) {
             messages.info("console.residual_cleaned", Map.of("count", String.valueOf(cleaned)));
         }
+    }
+
+    /**
+     * 扫描副本世界目录作为兜底：instances.yml 可能已被上一轮清空，
+     * 但克隆目录仍留在磁盘上（例如 emd_dungeon_test_dungeon_164）。
+     */
+    private List<String> scanInstanceWorlds() {
+        List<String> found = new ArrayList<>();
+        for (Path root : WorldFolders.sweepRoots(plugin.getServer().getWorldContainer())) {
+            File[] children = root.toFile().listFiles(File::isDirectory);
+            if (children == null) {
+                continue;
+            }
+            for (File child : children) {
+                if (WorldNames.isInstanceWorld(child.getName())) {
+                    found.add(child.getName());
+                }
+            }
+        }
+        return found;
     }
 
     public void warmupAll(List<String> dungeonIds) {
@@ -299,6 +328,26 @@ public final class InstanceCoordinator {
                 } catch (Throwable ignored) {
                 }
             }
+        }
+        // 停服时必须把克隆实例地图目录从 world 目录删除，否则下一轮启动会残留
+        // emd_dungeon_<dungeon>_<n> 目录；先卸载再删，避免文件被世界占用。
+        int removed = 0;
+        for (String worldName : scanInstanceWorlds()) {
+            World world = Bukkit.getWorld(worldName);
+            if (world != null) {
+                try {
+                    Bukkit.unloadWorld(world, false);
+                } catch (Throwable ignored) {
+                }
+            }
+            if (disposer.deleteResidual(worldName)) {
+                removed++;
+            }
+        }
+        registry.clear();
+        store.snapshot().clear();
+        if (removed > 0) {
+            messages.info("console.shutdown_cleaned", Map.of("count", String.valueOf(removed)));
         }
         return store.saveSync();
     }

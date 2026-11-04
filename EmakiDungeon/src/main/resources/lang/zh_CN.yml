@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.13"
+version: "1.0.14"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -195,7 +195,7 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edg editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edg editor pos2 记录后重试</gray>"
-  mark_usage: "<red>用法: /edg editor mark <spawn|room|gate|option|trigger|chest> [id]</red>"
+  mark_usage: "<red>用法: /edg editor mark <spawn|room|gate|option|trigger|chest|exit> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
   mark_dup: "<red>已存在同名模块: <id></red>"
@@ -218,12 +218,33 @@ editor:
   fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
     <gray>===== 标记速查 =====</gray>
-    <white>单点(视线方块): /edg editor mark <spawn|option|chest> [id]</white>
+    <white>单点(视线方块): /edg editor mark <spawn|option|chest|exit> [id]</white>
     <white>区域(两点): /edg editor mark <room|gate|trigger> [id]</white>
+    <white>离开副本: /edg editor mark exit [id] (玩家踩到即退出当前副本实例)</white>
     <white>角点: /edg editor pos1 与 /edg editor pos2</white>
     <white>区域填充: /edg editor fill <方块></white>
     <white>列出暂存: /edg editor marks | 测试: /edg editor test</white>
     <gray>标记与面板改动在点「保存」后才写入模板</gray>
+  marker:
+    spawn: "刷怪点"
+    room: "房间"
+    gate: "门禁"
+    option: "分支选项"
+    trigger: "触发区域"
+    chest: "奖励箱"
+    exit: "离开副本"
+    checkpoint: "检查点"
+    respawn: "复活点"
+    teleport: "传送区"
+    boundary: "边界区"
+    effect: "效果区"
+    hint: "提示点"
+    fx: "特效点"
+    boss: "Boss 点"
+    block: "方块交互"
+    item: "物品交互"
+    mechanism: "机关"
+    room_timer: "房间计时器"
   input_prompt: "<yellow>请输入 <field> 的新值 (输入 取消 放弃)</yellow>"
   input_invalid: "<red>输入无效: <value></red>"
   field_updated: "<green>已更新 <field> -> <value> (保存后生效)</green>"
@@ -235,6 +256,10 @@ editor:
     gates: "<white>门禁</white>"
     branches: "<white>分支选项</white>"
     help: "<yellow>标记用法速查</yellow>"
+    exits: "<white>离开副本点位</white>"
+    exit_mode_direct: "<red>踩到即直接离开</red>"
+    exit_mode_confirm: "<green>踩到需二次确认</green>"
+    exit_item: "<white>离开副本点位</white>"
     pos1: "<white>角点1: <coord></white>"
     pos2: "<white>角点2: <coord></white>"
     status: "<white>标记<marks> · <state> · 世代<generation></white>"
@@ -298,6 +323,8 @@ editor:
       case_value: "候选项 case 值"
       case_ending: "结局 id (- 清空)"
       seal_regions: "封路区域"
+    need_confirm_on: "<green>离开确认: 开</green>"
+    need_confirm_off: "<red>离开确认: 关</red>"
 
 drop:
   chest_locked: "<red>该奖励箱需在结算后统一分配, 局内暂不可拾取</red>"
@@ -355,6 +382,7 @@ console:
   instances_load_failed: "instances.yml 加载失败, 跳过启动残留自检 | 错误=%error%"
   residual_delete_failed: "启动自检删除残留目录失败 | 世界=%world%"
   residual_cleaned: "启动自检已清理残留世界 | 数量=%count%"
+  shutdown_cleaned: "停服已清理副本实例世界 | 数量=%count%"
   active_world_missing: "有人挑战实例的世界句柄丢失, 转入销毁回收 | 副本=%dungeon% | 世界=%world%"
   pool_reserve_invalidated: "补位世界巡检作废, 将按模板重建 | 副本=%dungeon% | 世界=%world%"
   dungeon_config_invalid: "副本配置非法, 已跳过 | 副本=%dungeon% | 错误=%error%"

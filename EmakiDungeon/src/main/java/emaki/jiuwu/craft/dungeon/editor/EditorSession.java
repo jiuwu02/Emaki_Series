@@ -32,6 +32,7 @@ public final class EditorSession {
     private boolean dirty;
     private boolean ready;
     private volatile int inFlight;
+    private volatile List<org.bukkit.entity.Entity> markers = new ArrayList<>();
 
     public EditorSession(UUID playerId, String dungeonId, String editWorldName, WorldCommandQueue queue) {
         this.playerId = playerId;
@@ -146,5 +147,14 @@ public final class EditorSession {
 
     public void inFlightAdd(int delta) {
         inFlight += delta;
+    }
+
+    /** 编辑态功能模块边框与文本展示实体缓存。 */
+    public List<org.bukkit.entity.Entity> markers() {
+        return markers;
+    }
+
+    public void markers(List<org.bukkit.entity.Entity> markers) {
+        this.markers = markers == null ? new ArrayList<>() : markers;
     }
 }
