@@ -22,6 +22,7 @@ public final class DungeonInstance {
     private volatile UUID partyId;
     private volatile String difficulty = "normal";
     private volatile String dropMode = "free";
+    private volatile String type = "normal";
     private volatile long startedAt;
     private volatile boolean test;
     private volatile InstanceLoop loop;
@@ -78,6 +79,14 @@ public final class DungeonInstance {
         if (startedAt == 0L) {
             startedAt = System.currentTimeMillis();
         }
+    }
+
+    public String type() {
+        return type;
+    }
+
+    public void setType(String type) {
+        this.type = type == null || type.isBlank() ? "normal" : type;
     }
 
     public boolean isTest() {

@@ -2,8 +2,10 @@ package emaki.jiuwu.craft.dungeon.recovery;
 
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiFunction;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -12,6 +14,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.action.ActionBridge;
 import emaki.jiuwu.craft.dungeon.audit.AuditService;
+import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
@@ -34,6 +37,8 @@ public final class RecoveryService {
     private volatile BiFunction<String, UUID, Boolean> stagingClear;
     private volatile ScriptRuntimeManager scriptManager;
     private volatile AuditService audit;
+    private final Supplier<AppConfig> appConfigSupplier;
+    private final Map<UUID, Long> disconnectedAt = new ConcurrentHashMap<>();
 
     public void bindAudit(AuditService audit) {
         this.audit = audit;
@@ -67,13 +72,15 @@ public final class RecoveryService {
             PartyService parties,
             MessageService messages,
             DebugLogger debug,
-            Consumer<UUID> teleportPermit) {
+            Consumer<UUID> teleportPermit,
+            Supplier<AppConfig> appConfigSupplier) {
         this.snapshots = snapshots;
         this.registry = registry;
         this.parties = parties;
         this.messages = messages;
         this.debug = debug;
         this.teleportPermit = teleportPermit;
+        this.appConfigSupplier = appConfigSupplier;
     }
 
     public void bindActionBridge(ActionBridge actionBridge) {
@@ -90,6 +97,7 @@ public final class RecoveryService {
             return;
         }
         snapshots.repack(player, pointer);
+        disconnectedAt.put(player.getUniqueId(), System.currentTimeMillis());
         debug.log("dungeon", player, "snapshot_repacked", Map.of("instance", pointer));
         fireTrigger(TriggerType.onDisconnect, instance,
                 Map.of("player", String.valueOf(player.getUniqueId())));
@@ -99,10 +107,15 @@ public final class RecoveryService {
         UUID playerId = player.getUniqueId();
         String pointer = snapshots.pointerOf(playerId);
         if (pointer == null) {
+            disconnectedAt.remove(playerId);
             return;
         }
+        Long quitAt = disconnectedAt.remove(playerId);
+        int graceSeconds = appConfigSupplier.get().reconnectGraceSeconds();
+        boolean graceExpired = graceSeconds > 0 && quitAt != null
+                && System.currentTimeMillis() - quitAt > graceSeconds * 1000L;
         DungeonInstance instance = registry.get(pointer);
-        if (instance != null && belongsTo(playerId, instance)) {
+        if (!graceExpired && instance != null && belongsTo(playerId, instance)) {
             teleportPermit.accept(playerId);
             snapshots.restoreState(player, pointer, true);
             messages.send(player, "recovery.reconnected", Map.of("instance", pointer));
@@ -117,12 +130,15 @@ public final class RecoveryService {
         }
         snapshots.restoreOrigin(player, pointer, true);
         snapshots.clearPointerAndSnapshot(playerId, pointer);
-        messages.send(player, "recovery.orphan_restored", Map.of("instance", pointer));
-        debug.log("dungeon", player, "orphan_restored", Map.of("instance", pointer));
+        messages.send(player, graceExpired ? "recovery.grace_expired" : "recovery.orphan_restored",
+                Map.of("instance", pointer));
+        debug.log("dungeon", player, graceExpired ? "grace_expired" : "orphan_restored",
+                Map.of("instance", pointer));
     }
 
     public void onExit(Player player, String reason) {
         UUID playerId = player.getUniqueId();
+        disconnectedAt.remove(playerId);
         String pointer = snapshots.pointerOf(playerId);
         if (pointer == null) {
             return;
@@ -178,6 +194,7 @@ public final class RecoveryService {
             return;
         }
         for (UUID memberId : party.members()) {
+            disconnectedAt.remove(memberId);
             Player member = Bukkit.getPlayer(memberId);
             if (member == null) {
                 continue;

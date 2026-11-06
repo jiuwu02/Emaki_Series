@@ -9,10 +9,12 @@ public final class ScoreCalculator {
     private ScoreCalculator() {
     }
 
-    public static Map<UUID, Double> calculate(ScoreWeights weights, Map<UUID, ScoreStats> team) {
+    public static Map<UUID, Double> calculate(ScoreWeights weights, Map<UUID, ScoreStats> team,
+            long durationMs) {
         if (team == null || team.isEmpty()) {
             return Map.of();
         }
+        double timeRatio = timeRatio(weights, durationMs);
         int size = team.size();
         double totalDamage = 0.0D;
         long totalKills = 0L;
@@ -40,10 +42,26 @@ public final class ScoreCalculator {
             weighted += weights.deathWeight()
                     * share(totalDeath - stats.death(), totalDeath, size);
             weighted += weights.defenseWeight() * share(stats.defense(), totalDefense, size);
+            weighted += timeContribution(weights, timeRatio, size);
             double score = weights.max() * weighted / totalWeight;
             result.put(entry.getKey(), round1(score));
         }
         return result;
+    }
+
+    private static double timeContribution(ScoreWeights weights, double timeRatio, int size) {
+        if (weights.timeWeight() <= 0.0D || weights.targetTimeSeconds() <= 0.0D || size <= 0) {
+            return 0.0D;
+        }
+        return Math.max(0.0D, weights.timeWeight())
+                * Math.max(0.0D, Math.min(1.0D, timeRatio)) / (double) size;
+    }
+
+    private static double timeRatio(ScoreWeights weights, long durationMs) {
+        if (weights.targetTimeSeconds() <= 0.0D || durationMs <= 0L) {
+            return 0.0D;
+        }
+        return weights.targetTimeSeconds() * 1000.0D / (double) durationMs;
     }
 
     private static double share(double value, double total, int size) {

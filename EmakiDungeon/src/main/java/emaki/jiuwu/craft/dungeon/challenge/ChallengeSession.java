@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.challenge;
 
 import java.util.Set;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -18,6 +20,8 @@ public final class ChallengeSession {
     private volatile long windowDeadline;
     private volatile long waitDeadline;
     private volatile BossBar waitBar;
+    private final Map<UUID, List<byte[]>> ticketItems = new ConcurrentHashMap<>();
+    private volatile boolean ticketCommitted;
     private volatile boolean test;
 
     public ChallengeSession(UUID partyId, String dungeonId, UUID leaderId) {
@@ -98,4 +102,18 @@ public final class ChallengeSession {
     public void setTest(boolean test) {
         this.test = test;
     }
+
+    public Map<UUID, List<byte[]>> ticketItems() {
+        return ticketItems;
+    }
+
+    public boolean isTicketCommitted() {
+        return ticketCommitted;
+    }
+
+    public void commitTicket() {
+        ticketCommitted = true;
+        ticketItems.clear();
+    }
+
 }

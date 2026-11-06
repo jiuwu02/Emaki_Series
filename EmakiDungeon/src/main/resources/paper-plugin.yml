@@ -17,6 +17,14 @@ dependencies:
       load: BEFORE
       required: false
       join-classpath: true
+    PlaceholderAPI:
+      load: BEFORE
+      required: false
+      join-classpath: true
+    BetterHUD:
+      load: BEFORE
+      required: false
+      join-classpath: true
 commands:
   edg:
     description: EmakiDungeon 命令

@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.14"
+version: "1.0.15"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -28,7 +28,10 @@ command:
     <gray>/edg rank <副本ID></gray> <white>查看排行榜</white>
     <gray>/edg globalchat <on|off></gray> <white>切换全局消息收听</white>
     <gray>/edg editor <副本ID></gray> <white>打开地图内编辑器</white>
-    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>管理命令</white>
+    <gray>/edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></gray> <white>管理命令</white>
+    <gray>/edg recruit <open|close|list|join></gray> <white>组队招募板</white>
+    <gray>/edg match <join|leave></gray> <white>本服自动匹配</white>
+    <gray>/edg spectate <next|prev></gray> <white>切换观战目标</white>
   unknown: "<red>未知子命令: <command>, 请使用 /edg help</red>"
   list:
     empty: "<yellow>暂无可用副本</yellow>"
@@ -42,6 +45,16 @@ command:
     aborted: "<gray>已取消退出</gray>"
   party:
     usage: "<red>用法: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  recruit:
+    usage: "<red>用法: /edg recruit open <副本ID> [难度] | /edg recruit <close|list> | /edg recruit join <编号></red>"
+  match:
+    usage: "<red>用法: /edg match join <副本ID> [难度] | /edg match leave</red>"
+  spectate:
+    usage: "<red>用法: /edg spectate <next|prev></red>"
+    not_spectator: "<yellow>你当前不在观战模式</yellow>"
+    no_target: "<yellow>暂无可切换的观战目标</yellow>"
+    next: "<gray>已切换到观战目标: </gray><white><target></white>"
+    prev: "<gray>已切换到观战目标: </gray><white><target></white>"
   stats:
     header: "<gray>玩家 <player> 的副本统计:</gray>"
     entry: "<gray>- <dungeon>: </gray><limits>"
@@ -62,7 +75,7 @@ command:
   denied_escape: "<red>该命令在本副本受限 (逃逸黑名单): <command></red>"
   denied_mode: "<red>该命令在本副本受限 (命令管控): <command></red>"
   admin:
-    usage: "<red>用法: /edg admin <instances|stop|status|reload|validate|poolreset|clearslots></red>"
+    usage: "<red>用法: /edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
     instances_header: "<gray>实例列表 (共 <count> 个):</gray>"
     instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| 队伍 </gray><party> <gray>| 写队列 </gray><queue>"
     stop_missing: "<red>实例不存在: <instance></red>"
@@ -80,6 +93,14 @@ command:
     pool_reset: "<green>池补位已强制重置: <dungeon></green>"
     pool_missing: "<red>副本不存在: <dungeon></red>"
     slots_cleared: "<green>占位已清理</green>"
+    inspect_usage: "<red>用法: /edg admin inspect <实例ID></red>"
+    inspect_header: "<gray>===== 实例详情 </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>=====</gray>"
+    inspect_meta: "<gray>难度 </gray><difficulty> <gray>| 掉落 </gray><drop> <gray>| 类型 </gray><type> <gray>| 测试 </gray><test> <gray>| 队伍 </gray><party> <gray>| 已运行 </gray><elapsed><gray>s</gray>"
+    inspect_no_flow: "<yellow>该实例暂无流程运行时</yellow>"
+    inspect_flow: "<gray>房间 </gray><room> <gray>(序 </gray><order><gray>) | 检查点 </gray><checkpoint> <gray>| 已开门 </gray><gates> <gray>| 已触发刷怪 </gray><spawns> <gray>| 写队列 </gray><queue> <gray>| 累计顺延 </gray><deferred>"
+    inspect_timeline_header: "<gray>----- 流程时间线 (最近 <count> 条) -----</gray>"
+    inspect_timeline_empty: "<gray>暂无流程事件</gray>"
+    inspect_timeline_line: "<gray><line></gray>"
 
 challenge:
   entered: "<green>已进入副本 <dungeon> (<instance>)</green>"
@@ -111,10 +132,16 @@ challenge:
     daily_window: "<red>当前不在每日可挑战时段内, <seconds> 秒后重试</red>"
     weekly_day: "<red>今天不在可挑战周几内, <seconds> 秒后重试</red>"
     monthly_week: "<red>当前不在可挑战的月周次内, <seconds> 秒后重试</red>"
+    unlock_denied: "<red>副本 <dungeon> 尚未解锁, 请先完成前置条件</red>"
+    ticket_invalid: "<red>副本 <dungeon> 门票配置无效: <item></red>"
+    ticket_insufficient: "<red><player> 缺少进入副本 <dungeon> 所需门票 <item> x<amount></red>"
   cancel:
     no_session: "<yellow>当前没有可取消的挑战</yellow>"
   ready:
     no_session: "<yellow>当前没有可确认准备的挑战</yellow>"
+  ticket:
+    consumed: "<yellow>进入失败, 门票已消耗 (副本: <dungeon>, 原因: <reason>)</yellow>"
+    refunded: "<green>系统异常, 门票已原样退还 (副本: <dungeon>, 原因: <reason>)</green>"
 
 gui:
   difficulty:
@@ -156,9 +183,31 @@ party:
     invalid_target: "<red>目标玩家不在线或无效: <player></red>"
     busy_party: "<yellow>本队伍正在副本挑战中, 暂不接纳新成员</yellow>"
 
+match:
+  disabled: "<red>组队招募与匹配当前已关闭</red>"
+  dungeon_missing: "<red>副本不存在: <dungeon></red>"
+  not_leader: "<red>仅队长可发布招募</red>"
+  party_error: "<red>队伍操作失败: <code></red>"
+  recruit_opened: "<green>招募已发布 (#<id>) | 副本=<dungeon> | 难度=<difficulty> | 人数 <size>/<target></green>"
+  recruit_closed: "<yellow>招募已关闭</yellow>"
+  recruit_none: "<yellow>你当前没有进行中的招募</yellow>"
+  recruit_empty: "<yellow>当前没有进行中的招募</yellow>"
+  recruit_header: "<gray>进行中的招募 (<count>):</gray>"
+  recruit_entry: "<gray>#<id> <white><leader></white> | <dungeon> | <difficulty> | <size>/<target></gray>"
+  recruit_not_found: "<red>招募 #<id> 不存在或已过期</red>"
+  recruit_joined: "<green>已加入招募 #<id> 的队伍 (<dungeon>)</green>"
+  recruit_applied: "<yellow>已向招募 #<id> (<dungeon>) 提交申请, 等待队长批准</yellow>"
+  already_in_party: "<red>你已在队伍中, 请先退出再排队</red>"
+  queue_already: "<yellow>你已在匹配队列中</yellow>"
+  queued: "<green>已加入匹配队列 | 副本=<dungeon> | 难度=<difficulty> | 目标人数=<target></green>"
+  queue_left: "<yellow>已离开匹配队列</yellow>"
+  queue_none: "<yellow>你当前不在匹配队列中</yellow>"
+  matched: "<green>匹配成功 | 副本=<dungeon> | 难度=<difficulty> | 队伍人数=<size>, 队长可用 /edg enter <dungeon> 发起挑战</green>"
+
 recovery:
   reconnected: "<green>重连成功, 已回到副本实例 (<instance>)</green>"
   orphan_restored: "<yellow>实例已结束, 已按进入快照恢复背包与状态并送回原位置</yellow>"
+  grace_expired: "<yellow>重连宽限期已过, 已按进入快照恢复背包与状态并送回原位置</yellow>"
   exited: "<green>已退出副本并还原状态 (<instance>)</green>"
   evacuated: "<yellow>副本已结束, 已按快照还原并送回原位置</yellow>"
 
@@ -195,7 +244,7 @@ editor:
   pos_set: "<green>角点<which> 已记录: <coord></green>"
   pos_missing: "<red>缺少角点<which>, 请用 /edg editor pos<which> 记录</red>"
   pos_auto: "<gray>已自动记录角点1, 站到区域另一角用 /edg editor pos2 记录后重试</gray>"
-  mark_usage: "<red>用法: /edg editor mark <spawn|room|gate|option|trigger|chest|exit> [id]</red>"
+  mark_usage: "<red>用法: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|boss|option|hint|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>未知标记类型: <type></red>"
   mark_ok: "<green>已暂存标记 <type> -> <id> (<coord>), 保存后写入流程 YAML</green>"
   mark_dup: "<red>已存在同名模块: <id></red>"
@@ -217,12 +266,13 @@ editor:
   fill_started: "<gray>已提交区域填充 <count> 格, 分帧写入中</gray>"
   fill_too_large: "<red>填充数量 <count> 超过上限 <limit></red>"
   help_mark: |
-    <gray>===== 标记速查 =====</gray>
-    <white>单点(视线方块): /edg editor mark <spawn|option|chest|exit> [id]</white>
-    <white>区域(两点): /edg editor mark <room|gate|trigger> [id]</white>
-    <white>离开副本: /edg editor mark exit [id] (玩家踩到即退出当前副本实例)</white>
+    <gray>===== 标记速查 (共 22 类) =====</gray>
+    <white>用法: /edg editor mark 类型 [id] (类型用 Tab 补全, 或看主面板「全部模块」)</white>
+    <white>单点(视线方块): entry/exit/spawn/block/chest/boss/option/hint/item/fx/respawn</white>
+    <white>区域(两点): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
+    <white>无坐标: kill_target/temp_item (在编辑世界任意处即可标记)</white>
     <white>角点: /edg editor pos1 与 /edg editor pos2</white>
-    <white>区域填充: /edg editor fill <方块></white>
+    <white>区域填充: /edg editor fill 方块</white>
     <white>列出暂存: /edg editor marks | 测试: /edg editor test</white>
     <gray>标记与面板改动在点「保存」后才写入模板</gray>
   marker:
@@ -245,6 +295,9 @@ editor:
     item: "物品交互"
     mechanism: "机关"
     room_timer: "房间计时器"
+    entry: "入本点 (spawn_point)"
+    kill_target: "击杀目标"
+    temp_item: "临时物品"
   input_prompt: "<yellow>请输入 <field> 的新值 (输入 取消 放弃)</yellow>"
   input_invalid: "<red>输入无效: <value></red>"
   field_updated: "<green>已更新 <field> -> <value> (保存后生效)</green>"
@@ -257,6 +310,12 @@ editor:
     branches: "<white>分支选项</white>"
     help: "<yellow>标记用法速查</yellow>"
     exits: "<white>离开副本点位</white>"
+    modules: "<white>全部模块 (22 类)</white>"
+    module_item: "<white><type></white>"
+    module_count: "<gray>节点: <count></gray>"
+    module_no_nodes: "<yellow><type> 暂无节点, 点右下新增模块</yellow>"
+    module_node: "<gray>节点 <id> (<index>/<total>)</gray>"
+    module_back: "<white>返回模块总览</white>"
     exit_mode_direct: "<red>踩到即直接离开</red>"
     exit_mode_confirm: "<green>踩到需二次确认</green>"
     exit_item: "<white>离开副本点位</white>"
@@ -323,6 +382,37 @@ editor:
       case_value: "候选项 case 值"
       case_ending: "结局 id (- 清空)"
       seal_regions: "封路区域"
+      order: "房间顺序"
+      record_id: "检查点记录 id"
+      min_players: "最少玩家数"
+      checkpoint: "关联检查点"
+      need_confirm: "离开需确认"
+      gate_id: "门禁 id"
+      spawn_id: "刷怪点 id"
+      range: "触发半径"
+      once: "仅触发一次"
+      direction: "触发方向"
+      click: "交互键"
+      loot_table: "战利品表"
+      source: "Boss 来源"
+      boss_id: "Boss id"
+      option_id: "选项 id"
+      time_limit_seconds: "选择时限 (秒)"
+      text: "提示文本"
+      channel: "提示通道"
+      all_members: "传送全队"
+      interval_ticks: "效果间隔 (tick)"
+      seconds: "计时秒数"
+      target: "击杀目标"
+      count: "需求数量"
+      item: "物品 id"
+      amount: "数量"
+      consume: "消耗物品"
+      sound: "音效"
+      particle: "粒子"
+      radius: "半径"
+      timing: "发放时机"
+      hint: "提示"
     need_confirm_on: "<green>离开确认: 开</green>"
     need_confirm_off: "<red>离开确认: 关</red>"
 
@@ -386,6 +476,8 @@ console:
   active_world_missing: "有人挑战实例的世界句柄丢失, 转入销毁回收 | 副本=%dungeon% | 世界=%world%"
   pool_reserve_invalidated: "补位世界巡检作废, 将按模板重建 | 副本=%dungeon% | 世界=%world%"
   dungeon_config_invalid: "副本配置非法, 已跳过 | 副本=%dungeon% | 错误=%error%"
+  dungeon_type_unknown: "未知副本类型, 已回退 normal | 副本=%dungeon% | 类型=%type%"
+  papi_registered: "[integration] <gray>PlaceholderAPI 扩展已注册</gray>"
   world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
   parties_load_failed: "parties.yml 加载失败, 队伍快照未恢复 | 错误=%error%"
   command_map_wrap_failed: "CommandMap 包装失败, 插件代执行拦截入口未生效 | 错误=%error%"
@@ -444,3 +536,14 @@ debug:
   script_entry_registered: "词条已注册 | 实例=%instance% | 词条=%entry%"
   script_entry_cleared: "词条已随实例销毁摘除 | 实例=%instance% | 数量=%count%"
   script_stopped: "脚本已停用, 实例继续运行 | 实例=%instance% | 脚本=%script%"
+hud:
+  bossbar_title: "副本 %dungeon% | 难度 %difficulty% | 类型 %type% | 队伍 %emakidungeon_party_size% 人"
+  scoreboard_title: "副本 %dungeon%"
+  scoreboard_lines:
+    - "难度: %difficulty% | 类型: %type%"
+    - "队伍人数: %emakidungeon_party_size%"
+    - "在队伍中: %emakidungeon_party_in_party%"
+    - "已通关: %emakidungeon_data_%dungeon%_cleared%"
+    - "通关次数: %emakidungeon_data_%dungeon%_clear_count%"
+    - "最佳评分: %emakidungeon_data_%dungeon%_best_score%"
+

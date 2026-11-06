@@ -12,12 +12,37 @@ display-name: "示例副本"
 description: "一份用于演示的线性副本配置"
 difficulty-group: "default"
 
+# 副本类型 (normal=常规, affix=词条类型可挂接点)。未知类型加载期告警并静默回退 normal。
+type: normal
+
+# 实例内常驻 HUD (默认关闭; channel 仅 bossbar / scoreboard, 非法值静默回退 bossbar)。
+hud:
+  enabled: false
+  channel: bossbar
+
 # 进入与失败判定。
 enter:
   timeout-seconds: 1800
   prepare-window-seconds: 10
   wait-channel: bossbar
   wait-timeout-seconds: 60
+
+# 前置解锁: 以 CoreLib 条件行列表为唯一判定源, entries 空 = 不限制。
+# 布尔判定示例: "%emakidungeon_data_<dungeonId>_cleared% == true"。
+unlock:
+  type: all_of
+  required_count: 0
+  invalid_as_failure: true
+  entries: []
+  on_fail:
+    message: ""
+
+# 入场门票: enabled=false 不消耗; item 支持原版 Material 名或 EmakiItem id;
+# 系统侧失败(世界准备超时/实例创建失败/插件异常)原样退还, 玩家侧失败不退还。
+ticket:
+  enabled: false
+  item: ""
+  amount: 1
 
 # 该副本实例世界占用上限 (含补位态世界), 达上限提示等待重试。
 pool:
@@ -67,13 +92,16 @@ difficulty:
     drop-multiplier: 1.2
     respawn-count: 1
 
-# 贡献评分五项权重与满分 (完成时间权重暂不计入)。
+# 贡献评分权重与满分 (time-weight 为 0 时关闭时间维度; >0 且 target-time-seconds >0 时生效)。
+# 时间评分 = time-weight * min(1, target-time-seconds / 实际用时秒数), 复用结算已算出的 durationMs。
 score:
   damage-weight: 1.0
   kill-weight: 1.0
   heal-weight: 1.0
   death-weight: 1.0
   defense-weight: 1.0
+  time-weight: 0.0
+  target-time-seconds: 0.0
   max: 100.0
 
 # 掉落等级定义与队长可选分配模式 (五种: free / roll / killer / score / share)。

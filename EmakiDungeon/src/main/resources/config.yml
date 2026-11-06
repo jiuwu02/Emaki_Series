@@ -4,7 +4,7 @@
 # 重载不会中断运行中实例, 仅对新创建的副本生效。
 # 文件位置: plugins/EmakiDungeon/config.yml
 
-version: "1.0.14"
+version: "1.0.15"
 language: "zh_CN"
 
 # DEBUG 锚日志开关与审计保留天数 (按日切分)。
@@ -35,6 +35,18 @@ party:
   max-size: 4
   invite-mode: public
 
+# 组队招募板与本服自动匹配 (不做跨服)。
+matchmaking:
+  enabled: true
+  # 0 表示沿用 party.max-size; 有效值 2..party.max-size。
+  target-size: 0
+  # 招募过期秒数, <= 0 表示不过期。
+  recruit-ttl-seconds: 300
+
+# 断线重连宽限期 (秒): 0 表示关闭 (维持原有行为), 超期回归按孤儿快照恢复。
+recovery:
+  reconnect-grace-seconds: 0
+
 # 全局收听默认值 (每玩家可用 /edg globalchat 覆盖)。
 isolation:
   global-chat-default: false
@@ -62,9 +74,9 @@ monitor:
   memory-slope-mb-per-min: 64
   queue-backlog-seconds: 5
 
-# bStats 本期不接入, 接口就绪后经 CoreLib 统一接入。
+# bStats 经 CoreLib 统一接入 (插件 ID 35153, 不单独引入依赖或 shade)。
 storage:
-  bstats: disabled
+  bstats: enabled
 
 # Folia 挂起世界全局上限, 达限按满载拒绝新挑战并告警, 重启回收。
 folia:
@@ -77,3 +89,7 @@ folia:
 action:
   # dungeon_enter:
   #   - 'self | send_message text="<green>进入副本</green>"'
+  # dungeon_fail:
+  #   - 'self | send_message text="<red>门票已消耗 (原因: %var.reason%)</red>"'
+  # dungeon_exit:
+  #   - 'self | send_message text="<green>门票已原样退还: %var.ticket_refunded% (副本 %var.dungeon%)</green>"'

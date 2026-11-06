@@ -21,10 +21,12 @@ import emaki.jiuwu.craft.dungeon.audit.AuditService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.editor.EditorService;
+import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
 import emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore;
 import emaki.jiuwu.craft.dungeon.limit.LimitService;
+import emaki.jiuwu.craft.dungeon.match.MatchmakingService;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
@@ -33,6 +35,7 @@ import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
 import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
+import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import java.util.function.Function;
@@ -42,12 +45,18 @@ public final class DungeonCommandRouter {
 
     private static final List<String> ROOT_SUBS = List.of(
             "help", "list", "enter", "leave", "cancel", "ready", "rewards",
-            "party", "stats", "rank", "globalchat", "editor", "admin"
+            "party", "stats", "rank", "globalchat", "editor", "admin", "recruit", "match", "spectate"
     );
     private static final List<String> PARTY_SUBS = List.of(
             "create", "invite", "accept", "deny", "kick", "leave", "disband", "chat"
     );
     private static final List<String> EDITOR_SUBS = List.of("exit", "pos1", "pos2", "mark", "marks", "test", "fill");
+    private static final List<String> RECRUIT_SUBS = List.of("open", "close", "list", "join");
+    private static final List<String> MATCH_SUBS = List.of("join", "leave");
+    private static final List<String> SPECTATE_SUBS = List.of("next", "prev");
+    private static final List<String> ADMIN_SUBS = List.of(
+            "instances", "inspect", "stop", "status", "reload", "validate", "poolreset", "clearslots"
+    );
 
     private final Plugin plugin;
     private final MessageService messages;
@@ -91,6 +100,16 @@ public final class DungeonCommandRouter {
     private volatile InstanceSlotAllocator adminAllocator;
     private volatile Runnable adminReload;
     private volatile AuditService audit;
+    private volatile MatchmakingService matchmaking;
+    private volatile PlayerStateService stateService;
+
+    public void bindMatchmaking(MatchmakingService matchmaking) {
+        this.matchmaking = matchmaking;
+    }
+
+    public void bindStateService(PlayerStateService stateService) {
+        this.stateService = stateService;
+    }
 
     public void bindAdmin(WorldPool pool,
             InstanceSlotAllocator allocator,
@@ -115,6 +134,7 @@ public final class DungeonCommandRouter {
         }
         switch (Texts.lower(args[1])) {
             case "instances" -> adminInstances(sender);
+            case "inspect" -> adminInspect(sender, args);
             case "stop" -> adminStop(sender, args);
             case "status" -> adminStatus(sender);
             case "reload" -> adminReload(sender);
@@ -138,6 +158,65 @@ public final class DungeonCommandRouter {
                     "party", instance.partyId() == null
                             ? "-" : instance.partyId().toString().substring(0, 8),
                     "queue", queue));
+        }
+    }
+
+    private void adminInspect(CommandSender sender, String[] args) {
+        if (args.length < 3) {
+            messages.send(sender, "command.admin.inspect_usage", Map.of());
+            return;
+        }
+        String instanceId = args[2];
+        DungeonInstance instance = registry.get(instanceId);
+        if (instance == null) {
+            messages.send(sender, "command.admin.stop_missing", Map.of("instance", instanceId));
+            return;
+        }
+        long started = instance.startedAt();
+        String elapsed = started == 0L ? "-" : String.valueOf((System.currentTimeMillis() - started) / 1000L);
+        String party = instance.partyId() == null ? "-" : instance.partyId().toString().substring(0, 8);
+        FlowRuntime flow = instance.flowRuntime();
+        int pending = instance.commands() == null ? 0 : instance.commands().pending();
+        long deferred = instance.commands() == null ? 0L : instance.commands().deferredTotal();
+        messages.send(sender, "command.admin.inspect_header", Map.of(
+                "instance", instance.instanceId(),
+                "dungeon", instance.dungeonId(),
+                "state", instance.state().name()));
+        messages.send(sender, "command.admin.inspect_meta", Map.of(
+                "difficulty", instance.difficulty(),
+                "drop", instance.dropMode(),
+                "type", instance.type(),
+                "test", String.valueOf(instance.isTest()),
+                "party", party,
+                "elapsed", elapsed));
+        if (flow == null) {
+            messages.send(sender, "command.admin.inspect_no_flow", Map.of());
+        } else {
+            int order = flow.currentRoomOrder();
+            String room = flow.currentRoomId();
+            String checkpoint = flow.checkpointId();
+            messages.send(sender, "command.admin.inspect_flow", Map.of(
+                    "room", room.isEmpty() ? "-" : room,
+                    "order", order == Integer.MIN_VALUE ? "-" : String.valueOf(order),
+                    "checkpoint", checkpoint == null || checkpoint.isEmpty() ? "-" : checkpoint,
+                    "gates", String.valueOf(flow.openedGateCount()),
+                    "spawns", String.valueOf(flow.triggeredSpawnCount()),
+                    "queue", String.valueOf(pending),
+                    "deferred", String.valueOf(deferred)));
+            List<String> lines = flow.timelineView();
+            messages.send(sender, "command.admin.inspect_timeline_header",
+                    Map.of("count", String.valueOf(lines.size())));
+            if (lines.isEmpty()) {
+                messages.send(sender, "command.admin.inspect_timeline_empty", Map.of());
+            } else {
+                for (String line : lines) {
+                    messages.send(sender, "command.admin.inspect_timeline_line", Map.of("line", line));
+                }
+            }
+        }
+        if (audit != null) {
+            audit.write("admin", Map.of("action", "inspect", "sender", sender.getName(),
+                    "instance", instanceId));
         }
     }
 
@@ -350,6 +429,9 @@ public final class DungeonCommandRouter {
             }
             case "globalchat" -> routeGlobalChat(player, args);
             case "editor" -> routeEditor(player, args);
+            case "recruit" -> routeRecruit(player, args);
+            case "match" -> routeMatch(player, args);
+            case "spectate" -> routeSpectate(player, args);
             default -> messages.send(sender, "command.unknown", Map.of("command", sub));
         }
     }
@@ -372,6 +454,65 @@ public final class DungeonCommandRouter {
             return;
         }
         challenge.startEnter(player, args[1]);
+    }
+
+    private void routeRecruit(Player player, String[] args) {
+        if (matchmaking == null) {
+            messages.send(player, "match.disabled", Map.of());
+            return;
+        }
+        if (args.length < 2) {
+            messages.send(player, "command.recruit.usage");
+            return;
+        }
+        switch (Texts.lower(args[1])) {
+            case "open" -> {
+                if (args.length < 3 || Texts.isBlank(args[2])) {
+                    messages.send(player, "command.recruit.usage");
+                    return;
+                }
+                matchmaking.openRecruit(player, args[2], args.length >= 4 ? args[3] : null);
+            }
+            case "close" -> matchmaking.closeRecruit(player);
+            case "list" -> matchmaking.listRecruits(player);
+            case "join" -> {
+                if (args.length < 3 || Texts.isBlank(args[2])) {
+                    messages.send(player, "command.recruit.usage");
+                    return;
+                }
+                int id;
+                try {
+                    id = Integer.parseInt(args[2]);
+                } catch (NumberFormatException exception) {
+                    messages.send(player, "command.recruit.usage");
+                    return;
+                }
+                matchmaking.joinRecruit(player, id);
+            }
+            default -> messages.send(player, "command.recruit.usage");
+        }
+    }
+
+    private void routeMatch(Player player, String[] args) {
+        if (matchmaking == null) {
+            messages.send(player, "match.disabled", Map.of());
+            return;
+        }
+        if (args.length < 2) {
+            messages.send(player, "command.match.usage");
+            return;
+        }
+        switch (Texts.lower(args[1])) {
+            case "join" -> {
+                if (args.length < 3 || Texts.isBlank(args[2])) {
+                    messages.send(player, "command.match.usage");
+                    return;
+                }
+                matchmaking.queue(player, args[2], args.length >= 4 ? args[3] : null);
+            }
+            case "leave" -> matchmaking.leaveQueue(player);
+            default -> messages.send(player, "command.match.usage");
+        }
     }
 
     private void routeLeave(Player player) {
@@ -744,6 +885,25 @@ public final class DungeonCommandRouter {
         messages.send(player, key, Map.of());
     }
 
+    private void routeSpectate(Player player, String[] args) {
+        if (stateService == null || !stateService.isSpectator(player.getUniqueId())) {
+            messages.send(player, "command.spectate.not_spectator", Map.of());
+            return;
+        }
+        if (args.length < 2) {
+            messages.send(player, "command.spectate.usage", Map.of());
+            return;
+        }
+        String sub = Texts.lower(args[1]);
+        if ("next".equals(sub)) {
+            stateService.switchSpectateTarget(player.getUniqueId(), true);
+        } else if ("prev".equals(sub)) {
+            stateService.switchSpectateTarget(player.getUniqueId(), false);
+        } else {
+            messages.send(player, "command.spectate.usage", Map.of());
+        }
+    }
+
     public @NotNull Collection<String> suggest(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length <= 1) {
             List<String> visible = new ArrayList<>(ROOT_SUBS.size());
@@ -772,6 +932,39 @@ public final class DungeonCommandRouter {
             }
             if (args.length == 3 && "mark".equals(Texts.lower(args[1]))) {
                 return EditorService.markTypes();
+            }
+        }
+        if ("recruit".equals(root)) {
+            if (args.length == 2) {
+                return RECRUIT_SUBS;
+            }
+            if ("open".equals(Texts.lower(args[1])) && args.length == 3) {
+                return templates.discoverDungeons();
+            }
+        }
+        if ("match".equals(root)) {
+            if (args.length == 2) {
+                return MATCH_SUBS;
+            }
+            if ("join".equals(Texts.lower(args[1])) && args.length == 3) {
+                return templates.discoverDungeons();
+            }
+        }
+        if ("spectate".equals(root)) {
+            if (args.length == 2) {
+                return SPECTATE_SUBS;
+            }
+        }
+        if ("admin".equals(root) && sender.hasPermission("emakidungeon.admin")) {
+            if (args.length == 2) {
+                return ADMIN_SUBS;
+            }
+            if ("inspect".equals(Texts.lower(args[1])) && args.length == 3) {
+                List<String> ids = new ArrayList<>();
+                for (DungeonInstance instance : registry.all()) {
+                    ids.add(instance.instanceId());
+                }
+                return ids;
             }
         }
         if ("party".equals(root)) {

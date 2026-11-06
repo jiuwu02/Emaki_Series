@@ -1,5 +1,5 @@
 // EmakiDungeon.
-version = '1.0.14'
+version = '1.0.15'
 
 dependencies {
     shadeBundle project(':EmakiDungeonApi')
@@ -7,9 +7,11 @@ dependencies {
     api project(':EmakiCoreLibApi')
     api project(':EmakiCoreLib')
     api project(':EmakiDungeonApi')
+    provided libs.betterhud.bukkit.api
 
     provided libs.paper.api
     provided libs.mythic.dist
     provided project(':EmakiMobsApi')
     provided libs.graalvm.polyglot
+    provided libs.placeholderapi
 }

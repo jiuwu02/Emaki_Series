@@ -2,7 +2,7 @@
 # Messages use MiniMessage; keep the placeholders noted next to each group
 # version is maintained by the resource sync flow for merging new default keys
 
-version: "1.0.14"
+version: "1.0.15"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -28,7 +28,10 @@ command:
     <gray>/edg rank <dungeonId></gray> <white>Show leaderboard</white>
     <gray>/edg globalchat <on|off></gray> <white>Toggle global chat listening</white>
     <gray>/edg editor <dungeonId></gray> <white>Open the in-world editor</white>
-    <gray>/edg admin <instances|stop|status|reload|validate|poolreset|clearslots></gray> <white>Admin commands</white>
+    <gray>/edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></gray> <white>Admin commands</white>
+    <gray>/edg recruit <open|close|list|join></gray> <white>Party recruit board</white>
+    <gray>/edg match <join|leave></gray> <white>Server-local auto matchmaking</white>
+    <gray>/edg spectate <next|prev></gray> <white>Switch spectator target</white>
   unknown: "<red>Unknown subcommand: <command>, use /edg help</red>"
   list:
     empty: "<yellow>No dungeons available</yellow>"
@@ -42,6 +45,16 @@ command:
     aborted: "<gray>Leave cancelled</gray>"
   party:
     usage: "<red>Usage: /edg party <create|invite|accept|deny|kick|leave|disband|chat></red>"
+  recruit:
+    usage: "<red>Usage: /edg recruit open <dungeonId> [difficulty] | /edg recruit <close|list> | /edg recruit join <id></red>"
+  match:
+    usage: "<red>Usage: /edg match join <dungeonId> [difficulty] | /edg match leave</red>"
+  spectate:
+    usage: "<red>Usage: /edg spectate <next|prev></red>"
+    not_spectator: "<yellow>You are not in spectator mode</yellow>"
+    no_target: "<yellow>No spectator target available</yellow>"
+    next: "<gray>Switched to spectator target: </gray><white><target></white>"
+    prev: "<gray>Switched to spectator target: </gray><white><target></white>"
   stats:
     header: "<gray>Dungeon stats for <player>:</gray>"
     entry: "<gray>- <dungeon>: </gray><limits>"
@@ -62,7 +75,7 @@ command:
   denied_escape: "<red>This command is restricted in this dungeon (escape blacklist): <command></red>"
   denied_mode: "<red>This command is restricted in this dungeon (command rules): <command></red>"
   admin:
-    usage: "<red>Usage: /edg admin <instances|stop|status|reload|validate|poolreset|clearslots></red>"
+    usage: "<red>Usage: /edg admin <instances|inspect|stop|status|reload|validate|poolreset|clearslots></red>"
     instances_header: "<gray>Instance list (<count> total):</gray>"
     instance_line: "<gray>- </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>| party </gray><party> <gray>| queue </gray><queue>"
     stop_missing: "<red>Instance not found: <instance></red>"
@@ -80,6 +93,14 @@ command:
     pool_reset: "<green>Pool reserves force-reset: <dungeon></green>"
     pool_missing: "<red>Dungeon not found: <dungeon></red>"
     slots_cleared: "<green>Slot placeholders cleared</green>"
+    inspect_usage: "<red>Usage: /edg admin inspect <instanceId></red>"
+    inspect_header: "<gray>===== Instance detail </gray><white><instance></white> <gray>| </gray><dungeon> <gray>| </gray><state> <gray>=====</gray>"
+    inspect_meta: "<gray>Difficulty </gray><difficulty> <gray>| drop </gray><drop> <gray>| type </gray><type> <gray>| test </gray><test> <gray>| party </gray><party> <gray>| elapsed </gray><elapsed><gray>s</gray>"
+    inspect_no_flow: "<yellow>This instance has no flow runtime yet</yellow>"
+    inspect_flow: "<gray>Room </gray><room> <gray>(order </gray><order><gray>) | checkpoint </gray><checkpoint> <gray>| gates opened </gray><gates> <gray>| spawns triggered </gray><spawns> <gray>| queue </gray><queue> <gray>| deferred </gray><deferred>"
+    inspect_timeline_header: "<gray>----- Flow timeline (last <count>) -----</gray>"
+    inspect_timeline_empty: "<gray>No flow events yet</gray>"
+    inspect_timeline_line: "<gray><line></gray>"
 
 challenge:
   entered: "<green>Entered dungeon <dungeon> (<instance>)</green>"
@@ -111,10 +132,16 @@ challenge:
     daily_window: "<red>Outside the daily challenge window, retry in <seconds>s</red>"
     weekly_day: "<red>Today is not an allowed challenge weekday, retry in <seconds>s</red>"
     monthly_week: "<red>Current week of the month is not an allowed challenge week, retry in <seconds>s</red>"
+    unlock_denied: "<red>Dungeon <dungeon> is locked, complete the prerequisites first</red>"
+    ticket_invalid: "<red>Invalid ticket config for dungeon <dungeon>: <item></red>"
+    ticket_insufficient: "<red><player> lacks the entry ticket <item> x<amount> for dungeon <dungeon></red>"
   cancel:
     no_session: "<yellow>No active challenge to cancel</yellow>"
   ready:
     no_session: "<yellow>No active challenge to confirm</yellow>"
+  ticket:
+    consumed: "<yellow>Entry failed, ticket consumed (dungeon: <dungeon>, reason: <reason>)</yellow>"
+    refunded: "<green>System error, ticket refunded as-is (dungeon: <dungeon>, reason: <reason>)</green>"
 
 gui:
   difficulty:
@@ -156,9 +183,31 @@ party:
     invalid_target: "<red>Target player is offline or invalid: <player></red>"
     busy_party: "<yellow>Your party is in a dungeon challenge, new members are not accepted</yellow>"
 
+match:
+  disabled: "<red>Recruit board and matchmaking are currently disabled</red>"
+  dungeon_missing: "<red>Dungeon not found: <dungeon></red>"
+  not_leader: "<red>Only the party leader can open a recruit</red>"
+  party_error: "<red>Party operation failed: <code></red>"
+  recruit_opened: "<green>Recruit posted (#<id>) | dungeon=<dungeon> | difficulty=<difficulty> | size <size>/<target></green>"
+  recruit_closed: "<yellow>Recruit closed</yellow>"
+  recruit_none: "<yellow>You have no active recruit</yellow>"
+  recruit_empty: "<yellow>No active recruits at the moment</yellow>"
+  recruit_header: "<gray>Active recruits (<count>):</gray>"
+  recruit_entry: "<gray>#<id> <white><leader></white> | <dungeon> | <difficulty> | <size>/<target></gray>"
+  recruit_not_found: "<red>Recruit #<id> not found or expired</red>"
+  recruit_joined: "<green>Joined recruit #<id> party (<dungeon>)</green>"
+  recruit_applied: "<yellow>Applied to recruit #<id> (<dungeon>), waiting for leader approval</yellow>"
+  already_in_party: "<red>You are already in a party, leave it before queueing</red>"
+  queue_already: "<yellow>You are already in the match queue</yellow>"
+  queued: "<green>Joined match queue | dungeon=<dungeon> | difficulty=<difficulty> | target=<target></green>"
+  queue_left: "<yellow>Left the match queue</yellow>"
+  queue_none: "<yellow>You are not in the match queue</yellow>"
+  matched: "<green>Match found | dungeon=<dungeon> | difficulty=<difficulty> | party size=<size>, leader can start with /edg enter <dungeon></green>"
+
 recovery:
   reconnected: "<green>Reconnected, returned to dungeon instance (<instance>)</green>"
   orphan_restored: "<yellow>Instance has ended, restored inventory and state from the entry snapshot and returned you to your origin</yellow>"
+  grace_expired: "<yellow>Reconnect grace period expired, restored inventory and state from the entry snapshot and returned you to your origin</yellow>"
   exited: "<green>Left the dungeon and restored your state (<instance>)</green>"
   evacuated: "<yellow>Dungeon ended, restored from snapshot and returned you to your origin</yellow>"
 
@@ -195,7 +244,7 @@ editor:
   pos_set: "<green>Corner <which> recorded: <coord></green>"
   pos_missing: "<red>Corner <which> is missing, record it with /edg editor pos<which></red>"
   pos_auto: "<gray>Corner 1 recorded automatically, stand at the other corner, record it with /edg editor pos2 and retry</gray>"
-  mark_usage: "<red>Usage: /edg editor mark <spawn|room|gate|option|trigger|chest|exit> [id]</red>"
+  mark_usage: "<red>Usage: /edg editor mark <entry|room|checkpoint|respawn|exit|gate|spawn|trigger|block|chest|boss|option|hint|teleport|boundary|effect|mechanism|room_timer|kill_target|item|fx|temp_item> [id]</red>"
   mark_unknown_type: "<red>Unknown mark type: <type></red>"
   mark_ok: "<green>Staged mark <type> -> <id> (<coord>), written to the flow YAML on save</green>"
   mark_dup: "<red>A module with this id already exists: <id></red>"
@@ -217,12 +266,13 @@ editor:
   fill_started: "<gray>Region fill queued: <count> blocks, writing in frames</gray>"
   fill_too_large: "<red>Fill volume <count> exceeds the limit <limit></red>"
   help_mark: |
-    <gray>===== Mark reference =====</gray>
-    <white>Single point (block in sight): /edg editor mark <spawn|option|chest|exit> [id]</white>
-    <white>Region (two corners): /edg editor mark <room|gate|trigger> [id]</white>
-    <white>Leave dungeon: /edg editor mark exit [id] (a player stepping on it leaves the current instance)</white>
+    <gray>===== Mark reference (22 types) =====</gray>
+    <white>Usage: /edg editor mark type [id] (Tab-complete the type, or use the "All modules" panel)</white>
+    <white>Single point (block in sight): entry/exit/spawn/block/chest/boss/option/hint/item/fx/respawn</white>
+    <white>Region (two corners): room/gate/trigger/teleport/boundary/effect/mechanism/room_timer/checkpoint</white>
+    <white>No coordinates: kill_target/temp_item (mark from anywhere in the edit world)</white>
     <white>Corners: /edg editor pos1 and /edg editor pos2</white>
-    <white>Region fill: /edg editor fill <block></white>
+    <white>Region fill: /edg editor fill block</white>
     <white>List staged: /edg editor marks | Test: /edg editor test</white>
     <gray>Mark and panel changes are written to the template only when you press Save</gray>
   marker:
@@ -245,6 +295,9 @@ editor:
     item: "Item interaction"
     mechanism: "Mechanism"
     room_timer: "Room timer"
+    entry: "Entry point (spawn_point)"
+    kill_target: "Kill target"
+    temp_item: "Temp item"
   input_prompt: "<yellow>Enter the new value for <field> (type cancel to abort)</yellow>"
   input_invalid: "<red>Invalid input: <value></red>"
   field_updated: "<green>Updated <field> -> <value> (applies on save)</green>"
@@ -257,6 +310,12 @@ editor:
     branches: "<white>Branch options</white>"
     help: "<yellow>Mark reference</yellow>"
     exits: "<white>Leave-dungeon points</white>"
+    modules: "<white>All modules (22 types)</white>"
+    module_item: "<white><type></white>"
+    module_count: "<gray>Nodes: <count></gray>"
+    module_no_nodes: "<yellow><type> has no nodes, use Add module</yellow>"
+    module_node: "<gray>Node <id> (<index>/<total>)</gray>"
+    module_back: "<white>Back to module overview</white>"
     exit_mode_direct: "<red>Leaves immediately on step</red>"
     exit_mode_confirm: "<green>Asks for confirmation on step</green>"
     exit_item: "<white>Leave-dungeon point</white>"
@@ -323,6 +382,37 @@ editor:
       case_value: "Candidate case value"
       case_ending: "Ending id (- to clear)"
       seal_regions: "Seal regions"
+      order: "Room order"
+      record_id: "Checkpoint record id"
+      min_players: "Min players"
+      checkpoint: "Linked checkpoint"
+      need_confirm: "Leave confirmation"
+      gate_id: "Gate id"
+      spawn_id: "Spawn point id"
+      range: "Trigger radius"
+      once: "Trigger once"
+      direction: "Trigger direction"
+      click: "Interaction click"
+      loot_table: "Loot table"
+      source: "Boss source"
+      boss_id: "Boss id"
+      option_id: "Option id"
+      time_limit_seconds: "Selection limit (seconds)"
+      text: "Hint text"
+      channel: "Hint channel"
+      all_members: "Teleport whole party"
+      interval_ticks: "Effect interval (ticks)"
+      seconds: "Timer seconds"
+      target: "Kill target"
+      count: "Required count"
+      item: "Item id"
+      amount: "Amount"
+      consume: "Consume item"
+      sound: "Sound"
+      particle: "Particle"
+      radius: "Radius"
+      timing: "Grant timing"
+      hint: "Hint"
     need_confirm_on: "<green>Leave confirmation: ON</green>"
     need_confirm_off: "<red>Leave confirmation: OFF</red>"
 
@@ -386,6 +476,8 @@ console:
   active_world_missing: "Running instance lost its world handle, scheduled for disposal | dungeon=%dungeon% | world=%world%"
   pool_reserve_invalidated: "Reserve world failed inspection and will be rebuilt from template | dungeon=%dungeon% | world=%world%"
   dungeon_config_invalid: "Invalid dungeon config, skipped | dungeon=%dungeon% | error=%error%"
+  dungeon_type_unknown: "Unknown dungeon type, fell back to normal | dungeon=%dungeon% | type=%type%"
+  papi_registered: "[integration] <gray>PlaceholderAPI expansion registered</gray>"
   world_command_deferred: "World command dual-limit deferral | world=%world% | total=%count%"
   parties_load_failed: "Failed to load parties.yml, party snapshots not restored | error=%error%"
   command_map_wrap_failed: "CommandMap wrap failed, plugin-dispatch interception entry inactive | error=%error%"
@@ -444,3 +536,14 @@ debug:
   script_entry_registered: "Entry registered | instance=%instance% | entry=%entry%"
   script_entry_cleared: "Entries removed with instance destroy | instance=%instance% | count=%count%"
   script_stopped: "Script stopped, instance continues | instance=%instance% | script=%script%"
+hud:
+  bossbar_title: "Dungeon %dungeon% | difficulty %difficulty% | type %type% | party %emakidungeon_party_size%"
+  scoreboard_title: "Dungeon %dungeon%"
+  scoreboard_lines:
+    - "Difficulty: %difficulty% | Type: %type%"
+    - "Party size: %emakidungeon_party_size%"
+    - "In party: %emakidungeon_party_in_party%"
+    - "Cleared: %emakidungeon_data_%dungeon%_cleared%"
+    - "Clear count: %emakidungeon_data_%dungeon%_clear_count%"
+    - "Best score: %emakidungeon_data_%dungeon%_best_score%"
+

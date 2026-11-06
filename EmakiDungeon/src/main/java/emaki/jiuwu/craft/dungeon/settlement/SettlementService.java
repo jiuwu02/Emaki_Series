@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceCoordinator;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.party.Party;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
+import emaki.jiuwu.craft.dungeon.placeholder.DungeonRecordStore;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
 import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
 import emaki.jiuwu.craft.dungeon.score.ScoreCalculator;
@@ -56,6 +57,7 @@ public final class SettlementService {
     private final MessageService messages;
     private final DebugLogger debug;
     private final Function<String, DungeonConfig> configOf;
+    private final DungeonRecordStore records;
 
     private volatile ActionBridge actionBridge;
     private volatile ScriptRuntimeManager scriptManager;
@@ -90,7 +92,8 @@ public final class SettlementService {
             RewardBoxService rewardBox,
             MessageService messages,
             DebugLogger debug,
-            Function<String, DungeonConfig> configOf) {
+            Function<String, DungeonConfig> configOf,
+            DungeonRecordStore records) {
         this.plugin = plugin;
         this.dispatcher = dispatcher;
         this.registry = registry;
@@ -106,6 +109,7 @@ public final class SettlementService {
         this.messages = messages;
         this.debug = debug;
         this.configOf = configOf;
+        this.records = records;
     }
 
     public void bindActionBridge(ActionBridge actionBridge) {
@@ -174,7 +178,7 @@ public final class SettlementService {
             for (UUID memberId : members) {
                 combat.put(memberId, snapshot.getOrDefault(memberId, ScoreStats.zero()));
             }
-            scores = ScoreCalculator.calculate(config.scoreWeights(), combat);
+            scores = ScoreCalculator.calculate(config.scoreWeights(), combat, durationMs);
             teamScore = scores.values().stream().mapToDouble(Double::doubleValue).average().orElse(0.0D);
         }
         if (actionBridge != null && failReason == null) {
@@ -274,6 +278,12 @@ public final class SettlementService {
                     boardMembers,
                     System.currentTimeMillis()
             ), config.leaderboardMaxEntries());
+            long completedAt = System.currentTimeMillis();
+            double boardScore = Math.round(teamScore * 10.0D) / 10.0D;
+            for (UUID memberId : members) {
+                records.recordAsync(memberId, instance.dungeonId(), instance.difficulty(),
+                        durationMs, boardScore, completedAt);
+            }
         }
         debug.logRaw("dungeon", (UUID) null,
                 "instance completed | instance=" + instanceId

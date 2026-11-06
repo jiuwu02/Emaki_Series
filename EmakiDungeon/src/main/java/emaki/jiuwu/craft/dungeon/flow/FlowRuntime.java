@@ -64,6 +64,9 @@ public final class FlowRuntime {
     private final Set<String> triggeredSpawns = ConcurrentHashMap.newKeySet();
     private volatile int currentRoomOrder = Integer.MIN_VALUE;
     private volatile String checkpointId = "";
+    private static final int MAX_TIMELINE = 50;
+    private final long createdAt = System.currentTimeMillis();
+    private final List<String> timeline = new ArrayList<>();
 
     public FlowRuntime(DungeonInstance instance,
             FlowDefinition definition,
@@ -214,6 +217,32 @@ public final class FlowRuntime {
         return Map.copyOf(facts);
     }
 
+    public void recordFlowEvent(String kind, String detail) {
+        long elapsed = (System.currentTimeMillis() - createdAt) / 1000L;
+        String line = "+" + elapsed + "s [" + kind + "] " + detail;
+        anchor("flow event | instance=" + instance.instanceId() + " | " + line);
+        synchronized (timeline) {
+            timeline.add(line);
+            if (timeline.size() > MAX_TIMELINE) {
+                timeline.remove(0);
+            }
+        }
+    }
+
+    public List<String> timelineView() {
+        synchronized (timeline) {
+            return List.copyOf(timeline);
+        }
+    }
+
+    public int openedGateCount() {
+        return openedGates.size();
+    }
+
+    public int triggeredSpawnCount() {
+        return triggeredSpawns.size();
+    }
+
     public int factInt(String key, int fallback) {
         Object value = facts.get(key);
         if (value instanceof Number number) {
@@ -312,6 +341,7 @@ public final class FlowRuntime {
             EvalContext checkpointContext = new EvalContext(playerId, payload);
             if (adjudicator.adjudicate(checkpoint.head(), List.of(), checkpointContext, playerId).allowed()) {
                 checkpointId = checkpoint.recordId();
+                recordFlowEvent("checkpoint", "id=" + checkpoint.recordId());
                 fireTrigger(TriggerType.onCheckpoint,
                         playerCtx(playerId, "checkpointId", checkpoint.recordId()));
             }
@@ -376,6 +406,7 @@ public final class FlowRuntime {
                     && controllers != null) {
                 anchor("exit point triggered | instance=" + instance.instanceId()
                         + " | exit=" + exitPoint.head().id());
+                recordFlowEvent("exit_point", "exit=" + exitPoint.head().id());
                 // 退出链路会恢复玩家位置并投递 Bukkit 事件，必须回到主线程执行，
                 // 否则会把实例虚拟线程上的事件派发变成异步调用而被拒绝。
                 dispatcher.runGlobal(plugin, () -> {
@@ -420,7 +451,7 @@ public final class FlowRuntime {
         }
     }
 
-    private String currentRoomId() {
+    public String currentRoomId() {
         for (FlowModules.RoomDef room : definition.rooms()) {
             if (room.order() == currentRoomOrder) {
                 return room.id();
@@ -430,6 +461,7 @@ public final class FlowRuntime {
     }
 
     private void notifyRoomEntered(String roomId, UUID playerId) {
+        recordFlowEvent("room_enter", "room=" + roomId);
         if (controllers != null) {
             controllers.handleRoomEntered(this, roomId, playerId);
         }
@@ -588,6 +620,7 @@ public final class FlowRuntime {
             return;
         }
         markSpawnTriggered(spawnId);
+        recordFlowEvent("spawn_wave", "spawn=" + spawnId);
         if (controllers != null && !spawnPoint.waves().isEmpty()) {
             controllers.spawnWave(this, spawnId, 0, playerId);
         }
@@ -706,6 +739,7 @@ public final class FlowRuntime {
                 continue;
             }
             openedGates.add(gate.gateId());
+            recordFlowEvent("gate_open", "gate=" + gate.gateId());
             if (controllers != null) {
                 controllers.openGate(this, gate.gateId(), playerId);
             }
@@ -746,6 +780,7 @@ public final class FlowRuntime {
         }
         anchor("room timer fired | instance=" + instance.instanceId()
                 + " | timer=" + roomTimer.head().id());
+        recordFlowEvent("room_timer", "timer=" + roomTimer.head().id());
         if (instance.commands() == null) {
             anchor("room timer aborted | instance=" + instance.instanceId()
                     + " | reason=commands_null");
@@ -795,6 +830,7 @@ public final class FlowRuntime {
                 }
             }
             case "fail" -> {
+                recordFlowEvent("fail", "reason=" + action.param("reason", "scripted"));
                 if (controllers != null) {
                     controllers.triggerFail(this, action.param("reason", "scripted"));
                 }
@@ -803,6 +839,7 @@ public final class FlowRuntime {
                 anchor("complete action | instance=" + instance.instanceId()
                         + " | cause=" + action.param("cause", "flow")
                         + " | controllers=" + (controllers != null));
+                recordFlowEvent("complete", "cause=" + action.param("cause", "flow"));
                 if (controllers != null) {
                     controllers.triggerComplete(this, action.param("cause", "flow"));
                 }

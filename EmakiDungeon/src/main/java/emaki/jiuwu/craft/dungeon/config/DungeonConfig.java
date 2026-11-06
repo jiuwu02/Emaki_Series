@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
 import emaki.jiuwu.craft.dungeon.score.ScoreWeights;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -36,10 +37,18 @@ public record DungeonConfig(
         List<Integer> limitsMonthlyWeeks,
         int cooldownSeconds,
         int leaderboardMaxEntries,
-        List<String> settlementCommands
+        List<String> settlementCommands,
+        String type,
+        boolean hudEnabled,
+        String hudChannel,
+        ConditionBlock unlock,
+        TicketRule ticket
 ) {
 
     public record DifficultyTuning(double mobMultiplier, double dropMultiplier) {
+    }
+
+    public record TicketRule(boolean enabled, String item, int amount) {
     }
 
     public record DailyWindow(int startMinute, int endMinute) {
@@ -98,7 +107,12 @@ public record DungeonConfig(
                 List.of(),
                 0,
                 100,
-                List.of()
+                List.of(),
+                "normal",
+                false,
+                "bossbar",
+                ConditionBlock.empty(),
+                new TicketRule(false, "", 1)
         );
     }
 
@@ -169,12 +183,18 @@ public record DungeonConfig(
         if (timerMessages.isEmpty()) {
             timerMessages = new ArrayList<>(List.of(300, 60, 10));
         }
+        double scoreTimeWeight = Math.max(0.0D,
+                section.getDouble("score.time-weight", 0.0D));
+        double scoreTargetTime = Math.max(0.0D,
+                section.getDouble("score.target-time-seconds", 0.0D));
         ScoreWeights scoreWeights = new ScoreWeights(
                 section.getDouble("score.damage-weight", 1.0D),
                 section.getDouble("score.kill-weight", 1.0D),
                 section.getDouble("score.heal-weight", 1.0D),
                 section.getDouble("score.death-weight", 1.0D),
                 section.getDouble("score.defense-weight", 1.0D),
+                scoreTimeWeight,
+                scoreTargetTime,
                 section.getDouble("score.max", 100.0D)
         );
         if (scoreWeights.max() <= 0.0D) {
@@ -227,6 +247,20 @@ public record DungeonConfig(
                 settlementCommands.add(String.valueOf(raw));
             }
         }
+        String type = section.getString("type", "normal");
+        if (type == null || type.isBlank()) {
+            type = "normal";
+        }
+        type = type.trim();
+        boolean hudEnabled = section.getBoolean("hud.enabled", false);
+        String hudChannel = section.getString("hud.channel", "bossbar");
+        if (!"bossbar".equals(hudChannel) && !"scoreboard".equals(hudChannel)) {
+            hudChannel = "bossbar";
+        }
+        ConditionBlock unlock = ConditionBlock.fromConfig(section.getSection("unlock"), true, false);
+        boolean ticketEnabled = section.getBoolean("ticket.enabled", false);
+        String ticketItem = section.getString("ticket.item", "");
+        int ticketAmount = Math.max(1, section.getInt("ticket.amount", 1));
         return new DungeonConfig(
                 section.getString("display-name", "dungeon"),
                 poolMaxWorlds,
@@ -253,7 +287,12 @@ public record DungeonConfig(
                 cooldownSeconds == null || cooldownSeconds < 0 ? 0 : cooldownSeconds,
                 leaderboardMaxEntries == null || leaderboardMaxEntries < 1
                         ? 100 : leaderboardMaxEntries,
-                List.copyOf(settlementCommands)
+                List.copyOf(settlementCommands),
+                type,
+                hudEnabled,
+                hudChannel,
+                unlock,
+                new TicketRule(ticketEnabled, ticketItem, ticketAmount)
         );
     }
 
@@ -309,6 +348,16 @@ public record DungeonConfig(
         levels.put("rare", 3);
         levels.put("epic", 5);
         return levels;
+    }
+
+    public DungeonConfig withType(String type) {
+        return new DungeonConfig(displayName, poolMaxWorlds, poolWarmReserves,
+                prepareWindowSeconds, waitChannel, waitTimeoutSeconds, difficulties,
+                dropModeAllowed, commandsAllow, respawnCounts, timeoutSeconds, timerMessages,
+                scoreWeights, dropLevels, dropDefaultMode, difficultyTunings, limitsDaily,
+                limitsDailyWindow, limitsWeeklyCount, limitsWeeklyDays, limitsMonthly,
+                limitsMonthlyWeeks, cooldownSeconds, leaderboardMaxEntries,
+                settlementCommands, type, hudEnabled, hudChannel, unlock, ticket);
     }
 
     public double dropMultiplier(String difficulty) {

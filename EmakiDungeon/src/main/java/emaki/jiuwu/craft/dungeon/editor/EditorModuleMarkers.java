@@ -38,29 +38,13 @@ public final class EditorModuleMarkers {
     private static final Quaternionf ROT_Z = new Quaternionf().rotationZ((float) (Math.PI / 2.0D));
     private static final Quaternionf ROT_Y = new Quaternionf().rotationY((float) (-Math.PI / 2.0D));
 
-    /** 模块类型 -> flow.yml 段名，顺序即渲染顺序。 */
+    /** 模块类型 -> flow.yml 段名，顺序即渲染顺序；与 EditorModules 的 22 节单一描述表同源。 */
     private static final Map<String, String> MODULE_SECTIONS = new LinkedHashMap<>();
 
     static {
-        MODULE_SECTIONS.put("spawn", "spawn_points");
-        MODULE_SECTIONS.put("room", "rooms");
-        MODULE_SECTIONS.put("gate", "gates");
-        MODULE_SECTIONS.put("option", "options");
-        MODULE_SECTIONS.put("trigger", "trigger_zones");
-        MODULE_SECTIONS.put("chest", "rewards");
-        MODULE_SECTIONS.put("exit", "exit_points");
-        MODULE_SECTIONS.put("checkpoint", "checkpoints");
-        MODULE_SECTIONS.put("respawn", "respawn_points");
-        MODULE_SECTIONS.put("teleport", "teleport_zones");
-        MODULE_SECTIONS.put("boundary", "boundary_zones");
-        MODULE_SECTIONS.put("effect", "effect_zones");
-        MODULE_SECTIONS.put("hint", "hints");
-        MODULE_SECTIONS.put("fx", "fx_points");
-        MODULE_SECTIONS.put("boss", "boss_points");
-        MODULE_SECTIONS.put("block", "block_interactions");
-        MODULE_SECTIONS.put("item", "item_interactions");
-        MODULE_SECTIONS.put("mechanism", "mechanisms");
-        MODULE_SECTIONS.put("room_timer", "room_timers");
+        for (EditorModules.ModuleSpec spec : EditorModules.all()) {
+            MODULE_SECTIONS.put(spec.type(), spec.section());
+        }
     }
 
     private enum Axis {
@@ -152,29 +136,41 @@ public final class EditorModuleMarkers {
 
     private void renderSection(World world, EditorSession session, YamlTextDocument view,
             String type, String section, List<Entity> out) {
-        Object raw = view.value(section);
-        if (!(raw instanceof Map<?, ?> modules)) {
+        EditorModules.ModuleSpec spec = EditorModules.of(type);
+        if (spec != null && spec.coord() == EditorModules.Coord.NONE) {
             return;
         }
-        for (Map.Entry<?, ?> moduleEntry : modules.entrySet()) {
+        Object raw = view.value(section);
+        if (!(raw instanceof Map<?, ?> value)) {
+            return;
+        }
+        if (spec != null && spec.single()) {
+            renderModule(world, session, type, section, value, out);
+            return;
+        }
+        for (Map.Entry<?, ?> moduleEntry : value.entrySet()) {
             String moduleId = String.valueOf(moduleEntry.getKey());
             if (!(moduleEntry.getValue() instanceof Map<?, ?> module)) {
                 plugin.getLogger().info("[editor] 跳过模块标注 | section=" + section
                         + " | id=" + moduleId + " | 原因=节点不是映射");
                 continue;
             }
-            Box box = boxOf(module);
-            if (box == null) {
-                plugin.getLogger().info("[editor] 跳过模块标注 | section=" + section
-                        + " | id=" + moduleId + " | 原因=缺少 location/region");
-                continue;
-            }
-            List<Entity> edges = spawnEdges(world, session, box, colorOf(type));
-            out.addAll(edges);
-            Entity label = spawnLabel(world, session, box, type, moduleId);
-            if (label != null) {
-                out.add(label);
-            }
+            renderModule(world, session, type, moduleId, module, out);
+        }
+    }
+
+    private void renderModule(World world, EditorSession session, String type, String moduleId,
+            Map<?, ?> module, List<Entity> out) {
+        Box box = boxOf(module);
+        if (box == null) {
+            plugin.getLogger().info("[editor] 跳过模块标注 | type=" + type
+                    + " | id=" + moduleId + " | 原因=缺少 location/region");
+            return;
+        }
+        out.addAll(spawnEdges(world, session, box, colorOf(type)));
+        Entity label = spawnLabel(world, session, box, type, moduleId);
+        if (label != null) {
+            out.add(label);
         }
     }
 
@@ -303,6 +299,18 @@ public final class EditorModuleMarkers {
             case "trigger" -> Color.ORANGE;
             case "chest" -> Color.fromRGB(0xFFD700);
             case "exit" -> Color.RED;
+            case "entry", "respawn" -> Color.fromRGB(0x7FFFD4);
+            case "checkpoint" -> Color.fromRGB(0x00BFFF);
+            case "boss" -> Color.fromRGB(0x8B0000);
+            case "block" -> Color.fromRGB(0xA0522D);
+            case "hint" -> Color.fromRGB(0xFF69B4);
+            case "teleport" -> Color.fromRGB(0x9400D3);
+            case "boundary" -> Color.fromRGB(0x696969);
+            case "effect" -> Color.fromRGB(0x32CD32);
+            case "mechanism" -> Color.fromRGB(0x4682B4);
+            case "room_timer" -> Color.fromRGB(0xFF8C00);
+            case "item" -> Color.fromRGB(0xDAA520);
+            case "fx" -> Color.fromRGB(0xE0FFFF);
             default -> Color.WHITE;
         };
     }

@@ -30,7 +30,11 @@ public record AppConfig(
         int monitorMsptP95EnterMs,
         int monitorMemorySlopeMbPerMin,
         int monitorQueueBacklogSeconds,
-        Map<String, List<String>> actionPipelines
+        Map<String, List<String>> actionPipelines,
+        boolean matchmakingEnabled,
+        int matchmakingTargetSize,
+        int matchmakingRecruitTtlSeconds,
+        int reconnectGraceSeconds
 ) {
     static final String CURRENT_VERSION = "1.0.0";
 
@@ -58,7 +62,11 @@ public record AppConfig(
                 200,
                 64,
                 5,
-                Map.of()
+                Map.of(),
+                true,
+                0,
+                300,
+                0
         );
     }
 
@@ -100,7 +108,11 @@ public record AppConfig(
                 section.getInt("monitor.mspt-p95-enter-ms", defaults.monitorMsptP95EnterMs()),
                 section.getInt("monitor.memory-slope-mb-per-min", defaults.monitorMemorySlopeMbPerMin()),
                 section.getInt("monitor.queue-backlog-seconds", defaults.monitorQueueBacklogSeconds()),
-                Map.copyOf(actionPipelines)
+                Map.copyOf(actionPipelines),
+                section.getBoolean("matchmaking.enabled", defaults.matchmakingEnabled()),
+                section.getInt("matchmaking.target-size", defaults.matchmakingTargetSize()),
+                section.getInt("matchmaking.recruit-ttl-seconds", defaults.matchmakingRecruitTtlSeconds()),
+                section.getInt("recovery.reconnect-grace-seconds", defaults.reconnectGraceSeconds())
         );
     }
 }

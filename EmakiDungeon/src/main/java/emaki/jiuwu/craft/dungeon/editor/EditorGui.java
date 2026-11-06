@@ -55,11 +55,14 @@ public final class EditorGui implements Listener {
     private static final int SLOT_WAVES = 11;
     private static final int SLOT_GATES = 12;
     private static final int SLOT_BRANCHES = 13;
+    private static final int SLOT_MODULES = 16;
+    private static final int MODULE_INFO_SLOT = 44;
     private static final int OPTION_PAGE_SIZE = 27;
     private static final int LIST_PAGE_SIZE = 45;
 
     enum Panel {
-        MAIN, META, WAVES, SPAWN, WAVE, GATES, GATE, BRANCHES, OPTION, CASE, EXITS
+        MAIN, META, WAVES, SPAWN, WAVE, GATES, GATE, BRANCHES, OPTION, CASE, EXITS,
+        MODULES, MODULE_FIELDS
     }
 
     static final class EditorHolder implements InventoryHolder {
@@ -160,6 +163,8 @@ public final class EditorGui implements Listener {
             case OPTION -> renderOption(inventory, session, holder);
             case CASE -> renderCase(inventory, session, holder);
             case EXITS -> renderExitList(inventory, session, holder);
+            case MODULES -> renderModules(inventory, session, holder);
+            case MODULE_FIELDS -> renderModuleFields(inventory, session, holder);
             default -> {
             }
         }
@@ -174,6 +179,7 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BRANCHES, navItem(Material.SPRUCE_SAPLING, "editor.gui.branches"));
         inventory.setItem(SLOT_HELP, navItem(Material.COMPASS, "editor.gui.help"));
         inventory.setItem(SLOT_EXITS, navItem(Material.RED_BED, "editor.gui.exits"));
+        inventory.setItem(SLOT_MODULES, navItem(Material.CHEST, "editor.gui.modules"));
         inventory.setItem(SLOT_POS1, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos1",
                 "coord", pointText(session.pos1())));
         inventory.setItem(SLOT_POS2, navItem(Material.LIME_TERRACOTTA, "editor.gui.pos2",
@@ -389,6 +395,95 @@ public final class EditorGui implements Listener {
         inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_option"));
     }
 
+    private void renderModules(Inventory inventory, EditorSession session, EditorHolder holder) {
+        YamlTextDocument view = session.flowDoc().view();
+        List<EditorModules.ModuleSpec> specs = EditorModules.all();
+        for (int index = 0; index < specs.size(); index++) {
+            EditorModules.ModuleSpec spec = specs.get(index);
+            int count = moduleNodeIds(view, spec).size();
+            String label = messages.message("editor.marker." + spec.type(), Map.of());
+            String countLine = messages.message("editor.gui.module_count",
+                    Map.of("count", String.valueOf(count)));
+            inventory.setItem(index, item(Material.CHEST, "editor.gui.module_item",
+                    List.of(countLine, spec.section()), "type", label));
+        }
+        renderNav(inventory, holder, 1, null);
+        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.back_main"));
+    }
+
+    private void renderModuleFields(Inventory inventory, EditorSession session, EditorHolder holder) {
+        EditorModules.ModuleSpec spec = EditorModules.of(holder.path[0]);
+        if (spec == null) {
+            return;
+        }
+        YamlTextDocument view = session.flowDoc().view();
+        List<String> nodeIds = moduleNodeIds(view, spec);
+        int pages = Math.max(1, nodeIds.size());
+        if (nodeIds.isEmpty()) {
+            inventory.setItem(MODULE_INFO_SLOT, navItem(Material.BARRIER,
+                    "editor.gui.module_no_nodes", "type", spec.section()));
+        } else {
+            int nodeIndex = Math.max(0, Math.min(holder.page, nodeIds.size() - 1));
+            String nodeId = nodeIds.get(nodeIndex);
+            List<EditorModules.Field> fields = spec.fields();
+            for (int index = 0; index < fields.size(); index++) {
+                EditorModules.Field field = fields.get(index);
+                Object current = view.value(moduleFieldPath(spec, nodeId, field));
+                inventory.setItem(index, item(materialOf(field.kind()), fieldKey(field.key()),
+                        List.of(valueLine(textOf(current, "-")))));
+            }
+            inventory.setItem(MODULE_INFO_SLOT, navItem(Material.BOOK, "editor.gui.module_node",
+                    "id", nodeId.isEmpty() ? spec.section() : nodeId,
+                    "index", String.valueOf(nodeIndex + 1),
+                    "total", String.valueOf(nodeIds.size())));
+        }
+        renderNav(inventory, holder, pages, Material.CHEST);
+        inventory.setItem(SLOT_BACK, navItem(Material.OAK_DOOR, "editor.gui.module_back"));
+    }
+
+    private List<String> moduleNodeIds(YamlTextDocument view, EditorModules.ModuleSpec spec) {
+        Object raw = view.value(spec.section());
+        if (!(raw instanceof Map<?, ?> map)) {
+            return new ArrayList<>();
+        }
+        if (spec.single()) {
+            return new ArrayList<>(List.of(""));
+        }
+        List<String> ids = new ArrayList<>(map.size());
+        for (Object key : map.keySet()) {
+            ids.add(String.valueOf(key));
+        }
+        return ids;
+    }
+
+    private String[] moduleFieldPath(EditorModules.ModuleSpec spec, String nodeId,
+            EditorModules.Field field) {
+        int offset = spec.single() ? 1 : 2;
+        String[] result = new String[offset + field.path().length];
+        result[0] = spec.section();
+        if (!spec.single()) {
+            result[1] = nodeId;
+        }
+        System.arraycopy(field.path(), 0, result, offset, field.path().length);
+        return result;
+    }
+
+    private Material materialOf(EditorModules.Kind kind) {
+        return switch (kind) {
+            case TEXT -> Material.PAPER;
+            case NUMBER, DECIMAL -> Material.CLOCK;
+            case BOOLEAN -> Material.LEVER;
+        };
+    }
+
+    private Double parseDoubleOrNull(String text) {
+        try {
+            return Double.parseDouble(Texts.trim(text));
+        } catch (NumberFormatException exception) {
+            return null;
+        }
+    }
+
     private void renderNav(Inventory inventory, EditorHolder holder, int pages, Material actionMaterial) {
         if (pages > 1) {
             inventory.setItem(SLOT_PREV, navItem(Material.ARROW, "editor.gui.prev"));
@@ -544,6 +639,8 @@ public final class EditorGui implements Listener {
             case OPTION -> handleOption(player, holder, session, slot);
             case CASE -> handleCase(player, holder, session, slot);
             case EXITS -> handleExitList(player, holder, session, slot);
+            case MODULES -> handleModules(player, holder, session, slot);
+            case MODULE_FIELDS -> handleModuleFields(player, holder, session, slot);
             default -> {
             }
         }
@@ -555,6 +652,7 @@ public final class EditorGui implements Listener {
             case SLOT_WAVES -> open(player, Panel.WAVES, new String[0], 0);
             case SLOT_GATES -> open(player, Panel.GATES, new String[0], 0);
             case SLOT_BRANCHES -> open(player, Panel.BRANCHES, new String[0], 0);
+            case SLOT_MODULES -> open(player, Panel.MODULES, new String[0], 0);
             case SLOT_HELP -> messages.send(player, "editor.help_mark", Map.of());
             case SLOT_SAVE -> {
                 player.closeInventory();
@@ -933,6 +1031,69 @@ public final class EditorGui implements Listener {
             return false;
         }
         return true;
+    }
+
+    private void handleModules(Player player, EditorHolder holder, EditorSession session, int slot) {
+        if (handleCommonNav(player, holder, session, slot, Panel.MAIN)) {
+            return;
+        }
+        List<EditorModules.ModuleSpec> specs = EditorModules.all();
+        if (slot < 0 || slot >= specs.size()) {
+            return;
+        }
+        open(player, Panel.MODULE_FIELDS, new String[] { specs.get(slot).type() }, 0);
+    }
+
+    private void handleModuleFields(Player player, EditorHolder holder, EditorSession session, int slot) {
+        EditorModules.ModuleSpec spec = EditorModules.of(holder.path[0]);
+        if (spec == null) {
+            return;
+        }
+        YamlTextDocument view = session.flowDoc().view();
+        List<String> nodeIds = moduleNodeIds(view, spec);
+        if (slot == SLOT_ACTION) {
+            service.mark(player, spec.type(), null);
+            reopen(player, holder);
+            return;
+        }
+        if (slot == SLOT_NEXT && holder.page + 1 >= nodeIds.size()) {
+            return;
+        }
+        if (handleCommonNav(player, holder, session, slot, Panel.MODULES)) {
+            return;
+        }
+        if (nodeIds.isEmpty()) {
+            return;
+        }
+        int nodeIndex = Math.max(0, Math.min(holder.page, nodeIds.size() - 1));
+        String nodeId = nodeIds.get(nodeIndex);
+        List<EditorModules.Field> fields = spec.fields();
+        if (slot < 0 || slot >= fields.size()) {
+            return;
+        }
+        EditorModules.Field field = fields.get(slot);
+        String[] fieldPath = moduleFieldPath(spec, nodeId, field);
+        if (field.kind() == EditorModules.Kind.BOOLEAN) {
+            boolean current = !Boolean.FALSE.equals(view.value(fieldPath));
+            boolean next = !current;
+            applyEdit(player, holder, session, false,
+                    doc -> doc.set(next, fieldPath), field.key(), String.valueOf(next));
+            return;
+        }
+        prompt(player, holder, field.key(), text -> {
+            String value = Texts.trim(text);
+            Object parsed = switch (field.kind()) {
+                case NUMBER -> parseIntOrNull(value);
+                case DECIMAL -> parseDoubleOrNull(value);
+                default -> value;
+            };
+            if (parsed == null) {
+                invalid(player, holder, value);
+                return;
+            }
+            applyEdit(player, holder, session, false,
+                    doc -> doc.set(parsed, fieldPath), field.key(), String.valueOf(parsed));
+        });
     }
 
     private boolean handleCommonNav(Player player, EditorHolder holder, EditorSession session, int slot,

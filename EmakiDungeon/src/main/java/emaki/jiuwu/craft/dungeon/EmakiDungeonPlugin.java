@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
 import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -36,6 +37,7 @@ import emaki.jiuwu.craft.dungeon.action.ActionBridge;
 import emaki.jiuwu.craft.dungeon.api.EmakiDungeonApi;
 import emaki.jiuwu.craft.dungeon.apiimpl.ServiceBackedDungeonBridge;
 import emaki.jiuwu.craft.dungeon.audit.AuditService;
+import emaki.jiuwu.craft.dungeon.bridge.DungeonBetterHudBridge;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeGuiService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
 import emaki.jiuwu.craft.dungeon.command.DungeonCommandAdapter;
@@ -54,10 +56,12 @@ import emaki.jiuwu.craft.dungeon.flow.RegionTracker;
 import emaki.jiuwu.craft.dungeon.guard.BoundaryGuard;
 import emaki.jiuwu.craft.dungeon.guard.CommandGuard;
 import emaki.jiuwu.craft.dungeon.guard.TeleportGuard;
+import emaki.jiuwu.craft.dungeon.hud.InstanceHudService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.isolation.MessageIsolation;
 import emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore;
 import emaki.jiuwu.craft.dungeon.limit.LimitService;
+import emaki.jiuwu.craft.dungeon.match.MatchmakingService;
 import emaki.jiuwu.craft.dungeon.listener.DungeonChatListener;
 import emaki.jiuwu.craft.dungeon.listener.DungeonLifecycleListener;
 import emaki.jiuwu.craft.dungeon.listener.FlowEventListeners;
@@ -69,6 +73,8 @@ import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceSlotAllocator;
 import emaki.jiuwu.craft.dungeon.party.PartyService;
 import emaki.jiuwu.craft.dungeon.party.PartiesStore;
+import emaki.jiuwu.craft.dungeon.placeholder.DungeonPlaceholderExpansion;
+import emaki.jiuwu.craft.dungeon.placeholder.DungeonRecordStore;
 import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
 import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui;
 import emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService;
@@ -81,7 +87,10 @@ import emaki.jiuwu.craft.dungeon.snapshot.SnapshotsStore;
 import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
 import emaki.jiuwu.craft.dungeon.storage.InstancesStore;
 import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.ticket.TicketService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.dungeon.type.DungeonType;
+import emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
@@ -102,6 +111,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private static final long SHUTDOWN_DRAIN_SECONDS = 5L;
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
     private static final String API_VERSION = "1.0.0";
+    private static final int BSTATS_PLUGIN_ID = 35153;
     private static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
 
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
@@ -138,6 +148,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private PerformanceMonitor performanceMonitor;
     private InstanceRegistry registry;
     private Function<String, DungeonConfig> configOf;
+    private DungeonTypeRegistry typeRegistry;
+    private DungeonRecordStore records;
+    private DungeonPlaceholderExpansion placeholderExpansion;
+    private InstanceHudService hud;
+    private MatchmakingService matchmaking;
+    private DungeonBetterHudBridge betterHudBridge;
+    private BStatsRegistration metrics;
     private boolean runtimeInitialized;
     private final Set<String> registeredDungeonPermissions =
             ConcurrentHashMap.newKeySet();
@@ -174,6 +191,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         bootstrapInstanceRuntime();
         registerCommandHandler();
         installPublicApi();
+        ensureBetterHudBridge();
+        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
         runtimeInitialized = true;
         messageService.info("console.plugin_starting");
         messageService.info("console.plugin_started");
@@ -188,9 +207,25 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         CompletableFuture<Boolean> rewardBoxDrain = rewardBox == null
                 ? CompletableFuture.completedFuture(Boolean.TRUE)
                 : rewardBox.drainWrites();
+        if (metrics != null) {
+            metrics.close();
+            metrics = null;
+        }
+        if (betterHudBridge != null) {
+            betterHudBridge.shutdown();
+            betterHudBridge = null;
+        }
+        if (matchmaking != null) {
+            matchmaking.shutdown();
+            matchmaking = null;
+        }
         if (challenge != null) {
             challenge.shutdown();
             challenge = null;
+        }
+        if (hud != null) {
+            hud.shutdown();
+            hud = null;
         }
         if (regionTracker != null) {
             regionTracker.shutdown();
@@ -262,6 +297,12 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         recovery = null;
         snapshots = null;
         router = null;
+        typeRegistry = null;
+        if (placeholderExpansion != null) {
+            placeholderExpansion.unregister();
+            placeholderExpansion = null;
+        }
+        records = null;
         if (bridge != null) {
             EmakiDungeonApi.uninstall(bridge);
             bridge = null;
@@ -350,6 +391,30 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EmakiDungeonApi.install(bridge);
     }
 
+    private void ensurePlaceholderExpansion() {
+        if (placeholderExpansion != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return;
+        }
+        placeholderExpansion = new DungeonPlaceholderExpansion(this, parties, records);
+        placeholderExpansion.register();
+        messageService.info("console.papi_registered");
+    }
+
+    private void ensureBetterHudBridge() {
+        if (betterHudBridge != null) {
+            return;
+        }
+        if (!Bukkit.getPluginManager().isPluginEnabled("BetterHUD")) {
+            return;
+        }
+        betterHudBridge = new DungeonBetterHudBridge(this, registry, parties);
+        getServer().getPluginManager().registerEvents(betterHudBridge, this);
+        betterHudBridge.register();
+    }
+
     private void bootstrapInstanceRuntime() {
         AppConfig appConfig = appConfigLoader.current();
         if (appConfig.debugEnabled()) {
@@ -360,12 +425,18 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         File worldContainer = Bukkit.getWorldContainer();
         TemplateRepository templates = new TemplateRepository(this, getDataFolder());
 
+        typeRegistry = new DungeonTypeRegistry((dungeon, raw) ->
+                messageService.warning("console.dungeon_type_unknown", Map.of(
+                        "dungeon", dungeon,
+                        "type", raw)));
         Map<String, DungeonConfig> configCache = new ConcurrentHashMap<>();
         List<String> dungeons = new ArrayList<>();
         templates.ensureDefaultConfigs();
         for (String dungeonId : templates.discoverDungeons()) {
             try {
-                configCache.put(dungeonId, templates.loadConfig(dungeonId));
+                DungeonConfig loaded = templates.loadConfig(dungeonId);
+                DungeonType resolved = typeRegistry.resolve(loaded.type(), dungeonId);
+                configCache.put(dungeonId, loaded.withType(resolved.id()));
                 dungeons.add(dungeonId);
             } catch (RuntimeException exception) {
                 messageService.warning("console.dungeon_config_invalid", Map.of(
@@ -433,15 +504,18 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                         });
         leaderboard = new emaki.jiuwu.craft.dungeon.leaderboard.LeaderboardStore(
                 this, dispatcher, getDataFolder());
+        records = new emaki.jiuwu.craft.dungeon.placeholder.DungeonRecordStore(
+                this, dispatcher, getDataFolder());
 
         PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
         parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
                 appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
         parties.bindScriptManager(scriptManager);
         parties.start();
+        ensurePlaceholderExpansion();
 
         recovery = new RecoveryService(snapshots, registry, parties, messageService, debugLogger(),
-                teleportGuard::permit);
+                teleportGuard::permit, appConfigSupplier);
         recovery.bindScriptManager(scriptManager);
         recovery.bindAudit(auditService);
 
@@ -450,6 +524,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         coordinator.bindScriptManager(scriptManager);
         coordinator.bindAudit(auditService);
 
+        hud = new InstanceHudService(this, dispatcher, registry, configOf, languageLoader);
+        hud.start();
+
+        matchmaking = new MatchmakingService(this, dispatcher, messageService, parties,
+                templates, appConfigSupplier);
+        matchmaking.start();
+
         guiService = new GuiService(this, dispatcher, coreLib.asyncTaskScheduler(),
                 coreLib.performanceMonitor(), coreLib.guiBackend());
         chatInputService = new ChatInputService(this, dispatcher);
@@ -457,12 +538,14 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 chatInputService, cloner, disposer, templates, editorStates, worldContainer, getDataFolder());
         editorService.bindPool(pool);
         editorService.bindConfigCache(configCache);
+        editorService.bindTypeRegistry(typeRegistry);
         EditorGui editorGui =
                 new emaki.jiuwu.craft.dungeon.editor.EditorGui(this, editorService, messageService,
                         chatInputService);
         editorService.bindGui(editorGui);
         editorService.bindMarkers(new emaki.jiuwu.craft.dungeon.editor.EditorModuleMarkers(
                 this, dispatcher, messageService));
+        TicketService ticketService = new TicketService(this, dispatcher, getDataFolder());
         ChallengeGuiService challengeGui = new ChallengeGuiService(this, guiService, languageLoader);
         challenge = new ChallengeService(this, dispatcher, messageService, languageLoader, debugLogger(),
                 parties, allocator, pool, registry, snapshots, challengeGui, configOf, teleportGuard::permit);
@@ -470,6 +553,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         challenge.bindScriptManager(scriptManager);
         challenge.bindAudit(auditService);
         challenge.bindMonitor(performanceMonitor);
+        challenge.bindTicketService(ticketService);
         challenge.start();
         editorService.bindChallenge(challenge);
         exitService = new emaki.jiuwu.craft.dungeon.exit.InstanceExitService(this, dispatcher,
@@ -507,7 +591,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 this, dispatcher, registry, parties, scoreTracker, snapshots, recovery,
                 rewardChests, leaderboard, coordinator,
                 new emaki.jiuwu.craft.dungeon.settlement.SettlementCommandRunner(debugLogger()),
-                rewardBox, messageService, debugLogger(), configOf);
+                rewardBox, messageService, debugLogger(), configOf, records);
         settlement.bindActionBridge(actionBridge);
         settlement.bindScriptManager(scriptManager);
         settlement.bindAudit(auditService);
@@ -539,9 +623,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         router.bindRewardBox(rewardBoxGui);
         router.bindEditor(editorService);
         router.bindExitService(exitService);
+        router.bindMatchmaking(matchmaking);
+        router.bindStateService(stateService);
 
         getServer().getPluginManager().registerEvents(
-                new DungeonLifecycleListener(recovery, parties, scriptManager), this);
+                new DungeonLifecycleListener(recovery, parties, scriptManager, ticketService), this);
         getServer().getPluginManager().registerEvents(guiService, this);
         getServer().getPluginManager().registerEvents(chatInputService, this);
         getServer().getPluginManager().registerEvents(editorService, this);
@@ -588,7 +674,9 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         templates.ensureDefaultConfigs();
         for (String dungeonId : templates.discoverDungeons()) {
             try {
-                configCache.put(dungeonId, templates.loadConfig(dungeonId));
+                DungeonConfig loaded = templates.loadConfig(dungeonId);
+                DungeonType resolved = typeRegistry.resolve(loaded.type(), dungeonId);
+                configCache.put(dungeonId, loaded.withType(resolved.id()));
             } catch (RuntimeException exception) {
                 messageService.warning("console.dungeon_config_invalid", Map.of(
                         "dungeon", dungeonId,

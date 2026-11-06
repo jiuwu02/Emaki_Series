@@ -1,6 +1,8 @@
 package emaki.jiuwu.craft.dungeon.state;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -12,6 +14,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 
@@ -81,6 +84,7 @@ public final class PlayerStateService {
 
     private final Map<String, LifeState> states = new ConcurrentHashMap<>();
     private final Set<UUID> spectators = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, UUID> spectateTargets = new ConcurrentHashMap<>();
     private final Map<String, Set<Integer>> warnedMarks = new ConcurrentHashMap<>();
 
     private TaskToken tickTask = TaskToken.UNAVAILABLE;
@@ -119,6 +123,7 @@ public final class PlayerStateService {
         tickTask.cancel();
         states.clear();
         spectators.clear();
+        spectateTargets.clear();
     }
 
     public void register(DungeonInstance instance) {
@@ -255,6 +260,55 @@ public final class PlayerStateService {
 
     public boolean isSpectator(UUID playerId) {
         return playerId != null && spectators.contains(playerId);
+    }
+
+    public void switchSpectateTarget(UUID playerId, boolean next) {
+        dispatcher.runEntity(plugin, Bukkit.getPlayer(playerId), () -> {
+            Player spectator = Bukkit.getPlayer(playerId);
+            if (spectator == null || !isSpectator(playerId)) {
+                return;
+            }
+            String pointer = recovery.pointerOf(playerId);
+            if (pointer == null) {
+                return;
+            }
+            DungeonInstance instance = registry.get(pointer);
+            World world = instance == null ? null : Bukkit.getWorld(pointer);
+            if (world == null) {
+                messages.send(spectator, "command.spectate.no_target", Map.of());
+                return;
+            }
+            List<Player> candidates = new ArrayList<>();
+            for (Player member : world.getPlayers()) {
+                if (!isSpectator(member.getUniqueId())) {
+                    candidates.add(member);
+                }
+            }
+            if (candidates.isEmpty()) {
+                messages.send(spectator, "command.spectate.no_target", Map.of());
+                return;
+            }
+            candidates.sort(Comparator.<Player, String>comparing(member -> member.getUniqueId().toString()));
+            int index = -1;
+            Entity current = spectator.getSpectatorTarget();
+            for (int i = 0; i < candidates.size(); i++) {
+                if (candidates.get(i).equals(current)) {
+                    index = i;
+                    break;
+                }
+            }
+            int size = candidates.size();
+            int target = next ? (index + 1) % size : (index - 1 + size) % size;
+            Player selected = candidates.get(target);
+            try {
+                spectator.setSpectatorTarget(selected);
+            } catch (Throwable ignored) {
+                return;
+            }
+            spectateTargets.put(playerId, selected.getUniqueId());
+            messages.send(spectator, next ? "command.spectate.next" : "command.spectate.prev",
+                    Map.of("target", selected.getName()));
+        }, null);
     }
 
     public void maybeFail(DungeonInstance instance, String reason) {
@@ -434,6 +488,20 @@ public final class PlayerStateService {
             if (!isSpectator(member.getUniqueId())) {
                 continue;
             }
+            UUID lockedId = spectateTargets.get(member.getUniqueId());
+            if (lockedId != null) {
+                Player locked = Bukkit.getPlayer(lockedId);
+                if (locked != null && world.equals(locked.getWorld()) && !isSpectator(lockedId)) {
+                    try {
+                        if (member.getSpectatorTarget() != locked) {
+                            member.setSpectatorTarget(locked);
+                        }
+                    } catch (Throwable ignored) {
+                    }
+                    continue;
+                }
+                spectateTargets.remove(member.getUniqueId());
+            }
             try {
                 if (member.getSpectatorTarget() != target) {
                     member.setSpectatorTarget(target);
@@ -456,12 +524,14 @@ public final class PlayerStateService {
         Collection<? extends Player> players = world.getPlayers();
         for (Player player : players) {
             spectators.remove(player.getUniqueId());
+            spectateTargets.remove(player.getUniqueId());
         }
     }
 
     public void forgetPlayer(UUID playerId) {
         if (playerId != null) {
             spectators.remove(playerId);
+            spectateTargets.remove(playerId);
         }
     }
 }

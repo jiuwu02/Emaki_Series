@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.dungeon.challenge;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
@@ -26,6 +27,8 @@ import org.bukkit.scoreboard.Objective;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.condition.ConditionContext;
+import emaki.jiuwu.craft.corelib.condition.ConditionEvaluator;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
@@ -51,6 +54,7 @@ import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
 import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
 import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
+import emaki.jiuwu.craft.dungeon.ticket.TicketService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
 import java.util.Locale;
@@ -61,6 +65,10 @@ public final class ChallengeService {
 
     private static final long TICK_PERIOD = 10L;
     private static final List<String> SCOREBOARD_CHANNELS = List.of("scoreboard");
+    private static final Set<String> PLAYER_SIDE_REASONS = Set.of(
+            "member_cancel", "member_left", "window_timeout", "invalid_difficulty",
+            "invalid_mode", "challenge_start_cancelled", "permission",
+            "ticket_insufficient", "ticket_invalid", "unlock_denied");
 
     private final Plugin plugin;
     private final ExecutionDispatcher dispatcher;
@@ -88,6 +96,7 @@ public final class ChallengeService {
     private volatile ScriptRuntimeManager scriptManager;
     private volatile AuditService audit;
     private volatile PerformanceMonitor monitor;
+    private volatile TicketService tickets;
 
     public void bindAudit(AuditService audit) {
         this.audit = audit;
@@ -149,6 +158,10 @@ public final class ChallengeService {
 
     public void bindMonitor(PerformanceMonitor monitor) {
         this.monitor = monitor;
+    }
+
+    public void bindTicketService(TicketService tickets) {
+        this.tickets = tickets;
     }
 
     private void fireTrigger(TriggerType type,
@@ -551,6 +564,51 @@ public final class ChallengeService {
                 }
             }
         }
+        if (config.unlock() != null && config.unlock().configured()) {
+            for (UUID memberId : party.members()) {
+                Player member = Bukkit.getPlayer(memberId);
+                if (member == null) {
+                    continue;
+                }
+                if (!ConditionEvaluator.evaluate(config.unlock(),
+                        text -> resolvePapi(member, text), ConditionContext.of(member))) {
+                    messages.send(member, "challenge.enter.unlock_denied",
+                            Map.of("dungeon", session.dungeonId()));
+                    abort(session, "unlock_denied");
+                    return "unlock_denied";
+                }
+            }
+        }
+        DungeonConfig.TicketRule ticketRule = config.ticket();
+        if (ticketRule != null && ticketRule.enabled() && !session.isTest() && tickets != null) {
+            TicketService.TicketTemplate template = tickets.resolve(ticketRule);
+            if (template == null) {
+                messages.send(leader, "challenge.enter.ticket_invalid",
+                        Map.of("dungeon", session.dungeonId(), "item", ticketRule.item()));
+                abort(session, "ticket_invalid");
+                return "ticket_invalid";
+            }
+            for (UUID memberId : party.members()) {
+                Player member = Bukkit.getPlayer(memberId);
+                if (member == null || !tickets.canAfford(member, template, ticketRule.amount())) {
+                    messages.send(leader, "challenge.enter.ticket_insufficient", Map.of(
+                            "dungeon", session.dungeonId(),
+                            "player", member == null ? String.valueOf(memberId) : member.getName(),
+                            "item", ticketRule.item(),
+                            "amount", String.valueOf(ticketRule.amount())));
+                    abort(session, "ticket_insufficient");
+                    return "ticket_insufficient";
+                }
+            }
+            for (UUID memberId : party.members()) {
+                Player member = Bukkit.getPlayer(memberId);
+                if (member != null) {
+                    session.ticketItems().put(memberId,
+                            tickets.deduct(member, template, ticketRule.amount()));
+                }
+            }
+        }
+
         debug.log("dungeon", leader, "ready_all", Map.of(
                 "dungeon", session.dungeonId(),
                 "party", String.valueOf(party.id())
@@ -675,8 +733,11 @@ public final class ChallengeService {
         instance.setPartyId(party.id());
         instance.setDifficulty(session.difficulty());
         instance.setDropMode(session.dropMode());
+        DungeonConfig typeConfig = configOf.apply(session.dungeonId());
+        instance.setType(typeConfig == null ? "normal" : typeConfig.type());
         instance.setTest(session.isTest());
         instance.markStarted();
+        session.commitTicket();
         if (runtimeFactory != null) {
             var runtime = runtimeFactory.apply(instance);
             if (runtime != null) {
@@ -936,6 +997,7 @@ public final class ChallengeService {
                 }
             }
         }
+        settleTicketOnAbort(session, reason);
     }
 
     private void closeSessionUi(ChallengeSession session) {
@@ -950,6 +1012,57 @@ public final class ChallengeService {
             if (member != null) {
                 gui.close(member);
             }
+        }
+    }
+
+    private void settleTicketOnAbort(ChallengeSession session, String reason) {
+        if (session.isTicketCommitted() || session.ticketItems().isEmpty()) {
+            return;
+        }
+        boolean playerSide = isPlayerSide(reason);
+        String segment = playerSide
+                && !"member_cancel".equals(reason) && !"member_left".equals(reason)
+                ? "dungeon_fail" : "dungeon_exit";
+        if (!playerSide && tickets != null) {
+            for (var entry : session.ticketItems().entrySet()) {
+                try {
+                    tickets.refund(entry.getKey(), entry.getValue());
+                } catch (RuntimeException ignored) {
+                }
+            }
+        }
+        String safeReason = reason == null ? "" : reason;
+        for (UUID memberId : sessionMembers(session)) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null) {
+                messages.send(member, playerSide
+                        ? "challenge.ticket.consumed" : "challenge.ticket.refunded",
+                        Map.of("dungeon", session.dungeonId(), "reason", safeReason));
+            }
+            if (actionBridge != null) {
+                actionBridge.dispatch(segment, memberId, Map.of(
+                        "reason", safeReason,
+                        "ticket_refunded", Boolean.toString(!playerSide),
+                        "dungeon", session.dungeonId()));
+            }
+        }
+        session.ticketItems().clear();
+    }
+
+    private static boolean isPlayerSide(String reason) {
+        return reason != null && (PLAYER_SIDE_REASONS.contains(reason)
+                || reason.startsWith("limit_"));
+    }
+
+    private String resolvePapi(Player player, String text) {
+        if (player == null || text == null
+                || !Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
+            return text;
+        }
+        try {
+            return me.clip.placeholderapi.PlaceholderAPI.setPlaceholders(player, text);
+        } catch (RuntimeException ignored) {
+            return text;
         }
     }
 

@@ -151,6 +151,39 @@ public final class PartyService {
         return InviteResult.OK;
     }
 
+    public Party formParty(List<UUID> memberIds) {
+        if (memberIds == null || memberIds.size() < 2 || memberIds.size() > maxSize) {
+            return null;
+        }
+        List<UUID> members = List.copyOf(memberIds);
+        for (UUID memberId : members) {
+            if (byPlayer.containsKey(memberId) || Bukkit.getPlayer(memberId) == null) {
+                return null;
+            }
+        }
+        Party party = new Party(UUID.randomUUID(), members.get(0));
+        for (int i = 1; i < members.size(); i++) {
+            party.add(members.get(i));
+        }
+        byId.put(party.id(), party);
+        for (UUID memberId : members) {
+            byPlayer.put(memberId, party);
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null) {
+                debug.log("dungeon", member, "party_join", Map.of(
+                        "party", String.valueOf(party.id()),
+                        "player", memberId.toString()
+                ));
+            }
+        }
+        persist(party);
+        fireTrigger(TriggerType.onPartyJoin, Map.of(
+                "party", String.valueOf(party.id()),
+                "count", String.valueOf(members.size())
+        ));
+        return party;
+    }
+
     public InviteResult invite(Player actor, UUID targetId) {
         UUID actorId = actor.getUniqueId();
         if (actorId.equals(targetId)) {

@@ -32,6 +32,8 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.challenge.ChallengeService;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.dungeon.type.DungeonType;
+import emaki.jiuwu.craft.dungeon.type.DungeonTypeRegistry;
 import emaki.jiuwu.craft.dungeon.flow.FlowPoint;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandQueue;
@@ -52,30 +54,8 @@ public final class EditorService implements Listener {
     private static final long MAX_FILL_BLOCKS = 1_000_000L;
     private static final List<String> REGION_SUBDIRS = List.of("region", "entities");
 
-    private static final List<String> MARK_TYPES = List.of(
-            "spawn", "room", "gate", "option", "trigger", "chest", "exit"
-    );
-    private static final Map<String, String> MARK_SECTIONS = Map.of(
-            "spawn", "spawn_points",
-            "room", "rooms",
-            "gate", "gates",
-            "option", "options",
-            "trigger", "trigger_zones",
-            "chest", "rewards",
-            "exit", "exit_points"
-    );
-    private static final Map<String, String> MARK_PREFIXES = Map.of(
-            "spawn", "spawn",
-            "room", "room",
-            "gate", "gate",
-            "option", "option",
-            "trigger", "trigger",
-            "chest", "chest",
-            "exit", "exit"
-    );
-
     public static List<String> markTypes() {
-        return MARK_TYPES;
+        return EditorModules.types();
     }
 
     private final JavaPlugin plugin;
@@ -91,6 +71,7 @@ public final class EditorService implements Listener {
     private final Map<UUID, EditorSession> sessions = new ConcurrentHashMap<>();
     private volatile WorldPool pool;
     private volatile Map<String, DungeonConfig> configCache;
+    private volatile DungeonTypeRegistry typeRegistry;
     private volatile ChallengeService challenge;
     private volatile EditorGui gui;
     private volatile EditorModuleMarkers markers;
@@ -123,6 +104,10 @@ public final class EditorService implements Listener {
 
     public void bindConfigCache(Map<String, DungeonConfig> configCache) {
         this.configCache = configCache;
+    }
+
+    public void bindTypeRegistry(DungeonTypeRegistry typeRegistry) {
+        this.typeRegistry = typeRegistry;
     }
 
     public void bindChallenge(ChallengeService challenge) {
@@ -297,11 +282,13 @@ public final class EditorService implements Listener {
             return;
         }
         String type = Texts.lower(rawType);
-        if (!MARK_TYPES.contains(type)) {
+        EditorModules.ModuleSpec spec = EditorModules.of(type);
+        if (spec == null) {
             messages.send(player, "editor.mark_unknown_type", Map.of("type", String.valueOf(rawType)));
             return;
         }
-        boolean region = "room".equals(type) || "gate".equals(type) || "trigger".equals(type);
+        boolean region = spec.coord() == EditorModules.Coord.REGION;
+        boolean pointRequired = spec.coord() == EditorModules.Coord.POINT;
         FlowPoint first = session.pos1();
         FlowPoint second = session.pos2();
         if (region) {
@@ -325,28 +312,37 @@ public final class EditorService implements Listener {
                 return;
             }
         }
-        FlowPoint point = region ? null : lookPoint(player);
-        if (!region && point == null) {
+        FlowPoint point = pointRequired ? lookPoint(player) : null;
+        if (pointRequired && point == null) {
             messages.send(player, "editor.no_target", Map.of());
             return;
         }
         String id = Texts.isBlank(rawId) ? null : Texts.normalizeId(rawId);
+        String section = spec.section();
         EditorDocument flowDoc = session.flowDoc();
         EditorDocument.SaveResult result;
         String[] assigned = new String[1];
         try {
             synchronized (flowDoc) {
                 YamlTextDocument view = flowDoc.view();
-                String section = MARK_SECTIONS.get(type);
-                String prefix = MARK_PREFIXES.get(type);
-                String nodeId = id == null ? nextId(view, section, prefix) : id;
-                assigned[0] = nodeId;
-                if (view.value(section, nodeId) != null) {
-                    messages.send(player, "editor.mark_dup", Map.of("id", nodeId));
-                    return;
+                if (spec.single()) {
+                    if (view.value(section) != null) {
+                        messages.send(player, "editor.mark_dup", Map.of("id", section));
+                        return;
+                    }
+                    assigned[0] = section;
+                    Map<String, Object> node = markNode(spec, section, point, first, second, view);
+                    result = flowDoc.mutate(document -> document.set(node, section));
+                } else {
+                    String nodeId = id == null ? nextId(view, section, spec.prefix()) : id;
+                    assigned[0] = nodeId;
+                    if (view.value(section, nodeId) != null) {
+                        messages.send(player, "editor.mark_dup", Map.of("id", nodeId));
+                        return;
+                    }
+                    Map<String, Object> node = markNode(spec, nodeId, point, first, second, view);
+                    result = flowDoc.mutate(document -> document.set(node, section, nodeId));
                 }
-                Map<String, Object> node = markNode(type, nodeId, point, first, second, view);
-                result = flowDoc.mutate(document -> document.set(node, section, nodeId));
             }
         } catch (RuntimeException exception) {
             messages.send(player, "editor.mark_failed", Map.of(
@@ -358,7 +354,8 @@ public final class EditorService implements Listener {
             return;
         }
         session.dirty(true);
-        String coord = region ? formatRegion(first, second) : formatPoint(point);
+        String coord = region ? formatRegion(first, second)
+                : pointRequired ? formatPoint(point) : "-";
         String mark = type + ":" + assigned[0] + " @ " + coord;
         session.stagedMarks().add(mark);
         refreshMarkers(session);
@@ -653,12 +650,12 @@ public final class EditorService implements Listener {
                 player.getLocation().getYaw(), player.getLocation().getPitch());
     }
 
-    private Map<String, Object> markNode(String type, String id, FlowPoint point, FlowPoint first, FlowPoint second,
-            YamlTextDocument view) {
+    private Map<String, Object> markNode(EditorModules.ModuleSpec spec, String id, FlowPoint point,
+            FlowPoint first, FlowPoint second, YamlTextDocument view) {
         Map<String, Object> node = new LinkedHashMap<>();
         node.put("id", id);
         node.put("enabled", true);
-        switch (type) {
+        switch (spec.type()) {
             case "spawn" -> {
                 node.put("location", locationMap(point));
                 Map<String, Object> trigger = new LinkedHashMap<>();
@@ -706,6 +703,81 @@ public final class EditorService implements Listener {
             case "exit" -> {
                 node.put("location", locationMap(point));
                 node.put("need_confirm", true);
+            }
+            case "entry" -> {
+                node.put("location", locationMap(point));
+            }
+            case "checkpoint" -> {
+                node.put("record_id", id);
+                node.put("min_players", 1);
+                node.put("region", nestedRegion(first, second));
+            }
+            case "respawn" -> {
+                node.put("location", locationMap(point));
+                node.put("checkpoint", "");
+            }
+            case "block" -> {
+                node.put("location", locationMap(point));
+                node.put("click", "right");
+                node.put("conditions", new ArrayList<>());
+                node.put("actions", new ArrayList<>());
+            }
+            case "boss" -> {
+                node.put("location", locationMap(point));
+                node.put("source", "vanilla");
+                node.put("boss_id", "");
+                node.put("conditions", new ArrayList<>());
+            }
+            case "hint" -> {
+                node.put("location", locationMap(point));
+                node.put("text", "");
+                node.put("channel", "chat");
+                node.put("conditions", new ArrayList<>());
+            }
+            case "teleport" -> {
+                node.put("region", nestedRegion(first, second));
+                node.put("target", locationMap(first));
+                node.put("conditions", new ArrayList<>());
+                node.put("all_members", false);
+            }
+            case "boundary" -> {
+                node.put("region", nestedRegion(first, second));
+            }
+            case "effect" -> {
+                node.put("region", nestedRegion(first, second));
+                node.put("effects", new ArrayList<>());
+                node.put("interval_ticks", 40);
+            }
+            case "mechanism" -> {
+                node.put("region", nestedRegion(first, second));
+                node.put("targets", new LinkedHashMap<>());
+                node.put("conditions", new ArrayList<>());
+            }
+            case "room_timer" -> {
+                node.put("region", nestedRegion(first, second));
+                node.put("seconds", 60);
+            }
+            case "kill_target" -> {
+                node.put("target", "");
+                node.put("count", 1);
+            }
+            case "item" -> {
+                node.put("location", locationMap(point));
+                node.put("item", "");
+                node.put("amount", 1);
+                node.put("consume", false);
+            }
+            case "fx" -> {
+                node.put("location", locationMap(point));
+                node.put("sound", "");
+                node.put("particle", "");
+                node.put("radius", 8.0D);
+            }
+            case "temp_item" -> {
+                node.put("item", "");
+                node.put("amount", 1);
+                node.put("timing", "entry");
+                node.put("hint", "");
             }
             default -> {
             }
@@ -959,7 +1031,13 @@ public final class EditorService implements Listener {
             return;
         }
         try {
-            configCache.put(dungeonId, templates.loadConfig(dungeonId));
+            DungeonConfig loaded = templates.loadConfig(dungeonId);
+            DungeonTypeRegistry registry = typeRegistry;
+            if (registry != null) {
+                DungeonType resolved = registry.resolve(loaded.type(), dungeonId);
+                loaded = loaded.withType(resolved.id());
+            }
+            configCache.put(dungeonId, loaded);
         } catch (RuntimeException exception) {
             messages.warning("console.dungeon_config_invalid", Map.of(
                     "dungeon", dungeonId,
