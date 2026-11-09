@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.dialog.DialogService;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class StorageSessionManager implements StorageGuiHandler.Callbacks {
 
@@ -390,7 +391,7 @@ public final class StorageSessionManager implements StorageGuiHandler.Callbacks 
             return;
         }
         if (!viewer.hasPermission("emakistorage.unlock.purchase")) {
-            plugin.messageService().send(viewer, "general.no_permission");
+            plugin.messageService().send(viewer, CommandKeys.NO_PERMISSION);
             return;
         }
         StorageCapacity capacity = plugin.capacityService()

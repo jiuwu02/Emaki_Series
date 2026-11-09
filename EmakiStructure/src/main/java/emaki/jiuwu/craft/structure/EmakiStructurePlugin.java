@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.structure.selection.SelectionManager;
 import emaki.jiuwu.craft.structure.spawn.SpawnSidecarRepository;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import org.bukkit.event.HandlerList;
 
 import java.util.List;
@@ -71,7 +72,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
         components = lifecycleCoordinator.initialize(this);
         runtimeInitialized = true;
         setDebugLogger(new DebugLogger(this, components.languageLoader()));
-        debugLogger().setFallbackLoader(EmakiCoreLibPlugin.lookup().languageLoader());
+        debugLogger().setFallbackLoader(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII, STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         ConfigPrecheckLifecycleSupport.register(new StructureConfigPrecheckContributor(this));
@@ -81,7 +82,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
         registerCommandHandler();
         registerListeners();
         installPublicApi();
-        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         components.messageService().info("console.plugin_started");
     }
 
@@ -198,7 +199,7 @@ public class EmakiStructurePlugin extends AbstractConfigurableEmakiPlugin<AppCon
         MultiblockService service = components.multiblockService();
         getServer().getPluginManager().registerEvents(new BlockChangeDetectListener(this, service), this);
         getServer().getPluginManager().registerEvents(new MultiblockInteractListener(this, service), this);
-        EmakiCoreLibPlugin.lookup().furnitureEventRelay()
+        EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).furnitureEventRelay()
                 .subscribe(this, new StructureFurnitureEventSubscriber(service));
     }
 

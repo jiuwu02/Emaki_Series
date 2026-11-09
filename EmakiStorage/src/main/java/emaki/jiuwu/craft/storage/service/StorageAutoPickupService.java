@@ -15,6 +15,7 @@ import emaki.jiuwu.craft.storage.model.StorageResult;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
 import emaki.jiuwu.craft.storage.log.StorageOperationSource;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StorageAutoPickupService {
 
@@ -44,8 +45,8 @@ public final class StorageAutoPickupService {
         if (scanTask != null) {
             try {
                 scanTask.cancel();
-            } catch (RuntimeException _) {
-
+            } catch (RuntimeException swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiStorage", "StorageAutoPickupService.java#1", swallowed);
             }
             scanTask = null;
         }

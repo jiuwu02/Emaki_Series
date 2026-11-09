@@ -1,5 +1,5 @@
 // EmakiCodex（原 EmakiCodex/pom.xml）。
-version = '2.0.0'
+version = '2.0.1'
 
 dependencies {
     // 原 shade artifactSet 白名单。
@@ -7,7 +7,7 @@ dependencies {
 
     // 原 compile 作用域。
     api project(':EmakiCoreLibApi')
-    api project(':EmakiCoreLib')
+    provided project(':EmakiCoreLib')
     api project(':EmakiCodexApi')
 
     // 原 provided 作用域。

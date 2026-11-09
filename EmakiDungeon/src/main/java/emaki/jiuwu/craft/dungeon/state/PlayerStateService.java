@@ -43,6 +43,7 @@ import emaki.jiuwu.craft.dungeon.recovery.RecoveryService;
 import emaki.jiuwu.craft.dungeon.script.ScriptRuntimeManager;
 import emaki.jiuwu.craft.dungeon.settlement.SettlementService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class PlayerStateService {
 
@@ -497,6 +498,7 @@ public final class PlayerStateService {
                             member.setSpectatorTarget(locked);
                         }
                     } catch (Throwable ignored) {
+                        FailureRecorder.recordIgnoredFailure("EmakiDungeon", "PlayerStateService.java#1", ignored);
                     }
                     continue;
                 }
@@ -507,6 +509,7 @@ public final class PlayerStateService {
                     member.setSpectatorTarget(target);
                 }
             } catch (Throwable ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "PlayerStateService.java#2", ignored);
             }
         }
     }

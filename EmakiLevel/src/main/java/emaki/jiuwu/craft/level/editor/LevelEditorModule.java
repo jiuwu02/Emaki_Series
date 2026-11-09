@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.level.EmakiLevelPlugin;
 import emaki.jiuwu.craft.level.config.LevelTypeConfig;
 import emaki.jiuwu.craft.level.config.RequirementConfig;
 import emaki.jiuwu.craft.level.config.SourceRuleConfig;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class LevelEditorModule implements EditorModule {
 
@@ -433,6 +434,7 @@ public final class LevelEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiLevel", "LevelEditorModule.java#1", ignored);
         }
         return stem;
     }

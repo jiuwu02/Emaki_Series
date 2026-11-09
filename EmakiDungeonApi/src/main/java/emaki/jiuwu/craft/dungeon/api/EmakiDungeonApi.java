@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.dungeon.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,7 +22,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiDungeonApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiDungeonApi() {
     }
@@ -29,15 +30,13 @@ public final class EmakiDungeonApi {
     /** Installs the backing bridge. For EmakiDungeon lifecycle use only. */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge b) {
-        bridge = b;
+        bridge.activate(b);
     }
 
     /** Removes the backing bridge when it is still the active bridge. */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge b) {
-        if (bridge == b) {
-            bridge = null;
-        }
+        bridge.deactivate(b);
     }
 
     /**
@@ -45,7 +44,7 @@ public final class EmakiDungeonApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -55,31 +54,31 @@ public final class EmakiDungeonApi {
 
     /** {@return the dungeon entry facade; never {@code null}} */
     public static @NotNull DungeonApi dungeonApi() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? NOT_INSTALLED.dungeonApi() : resolved.dungeonApi();
     }
 
     /** {@return the party facade; never {@code null}} */
     public static @NotNull PartyApi partyApi() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? NOT_INSTALLED.partyApi() : resolved.partyApi();
     }
 
     /** {@return the instance facade; never {@code null}} */
     public static @NotNull InstanceApi instanceApi() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? NOT_INSTALLED.instanceApi() : resolved.instanceApi();
     }
 
     /** {@return the script facade; never {@code null}} */
     public static @NotNull ScriptApi scriptApi() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? NOT_INSTALLED.scriptApi() : resolved.scriptApi();
     }
 
     /** {@return the editor facade; never {@code null}} */
     public static @NotNull EditorApi editorApi() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? NOT_INSTALLED.editorApi() : resolved.editorApi();
     }
 

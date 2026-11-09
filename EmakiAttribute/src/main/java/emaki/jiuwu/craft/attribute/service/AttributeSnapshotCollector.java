@@ -46,7 +46,7 @@ final class AttributeSnapshotCollector {
     public AttributeSnapshot collectItemSnapshot(ItemStack itemStack) {
         PdcAttributeService.PdcAttributeCollection rawPdcContribution = service.config().readPdcAttributes()
                 ? service.pdcAttributeService().collectRawContribution(itemStack)
-                : emptyPdcContribution();
+                : AttributeSnapshotCollectorSupport.emptyPdcContribution();
         return collectItemSnapshot(itemStack, rawPdcContribution);
     }
 
@@ -57,10 +57,10 @@ final class AttributeSnapshotCollector {
         }
         boolean readLoreAttributes = service.config().readLoreAttributes();
         boolean readPdcAttributes = service.config().readPdcAttributes();
-        LoreParser.ParsedLore parsedLore = readLoreAttributes ? parseLore(itemStack) : emptyParsedLore();
+        LoreParser.ParsedLore parsedLore = readLoreAttributes ? parseLore(itemStack) : AttributeSnapshotCollectorSupport.emptyParsedLore();
         PdcAttributeService.PdcAttributeCollection resolvedRawContribution = readPdcAttributes && rawPdcContribution != null
                 ? rawPdcContribution
-                : emptyPdcContribution();
+                : AttributeSnapshotCollectorSupport.emptyPdcContribution();
         if (parsedLore.snapshot().values().isEmpty() && resolvedRawContribution.values().isEmpty()) {
             service.stateRepository().clearItemSnapshot(itemStack);
             return AttributeSnapshot.empty("");
@@ -266,7 +266,7 @@ final class AttributeSnapshotCollector {
                 } else if (!views.raw().values().equals(views.filtered().values())) {
                     LoreParser.ParsedLore parsedLore = service.config().readLoreAttributes()
                             ? parseLore(itemStack)
-                            : emptyParsedLore();
+                            : AttributeSnapshotCollectorSupport.emptyParsedLore();
                     effectiveValues = resolveEquipmentItemValues(
                             parsedLore.snapshot().values(),
                             views.filtered().values(),
@@ -378,8 +378,8 @@ final class AttributeSnapshotCollector {
             boolean readLoreAttributes,
             boolean readPdcAttributes,
             boolean requireLorePdcMatch) {
-        Map<String, Double> normalizedLore = readLoreAttributes ? normalizeValues(loreValues) : Map.of();
-        Map<String, Double> normalizedPdc = readPdcAttributes ? normalizeValues(pdcValues) : Map.of();
+        Map<String, Double> normalizedLore = readLoreAttributes ? AttributeSnapshotCollectorSupport.normalizeValues(loreValues) : Map.of();
+        Map<String, Double> normalizedPdc = readPdcAttributes ? AttributeSnapshotCollectorSupport.normalizeValues(pdcValues) : Map.of();
         if (requireLorePdcMatch) {
             if (!readLoreAttributes || !readPdcAttributes) {
                 return new LinkedHashMap<>();
@@ -387,8 +387,8 @@ final class AttributeSnapshotCollector {
             return matchItemSourceValues(normalizedLore, normalizedPdc);
         }
         Map<String, Double> values = new LinkedHashMap<>();
-        mergeNormalizedValues(values, normalizedLore);
-        mergeNormalizedValues(values, normalizedPdc);
+        AttributeSnapshotCollectorSupport.mergeNormalizedValues(values, normalizedLore);
+        AttributeSnapshotCollectorSupport.mergeNormalizedValues(values, normalizedPdc);
         return values;
     }
 
@@ -429,36 +429,15 @@ final class AttributeSnapshotCollector {
         }
     }
 
-    private static Map<String, Double> normalizeValues(Map<String, Double> values) {
-        if (values == null || values.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, Double> normalized = new LinkedHashMap<>();
-        for (Map.Entry<String, Double> entry : values.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            normalized.merge(Texts.normalizeId(entry.getKey()), entry.getValue(), Double::sum);
-        }
-        return normalized;
-    }
 
     private static boolean sameValue(double left, double right) {
         return Math.abs(left - right) <= ZERO_EPSILON;
     }
 
     private void mergeValues(Map<String, Double> target, Map<String, Double> source) {
-        mergeNormalizedValues(target, normalizeValues(source));
+        AttributeSnapshotCollectorSupport.mergeNormalizedValues(target, AttributeSnapshotCollectorSupport.normalizeValues(source));
     }
 
-    private static void mergeNormalizedValues(Map<String, Double> target, Map<String, Double> source) {
-        if (target == null || source == null || source.isEmpty()) {
-            return;
-        }
-        for (Map.Entry<String, Double> entry : source.entrySet()) {
-            target.merge(entry.getKey(), entry.getValue(), Double::sum);
-        }
-    }
 
     private void overlayValues(Map<String, Double> target, Map<String, Double> source) {
         if (target == null || source == null || source.isEmpty()) {
@@ -639,29 +618,19 @@ final class AttributeSnapshotCollector {
 
     private LoreParser.ParsedLore parseLore(ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir()) {
-            return emptyParsedLore();
+            return AttributeSnapshotCollectorSupport.emptyParsedLore();
         }
         var itemMeta = itemStack.getItemMeta();
         if (itemMeta == null || !itemMeta.hasLore()) {
-            return emptyParsedLore();
+            return AttributeSnapshotCollectorSupport.emptyParsedLore();
         }
         List<String> lore = ItemTextBridge.loreLines(itemMeta);
         if (lore == null || lore.isEmpty()) {
-            return emptyParsedLore();
+            return AttributeSnapshotCollectorSupport.emptyParsedLore();
         }
         return service.loreParser().parse(lore);
     }
 
-    private static LoreParser.ParsedLore emptyParsedLore() {
-        return new LoreParser.ParsedLore(
-                AttributeSnapshot.empty(SignatureUtil.stableSignature(List.of())),
-                List.of()
-        );
-    }
-
-    private static PdcAttributeService.PdcAttributeCollection emptyPdcContribution() {
-        return new PdcAttributeService.PdcAttributeCollection(Map.of(), "");
-    }
 
     private void debugAttributeSlotGate(Player player, String actualSlot, List<String> declaredSlots) {
         if (player == null || service.plugin() == null || service.plugin().debugLogger() == null) {

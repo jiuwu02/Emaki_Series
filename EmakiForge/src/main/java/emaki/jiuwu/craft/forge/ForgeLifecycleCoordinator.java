@@ -24,7 +24,6 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
@@ -62,6 +61,8 @@ import emaki.jiuwu.craft.forge.service.ItemIdentifierService;
 import emaki.jiuwu.craft.forge.service.RecipeBookGuiService;
 import emaki.jiuwu.craft.forge.model.QualitySettings;
 import emaki.jiuwu.craft.forge.service.ForgeGuiSession;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 
 final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiForgePlugin, ForgeRuntimeComponents> {
 
@@ -117,7 +118,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
     @Override
     public ForgeRuntimeComponents initialize(EmakiForgePlugin plugin) {
         reloadsAccepted.set(true);
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         registerAssemblyLayer(coreLibPlugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -126,7 +127,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         RecipeLoader recipeLoader = new RecipeLoader(plugin, coreLibPlugin::actionEngine);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         AsyncYamlFiles playerDataFiles = coreLibPlugin.asyncYamlFiles(plugin);
@@ -134,8 +135,8 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         BootstrapService bootstrapService = createBootstrapService(plugin, messageService, appConfigLoader);
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        var threadOwnership = coreLibPlugin.threadOwnership();
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
+        var threadOwnership = EmakiCoreLibApi.requireService(ThreadOwnership.class);
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(),
                 coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         ItemIdentifierService itemIdentifierService = new ItemIdentifierService(plugin, coreLibPlugin.itemSourceService());
@@ -335,7 +336,7 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 AppConfig::defaults,
                 this::parseAppConfig
         );
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         loadCandidateAppConfigReadOnly(appConfigLoader);
         validateCandidateLanguagesReadOnly(new File(plugin.getDataFolder(), "lang"));
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
@@ -479,30 +480,18 @@ final class ForgeLifecycleCoordinator extends AbstractLifecycleCoordinator<Emaki
                 STATIC_FILES,
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if (!"config.yml".equals(relativePath)) {
-                            return;
-                        }
-                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                        ConfigKeyMigration.pruneEmptySection(runtime, "permission");
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyStartupMigration.run("锻造配方", messageService, plugin.getLogger(),
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
+                        (relativePath, runtime, bundled) -> {
+                            if (!"config.yml".equals(relativePath)) {
+                                return;
+                            }
+                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                            ConfigKeyMigration.pruneEmptySection(runtime, "permission");
+                        },
+                        () -> LegacyStartupMigration.run("锻造配方", messageService, plugin.getLogger(),
                                 () -> LegacyStartupMigration.fromItemSourceReport(
                                         new LegacyItemSourceRewriter(plugin.getDataFolder().toPath(),
-                                                ForgeLegacyTargets.specs(), plugin.getLogger()).run(true)));
-                    }
-                }
+                                                ForgeLegacyTargets.specs(), plugin.getLogger()).run(true))))
         );
     }
 

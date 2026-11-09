@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.script.TriggerSink;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import net.kyori.adventure.text.Component;
@@ -898,8 +899,8 @@ public final class FlowRuntime {
                 if (type == null) {
                     continue;
                 }
-                int amplifier = parts.length > 1 ? parseSafe(parts[1], 0) : 0;
-                int duration = parts.length > 2 ? parseSafe(parts[2], 100) : 100;
+                int amplifier = parts.length > 1 ? FlowRuntimeSupport.parseSafe(parts[1], 0) : 0;
+                int duration = parts.length > 2 ? FlowRuntimeSupport.parseSafe(parts[2], 100) : 100;
                 boolean clear = "clear".equalsIgnoreCase(parts[0]);
                 if (clear) {
                     player.removePotionEffect(type);
@@ -908,17 +909,11 @@ public final class FlowRuntime {
                             type, duration, amplifier, true, true));
                 }
             } catch (IllegalArgumentException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "FlowRuntime.java#1", ignored);
             }
         }
     }
 
-    private static int parseSafe(String raw, int fallback) {
-        try {
-            return Integer.parseInt(raw.trim());
-        } catch (NumberFormatException exception) {
-            return fallback;
-        }
-    }
 
     private void submitHint(UUID playerId, String text, String channel) {
         List<UUID> audience = audienceOf(playerId);
@@ -1128,6 +1123,7 @@ public final class FlowRuntime {
                                         + " " + spawn.getX() + " " + spawn.getY() + " " + spawn.getZ()
                                         + " 0 0 0 0 20 force");
                     } catch (IllegalArgumentException ignored) {
+                        FailureRecorder.recordIgnoredFailure("EmakiDungeon", "FlowRuntime.java#2", ignored);
                     }
                 }
             }

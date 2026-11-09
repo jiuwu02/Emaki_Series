@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class CommandGuard implements Listener {
 
@@ -131,6 +132,7 @@ public final class CommandGuard implements Listener {
             Method setter = Bukkit.getServer().getClass().getMethod("setCommandMap", CommandMap.class);
             setter.invoke(Bukkit.getServer(), originalCommandMap);
         } catch (ReflectiveOperationException | RuntimeException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "CommandGuard.java#1", ignored);
         }
         originalCommandMap = null;
     }

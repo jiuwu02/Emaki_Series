@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.MinecraftItemComponentCatalog;
+import emaki.jiuwu.craft.corelib.item.MinecraftServerVersions;
 import emaki.jiuwu.craft.corelib.item.ProfileComponentSupport;
 import emaki.jiuwu.craft.item.EmakiItemPlugin;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
@@ -46,6 +47,75 @@ import emaki.jiuwu.craft.item.model.EmakiItemDefinitionParser;
 public final class ItemEditorModule implements EditorModule {
 
     public static final String SKIN_FIELD_ID = "skin_edit";
+
+    private static final Map<String, String> SPECIFIC_ICONS = Map.ofEntries(
+            Map.entry("equip_slot", "minecraft-armor_stand"),
+            Map.entry("item_source", "minecraft-grass_block"),
+            Map.entry("update_enabled", "minecraft-redstone_torch"),
+            Map.entry("preserve_amount", "minecraft-bundle"),
+            Map.entry("preserve_damage", "minecraft-anvil"),
+            Map.entry("preserve_unknown", "minecraft-shulker_box"),
+            Map.entry("trigger_join", "minecraft-oak_door"),
+            Map.entry("trigger_held_change", "minecraft-iron_sword"),
+            Map.entry("trigger_inventory_click", "minecraft-chest"),
+            Map.entry("trigger_inventory_drag", "minecraft-rail"),
+            Map.entry("trigger_pickup", "minecraft-hopper"),
+            Map.entry("trigger_interact", "minecraft-lever"),
+            Map.entry("trigger_command", "minecraft-command_block"),
+            Map.entry("set_id", "minecraft-name_tag"),
+            Map.entry("set_display_name", "minecraft-name_tag"),
+            Map.entry("set_piece", "minecraft-iron_chestplate"),
+            Map.entry("set_pieces", "minecraft-iron_chestplate"),
+            Map.entry("set_lore_equipped", "minecraft-iron_chestplate"),
+            Map.entry("manage_sets", "minecraft-bookshelf"),
+            Map.entry("set_thresholds", "minecraft-ladder"),
+            Map.entry("set_lore_header", "minecraft-writable_book"),
+            Map.entry("set_lore_missing", "minecraft-gray_dye"),
+            Map.entry("set_lore_active", "minecraft-lime_dye"),
+            Map.entry("set_lore_inactive", "minecraft-light_gray_dye"),
+            Map.entry("set_lore_separator", "minecraft-stick"),
+            Map.entry("condition_type", "minecraft-comparator"),
+            Map.entry("cond_type", "minecraft-comparator"),
+            Map.entry("mat_matcher_type", "minecraft-comparator"),
+            Map.entry("condition_required_count", "minecraft-clock"),
+            Map.entry("cond_required_count", "minecraft-clock"),
+            Map.entry("mat_amount", "minecraft-clock"),
+            Map.entry("condition_invalid", "minecraft-redstone_torch"),
+            Map.entry("condition_fail_message", "minecraft-oak_sign"),
+            Map.entry("condition_block_output", "minecraft-redstone_block"),
+            Map.entry("condition_entries", "minecraft-chest"),
+            Map.entry("cond_nested", "minecraft-chest"),
+            Map.entry("mat_item_sources", "minecraft-chest"),
+            Map.entry("condition_pass_actions", "minecraft-lime_dye"),
+            Map.entry("repair_on_repaired", "minecraft-lime_dye"),
+            Map.entry("condition_fail_actions", "minecraft-red_dye"),
+            Map.entry("repair_on_disabled", "minecraft-red_dye"),
+            Map.entry("cond_expression", "minecraft-book"),
+            Map.entry("mat_matcher_value", "minecraft-book"),
+            Map.entry("repair_enabled", "minecraft-anvil"),
+            Map.entry("repair_name_prefix", "minecraft-name_tag"),
+            Map.entry("repair_materials", "minecraft-iron_ingot"),
+            Map.entry("repair_economy", "minecraft-gold_ingot"),
+            Map.entry("repair_lore_append", "minecraft-writable_book"),
+            Map.entry("repair_economy_enabled", "minecraft-redstone_torch"),
+            Map.entry("repair_economy_restore", "minecraft-experience_bottle"),
+            Map.entry("mat_restore", "minecraft-experience_bottle"),
+            Map.entry("repair_currencies", "minecraft-gold_nugget"),
+            Map.entry("mat_matcher_component", "minecraft-name_tag"),
+            Map.entry("mat_matcher_operator", "minecraft-redstone_torch"),
+            Map.entry("effects_list", "minecraft-nether_star"),
+            Map.entry("effect_type", "minecraft-nether_star"),
+            Map.entry("effect_variables", "minecraft-paper"),
+            Map.entry("effect_attributes", "minecraft-iron_axe"),
+            Map.entry("effect_skills", "minecraft-blaze_rod"),
+            Map.entry("effect_skill_triggers", "minecraft-tripwire_hook"),
+            Map.entry("effect_accessory_slots", "minecraft-amethyst_shard"),
+            Map.entry("effect_name_actions", "minecraft-name_tag"),
+            Map.entry("effect_lore_actions", "minecraft-writable_book"),
+            Map.entry("actions_list", "minecraft-redstone"),
+            Map.entry(SKIN_FIELD_ID, "minecraft-player_head")
+    );
+
     public static final String COMPONENT_FIELD_PREFIX = "component_";
     public static final String CONTEXT_COMPONENT_FILTER = "component_filter";
 
@@ -543,7 +613,7 @@ public final class ItemEditorModule implements EditorModule {
         entries.addAll(CATALOG.universalEntries());
         entries.addAll(CATALOG.specializedFor(materialOf(session)));
         String filter = Texts.lower(Texts.toStringSafe(session.context(CONTEXT_COMPONENT_FILTER))).trim();
-        String serverVersion = serverVersion();
+        String serverVersion = MinecraftServerVersions.currentServerVersion();
         List<EditorField> fields = new ArrayList<>();
         for (MinecraftItemComponentCatalog.Entry entry : entries) {
             if (!entry.applicableTo(serverVersion)) {
@@ -585,14 +655,6 @@ public final class ItemEditorModule implements EditorModule {
         }
         String note = plugin.messageService().message("editor.value.version", Map.of("version", requirement));
         return description.isBlank() ? note : description + "<newline>" + note;
-    }
-
-    private String serverVersion() {
-        try {
-            return plugin.getServer() == null ? "" : Texts.toStringSafe(plugin.getServer().getMinecraftVersion());
-        } catch (Throwable unavailable) {
-            return "";
-        }
     }
 
     private static boolean matchesFilter(MinecraftItemComponentCatalog.Entry entry, String filter) {
@@ -937,59 +999,6 @@ public final class ItemEditorModule implements EditorModule {
     }
 
     private static String specificIcon(String fieldId) {
-        return switch (fieldId) {
-            case "equip_slot" -> "minecraft-armor_stand";
-            case "item_source" -> "minecraft-grass_block";
-            case "update_enabled" -> "minecraft-redstone_torch";
-            case "preserve_amount" -> "minecraft-bundle";
-            case "preserve_damage" -> "minecraft-anvil";
-            case "preserve_unknown" -> "minecraft-shulker_box";
-            case "trigger_join" -> "minecraft-oak_door";
-            case "trigger_held_change" -> "minecraft-iron_sword";
-            case "trigger_inventory_click" -> "minecraft-chest";
-            case "trigger_inventory_drag" -> "minecraft-rail";
-            case "trigger_pickup" -> "minecraft-hopper";
-            case "trigger_interact" -> "minecraft-lever";
-            case "trigger_command" -> "minecraft-command_block";
-            case "set_id", "set_display_name" -> "minecraft-name_tag";
-            case "set_piece", "set_pieces", "set_lore_equipped" -> "minecraft-iron_chestplate";
-            case "manage_sets" -> "minecraft-bookshelf";
-            case "set_thresholds" -> "minecraft-ladder";
-            case "set_lore_header" -> "minecraft-writable_book";
-            case "set_lore_missing" -> "minecraft-gray_dye";
-            case "set_lore_active" -> "minecraft-lime_dye";
-            case "set_lore_inactive" -> "minecraft-light_gray_dye";
-            case "set_lore_separator" -> "minecraft-stick";
-            case "condition_type", "cond_type", "mat_matcher_type" -> "minecraft-comparator";
-            case "condition_required_count", "cond_required_count", "mat_amount" -> "minecraft-clock";
-            case "condition_invalid" -> "minecraft-redstone_torch";
-            case "condition_fail_message" -> "minecraft-oak_sign";
-            case "condition_block_output" -> "minecraft-redstone_block";
-            case "condition_entries", "cond_nested", "mat_item_sources" -> "minecraft-chest";
-            case "condition_pass_actions", "repair_on_repaired" -> "minecraft-lime_dye";
-            case "condition_fail_actions", "repair_on_disabled" -> "minecraft-red_dye";
-            case "cond_expression", "mat_matcher_value" -> "minecraft-book";
-            case "repair_enabled" -> "minecraft-anvil";
-            case "repair_name_prefix" -> "minecraft-name_tag";
-            case "repair_materials" -> "minecraft-iron_ingot";
-            case "repair_economy" -> "minecraft-gold_ingot";
-            case "repair_lore_append" -> "minecraft-writable_book";
-            case "repair_economy_enabled" -> "minecraft-redstone_torch";
-            case "repair_economy_restore", "mat_restore" -> "minecraft-experience_bottle";
-            case "repair_currencies" -> "minecraft-gold_nugget";
-            case "mat_matcher_component" -> "minecraft-name_tag";
-            case "mat_matcher_operator" -> "minecraft-redstone_torch";
-            case "effects_list", "effect_type" -> "minecraft-nether_star";
-            case "effect_variables" -> "minecraft-paper";
-            case "effect_attributes" -> "minecraft-iron_axe";
-            case "effect_skills" -> "minecraft-blaze_rod";
-            case "effect_skill_triggers" -> "minecraft-tripwire_hook";
-            case "effect_accessory_slots" -> "minecraft-amethyst_shard";
-            case "effect_name_actions" -> "minecraft-name_tag";
-            case "effect_lore_actions" -> "minecraft-writable_book";
-            case "actions_list" -> "minecraft-redstone";
-            case SKIN_FIELD_ID -> "minecraft-player_head";
-            default -> null;
-        };
+        return SPECIFIC_ICONS.get(fieldId);
     }
 }

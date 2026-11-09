@@ -29,6 +29,7 @@ import emaki.jiuwu.craft.item.api.ItemStateType;
 import emaki.jiuwu.craft.item.api.event.ItemStateChangeEvent;
 import emaki.jiuwu.craft.item.api.event.ItemStateThresholdEvent;
 import emaki.jiuwu.craft.item.model.ItemStateConfig;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class EmakiItemStateService implements ItemState {
 
@@ -630,6 +631,7 @@ public final class EmakiItemStateService implements ItemState {
                     values.put(ItemStateSchema.key(keyName, type), value);
                 }
             } catch (RuntimeException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiItem", "EmakiItemStateService.java#1", ignored);
             }
         }
         ItemStateMetadata metadata = metadataOverride == null ? readMetadata(pdc) : metadataOverride;

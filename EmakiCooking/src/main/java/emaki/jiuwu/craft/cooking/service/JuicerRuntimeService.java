@@ -40,6 +40,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class JuicerRuntimeService implements Listener {
 
@@ -193,7 +194,7 @@ public final class JuicerRuntimeService implements Listener {
         if (settingsService.matchesInteraction(StationType.JUICER, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_USE) && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return guiController.openGui(player, coordinates);
@@ -210,7 +211,7 @@ public final class JuicerRuntimeService implements Listener {
             }
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.JUICER_PRESS) && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return press(player, block, coordinates);

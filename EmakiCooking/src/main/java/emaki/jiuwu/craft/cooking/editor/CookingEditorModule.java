@@ -33,6 +33,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.cooking.loader.RecipeParseProbe;
 import emaki.jiuwu.craft.cooking.model.StationType;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class CookingEditorModule implements EditorModule {
 
@@ -372,6 +373,7 @@ public final class CookingEditorModule implements EditorModule {
                     return created;
                 }
             } catch (RuntimeException failure) {
+                FailureRecorder.recordIgnoredFailure("EmakiCooking", "CookingEditorModule.java#1", failure);
             }
         }
         return fallbackPreview(session);
@@ -469,6 +471,7 @@ public final class CookingEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiCooking", "CookingEditorModule.java#2", failure);
         }
         return stemFileId(file, directory);
     }

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.mobs.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiMobsApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiMobsApi() {
     }
@@ -25,15 +26,13 @@ public final class EmakiMobsApi {
     /** Installs the backing bridge. For EmakiMobs lifecycle use only. */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge b) {
-        bridge = b;
+        bridge.activate(b);
     }
 
     /** Removes the backing bridge when it is still the active bridge. */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge b) {
-        if (bridge == b) {
-            bridge = null;
-        }
+        bridge.deactivate(b);
     }
 
     /**
@@ -41,7 +40,7 @@ public final class EmakiMobsApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when absent}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -54,7 +53,7 @@ public final class EmakiMobsApi {
      * implementation while no bridge is installed}
      */
     public static @NotNull MobCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableMobs.CATALOG;
         }
@@ -67,7 +66,7 @@ public final class EmakiMobsApi {
      * implementation while no bridge is installed}
      */
     public static @NotNull MobOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) return UnavailableMobs.OPERATIONS;
         var o = resolved.operations();
         return o == null ? UnavailableMobs.OPERATIONS : o;
@@ -78,7 +77,7 @@ public final class EmakiMobsApi {
      * implementation while no bridge is installed}
      */
     public static @NotNull MobExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) return UnavailableMobs.EXTENSIONS;
         var e = resolved.extensions();
         return e == null ? UnavailableMobs.EXTENSIONS : e;

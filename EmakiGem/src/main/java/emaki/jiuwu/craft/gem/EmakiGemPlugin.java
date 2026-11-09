@@ -59,6 +59,7 @@ import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
 import emaki.jiuwu.craft.gem.apiimpl.DefaultEmakiGemApi;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -355,7 +356,7 @@ public class EmakiGemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> i
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

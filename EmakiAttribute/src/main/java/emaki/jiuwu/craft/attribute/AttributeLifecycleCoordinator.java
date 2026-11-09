@@ -65,14 +65,15 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.VersionedYamlFile;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiAttributePlugin, AttributeRuntimeComponents> {
 
     @Override
     public AttributeRuntimeComponents initialize(EmakiAttributePlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         LanguageLoader languageLoader = new LanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader,
                 "<gray>[ <gradient:#F43F5E:#FB923C>EmakiAttribute</gradient> ]</gray>", true);
@@ -244,9 +245,9 @@ final class AttributeLifecycleCoordinator extends AbstractLifecycleCoordinator<E
             TaskToken currentTask,
             boolean resyncPlayers,
             Consumer<String> progressListener) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         AsyncTaskScheduler scheduler = coreLibPlugin.asyncTaskScheduler();
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
 
         AttributeConfig previousConfig = plugin.configModel();
         return runReloadPipelineAsync(scheduler, executionDispatcher, plugin, new ReloadPipelineConfig<>(

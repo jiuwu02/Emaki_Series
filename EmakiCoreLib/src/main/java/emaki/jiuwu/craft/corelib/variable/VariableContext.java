@@ -15,6 +15,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class VariableContext {
@@ -48,7 +49,8 @@ public final class VariableContext {
         if (value instanceof String str) {
             try {
                 return Double.parseDouble(str);
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "VariableContext.java#1", swallowed);
             }
         }
         return 0.0;
@@ -149,7 +151,8 @@ public final class VariableContext {
             } else if (type == PersistentDataType.STRING) {
                 return pdc.get(key, PersistentDataType.STRING);
             }
-        } catch (Exception _) {
+        } catch (Exception swallowed) {
+            FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "VariableContext.java#2", swallowed);
         }
         return null;
     }

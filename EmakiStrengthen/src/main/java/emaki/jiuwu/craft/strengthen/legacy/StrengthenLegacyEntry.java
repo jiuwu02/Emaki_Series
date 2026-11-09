@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.legacy.LegacyConvertCommand;
 import emaki.jiuwu.craft.corelib.legacy.LegacyMessageSink;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class StrengthenLegacyEntry {
 
@@ -21,7 +22,7 @@ public final class StrengthenLegacyEntry {
             @NotNull String adminPermission) {
         LegacyMessageSink messages = plugin.messageService();
         if (!sender.hasPermission(adminPermission)) {
-            messages.send(sender, "general.no_permission");
+            messages.send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         boolean apply = LegacyConvertCommand.applyRequested(args, 1);

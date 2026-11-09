@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.structure.generate.BlockEntityWriter;
 import emaki.jiuwu.craft.structure.generate.ChunkBatch;
 import emaki.jiuwu.craft.structure.generate.GenerationJob;
 import emaki.jiuwu.craft.structure.integration.furniture.FurniturePlacer;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -209,6 +210,7 @@ public final class RollbackService implements Runnable {
             try {
                 Files.deleteIfExists(path);
             } catch (IOException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiStructure", "RollbackService.java#1", ignored);
             }
             return;
         }
@@ -443,6 +445,7 @@ public final class RollbackService implements Runnable {
         try {
             Files.deleteIfExists(file);
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiStructure", "RollbackService.java#2", ignored);
         }
     }
 

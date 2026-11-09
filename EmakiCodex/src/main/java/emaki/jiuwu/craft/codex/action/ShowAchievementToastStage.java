@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.codex.action;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
@@ -30,6 +31,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ShowAchievementToastStage implements CoreActionStage {
 
@@ -42,8 +44,8 @@ public final class ShowAchievementToastStage implements CoreActionStage {
 
     private static final ConcurrentMap<String, UUID> REMOVAL_TOKENS = new ConcurrentHashMap<>();
     private static final ConcurrentMap<String, Method> BRIDGE_METHODS = new ConcurrentHashMap<>();
-    private static volatile Class<?> bridgeClass;
-    private static volatile Boolean packetEventsPresent;
+    private static final AtomicReference<Class<?>> bridgeClass = new AtomicReference<>();
+    private static final AtomicReference<Boolean> packetEventsPresent = new AtomicReference<>();
 
     private final EmakiCodexPlugin plugin;
     private final ItemSourceService itemSourceService;
@@ -169,7 +171,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
                     }
                 }
             } catch (RuntimeException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiCodex", "ShowAchievementToastStage.java#1", ignored);
             }
         }
         String normalized = Texts.toStringSafe(rawIcon)
@@ -181,7 +183,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
     }
 
     private boolean isPacketEventsPresent() {
-        Boolean cached = packetEventsPresent;
+        Boolean cached = packetEventsPresent.get();
         if (cached != null) {
             return cached;
         }
@@ -192,7 +194,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         } catch (ClassNotFoundException exception) {
             present = false;
         }
-        packetEventsPresent = present;
+        packetEventsPresent.set(present);
         return present;
     }
 
@@ -216,10 +218,10 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         if (cached != null) {
             return cached;
         }
-        Class<?> bridge = bridgeClass;
+        Class<?> bridge = bridgeClass.get();
         if (bridge == null) {
             bridge = Class.forName(PACKET_BRIDGE_CLASS);
-            bridgeClass = bridge;
+            bridgeClass.set(bridge);
         }
         Method method = bridge.getMethod(methodName, Player.class, String.class, String.class,
                 String.class, ItemStack.class, String.class);
@@ -256,7 +258,7 @@ public final class ShowAchievementToastStage implements CoreActionStage {
         try {
             invokeBridge("remove", target, key, "", "", new ItemStack(Material.BOOK), DEFAULT_FRAME);
         } catch (Throwable ignored) {
-
+            FailureRecorder.recordIgnoredFailure("EmakiCodex", "ShowAchievementToastStage.java#2", ignored);
         }
     }
 

@@ -227,7 +227,7 @@ public final class ExpressionEngine {
         if (expression == null) {
             return "";
         }
-        if (!validateExpressionLength(expression) || containsDangerousChars(expression)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(expression) || ExpressionEngineSupport.containsDangerousChars(expression)) {
             return "";
         }
         TextEvaluationResult result = evaluateStringTemplateDetailed(expression, TextEvaluationScope.of(variables), 0);
@@ -382,23 +382,16 @@ public final class ExpressionEngine {
         if (Texts.isBlank(expression)) {
             return null;
         }
-        if (!validateExpressionLength(expression) || containsDangerousChars(expression)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(expression) || ExpressionEngineSupport.containsDangerousChars(expression)) {
             return null;
         }
         String prepared = replaceVariables(expression, variables).trim();
-        if (Texts.isBlank(prepared) || !validateExpressionLength(prepared) || containsDangerousChars(prepared)) {
+        if (Texts.isBlank(prepared) || !ExpressionEngineSupport.validateExpressionLength(prepared) || ExpressionEngineSupport.containsDangerousChars(prepared)) {
             return null;
         }
         return prepared;
     }
 
-    private static boolean validateExpressionLength(String expression) {
-        return ExpressionRules.isLengthAllowed(expression);
-    }
-
-    private static boolean containsDangerousChars(String expression) {
-        return ExpressionRules.containsDangerousChars(expression);
-    }
 
     static boolean isPureNumericExpression(String expression) {
         return ExpressionRules.isPureNumericExpression(expression);
@@ -423,11 +416,11 @@ public final class ExpressionEngine {
         if (Texts.isBlank(expression)) {
             return NumericEvaluationResult.failure("数值表达式为空。");
         }
-        if (!validateExpressionLength(expression)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(expression)) {
             return NumericEvaluationResult.failure("数值表达式长度超过 "
                     + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(expression));
         }
-        if (containsDangerousChars(expression)) {
+        if (ExpressionEngineSupport.containsDangerousChars(expression)) {
             return NumericEvaluationResult.failure("数值表达式包含不支持的字符: "
                     + abbreviate(expression));
         }
@@ -436,11 +429,11 @@ public final class ExpressionEngine {
             return NumericEvaluationResult.failure(preparation.issues());
         }
         String prepared = preparation.expression();
-        if (!validateExpressionLength(prepared)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(prepared)) {
             return NumericEvaluationResult.failure("预处理后的数值表达式长度超过 "
                     + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(prepared));
         }
-        if (containsDangerousChars(prepared)) {
+        if (ExpressionEngineSupport.containsDangerousChars(prepared)) {
             return NumericEvaluationResult.failure("预处理后的数值表达式包含不支持的字符: "
                     + abbreviate(prepared));
         }
@@ -584,10 +577,10 @@ public final class ExpressionEngine {
         TextEvaluationScope scoped = textScopeWithConfigVariables(config, scope);
         String type = normalizedConfigType(config);
         if (Texts.isBlank(type)) {
-            if (hasRandomTextLines(config)) {
+            if (ExpressionEngineSupport.hasRandomTextLines(config)) {
                 return evaluateRandomTextLinesDetailed(config, scoped, depth + 1);
             }
-            if (looksLikeNumericConfig(config)) {
+            if (ExpressionEngineSupport.looksLikeNumericConfig(config)) {
                 NumericEvaluationResult result = evaluateRandomConfigDetailed(config,
                         NumericEvaluationScope.of(scoped.variables()),
                         depth + 1);
@@ -602,16 +595,16 @@ public final class ExpressionEngine {
             return TextEvaluationResult.failure("文本配置未声明文本值或随机文本行。");
         }
 
-        if (isRandomTextConfigType(type)) {
+        if (ExpressionEngineSupport.isRandomTextConfigType(type)) {
             return evaluateRandomTextLinesDetailed(config, scoped, depth + 1);
         }
-        if (isRandomCharConfigType(type)) {
+        if (ExpressionEngineSupport.isRandomCharConfigType(type)) {
             return evaluateRandomCharsDetailed(config, scoped, depth + 1, false);
         }
-        if (isWeightedRandomCharConfigType(type)) {
+        if (ExpressionEngineSupport.isWeightedRandomCharConfigType(type)) {
             return evaluateRandomCharsDetailed(config, scoped, depth + 1, true);
         }
-        if (isConditionalCharConfigType(type)) {
+        if (ExpressionEngineSupport.isConditionalCharConfigType(type)) {
             return evaluateConditionalCharDetailed(config, scoped, depth + 1);
         }
         if (isStringConfigType(type)) {
@@ -834,23 +827,23 @@ public final class ExpressionEngine {
         if (template == null) {
             return TextEvaluationResult.success("");
         }
-        if (!validateExpressionLength(template)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(template)) {
             return TextEvaluationResult.failure("文本表达式长度超过 "
                     + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(template));
         }
-        if (containsDangerousChars(template)) {
+        if (ExpressionEngineSupport.containsDangerousChars(template)) {
             return TextEvaluationResult.failure("文本表达式包含不支持的字符: "
                     + abbreviate(template));
         }
         TextPreparation preparation = prepareTextTemplate(template, scope, depth + 1);
         String prepared = BooleanExpressionEvaluator.unquote(preparation.value());
-        if (!validateExpressionLength(prepared)) {
+        if (!ExpressionEngineSupport.validateExpressionLength(prepared)) {
             List<String> issues = new ArrayList<>(preparation.issues());
             issues.add("预处理后的文本表达式长度超过 "
                     + ExpressionRules.MAX_EXPRESSION_LENGTH + " 个字符: " + abbreviate(prepared));
             return TextEvaluationResult.failure(issues, "", List.of());
         }
-        if (containsDangerousChars(prepared)) {
+        if (ExpressionEngineSupport.containsDangerousChars(prepared)) {
             List<String> issues = new ArrayList<>(preparation.issues());
             issues.add("预处理后的文本表达式包含不支持的字符: " + abbreviate(prepared));
             return TextEvaluationResult.failure(issues, "", List.of());
@@ -913,7 +906,7 @@ public final class ExpressionEngine {
             return evaluateStringTemplateDetailed(text, scope, depth + 1);
         }
         String type = normalizedConfigType(rawValue);
-        if (isNumericConfigType(type) || looksLikeNumericConfig(rawValue)) {
+        if (isNumericConfigType(type) || ExpressionEngineSupport.looksLikeNumericConfig(rawValue)) {
             NumericEvaluationResult result = evaluateRandomConfigDetailed(rawValue,
                     NumericEvaluationScope.of(scope.variables()),
                     depth + 1);
@@ -1143,9 +1136,6 @@ public final class ExpressionEngine {
         return result;
     }
 
-    private static boolean hasRandomTextLines(Object config) {
-        return ConfigNodes.get(config, "lines") != null;
-    }
 
     private static TextEvaluationScope textScopeWithConfigVariables(Object config, TextEvaluationScope scope) {
         return scope.withVariables(mergedConfigVariables(config, scope.variables()));
@@ -1172,60 +1162,21 @@ public final class ExpressionEngine {
         return merged;
     }
 
-    private static boolean isRandomTextConfigType(String type) {
-        return "random_text".equals(type)
-                || "random_text_lines".equals(type)
-                || "random_lines".equals(type)
-                || "random_line".equals(type)
-                || "text_lines".equals(type);
-    }
-
-    private static boolean isRandomCharConfigType(String type) {
-        return "random_char".equals(type)
-                || "random_chars".equals(type)
-                || "char_random".equals(type)
-                || "chars_random".equals(type);
-    }
-
-    private static boolean isWeightedRandomCharConfigType(String type) {
-        return "weighted_random_char".equals(type)
-                || "weighted_random_chars".equals(type)
-                || "weighted_char".equals(type)
-                || "weighted_chars".equals(type)
-                || "weighted_char_random".equals(type);
-    }
-
-    private static boolean isConditionalCharConfigType(String type) {
-        return "conditional_char".equals(type)
-                || "condition_char".equals(type)
-                || "case_char".equals(type)
-                || "if_char".equals(type);
-    }
 
     private static boolean looksLikeTextConfig(Object config) {
         String type = normalizedConfigType(config);
         if (isStringConfigType(type)
-                || isRandomTextConfigType(type)
-                || isRandomCharConfigType(type)
-                || isWeightedRandomCharConfigType(type)
-                || isConditionalCharConfigType(type)
+                || ExpressionEngineSupport.isRandomTextConfigType(type)
+                || ExpressionEngineSupport.isRandomCharConfigType(type)
+                || ExpressionEngineSupport.isWeightedRandomCharConfigType(type)
+                || ExpressionEngineSupport.isConditionalCharConfigType(type)
                 || isBooleanConfigType(type)) {
             return true;
         }
-        return Texts.isBlank(type) && (hasRandomTextLines(config)
+        return Texts.isBlank(type) && (ExpressionEngineSupport.hasRandomTextLines(config)
                 || ConfigNodes.get(config, "text") != null);
     }
 
-    private static boolean looksLikeNumericConfig(Object config) {
-        if (config == null) {
-            return false;
-        }
-        if (ConfigNodes.get(config, "min") != null && ConfigNodes.get(config, "max") != null) {
-            return true;
-        }
-        Object value = ConfigNodes.get(config, "value");
-        return value instanceof Number;
-    }
 
     private static String formatTextNumber(double value) {
         if (Math.abs(value - Math.rint(value)) <= INTEGER_ROUNDING_EPSILON) {

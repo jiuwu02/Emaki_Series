@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader.LoadedYamlEntry;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class CodexEditorModule implements EditorModule {
 
@@ -405,6 +406,7 @@ public final class CodexEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiCodex", "CodexEditorModule.java#1", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');

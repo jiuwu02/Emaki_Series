@@ -5,14 +5,12 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSource;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageRegistration;
 import emaki.jiuwu.craft.corelib.api.action.CoreTargetRegistration;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.gui.GuiService;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.legacy.LegacyContentMigrator;
-import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -58,6 +56,7 @@ import emaki.jiuwu.craft.mobs.spawner.SpawnRuleDispatcher;
 import emaki.jiuwu.craft.mobs.spawner.TypeOverrideApplicator;
 import emaki.jiuwu.craft.mobs.apiimpl.DefaultMobExtensions;
 import emaki.jiuwu.craft.mobs.threat.ThreatTableManager;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -92,29 +91,19 @@ final class MobsLifecycleCoordinator
 
     @Override
     public MobsRuntimeComponents initialize(EmakiMobsPlugin plugin) {
-        var coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        var coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         var appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();
-        var languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        var languageLoader = moduleLanguageLoader(plugin);
         var messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         var bootstrapService = new BootstrapService(plugin, messageService,
                 VERSIONED_FILES, STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        new LegacyContentMigrator(plugin.getDataFolder().toPath(), "mobs", "生物定义",
-                                new MobDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true);
-                    }
-                });
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
+                        () -> new LegacyContentMigrator(plugin.getDataFolder().toPath(), "mobs", "生物定义",
+                                new MobDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true)));
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         var mobIdentifier = new MobIdentifier(plugin);
         var componentMapper = new ComponentMapper(mobIdentifier);
         var definitionLoader = new MobDefinitionYamlLoader(plugin);

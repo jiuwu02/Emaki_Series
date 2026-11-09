@@ -198,7 +198,7 @@ final class ItemSetPresentationCalculator {
             } else {
                 return false;
             }
-            int matchedStart = uniqueBlockStart(migratedLore, expectedBlock);
+            int matchedStart = ItemSetPresentationCalculatorSupport.uniqueBlockStart(migratedLore, expectedBlock);
             if (matchedStart < 0) {
                 return false;
             }
@@ -216,57 +216,13 @@ final class ItemSetPresentationCalculator {
         if (canonicalSetLore.isEmpty()) {
             return result;
         }
-        while (endsWith(result, canonicalSetLore)) {
+        while (ItemSetPresentationCalculatorSupport.endsWith(result, canonicalSetLore)) {
             result.subList(result.size() - canonicalSetLore.size(), result.size()).clear();
-            removeSeparatorBefore(result, result.size());
+            ItemSetPresentationCalculatorSupport.removeSeparatorBefore(result, result.size());
         }
         return result;
     }
 
-    private static int uniqueBlockStart(List<String> lines, List<String> canonicalBlock) {
-        int matchedStart = -1;
-        if (lines == null || canonicalBlock == null || canonicalBlock.isEmpty()) {
-            return matchedStart;
-        }
-        for (int start = 0; start <= lines.size() - canonicalBlock.size(); start++) {
-            if (!matchesAt(lines, canonicalBlock, start)) {
-                continue;
-            }
-            if (matchedStart >= 0) {
-                return -1;
-            }
-            matchedStart = start;
-        }
-        return matchedStart;
-    }
-
-    private static boolean endsWith(List<String> lines, List<String> suffix) {
-        return lines != null
-                && suffix != null
-                && !suffix.isEmpty()
-                && lines.size() >= suffix.size()
-                && matchesAt(lines, suffix, lines.size() - suffix.size());
-    }
-
-    private static boolean matchesAt(List<String> lines, List<String> canonicalBlock, int start) {
-        if (lines == null || canonicalBlock == null || canonicalBlock.isEmpty()
-                || start < 0 || start + canonicalBlock.size() > lines.size()) {
-            return false;
-        }
-        for (int offset = 0; offset < canonicalBlock.size(); offset++) {
-            if (!canonicalLoreLine(lines.get(start + offset)).equals(canonicalBlock.get(offset))) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private static void removeSeparatorBefore(List<String> lines, int start) {
-        int separatorIndex = start - 1;
-        if (separatorIndex >= 0 && MiniMessages.plainText(lines.get(separatorIndex)).isBlank()) {
-            lines.remove(separatorIndex);
-        }
-    }
 
     static List<String> canonicalLoreLines(List<String> lore) {
         if (lore == null || lore.isEmpty()) {
@@ -274,14 +230,11 @@ final class ItemSetPresentationCalculator {
         }
         List<String> canonical = new ArrayList<>(lore.size());
         for (String line : lore) {
-            canonical.add(canonicalLoreLine(line));
+            canonical.add(ItemSetPresentationCalculatorSupport.canonicalLoreLine(line));
         }
         return List.copyOf(canonical);
     }
 
-    private static String canonicalLoreLine(String line) {
-        return MiniMessages.serialize(MiniMessages.parse(Texts.toStringSafe(line)));
-    }
 
     static List<String> staticLoreBlock(List<String> baseLore, List<String> setLore) {
         List<String> canonicalSetLore = canonicalLoreLines(setLore);

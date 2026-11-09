@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.attribute.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +17,7 @@ import emaki.jiuwu.craft.attribute.api.extension.AttributeExtensions;
  */
 public final class EmakiAttributeApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiAttributeApi() {
     }
@@ -28,7 +29,7 @@ public final class EmakiAttributeApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiAttributeApi.bridge = bridge;
+        EmakiAttributeApi.bridge.activate(bridge);
     }
 
     /**
@@ -39,14 +40,12 @@ public final class EmakiAttributeApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiAttributeApi.bridge == bridge) {
-            EmakiAttributeApi.bridge = null;
-        }
+        EmakiAttributeApi.bridge.deactivate(bridge);
     }
 
     /** {@return availability and identity metadata} */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -54,19 +53,19 @@ public final class EmakiAttributeApi {
 
     /** {@return the read-only query layer; never {@code null}} */
     public static @NotNull AttributeCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableAttribute.CATALOG : resolved.catalog();
     }
 
     /** {@return the state-changing operation layer; never {@code null}} */
     public static @NotNull AttributeOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableAttribute.OPERATIONS : resolved.operations();
     }
 
     /** {@return the extension registration and PDC layer; never {@code null}} */
     public static @NotNull AttributeExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableAttribute.EXTENSIONS : resolved.extensions();
     }
 

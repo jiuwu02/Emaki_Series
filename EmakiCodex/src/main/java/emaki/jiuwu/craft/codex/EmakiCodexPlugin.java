@@ -48,6 +48,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 import emaki.jiuwu.craft.codex.apiimpl.DefaultEmakiCodexApi;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
@@ -294,7 +295,7 @@ public class EmakiCodexPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

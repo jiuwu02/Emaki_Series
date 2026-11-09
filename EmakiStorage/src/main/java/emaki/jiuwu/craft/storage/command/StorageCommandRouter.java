@@ -33,6 +33,9 @@ import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
 import emaki.jiuwu.craft.storage.service.StorageAutoPickupService;
 import emaki.jiuwu.craft.storage.session.StorageSessionManager;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 public final class StorageCommandRouter implements TabExecutor {
 
@@ -84,7 +87,7 @@ public final class StorageCommandRouter implements TabExecutor {
             return true;
         }
         if (!player.hasPermission(StorageAutoPickupService.PERMISSION)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (plugin.appConfig() == null || !plugin.appConfig().autoPickup().enabled()) {
@@ -120,7 +123,7 @@ public final class StorageCommandRouter implements TabExecutor {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE) && !hasAdmin(player)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!plugin.sessionManager().openOwn(player)) {
@@ -131,7 +134,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleOpen(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!(sender instanceof Player admin)) {
@@ -156,17 +159,20 @@ public final class StorageCommandRouter implements TabExecutor {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_EDIT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messageService().send(sender, "general.player_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return true;
@@ -215,7 +221,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleSlot(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 4 || !args[1].equalsIgnoreCase("grant")) {
@@ -250,7 +256,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleStackLimit(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 4) {
@@ -324,7 +330,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleInfo(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -366,7 +372,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleExport(CommandSender sender, String[] args) {
         if (!hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -391,7 +397,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.bootstrapService().bootstrap();
@@ -409,7 +415,7 @@ public final class StorageCommandRouter implements TabExecutor {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !hasAdmin(sender)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         return plugin.debugCommand().handle(sender,

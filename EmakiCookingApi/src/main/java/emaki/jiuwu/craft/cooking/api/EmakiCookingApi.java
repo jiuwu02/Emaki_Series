@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.cooking.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +17,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiCookingApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiCookingApi() {
     }
@@ -28,7 +29,7 @@ public final class EmakiCookingApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiCookingApi.bridge = bridge;
+        EmakiCookingApi.bridge.activate(bridge);
     }
 
     /**
@@ -38,9 +39,7 @@ public final class EmakiCookingApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiCookingApi.bridge == bridge) {
-            EmakiCookingApi.bridge = null;
-        }
+        EmakiCookingApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -49,7 +48,7 @@ public final class EmakiCookingApi {
      * installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -60,7 +59,7 @@ public final class EmakiCookingApi {
      * unavailability when EmakiCooking is absent}
      */
     public static @NotNull CookingNutrition nutrition() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCooking.NUTRITION : resolved.nutrition();
     }
 
@@ -69,7 +68,7 @@ public final class EmakiCookingApi {
      * implementation when EmakiCooking is unavailable}
      */
     public static @NotNull CookingCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCooking.CATALOG : resolved.catalog();
     }
 
@@ -78,7 +77,7 @@ public final class EmakiCookingApi {
      * unavailability when EmakiCooking is absent}
      */
     public static @NotNull CookingOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCooking.OPERATIONS : resolved.operations();
     }
 

@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.dialog.DialogDefinition;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.dialog.DialogService;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public final class EditorInput {
 
@@ -68,7 +69,7 @@ public final class EditorInput {
             String cancelButtonId,
             Consumer<String> buttonCallback) {
         try {
-            DialogService dialog = EmakiCoreLibPlugin.lookup().dialogService();
+            DialogService dialog = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).dialogService();
             if (dialog == null || !dialog.enabled()) {
                 return false;
             }

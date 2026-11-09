@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.storage.config.AppConfig;
 import emaki.jiuwu.craft.storage.model.PlayerStorage;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StorageCapacityService {
 
@@ -52,7 +53,7 @@ public final class StorageCapacityService {
             try {
                 highest = Math.max(highest, Long.parseLong(suffix));
             } catch (NumberFormatException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStorage", "StorageCapacityService.java#1", ignored);
             }
         }
         return highest;

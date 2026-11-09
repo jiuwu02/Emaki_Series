@@ -24,9 +24,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.Recipe;
@@ -225,53 +223,34 @@ public final class RecipeLoader extends YamlDirectoryLoader<Recipe> {
     }
 
     public void loadCandidateDocuments(List<CandidateDocument> documents) {
-        synchronized (stateLock) {
-            items.clear();
-            loadedEntries.clear();
-            issues.clear();
-            loaded = false;
-            discoveredFiles.clear();
-            candidateFileSummaryHash = summarizeDocuments(documents);
-            if (documents != null) {
-                for (CandidateDocument document : documents) {
-                    if (document == null || document.file() == null) {
-                        continue;
-                    }
-                    discoveredFiles.add(document.file());
-                    if (document.failure() != null) {
-                        onLoadFailure(document.file(), document.failure());
-                        continue;
-                    }
-                    try {
-                        YamlSection configuration = document.content() == null
-                                ? new MapYamlSection()
-                                : YamlFiles.load(document.content());
-                        Recipe value = parse(document.file(), configuration);
-                        if (value == null) {
-                            continue;
-                        }
-                        String id = idOf(value);
-                        if (Texts.isBlank(id)) {
-                            onBlankId(document.file());
-                            continue;
-                        }
-                        if (items.containsKey(id)) {
-                            onDuplicateId(document.file(), id);
-                            continue;
-                        }
-                        items.put(id, value);
-                        loadedEntries.put(id, new LoadedYamlEntry<>(
-                                id,
-                                document.file(),
-                                configuration,
-                                value));
-                    } catch (Exception exception) {
-                        onLoadFailure(document.file(), exception);
-                    }
-                }
+        loadFromCandidateDocuments(documents, new CandidateDocumentAdapter<CandidateDocument>() {
+            @Override
+            public File fileOf(CandidateDocument document) {
+                return document.file();
             }
-            loaded = true;
-        }
+
+            @Override
+            public String contentOf(CandidateDocument document) {
+                return document.content();
+            }
+
+            @Override
+            public Exception failureOf(CandidateDocument document) {
+                return document.failure();
+            }
+
+            @Override
+            public void beforeLoad(List<CandidateDocument> documents) {
+                issues.clear();
+                discoveredFiles.clear();
+                candidateFileSummaryHash = summarizeDocuments(documents);
+            }
+
+            @Override
+            public void onCandidate(File file) {
+                discoveredFiles.add(file);
+            }
+        });
     }
 
     public void completeDeferredRuntimeValidation() {

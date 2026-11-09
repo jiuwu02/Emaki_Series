@@ -57,6 +57,7 @@ import emaki.jiuwu.craft.dungeon.tempitem.TempItemManager;
 import emaki.jiuwu.craft.dungeon.ticket.TicketService;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.Locale;
 import org.bukkit.Location;
 import org.bukkit.scoreboard.Scoreboard;
@@ -1028,6 +1029,7 @@ public final class ChallengeService {
                 try {
                     tickets.refund(entry.getKey(), entry.getValue());
                 } catch (RuntimeException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "ChallengeService.java#1", ignored);
                 }
             }
         }

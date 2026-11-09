@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.runtime.CapabilityProbe;
 import emaki.jiuwu.craft.corelib.runtime.ExecutionDomain;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StageDispatcher implements AutoCloseable {
 
@@ -151,7 +152,7 @@ public final class StageDispatcher implements AutoCloseable {
                 handle.cancel();
                 cancelled++;
             } catch (RuntimeException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "StageDispatcher.java#1", ignored);
             }
         }
         return cancelled;

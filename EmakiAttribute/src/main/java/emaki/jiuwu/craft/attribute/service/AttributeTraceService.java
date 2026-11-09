@@ -69,7 +69,7 @@ public final class AttributeTraceService {
             List<AttributeContributionTrace> traces,
             String filter) {
         for (Map.Entry<String, Double> entry : service.defaultAttributeValues().entrySet()) {
-            addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "base_profile", "default_profile", "默认属性档案", "", "", "", true, "", filter);
+            addTraceRequest(reconstructed, traces, new TraceRequest(entry.getKey(), entry.getValue(), "EmakiAttribute", "base_profile", "default_profile", "默认属性档案", "", "", "", true, "", filter));
         }
     }
 
@@ -101,7 +101,7 @@ public final class AttributeTraceService {
             boolean itemSlotMatched = views.itemSlotMatched();
             for (Map.Entry<String, Double> entry : loreApprox.entrySet()) {
                 if (itemSlotMatched) {
-                    addTrace(reconstructed, traces, entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / 词条", slot, "", "lore", true, "", filter);
+                    addTraceRequest(reconstructed, traces, new TraceRequest(entry.getKey(), entry.getValue(), "EmakiAttribute", "lore", slot, label + " / 词条", slot, "", "lore", true, "", filter));
                 } else {
                     addRejectedTrace(traces, entry.getKey(), entry.getValue(), "lore", slot, label + " / 词条（槽位未通过）", "lore", filter);
                 }
@@ -112,7 +112,8 @@ public final class AttributeTraceService {
                 double effective = filteredPdc.getOrDefault(id, 0D);
                 boolean passed = itemSlotMatched && Math.abs(effective) > 1.0E-9D;
                 if (passed) {
-                    addTrace(reconstructed, traces, id, effective, "EmakiAttribute", "pdc", slot, label + " / PDC", slot, "", "pdc", true, "", filter, raw, effective);
+                    addTrace(reconstructed, traces, new TraceSpec(id, effective, "EmakiAttribute", "pdc",
+                            slot, label + " / PDC", slot, "", "pdc", true, "", filter, raw, effective));
                 } else {
                     String rejectedLabel = itemSlotMatched
                             ? label + " / PDC（条件未通过）"
@@ -139,13 +140,15 @@ public final class AttributeTraceService {
             if (points <= 0) {
                 continue;
             }
-            addTrace(reconstructed, traces, parent.id(), (double) points, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, "points", filter);
+            addTraceRequest(reconstructed, traces, new TraceRequest(parent.id(), (double) points, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, "points", filter));
             for (Map.Entry<String, Double> bonus : parent.childBonuses().entrySet()) {
                 if (bonus.getValue() == null) {
                     continue;
                 }
                 double value = points * bonus.getValue();
-                addTrace(reconstructed, traces, bonus.getKey(), value, "EmakiAttribute", "parent_attribute", parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true, parent.id() + " * " + bonus.getValue(), filter, bonus.getValue(), value);
+                addTrace(reconstructed, traces, new TraceSpec(bonus.getKey(), value, "EmakiAttribute", "parent_attribute",
+                        parent.id(), parent.displayName() + " 加点", "", "", "parent_attribute", true,
+                        parent.id() + " * " + bonus.getValue(), filter, bonus.getValue(), value));
             }
         }
     }
@@ -167,7 +170,7 @@ public final class AttributeTraceService {
                 if (contribution == null) {
                     continue;
                 }
-                addTrace(reconstructed, traces, contribution.attributeId(), contribution.value(), providerId, "external", providerId, provider.id(), "", "", "provider", true, "", filter);
+                addTraceRequest(reconstructed, traces, new TraceRequest(contribution.attributeId(), contribution.value(), providerId, "external", providerId, provider.id(), "", "", "provider", true, "", filter));
             }
         }
     }
@@ -184,9 +187,9 @@ public final class AttributeTraceService {
             if (captured.effect().mode() != TemporaryAttributeService.TemporaryAttributeMode.ADD) {
                 continue;
             }
-            addTrace(reconstructed, traces, captured.attributeId(), captured.value(), "EmakiAttribute", "temporary",
+            addTraceRequest(reconstructed, traces, new TraceRequest(captured.attributeId(), captured.value(), "EmakiAttribute", "temporary",
                     captured.groupId(), temporaryLabel(captured, capture.capturedAtMillis()), "", "", "temporary",
-                    true, "", filter);
+                    true, "", filter));
         }
         Set<String> settled = new LinkedHashSet<>();
         for (TemporaryCapturedEffect captured : capture.effects()) {
@@ -263,47 +266,28 @@ public final class AttributeTraceService {
         return resources;
     }
 
-    private void addTrace(Map<String, Double> reconstructed,
+    private void addTraceRequest(Map<String, Double> reconstructed,
             List<AttributeContributionTrace> traces,
-            String attributeId,
-            Double value,
-            String sourceModule,
-            String sourceType,
-            String sourceId,
-            String sourceLabel,
-            String slot,
-            String itemId,
-            String layer,
-            boolean conditionPassed,
-            String formula,
-            String filter) {
-        double safeValue = value == null ? 0D : value;
-        addTrace(reconstructed, traces, attributeId, safeValue, sourceModule, sourceType, sourceId, sourceLabel, slot, itemId, layer, conditionPassed, formula, filter, 0D, safeValue);
+            TraceRequest request) {
+        double safeValue = request.value() == null ? 0D : request.value();
+        addTrace(reconstructed, traces, new TraceSpec(request.attributeId(), safeValue, request.sourceModule(),
+                request.sourceType(), request.sourceId(), request.sourceLabel(), request.slot(),
+                request.itemId(), request.layer(), request.conditionPassed(), request.formula(),
+                request.filter(), 0D, safeValue));
     }
 
     private void addTrace(Map<String, Double> reconstructed,
             List<AttributeContributionTrace> traces,
-            String attributeId,
-            double value,
-            String sourceModule,
-            String sourceType,
-            String sourceId,
-            String sourceLabel,
-            String slot,
-            String itemId,
-            String layer,
-            boolean conditionPassed,
-            String formula,
-            String filter,
-            double rawValue,
-            double finalValue) {
-        String id = Texts.normalizeId(attributeId);
-        if (Texts.isBlank(id) || Math.abs(value) <= 1.0E-9D) {
+            TraceSpec spec) {
+        String id = Texts.normalizeId(spec.attributeId());
+        if (Texts.isBlank(id) || Math.abs(spec.value()) <= 1.0E-9D) {
             return;
         }
-        reconstructed.merge(id, value, Double::sum);
-        if (matches(filter, id)) {
-            traces.add(new AttributeContributionTrace(id, value, sourceModule, sourceType, sourceId, sourceLabel, slot, itemId, layer, conditionPassed, formula, rawValue, finalValue));
+        reconstructed.merge(id, spec.value(), Double::sum);
+        if (matches(spec.filter(), id)) {
+            traces.add(new AttributeContributionTrace(id, spec.value(), spec.sourceModule(), spec.sourceType(),
+                    spec.sourceId(), spec.sourceLabel(), spec.slot(), spec.itemId(), spec.layer(),
+                    spec.conditionPassed(), spec.formula(), spec.rawValue(), spec.finalValue()));
         }
     }
 

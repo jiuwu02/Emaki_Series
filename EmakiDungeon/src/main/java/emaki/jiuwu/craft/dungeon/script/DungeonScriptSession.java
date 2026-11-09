@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.dungeon.instance.EventIngress.IngressEvent;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
 import emaki.jiuwu.craft.dungeon.trigger.TriggerType;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.time.Duration;
 import java.util.LinkedHashMap;
 import org.bukkit.Bukkit;
@@ -298,9 +299,11 @@ public final class DungeonScriptSession implements AutoCloseable {
                 try {
                     current.interrupt(Duration.ofMillis(100));
                 } catch (Exception ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "DungeonScriptSession.java#1", ignored);
                 }
             }, timeoutMs, TimeUnit.MILLISECONDS);
         } catch (RejectedExecutionException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "DungeonScriptSession.java#2", ignored);
         }
         try {
             body.run();
@@ -474,6 +477,7 @@ public final class DungeonScriptSession implements AutoCloseable {
                 try {
                     current.close();
                 } catch (RuntimeException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "DungeonScriptSession.java#3", ignored);
                 }
             }
         }

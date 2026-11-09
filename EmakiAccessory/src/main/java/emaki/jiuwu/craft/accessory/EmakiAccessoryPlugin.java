@@ -61,6 +61,7 @@ import emaki.jiuwu.craft.corelib.plugin.AbstractConfigurableEmakiPlugin;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider, AccessoryGuiHandler.Callbacks {
@@ -204,7 +205,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(EmakiCoreLibPlugin.lookup());
+            action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("[startup] 已跳过就绪状态发布: " + exception);
         }
@@ -296,7 +297,7 @@ public class EmakiAccessoryPlugin extends AbstractConfigurableEmakiPlugin<AppCon
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public boolean isShutdownStarted() {

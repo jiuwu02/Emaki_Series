@@ -1,5 +1,5 @@
 // EmakiDummy.
-version = '1.0.3'
+version = '1.0.4'
 
 configurations.shadeBundle {
     exclude group: 'io.netty'
@@ -14,7 +14,7 @@ dependencies {
     shadeBundle libs.mcprotocollib
 
     api project(':EmakiCoreLibApi')
-    api project(':EmakiCoreLib')
+    provided project(':EmakiCoreLib')
 
     optional libs.mcprotocollib
     provided libs.paper.api

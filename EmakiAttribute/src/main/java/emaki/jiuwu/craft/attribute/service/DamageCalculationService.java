@@ -260,28 +260,6 @@ final class DamageCalculationService {
         );
     }
 
-    public DamageContext createDamageContext(LivingEntity attacker,
-            LivingEntity target,
-            Projectile projectile,
-            EntityDamageEvent.DamageCause cause,
-            String damageTypeId,
-            double sourceDamage,
-            double baseDamage,
-            Map<String, ?> context) {
-        return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, DamageContextVariables.from(context));
-    }
-
-    public DamageContext createDamageContext(LivingEntity attacker,
-            LivingEntity target,
-            Projectile projectile,
-            EntityDamageEvent.DamageCause cause,
-            String damageTypeId,
-            double sourceDamage,
-            double baseDamage,
-            DamageContextVariables context) {
-        return createDamageContext(attacker, target, projectile, cause, damageTypeId, sourceDamage, baseDamage, null, null, context);
-    }
-
     public DamageResult calculateDamage(DamageContext damageContext) {
         DamageCalculationPlan plan = prepareDamageCalculation(damageContext);
         if (plan == null) {
@@ -298,7 +276,7 @@ final class DamageCalculationService {
         DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
         double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
-        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, effectiveContext);
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, null, null, effectiveContext);
         return calculateDamage(damageContext);
     }
 
@@ -325,7 +303,7 @@ final class DamageCalculationService {
         DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
         double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
-        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, effectiveContext);
+        DamageContext damageContext = createDamageContext(attacker, target, null, cause, damageTypeId, sourceDamage, baseDamage, null, null, effectiveContext);
         return applyDamage(damageContext);
     }
 
@@ -380,7 +358,7 @@ final class DamageCalculationService {
         DamageContextVariables effectiveContext = context == null ? DamageContextVariables.empty() : context;
         double sourceDamage = effectiveContext.getDouble("source_damage", baseDamage);
         EntityDamageEvent.DamageCause cause = effectiveContext.extractDamageCause();
-        DamageContext damageContext = createDamageContext(shooter, target, projectile, cause, defaultProjectileDamageTypeId(), sourceDamage, baseDamage, effectiveContext);
+        DamageContext damageContext = createDamageContext(shooter, target, projectile, cause, defaultProjectileDamageTypeId(), sourceDamage, baseDamage, null, null, effectiveContext);
         return applyProjectileDamage(damageContext);
     }
 

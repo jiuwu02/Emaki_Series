@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.gem.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -23,7 +24,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiGemApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiGemApi() {
     }
@@ -35,7 +36,7 @@ public final class EmakiGemApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiGemApi.bridge = bridge;
+        EmakiGemApi.bridge.activate(bridge);
     }
 
     /**
@@ -45,9 +46,7 @@ public final class EmakiGemApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiGemApi.bridge == bridge) {
-            EmakiGemApi.bridge = null;
-        }
+        EmakiGemApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -56,7 +55,7 @@ public final class EmakiGemApi {
      * installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -67,7 +66,7 @@ public final class EmakiGemApi {
      * when EmakiGem is unavailable}
      */
     public static @NotNull GemCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableGem.CATALOG : resolved.catalog();
     }
 
@@ -76,7 +75,7 @@ public final class EmakiGemApi {
      * that reports unavailability when EmakiGem is absent}
      */
     public static @NotNull GemOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableGem.OPERATIONS : resolved.operations();
     }
 

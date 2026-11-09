@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api.text;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.event.HoverEvent;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -14,7 +15,7 @@ public final class MiniMessages {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
     private static final LegacyComponentSerializer LEGACY_AMPERSAND = LegacyComponentSerializer.legacyAmpersand();
 
-    private static volatile boolean defaultNoItalic;
+    private static final AtomicBoolean defaultNoItalic = new AtomicBoolean();
 
     private MiniMessages() {
     }
@@ -24,11 +25,11 @@ public final class MiniMessages {
      * 由 CoreLib 在启用与重载时依据 {@code minimessage.default_no_italic} 调用。
      */
     public static void configureDefaultNoItalic(boolean enabled) {
-        defaultNoItalic = enabled;
+        defaultNoItalic.set(enabled);
     }
 
     public static boolean defaultNoItalic() {
-        return defaultNoItalic;
+        return defaultNoItalic.get();
     }
 
     public static Component parse(String text) {
@@ -67,7 +68,7 @@ public final class MiniMessages {
         if (component == null) {
             return Component.empty();
         }
-        if (!defaultNoItalic) {
+        if (!defaultNoItalic.get()) {
             return component;
         }
         return component.decorationIfAbsent(TextDecoration.ITALIC, TextDecoration.State.FALSE);

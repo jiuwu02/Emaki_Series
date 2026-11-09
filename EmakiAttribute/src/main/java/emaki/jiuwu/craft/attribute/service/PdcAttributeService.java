@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
 import emaki.jiuwu.craft.corelib.pdc.SnapshotCodec;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class PdcAttributeService implements PdcAttributeAccess {
@@ -663,7 +664,8 @@ public final class PdcAttributeService implements PdcAttributeAccess {
         if (Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 resolved = PlaceholderAPI.setPlaceholders(player, resolved);
-            } catch (Exception _) {
+            } catch (Exception swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiAttribute", "PdcAttributeService.java#1", swallowed);
             }
         }
         return resolved;

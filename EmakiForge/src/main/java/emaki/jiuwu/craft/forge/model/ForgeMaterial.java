@@ -104,31 +104,38 @@ public final class ForgeMaterial {
     public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
             List<MaterialEffect> effects, List<ItemSourceRef> itemSources, Matcher matcher,
             String matcherKey, String materialId, String countKey, String auditId) {
-        this(item, amount, optional, capacityCost, effects, itemSources, matcher, matcherKey,
-                materialId, countKey, auditId, true, true, true);
+        this(new ForgeMaterialSpec(item, amount, optional, capacityCost, effects, itemSources,
+                matcher, matcherKey, materialId, countKey, auditId, true, true, true));
+    }
+
+    public ForgeMaterial(ForgeMaterialSpec spec) {
+        this.item = Texts.toStringSafe(spec.item());
+        this.amount = spec.amount();
+        this.optional = spec.optional();
+        this.capacityCost = spec.capacityCost();
+        this.effects = List.copyOf(spec.effects() == null ? List.of() : spec.effects());
+        this.itemSources = List.copyOf(spec.itemSources() == null ? List.of() : spec.itemSources());
+        this.matcher = spec.matcher();
+        this.matcherKey = Texts.toStringSafe(spec.matcherKey());
+        this.materialIdDeclared = spec.materialIdDeclared() && Texts.isNotBlank(spec.materialId());
+        this.countKeyDeclared = spec.countKeyDeclared() && Texts.isNotBlank(spec.countKey());
+        this.auditIdDeclared = spec.auditIdDeclared() && Texts.isNotBlank(spec.auditId());
+        ForgeMaterialIdentity identity = ForgeMaterialIdentity.resolve(
+                spec.materialId(), spec.countKey(), spec.auditId(),
+                ItemRequirement.sourceIdentity(this.itemSources), this.matcherKey);
+        this.materialId = identity.materialId();
+        this.countKey = identity.countKey();
+        this.auditId = identity.auditId();
+        this.requirement = new ItemRequirement(this.itemSources, spec.matcher(), this.materialId);
     }
 
     public ForgeMaterial(String item, int amount, boolean optional, int capacityCost,
             List<MaterialEffect> effects, List<ItemSourceRef> itemSources, Matcher matcher,
             String matcherKey, String materialId, String countKey, String auditId,
             boolean materialIdDeclared, boolean countKeyDeclared, boolean auditIdDeclared) {
-        this.item = Texts.toStringSafe(item);
-        this.amount = amount;
-        this.optional = optional;
-        this.capacityCost = capacityCost;
-        this.effects = List.copyOf(effects == null ? List.of() : effects);
-        this.itemSources = List.copyOf(itemSources == null ? List.of() : itemSources);
-        this.matcher = matcher;
-        this.matcherKey = Texts.toStringSafe(matcherKey);
-        this.materialIdDeclared = materialIdDeclared && Texts.isNotBlank(materialId);
-        this.countKeyDeclared = countKeyDeclared && Texts.isNotBlank(countKey);
-        this.auditIdDeclared = auditIdDeclared && Texts.isNotBlank(auditId);
-        ForgeMaterialIdentity identity = ForgeMaterialIdentity.resolve(
-                materialId, countKey, auditId, ItemRequirement.sourceIdentity(this.itemSources), this.matcherKey);
-        this.materialId = identity.materialId();
-        this.countKey = identity.countKey();
-        this.auditId = identity.auditId();
-        this.requirement = new ItemRequirement(this.itemSources, matcher, this.materialId);
+        this(new ForgeMaterialSpec(item, amount, optional, capacityCost, effects, itemSources,
+                matcher, matcherKey, materialId, countKey, auditId,
+                materialIdDeclared, countKeyDeclared, auditIdDeclared));
     }
 
     public static ForgeMaterial fromConfig(YamlSection section) {

@@ -7,6 +7,7 @@ import java.util.function.Supplier;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public final class ConfigCommitGate {
 
@@ -47,7 +48,7 @@ public final class ConfigCommitGate {
         if (Texts.isBlank(moduleId)) {
             return new Result(false, moduleId, List.of("配置提交关卡收到空的模块 id"));
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         if (coreLib == null || coreLib.configPrecheckService() == null) {
 
             return new Result(false, moduleId, List.of("配置预检服务不可用"));

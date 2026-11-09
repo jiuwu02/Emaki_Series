@@ -31,6 +31,7 @@ import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.ForgeGuiState;
 import emaki.jiuwu.craft.forge.ForgeRuntimeSnapshot;
 import emaki.jiuwu.craft.forge.model.Recipe;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class RecipeBookGuiService {
 
@@ -355,7 +356,7 @@ public final class RecipeBookGuiService {
                 return;
             }
             if (recipe.requiresPermission() && !state.player.hasPermission(recipe.permission())) {
-                state.runtimeSnapshot.messageService().send(state.player, "general.no_permission");
+                state.runtimeSnapshot.messageService().send(state.player, CommandKeys.NO_PERMISSION);
                 return;
             }
             ForgeGuiService forgeGuiService = state.runtimeSnapshot.forgeGuiService();

@@ -18,6 +18,8 @@ import emaki.jiuwu.craft.accessory.model.AccessorySlot;
 import emaki.jiuwu.craft.accessory.model.PlayerAccessories;
 import emaki.jiuwu.craft.accessory.service.AccessoryPageRegistry;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 
 public final class AccessoryCommandRouter {
 
@@ -64,13 +66,8 @@ public final class AccessoryCommandRouter {
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
-            String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            for (String sub : SUBCOMMANDS) {
-                if (sub.startsWith(prefix)) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(SUBCOMMANDS,
+                    args.length == 0 ? "" : args[0]);
         }
         String head = args[0].toLowerCase(Locale.ROOT);
         if (("open".equals(head) || "retrieve".equals(head)) && args.length == 2) {
@@ -137,7 +134,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         String requested = args.length < 2 ? "" : args[1];
@@ -154,7 +151,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         PlayerAccessories accessories = plugin.accessoryStore().cached(player.getUniqueId());
@@ -186,7 +183,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -231,7 +228,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_EDIT)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length >= 2 && !Texts.isBlank(args[1])) {
@@ -262,7 +259,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         PlayerAccessories accessories = plugin.accessoryStore().cached(player.getUniqueId());
@@ -288,7 +285,7 @@ public final class AccessoryCommandRouter {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         long startTime = System.currentTimeMillis();
@@ -306,7 +303,7 @@ public final class AccessoryCommandRouter {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (plugin.debugCommand() == null) {
@@ -320,7 +317,7 @@ public final class AccessoryCommandRouter {
 
     private boolean handleAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -345,7 +342,7 @@ public final class AccessoryCommandRouter {
             return true;
         }
         if (writable && !viewer.hasPermission(PERMISSION_EDIT_OTHERS)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 3) {

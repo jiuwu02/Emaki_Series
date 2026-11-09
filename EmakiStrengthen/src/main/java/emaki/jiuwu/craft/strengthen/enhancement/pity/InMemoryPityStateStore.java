@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.charset.StandardCharsets;
 
 public final class InMemoryPityStateStore implements PityStateStore {
@@ -98,6 +99,7 @@ public final class InMemoryPityStateStore implements PityStateStore {
                 boolean triggered = Boolean.parseBoolean(values[2]);
                 states.put(composite, new PityState(counter, lastTrigger, triggered));
             } catch (NumberFormatException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiStrengthen", "InMemoryPityStateStore.java#1", ignored);
             }
         }
         dirty = false;

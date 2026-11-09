@@ -27,6 +27,8 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.item.ItemTextBridge;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 public final class AttributeCommand implements TabExecutor {
 
@@ -92,12 +94,9 @@ public final class AttributeCommand implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "points", "lint", "edit")) {
-                if (candidate.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                    result.add(candidate);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "reload", "resync", "preview", "dump", "debug", "source", "trace", "points", "lint", "edit"),
+                    args[0]);
         }
         if (args.length >= 2 && "points".equalsIgnoreCase(args[0])) {
             return completePoints(sender, args);
@@ -271,17 +270,20 @@ public final class AttributeCommand implements TabExecutor {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(AttributePermissions.EDIT) && !sender.hasPermission(AttributePermissions.ADMIN)) {
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, AttributePermissions.EDIT, AttributePermissions.ADMIN);
+        if (editGuard == Guard.DENIED) {
             messages().send(sender, "command.edit.no_permission");
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             messages().send(sender, "command.edit.players_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return true;

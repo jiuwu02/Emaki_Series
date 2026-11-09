@@ -36,6 +36,7 @@ import emaki.jiuwu.craft.station.dismantle.DismantleRecipeLoader;
 import emaki.jiuwu.craft.station.dismantle.DismantleStationLoader;
 import emaki.jiuwu.craft.station.recipe.RecipeCost;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StationEditorModule implements EditorModule {
 
@@ -461,6 +462,7 @@ public final class StationEditorModule implements EditorModule {
                     return created;
                 }
             } catch (RuntimeException failure) {
+                FailureRecorder.recordIgnoredFailure("EmakiStation", "StationEditorModule.java#1", failure);
             }
         }
         return fallbackPreview(session);
@@ -595,6 +597,7 @@ public final class StationEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiStation", "StationEditorModule.java#2", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');

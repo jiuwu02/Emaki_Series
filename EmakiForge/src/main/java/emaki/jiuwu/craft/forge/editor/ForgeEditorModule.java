@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ForgeEditorModule implements EditorModule {
 
@@ -301,6 +302,7 @@ public final class ForgeEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeEditorModule.java#1", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');

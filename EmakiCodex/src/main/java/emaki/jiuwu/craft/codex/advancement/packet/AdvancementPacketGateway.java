@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.codex.advancement.AdvancementRegistrar;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class AdvancementPacketGateway {
 
@@ -67,7 +68,7 @@ public final class AdvancementPacketGateway {
         try {
             PacketEvents.getAPI().getEventManager().unregisterListener(registeredListener);
         } catch (Throwable ignored) {
-
+            FailureRecorder.recordIgnoredFailure("EmakiCodex", "AdvancementPacketGateway.java#1", ignored);
         } finally {
             registeredListener = null;
         }

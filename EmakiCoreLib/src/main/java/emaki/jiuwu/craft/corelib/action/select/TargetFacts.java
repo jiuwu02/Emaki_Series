@@ -49,6 +49,43 @@ public record TargetFacts(
         slotEmpties = slotEmpties == null ? Map.of() : Map.copyOf(slotEmpties);
     }
 
+    public record Spec(
+            boolean present,
+            boolean living,
+            boolean player,
+            boolean dead,
+            String entityType,
+            String worldName,
+            String plainName,
+            double health,
+            double maxHealth,
+            double distance,
+            int experienceLevel,
+            int foodLevel,
+            String gameMode,
+            Set<String> scoreboardTags,
+            Map<String, Integer> potionEffects,
+            Map<String, Boolean> states,
+            Set<String> identitySystems,
+            Map<String, CoreTargetIdentity> identities,
+            Function<String, Boolean> permissions,
+            long worldTime,
+            Map<String, Boolean> flags,
+            int chunkX,
+            int chunkZ,
+            String worldWeather,
+            Map<Integer, Boolean> slotEmpties) {
+    }
+
+    public TargetFacts(Spec spec) {
+        this(spec.present(), spec.living(), spec.player(), spec.dead(), spec.entityType(),
+                spec.worldName(), spec.plainName(), spec.health(), spec.maxHealth(), spec.distance(),
+                spec.experienceLevel(), spec.foodLevel(), spec.gameMode(), spec.scoreboardTags(),
+                spec.potionEffects(), spec.states(), spec.identitySystems(), spec.identities(),
+                spec.permissions(), spec.worldTime(), spec.flags(), spec.chunkX(), spec.chunkZ(),
+                spec.worldWeather(), spec.slotEmpties());
+    }
+
     public TargetFacts(boolean present,
             boolean living,
             boolean player,
@@ -70,16 +107,16 @@ public record TargetFacts(
             Function<String, Boolean> permissions,
             long worldTime,
             Map<String, Boolean> flags) {
-        this(present, living, player, dead, entityType, worldName, plainName, health, maxHealth,
+        this(new Spec(present, living, player, dead, entityType, worldName, plainName, health, maxHealth,
                 distance, experienceLevel, foodLevel, gameMode, scoreboardTags, potionEffects,
                 states, identitySystems, identities, permissions, worldTime, flags,
-                Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of());
+                Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of()));
     }
 
     public static TargetFacts absent() {
-        return new TargetFacts(false, false, false, true, "", "", "",
+        return new TargetFacts(new Spec(false, false, false, true, "", "", "",
                 0D, 0D, -1D, 0, 0, "", Set.of(), Map.of(), Map.of(), Set.of(), Map.of(),
-                node -> null, 0L, Map.of(), Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of());
+                node -> null, 0L, Map.of(), Integer.MIN_VALUE, Integer.MIN_VALUE, "", Map.of()));
     }
 
     public Boolean flag(String key) {

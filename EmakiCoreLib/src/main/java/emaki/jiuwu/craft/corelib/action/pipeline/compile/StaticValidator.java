@@ -72,7 +72,7 @@ public final class StaticValidator {
             StageResolver.Resolution self = stages.resolve(SELF_SOURCE);
             if (!self.usable() || self.kind() != CoreStageKind.SOURCE) {
                 diagnostics.add(CompileDiagnostic.suggesting("action.validate.missing_self_source",
-                        token(SELF_SOURCE, nodes.get(0).column()), stages.knownIds(CoreStageKind.SOURCE)));
+                        StaticValidatorSupport.token(SELF_SOURCE, nodes.get(0).column()), stages.knownIds(CoreStageKind.SOURCE)));
             }
         }
 
@@ -95,10 +95,10 @@ public final class StaticValidator {
 
         for (ActionAst node : nodes) {
             if (node instanceof ActionAst.Branch branch) {
-                validateVariableReferences(branch.condition(), token("if", branch.column()), state, state.diagnostics);
+                validateVariableReferences(branch.condition(), StaticValidatorSupport.token("if", branch.column()), state, state.diagnostics);
                 if (branchDepth >= limits.maxBranchDepth()) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
-                            token("if", branch.column()),
+                            StaticValidatorSupport.token("if", branch.column()),
                             Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
                     continue;
                 }
@@ -108,7 +108,7 @@ public final class StaticValidator {
                 continue;
             }
             if (node instanceof ActionAst.Weighted weighted) {
-                PipelineToken weightToken = token(PipelineParser.WEIGHT, weighted.column());
+                PipelineToken weightToken = StaticValidatorSupport.token(PipelineParser.WEIGHT, weighted.column());
                 if (branchDepth >= limits.maxBranchDepth()) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
                             weightToken,
@@ -136,7 +136,7 @@ public final class StaticValidator {
             if (node instanceof ActionAst.OnError onError) {
                 if (branchDepth >= limits.maxBranchDepth()) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.branch_depth_exceeded",
-                            token(PipelineParser.ON_ERROR, onError.column()),
+                            StaticValidatorSupport.token(PipelineParser.ON_ERROR, onError.column()),
                             Map.of("maximum", limits.maxBranchDepth(), "depth", branchDepth + 1)));
                     continue;
                 }
@@ -144,9 +144,9 @@ public final class StaticValidator {
                         branchDepth + 1);
                 List<ActionAst> handler = validateNodes(onError.handler(), state.fork(), inheritsInboundFlow,
                         branchDepth + 1);
-                if (containsOnError(handler)) {
+                if (StaticValidatorSupport.containsOnError(handler)) {
                     state.diagnostics.add(CompileDiagnostic.at("action.validate.nested_on_error",
-                            token(PipelineParser.ON_ERROR, onError.column())));
+                            StaticValidatorSupport.token(PipelineParser.ON_ERROR, onError.column())));
                 }
                 if (!body.isEmpty() && !handler.isEmpty()) {
                     resolved.add(new ActionAst.OnError(body, handler, onError.column()));
@@ -156,7 +156,7 @@ public final class StaticValidator {
             }
             if (node instanceof ActionAst.SequenceCall call) {
                 for (Map.Entry<String, String> parameter : call.parameters().entrySet()) {
-                    validateVariableReferences(parameter.getValue(), token(parameter.getKey(), call.column()),
+                    validateVariableReferences(parameter.getValue(), StaticValidatorSupport.token(parameter.getKey(), call.column()),
                             state, state.diagnostics);
                 }
                 validateSequenceCall(call, state);
@@ -168,7 +168,7 @@ public final class StaticValidator {
 
             ActionAst.Stage stage = (ActionAst.Stage) node;
             StageResolver.Resolution resolution = stages.resolve(stage.id());
-            PipelineToken stageToken = token(stage.id(), stage.column());
+            PipelineToken stageToken = StaticValidatorSupport.token(stage.id(), stage.column());
             if (!resolution.known()) {
                 state.diagnostics.add(unknownStageDiagnostic(stage, stageToken));
                 continue;
@@ -237,7 +237,7 @@ public final class StaticValidator {
         double literalTotal = 0D;
         for (ActionAst.Weighted.Option option : weighted.options()) {
             String weight = option.weight();
-            if (containsPlaceholder(weight)) {
+            if (StaticValidatorSupport.containsPlaceholder(weight)) {
                 validateVariableReferences(weight, weightToken, state, state.diagnostics);
                 allLiteral = false;
             } else {
@@ -303,20 +303,20 @@ public final class StaticValidator {
                 CoreStageParameter parameter = positional.get(0);
                 if (arguments.containsKey(parameter.name())) {
                     diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
-                            token(parameter.name(), stage.column())));
+                            StaticValidatorSupport.token(parameter.name(), stage.column())));
                 } else {
                     arguments.put(parameter.name(), String.join(" ", stage.positional()));
                 }
             } else if (stage.positional().size() > positional.size()) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.too_many_positional_arguments",
-                        token(stage.positional().get(positional.size()), stage.column()),
+                        StaticValidatorSupport.token(stage.positional().get(positional.size()), stage.column()),
                         Map.of("maximum", positional.size(), "actual", stage.positional().size())));
             } else {
                 for (int index = 0; index < stage.positional().size(); index++) {
                     CoreStageParameter parameter = positional.get(index);
                     if (arguments.containsKey(parameter.name())) {
                         diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
-                                token(parameter.name(), stage.column())));
+                                StaticValidatorSupport.token(parameter.name(), stage.column())));
                     } else {
                         arguments.put(parameter.name(), stage.positional().get(index));
                     }
@@ -328,7 +328,7 @@ public final class StaticValidator {
             for (String supplied : arguments.keySet()) {
                 if (!byName.containsKey(supplied)) {
                     diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_argument",
-                            token(supplied, stage.column()), List.copyOf(byName.keySet())));
+                            StaticValidatorSupport.token(supplied, stage.column()), List.copyOf(byName.keySet())));
                 }
             }
         }
@@ -336,7 +336,7 @@ public final class StaticValidator {
             String value = arguments.get(parameter.name());
             if (parameter.required() && Texts.isBlank(value) && Texts.isBlank(parameter.defaultValue())) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.missing_required_argument",
-                        token(parameter.name(), stage.column()), Map.of("argument", parameter.name())));
+                        StaticValidatorSupport.token(parameter.name(), stage.column()), Map.of("argument", parameter.name())));
             }
         }
         return new ActionAst.Stage(stage.id(), stage.kind(), arguments, List.of(), stage.column(),
@@ -354,20 +354,20 @@ public final class StaticValidator {
             arguments.put("interval", positional.get(0));
         } else {
             diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
-                    token("interval", stage.column())));
+                    StaticValidatorSupport.token("interval", stage.column())));
         }
         if (positional.size() == 1) {
             return;
         }
         if (positional.size() != 3 || !"times".equalsIgnoreCase(positional.get(1))) {
             diagnostics.add(CompileDiagnostic.at("action.validate.invalid_every_syntax",
-                    token(String.join(" ", positional), stage.column()),
+                    StaticValidatorSupport.token(String.join(" ", positional), stage.column()),
                     Map.of("expected", "every <interval> times <count>")));
             return;
         }
         if (arguments.containsKey("times")) {
             diagnostics.add(CompileDiagnostic.at("action.validate.argument_both_named_and_positional",
-                    token("times", stage.column())));
+                    StaticValidatorSupport.token("times", stage.column())));
         } else {
             arguments.put("times", positional.get(2));
         }
@@ -378,14 +378,14 @@ public final class StaticValidator {
             List<CompileDiagnostic> diagnostics) {
         if (resolution.probeDomain() == null) {
             diagnostics.add(CompileDiagnostic.at("action.validate.thread_domain_undeclared",
-                    token(stage.id(), stage.column()), Map.of("stage", stage.id())));
+                    StaticValidatorSupport.token(stage.id(), stage.column()), Map.of("stage", stage.id())));
             return;
         }
         if (resolution.probeDomain() == ExecutionDomain.ASYNC_COMPUTE
                 && resolution.kind() == CoreStageKind.ACTION
                 && resolution.targetRequirement() != CoreTargetRequirement.NONE) {
             diagnostics.add(CompileDiagnostic.at("action.validate.async_stage_requires_target",
-                    token(stage.id(), stage.column()),
+                    StaticValidatorSupport.token(stage.id(), stage.column()),
                     Map.of("stage", stage.id(), "requirement", resolution.targetRequirement().name())));
         }
     }
@@ -397,7 +397,7 @@ public final class StaticValidator {
             return;
         }
         diagnostics.add(CompileDiagnostic.at("action.validate.missing_inherited_targets",
-                token(stage.id(), stage.column()), Map.of("phase", state.contract.phaseId())));
+                StaticValidatorSupport.token(stage.id(), stage.column()), Map.of("phase", state.contract.phaseId())));
     }
 
     private void validateRequiredContext(ActionAst.Stage stage,
@@ -407,7 +407,7 @@ public final class StaticValidator {
         for (CoreActionKey<?> key : required) {
             if (!state.provides(key)) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.missing_context_key",
-                        token(stage.id(), stage.column()),
+                        StaticValidatorSupport.token(stage.id(), stage.column()),
                         Map.of("stage", stage.id(), "key", key.name(), "type", key.type().getSimpleName(),
                                 "phase", state.contract.phaseId())));
             }
@@ -460,12 +460,12 @@ public final class StaticValidator {
             if (Texts.isBlank(value)) {
                 value = parameter.defaultValue();
             }
-            if (Texts.isBlank(value) || containsPlaceholder(value)) {
+            if (Texts.isBlank(value) || StaticValidatorSupport.containsPlaceholder(value)) {
                 continue;
             }
-            if (!validLiteral(value, parameter.type())) {
+            if (!StaticValidatorSupport.validLiteral(value, parameter.type())) {
                 diagnostics.add(CompileDiagnostic.at("action.validate.invalid_argument_type",
-                        token(parameter.name(), stage.column()),
+                        StaticValidatorSupport.token(parameter.name(), stage.column()),
                         Map.of("argument", parameter.name(), "value", value,
                                 "expected", parameter.type().name())));
             }
@@ -480,11 +480,11 @@ public final class StaticValidator {
         for (ActionAst node : union.sources()) {
             if (!(node instanceof ActionAst.Stage stage)) {
                 state.diagnostics.add(CompileDiagnostic.at("action.parse.union_only_sources",
-                        token(PipelineParser.UNION, union.column())));
+                        StaticValidatorSupport.token(PipelineParser.UNION, union.column())));
                 continue;
             }
             StageResolver.Resolution resolution = stages.resolve(stage.id());
-            PipelineToken stageToken = token(stage.id(), stage.column());
+            PipelineToken stageToken = StaticValidatorSupport.token(stage.id(), stage.column());
             if (!resolution.known()) {
                 state.diagnostics.add(unknownStageDiagnostic(stage, stageToken));
                 continue;
@@ -518,62 +518,42 @@ public final class StaticValidator {
         }
         if (stage.retryTimes() < 0) {
             diagnostics.add(CompileDiagnostic.at("action.validate.invalid_retry_times",
-                    token(PipelineParser.RETRY, stage.column())));
+                    StaticValidatorSupport.token(PipelineParser.RETRY, stage.column())));
             return;
         }
         if (stage.retryTimes() > limits.maxRetryTimes()) {
             diagnostics.add(CompileDiagnostic.at("action.validate.retry_limit_exceeded",
-                    token(PipelineParser.RETRY, stage.column()),
+                    StaticValidatorSupport.token(PipelineParser.RETRY, stage.column()),
                     Map.of("value", stage.retryTimes(), "maximum", limits.maxRetryTimes())));
         }
     }
 
-    private static boolean containsOnError(List<ActionAst> nodes) {
-        for (ActionAst node : nodes) {
-            if (node instanceof ActionAst.OnError) {
-                return true;
-            }
-            if (node instanceof ActionAst.Branch branch) {
-                if (containsOnError(branch.thenBranch()) || containsOnError(branch.elseBranch())) {
-                    return true;
-                }
-            }
-            if (node instanceof ActionAst.Weighted weighted) {
-                for (ActionAst.Weighted.Option option : weighted.options()) {
-                    if (containsOnError(option.body())) {
-                        return true;
-                    }
-                }
-            }
-        }
-        return false;
-    }
 
     private void validateEvery(ActionAst.Stage stage, List<CompileDiagnostic> diagnostics) {
         if (!EVERY_STAGE.equals(stage.id())) {
             return;
         }
         String rawTimes = stage.arguments().getOrDefault("times", "0");
-        if (containsPlaceholder(rawTimes)) {
+        if (StaticValidatorSupport.containsPlaceholder(rawTimes)) {
             diagnostics.add(CompileDiagnostic.at("action.validate.repeat_must_be_literal",
-                    token("times", stage.column()), Map.of("value", rawTimes)));
+                    StaticValidatorSupport.token("times", stage.column()), Map.of("value", rawTimes)));
             return;
         }
         Integer times = ValueParsers.parseIntNullable(rawTimes);
         if (times == null || times < 0) {
             diagnostics.add(CompileDiagnostic.at("action.validate.invalid_repeat_times",
-                    token("times", stage.column()), Map.of("value", rawTimes)));
+                    StaticValidatorSupport.token("times", stage.column()), Map.of("value", rawTimes)));
             return;
         }
         if (times > limits.maxRepeatTimes()) {
             diagnostics.add(CompileDiagnostic.at("action.validate.repeat_limit_exceeded",
-                    token("times", stage.column()),
+                    StaticValidatorSupport.token("times", stage.column()),
                     Map.of("value", times, "maximum", limits.maxRepeatTimes())));
         }
     }
 
     private void validateSequenceCall(ActionAst.SequenceCall call, ValidationState state) {
-        PipelineToken token = token(call.sequence(), call.column());
+        PipelineToken token = StaticValidatorSupport.token(call.sequence(), call.column());
         if (!sequences.contains(call.sequence())) {
             state.diagnostics.add(CompileDiagnostic.suggesting("action.validate.unknown_sequence",
                     token, sequences.names()));
@@ -630,7 +610,7 @@ public final class StaticValidator {
     }
 
     private boolean needsImplicitSelf(List<ActionAst> nodes) {
-        ActionAst first = firstMeaningful(nodes);
+        ActionAst first = StaticValidatorSupport.firstMeaningful(nodes);
         if (first == null) {
             return false;
         }
@@ -658,70 +638,11 @@ public final class StaticValidator {
                 || resolution.targetRequirement() != CoreTargetRequirement.NONE;
     }
 
-    private static ActionAst firstMeaningful(List<ActionAst> nodes) {
-        for (ActionAst node : nodes) {
-            if (node instanceof ActionAst.Inline inline) {
-                ActionAst inner = firstMeaningful(inline.nodes());
-                if (inner != null) {
-                    return inner;
-                }
-                continue;
-            }
-            return node;
-        }
-        return null;
-    }
-
-    private static boolean validLiteral(String value, CoreStageParameterType type) {
-        CoreStageParameterType expected = type == null ? CoreStageParameterType.STRING : type;
-        return switch (expected) {
-            case STRING, SOUND -> true;
-            case INTEGER -> ValueParsers.parseIntNullable(value) != null;
-            case DOUBLE -> ValueParsers.parseDoubleNullable(value) != null;
-            case BOOLEAN -> "true".equalsIgnoreCase(value) || "false".equalsIgnoreCase(value);
-            case DURATION -> ValueParsers.parseTicks(value) >= 0L;
-            case ENTITY_TYPE -> enumExists(EntityType.class, value);
-            case MATERIAL -> Material.matchMaterial(value) != null;
-            case PERCENTAGE -> validChance(value);
-            case EXPRESSION -> ExpressionEngine.evaluateNumericDetailed(value).success();
-        };
-    }
-
-    private static boolean validChance(String value) {
-        int slash = value.indexOf('/');
-        if (slash > 0 && slash < value.length() - 1) {
-            Double numerator = ValueParsers.parseDoubleNullable(value.substring(0, slash).trim());
-            Double denominator = ValueParsers.parseDoubleNullable(value.substring(slash + 1).trim());
-            return numerator != null && denominator != null && denominator != 0D
-                    && numerator / denominator >= 0D && numerator / denominator <= 1D;
-        }
-        double chance = ValueParsers.parseChance(value);
-        return chance >= 0D && chance <= 1D;
-    }
-
-    private static <E extends Enum<E>> boolean enumExists(Class<E> type, String value) {
-        String normalized = Texts.trim(value).replace("minecraft:", "")
-                .replace('.', '_').toUpperCase(Locale.ROOT);
-        try {
-            Enum.valueOf(type, normalized);
-            return true;
-        } catch (IllegalArgumentException exception) {
-            return false;
-        }
-    }
 
     public static boolean timingStage(@Nullable String id) {
         return AFTER_STAGE.equals(id) || EVERY_STAGE.equals(id);
     }
 
-    private static boolean containsPlaceholder(String value) {
-        int first = value.indexOf('%');
-        return first >= 0 && value.indexOf('%', first + 1) > first;
-    }
-
-    private static PipelineToken token(String text, int column) {
-        return new PipelineToken(PipelineToken.Kind.WORD, text, Math.max(1, column), false);
-    }
 
     private static final class ValidationState {
 

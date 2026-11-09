@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import emaki.jiuwu.craft.corelib.api.action.CoreStageKind;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -109,6 +108,7 @@ import emaki.jiuwu.craft.corelib.integration.OraxenBlockBridgeProvider;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.item.ItemSourceIntegrationCoordinator;
 import emaki.jiuwu.craft.corelib.item.ItemSourceService;
+import emaki.jiuwu.craft.corelib.item.MinecraftServerVersions;
 import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
@@ -1054,7 +1054,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             return;
         }
         String locale = languageConfig.locale();
-        String minecraftVersion = resolveMinecraftVersion();
+        String minecraftVersion = MinecraftServerVersions.currentServerVersion().trim();
         Path cacheDirectory = getDataFolder().toPath().resolve("lang-cache");
         scheduler.runAsync("corelib-vanilla-language", () -> {
             VanillaLanguageDownloader downloader =
@@ -1068,14 +1068,6 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
             vanillaTranslationService.install(table);
             getLogger().info("[text] 已加载 " + table.size() + " 条原版翻译，语言 '" + locale + "'");
         });
-    }
-
-    private String resolveMinecraftVersion() {
-        try {
-            return Objects.requireNonNullElse(getServer().getMinecraftVersion(), "").trim();
-        } catch (RuntimeException | LinkageError _) {
-            return "";
-        }
     }
 
     public ItemSourceService itemSourceService() {
@@ -1176,6 +1168,7 @@ public class EmakiCoreLibPlugin extends JavaPlugin implements LogMessagesProvide
         registerService(FurnitureEventRelay.class, furnitureEventRelay);
         registerService(EmakiItemAssemblyService.class, itemAssemblyService);
         registerService(EmakiEventBus.class, eventBus);
+        registerService(EmakiCoreLibPlugin.class, this);
     }
 
     private <T> void registerService(Class<T> type, T service) {

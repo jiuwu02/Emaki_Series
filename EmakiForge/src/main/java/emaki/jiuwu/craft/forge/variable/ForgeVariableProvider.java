@@ -11,6 +11,7 @@ import emaki.jiuwu.craft.corelib.pdc.PdcPartition;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
 import emaki.jiuwu.craft.forge.ForgePdcKeys;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ForgeVariableProvider {
 
@@ -50,6 +51,7 @@ public final class ForgeVariableProvider {
                 double multiplier = Double.parseDouble(multiplierStr);
                 builder.with("forge_quality_multiplier", multiplier);
             } catch (NumberFormatException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeVariableProvider.java#1", ignored);
             }
         }
 

@@ -1,11 +1,11 @@
 // EmakiDungeon.
-version = '1.0.15'
+version = '1.0.16'
 
 dependencies {
     shadeBundle project(':EmakiDungeonApi')
 
     api project(':EmakiCoreLibApi')
-    api project(':EmakiCoreLib')
+    provided project(':EmakiCoreLib')
     api project(':EmakiDungeonApi')
     provided libs.betterhud.bukkit.api
 

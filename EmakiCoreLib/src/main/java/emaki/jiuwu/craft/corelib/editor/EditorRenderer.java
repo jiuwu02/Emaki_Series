@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiSlot;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.corelib.item.ConfiguredItemService;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public final class EditorRenderer {
 
@@ -341,7 +342,7 @@ public final class EditorRenderer {
     }
 
     private static ConfiguredItemService configuredItems() {
-        return EmakiCoreLibPlugin.lookup().configuredItemService();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).configuredItemService();
     }
 
     private EditorField toField(EditorSession session, MenuRef ref, EditorFieldSpec spec) {

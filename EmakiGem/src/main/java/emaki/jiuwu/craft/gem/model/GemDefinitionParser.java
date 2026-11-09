@@ -56,7 +56,7 @@ final class GemDefinitionParser {
                 socketCompatibility.add(Texts.lower(value));
             }
         }
-        return new GemDefinition(
+        return new GemDefinition(new GemDefinition.Spec(
                 id,
                 section.getString("display_name", id),
                 section.getStringList("lore"),
@@ -82,7 +82,7 @@ final class GemDefinitionParser {
                 parseRerollConfig(section.getSection("reroll")),
                 parseActionLines(section.getSection("actions"), "inlay_success"),
                 parseActionLines(section.getSection("actions"), "extract_success")
-        );
+        ));
     }
 
     static CostConfig parseCostConfig(YamlSection section) {

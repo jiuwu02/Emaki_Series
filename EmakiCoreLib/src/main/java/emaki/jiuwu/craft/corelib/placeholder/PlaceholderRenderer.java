@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.placeholder;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -22,7 +23,7 @@ public final class PlaceholderRenderer {
 
     private static final Pattern PERCENT_PLACEHOLDER = Pattern.compile("%([^%\\s]+)%");
 
-    private static volatile Boolean placeholderApiEnabled;
+    private static final AtomicReference<Boolean> placeholderApiEnabled = new AtomicReference<>();
 
     private PlaceholderRenderer() {
     }
@@ -125,17 +126,17 @@ public final class PlaceholderRenderer {
     }
 
     static boolean placeholderApiAvailable() {
-        Boolean cached = placeholderApiEnabled;
+        Boolean cached = placeholderApiEnabled.get();
         if (cached != null) {
             return cached;
         }
         boolean enabled = Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI");
-        placeholderApiEnabled = enabled;
+        placeholderApiEnabled.set(enabled);
         return enabled;
     }
 
     static void refreshPlaceholderApiState() {
-        placeholderApiEnabled = null;
+        placeholderApiEnabled.set(null);
     }
 
     public static String render(ActionContext context,

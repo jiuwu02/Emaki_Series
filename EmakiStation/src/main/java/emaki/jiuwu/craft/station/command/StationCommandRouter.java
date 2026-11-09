@@ -23,6 +23,10 @@ import emaki.jiuwu.craft.station.dismantle.DismantleStationDefinition;
 import emaki.jiuwu.craft.station.gui.DurationDisplay;
 import emaki.jiuwu.craft.station.queue.PlayerQueues;
 import emaki.jiuwu.craft.station.recipe.RecipeDefinition;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 public final class StationCommandRouter {
 
@@ -71,13 +75,8 @@ public final class StationCommandRouter {
     public List<String> onTabComplete(CommandSender sender, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length <= 1) {
-            String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            for (String sub : SUBCOMMANDS) {
-                if (sub.startsWith(prefix)) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(SUBCOMMANDS,
+                    args.length == 0 ? "" : args[0]);
         }
         String head = args[0].toLowerCase(Locale.ROOT);
         if ("debug".equals(head)) {
@@ -121,7 +120,7 @@ public final class StationCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_DISMANTLE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -136,7 +135,7 @@ public final class StationCommandRouter {
         String required =
                 station.effectivePermission(PERMISSION_DISMANTLE_ACCESS_PREFIX + station.id());
         if (!required.isBlank() && !player.hasPermission(required)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.executionDispatcher().runEntity(plugin, player, () -> {
@@ -156,7 +155,7 @@ public final class StationCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -170,7 +169,7 @@ public final class StationCommandRouter {
         }
         String required = station.effectivePermission(PERMISSION_ACCESS_PREFIX + station.id());
         if (!required.isBlank() && !player.hasPermission(required)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.executionDispatcher().runEntity(plugin, player, () -> {
@@ -190,7 +189,7 @@ public final class StationCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         PlayerQueues queues = plugin.queueService().cached(player.getUniqueId());
@@ -226,7 +225,7 @@ public final class StationCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.executionDispatcher().runEntity(plugin, player,
@@ -249,7 +248,7 @@ public final class StationCommandRouter {
             return true;
         }
         if (!player.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 3) {
@@ -284,7 +283,7 @@ public final class StationCommandRouter {
 
     private boolean handleList(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_USE)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length >= 2) {
@@ -311,17 +310,20 @@ public final class StationCommandRouter {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_EDIT)) {
-            message(sender, "general.no_permission");
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             message(sender, "general.players_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return true;
@@ -334,7 +336,7 @@ public final class StationCommandRouter {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         long startTime = System.currentTimeMillis();
@@ -350,7 +352,7 @@ public final class StationCommandRouter {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (plugin.debugCommand() == null) {
@@ -364,7 +366,7 @@ public final class StationCommandRouter {
 
     private boolean handleAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            message(sender, "general.no_permission");
+            message(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 3 || !"queue".equalsIgnoreCase(args[1])) {

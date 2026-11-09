@@ -9,7 +9,6 @@ import java.util.function.Consumer;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
@@ -44,6 +43,7 @@ import emaki.jiuwu.craft.storage.service.StorageUnlockService;
 import emaki.jiuwu.craft.storage.config.AutoPickupConfig;
 import emaki.jiuwu.craft.storage.config.InputModeConfig;
 import emaki.jiuwu.craft.storage.editor.StorageEditorModule;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 final class StorageLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStoragePlugin, StorageRuntimeComponents> {
@@ -63,35 +63,27 @@ final class StorageLifecycleCoordinator
 
     @Override
     public StorageRuntimeComponents initialize(EmakiStoragePlugin plugin) {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults,
                 section -> parseAppConfig(section, plugin));
         appConfigLoader.load();
 
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
 
         BootstrapService bootstrapService = new BootstrapService(
                 plugin, messageService, VERSIONED_FILES, STATIC_FILES,
                 DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if (!"config.yml".equals(relativePath)) {
-                            return;
-                        }
-                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                    }
-                });
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
+                        (relativePath, runtime, bundled) -> {
+                            if (!"config.yml".equals(relativePath)) {
+                                return;
+                            }
+                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                        }, null));
 
         AppConfig config = appConfigLoader.current();
         var executionDispatcher = coreLib.executionDispatcher();

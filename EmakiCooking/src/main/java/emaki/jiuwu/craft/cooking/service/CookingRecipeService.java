@@ -25,6 +25,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.Locale;
 import org.bukkit.entity.Player;
 import me.clip.placeholderapi.PlaceholderAPI;
@@ -734,7 +735,8 @@ public final class CookingRecipeService {
         if (resolved.indexOf('%') >= 0 && plugin.getServer().getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 resolved = Texts.toStringSafe(PlaceholderAPI.setPlaceholders(player, resolved));
-            } catch (Exception | NoClassDefFoundError _) {
+            } catch (Exception | NoClassDefFoundError swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiCooking", "CookingRecipeService.java#1", swallowed);
             }
         }
         return resolved;

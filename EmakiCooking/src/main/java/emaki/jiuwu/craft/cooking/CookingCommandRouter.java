@@ -19,6 +19,10 @@ import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.cooking.legacy.CookingLegacyEntry;
+import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 final class CookingCommandRouter implements TabExecutor {
 
@@ -51,7 +55,7 @@ final class CookingCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "station" -> handleStation(sender, args);
             case "nutrition" -> handleNutrition(sender, args);
-            case "convert-legacy" -> CookingLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
+            case ConvertCommands.TOKEN -> CookingLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -64,13 +68,9 @@ final class CookingCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "edit", "reload", "inspect", "station", "nutrition",
-                    "convert-legacy", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "edit", "reload", "inspect", "station", "nutrition",
+                            ConvertCommands.TOKEN, "debug"), args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -133,17 +133,20 @@ final class CookingCommandRouter implements TabExecutor {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_EDIT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messageService().send(sender, "general.player_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return true;
@@ -157,7 +160,7 @@ final class CookingCommandRouter implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.bootstrapService().bootstrap();
@@ -202,7 +205,7 @@ final class CookingCommandRouter implements TabExecutor {
         }
         if (!sender.hasPermission(PERMISSION_INSPECT) && !sender.hasPermission(PERMISSION_ADMIN)
                 && !sender.hasPermission(PERMISSION_USE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -221,7 +224,7 @@ final class CookingCommandRouter implements TabExecutor {
 
     private boolean handleStation(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2 || !"reindex".equalsIgnoreCase(args[1])) {
@@ -309,7 +312,7 @@ final class CookingCommandRouter implements TabExecutor {
         if (!sender.hasPermission(CookingPermissions.NUTRITION_USE)
                 && !sender.hasPermission(CookingPermissions.NUTRITION_ADMIN)
                 && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
 
@@ -353,7 +356,7 @@ final class CookingCommandRouter implements TabExecutor {
 
     private boolean handleNutritionModify(CommandSender sender, String[] args, String action) {
         if (!sender.hasPermission(CookingPermissions.NUTRITION_ADMIN) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
 
@@ -408,7 +411,7 @@ final class CookingCommandRouter implements TabExecutor {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

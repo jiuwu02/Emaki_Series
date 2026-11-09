@@ -1,5 +1,7 @@
 package emaki.jiuwu.craft.station.dismantle;
 
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+
 public record RollsRange(int min, int max) {
 
     public RollsRange {
@@ -31,7 +33,7 @@ public record RollsRange(int min, int max) {
                 int v = Integer.parseInt(s.trim());
                 return v >= 1 ? v : fallback;
             } catch (NumberFormatException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStation", "RollsRange.java#1", ignored);
             }
         }
         return fallback;

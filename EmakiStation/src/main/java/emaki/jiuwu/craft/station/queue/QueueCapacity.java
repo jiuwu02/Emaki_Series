@@ -3,6 +3,7 @@ package emaki.jiuwu.craft.station.queue;
 import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.station.definition.StationDefinition;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class QueueCapacity {
 
@@ -35,7 +36,7 @@ public final class QueueCapacity {
             try {
                 best = Math.max(best, Integer.parseInt(suffix));
             } catch (NumberFormatException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStation", "QueueCapacity.java#1", ignored);
             }
         }
         return Math.min(best + granted, ceiling);

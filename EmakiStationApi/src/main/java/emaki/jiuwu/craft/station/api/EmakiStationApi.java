@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.station.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -15,7 +16,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiStationApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiStationApi() {
     }
@@ -27,7 +28,7 @@ public final class EmakiStationApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiStationApi.bridge = bridge;
+        EmakiStationApi.bridge.activate(bridge);
     }
 
     /**
@@ -37,9 +38,7 @@ public final class EmakiStationApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiStationApi.bridge == bridge) {
-            EmakiStationApi.bridge = null;
-        }
+        EmakiStationApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -47,7 +46,7 @@ public final class EmakiStationApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -62,7 +61,7 @@ public final class EmakiStationApi {
      * reporting unavailability while no bridge is installed}
      */
     public static @NotNull StationCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStation.CATALOG;
         }
@@ -75,7 +74,7 @@ public final class EmakiStationApi {
      * implementation reporting unavailability while no bridge is installed}
      */
     public static @NotNull StationOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStation.OPERATIONS;
         }
@@ -88,7 +87,7 @@ public final class EmakiStationApi {
      * bridge is installed}
      */
     public static @NotNull StationExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStation.EXTENSIONS;
         }

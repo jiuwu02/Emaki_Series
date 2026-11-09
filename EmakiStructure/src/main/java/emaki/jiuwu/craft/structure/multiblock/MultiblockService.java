@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.structure.generate.StructureFacing;
 import emaki.jiuwu.craft.structure.generate.TemplateTransform;
 import emaki.jiuwu.craft.structure.integration.CustomBlockIdAdapter;
 import emaki.jiuwu.craft.structure.integration.FurnitureIdAdapter;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -314,7 +315,7 @@ public final class MultiblockService {
                     + exception.getMessage());
         }
         try {
-            EmakiCoreLibPlugin.lookup().eventBus().publish(new MultiblockTriggerEmakiEvent(
+            EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).eventBus().publish(new MultiblockTriggerEmakiEvent(
                     definition.id(), player.getUniqueId(), player.getName(),
                     pose.worldName(), pose.anchorX(), pose.anchorY(), pose.anchorZ(),
                     pose.facing().configValue()));
@@ -390,7 +391,7 @@ public final class MultiblockService {
             return;
         }
         try {
-            var runner = EmakiCoreLibPlugin.lookup().actionLineRunner(plugin);
+            var runner = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).actionLineRunner(plugin);
             var context = runner.context(player, "structure", false, placeholders);
             runner.run(actions, context, false);
         } catch (RuntimeException exception) {

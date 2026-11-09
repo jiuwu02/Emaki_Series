@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.item.model.RefreshFullReason;
 import emaki.jiuwu.craft.item.model.RefreshScope;
 import emaki.jiuwu.craft.item.service.ItemRefreshBatch;
 import emaki.jiuwu.craft.item.service.ItemRefreshResult;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ItemUpdateListener implements Listener {
 
@@ -73,7 +74,7 @@ public final class ItemUpdateListener implements Listener {
                 int converted = event.getView().convertSlot(event.getRawSlot());
                 playerSlot = converted == event.getSlot() ? converted : -1;
             } catch (RuntimeException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiItem", "ItemUpdateListener.java#1", ignored);
             }
         }
         accept(player, "inventory_click", classifier.classifyClick(new ClickContext(

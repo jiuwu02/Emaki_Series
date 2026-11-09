@@ -941,11 +941,11 @@ public final class StrengthenAttemptService {
         }
 
         private static BranchSelection pending(Map<String, StrengthenBranchNode> options) {
-            return new BranchSelection(Outcome.PENDING_CHOICE, "", null, "", "", "", describe(options));
+            return new BranchSelection(Outcome.PENDING_CHOICE, "", null, "", "", "", StrengthenAttemptServiceSupport.describe(options));
         }
 
         private static BranchSelection invalid(Map<String, StrengthenBranchNode> options) {
-            return new BranchSelection(Outcome.INVALID_CHOICE, "", null, "", "", "", describe(options));
+            return new BranchSelection(Outcome.INVALID_CHOICE, "", null, "", "", "", StrengthenAttemptServiceSupport.describe(options));
         }
 
         private static BranchSelection applied(ItemStack rebuilt,
@@ -956,18 +956,6 @@ public final class StrengthenAttemptService {
             return new BranchSelection(Outcome.APPLIED, "", rebuilt, branchId, displayName, branchPath, Map.of());
         }
 
-        private static Map<String, String> describe(Map<String, StrengthenBranchNode> options) {
-            Map<String, String> described = new LinkedHashMap<>();
-            if (options == null) {
-                return Map.copyOf(described);
-            }
-            for (Map.Entry<String, StrengthenBranchNode> entry : options.entrySet()) {
-                StrengthenBranchNode node = entry.getValue();
-                described.put(entry.getKey(),
-                        node == null || Texts.isBlank(node.displayName()) ? entry.getKey() : node.displayName());
-            }
-            return Map.copyOf(described);
-        }
     }
 
     record StarProgress(Set<Integer> updatedFlags, Set<Integer> newlyReached) {

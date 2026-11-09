@@ -1,11 +1,11 @@
 // EmakiStructure（新增模块）。
-version = '1.0.8'
+version = '1.0.9'
 
 dependencies {
     shadeBundle project(':EmakiStructureApi')
 
     api project(':EmakiCoreLibApi')
-    api project(':EmakiCoreLib')
+    provided project(':EmakiCoreLib')
     api project(':EmakiStructureApi')
 
     provided libs.paper.api

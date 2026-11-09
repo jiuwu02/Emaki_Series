@@ -37,6 +37,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class SteamerRuntimeService extends TickingStationRuntimeService<SteamerState> implements Listener {
 
@@ -188,7 +189,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
         }
         if (!player.hasPermission(CookingPermissions.STEAMER_USE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }
@@ -218,7 +219,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
         if (hand == null || hand.getType().isAir()) {
             if (!player.hasPermission(CookingPermissions.STEAMER_USE)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 interaction.cancel();
                 return true;
             }
@@ -241,7 +242,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.STEAMER_MOISTURE)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return addMoisture(player, coordinates, hand, moistureRule);
@@ -255,7 +256,7 @@ public final class SteamerRuntimeService extends TickingStationRuntimeService<St
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.STEAMER_FUEL)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return addFuel(player, coordinates, heatSourceBlock, hand, fuelRule);

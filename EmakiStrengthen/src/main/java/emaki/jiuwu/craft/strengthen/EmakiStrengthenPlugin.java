@@ -59,6 +59,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenGuiService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -148,7 +149,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
         registerEventHandlers();
         itemLayerPreviewLifecycle.initialize();
         ensurePlaceholderExpansion();
-        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -239,7 +240,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(EmakiCoreLibPlugin.lookup());
+            action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
@@ -387,7 +388,7 @@ public class EmakiStrengthenPlugin extends AbstractConfigurableEmakiPlugin<AppCo
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

@@ -150,7 +150,7 @@ public final class ActionInterpreter {
             return CompletableFuture.completedFuture(state.failed(CoreActionFailureKind.OWNER_DISABLED,
                     "action.run.stage_unavailable", Map.of("stage", stage.id())));
         }
-        ResolvedArguments arguments = arguments(handle, render(state.context(), stage.arguments()));
+        ResolvedArguments arguments = ActionInterpreterSupport.arguments(handle, ActionInterpreterSupport.render(state.context(), stage.arguments()));
         boolean isAfter = StaticValidator.AFTER_STAGE.equals(stage.id());
         long intervalTicks = isAfter
                 ? arguments.getDurationTicks("delay", 0L)
@@ -212,7 +212,7 @@ public final class ActionInterpreter {
                 .thenCompose(resumed -> revalidate(run, resumed))
                 .handle((revalidated, throwable) -> {
                     if (throwable != null) {
-                        CoreActionOutcome outcome = throwableOutcome(throwable);
+                        CoreActionOutcome outcome = ActionInterpreterSupport.throwableOutcome(throwable);
 
                         if (outcome instanceof CoreActionOutcome.Failure failure
                                 && (failure.kind() == CoreActionFailureKind.MISSING_CONTEXT
@@ -386,8 +386,8 @@ public final class ActionInterpreter {
         StageDispatcher.DispatchTarget target = dispatchTarget(
                 group.domain() == null ? ExecutionDomain.SERVER_GLOBAL : group.domain(),
                 state.context(), probeSubject(state));
-        long timeout = groupTimeout(group);
-        String name = groupName(group);
+        long timeout = ActionInterpreterSupport.groupTimeout(group);
+        String name = ActionInterpreterSupport.groupName(group);
         return dispatcher.dispatch(run.owner(), target, 0L, name, timeout, run.cancellation(),
                         () -> runMembersInline(run, group, state))
                 .handle((result, throwable) -> throwable != null
@@ -402,16 +402,16 @@ public final class ActionInterpreter {
                 return current.terminal() ? current : current.cancelled();
             }
             StageInvoker.Handle handle = member.handle();
-            Map<String, String> rendered = render(current.context(), member.node().arguments());
+            Map<String, String> rendered = ActionInterpreterSupport.render(current.context(), member.node().arguments());
             current = switch (handle.kind()) {
                 case SOURCE -> sourceResult(run, handle.id(), current,
-                        invoker.invokeSource(handle, current.context(), arguments(handle, rendered)));
+                        invoker.invokeSource(handle, current.context(), ActionInterpreterSupport.arguments(handle, rendered)));
                 case GATE -> gateResult(run, handle.id(), current,
                         invoker.invokeGate(handle, current.context(), current.flow(),
-                                arguments(handle, rendered)));
+                                ActionInterpreterSupport.arguments(handle, rendered)));
                 case ACTION -> actionResult(run, handle.id(), current, List.of(
                         invoker.invokeAction(handle, current.context().withTargets(List.of()),
-                                arguments(handle, rendered))), 0);
+                                ActionInterpreterSupport.arguments(handle, rendered))), 0);
             };
         }
         return current;
@@ -470,25 +470,6 @@ public final class ActionInterpreter {
                 });
     }
 
-    private static long groupTimeout(StageGroup group) {
-
-        long timeout = 0L;
-        for (StageGroup.Member member : group.members()) {
-            timeout = Math.max(timeout, member.handle().timeoutMillis());
-        }
-        return timeout <= 0L ? 30_000L : timeout;
-    }
-
-    private static String groupName(StageGroup group) {
-        StringBuilder builder = new StringBuilder();
-        for (StageGroup.Member member : group.members()) {
-            if (!builder.isEmpty()) {
-                builder.append('+');
-            }
-            builder.append(member.handle().id());
-        }
-        return builder.toString();
-    }
 
     private CompletableFuture<State> applySource(Run run,
             String stageId,
@@ -505,7 +486,7 @@ public final class ActionInterpreter {
                 invoker.domainOf(handle, context, context.caster(), raw), context, context.caster(), true);
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
-                () -> invoker.invokeSource(handle, context, arguments(handle, render(context, raw))))
+                () -> invoker.invokeSource(handle, context, ActionInterpreterSupport.arguments(handle, ActionInterpreterSupport.render(context, raw))))
                 .handle((result, throwable) -> throwable != null
                         ? dispatchFailure(run, handle.id(), state, throwable)
                         : sourceResult(run, handle.id(), state, result));
@@ -542,7 +523,7 @@ public final class ActionInterpreter {
                 invoker.domainOf(handle, context, probe, raw), context, probe, true);
         return dispatcher.dispatch(run.owner(), target, 0L, handle.id(), handle.timeoutMillis(),
                 run.cancellation(),
-                () -> invoker.invokeGate(handle, context, inbound, arguments(handle, render(context, raw))))
+                () -> invoker.invokeGate(handle, context, inbound, ActionInterpreterSupport.arguments(handle, ActionInterpreterSupport.render(context, raw))))
                 .handle((result, throwable) -> throwable != null
                         ? dispatchFailure(run, handle.id(), state, throwable)
                         : gateResult(run, handle.id(), state, result));
@@ -589,7 +570,7 @@ public final class ActionInterpreter {
             int attempt) {
         PipelineContext context = state.context();
         if (dryRun) {
-            Map<String, String> rendered = render(context, raw);
+            Map<String, String> rendered = ActionInterpreterSupport.render(context, raw);
             reporter.action(handle.id(), handle.kind(), rendered, 0, 0, state.flow().isEmpty()
                     ? (handle.targetRequirement().requiresTarget() ? 0 : 1)
                     : state.flow().size(), null);
@@ -657,13 +638,13 @@ public final class ActionInterpreter {
                         return CoreActionOutcome.skipped("action.run.all_targets_invalid");
                     }
                     return invoker.invokeAction(handle, invocationContext,
-                            arguments(handle, render(invocationContext, raw)));
+                            ActionInterpreterSupport.arguments(handle, ActionInterpreterSupport.render(invocationContext, raw)));
                 })
                 .handle((outcome, throwable) -> {
                     if (throwable == null) {
                         return outcome;
                     }
-                    CoreActionOutcome failure = throwableOutcome(throwable);
+                    CoreActionOutcome failure = ActionInterpreterSupport.throwableOutcome(throwable);
                     return failure instanceof CoreActionOutcome.Failure failed
                             && failed.kind() == CoreActionFailureKind.MISSING_CONTEXT
                             && "action.run.target_retired".equals(failed.reasonKey())
@@ -690,7 +671,7 @@ public final class ActionInterpreter {
         long successes = outcomes.stream().filter(CoreActionOutcome::successful).count();
         reporter.action(stageId, CoreStageKind.ACTION, Map.of(), (int) successes,
                 (int) failures, skippedTargets,
-                failures > 0L ? firstFailure(outcomes).reasonKey() : null);
+                failures > 0L ? ActionInterpreterSupport.firstFailure(outcomes).reasonKey() : null);
         if (failures == 0L && successes == 0L) {
             run.record(stageId, PipelineOutcome.Status.SKIPPED, "action.run.all_targets_invalid", 0);
             return state.stopped("action.run.all_targets_invalid");
@@ -700,7 +681,7 @@ public final class ActionInterpreter {
             return state;
         }
         if (successes == 0L) {
-            CoreActionOutcome.Failure first = firstFailure(outcomes);
+            CoreActionOutcome.Failure first = ActionInterpreterSupport.firstFailure(outcomes);
             run.record(stageId, PipelineOutcome.Status.FAILURE, first.reasonKey(), outcomes.size());
             return state.failed(first.kind(), first.reasonKey(), first.args());
         }
@@ -771,7 +752,7 @@ public final class ActionInterpreter {
         }
         PipelineContext isolated = state.context()
                 .withTargets(state.flow())
-                .isolated(render(state.context(), node.parameters()));
+                .isolated(ActionInterpreterSupport.render(state.context(), node.parameters()));
         return execute(run, target.nodes(), isolated, target.implicitSelfSource(), sequenceDepth + 1)
                 .thenApply(inner -> mergeSequence(state, inner));
     }
@@ -809,57 +790,11 @@ public final class ActionInterpreter {
     }
 
     private State dispatchFailure(Run run, String stageId, State state, Throwable throwable) {
-        CoreActionOutcome.Failure failure = (CoreActionOutcome.Failure) throwableOutcome(throwable);
+        CoreActionOutcome.Failure failure = (CoreActionOutcome.Failure) ActionInterpreterSupport.throwableOutcome(throwable);
         run.record(stageId, PipelineOutcome.Status.FAILURE, failure.reasonKey(), state.flow().size());
         return state.failed(failure.kind(), failure.reasonKey(), failure.args());
     }
 
-    private static CoreActionOutcome throwableOutcome(Throwable throwable) {
-        Throwable cause = throwable;
-        while (cause instanceof CompletionException
-                || cause instanceof ExecutionException) {
-            cause = cause.getCause();
-        }
-        if (cause instanceof TimeoutException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.TIMEOUT, "action.run.timeout");
-        }
-        if (cause instanceof CancellationException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED, "action.run.cancelled");
-        }
-        if (cause instanceof StageDispatcher.OwnerDisabledException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.OWNER_DISABLED,
-                    "action.run.owner_disabled", Map.of("error", Texts.toStringSafe(cause.getMessage())));
-        }
-        if (cause instanceof StageDispatcher.StageRetiredException) {
-            return CoreActionOutcome.failure(CoreActionFailureKind.MISSING_CONTEXT,
-                    "action.run.target_retired", Map.of("error", Texts.toStringSafe(cause.getMessage())));
-        }
-        return CoreActionOutcome.failure(CoreActionFailureKind.INTERNAL_ERROR, "action.run.exception",
-                Map.of("error", cause == null ? "" : Texts.toStringSafe(cause.getMessage())));
-    }
-
-    private static CoreActionOutcome.Failure firstFailure(List<CoreActionOutcome> outcomes) {
-        for (CoreActionOutcome outcome : outcomes) {
-            if (outcome instanceof CoreActionOutcome.Failure failure) {
-                return failure;
-            }
-        }
-        return new CoreActionOutcome.Failure(CoreActionFailureKind.INTERNAL_ERROR,
-                "action.run.exception", Map.of());
-    }
-
-    private static ResolvedArguments arguments(StageInvoker.Handle handle, Map<String, String> rendered) {
-        return ResolvedArguments.of(rendered, handle.parameters());
-    }
-
-    private static Map<String, String> render(PipelineContext context, Map<String, String> raw) {
-        if (raw.isEmpty()) {
-            return Map.of();
-        }
-        Map<String, String> rendered = new LinkedHashMap<>();
-        raw.forEach((key, value) -> rendered.put(key, context.render(value)));
-        return Map.copyOf(rendered);
-    }
 
     private static StageDispatcher.DispatchTarget dispatchTarget(ExecutionDomain domain,
             PipelineContext context,
@@ -875,15 +810,11 @@ public final class ActionInterpreter {
             case SERVER_GLOBAL -> StageDispatcher.DispatchTarget.global();
             case ASYNC_COMPUTE -> StageDispatcher.DispatchTarget.async();
             case PHYSICAL_FILE -> StageDispatcher.DispatchTarget.physicalFile();
-            case ENTITY -> StageDispatcher.DispatchTarget.entity(entityTarget(context, subject));
+            case ENTITY -> StageDispatcher.DispatchTarget.entity(ActionInterpreterSupport.entityTarget(context, subject));
             case LOCATION_REGION -> locationTarget(context, subject, originFirst);
         };
     }
 
-    private static Entity entityTarget(PipelineContext context, CoreActionSubject subject) {
-        Entity entity = subject.entityOrNull();
-        return entity == null ? context.caster().entityOrNull() : entity;
-    }
 
     private static StageDispatcher.DispatchTarget locationTarget(PipelineContext context,
             CoreActionSubject subject,

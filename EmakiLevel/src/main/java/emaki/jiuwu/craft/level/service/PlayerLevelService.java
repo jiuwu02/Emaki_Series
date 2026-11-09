@@ -39,6 +39,7 @@ import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.corelib.cost.CostReceipt;
 import emaki.jiuwu.craft.corelib.cost.CostTransaction;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class PlayerLevelService {
 
@@ -539,14 +540,16 @@ public final class PlayerLevelService {
                     if (level >= min && level <= max) {
                         return true;
                     }
-                } catch (Exception _) {
+                } catch (Exception swallowed) {
+                    FailureRecorder.recordIgnoredFailure("EmakiLevel", "PlayerLevelService.java#1", swallowed);
                 }
             } else {
                 try {
                     if (Integer.parseInt(text) == level) {
                         return true;
                     }
-                } catch (Exception _) {
+                } catch (Exception swallowed) {
+                    FailureRecorder.recordIgnoredFailure("EmakiLevel", "PlayerLevelService.java#2", swallowed);
                 }
             }
         }

@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.dungeon.drop.RewardChestService;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -428,6 +429,7 @@ public final class GameplayControllers implements FlowControllers {
                 try {
                     member.teleport(target);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "GameplayControllers.java#1", ignored);
                 }
             }
         }

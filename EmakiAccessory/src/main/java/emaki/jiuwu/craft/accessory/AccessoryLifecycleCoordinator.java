@@ -24,7 +24,6 @@ import emaki.jiuwu.craft.accessory.service.AccessoryUniqueService;
 import emaki.jiuwu.craft.accessory.service.AccessoryWriteSessionRegistry;
 import emaki.jiuwu.craft.accessory.service.PlayerAccessoryStore;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
@@ -37,6 +36,7 @@ import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 final class AccessoryLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiAccessoryPlugin, AccessoryRuntimeComponents> {
@@ -54,14 +54,14 @@ final class AccessoryLifecycleCoordinator
 
     @Override
     public AccessoryRuntimeComponents initialize(EmakiAccessoryPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin, "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();
         AppConfig appConfig = appConfigLoader.current();
 
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
 
@@ -72,16 +72,10 @@ final class AccessoryLifecycleCoordinator
                 STATIC_FILES,
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-                });
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null, null));
 
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
+        ThreadOwnership threadOwnership = EmakiCoreLibApi.requireService(ThreadOwnership.class);
 
         GuiService guiService = new GuiService(plugin, executionDispatcher,
                 coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),

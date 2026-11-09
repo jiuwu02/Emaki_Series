@@ -26,6 +26,7 @@ import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.pdc.SignatureUtil;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 final class ResourceManagementService {
 
@@ -509,6 +510,7 @@ final class ResourceManagementService {
         try {
             player.setHealthScaled(false);
         } catch (IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiAttribute", "ResourceManagementService.java#1", ignored);
         }
     }
 

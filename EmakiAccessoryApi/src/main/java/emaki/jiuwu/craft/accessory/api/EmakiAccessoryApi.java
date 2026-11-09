@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.accessory.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -20,7 +21,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiAccessoryApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiAccessoryApi() {
     }
@@ -32,7 +33,7 @@ public final class EmakiAccessoryApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiAccessoryApi.bridge = bridge;
+        EmakiAccessoryApi.bridge.activate(bridge);
     }
 
     /**
@@ -42,9 +43,7 @@ public final class EmakiAccessoryApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiAccessoryApi.bridge == bridge) {
-            EmakiAccessoryApi.bridge = null;
-        }
+        EmakiAccessoryApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -52,7 +51,7 @@ public final class EmakiAccessoryApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -67,7 +66,7 @@ public final class EmakiAccessoryApi {
      * while no bridge is installed}
      */
     public static @NotNull AccessoryCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableAccessory.CATALOG;
         }

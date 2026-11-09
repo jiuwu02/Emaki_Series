@@ -66,6 +66,7 @@ import emaki.jiuwu.craft.corelib.trigger.TriggerRegistry;
 import emaki.jiuwu.craft.skills.listener.CastModeKeyListener;
 import emaki.jiuwu.craft.skills.listener.PlayerJoinQuitListener;
 import emaki.jiuwu.craft.skills.papi.SkillsPlaceholderExpansion;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 import org.bukkit.Bukkit;
 
@@ -396,7 +397,7 @@ public class EmakiSkillsPlugin extends AbstractConfigurableEmakiPlugin<AppConfig
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

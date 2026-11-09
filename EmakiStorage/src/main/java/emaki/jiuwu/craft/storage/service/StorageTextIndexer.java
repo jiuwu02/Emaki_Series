@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.text.VanillaTranslationService;
 import emaki.jiuwu.craft.storage.model.StorageEntry;
 import emaki.jiuwu.craft.storage.model.StorageKey;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StorageTextIndexer {
 
@@ -93,7 +94,7 @@ public final class StorageTextIndexer {
                     return source.identifier().toLowerCase(Locale.ROOT);
                 }
             } catch (RuntimeException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStorage", "StorageTextIndexer.java#1", ignored);
             }
         }
         return key.material().getKey().value();

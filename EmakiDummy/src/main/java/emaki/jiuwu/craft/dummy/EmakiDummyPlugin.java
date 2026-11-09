@@ -32,6 +32,7 @@ import emaki.jiuwu.craft.dummy.scenario.ScenarioEngine;
 import emaki.jiuwu.craft.dummy.session.DummyManager;
 import emaki.jiuwu.craft.dummy.transport.DummyTransport;
 import emaki.jiuwu.craft.dummy.transport.mcpl.McplTransport;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 import io.papermc.paper.threadedregions.scheduler.ScheduledTask;
 
@@ -81,7 +82,7 @@ public class EmakiDummyPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         ExecutionDispatcher dispatcher = null;
         AsyncFileService.FileScope scope = null;
         try {
-            EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+            EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
             dispatcher = coreLib.executionDispatcher();
             scope = coreLib.asyncFileScope(this);
         } catch (RuntimeException failure) {

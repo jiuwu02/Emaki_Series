@@ -373,7 +373,7 @@ public final class StrengthenRecipe {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            mergeRaw(rawValues, entry.getValue().stats());
+            StrengthenRecipeSupport.mergeRaw(rawValues, entry.getValue().stats());
         }
         return resolveExpressions(rawValues, Map.of("star", (double) currentStar));
     }
@@ -391,7 +391,7 @@ public final class StrengthenRecipe {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            mergeRaw(rawValues, entry.getValue().stats());
+            StrengthenRecipeSupport.mergeRaw(rawValues, entry.getValue().stats());
         }
         return resolveMixedExpressions(rawValues, Map.of("star", (double) currentStar));
     }
@@ -408,7 +408,7 @@ public final class StrengthenRecipe {
             if (entry.getKey() > currentStar || entry.getValue() == null) {
                 continue;
             }
-            mergeRaw(rawValues, entry.getValue().attributes());
+            StrengthenRecipeSupport.mergeRaw(rawValues, entry.getValue().attributes());
         }
         return rawValues.isEmpty() ? Map.of() : resolveExpressions(rawValues, Map.of("star", (double) currentStar));
     }
@@ -735,7 +735,7 @@ public final class StrengthenRecipe {
             Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
             for (StarStage stage : collected.values()) {
                 if (stage != null) {
-                    mergeRaw(rawValues, stage.stats());
+                    StrengthenRecipeSupport.mergeRaw(rawValues, stage.stats());
                 }
             }
             return resolveExpressions(rawValues, Map.of("star", (double) currentStar));
@@ -756,7 +756,7 @@ public final class StrengthenRecipe {
             Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
             for (StarStage stage : collected.values()) {
                 if (stage != null) {
-                    mergeRaw(rawValues, stage.stats());
+                    StrengthenRecipeSupport.mergeRaw(rawValues, stage.stats());
                 }
             }
             return resolveMixedExpressions(rawValues, Map.of("star", (double) currentStar));
@@ -777,7 +777,7 @@ public final class StrengthenRecipe {
             Map<Integer, StarStage> collected = branchTree.collectStages(branchPath, currentStar);
             for (StarStage stage : collected.values()) {
                 if (stage != null) {
-                    mergeRaw(rawValues, stage.attributes());
+                    StrengthenRecipeSupport.mergeRaw(rawValues, stage.attributes());
                 }
             }
             return rawValues.isEmpty() ? Map.of() : resolveExpressions(rawValues, Map.of("star", (double) currentStar));
@@ -806,26 +806,6 @@ public final class StrengthenRecipe {
         return cumulativeSkillIds(currentStar);
     }
 
-    private static void mergeRaw(Map<String, Object> target, Map<String, Object> source) {
-        if (target == null || source == null) {
-            return;
-        }
-        for (Map.Entry<String, Object> entry : source.entrySet()) {
-            if (entry.getKey() == null || entry.getValue() == null) {
-                continue;
-            }
-            String key = StrengthenApiValues.lower(entry.getKey());
-            Object existing = target.get(key);
-            Object incoming = entry.getValue();
-            Double existingNum = toDouble(existing);
-            Double incomingNum = toDouble(incoming);
-            if (existingNum != null && incomingNum != null) {
-                target.put(key, existingNum + incomingNum);
-            } else {
-                target.put(key, incoming);
-            }
-        }
-    }
 
     static Map<String, Double> resolveExpressions(Map<String, Object> rawValues, Map<String, ?> context) {
         Map<String, Double> resolved = new LinkedHashMap<>();
@@ -841,7 +821,7 @@ public final class StrengthenRecipe {
                 continue;
             }
             String key = StrengthenApiValues.lower(entry.getKey());
-            double value = resolveNumericValue(entry.getValue(), evalContext);
+            double value = StrengthenRecipeSupport.resolveNumericValue(entry.getValue(), evalContext);
             resolved.put(key, value);
             evalContext.put(key, value);
         }
@@ -869,19 +849,6 @@ public final class StrengthenRecipe {
         return Map.copyOf(resolved);
     }
 
-    private static double resolveNumericValue(Object raw, Map<String, ?> variables) {
-        return StrengthenApiValues.evaluateNumber(raw, variables);
-    }
-
-    private static Double toDouble(Object value) {
-        if (value instanceof Number number) {
-            return number.doubleValue();
-        }
-        if (value instanceof String text) {
-            return StrengthenApiValues.tryParseDouble(text, null);
-        }
-        return null;
-    }
 
     static List<String> normalizeLower(List<String> values) {
         if (values == null || values.isEmpty()) {

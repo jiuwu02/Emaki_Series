@@ -14,6 +14,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class SnapshotsStore {
 
@@ -47,6 +48,7 @@ public final class SnapshotsStore {
                 Files.move(temp, target.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "SnapshotsStore.java#1", ignored);
         }
     }
 
@@ -80,6 +82,7 @@ public final class SnapshotsStore {
         try {
             Files.deleteIfExists(target.toPath());
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "SnapshotsStore.java#2", ignored);
         }
     }
 

@@ -38,8 +38,8 @@ public final class LegacyItemSourceScanner {
             for (FileReport file : convertible) {
                 logger.warning("[legacy]   " + file.fileName() + " (" + file.occurrences() + " 处)");
             }
-            logger.warning("[legacy] 执行 /" + command + " convert-legacy 预览，/" + command
-                    + " convert-legacy confirm 应用");
+            logger.warning("[legacy] 执行 /" + command + " " + ConvertCommands.TOKEN + " 预览，/" + command
+                    + " " + ConvertCommands.TOKEN + " confirm 应用");
         }
         for (FileReport file : report.files()) {
             if (file.status() == Status.UNCONVERTIBLE && Texts.isNotBlank(file.detail())) {

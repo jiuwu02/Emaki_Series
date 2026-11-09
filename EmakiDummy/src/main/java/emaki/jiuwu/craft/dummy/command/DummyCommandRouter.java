@@ -15,6 +15,8 @@ import emaki.jiuwu.craft.dummy.scenario.ScenarioRunner;
 import emaki.jiuwu.craft.dummy.session.DummyManager;
 import emaki.jiuwu.craft.dummy.session.DummySession;
 import emaki.jiuwu.craft.dummy.transport.TransportEndpoint;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 
 public final class DummyCommandRouter {
 
@@ -266,7 +268,7 @@ public final class DummyCommandRouter {
 
     private void routeScenario(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            messages.send(sender, "general.no_permission");
+            messages.send(sender, CommandKeys.NO_PERMISSION);
             return;
         }
         if (args.length < 3) {
@@ -306,7 +308,7 @@ public final class DummyCommandRouter {
 
     private void routeStopAll(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            messages.send(sender, "general.no_permission");
+            messages.send(sender, CommandKeys.NO_PERMISSION);
             return;
         }
         engine.stopActive();
@@ -338,14 +340,7 @@ public final class DummyCommandRouter {
     }
 
     private static Collection<String> prefixFilter(Collection<String> options, String prefix) {
-        String normalized = prefix == null ? "" : prefix.toLowerCase(Locale.ROOT);
-        List<String> matched = new ArrayList<>(options.size());
-        for (String option : options) {
-            if (option.toLowerCase(Locale.ROOT).startsWith(normalized)) {
-                matched.add(option);
-            }
-        }
-        return matched;
+        return CommandTabHelper.filterByPrefix(options, prefix);
     }
 
     private Collection<String> dummyNames(String[] args) {

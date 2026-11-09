@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import me.clip.placeholderapi.PlaceholderAPI;
 
 public final class PlayerPlaceholders {
@@ -41,7 +42,8 @@ public final class PlayerPlaceholders {
         if (resolved.indexOf('%') >= 0 && player != null && Bukkit.getPluginManager().isPluginEnabled("PlaceholderAPI")) {
             try {
                 resolved = Texts.toStringSafe(PlaceholderAPI.setPlaceholders(player, resolved));
-            } catch (Exception | NoClassDefFoundError _) {
+            } catch (Exception | NoClassDefFoundError swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "PlayerPlaceholders.java#1", swallowed);
             }
         }
         return resolved;

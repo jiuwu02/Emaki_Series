@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.structure.integration;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.integration.CustomBlockBridge;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import org.bukkit.block.Block;
 
 import java.util.LinkedHashMap;
@@ -24,7 +25,7 @@ public final class CustomBlockIdAdapter {
     private final Map<String, CustomBlockBridge> bridges = new LinkedHashMap<>();
 
     public CustomBlockIdAdapter() {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         bridges.put("itemsadder", coreLib.itemsAdderBlockBridge());
         bridges.put("oraxen", coreLib.oraxenBlockBridge());
         bridges.put("nexo", coreLib.nexoBlockBridge());

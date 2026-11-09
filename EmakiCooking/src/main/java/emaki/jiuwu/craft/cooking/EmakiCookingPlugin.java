@@ -79,6 +79,7 @@ import emaki.jiuwu.craft.cooking.papi.CookingPlaceholderExpansion;
 import emaki.jiuwu.craft.cooking.service.display.CookingDisplayService;
 import emaki.jiuwu.craft.cooking.service.display.CookingTextDisplayService;
 import emaki.jiuwu.craft.cooking.apiimpl.DefaultEmakiCookingApi;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -181,7 +182,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         registerActions();
         registerPublicApiService();
         registerPlaceholderExpansion();
-        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -190,7 +191,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         publicApiReady = false;
         publishAbsent();
         ConfigPrecheckLifecycleSupport.unregister("cooking");
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("cooking");
         if (stageRegistrar != null) {
             stageRegistrar.unregister();
@@ -327,7 +328,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(EmakiCoreLibPlugin.lookup());
+            action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("[startup] 就绪状态发布已跳过: " + exception);
         }
@@ -614,7 +615,7 @@ public class EmakiCookingPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

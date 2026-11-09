@@ -13,6 +13,7 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class WorldCloner {
 
@@ -62,6 +63,7 @@ public final class WorldCloner {
                 }
             });
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "WorldCloner.java#1", ignored);
         }
     }
 

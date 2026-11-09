@@ -97,6 +97,7 @@ import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
 import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.UUID;
@@ -186,13 +187,13 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         appConfigLoader = new YamlConfigLoader<>(this, "config.yml", AppConfig::defaults, AppConfig::parse);
         appConfigLoader.load();
         setDebugLogger(new DebugLogger(this, languageLoader));
-        debugLogger().setFallbackLoader(EmakiCoreLibPlugin.lookup().languageLoader());
+        debugLogger().setFallbackLoader(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).languageLoader());
         debugCommand = new DebugCommand(debugLogger(), DEBUG_MODULES, getName());
         bootstrapInstanceRuntime();
         registerCommandHandler();
         installPublicApi();
         ensureBetterHudBridge();
-        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         runtimeInitialized = true;
         messageService.info("console.plugin_starting");
         messageService.info("console.plugin_started");
@@ -420,7 +421,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         if (appConfig.debugEnabled()) {
             debugLogger().enableAll();
         }
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         ExecutionDispatcher dispatcher = coreLib.executionDispatcher();
         File worldContainer = Bukkit.getWorldContainer();
         TemplateRepository templates = new TemplateRepository(this, getDataFolder());
@@ -739,10 +740,10 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.flow.TriggerCounter());
         var runtime = new emaki.jiuwu.craft.dungeon.flow.FlowRuntime(
                 instance, definition, adjudicator, messageService, teleportGuard::permit,
-                this, EmakiCoreLibPlugin.lookup().executionDispatcher());
+                this, EmakiCoreLibApi.requireService(ExecutionDispatcher.class));
         var gateController = new emaki.jiuwu.craft.dungeon.flow.GateController(this, instance, debugLogger());
         var waveController = new emaki.jiuwu.craft.dungeon.flow.WaveController(
-                this, EmakiCoreLibPlugin.lookup().executionDispatcher(), instance,
+                this, EmakiCoreLibApi.requireService(ExecutionDispatcher.class), instance,
                 new emaki.jiuwu.craft.dungeon.flow.MobSource(), debugLogger(), configOf);
         gateController.bindWaveController(waveController);
         var controllers = new emaki.jiuwu.craft.dungeon.flow.GameplayControllers(
@@ -802,7 +803,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void dispatchTempItemGrant(DungeonInstance instance, String itemId, int amount,
             TempItemManager tempItemManager) {
-        EmakiCoreLibPlugin.lookup().executionDispatcher().runGlobal(this, () -> {
+        EmakiCoreLibApi.requireService(ExecutionDispatcher.class).runGlobal(this, () -> {
             var world = Bukkit.getWorld(instance.instanceId());
             if (world == null) {
                 return;

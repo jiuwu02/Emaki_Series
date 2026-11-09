@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.api.integration.MythicMobBridge;
 import emaki.jiuwu.craft.corelib.api.math.Numbers;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 final class DamageMessageDispatcher {
 
@@ -274,7 +275,7 @@ final class DamageMessageDispatcher {
             return "";
         }
         MythicMobBridge.MythicMobSnapshot snapshot =
-                EmakiCoreLibPlugin.lookup().mythicMobBridge().snapshot(entity);
+                EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).mythicMobBridge().snapshot(entity);
         return snapshot == null ? "" : MiniMessages.legacyAmpersandToMiniMessage(snapshot.displayName());
     }
 }

@@ -16,6 +16,11 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.execution.ThreadOwnership;
 import emaki.jiuwu.craft.forge.legacy.ForgeLegacyEntry;
+import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 final class ForgeCommandRouter implements TabExecutor {
 
@@ -54,7 +59,7 @@ final class ForgeCommandRouter implements TabExecutor {
             case "reload" -> handleReload(sender);
             case "list" -> handleList(sender, args);
             case "edit" -> handleEdit(sender, args);
-            case "convert-legacy" -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
+            case ConvertCommands.TOKEN -> ForgeLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -67,12 +72,9 @@ final class ForgeCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "forge", "book", "reload", "list", "edit", "convert-legacy", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "forge", "book", "reload", "list", "edit", ConvertCommands.TOKEN, "debug"),
+                    args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -109,7 +111,7 @@ final class ForgeCommandRouter implements TabExecutor {
             return true;
         }
         if (!sender.hasPermission(PERMISSION_BOOK) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         return plugin.recipeBookGuiService().openRecipeBook(player);
@@ -117,7 +119,7 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.bootstrapService().bootstrap();
@@ -161,17 +163,20 @@ final class ForgeCommandRouter implements TabExecutor {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_EDIT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messageService().send(sender, "general.player_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorModule().openBrowser(player);
             return true;
@@ -185,7 +190,7 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private boolean handleList(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -205,7 +210,7 @@ final class ForgeCommandRouter implements TabExecutor {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length >= 2 && ("stats".equalsIgnoreCase(args[1]) || "status".equalsIgnoreCase(args[1]))) {

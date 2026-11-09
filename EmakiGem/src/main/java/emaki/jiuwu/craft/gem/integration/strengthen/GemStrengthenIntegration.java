@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.strengthen.api.EmakiStrengthenApi;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptContext;
 import emaki.jiuwu.craft.strengthen.api.model.EnhancementAttemptOutcome;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class GemStrengthenIntegration {
 
@@ -45,7 +46,8 @@ public final class GemStrengthenIntegration {
         registration = ReadinessRegistration.inactive();
         try {
             EmakiStrengthenApi.operations().unregisterEnhancementTarget(GemEnhancementTargetProvider.PROVIDER_ID);
-        } catch (RuntimeException | LinkageError _) {
+        } catch (RuntimeException | LinkageError swallowed) {
+            FailureRecorder.recordIgnoredFailure("EmakiGem", "GemStrengthenIntegration.java#1", swallowed);
         }
     }
 

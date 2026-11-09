@@ -17,6 +17,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public abstract class DirectoryLoader<T> {
 
@@ -245,7 +246,7 @@ public abstract class DirectoryLoader<T> {
     protected abstract String idOf(T value);
 
     private AsyncTaskScheduler resolveAsyncScheduler() {
-        return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
     }
 
     private void notifyProgress(Consumer<LoadProgress> progressCallback,

@@ -14,6 +14,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ReplaceMarkerStore {
 
@@ -63,6 +64,7 @@ public final class ReplaceMarkerStore {
                 }
             }
         } catch (IOException exception) {
+            FailureRecorder.recordIgnoredFailure("EmakiStructure", "ReplaceMarkerStore.java#1", exception);
         }
     }
 
@@ -77,6 +79,7 @@ public final class ReplaceMarkerStore {
             Files.write(file, List.of(key), StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.APPEND);
         } catch (IOException exception) {
+            FailureRecorder.recordIgnoredFailure("EmakiStructure", "ReplaceMarkerStore.java#2", exception);
         }
     }
 
@@ -95,6 +98,7 @@ public final class ReplaceMarkerStore {
             Files.write(file, kept, StandardCharsets.UTF_8,
                     StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException exception) {
+            FailureRecorder.recordIgnoredFailure("EmakiStructure", "ReplaceMarkerStore.java#3", exception);
         }
     }
 

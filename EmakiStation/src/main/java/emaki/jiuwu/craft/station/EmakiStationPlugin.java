@@ -52,6 +52,7 @@ import emaki.jiuwu.craft.station.material.StationCapabilities;
 import emaki.jiuwu.craft.station.material.StorageChannel;
 import emaki.jiuwu.craft.station.queue.QueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfig>
         implements LogMessagesProvider {
@@ -242,7 +243,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     private void publishReadiness(Consumer<EmakiCoreLibPlugin> action) {
         try {
-            action.accept(EmakiCoreLibPlugin.lookup());
+            action.accept(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class));
         } catch (RuntimeException | LinkageError exception) {
             getLogger().fine("[startup] 已跳过就绪状态发布: " + exception);
         }
@@ -354,7 +355,7 @@ public class EmakiStationPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public boolean isShutdownStarted() {

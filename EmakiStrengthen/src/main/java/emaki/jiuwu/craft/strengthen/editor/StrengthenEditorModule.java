@@ -35,6 +35,7 @@ import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader.LoadedYamlEntry;
 import emaki.jiuwu.craft.strengthen.EmakiStrengthenPlugin;
 import emaki.jiuwu.craft.strengthen.enhancement.recipe.EnhancementRecipeParser;
 import emaki.jiuwu.craft.strengthen.model.StrengthenRecipeParser;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class StrengthenEditorModule implements EditorModule {
 
@@ -402,6 +403,7 @@ public final class StrengthenEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiStrengthen", "StrengthenEditorModule.java#1", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');
@@ -431,6 +433,7 @@ public final class StrengthenEditorModule implements EditorModule {
                     }
                 }
             } catch (RuntimeException failure) {
+                FailureRecorder.recordIgnoredFailure("EmakiStrengthen", "StrengthenEditorModule.java#2", failure);
             }
         }
         return fallbackPreview(session);

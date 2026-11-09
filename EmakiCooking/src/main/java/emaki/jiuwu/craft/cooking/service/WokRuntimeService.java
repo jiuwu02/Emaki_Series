@@ -49,6 +49,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class WokRuntimeService {
 
@@ -176,7 +177,7 @@ public final class WokRuntimeService {
         }
         if (!player.hasPermission(CookingPermissions.WOK_USE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }
@@ -258,7 +259,7 @@ public final class WokRuntimeService {
         }
         if (!player.hasPermission(CookingPermissions.WOK_STIR)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }
@@ -360,7 +361,7 @@ public final class WokRuntimeService {
             boolean servingWithBowl) {
         if (!player.hasPermission(CookingPermissions.WOK_SERVE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }

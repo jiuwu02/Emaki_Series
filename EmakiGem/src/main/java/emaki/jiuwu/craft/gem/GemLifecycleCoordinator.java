@@ -17,7 +17,6 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.condition.ConditionBlock;
@@ -60,6 +59,7 @@ import emaki.jiuwu.craft.gem.service.GemResonanceService;
 import emaki.jiuwu.craft.gem.service.GemSnapshotBuilder;
 import emaki.jiuwu.craft.gem.service.GemStateService;
 import emaki.jiuwu.craft.gem.service.SocketOpenerService;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGemPlugin, GemRuntimeComponents> {
 
@@ -72,9 +72,9 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
 
     @Override
     public GemRuntimeComponents initialize(EmakiGemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         registerAssemblyLayer(coreLibPlugin);
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
@@ -84,7 +84,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         GemLoader gemLoader = new GemLoader(plugin);
         GemItemLoader gemItemLoader = new GemItemLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
@@ -96,29 +96,16 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if (!"config.yml".equals(relativePath)) {
-                            return;
-                        }
-                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                        ConfigKeyMigration.pruneEmptySection(runtime, "permission");
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyStartupMigration.run("宝石定义", messageService, plugin.getLogger(),
-                                () -> LegacyStartupMigration.of(
-                                        migrateGemDefinitions(plugin)));
-                    }
-                }
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
+                        (relativePath, runtime, bundled) -> {
+                            if (!"config.yml".equals(relativePath)) {
+                                return;
+                            }
+                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                            ConfigKeyMigration.pruneEmptySection(runtime, "permission");
+                        },
+                        () -> LegacyStartupMigration.run("宝石定义", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.of(migrateGemDefinitions(plugin))))
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         GemAttributeBridge pdcAttributeGateway = new GemAttributeBridgeHolder(plugin.getLogger());
@@ -249,7 +236,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiGemPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         CompletableFuture<Void> rerollsClosed = plugin.rerollSessionService() == null
                 ? CompletableFuture.completedFuture(null)
                 : plugin.rerollSessionService().clearAllAsync(GemRerollSessionService.TerminationReason.RELOAD);
@@ -345,7 +332,7 @@ final class GemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiGe
     }
 
     public void shutdown(EmakiGemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("gem");
         if (plugin.rerollSessionService() != null) {
             plugin.rerollSessionService().clearAll(GemRerollSessionService.TerminationReason.DISABLE);

@@ -10,6 +10,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.attribute.Attribute;
@@ -124,6 +125,7 @@ public final class PlayerSnapshot {
         try {
             player.setGameMode(GameMode.valueOf(gameMode));
         } catch (IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "PlayerSnapshot.java#1", ignored);
         }
     }
 

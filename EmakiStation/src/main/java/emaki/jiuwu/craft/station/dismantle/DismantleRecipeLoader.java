@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.matcher.ItemRequirement;
 import emaki.jiuwu.craft.corelib.yaml.YamlDirectoryLoader;
 import emaki.jiuwu.craft.station.recipe.RecipeCost;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRecipeDefinition> {
 
@@ -232,7 +233,7 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             try {
                 return Double.parseDouble(s.trim());
             } catch (NumberFormatException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStation", "DismantleRecipeLoader.java#1", ignored);
             }
         }
         return fallback;
@@ -246,7 +247,7 @@ public final class DismantleRecipeLoader extends YamlDirectoryLoader<DismantleRe
             try {
                 return Long.parseLong(s.trim());
             } catch (NumberFormatException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiStation", "DismantleRecipeLoader.java#2", ignored);
             }
         }
         return fallback;

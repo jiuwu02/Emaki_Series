@@ -15,7 +15,6 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
@@ -111,8 +110,8 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
 
     @Override
     public ItemRuntimeComponents initialize(EmakiItemPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         EmakiScheduling scheduling = EmakiCoreLibApi.scheduling();
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -121,7 +120,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         languageLoader.setLanguage(appConfigLoader.current().language());
@@ -132,25 +131,13 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
                 List.of(),
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if ("config.yml".equals(relativePath) && runtime != null) {
-                            runtime.set("item_update", null);
-                        }
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        migrateLegacyContent(plugin, messageService);
-                    }
-                }
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
+                        (relativePath, runtime, bundled) -> {
+                            if ("config.yml".equals(relativePath) && runtime != null) {
+                                runtime.set("item_update", null);
+                            }
+                        },
+                        () -> migrateLegacyContent(plugin, messageService))
         );
         EmakiItemLoader itemLoader = new EmakiItemLoader(plugin, appConfigLoader::current);
         EmakiItemSetLoader setLoader = new EmakiItemSetLoader(plugin, appConfigLoader::current);
@@ -368,7 +355,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
         if (!reloadAllowed(allowed)) {
             return CompletableFuture.completedFuture(null);
         }
-        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, allowed);
             return CompletableFuture.completedFuture(null);
@@ -500,7 +487,7 @@ final class ItemLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiI
             plugin.messageService().info("console.plugin_stopping");
         }
         closeRepairInventories(plugin);
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         if (coreLibPlugin.placeholderRegistry() != null && plugin.componentPlaceholderResolver() != null) {
             coreLibPlugin.placeholderRegistry().unregister(plugin.componentPlaceholderResolver());
         }

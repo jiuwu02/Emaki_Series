@@ -16,6 +16,7 @@ import java.util.stream.Stream;
 
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class AuditService implements AutoCloseable {
 
@@ -113,9 +114,11 @@ public final class AuditService implements AutoCloseable {
                         try {
                             Files.deleteIfExists(path);
                         } catch (IOException ignored) {
+                            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "AuditService.java#1", ignored);
                         }
                     });
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "AuditService.java#2", ignored);
         }
     }
 
@@ -126,6 +129,7 @@ public final class AuditService implements AutoCloseable {
         try {
             writer.close();
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "AuditService.java#3", ignored);
         }
         writer = null;
     }

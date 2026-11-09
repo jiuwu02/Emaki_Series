@@ -8,6 +8,7 @@ import emaki.jiuwu.craft.corelib.api.action.CoreActionKey;
 import emaki.jiuwu.craft.corelib.api.action.CoreActionSubject;
 import emaki.jiuwu.craft.mobs.api.event.EmakiMobSkillTriggerEvent;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.Nullable;
@@ -110,7 +111,7 @@ public final class MobSkillExecutor {
 
     private ActionEngine engine() {
         try {
-            EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+            EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
             return coreLib == null ? null : coreLib.actionEngine();
         } catch (Exception e) {
             return null;

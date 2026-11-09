@@ -82,6 +82,7 @@ import emaki.jiuwu.craft.item.service.ItemStatePreservationService;
 import emaki.jiuwu.craft.item.trigger.ProficiencyGuard;
 import emaki.jiuwu.craft.item.apiimpl.DefaultEmakiItemApi;
 import emaki.jiuwu.craft.item.editor.ItemEditorModule;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> implements LogMessagesProvider {
 
@@ -186,7 +187,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
         itemContributionGateLifecycle.initialize();
         registerMythicDrops();
         ensurePlaceholderExpansion();
-        metrics = EmakiCoreLibPlugin.lookup().registerBStats(this, BSTATS_PLUGIN_ID);
+        metrics = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).registerBStats(this, BSTATS_PLUGIN_ID);
         messageService.info("console.plugin_started");
     }
 
@@ -653,7 +654,7 @@ public class EmakiItemPlugin extends AbstractConfigurableEmakiPlugin<AppConfig> 
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     public ActionLineRunner actionLines() {

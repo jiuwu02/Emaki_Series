@@ -12,6 +12,7 @@ import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.service.ItemComponentInspector;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 final class ItemComponentsCommand {
 
@@ -23,7 +24,7 @@ final class ItemComponentsCommand {
 
     boolean handleComponents(CommandSender sender, String[] args) {
         if (!sender.hasPermission(ItemCommandRouter.PERMISSION_INSPECT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         ComponentTarget target = componentTarget(sender, args);

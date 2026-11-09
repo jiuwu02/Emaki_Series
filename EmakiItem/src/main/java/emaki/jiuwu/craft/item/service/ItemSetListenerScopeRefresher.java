@@ -676,7 +676,7 @@ final class ItemSetListenerScopeRefresher {
                 operation = "clear";
             }
             ItemStack updated = mutation.itemStack();
-            if (!mutation.success() || sameItem(expected, updated)) {
+            if (!mutation.success() || ItemSetListenerScopeRefresherSupport.sameItem(expected, updated)) {
                 continue;
             }
             boolean committed = writeInventoryIfUnchanged(inventory, plan.slot(), expected, updated);
@@ -971,23 +971,13 @@ final class ItemSetListenerScopeRefresher {
                                               ItemStack expected,
                                               ItemStack updated) {
         ItemStack current = inventory.getItem(slot);
-        if (!sameItem(current, expected)) {
+        if (!ItemSetListenerScopeRefresherSupport.sameItem(current, expected)) {
             return false;
         }
         inventory.setItem(slot, updated);
         return true;
     }
 
-    private static ItemStack cloneItem(ItemStack itemStack) {
-        return itemStack == null ? null : itemStack.clone();
-    }
-
-    private static boolean sameItem(ItemStack first, ItemStack second) {
-        if (first == null || first.getType().isAir()) {
-            return second == null || second.getType().isAir();
-        }
-        return first.equals(second);
-    }
 
     private record ListenerSetCache(
             boolean valid,

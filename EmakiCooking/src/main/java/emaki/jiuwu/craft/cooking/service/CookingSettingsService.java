@@ -106,17 +106,17 @@ public final class CookingSettingsService {
         ovenGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("oven.yml").toFile());
         juicerGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("juicer.yml").toFile());
         fermentationBarrelGuiConfiguration = YamlFiles.load(plugin.getDataFolder().toPath().resolve("gui").resolve("fermentation_barrel.yml").toFile());
-        warnLegacyMatcherKeys();
+        reportDeprecatedMatcherKeys();
         itemAdjustments = loadItemAdjustments();
         globalDisabledWorlds = disabledWorldSet(configuration.get("station.disabled_worlds"));
         stationDisabledWorlds = loadStationDisabledWorlds();
         stationBlockSourceCache = loadStationBlockSources();
     }
 
-    private void warnLegacyMatcherKeys() {
-        warnLegacyMatcherKeys("stations.chopping_board", "tool", "tool_item_sources", "tool_matcher");
-        warnLegacyMatcherKeys("stations.wok", "spatula", "spatula_item_sources", "spatula_matcher");
-        warnLegacyMatcherKeys("stations.juicer", "container", "container_item_sources", "container_matcher");
+    private void reportDeprecatedMatcherKeys() {
+        reportDeprecatedMatcherKeys("stations.chopping_board", "tool", "tool_item_sources", "tool_matcher");
+        reportDeprecatedMatcherKeys("stations.wok", "spatula", "spatula_item_sources", "spatula_matcher");
+        reportDeprecatedMatcherKeys("stations.juicer", "container", "container_item_sources", "container_matcher");
         int index = 0;
         for (Map<?, ?> raw : configuration.getMapList("stations.steamer.moisture_rules")) {
             Map<String, Object> rule = MapYamlSection.normalizeMap(raw);
@@ -124,13 +124,17 @@ public final class CookingSettingsService {
                 boolean nested = rule.get("input") instanceof Map<?, ?>;
                 plugin.getLogger().warning("[config] stations.steamer.moisture_rules[" + index
                         + "] 处的旧版烹饪匹配键已弃用；请使用 input.item_sources 与 input.matcher，"
-                        + (nested ? "嵌套输入配置优先" : "旧键仅作兼容读取"));
+                        + deprecatedKeyHint(nested, "嵌套输入配置优先"));
             }
             index++;
         }
     }
 
-    private void warnLegacyMatcherKeys(String ownerPath, String nestedKey, String legacySourcesKey, String legacyMatcherKey) {
+    private static String deprecatedKeyHint(boolean nested, String nestedHint) {
+        return nested ? nestedHint : "旧键仅作兼容读取";
+    }
+
+    private void reportDeprecatedMatcherKeys(String ownerPath, String nestedKey, String legacySourcesKey, String legacyMatcherKey) {
         YamlSection owner = configuration.getSection(ownerPath);
         if (owner == null || (!owner.contains(legacySourcesKey) && !owner.contains(legacyMatcherKey))) {
             return;
@@ -138,7 +142,7 @@ public final class CookingSettingsService {
         YamlSection nested = owner.getSection(nestedKey);
         plugin.getLogger().warning("[config] " + ownerPath + "." + legacySourcesKey + "/" + legacyMatcherKey
                 + " 处的旧版烹饪匹配键已弃用；请使用 " + ownerPath + "." + nestedKey + ".item_sources 与 .matcher，"
-                + (nested != null && !nested.isEmpty() ? "嵌套配置优先" : "旧键仅作兼容读取"));
+                + deprecatedKeyHint(nested != null && !nested.isEmpty(), "嵌套配置优先"));
     }
 
     public List<ItemSourceRef> stationBlockSources(StationType stationType) {

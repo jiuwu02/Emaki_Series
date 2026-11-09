@@ -23,6 +23,7 @@ import emaki.jiuwu.craft.attribute.model.ParentAttributeData;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ParentAttributeDataStore {
 
@@ -248,7 +249,7 @@ public final class ParentAttributeDataStore {
                 drained = false;
                 break;
             } catch (ExecutionException exception) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiAttribute", "ParentAttributeDataStore.java#1", exception);
             }
         }
         int pending = 0;

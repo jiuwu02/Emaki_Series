@@ -13,6 +13,7 @@ import org.bukkit.entity.Player;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.model.EmakiItemAlias;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 final class ItemMigrationCommand {
 
@@ -26,7 +27,7 @@ final class ItemMigrationCommand {
 
     boolean handleAlias(CommandSender sender, String[] args) {
         if (!sender.hasPermission(ItemCommandRouter.PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2 || "list".equalsIgnoreCase(args[1])) {
@@ -61,7 +62,7 @@ final class ItemMigrationCommand {
 
     boolean handleMigrate(CommandSender sender, String[] args) {
         if (!sender.hasPermission(ItemCommandRouter.PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length >= 5 && "id".equalsIgnoreCase(args[1])) {

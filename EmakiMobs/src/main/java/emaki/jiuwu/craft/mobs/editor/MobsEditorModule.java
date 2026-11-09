@@ -44,6 +44,8 @@ import emaki.jiuwu.craft.mobs.loot.LootTableDefinition;
 import emaki.jiuwu.craft.mobs.loot.LootTableYamlLoader;
 import emaki.jiuwu.craft.mobs.selector.SelectorMode;
 import emaki.jiuwu.craft.mobs.spawner.SpawnTrigger;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class MobsEditorModule implements EditorModule {
 
@@ -538,7 +540,7 @@ public final class MobsEditorModule implements EditorModule {
                 "minecraft:custom_name", ItemComponentPatch.set(label),
                 "minecraft:lore", ItemComponentPatch.set(List.of(fileName))));
         return GuiItemBuilder.build(definition, Map.of(),
-                EmakiCoreLibPlugin.lookup().configuredItemService());
+                EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).configuredItemService());
     }
 
     private Path resolveFile(EditorBrowserRoot root, String id) {
@@ -650,6 +652,7 @@ public final class MobsEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiMobs", "MobsEditorModule.java#1", ignored);
         }
         return stem;
     }

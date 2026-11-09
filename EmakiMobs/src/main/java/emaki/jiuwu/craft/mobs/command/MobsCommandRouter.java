@@ -4,6 +4,9 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.mobs.EmakiMobsPlugin;
 import emaki.jiuwu.craft.mobs.loader.MobSpec;
 import emaki.jiuwu.craft.mobs.service.MobFactory;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
@@ -68,14 +71,10 @@ public final class MobsCommandRouter {
 
     public List<String> suggest(CommandSender sender, String[] args) {
         if (args.length <= 1) {
-            String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            List<String> result = new ArrayList<>();
-            for (String subcommand : SUBCOMMANDS) {
-                if (subcommand.startsWith(prefix) && ("help".equals(subcommand)
-                        || sender.hasPermission(permissionFor(subcommand)))) {
-                    result.add(subcommand);
-                }
-            }
+            List<String> result = CommandTabHelper.filterByPrefix(SUBCOMMANDS,
+                    args.length == 0 ? "" : args[0]);
+            result.removeIf(subcommand -> !"help".equals(subcommand)
+                    && !sender.hasPermission(permissionFor(subcommand)));
             return result;
         }
         String subcommand = args[0].toLowerCase(Locale.ROOT);
@@ -404,16 +403,20 @@ public final class MobsCommandRouter {
     }
 
     private void handleEdit(CommandSender sender, String[] args) {
-        if (!requirePermission(sender, PERMISSION_EDIT)) {
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            plugin.messageService().send(sender, "command.no_permission");
             return;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messageService().send(sender, "general.player_only");
             return;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return;

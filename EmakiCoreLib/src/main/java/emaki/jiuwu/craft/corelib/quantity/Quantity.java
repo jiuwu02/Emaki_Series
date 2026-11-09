@@ -10,6 +10,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public sealed interface Quantity permits Quantity.Fixed, Quantity.Formula, Quantity.LookupTable {
 
@@ -45,7 +46,8 @@ public sealed interface Quantity permits Quantity.Fixed, Quantity.Formula, Quant
         String strValue = String.valueOf(config).trim();
         try {
             return fixed(Double.parseDouble(strValue));
-        } catch (NumberFormatException _) {
+        } catch (NumberFormatException swallowed) {
+            FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "Quantity.java#1", swallowed);
         }
         if (!(config instanceof YamlSection section)) {
             return fixed(0.0);
@@ -73,7 +75,8 @@ public sealed interface Quantity permits Quantity.Fixed, Quantity.Formula, Quant
                 int intKey = Integer.parseInt(key);
                 double value = section.getDouble(key, 0.0);
                 table.put(intKey, value);
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "Quantity.java#2", swallowed);
             }
         }
         return table;

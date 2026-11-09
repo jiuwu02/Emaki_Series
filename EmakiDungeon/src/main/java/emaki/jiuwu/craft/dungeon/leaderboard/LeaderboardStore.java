@@ -16,6 +16,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.UUID;
 
 public final class LeaderboardStore {
@@ -164,6 +165,7 @@ public final class LeaderboardStore {
                 Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "LeaderboardStore.java#1", ignored);
         }
     }
 }

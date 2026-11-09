@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.level.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -13,7 +14,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiLevelApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiLevelApi() {
     }
@@ -25,7 +26,7 @@ public final class EmakiLevelApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiLevelApi.bridge = bridge;
+        EmakiLevelApi.bridge.activate(bridge);
     }
 
     /**
@@ -39,14 +40,12 @@ public final class EmakiLevelApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiLevelApi.bridge == bridge) {
-            EmakiLevelApi.bridge = null;
-        }
+        EmakiLevelApi.bridge.deactivate(bridge);
     }
 
     /** {@return availability and identity metadata} */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -54,19 +53,19 @@ public final class EmakiLevelApi {
 
     /** {@return the read-only query layer; never {@code null}} */
     public static @NotNull LevelCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableLevel.INSTANCE : resolved.catalog();
     }
 
     /** {@return the synchronous player operation layer; never {@code null}} */
     public static @NotNull LevelOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableLevel.INSTANCE : resolved.operations();
     }
 
     /** {@return the experience-source extension layer; never {@code null}} */
     public static @NotNull LevelExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableLevel.INSTANCE : resolved.extensions();
     }
 

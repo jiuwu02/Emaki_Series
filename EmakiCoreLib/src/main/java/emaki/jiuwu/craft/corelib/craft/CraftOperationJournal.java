@@ -25,6 +25,8 @@ import emaki.jiuwu.craft.corelib.async.AsyncFileService.FileScope;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.yaml.AsyncYamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class CraftOperationJournal<R> {
 
@@ -284,6 +286,7 @@ public final class CraftOperationJournal<R> {
                 try {
                     playerId = UUID.fromString(playerIdStr);
                 } catch (IllegalArgumentException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "CraftOperationJournal.java#1", ignored);
                 }
             }
             return new Entry<>(operationId, kind, playerId, phase, codec.decode(section));
@@ -391,7 +394,7 @@ public final class CraftOperationJournal<R> {
                 return asyncYamlFiles;
             }
             try {
-                EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+                EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
                 this.fileScope = coreLib.asyncFileScope(ownerPlugin);
                 this.asyncYamlFiles = new AsyncYamlFiles(fileScope);
             } catch (RuntimeException | LinkageError failure) {
@@ -411,7 +414,7 @@ public final class CraftOperationJournal<R> {
 
     private AsyncTaskScheduler resolveAsyncTaskScheduler() {
         try {
-            return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+            return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         } catch (RuntimeException | LinkageError failure) {
             if (!asyncSchedulerUnavailableLogged) {
                 asyncSchedulerUnavailableLogged = true;

@@ -39,6 +39,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class GrinderRuntimeService {
 
@@ -197,7 +198,7 @@ public final class GrinderRuntimeService {
         }
         if (!player.hasPermission(CookingPermissions.GRINDER_USE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }

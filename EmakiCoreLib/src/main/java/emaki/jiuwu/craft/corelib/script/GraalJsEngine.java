@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.script;
 
+import java.util.concurrent.atomic.AtomicReference;
 import java.time.Duration;
 import java.util.Map;
 import java.util.concurrent.CancellationException;
@@ -23,11 +24,12 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.corelib.api.script.ScriptEngine;
 import emaki.jiuwu.craft.corelib.api.script.ScriptResult;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class GraalJsEngine implements ScriptEngine {
 
     private static final String LANGUAGE_ID = "js";
-    private static volatile GraalJsEngine instance;
+    private static final AtomicReference<GraalJsEngine> instance = new AtomicReference<>();
 
     private final Engine sharedEngine;
     private final WatchdogExecutor watchdog;
@@ -43,21 +45,20 @@ public final class GraalJsEngine implements ScriptEngine {
     }
 
     public static @NotNull GraalJsEngine getInstance() {
-        if (instance == null) {
+        if (instance.get() == null) {
             synchronized (GraalJsEngine.class) {
-                if (instance == null) {
-                    instance = new GraalJsEngine();
+                if (instance.get() == null) {
+                    instance.set(new GraalJsEngine());
                 }
             }
         }
-        return instance;
+        return instance.get();
     }
 
     public static void shutdownInstance() {
         GraalJsEngine current;
         synchronized (GraalJsEngine.class) {
-            current = instance;
-            instance = null;
+            current = instance.getAndSet(null);
         }
         if (current != null) {
             current.shutdown();
@@ -118,7 +119,7 @@ public final class GraalJsEngine implements ScriptEngine {
         try {
             context.close();
         } catch (Exception ignored) {
-
+            FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "GraalJsEngine.java#1", ignored);
         }
     }
 
@@ -156,7 +157,7 @@ public final class GraalJsEngine implements ScriptEngine {
                             try {
                                 context.interrupt(Duration.ofMillis(100));
                             } catch (TimeoutException e) {
-
+                                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "GraalJsEngine.java#2", e);
                             }
                             context.close(true);
                         },

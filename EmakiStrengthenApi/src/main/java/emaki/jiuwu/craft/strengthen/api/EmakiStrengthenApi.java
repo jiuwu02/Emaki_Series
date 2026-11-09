@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.strengthen.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -16,7 +17,7 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
  */
 public final class EmakiStrengthenApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiStrengthenApi() {
     }
@@ -28,7 +29,7 @@ public final class EmakiStrengthenApi {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiStrengthenApi.bridge = bridge;
+        EmakiStrengthenApi.bridge.activate(bridge);
     }
 
     /**
@@ -38,9 +39,7 @@ public final class EmakiStrengthenApi {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiStrengthenApi.bridge == bridge) {
-            EmakiStrengthenApi.bridge = null;
-        }
+        EmakiStrengthenApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -48,7 +47,7 @@ public final class EmakiStrengthenApi {
      * {@link ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? ApiStatus.notInstalled() : resolved.status();
     }
 
@@ -57,7 +56,7 @@ public final class EmakiStrengthenApi {
      * when the bridge or its mastery provider is absent}
      */
     public static @NotNull ItemMastery mastery() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStrengthen.MASTERY;
         }
@@ -67,13 +66,13 @@ public final class EmakiStrengthenApi {
 
     /** {@return the read-only catalog layer; never {@code null}} */
     public static @NotNull StrengthenCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableStrengthen.CATALOG : resolved.catalog();
     }
 
     /** {@return the state-changing operation layer; never {@code null}} */
     public static @NotNull StrengthenOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableStrengthen.OPERATIONS : resolved.operations();
     }
 

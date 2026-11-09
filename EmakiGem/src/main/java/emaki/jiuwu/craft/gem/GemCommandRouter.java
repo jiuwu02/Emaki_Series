@@ -22,6 +22,10 @@ import emaki.jiuwu.craft.gem.model.GemItemDefinition;
 import emaki.jiuwu.craft.gem.model.GemState;
 import emaki.jiuwu.craft.gem.service.GemGuiMode;
 import emaki.jiuwu.craft.gem.service.GemRerollSessionService;
+import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 final class GemCommandRouter implements TabExecutor {
 
@@ -55,7 +59,7 @@ final class GemCommandRouter implements TabExecutor {
             case "inspect" -> handleInspect(sender, args);
             case "reroll" -> handleReroll(sender, args);
             case "clearstate" -> handleClearState(sender);
-            case "convert-legacy" -> GemLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
+            case ConvertCommands.TOKEN -> GemLegacyEntry.handle(plugin, sender, args, PERMISSION_ADMIN);
             case "debug" -> handleDebug(sender, args);
             default -> {
                 plugin.messageService().send(sender, "general.unknown_command");
@@ -68,12 +72,9 @@ final class GemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", "convert-legacy", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "gui", "reload", "edit", "inspect", "reroll", "clearstate", ConvertCommands.TOKEN, "debug"),
+                    args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             return plugin.debugCommand().tabComplete(Arrays.copyOfRange(args, 1, args.length));
@@ -105,7 +106,7 @@ final class GemCommandRouter implements TabExecutor {
                         }
                     }
                 }
-                case "convert-legacy" -> {
+                case ConvertCommands.TOKEN -> {
                     for (String sub : List.of("confirm", "--apply")) {
                         if (sub.startsWith(args[1].toLowerCase(Locale.ROOT))) {
                             result.add(sub);
@@ -122,7 +123,7 @@ final class GemCommandRouter implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.bootstrapService().bootstrap();
@@ -150,17 +151,20 @@ final class GemCommandRouter implements TabExecutor {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(PERMISSION_EDIT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, PERMISSION_EDIT);
+        if (editGuard == Guard.DENIED) {
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messageService().send(sender, "general.player_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length < 2) {
             plugin.editorService().openBrowser(player);
             return true;
@@ -178,7 +182,7 @@ final class GemCommandRouter implements TabExecutor {
             return true;
         }
         if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!plugin.gemGuiService().open(player, mode)) {
@@ -208,7 +212,7 @@ final class GemCommandRouter implements TabExecutor {
 
     private boolean handleInspect(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         Player player = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
@@ -247,7 +251,7 @@ final class GemCommandRouter implements TabExecutor {
             return true;
         }
         if (!sender.hasPermission(PERMISSION_USE) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 2) {
@@ -314,7 +318,7 @@ final class GemCommandRouter implements TabExecutor {
             return true;
         }
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         ItemStack itemStack = player.getInventory().getItemInMainHand();
@@ -343,7 +347,7 @@ final class GemCommandRouter implements TabExecutor {
         lines.put("inspect [player]", ms.message("command.help.desc.inspect"));
         lines.put("reroll <full|value|confirm|cancel|status>", ms.message("command.help.desc.reroll"));
         lines.put("clearstate", ms.message("command.help.desc.clearstate"));
-        lines.put("convert-legacy [confirm]", ms.message("command.help.desc.convert_legacy"));
+        lines.put(ConvertCommands.TOKEN + " [confirm]", ms.message("command.help.desc.convert_legacy"));
         lines.put("debug [player|module|on|off]", ms.message("command.help.desc.debug"));
         lines.forEach((name, description) -> ms.sendRaw(sender,
                 ms.message("command.help.line", Map.of("cmd", name, "desc", description))));
@@ -352,7 +356,7 @@ final class GemCommandRouter implements TabExecutor {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         return plugin.debugCommand().handle(sender, Arrays.copyOfRange(args, 1, args.length), plugin.messageService());

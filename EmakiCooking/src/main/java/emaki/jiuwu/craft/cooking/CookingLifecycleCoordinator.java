@@ -10,7 +10,6 @@ import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
 import emaki.jiuwu.craft.corelib.api.async.AsyncFailures;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigPrecheckReport;
@@ -86,10 +85,10 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
 
     @Override
     public CookingRuntimeComponents initialize(EmakiCookingPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         EmakiScheduling taskScheduler = EmakiCoreLibApi.scheduling();
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
+        ThreadOwnership threadOwnership = EmakiCoreLibApi.requireService(ThreadOwnership.class);
         registerAssemblyLayer(coreLibPlugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -98,7 +97,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         languageLoader.load();
         ChoppingBoardRecipeLoader choppingBoardRecipeLoader = new ChoppingBoardRecipeLoader(plugin);
         WokRecipeLoader wokRecipeLoader = new WokRecipeLoader(plugin);
@@ -115,21 +114,11 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyStartupMigration.run("烹饪配方", messageService, plugin.getLogger(),
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
+                        () -> LegacyStartupMigration.run("烹饪配方", messageService, plugin.getLogger(),
                                 () -> LegacyStartupMigration.fromItemSourceReport(
                                         new LegacyItemSourceRewriter(plugin.getDataFolder().toPath(),
-                                                CookingLegacyTargets.specs(), plugin.getLogger()).run(true)));
-                    }
-                }
+                                                CookingLegacyTargets.specs(), plugin.getLogger()).run(true))))
         );
         CraftEngineBlockBridge craftEngineBlockBridge = coreLibPlugin.craftEngineBlockBridge();
         CustomBlockBridge itemsAdderBlockBridge = coreLibPlugin.itemsAdderBlockBridge();
@@ -357,7 +346,7 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiCookingPlugin plugin, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         AppConfig previousAppConfig = plugin.appConfigLoader().current();
         String previousLanguage = plugin.languageLoader().currentLanguage();
         return runReloadPipelineAsync(scheduler, plugin.executionDispatcher(), plugin, new ReloadPipelineConfig<Void, Void>(
@@ -376,9 +365,9 @@ final class CookingLifecycleCoordinator extends AbstractLifecycleCoordinator<Ema
                     plugin.juicerRecipeLoader().load();
                     plugin.fermentationBarrelRecipeLoader().load();
                     plugin.nutritionTypeLoader().load();
-                    ConfigPrecheckReport report = EmakiCoreLibPlugin.lookup()
+                    ConfigPrecheckReport report = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class)
                             .configPrecheckService()
-                            .checkModule(EmakiCoreLibPlugin.lookup().configModel(), "cooking");
+                            .checkModule(EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).configModel(), "cooking");
                     if (!report.success()) {
                         throw new IllegalStateException("Cooking 配置预检失败: "
                                 + String.join("; ", report.formatLines(plugin.messageService(), "cooking")));

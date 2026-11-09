@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.skills.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -18,7 +19,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiSkillsApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiSkillsApi() {
     }
@@ -30,7 +31,7 @@ public final class EmakiSkillsApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiSkillsApi.bridge = bridge;
+        EmakiSkillsApi.bridge.activate(bridge);
     }
 
     /**
@@ -41,14 +42,12 @@ public final class EmakiSkillsApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiSkillsApi.bridge == bridge) {
-            EmakiSkillsApi.bridge = null;
-        }
+        EmakiSkillsApi.bridge.deactivate(bridge);
     }
 
     /** {@return availability and identity metadata, reporting not-installed while no bridge is present} */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -59,7 +58,7 @@ public final class EmakiSkillsApi {
      * whose per-player queries fail with {@code UNAVAILABLE} and whose collections are empty}
      */
     public static @NotNull SkillCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableSkills.CATALOG : resolved.catalog();
     }
 
@@ -68,7 +67,7 @@ public final class EmakiSkillsApi {
      * implementation whose methods all fail with {@code UNAVAILABLE} without touching game state}
      */
     public static @NotNull SkillOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableSkills.OPERATIONS : resolved.operations();
     }
 
@@ -77,7 +76,7 @@ public final class EmakiSkillsApi {
      * implementation that hands back inactive no-op registration handles}
      */
     public static @NotNull SkillExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableSkills.EXTENSIONS : resolved.extensions();
     }
 

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.item.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -15,7 +16,7 @@ import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
  */
 public final class EmakiItemApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiItemApi() {
     }
@@ -27,7 +28,7 @@ public final class EmakiItemApi {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiItemApi.bridge = bridge;
+        EmakiItemApi.bridge.activate(bridge);
     }
 
     /**
@@ -38,50 +39,48 @@ public final class EmakiItemApi {
      */
     @org.jetbrains.annotations.ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiItemApi.bridge == bridge) {
-            EmakiItemApi.bridge = null;
-        }
+        EmakiItemApi.bridge.deactivate(bridge);
     }
 
     /** {@return runtime availability and identity metadata} */
     public static @NotNull ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? ApiStatus.notInstalled() : resolved.status();
     }
 
     /** {@return the read-only catalog layer or its unavailable implementation} */
     public static @NotNull ItemCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.CATALOG : resolved.catalog();
     }
 
     /** {@return the item operation layer or its unavailable implementation} */
     public static @NotNull ItemOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.OPERATIONS : resolved.operations();
     }
 
     /** {@return the repair layer or its unavailable implementation} */
     public static @NotNull ItemRepair repair() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.REPAIR : resolved.repair();
     }
 
     /** {@return the administrative migration layer or its unavailable implementation} */
     public static @NotNull ItemMigration migration() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.MIGRATION : resolved.migration();
     }
 
     /** {@return the extension registration layer or its unavailable implementation} */
     public static @NotNull ItemExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.EXTENSIONS : resolved.extensions();
     }
 
     /** {@return the typed persistent item-state layer or its unavailable implementation} */
     public static @NotNull ItemState state() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableItem.STATE : resolved.state();
     }
 

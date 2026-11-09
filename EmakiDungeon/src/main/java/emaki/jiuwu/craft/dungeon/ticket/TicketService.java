@@ -24,6 +24,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class TicketService {
 
@@ -50,6 +51,7 @@ public final class TicketService {
                 return new TicketTemplate(new ItemStack(material, 1), true);
             }
         } catch (IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TicketService.java#1", ignored);
         }
         try {
             var result = EmakiCoreLibApi.createConfiguredItem(
@@ -58,6 +60,7 @@ public final class TicketService {
                 return new TicketTemplate(result.itemStack().clone(), false);
             }
         } catch (Throwable ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TicketService.java#2", ignored);
         }
         return null;
     }
@@ -185,6 +188,7 @@ public final class TicketService {
         try {
             Files.deleteIfExists(file.toPath());
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TicketService.java#3", ignored);
         }
         return items;
     }
@@ -200,6 +204,7 @@ public final class TicketService {
             try {
                 items.add(Base64.getDecoder().decode(String.valueOf(raw)));
             } catch (IllegalArgumentException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TicketService.java#4", ignored);
             }
         }
         return items;
@@ -220,6 +225,7 @@ public final class TicketService {
                 Files.move(temp.toPath(), file.toPath(), StandardCopyOption.REPLACE_EXISTING);
             }
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TicketService.java#5", ignored);
         }
     }
 

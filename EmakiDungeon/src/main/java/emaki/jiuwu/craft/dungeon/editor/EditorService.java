@@ -42,6 +42,7 @@ import emaki.jiuwu.craft.dungeon.world.WorldCloner;
 import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.nio.file.Path;
 import org.bukkit.block.Block;
 import org.bukkit.block.data.BlockData;
@@ -904,6 +905,7 @@ public final class EditorService implements Listener {
         try {
             player.closeInventory();
         } catch (Throwable ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#1", ignored);
         }
         messages.send(player, messageKey, Map.of());
         dispatcher.runEntity(plugin, player, () -> {
@@ -911,6 +913,7 @@ public final class EditorService implements Listener {
                 try {
                     player.teleport(origin);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#2", ignored);
                 }
             }
             unload.run();
@@ -934,12 +937,14 @@ public final class EditorService implements Listener {
                 try {
                     player.teleport(origin);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#3", ignored);
                 }
             }
             if (player != null) {
                 try {
                     player.closeInventory();
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#4", ignored);
                 }
             }
             World world = Bukkit.getWorld(session.editWorldName());
@@ -947,12 +952,14 @@ public final class EditorService implements Listener {
                 try {
                     Bukkit.unloadWorld(world, false);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#5", ignored);
                 }
             }
             // 停服同样要删掉编辑世界目录，否则 emd_edit_* 会在 world 目录里残留。
             try {
                 disposer.deleteResidual(session.editWorldName());
             } catch (Throwable ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "EditorService.java#6", ignored);
             }
             states.release(session.dungeonId());
         }

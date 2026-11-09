@@ -12,6 +12,7 @@ import org.bukkit.event.entity.EntityDamageEvent;
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class CombatSupport {
 
@@ -58,6 +59,7 @@ public final class CombatSupport {
                 event.setDamage(modifier, 0D);
             }
         } catch (UnsupportedOperationException | IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiAttribute", "CombatSupport.java#1", ignored);
         }
     }
 

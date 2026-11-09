@@ -123,12 +123,21 @@ public final class SpawnSidecarParser {
         if (hasRegion) {
             return parseRegion(raw, index, type, sizeX, sizeY, sizeZ, count, chance, facing, level, issues);
         }
-        return parsePosition(raw, index, type, sizeX, sizeY, sizeZ, count, chance, facing, level, issues);
+        return parsePosition(new SpawnPositionSpec(raw, index, type, sizeX, sizeY, sizeZ, count, chance, facing, level, issues));
     }
 
-    private static SpawnEntry parsePosition(Map<?, ?> raw, int index, String type,
-            int sizeX, int sizeY, int sizeZ, int count, double chance, String facing, Integer level,
-            List<Issue> issues) {
+    private static SpawnEntry parsePosition(SpawnPositionSpec spec) {
+        Map<?, ?> raw = spec.raw();
+        int index = spec.index();
+        String type = spec.type();
+        int sizeX = spec.sizeX();
+        int sizeY = spec.sizeY();
+        int sizeZ = spec.sizeZ();
+        int count = spec.count();
+        double chance = spec.chance();
+        String facing = spec.facing();
+        Integer level = spec.level();
+        List<Issue> issues = spec.issues();
         int[] pos = intTriple(raw.get("pos"));
         if (pos == null) {
             issues.add(issue(index, "error.spawn.pos_invalid", Map.of("type", type)));

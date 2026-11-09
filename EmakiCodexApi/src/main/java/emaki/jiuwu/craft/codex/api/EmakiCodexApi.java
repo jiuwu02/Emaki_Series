@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.codex.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiCodexApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiCodexApi() { }
 
@@ -28,7 +29,7 @@ public final class EmakiCodexApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiCodexApi.bridge = bridge;
+        EmakiCodexApi.bridge.activate(bridge);
     }
 
     /**
@@ -39,9 +40,7 @@ public final class EmakiCodexApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiCodexApi.bridge == bridge) {
-            EmakiCodexApi.bridge = null;
-        }
+        EmakiCodexApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -49,7 +48,7 @@ public final class EmakiCodexApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -60,7 +59,7 @@ public final class EmakiCodexApi {
      * and empty optionals when EmakiCodex is unavailable}
      */
     public static @NotNull CodexCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCodex.CATALOG : resolved.catalog();
     }
 
@@ -69,7 +68,7 @@ public final class EmakiCodexApi {
      * when EmakiCodex is unavailable}
      */
     public static @NotNull CodexOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCodex.OPERATIONS : resolved.operations();
     }
 
@@ -78,7 +77,7 @@ public final class EmakiCodexApi {
      * when EmakiCodex is unavailable}
      */
     public static @NotNull CodexExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableCodex.EXTENSIONS : resolved.extensions();
     }
 

@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.corelib.api.action.pipeline.compile.TriggerContract;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
 import emaki.jiuwu.craft.dungeon.orchestration.InstanceRegistry;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ActionBridge {
 
@@ -83,6 +84,7 @@ public final class ActionBridge {
             try {
                 registration.close();
             } catch (RuntimeException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "ActionBridge.java#1", ignored);
             }
         }
         registrations.clear();
@@ -90,6 +92,7 @@ public final class ActionBridge {
             try {
                 triggerRegistration.close();
             } catch (RuntimeException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "ActionBridge.java#2", ignored);
             }
         }
         triggerRegistrations.clear();

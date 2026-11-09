@@ -9,8 +9,8 @@ import org.bukkit.event.inventory.InventoryAction;
 
 import emaki.jiuwu.craft.item.model.RefreshFullReason;
 import emaki.jiuwu.craft.item.model.RefreshScope;
+import emaki.jiuwu.craft.corelib.item.ClickRefreshDecision;
 
-@SuppressWarnings("removal")
 public final class InventoryRefreshClassifier {
 
     public static final int OFF_HAND_SLOT = 40;
@@ -24,26 +24,24 @@ public final class InventoryRefreshClassifier {
         InventoryAction action = context.action();
         ClickType click = context.click();
 
-        if (action == InventoryAction.NOTHING
-                || action == InventoryAction.CLONE_STACK
-                || action == InventoryAction.DROP_ALL_CURSOR
-                || action == InventoryAction.DROP_ONE_CURSOR) {
+        ClickRefreshDecision decision = ClickRefreshDecision.of(action, click);
+        if (decision == ClickRefreshDecision.SKIP) {
             return Result.skip();
         }
-        if (action == InventoryAction.COLLECT_TO_CURSOR) {
+        if (decision == ClickRefreshDecision.FULL_COLLECT_TO_CURSOR) {
             return Result.full(RefreshFullReason.COLLECT_TO_CURSOR);
         }
-        if (click == ClickType.DOUBLE_CLICK) {
+        if (decision == ClickRefreshDecision.FULL_DOUBLE_CLICK) {
             return Result.full(RefreshFullReason.DOUBLE_CLICK);
         }
-        if (action == InventoryAction.UNKNOWN) {
+        if (decision == ClickRefreshDecision.FULL_UNKNOWN_ACTION) {
             return Result.full(RefreshFullReason.UNKNOWN_ACTION);
         }
-        if (click == ClickType.UNKNOWN) {
+        if (decision == ClickRefreshDecision.FULL_UNKNOWN_CLICK) {
             return Result.full(RefreshFullReason.UNKNOWN_CLICK);
         }
-        if (action == InventoryAction.HOTBAR_MOVE_AND_READD) {
-            return Result.full(RefreshFullReason.HOTBAR_MOVE_AND_READD);
+        if (decision == ClickRefreshDecision.FULL_UNSUPPORTED_CONTEXT) {
+            return Result.full(RefreshFullReason.UNSUPPORTED_CONTEXT);
         }
 
         boolean hotbarClick = click == ClickType.NUMBER_KEY || click == ClickType.SWAP_OFFHAND;

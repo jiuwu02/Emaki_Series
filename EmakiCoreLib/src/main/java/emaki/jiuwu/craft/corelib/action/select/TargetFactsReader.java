@@ -71,7 +71,7 @@ public final class TargetFactsReader {
         }
         LivingEntity living = entity instanceof LivingEntity livingEntity ? livingEntity : null;
         Player player = entity instanceof Player playerEntity ? playerEntity : null;
-        return new TargetFacts(
+        return new TargetFacts(new TargetFacts.Spec(
                 true,
                 living != null,
                 player != null,
@@ -96,7 +96,7 @@ public final class TargetFactsReader {
                 entity.getLocation().getChunk().getX(),
                 entity.getLocation().getChunk().getZ(),
                 weather(entity),
-                slotEmpties(player));
+                slotEmpties(player)));
     }
 
     private static String weather(Entity entity) {

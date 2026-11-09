@@ -39,8 +39,7 @@ public final class BootstrapService {
         this.staticFiles = staticFiles == null ? List.of() : List.copyOf(staticFiles);
         this.defaultDataFiles = defaultDataFiles == null ? List.of() : List.copyOf(defaultDataFiles);
         this.extraDirectories = extraDirectories == null ? List.of() : List.copyOf(extraDirectories);
-        this.hooks = hooks == null ? new BootstrapHooks() {
-        } : hooks;
+        this.hooks = hooks == null ? BootstrapAssemblies.hooks() : hooks;
     }
 
     public boolean bootstrap() {

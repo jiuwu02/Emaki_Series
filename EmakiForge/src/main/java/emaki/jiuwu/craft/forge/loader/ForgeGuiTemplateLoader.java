@@ -13,8 +13,6 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateParser;
 import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
-import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
-import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.loader.RecipeLoader.CandidateDocument;
@@ -65,59 +63,43 @@ public final class ForgeGuiTemplateLoader extends GuiTemplateLoader {
     }
 
     public void loadCandidateDocuments(List<CandidateDocument> documents) {
-        synchronized (stateLock) {
-            items.clear();
-            loadedEntries.clear();
-            loaded = false;
-            if (documents != null) {
-                for (CandidateDocument document : documents) {
-                    if (document == null || document.file() == null) {
-                        continue;
-                    }
-                    if (document.failure() != null) {
-                        onLoadFailure(document.file(), document.failure());
-                        recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
-                                "GUI 模板文件加载失败: " + failureSummary(document.failure()));
-                        continue;
-                    }
-                    try {
-                        YamlSection configuration = document.content() == null
-                                ? new MapYamlSection()
-                                : YamlFiles.load(document.content());
-                        GuiTemplate value = parse(document.file(), configuration);
-                        if (value == null) {
-                            recordCandidateIssue(document.file(), "GUI_INVALID_CONFIG",
-                                    "无法解析 GUI 模板配置");
-                            continue;
-                        }
-                        String id = idOf(value);
-                        if (Texts.isBlank(id)) {
-                            onBlankId(document.file());
-                            recordCandidateIssue(document.file(), "GUI_BLANK_ID",
-                                    "GUI 模板 ID 不能为空");
-                            continue;
-                        }
-                        if (items.containsKey(id)) {
-                            onDuplicateId(document.file(), id);
-                            recordCandidateIssue(document.file(), "GUI_DUPLICATE_ID",
-                                    "重复的 GUI 模板 ID '" + id + "'");
-                            continue;
-                        }
-                        items.put(id, value);
-                        loadedEntries.put(id, new LoadedYamlEntry<>(
-                                id,
-                                document.file(),
-                                configuration,
-                                value));
-                    } catch (Exception exception) {
-                        onLoadFailure(document.file(), exception);
-                        recordCandidateIssue(document.file(), "GUI_LOAD_FAILED",
-                                "GUI 模板文件加载失败: " + failureSummary(exception));
-                    }
-                }
+        loadFromCandidateDocuments(documents, new CandidateDocumentAdapter<CandidateDocument>() {
+            @Override
+            public File fileOf(CandidateDocument document) {
+                return document.file();
             }
-            loaded = true;
-        }
+
+            @Override
+            public String contentOf(CandidateDocument document) {
+                return document.content();
+            }
+
+            @Override
+            public Exception failureOf(CandidateDocument document) {
+                return document.failure();
+            }
+
+            @Override
+            public void onInvalidConfig(File file) {
+                recordCandidateIssue(file, "GUI_INVALID_CONFIG", "无法解析 GUI 模板配置");
+            }
+
+            @Override
+            public void onBlankIdIssue(File file) {
+                recordCandidateIssue(file, "GUI_BLANK_ID", "GUI 模板 ID 不能为空");
+            }
+
+            @Override
+            public void onDuplicateIdIssue(File file, String id) {
+                recordCandidateIssue(file, "GUI_DUPLICATE_ID", "重复的 GUI 模板 ID '" + id + "'");
+            }
+
+            @Override
+            public void onLoadFailureIssue(File file, Exception exception) {
+                recordCandidateIssue(file, "GUI_LOAD_FAILED",
+                        "GUI 模板文件加载失败: " + failureSummary(exception));
+            }
+        });
     }
 
     public void completeDeferredRuntimeValidation() {

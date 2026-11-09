@@ -28,6 +28,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.forge.EmakiForgePlugin;
 import emaki.jiuwu.craft.forge.model.PlayerData;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class PlayerDataStore {
 
@@ -579,7 +580,7 @@ public final class PlayerDataStore {
                 sessionEpochs.computeIfAbsent(uuid, ignored -> new AtomicLong())
                         .accumulateAndGet(recovered.epoch(), Math::max);
             } catch (IllegalArgumentException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiForge", "PlayerDataStore.java#1", ignored);
             } catch (RuntimeException exception) {
                 logLoadFailure(uuid, exception);
             }

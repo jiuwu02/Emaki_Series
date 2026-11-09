@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.forge.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -26,7 +27,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiForgeApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiForgeApi() {
     }
@@ -38,7 +39,7 @@ public final class EmakiForgeApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiForgeApi.bridge = bridge;
+        EmakiForgeApi.bridge.activate(bridge);
     }
 
     /**
@@ -48,9 +49,7 @@ public final class EmakiForgeApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiForgeApi.bridge == bridge) {
-            EmakiForgeApi.bridge = null;
-        }
+        EmakiForgeApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -59,7 +58,7 @@ public final class EmakiForgeApi {
      * installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -70,7 +69,7 @@ public final class EmakiForgeApi {
      * implementation when EmakiForge is unavailable}
      */
     public static @NotNull ForgeCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableForge.CATALOG : resolved.catalog();
     }
 
@@ -79,7 +78,7 @@ public final class EmakiForgeApi {
      * that reports unavailability when EmakiForge is absent}
      */
     public static @NotNull ForgeOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableForge.OPERATIONS : resolved.operations();
     }
 
@@ -87,7 +86,7 @@ public final class EmakiForgeApi {
      * {@return Forge extension points; never {@code null}}
      */
     public static @NotNull ForgeExtensions extensions() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableForge.EXTENSIONS : resolved.extensions();
     }
 

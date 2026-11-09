@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
 import emaki.jiuwu.craft.skills.EmakiSkillsPlugin;
 import emaki.jiuwu.craft.skills.loader.LocalResourceDefinitionLoader;
 import emaki.jiuwu.craft.skills.loader.SkillDefinitionLoader;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class SkillsEditorModule implements EditorModule {
 
@@ -234,6 +235,7 @@ public final class SkillsEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiSkills", "SkillsEditorModule.java#1", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');

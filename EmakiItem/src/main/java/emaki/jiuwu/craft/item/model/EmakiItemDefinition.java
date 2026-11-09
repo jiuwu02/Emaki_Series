@@ -60,7 +60,7 @@ public final class EmakiItemDefinition {
             ItemUpdatePolicy updatePolicy,
             RepairConfig repair,
             boolean hasRandomElements) {
-        this(
+        this(new Spec(
                 id,
                 itemDefinition,
                 projectMaterial(itemDefinition),
@@ -83,10 +83,11 @@ public final class EmakiItemDefinition {
                 updatePolicy,
                 repair,
                 hasRandomElements
-        );
+        ));
     }
 
-    private EmakiItemDefinition(String id,
+    private record Spec(
+            String id,
             ConfiguredItemDefinition itemDefinition,
             Material material,
             Object displayName,
@@ -108,30 +109,33 @@ public final class EmakiItemDefinition {
             ItemUpdatePolicy updatePolicy,
             RepairConfig repair,
             boolean hasRandomElements) {
-        this.id = id == null ? "" : id;
-        this.itemDefinition = itemDefinition == null
+    }
+
+    private EmakiItemDefinition(Spec spec) {
+        this.id = spec.id() == null ? "" : spec.id();
+        this.itemDefinition = spec.itemDefinition() == null
                 ? new ConfiguredItemDefinition(null, 1, Map.of())
-                : itemDefinition;
-        this.material = material;
-        this.displayName = ConfigNodes.toPlainData(displayName);
-        this.itemName = itemName == null ? "" : itemName;
-        this.lore = ConfigNodes.toPlainData(lore);
-        this.nameActions = ConfigNodes.toPlainData(nameActions);
-        this.loreActions = ConfigNodes.toPlainData(loreActions);
-        this.variables = variables == null ? Map.of() : Map.copyOf(variables);
-        this.components = components == null ? ItemComponentsConfig.empty() : components;
-        this.attributes = attributes == null ? Map.of() : Map.copyOf(attributes);
-        this.skills = skills == null ? List.of() : List.copyOf(skills);
-        this.skillTriggers = skillTriggers == null ? Map.of() : Map.copyOf(skillTriggers);
-        this.equipSlot = EquipmentSlotMatcher.normalizeRequired(equipSlot);
-        this.accessorySlots = accessorySlots == null ? List.of() : List.copyOf(accessorySlots);
-        this.customEffects = customEffects == null ? List.of() : List.copyOf(customEffects);
-        this.setMembership = setMembership == null ? ItemSetMembership.empty() : setMembership;
-        this.conditions = conditions == null ? ItemConditions.empty() : conditions;
-        this.actions = actions == null ? Map.of() : copyActions(actions);
-        this.updatePolicy = updatePolicy == null ? ItemUpdatePolicy.defaults() : updatePolicy;
-        this.repair = repair == null ? RepairConfig.disabled() : repair;
-        this.hasRandomElements = hasRandomElements;
+                : spec.itemDefinition();
+        this.material = spec.material();
+        this.displayName = ConfigNodes.toPlainData(spec.displayName());
+        this.itemName = spec.itemName() == null ? "" : spec.itemName();
+        this.lore = ConfigNodes.toPlainData(spec.lore());
+        this.nameActions = ConfigNodes.toPlainData(spec.nameActions());
+        this.loreActions = ConfigNodes.toPlainData(spec.loreActions());
+        this.variables = spec.variables() == null ? Map.of() : Map.copyOf(spec.variables());
+        this.components = spec.components() == null ? ItemComponentsConfig.empty() : spec.components();
+        this.attributes = spec.attributes() == null ? Map.of() : Map.copyOf(spec.attributes());
+        this.skills = spec.skills() == null ? List.of() : List.copyOf(spec.skills());
+        this.skillTriggers = spec.skillTriggers() == null ? Map.of() : Map.copyOf(spec.skillTriggers());
+        this.equipSlot = EquipmentSlotMatcher.normalizeRequired(spec.equipSlot());
+        this.accessorySlots = spec.accessorySlots() == null ? List.of() : List.copyOf(spec.accessorySlots());
+        this.customEffects = spec.customEffects() == null ? List.of() : List.copyOf(spec.customEffects());
+        this.setMembership = spec.setMembership() == null ? ItemSetMembership.empty() : spec.setMembership();
+        this.conditions = spec.conditions() == null ? ItemConditions.empty() : spec.conditions();
+        this.actions = spec.actions() == null ? Map.of() : copyActions(spec.actions());
+        this.updatePolicy = spec.updatePolicy() == null ? ItemUpdatePolicy.defaults() : spec.updatePolicy();
+        this.repair = spec.repair() == null ? RepairConfig.disabled() : spec.repair();
+        this.hasRandomElements = spec.hasRandomElements();
     }
 
     public String id() {

@@ -36,6 +36,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class OvenRuntimeService extends TickingStationRuntimeService<OvenState> implements Listener {
 
@@ -156,7 +157,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.OVEN_FUEL)
                     && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return addFuel(player, coordinates, hand, fuelRule);
@@ -171,7 +172,7 @@ public final class OvenRuntimeService extends TickingStationRuntimeService<OvenS
         }
         if (!player.hasPermission(CookingPermissions.OVEN_USE)
                 && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             interaction.cancel();
             return true;
         }

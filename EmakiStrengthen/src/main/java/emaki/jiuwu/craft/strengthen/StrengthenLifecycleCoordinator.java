@@ -14,7 +14,6 @@ import org.bukkit.Bukkit;
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.assembly.EmakiNamespaceDefinition;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
@@ -58,6 +57,7 @@ import emaki.jiuwu.craft.strengthen.service.StrengthenRefreshService;
 import emaki.jiuwu.craft.strengthen.service.StrengthenRecipeResolver;
 import emaki.jiuwu.craft.strengthen.service.StrengthenSnapshotBuilder;
 import emaki.jiuwu.craft.strengthen.service.StrengthenTransferService;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiStrengthenPlugin, StrengthenRuntimeComponents> {
 
@@ -76,9 +76,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
 
     @Override
     public StrengthenRuntimeComponents initialize(EmakiStrengthenPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
+        ThreadOwnership threadOwnership = EmakiCoreLibApi.requireService(ThreadOwnership.class);
         registerAssemblyLayer(coreLibPlugin);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
                 plugin,
@@ -87,7 +87,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         StrengthenRecipeLoader recipeLoader = new StrengthenRecipeLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
@@ -98,18 +98,9 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
                 STATIC_FILES,
                 DEFAULT_DATA_FILES,
                 List.of(),
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        return plugin.appConfig().releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyStartupMigration.run("强化配方", messageService, plugin.getLogger(),
-                                () -> LegacyStartupMigration.of(migrateStrengthenRecipes(plugin)));
-                    }
-                }
+                bootstrapHooks(() -> plugin.appConfig().releaseDefaultData(), null,
+                        () -> LegacyStartupMigration.run("强化配方", messageService, plugin.getLogger(),
+                                () -> LegacyStartupMigration.of(migrateStrengthenRecipes(plugin))))
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         StrengthenAttributeBridge pdcAttributeGateway = new StrengthenAttributeBridgeHolder(plugin.getLogger());
@@ -260,7 +251,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiStrengthenPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);
@@ -338,7 +329,7 @@ final class StrengthenLifecycleCoordinator extends AbstractLifecycleCoordinator<
         if (plugin.pityStateStore() != null) {
             plugin.pityStateStore().saveToDisk();
         }
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         coreLibPlugin.namespaceRegistry().unregister("strengthen");
         if (plugin.pdcAttributeGateway() != null) {
             plugin.pdcAttributeGateway().shutdown();

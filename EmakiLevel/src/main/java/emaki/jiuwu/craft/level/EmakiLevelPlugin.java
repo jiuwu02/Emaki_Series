@@ -19,8 +19,8 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.command.PaperCommandAdapter;
 import emaki.jiuwu.craft.corelib.metrics.BStatsRegistration;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapAssemblies;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
@@ -172,7 +172,7 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                 STARTUP_ASCII_START_COLOR,
                 STARTUP_ASCII_END_COLOR
         );
-        coreLib = EmakiCoreLibPlugin.lookup();
+        coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         scheduling = EmakiCoreLibApi.scheduling();
         initializeServices();
         registerConfigPrecheckContributor();
@@ -335,32 +335,24 @@ public class EmakiLevelPlugin extends JavaPlugin implements DebugLoggerProvider 
                 List.of(),
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig runtimeConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
-                        return runtimeConfig.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if (relativePath == null || !relativePath.startsWith("lang/") || runtime == null || bundled == null) {
-                            return;
-                        }
-                        YamlSection consoleDefaults = bundled.getSection("console");
-                        if (consoleDefaults != null) {
-                            runtime.set("console", consoleDefaults.asMap());
-                        }
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyStartupMigration.run("等级配置", messages, getLogger(),
+                BootstrapAssemblies.hooks(
+                        () -> {
+                            AppConfig runtimeConfig = AppConfig.parse(YamlFiles.load(getDataFolder().toPath().resolve("config.yml").toFile()));
+                            return runtimeConfig.releaseDefaultData();
+                        },
+                        (relativePath, runtime, bundled) -> {
+                            if (relativePath == null || !relativePath.startsWith("lang/") || runtime == null || bundled == null) {
+                                return;
+                            }
+                            YamlSection consoleDefaults = bundled.getSection("console");
+                            if (consoleDefaults != null) {
+                                runtime.set("console", consoleDefaults.asMap());
+                            }
+                        },
+                        () -> LegacyStartupMigration.run("等级配置", messages, getLogger(),
                                 () -> LegacyStartupMigration.fromItemSourceReport(
                                         new LegacyItemSourceRewriter(getDataFolder().toPath(),
-                                                LevelLegacyTargets.specs(), getLogger()).run(true)));
-                    }
-                }
+                                                LevelLegacyTargets.specs(), getLogger()).run(true))))
         );
         typeLoader = new LevelTypeLoader(this);
         requirementLoader = new RequirementLoader(this);

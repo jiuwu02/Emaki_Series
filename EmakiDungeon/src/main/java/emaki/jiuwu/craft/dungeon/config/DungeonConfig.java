@@ -120,31 +120,90 @@ public record DungeonConfig(
         if (section == null || section.isEmpty()) {
             throw new IllegalArgumentException("config empty");
         }
-        Integer poolMaxWorlds = section.getInt("pool.max-worlds");
-        if (poolMaxWorlds == null || poolMaxWorlds < 1) {
-            throw new IllegalArgumentException("pool.max-worlds must be >= 1");
+        int poolMaxWorlds = requirePositive(section.getInt("pool.max-worlds"),
+                "pool.max-worlds must be >= 1");
+        int prepareWindow = requirePositive(section.getInt("enter.prepare-window-seconds"),
+                "enter.prepare-window-seconds must be >= 1");
+        int waitTimeout = requirePositive(section.getInt("enter.wait-timeout-seconds"),
+                "enter.wait-timeout-seconds must be >= 1");
+        String waitChannel = parseWaitChannel(section);
+        YamlSection difficultyEntries = section.getSection("difficulty");
+        List<String> difficulties = parseDifficulties(difficultyEntries);
+        List<String> modeValidated = parseModeAllowed(section);
+        List<Integer> timerMessages = parseTimerMessages(section);
+        ScoreWeights scoreWeights = parseScoreWeights(section);
+        Map<String, Integer> dropLevels = parseDropLevels(section);
+        Map<String, DifficultyTuning> tunings = parseDifficultyTunings(difficultyEntries);
+        List<String> settlementCommands = parseSettlementCommands(section);
+        Limits limits = parseLimits(section);
+        Hud hud = parseHud(section);
+        return new DungeonConfig(
+                section.getString("display-name", "dungeon"),
+                poolMaxWorlds,
+                Math.max(1, section.getInt("pool.warm-reserves", 2)),
+                prepareWindow,
+                waitChannel,
+                waitTimeout,
+                List.copyOf(difficulties),
+                List.copyOf(modeValidated),
+                List.copyOf(section.getStringList("commands.allow")),
+                Map.copyOf(parseRespawnCounts(difficultyEntries)),
+                nonNegativeOr(section.getInt("enter.timeout-seconds", 1800), 30, 1800),
+                List.copyOf(timerMessages),
+                scoreWeights,
+                Map.copyOf(dropLevels),
+                defaultMode(section),
+                Map.copyOf(tunings),
+                limits.daily(),
+                limits.dailyWindow(),
+                limits.weeklyCount(),
+                limits.weeklyDays(),
+                limits.monthly(),
+                limits.monthlyWeeks(),
+                limits.cooldown(),
+                limits.leaderboardMaxEntries(),
+                List.copyOf(settlementCommands),
+                parseType(section),
+                hud.enabled(),
+                hud.channel(),
+                ConditionBlock.fromConfig(section.getSection("unlock"), true, false),
+                ticketRule(section)
+        );
+    }
+
+    private static int requirePositive(Integer value, String message) {
+        if (value == null || value < 1) {
+            throw new IllegalArgumentException(message);
         }
-        int poolWarmReserves = Math.max(1, section.getInt("pool.warm-reserves", 2));
-        Integer prepareWindow = section.getInt("enter.prepare-window-seconds");
-        if (prepareWindow == null || prepareWindow < 1) {
-            throw new IllegalArgumentException("enter.prepare-window-seconds must be >= 1");
-        }
-        Integer waitTimeout = section.getInt("enter.wait-timeout-seconds");
-        if (waitTimeout == null || waitTimeout < 1) {
-            throw new IllegalArgumentException("enter.wait-timeout-seconds must be >= 1");
-        }
+        return value;
+    }
+
+    private static String parseWaitChannel(YamlSection section) {
         String waitChannel = section.getString("enter.wait-channel", "bossbar");
-        if (!"bossbar".equals(waitChannel) && !"scoreboard".equals(waitChannel) && !"chat".equals(waitChannel)) {
+        if (!"bossbar".equals(waitChannel) && !"scoreboard".equals(waitChannel)
+                && !"chat".equals(waitChannel)) {
             throw new IllegalArgumentException("enter.wait-channel must be bossbar/scoreboard/chat");
         }
-        YamlSection difficultySection = section.getSection("difficulty");
+        return waitChannel;
+    }
+
+    private static int nonNegativeOr(Integer value, int minimum, int fallback) {
+        return value == null || value < minimum ? fallback : value;
+    }
+
+    private static int nonNegative(Integer value) {
+        return value == null || value < 0 ? 0 : value;
+    }
+
+    private static List<String> parseDifficulties(YamlSection difficultySection) {
         List<String> difficulties = new ArrayList<>();
         if (difficultySection != null) {
             difficulties.addAll(difficultySection.getKeys(false));
         }
-        if (difficulties.isEmpty()) {
-            difficulties = DEFAULT_DIFFICULTIES;
-        }
+        return difficulties.isEmpty() ? DEFAULT_DIFFICULTIES : difficulties;
+    }
+
+    private static List<String> parseModeAllowed(YamlSection section) {
         List<String> modeAllowed = section.getStringList("drop.mode-allowed");
         if (modeAllowed.isEmpty()) {
             modeAllowed = DEFAULT_MODES;
@@ -155,12 +214,11 @@ public record DungeonConfig(
                 modeValidated.add(mode);
             }
         }
-        if (modeValidated.isEmpty()) {
-            modeValidated = DEFAULT_MODES;
-        }
-        List<String> commandsAllow = section.getStringList("commands.allow");
+        return modeValidated.isEmpty() ? DEFAULT_MODES : modeValidated;
+    }
+
+    private static Map<String, Integer> parseRespawnCounts(YamlSection difficultyEntries) {
         Map<String, Integer> respawnCounts = new LinkedHashMap<>();
-        YamlSection difficultyEntries = section.getSection("difficulty");
         if (difficultyEntries != null) {
             for (String difficulty : difficultyEntries.getKeys(false)) {
                 YamlSection difficultyEntry = difficultyEntries.getSection(difficulty);
@@ -173,20 +231,22 @@ public record DungeonConfig(
             respawnCounts.put("normal", 3);
             respawnCounts.put("hard", 1);
         }
-        Integer timeoutSeconds = section.getInt("enter.timeout-seconds", 1800);
+        return respawnCounts;
+    }
+
+    private static List<Integer> parseTimerMessages(YamlSection section) {
         List<Integer> timerMessages = new ArrayList<>();
         for (Object raw : section.getList("timer.messages", List.of(300, 60, 10))) {
             if (raw instanceof Number number) {
                 timerMessages.add(number.intValue());
             }
         }
-        if (timerMessages.isEmpty()) {
-            timerMessages = new ArrayList<>(List.of(300, 60, 10));
-        }
-        double scoreTimeWeight = Math.max(0.0D,
-                section.getDouble("score.time-weight", 0.0D));
-        double scoreTargetTime = Math.max(0.0D,
-                section.getDouble("score.target-time-seconds", 0.0D));
+        return timerMessages.isEmpty() ? new ArrayList<>(List.of(300, 60, 10)) : timerMessages;
+    }
+
+    private static ScoreWeights parseScoreWeights(YamlSection section) {
+        double scoreTimeWeight = Math.max(0.0D, section.getDouble("score.time-weight", 0.0D));
+        double scoreTargetTime = Math.max(0.0D, section.getDouble("score.target-time-seconds", 0.0D));
         ScoreWeights scoreWeights = new ScoreWeights(
                 section.getDouble("score.damage-weight", 1.0D),
                 section.getDouble("score.kill-weight", 1.0D),
@@ -197,9 +257,10 @@ public record DungeonConfig(
                 scoreTargetTime,
                 section.getDouble("score.max", 100.0D)
         );
-        if (scoreWeights.max() <= 0.0D) {
-            scoreWeights = ScoreWeights.defaults();
-        }
+        return scoreWeights.max() <= 0.0D ? ScoreWeights.defaults() : scoreWeights;
+    }
+
+    private static Map<String, Integer> parseDropLevels(YamlSection section) {
         Map<String, Integer> dropLevels = new LinkedHashMap<>();
         YamlSection levelsSection = section.getSection("drop.levels");
         if (levelsSection != null) {
@@ -208,13 +269,15 @@ public record DungeonConfig(
                 dropLevels.put(level, weight == null || weight < 1 ? 1 : weight);
             }
         }
-        if (dropLevels.isEmpty()) {
-            dropLevels = defaultDropLevels();
-        }
+        return dropLevels.isEmpty() ? defaultDropLevels() : dropLevels;
+    }
+
+    private static String defaultMode(YamlSection section) {
         String dropDefaultMode = section.getString("drop.default-mode", "free");
-        if (!DEFAULT_MODES.contains(dropDefaultMode)) {
-            dropDefaultMode = "free";
-        }
+        return DEFAULT_MODES.contains(dropDefaultMode) ? dropDefaultMode : "free";
+    }
+
+    private static Map<String, DifficultyTuning> parseDifficultyTunings(YamlSection difficultyEntries) {
         Map<String, DifficultyTuning> tunings = new LinkedHashMap<>();
         if (difficultyEntries != null) {
             for (String difficulty : difficultyEntries.getKeys(false)) {
@@ -230,70 +293,62 @@ public record DungeonConfig(
             tunings.put("normal", new DifficultyTuning(1.0D, 1.0D));
             tunings.put("hard", new DifficultyTuning(1.5D, 1.2D));
         }
-        Integer limitsDaily = section.getInt("limits.daily.count", 0);
-        DailyWindow limitsDailyWindow = parseWindow(
-                section.getString("limits.daily.time-window", ""));
-        Integer limitsWeeklyCount = section.getInt("limits.weekly.count", 0);
-        List<Integer> limitsWeeklyDays = parseIntList(
-                section.getList("limits.weekly.days"), 1, 7, "limits.weekly.days");
-        Integer limitsMonthly = section.getInt("limits.monthly.count", 0);
-        List<Integer> limitsMonthlyWeeks = parseIntList(
-                section.getList("limits.monthly.weeks"), 1, 6, "limits.monthly.weeks");
-        Integer cooldownSeconds = section.getInt("limits.cooldown-seconds", 0);
-        Integer leaderboardMaxEntries = section.getInt("leaderboard.max-entries", 100);
+        return tunings;
+    }
+
+    private static List<String> parseSettlementCommands(YamlSection section) {
         List<String> settlementCommands = new ArrayList<>();
         for (Object raw : section.getList("settlement.commands")) {
             if (raw != null && !String.valueOf(raw).isBlank()) {
                 settlementCommands.add(String.valueOf(raw));
             }
         }
-        String type = section.getString("type", "normal");
-        if (type == null || type.isBlank()) {
-            type = "normal";
-        }
-        type = type.trim();
+        return settlementCommands;
+    }
+
+    private record Limits(int daily, DailyWindow dailyWindow, int weeklyCount,
+            List<Integer> weeklyDays, int monthly, List<Integer> monthlyWeeks,
+            int cooldown, int leaderboardMaxEntries) {
+    }
+
+    private static Limits parseLimits(YamlSection section) {
+        return new Limits(
+                nonNegative(section.getInt("limits.daily.count", 0)),
+                parseWindow(section.getString("limits.daily.time-window", "")),
+                nonNegative(section.getInt("limits.weekly.count", 0)),
+                parseIntList(section.getList("limits.weekly.days"), 1, 7, "limits.weekly.days"),
+                nonNegative(section.getInt("limits.monthly.count", 0)),
+                parseIntList(section.getList("limits.monthly.weeks"), 1, 6, "limits.monthly.weeks"),
+                nonNegative(section.getInt("limits.cooldown-seconds", 0)),
+                nonNegativeOr(section.getInt("leaderboard.max-entries", 100), 1, 100)
+        );
+    }
+
+    private record Hud(boolean enabled, String channel) {
+    }
+
+    private static Hud parseHud(YamlSection section) {
         boolean hudEnabled = section.getBoolean("hud.enabled", false);
         String hudChannel = section.getString("hud.channel", "bossbar");
         if (!"bossbar".equals(hudChannel) && !"scoreboard".equals(hudChannel)) {
             hudChannel = "bossbar";
         }
-        ConditionBlock unlock = ConditionBlock.fromConfig(section.getSection("unlock"), true, false);
-        boolean ticketEnabled = section.getBoolean("ticket.enabled", false);
-        String ticketItem = section.getString("ticket.item", "");
-        int ticketAmount = Math.max(1, section.getInt("ticket.amount", 1));
-        return new DungeonConfig(
-                section.getString("display-name", "dungeon"),
-                poolMaxWorlds,
-                poolWarmReserves,
-                prepareWindow,
-                waitChannel,
-                waitTimeout,
-                List.copyOf(difficulties),
-                List.copyOf(modeValidated),
-                List.copyOf(commandsAllow),
-                Map.copyOf(respawnCounts),
-                timeoutSeconds == null || timeoutSeconds < 30 ? 1800 : timeoutSeconds,
-                List.copyOf(timerMessages),
-                scoreWeights,
-                Map.copyOf(dropLevels),
-                dropDefaultMode,
-                Map.copyOf(tunings),
-                limitsDaily == null || limitsDaily < 0 ? 0 : limitsDaily,
-                limitsDailyWindow,
-                limitsWeeklyCount == null || limitsWeeklyCount < 0 ? 0 : limitsWeeklyCount,
-                limitsWeeklyDays,
-                limitsMonthly == null || limitsMonthly < 0 ? 0 : limitsMonthly,
-                limitsMonthlyWeeks,
-                cooldownSeconds == null || cooldownSeconds < 0 ? 0 : cooldownSeconds,
-                leaderboardMaxEntries == null || leaderboardMaxEntries < 1
-                        ? 100 : leaderboardMaxEntries,
-                List.copyOf(settlementCommands),
-                type,
-                hudEnabled,
-                hudChannel,
-                unlock,
-                new TicketRule(ticketEnabled, ticketItem, ticketAmount)
-        );
+        return new Hud(hudEnabled, hudChannel);
+    }
+
+    private static String parseType(YamlSection section) {
+        String type = section.getString("type", "normal");
+        if (type == null || type.isBlank()) {
+            type = "normal";
+        }
+        return type.trim();
+    }
+
+    private static TicketRule ticketRule(YamlSection section) {
+        return new TicketRule(
+                section.getBoolean("ticket.enabled", false),
+                section.getString("ticket.item", ""),
+                Math.max(1, section.getInt("ticket.amount", 1)));
     }
 
     private static DailyWindow parseWindow(String raw) {

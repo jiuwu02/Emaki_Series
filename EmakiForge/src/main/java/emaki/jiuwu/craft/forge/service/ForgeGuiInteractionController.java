@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.forge.model.ForgeResult;
 import emaki.jiuwu.craft.forge.model.GuiItems;
 import emaki.jiuwu.craft.forge.model.Recipe;
 import emaki.jiuwu.craft.forge.model.RecipeMatch;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 final class ForgeGuiInteractionController {
 
@@ -686,7 +687,7 @@ final class ForgeGuiInteractionController {
             try {
                 recordSettlementFailure(state, failureReason + ": " + Texts.toStringSafe(throwable.getMessage()));
             } catch (Throwable ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeGuiInteractionController.java#1", ignored);
             }
         } finally {
             if (state != null) {
@@ -765,7 +766,7 @@ final class ForgeGuiInteractionController {
         try {
             GuiDebugSupport.log(plugin, player, langKey, replacements == null ? Map.of() : replacements);
         } catch (Throwable ignored) {
-
+            FailureRecorder.recordIgnoredFailure("EmakiForge", "ForgeGuiInteractionController.java#2", ignored);
         }
     }
 

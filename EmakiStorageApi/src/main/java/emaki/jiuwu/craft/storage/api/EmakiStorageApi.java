@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.storage.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -14,7 +15,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiStorageApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiStorageApi() {
     }
@@ -26,7 +27,7 @@ public final class EmakiStorageApi {
      */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiStorageApi.bridge = bridge;
+        EmakiStorageApi.bridge.activate(bridge);
     }
 
     /**
@@ -36,9 +37,7 @@ public final class EmakiStorageApi {
      */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiStorageApi.bridge == bridge) {
-            EmakiStorageApi.bridge = null;
-        }
+        EmakiStorageApi.bridge.deactivate(bridge);
     }
 
     /**
@@ -46,7 +45,7 @@ public final class EmakiStorageApi {
      * {@link emaki.jiuwu.craft.corelib.api.contract.ApiStatus#notInstalled()} when no bridge is installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -61,7 +60,7 @@ public final class EmakiStorageApi {
      * implementation reporting unavailability while no bridge is installed}
      */
     public static @NotNull StorageOperations operations() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStorage.OPERATIONS;
         }

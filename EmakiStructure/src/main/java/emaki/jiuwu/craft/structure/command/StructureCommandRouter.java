@@ -20,6 +20,8 @@ import emaki.jiuwu.craft.structure.selection.SelectionSession;
 import emaki.jiuwu.craft.structure.template.StructureExporter;
 import emaki.jiuwu.craft.structure.template.StructureTemplate;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
@@ -105,13 +107,9 @@ public final class StructureCommandRouter {
 
     public List<String> suggest(CommandSender sender, String[] args) {
         if (args.length <= 1) {
-            String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            List<String> result = new ArrayList<>();
-            for (String sub : TOP_LEVEL) {
-                if (sub.startsWith(prefix) && hasPermission(sender, sub)) {
-                    result.add(sub);
-                }
-            }
+            List<String> result = CommandTabHelper.filterByPrefix(TOP_LEVEL,
+                    args.length == 0 ? "" : args[0]);
+            result.removeIf(sub -> !hasPermission(sender, sub));
             return result;
         }
         return switch (args[0].toLowerCase(Locale.ROOT)) {
@@ -308,7 +306,7 @@ public final class StructureCommandRouter {
                         "blocks", template.blockCount(),
                         "entities", template.entities().size(),
                         "skipped_palette", template.skippedPaletteEntries()));
-                warnLegacySkip(template);
+                reportSkippedPalette(template);
                 startGeneration(sender, template, anchor, facing);
             });
         });
@@ -389,8 +387,8 @@ public final class StructureCommandRouter {
 
     private void reportSelectionReady(CommandSender sender, SelectionSession session, SelectionBox box) {
         plugin.messageService().send(sender, "command.select_ready", Map.of(
-                "pos1", describe(box, true),
-                "pos2", describe(box, false),
+                "pos1", StructureCommandRouterSupport.describe(box, true),
+                "pos2", StructureCommandRouterSupport.describe(box, false),
                 "size_x", box.sizeX(),
                 "size_y", box.sizeY(),
                 "size_z", box.sizeZ()));
@@ -425,7 +423,7 @@ public final class StructureCommandRouter {
                     "allowed", String.join(", ", AdjustDirection.configValues())));
             return;
         }
-        long amount = parsePositiveInt(args[4]);
+        long amount = StructureCommandRouterSupport.parsePositiveInt(args[4]);
         if (amount <= 0 || amount > Integer.MAX_VALUE) {
             plugin.messageService().send(sender, "error.select.invalid_amount",
                     Map.of("value", args[4]));
@@ -461,8 +459,8 @@ public final class StructureCommandRouter {
             return;
         }
         plugin.messageService().send(sender, "command.select_adjusted", Map.of(
-                "before", describe(current.get(), true) + " -> " + describe(current.get(), false),
-                "after", describe(next, true) + " -> " + describe(next, false)));
+                "before", StructureCommandRouterSupport.describe(current.get(), true) + " -> " + StructureCommandRouterSupport.describe(current.get(), false),
+                "after", StructureCommandRouterSupport.describe(next, true) + " -> " + StructureCommandRouterSupport.describe(next, false)));
         session.replaceBox(next);
         selectionManager.refresh(player, session);
     }
@@ -501,7 +499,7 @@ public final class StructureCommandRouter {
         }
         World world = player.getWorld();
         String exportName = name;
-        Map<Long, SelectionBox> regions = splitRegions(box);
+        Map<Long, SelectionBox> regions = StructureCommandRouterSupport.splitRegions(box);
         List<StructureExporter.CapturedBlock> blocks = Collections.synchronizedList(new ArrayList<>());
         List<StructureExporter.CapturedEntity> entities = Collections.synchronizedList(new ArrayList<>());
         List<StructureExporter.CapturedFurniture> furniture = Collections.synchronizedList(new ArrayList<>());
@@ -624,25 +622,6 @@ public final class StructureCommandRouter {
                 () -> plugin.messageService().send(sender, key, placeholders));
     }
 
-    private static Map<Long, SelectionBox> splitRegions(SelectionBox box) {
-        Map<Long, SelectionBox> regions = new LinkedHashMap<>();
-        int startRegionX = box.minX() >> 4;
-        int endRegionX = box.maxX() >> 4;
-        int startRegionZ = box.minZ() >> 4;
-        int endRegionZ = box.maxZ() >> 4;
-        for (int regionX = startRegionX; regionX <= endRegionX; regionX++) {
-            for (int regionZ = startRegionZ; regionZ <= endRegionZ; regionZ++) {
-                int subMinX = Math.max(box.minX(), regionX << 4);
-                int subMaxX = Math.min(box.maxX(), (regionX << 4) + 15);
-                int subMinZ = Math.max(box.minZ(), regionZ << 4);
-                int subMaxZ = Math.min(box.maxZ(), (regionZ << 4) + 15);
-                long key = ((long) regionX << 32) | (regionZ & 0xFFFFFFFFL);
-                regions.put(key, new SelectionBox(subMinX, box.minY(), subMinZ,
-                        subMaxX, box.maxY(), subMaxZ));
-            }
-        }
-        return regions;
-    }
 
     private void handleReload(CommandSender sender) {
         if (!requirePermission(sender, PERMISSION_RELOAD)) {
@@ -789,7 +768,7 @@ public final class StructureCommandRouter {
         }
         World world = player.getWorld();
         String definitionId = id;
-        Map<Long, SelectionBox> regions = splitRegions(box);
+        Map<Long, SelectionBox> regions = StructureCommandRouterSupport.splitRegions(box);
         List<int[]> positions = Collections.synchronizedList(new ArrayList<>());
         List<String> specs = Collections.synchronizedList(new ArrayList<>());
         List<String> failures = Collections.synchronizedList(new ArrayList<>());
@@ -895,16 +874,13 @@ public final class StructureCommandRouter {
             int[] pos = positions.get(index);
             builder.append("    - pos: [").append(pos[0]).append(", ").append(pos[1])
                     .append(", ").append(pos[2]).append("]\n");
-            builder.append("      block: \"").append(escapeYaml(specs.get(index))).append("\"\n");
+            builder.append("      block: \"").append(StructureCommandRouterSupport.escapeYaml(specs.get(index))).append("\"\n");
         }
         builder.append("trigger:\n");
         builder.append("  targets: any\n");
         return builder.toString();
     }
 
-    private static String escapeYaml(String value) {
-        return value.replace("\\", "\\\\").replace("\"", "\\\"");
-    }
 
     private void handleMultiblockPlace(CommandSender sender, String[] args) {
         if (!requirePermission(sender, PERMISSION_EDIT)) {
@@ -974,9 +950,9 @@ public final class StructureCommandRouter {
                                 + ": " + exception.getMessage());
                     } finally {
                         if (remaining.decrementAndGet() == 0) {
-                            finishMultiblockPlace(sender, player, id, world,
+                            finishMultiblockPlace(new MultiblockPlaceSpec(sender, player, id, world,
                                     anchorX, anchorY, anchorZ, facing,
-                                    placed.get(), failed.get(), failures);
+                                    placed.get(), failed.get(), failures));
                         }
                     }
                 });
@@ -987,9 +963,9 @@ public final class StructureCommandRouter {
                 failures.add(member.spec() + ": " + exception.getMessage());
             }
             if (!dispatched && remaining.decrementAndGet() == 0) {
-                finishMultiblockPlace(sender, player, id, world,
+                finishMultiblockPlace(new MultiblockPlaceSpec(sender, player, id, world,
                         anchorX, anchorY, anchorZ, facing,
-                        placed.get(), failed.get(), failures);
+                        placed.get(), failed.get(), failures));
             }
         }
     }
@@ -1018,9 +994,18 @@ public final class StructureCommandRouter {
         return true;
     }
 
-    private void finishMultiblockPlace(CommandSender sender, Player player, String id, World world,
-            int anchorX, int anchorY, int anchorZ, StructureFacing facing,
-            int placed, int failed, List<String> failures) {
+    private void finishMultiblockPlace(MultiblockPlaceSpec spec) {
+        CommandSender sender = spec.sender();
+        Player player = spec.player();
+        String id = spec.id();
+        World world = spec.world();
+        int anchorX = spec.anchorX();
+        int anchorY = spec.anchorY();
+        int anchorZ = spec.anchorZ();
+        StructureFacing facing = spec.facing();
+        int placed = spec.placed();
+        int failed = spec.failed();
+        List<String> failures = spec.failures();
         debug("multiblock_place_done", Map.of(
                 "id", id,
                 "placed", placed,
@@ -1089,7 +1074,7 @@ public final class StructureCommandRouter {
 
     private void handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return;
         }
         if (plugin.debugCommand() == null) {
@@ -1111,7 +1096,7 @@ public final class StructureCommandRouter {
         }
         return true;
     }
-    private void warnLegacySkip(StructureTemplate template) {
+    private void reportSkippedPalette(StructureTemplate template) {
         if (template.skippedPaletteEntries() > 0 && legacySkipWarnings.add(template.id())) {
             plugin.messageService().warning("console.template_legacy_skipped", Map.of(
                     "template", template.id(),
@@ -1146,7 +1131,7 @@ public final class StructureCommandRouter {
         if (sender.hasPermission(permission)) {
             return true;
         }
-        plugin.messageService().send(sender, "general.no_permission");
+        plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
         return false;
     }
 
@@ -1171,17 +1156,5 @@ public final class StructureCommandRouter {
         };
     }
 
-    private static String describe(SelectionBox box, boolean first) {
-        return first
-                ? box.minX() + ", " + box.minY() + ", " + box.minZ()
-                : box.maxX() + ", " + box.maxY() + ", " + box.maxZ();
-    }
 
-    private static long parsePositiveInt(String raw) {
-        try {
-            return Long.parseLong(raw.trim());
-        } catch (NumberFormatException exception) {
-            return -1L;
-        }
-    }
 }

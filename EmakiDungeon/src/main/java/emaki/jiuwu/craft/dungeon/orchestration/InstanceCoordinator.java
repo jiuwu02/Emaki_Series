@@ -27,6 +27,7 @@ import emaki.jiuwu.craft.dungeon.world.WorldDisposer;
 import emaki.jiuwu.craft.dungeon.world.WorldFolders;
 import emaki.jiuwu.craft.dungeon.world.WorldNames;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
@@ -124,6 +125,7 @@ public final class InstanceCoordinator {
                 try {
                     Bukkit.unloadWorld(world, false);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#1", ignored);
                 }
             }
             if (disposer.deleteResidual(worldName)) {
@@ -240,6 +242,7 @@ public final class InstanceCoordinator {
             try {
                 evacuator.accept(instance);
             } catch (RuntimeException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#2", ignored);
             }
         }
         if (scriptManager != null) {
@@ -297,6 +300,7 @@ public final class InstanceCoordinator {
             try {
                 dropCleanup.accept(instanceId);
             } catch (RuntimeException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#3", ignored);
             }
         }
         store.remove(instanceId);
@@ -326,6 +330,7 @@ public final class InstanceCoordinator {
                 try {
                     Bukkit.unloadWorld(world, false);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#4", ignored);
                 }
             }
         }
@@ -338,6 +343,7 @@ public final class InstanceCoordinator {
                 try {
                     Bukkit.unloadWorld(world, false);
                 } catch (Throwable ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiDungeon", "InstanceCoordinator.java#5", ignored);
                 }
             }
             if (disposer.deleteResidual(worldName)) {

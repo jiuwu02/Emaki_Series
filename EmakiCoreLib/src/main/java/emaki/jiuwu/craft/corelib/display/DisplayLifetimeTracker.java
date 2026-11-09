@@ -9,6 +9,7 @@ import org.bukkit.plugin.Plugin;
 
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class DisplayLifetimeTracker {
 
@@ -56,8 +57,8 @@ public final class DisplayLifetimeTracker {
         }
         try {
             handle.cancel();
-        } catch (RuntimeException _) {
-
+        } catch (RuntimeException swallowed) {
+            FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "DisplayLifetimeTracker.java#1", swallowed);
         }
     }
 

@@ -27,7 +27,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 
-@SuppressWarnings("removal")
 public abstract class AbstractPlayerItemRefreshListener implements Listener {
 
     private static final int OFF_HAND_SLOT = 40;
@@ -153,19 +152,11 @@ public abstract class AbstractPlayerItemRefreshListener implements Listener {
                 playerSlot = -1;
             }
         }
-        if (action == InventoryAction.NOTHING
-                || action == InventoryAction.CLONE_STACK
-                || action == InventoryAction.DROP_ALL_CURSOR
-                || action == InventoryAction.DROP_ONE_CURSOR) {
+        ClickRefreshDecision decision = ClickRefreshDecision.of(action, click);
+        if (decision == ClickRefreshDecision.SKIP) {
             return SlotScope.noSlots();
         }
-        if (action == InventoryAction.COLLECT_TO_CURSOR) {
-            return SlotScope.fullScope();
-        }
-        if (click == ClickType.DOUBLE_CLICK
-                || action == InventoryAction.UNKNOWN
-                || click == ClickType.UNKNOWN
-                || action == InventoryAction.HOTBAR_MOVE_AND_READD) {
+        if (decision != ClickRefreshDecision.LOCAL) {
             return SlotScope.fullScope();
         }
         boolean hotbarClick = click == ClickType.NUMBER_KEY || click == ClickType.SWAP_OFFHAND;

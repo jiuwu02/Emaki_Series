@@ -460,6 +460,6 @@ public final class EditorBrowser implements GuiSessionHandler {
     }
 
     private static ConfiguredItemService configuredItems() {
-        return EmakiCoreLibPlugin.lookup().configuredItemService();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).configuredItemService();
     }
 }

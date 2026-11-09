@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import emaki.jiuwu.craft.corelib.api.item.ConfiguredItemDefinition;
 import emaki.jiuwu.craft.corelib.debug.DebugLogger;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class TempItemManager {
 
@@ -101,6 +102,7 @@ public final class TempItemManager {
                 return new ItemStack(material, amount);
             }
         } catch (IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TempItemManager.java#1", ignored);
         }
         try {
             var result = EmakiCoreLibApi.createConfiguredItem(
@@ -109,6 +111,7 @@ public final class TempItemManager {
                 return result.itemStack();
             }
         } catch (Throwable ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "TempItemManager.java#2", ignored);
         }
         return null;
     }

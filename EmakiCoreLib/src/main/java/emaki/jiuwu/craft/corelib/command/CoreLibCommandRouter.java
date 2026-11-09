@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.corelib.debug.ActionDebugRunner;
 import emaki.jiuwu.craft.corelib.pdc.PdcConvertScanner;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.command.CommandTabHelper;
 import java.util.Arrays;
 
 public final class CoreLibCommandRouter implements TabExecutor {
@@ -82,12 +83,7 @@ public final class CoreLibCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            String prefix = args[0].toLowerCase(Locale.ROOT);
-            for (String subCommand : SUB_COMMANDS) {
-                if (subCommand.startsWith(prefix)) {
-                    result.add(subCommand);
-                }
-            }
+            result.addAll(CommandTabHelper.completeSubcommands(SUB_COMMANDS, args[0]));
         } else if (args.length == 2 && "check".equalsIgnoreCase(args[0])) {
             complete(args[1], CHECK_MODES, result);
             complete(args[1], plugin.configPrecheckService().registry().moduleIds(), result);

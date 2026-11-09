@@ -27,6 +27,7 @@ import org.graalvm.polyglot.SourceSection;
 import org.graalvm.polyglot.Value;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ScriptHost implements AutoCloseable {
 
@@ -147,7 +148,7 @@ public final class ScriptHost implements AutoCloseable {
             try {
                 target.interrupt(Duration.ofMillis(INTERRUPT_GRACE_MS));
             } catch (TimeoutException | IllegalStateException ignored) {
-
+                FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "ScriptHost.java#1", ignored);
             }
         }, settings.timeoutMs(), TimeUnit.MILLISECONDS);
     }

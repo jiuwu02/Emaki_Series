@@ -48,6 +48,7 @@ import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class FermentationBarrelRuntimeService implements Listener {
 
@@ -235,7 +236,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         if (settingsService.matchesInteraction(StationType.FERMENTATION_BARREL, CookingSettingsService.INTERACTION_OPEN, interaction)) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_USE) && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             return guiController.openGui(player, coordinates);
@@ -296,7 +297,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         if (state.completed()) {
             interaction.cancel();
             if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_COLLECT) && !player.hasPermission(CookingPermissions.ADMIN)) {
-                messageService.send(player, "general.no_permission");
+                messageService.send(player, CommandKeys.NO_PERMISSION);
                 return true;
             }
             FermentationStage stage = currentFermentationStage(state, System.currentTimeMillis());
@@ -309,7 +310,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
             FermentationStage stage = currentFermentationStage(state, now);
             if (stage == FermentationStage.EARLY) {
                 if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_COLLECT) && !player.hasPermission(CookingPermissions.ADMIN)) {
-                    messageService.send(player, "general.no_permission");
+                    messageService.send(player, CommandKeys.NO_PERMISSION);
                     return true;
                 }
                 submitCompletion(player, block, coordinates, state, stage, settingsService.fermentationBarrelDropResult(), true);
@@ -325,7 +326,7 @@ public final class FermentationBarrelRuntimeService implements Listener {
         }
         interaction.cancel();
         if (!player.hasPermission(CookingPermissions.FERMENTATION_BARREL_START) && !player.hasPermission(CookingPermissions.ADMIN)) {
-            messageService.send(player, "general.no_permission");
+            messageService.send(player, CommandKeys.NO_PERMISSION);
             return true;
         }
         long now = System.currentTimeMillis();

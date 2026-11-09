@@ -13,6 +13,7 @@ import emaki.jiuwu.craft.dungeon.flow.FlowRuntime;
 import emaki.jiuwu.craft.dungeon.instance.DungeonInstance;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommand;
 import emaki.jiuwu.craft.dungeon.instance.WorldCommandTarget;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -262,6 +263,7 @@ public final class ScriptHostObject {
             player.addPotionEffect(new org.bukkit.potion.PotionEffect(
                     type, duration, amplifier, true, true));
         } catch (IllegalArgumentException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "ScriptHostObject.java#1", ignored);
         }
     }
 

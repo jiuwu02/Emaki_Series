@@ -22,6 +22,7 @@ import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.item.api.ItemStateSnapshot;
 import emaki.jiuwu.craft.item.model.EmakiItemDefinition;
 import emaki.jiuwu.craft.skills.api.pdc.EquipmentSkillPdcCodec;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 final class ItemCommandRouter implements TabExecutor {
 
@@ -85,12 +86,9 @@ final class ItemCommandRouter implements TabExecutor {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String sub : List.of("help", "list", "browse", "edit", "give", "inspect", "components", "component", "repair", "state", "update", "alias", "migrate", "reload", "debug")) {
-                if (sub.startsWith(args[0].toLowerCase(Locale.ROOT))) {
-                    result.add(sub);
-                }
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "list", "browse", "edit", "give", "inspect", "components", "component",
+                            "repair", "state", "update", "alias", "migrate", "reload", "debug"), args[0]);
         }
         if (args.length >= 2 && "debug".equalsIgnoreCase(args[0])) {
             List<String> debugSuggestions = new ArrayList<>(
@@ -186,7 +184,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleList(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_USE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         int page = Math.max(1, Numbers.tryParseInt(args.length >= 2 ? args[1] : null, 1));
@@ -213,7 +211,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleBrowse(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_BROWSE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!(sender instanceof Player player)) {
@@ -229,7 +227,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleEdit(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_EDIT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!(sender instanceof Player player)) {
@@ -253,7 +251,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleGive(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_GIVE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length < 3) {
@@ -297,7 +295,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleInspect(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_INSPECT)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
@@ -329,7 +327,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleRepair(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_USE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (!(sender instanceof Player player)) {
@@ -347,7 +345,7 @@ final class ItemCommandRouter implements TabExecutor {
         boolean mutating = "repair".equals(operation) || "recompute".equals(operation);
         String permission = mutating ? PERMISSION_ADMIN : PERMISSION_INSPECT;
         if (!sender.hasPermission(permission)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         Player target = args.length >= 3 ? Bukkit.getPlayerExact(args[2]) : (sender instanceof Player self ? self : null);
@@ -429,7 +427,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleUpdate(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_UPDATE)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         Player target = args.length >= 2 ? Bukkit.getPlayerExact(args[1]) : (sender instanceof Player self ? self : null);
@@ -486,7 +484,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleReload(CommandSender sender) {
         if (!sender.hasPermission(PERMISSION_RELOAD)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         plugin.bootstrapService().bootstrap();
@@ -525,7 +523,7 @@ final class ItemCommandRouter implements TabExecutor {
 
     private boolean handleDebug(CommandSender sender, String[] args) {
         if (!sender.hasPermission(PERMISSION_DEBUG) && !sender.hasPermission(PERMISSION_ADMIN)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         if (args.length >= 2 && "stats".equalsIgnoreCase(args[1])) {

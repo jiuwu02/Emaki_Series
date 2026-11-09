@@ -5,6 +5,7 @@ import org.jetbrains.annotations.NotNull;
 
 import emaki.jiuwu.craft.cooking.EmakiCookingPlugin;
 import emaki.jiuwu.craft.corelib.legacy.LegacyConvertCommand;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 
 public final class CookingLegacyEntry {
 
@@ -16,7 +17,7 @@ public final class CookingLegacyEntry {
             String[] args,
             @NotNull String adminPermission) {
         if (!sender.hasPermission(adminPermission)) {
-            plugin.messageService().send(sender, "general.no_permission");
+            plugin.messageService().send(sender, CommandKeys.NO_PERMISSION);
             return true;
         }
         LegacyConvertCommand.run(plugin.messageService(),

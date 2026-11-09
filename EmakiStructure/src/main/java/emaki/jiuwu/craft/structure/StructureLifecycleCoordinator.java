@@ -2,9 +2,7 @@ package emaki.jiuwu.craft.structure;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
-import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.runtime.AbstractLifecycleCoordinator;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
@@ -36,6 +34,8 @@ import emaki.jiuwu.craft.structure.template.ImportLimits;
 import emaki.jiuwu.craft.structure.template.StructureTemplateCache;
 import emaki.jiuwu.craft.structure.template.TemplateLoadReport;
 import emaki.jiuwu.craft.structure.template.TemplateRepository;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 import java.util.List;
 import java.util.Map;
@@ -53,24 +53,19 @@ final class StructureLifecycleCoordinator
 
     @Override
     public StructureRuntimeComponents initialize(EmakiStructurePlugin plugin) {
-        var coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        var coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         var appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();
         reportConfigIssues(plugin, appConfigLoader.current());
         appConfigLoader.overrideCurrent(appConfigLoader.current().withoutIssues());
-        var languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        var languageLoader = moduleLanguageLoader(plugin);
         var messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         var bootstrapService = new BootstrapService(plugin, messageService,
                 VERSIONED_FILES, STATIC_FILES, DEFAULT_DATA_FILES, EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        return true;
-                    }
-                });
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+                bootstrapHooks(null, null, null));
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
 
         AppConfig current = appConfigLoader.current();
         var importLimits = toImportLimits(current);

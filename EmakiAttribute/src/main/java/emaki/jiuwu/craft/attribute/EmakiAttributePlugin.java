@@ -56,6 +56,7 @@ import emaki.jiuwu.craft.corelib.gui.GuiTemplateLoader;
 import emaki.jiuwu.craft.corelib.plugin.AbstractEmakiPlugin;
 import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMessagesProvider {
 
@@ -326,7 +327,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
         damageIndicatorService = new DamageIndicatorService(
                 () -> {
                     EmakiCoreLibPlugin coreLib =
-                            EmakiCoreLibPlugin.lookup();
+                            EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
                     return coreLib == null ? null : coreLib.textDisplayService();
                 },
                 () -> configModel() == null ? null : configModel().damageIndicator(),
@@ -493,7 +494,7 @@ public class EmakiAttributePlugin extends AbstractEmakiPlugin implements LogMess
     }
 
     public EmakiCoreLibPlugin coreLib() {
-        return EmakiCoreLibPlugin.lookup();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
     }
 
     private void registerCoreLibActions() {

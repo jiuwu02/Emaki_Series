@@ -1,5 +1,5 @@
 // EmakiItemApi（原 EmakiItemApi/pom.xml）。
-version = '3.0.3'
+version = '3.0.4'
 
 dependencies {
     provided project(':EmakiCoreLibApi')

@@ -18,6 +18,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.service.MessageService;
 import emaki.jiuwu.craft.dungeon.config.AppConfig;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 import java.util.function.Supplier;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -52,6 +53,7 @@ public final class RewardBoxService {
         try {
             YamlFiles.copyResourceIfMissing(plugin, "gui/rewardbox.yml", file);
         } catch (IOException ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiDungeon", "RewardBoxService.java#1", ignored);
         }
         if (!file.isFile()) {
             return;

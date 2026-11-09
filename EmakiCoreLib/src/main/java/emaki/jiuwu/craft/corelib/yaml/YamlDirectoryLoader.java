@@ -19,6 +19,7 @@ import emaki.jiuwu.craft.corelib.text.LogMessagesProvider;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public abstract class YamlDirectoryLoader<T> {
 
@@ -96,6 +97,59 @@ public abstract class YamlDirectoryLoader<T> {
             loadedEntries = candidateEntries;
             loaded = true;
             return items.size();
+        }
+    }
+
+    protected final <D> void loadFromCandidateDocuments(
+            List<D> documents, CandidateDocumentAdapter<D> adapter) {
+        synchronized (stateLock) {
+            items.clear();
+            loadedEntries.clear();
+            loaded = false;
+            adapter.beforeLoad(documents);
+            if (documents != null) {
+                for (D document : documents) {
+                    File file = document == null ? null : adapter.fileOf(document);
+                    if (file == null) {
+                        continue;
+                    }
+                    adapter.onCandidate(file);
+                    Exception failure = adapter.failureOf(document);
+                    if (failure != null) {
+                        onLoadFailure(file, failure);
+                        adapter.onLoadFailureIssue(file, failure);
+                        continue;
+                    }
+                    try {
+                        String content = adapter.contentOf(document);
+                        YamlSection configuration = content == null
+                                ? new MapYamlSection()
+                                : YamlFiles.load(content);
+                        T value = parse(file, configuration);
+                        if (value == null) {
+                            adapter.onInvalidConfig(file);
+                            continue;
+                        }
+                        String id = idOf(value);
+                        if (Texts.isBlank(id)) {
+                            onBlankId(file);
+                            adapter.onBlankIdIssue(file);
+                            continue;
+                        }
+                        if (items.containsKey(id)) {
+                            onDuplicateId(file, id);
+                            adapter.onDuplicateIdIssue(file, id);
+                            continue;
+                        }
+                        items.put(id, value);
+                        loadedEntries.put(id, new LoadedYamlEntry<>(id, file, configuration, value));
+                    } catch (Exception exception) {
+                        onLoadFailure(file, exception);
+                        adapter.onLoadFailureIssue(file, exception);
+                    }
+                }
+            }
+            loaded = true;
         }
     }
 
@@ -236,7 +290,7 @@ public abstract class YamlDirectoryLoader<T> {
     }
 
     private AsyncTaskScheduler resolveScheduler() {
-        return EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
     }
 
     private YamlSection cloneConfiguration(YamlSection configuration) {
@@ -275,5 +329,31 @@ public abstract class YamlDirectoryLoader<T> {
 
     public record LoadedYamlEntry<T>(String id, File file, YamlSection configuration, T value) {
 
+    }
+
+    public interface CandidateDocumentAdapter<D> {
+        File fileOf(D document);
+
+        String contentOf(D document);
+
+        Exception failureOf(D document);
+
+        default void beforeLoad(List<D> documents) {
+        }
+
+        default void onCandidate(File file) {
+        }
+
+        default void onInvalidConfig(File file) {
+        }
+
+        default void onBlankIdIssue(File file) {
+        }
+
+        default void onDuplicateIdIssue(File file, String id) {
+        }
+
+        default void onLoadFailureIssue(File file, Exception exception) {
+        }
     }
 }

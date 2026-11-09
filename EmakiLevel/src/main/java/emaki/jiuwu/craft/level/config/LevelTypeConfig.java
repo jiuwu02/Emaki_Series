@@ -9,6 +9,7 @@ import emaki.jiuwu.craft.corelib.api.itemsource.ItemSourceRef;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.item.ItemSourceUtil;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public record LevelTypeConfig(String id,
         boolean enabled,
@@ -210,7 +211,8 @@ public record LevelTypeConfig(String id,
         for (String key : section.getKeys(false)) {
             try {
                 values.put(Integer.parseInt(key), Double.parseDouble(Texts.toStringSafe(section.get(key))));
-            } catch (NumberFormatException _) {
+            } catch (NumberFormatException swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiLevel", "LevelTypeConfig.java#1", swallowed);
             }
         }
         return values;

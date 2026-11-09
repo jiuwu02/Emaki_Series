@@ -12,22 +12,20 @@ final class ForgeAuditIdentityResolver {
     private ForgeAuditIdentityResolver() {
     }
 
-    static Map<String, Object> canonicalEntry(String materialId, String countKey, String auditId,
-            String legacyMaterial, String category, int amount, int amountConsumed, int slot, int sequence,
-            String matchedSource, String matcherDigest) {
+    static Map<String, Object> canonicalEntry(AuditEntrySpec entry) {
         Map<String, Object> map = new LinkedHashMap<>();
-        map.put("material_id", Texts.toStringSafe(materialId));
-        map.put("count_key", Texts.toStringSafe(countKey));
-        map.put("audit_id", Texts.toStringSafe(auditId));
-        map.put("material_item", Texts.toStringSafe(legacyMaterial));
-        map.put("category", Texts.toStringSafe(category));
-        map.put("amount", Math.max(0, amount));
-        map.put("amount_consumed", Math.max(0, amountConsumed));
-        map.put("slot", slot);
-        map.put("sequence", Math.max(0, sequence));
-        map.put("matched_source", Texts.toStringSafe(matchedSource));
-        map.put("matcher", Texts.toStringSafe(matcherDigest));
-        map.put("allocation", Map.of("slot", slot, "amount", Math.max(0, amount)));
+        map.put("material_id", Texts.toStringSafe(entry.materialId()));
+        map.put("count_key", Texts.toStringSafe(entry.countKey()));
+        map.put("audit_id", Texts.toStringSafe(entry.auditId()));
+        map.put("material_item", Texts.toStringSafe(entry.materialItem()));
+        map.put("category", Texts.toStringSafe(entry.category()));
+        map.put("amount", Math.max(0, entry.amount()));
+        map.put("amount_consumed", Math.max(0, entry.amountConsumed()));
+        map.put("slot", entry.slot());
+        map.put("sequence", Math.max(0, entry.sequence()));
+        map.put("matched_source", Texts.toStringSafe(entry.matchedSource()));
+        map.put("matcher", Texts.toStringSafe(entry.matcherDigest()));
+        map.put("allocation", Map.of("slot", entry.slot(), "amount", Math.max(0, entry.amount())));
         return map;
     }
 

@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -7,6 +8,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.Plugin;
@@ -56,7 +58,9 @@ import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
  */
 public final class EmakiCoreLibApi {
 
-    private static volatile Bridge bridge;
+    private static final String RUNTIME_PLUGIN_NAME = "EmakiCoreLib";
+
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiCoreLibApi() {
     }
@@ -64,15 +68,37 @@ public final class EmakiCoreLibApi {
     /** Installs the backing bridge; internal lifecycle use only. */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge bridge) {
-        EmakiCoreLibApi.bridge = bridge;
+        EmakiCoreLibApi.bridge.activate(bridge);
     }
 
     /** Removes {@code bridge} only when it is still active; otherwise no-op. */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge bridge) {
-        if (EmakiCoreLibApi.bridge == bridge) {
-            EmakiCoreLibApi.bridge = null;
+        EmakiCoreLibApi.bridge.deactivate(bridge);
+    }
+
+    /**
+     * Resolves a runtime service or the EmakiCoreLib plugin instance through the installed bridge.
+     *
+     * <p>When no bridge is installed yet, for example during EmakiCoreLib's own enable sequence,
+     * resolution falls back to the Bukkit plugin manager so behaviour matches the former static
+     * lookup entry point.
+     *
+     * @param type the service or plugin type to resolve
+     * @param <T>  the service type
+     * @return the resolved instance, never {@code null}
+     * @throws IllegalStateException when EmakiCoreLib is not loaded or the service is not registered
+     */
+    public static <T> T requireService(@NotNull Class<T> type) {
+        Bridge resolved = bridge.get();
+        if (resolved != null) {
+            return resolved.requireService(type);
         }
+        Plugin plugin = Bukkit.getPluginManager().getPlugin(RUNTIME_PLUGIN_NAME);
+        if (type.isInstance(plugin)) {
+            return type.cast(plugin);
+        }
+        throw new IllegalStateException("插件 " + RUNTIME_PLUGIN_NAME + " 未加载");
     }
 
     /**
@@ -81,7 +107,7 @@ public final class EmakiCoreLibApi {
      * installed}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled()
                 : resolved.status();
@@ -92,7 +118,7 @@ public final class EmakiCoreLibApi {
      * EmakiCoreLib is unavailable}
      */
     public static @NotNull CoreLibDialogs dialogs() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableDialogs.INSTANCE : resolved.dialogs();
     }
 
@@ -101,7 +127,7 @@ public final class EmakiCoreLibApi {
      * tokens are already cancelled when EmakiCoreLib is unavailable}
      */
     public static @NotNull EmakiScheduling scheduling() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? UnavailableScheduling.INSTANCE : resolved.scheduling();
     }
 
@@ -120,7 +146,7 @@ public final class EmakiCoreLibApi {
      * @return the resolved display name
      */
     public static @NotNull EmakiResult<String> itemDisplayName(@Nullable String itemSource) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? EmakiResult.unavailable() : resolved.itemDisplayName(itemSource);
     }
 
@@ -133,7 +159,7 @@ public final class EmakiCoreLibApi {
      * @return the resolved display name
      */
     public static @NotNull EmakiResult<String> itemDisplayName(@Nullable ItemStack itemStack) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? EmakiResult.unavailable() : resolved.itemDisplayName(itemStack);
     }
 
@@ -166,7 +192,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull ItemBuildResult createConfiguredItem(@Nullable ConfiguredItemDefinition definition,
             @Nullable Map<String, ?> replacements) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.createConfiguredItem(definition, replacements == null ? Map.of() : replacements);
@@ -199,7 +225,7 @@ public final class EmakiCoreLibApi {
     public static @NotNull ItemBuildResult applyConfiguredItem(@Nullable ItemStack itemStack,
             @Nullable ConfiguredItemDefinition definition,
             @Nullable Map<String, ?> replacements) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? ItemBuildResult.unavailable("EmakiCoreLib 不可用。")
                 : resolved.applyConfiguredItem(itemStack, definition, replacements == null ? Map.of() : replacements);
@@ -207,7 +233,7 @@ public final class EmakiCoreLibApi {
 
     /** {@return the current runtime and catalog item component capabilities; empty when unavailable} */
     public static @NotNull List<ItemComponentCapability> itemComponentCapabilities() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? List.of() : List.copyOf(resolved.itemComponentCapabilities());
     }
 
@@ -249,7 +275,7 @@ public final class EmakiCoreLibApi {
             @Nullable Plugin owner,
             @Nullable String line,
             @Nullable CoreActionExecutionContext context) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CompletableFuture.completedFuture(
                         CoreActionExecutionResult.unavailable("action.execution.corelib_unavailable"))
@@ -258,7 +284,7 @@ public final class EmakiCoreLibApi {
 
     /** {@return immutable metadata for every currently registered action stage} */
     public static @NotNull List<CoreActionStageDescriptor> actionStages() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? List.of() : List.copyOf(resolved.actionStages());
     }
 
@@ -269,13 +295,13 @@ public final class EmakiCoreLibApi {
      * @return the immutable descriptor, or an empty optional
      */
     public static @NotNull Optional<CoreActionStageDescriptor> actionStage(@Nullable String stageId) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? Optional.empty() : resolved.actionStage(stageId);
     }
 
     /** {@return immutable metadata for every currently registered action trigger} */
     public static @NotNull List<CoreActionTriggerDescriptor> actionTriggers() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? List.of() : List.copyOf(resolved.actionTriggers());
     }
 
@@ -286,7 +312,7 @@ public final class EmakiCoreLibApi {
      * @return the immutable descriptor, or an empty optional
      */
     public static @NotNull Optional<CoreActionTriggerDescriptor> actionTrigger(@Nullable String triggerId) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? Optional.empty() : resolved.actionTrigger(triggerId);
     }
 
@@ -307,7 +333,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreStageRegistration registerActionStage(@Nullable Plugin owner,
             @Nullable CoreActionStage stage) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreStageRegistration.unavailable(CoreStageKind.ACTION, "corelib_unavailable")
                 : resolved.registerActionStage(owner, stage);
@@ -322,7 +348,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreStageRegistration registerActionSource(@Nullable Plugin owner,
             @Nullable CoreActionSource source) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreStageRegistration.unavailable(CoreStageKind.SOURCE, "corelib_unavailable")
                 : resolved.registerActionSource(owner, source);
@@ -337,7 +363,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreStageRegistration registerActionGate(@Nullable Plugin owner,
             @Nullable CoreActionGate gate) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreStageRegistration.unavailable(CoreStageKind.GATE, "corelib_unavailable")
                 : resolved.registerActionGate(owner, gate);
@@ -350,7 +376,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreTriggerRegistration registerActionTrigger(@Nullable Plugin owner,
             @Nullable CoreActionTrigger trigger) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreTriggerRegistration.unavailable("corelib_unavailable")
                 : resolved.registerActionTrigger(owner, trigger);
@@ -365,7 +391,7 @@ public final class EmakiCoreLibApi {
             @Nullable Plugin owner,
             @Nullable String triggerId,
             @Nullable CoreTriggerDispatch dispatch) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CompletableFuture.completedFuture(EmakiResult.unavailable())
                 : resolved.dispatchTriggerAsync(owner, triggerId, dispatch);
@@ -379,7 +405,7 @@ public final class EmakiCoreLibApi {
      * {@link #addStageRegistryRebuildListener} when one plugin has independent registrars.</p>
      */
     public static boolean onStageRegistryRebuilt(@Nullable Plugin owner, @Nullable Runnable reregister) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved != null && resolved.onStageRegistryRebuilt(owner, reregister);
     }
 
@@ -396,7 +422,7 @@ public final class EmakiCoreLibApi {
     public static @NotNull CoreStageRebuildRegistration addStageRegistryRebuildListener(
             @Nullable Plugin owner,
             @Nullable Runnable reregister) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreStageRebuildRegistration.inactive()
                 : resolved.addStageRegistryRebuildListener(owner, reregister);
@@ -416,7 +442,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreTargetRegistration registerTargetCondition(@Nullable Plugin owner,
             @Nullable CoreTargetCondition condition) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreTargetRegistration.unavailable(condition == null ? "" : condition.id(),
                         "action.register.runtime_unsupported")
@@ -437,7 +463,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CoreTargetRegistration registerTargetIdentityProvider(@Nullable Plugin owner,
             @Nullable CoreTargetIdentityProvider provider) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CoreTargetRegistration.unavailable(provider == null ? "" : provider.systemId(),
                         "action.register.runtime_unsupported")
@@ -450,7 +476,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull CapabilityRegistration publishCapabilities(@Nullable Plugin owner,
             @Nullable Set<ApiCapability> capabilities) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CapabilityRegistration.unavailable("corelib_unavailable")
                 : resolved.publishCapabilities(owner, capabilities);
@@ -463,7 +489,7 @@ public final class EmakiCoreLibApi {
      * @return how many capabilities were revoked; {@code 0} when EmakiCoreLib is unavailable
      */
     public static int revokeCapabilities(@Nullable Plugin owner) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? 0 : resolved.revokeCapabilities(owner);
     }
 
@@ -472,13 +498,13 @@ public final class EmakiCoreLibApi {
      * absent optional methods are not eagerly resolved; build ids with {@link ApiCapability#of(String)}.
      */
     public static boolean hasCapability(@Nullable ApiCapability capability) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved != null && resolved.hasCapability(capability);
     }
 
     /** {@return every published capability, immutable; empty when EmakiCoreLib is unavailable} */
     public static @NotNull Set<ApiCapability> capabilities() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? Set.of() : Set.copyOf(resolved.capabilities());
     }
 
@@ -489,7 +515,7 @@ public final class EmakiCoreLibApi {
      * @return that plugin's capabilities, immutable; empty when unknown or unavailable
      */
     public static @NotNull Set<ApiCapability> capabilitiesOf(@Nullable String pluginName) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null ? Set.of() : Set.copyOf(resolved.capabilitiesOf(pluginName));
     }
 
@@ -502,7 +528,7 @@ public final class EmakiCoreLibApi {
     public static @NotNull ReadinessRegistration whenReady(@Nullable Plugin owner,
             @Nullable String moduleName,
             @Nullable Runnable callback) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? ReadinessRegistration.inactive()
                 : resolved.whenReady(owner, moduleName, callback);
@@ -523,7 +549,7 @@ public final class EmakiCoreLibApi {
      *         unavailable or the module never published anything
      */
     public static boolean isModuleReady(@Nullable String moduleName) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved != null && resolved.isModuleReady(moduleName);
     }
 
@@ -535,7 +561,7 @@ public final class EmakiCoreLibApi {
     public static @NotNull ReadinessRegistration addModuleListener(@Nullable Plugin owner,
             @Nullable String moduleName,
             @Nullable ModuleReadinessListener listener) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? ReadinessRegistration.inactive()
                 : resolved.addModuleListener(owner, moduleName, listener);
@@ -555,7 +581,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull AnimationRegistration registerAnimation(@Nullable Plugin owner,
             @Nullable AnimationDefinition definition) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? AnimationRegistration.unavailable("corelib_unavailable")
                 : resolved.registerAnimation(owner, definition);
@@ -585,7 +611,7 @@ public final class EmakiCoreLibApi {
             @Nullable Entity entity,
             @Nullable String definitionId,
             @Nullable CoreActionExecutionContext context) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? CompletableFuture.completedFuture(EmakiResult.unavailable())
                 : resolved.playAnimationAsync(owner, entity, definitionId, context);
@@ -603,7 +629,7 @@ public final class EmakiCoreLibApi {
     public static boolean stopAnimation(@Nullable Plugin owner,
             @Nullable Entity entity,
             @Nullable String definitionId) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved != null && resolved.stopAnimation(owner, entity, definitionId);
     }
 
@@ -620,7 +646,7 @@ public final class EmakiCoreLibApi {
      */
     public static @NotNull AnimationRegistration addAnimationListener(@Nullable Plugin owner,
             @Nullable AnimationListener listener) {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         return resolved == null
                 ? AnimationRegistration.unavailable("corelib_unavailable")
                 : resolved.addAnimationListener(owner, listener);
@@ -1006,6 +1032,10 @@ public final class EmakiCoreLibApi {
         @NotNull
         default AnimationRegistration addAnimationListener(@Nullable Plugin owner, @Nullable AnimationListener listener) {
             return AnimationRegistration.unavailable("animation.runtime_unsupported");
+        }
+
+        default <T> T requireService(Class<T> type) {
+            throw new IllegalStateException("插件 EmakiCoreLib 未加载");
         }
     }
 }

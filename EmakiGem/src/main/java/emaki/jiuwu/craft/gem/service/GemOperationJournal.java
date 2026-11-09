@@ -744,7 +744,7 @@ public final class GemOperationJournal {
                     section.getString("terminal_reason", ""),
                     section.getBoolean("compensation_pending", false),
                     section.getBoolean("compensation_attempted", false),
-                    strings(section.get("events")));
+                    GemOperationJournalSupport.strings(section.get("events")));
         }
 
         private static List<Map<String, Object>> maps(Object value) {
@@ -797,18 +797,6 @@ public final class GemOperationJournal {
             return value;
         }
 
-        private static List<String> strings(Object value) {
-            if (!(value instanceof Iterable<?> iterable)) {
-                return List.of();
-            }
-            List<String> result = new ArrayList<>();
-            for (Object entry : iterable) {
-                if (entry != null && !String.valueOf(entry).isBlank()) {
-                    result.add(String.valueOf(entry));
-                }
-            }
-            return List.copyOf(result);
-        }
 
         private static Number number(Object value) {
             if (value instanceof Number number) {

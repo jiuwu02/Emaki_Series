@@ -35,7 +35,7 @@ public interface StationOperations {
      *
 
      * <p>Materials come from one merged inventory/warehouse pool and are spent inventory-first. The
-     * {@code channel} parameter is ignored and retained only for source compatibility.
+     * {@code channel} argument is unused: the merged pool alone selects where materials come from.
      *
      * <p><strong>Thread:</strong> any thread. Requires the target player to be online.
      *
@@ -43,7 +43,7 @@ public interface StationOperations {
      * @param stationId the station to submit at
      * @param recipeId  the recipe to craft
      * @param batch     how many times to apply the recipe; must be positive
-     * @param channel   ignored; retained for source compatibility
+     * @param channel   unused; the merged pool selects the material source
      * @return a future carrying what the submission produced, or an explicit failure
      */
     @NotNull

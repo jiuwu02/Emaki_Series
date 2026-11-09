@@ -40,6 +40,58 @@ public final class GemDefinition {
     private final List<String> inlaySuccessActions;
     private final List<String> extractSuccessActions;
 
+    public record Spec(
+            String id,
+            String displayName,
+            List<String> lore,
+            String gemType,
+            int level,
+            ItemSourceRef baseItemSource,
+            ItemRequirement recognition,
+            Integer customModelData,
+            Map<String, Object> stats,
+            Map<String, Object> attributes,
+            List<String> skillIds,
+            Set<String> socketCompatibility,
+            List<String> dependencies,
+            List<String> conflicts,
+            Object nameActions,
+            Object loreActions,
+            CostConfig inlayCost,
+            CostConfig extractCost,
+            ExtractReturn extractReturn,
+            StageConfig stages,
+            RerollConfig reroll,
+            List<String> inlaySuccessActions,
+            List<String> extractSuccessActions) {
+    }
+
+    public GemDefinition(Spec spec) {
+        this.id = Texts.lower(spec.id());
+        this.displayName = Texts.isBlank(spec.displayName()) ? this.id : spec.displayName();
+        this.lore = spec.lore() == null ? List.of() : List.copyOf(spec.lore());
+        this.gemType = Texts.isBlank(spec.gemType()) ? "universal" : Texts.lower(spec.gemType());
+        this.level = Math.max(1, spec.level());
+        this.baseItemSource = spec.baseItemSource();
+        this.recognition = spec.recognition();
+        this.customModelData = spec.customModelData();
+        this.stats = spec.stats() == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(spec.stats()));
+        this.attributes = spec.attributes() == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(spec.attributes()));
+        this.skillIds = normalizeSkillIds(spec.skillIds());
+        this.socketCompatibility = spec.socketCompatibility() == null ? Set.of() : Set.copyOf(spec.socketCompatibility());
+        this.dependencies = normalizeGemIds(spec.dependencies());
+        this.conflicts = normalizeGemIds(spec.conflicts());
+        this.nameActions = ConfigNodes.toPlainData(spec.nameActions());
+        this.loreActions = ConfigNodes.toPlainData(spec.loreActions());
+        this.inlayCost = spec.inlayCost() == null ? CostConfig.none() : spec.inlayCost();
+        this.extractCost = spec.extractCost() == null ? CostConfig.none() : spec.extractCost();
+        this.extractReturn = spec.extractReturn() == null ? ExtractReturn.defaults() : spec.extractReturn();
+        this.stages = spec.stages() == null ? StageConfig.disabled() : spec.stages();
+        this.reroll = spec.reroll() == null ? RerollConfig.disabled() : spec.reroll();
+        this.inlaySuccessActions = spec.inlaySuccessActions() == null ? List.of() : List.copyOf(spec.inlaySuccessActions());
+        this.extractSuccessActions = spec.extractSuccessActions() == null ? List.of() : List.copyOf(spec.extractSuccessActions());
+    }
+
     public GemDefinition(String id,
             String displayName,
             List<String> lore,
@@ -63,29 +115,10 @@ public final class GemDefinition {
             RerollConfig reroll,
             List<String> inlaySuccessActions,
             List<String> extractSuccessActions) {
-        this.id = Texts.lower(id);
-        this.displayName = Texts.isBlank(displayName) ? this.id : displayName;
-        this.lore = lore == null ? List.of() : List.copyOf(lore);
-        this.gemType = Texts.isBlank(gemType) ? "universal" : Texts.lower(gemType);
-        this.level = Math.max(1, level);
-        this.baseItemSource = baseItemSource;
-        this.recognition = recognition;
-        this.customModelData = customModelData;
-        this.stats = stats == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(stats));
-        this.attributes = attributes == null ? Map.of() : Map.copyOf(new LinkedHashMap<>(attributes));
-        this.skillIds = normalizeSkillIds(skillIds);
-        this.socketCompatibility = socketCompatibility == null ? Set.of() : Set.copyOf(socketCompatibility);
-        this.dependencies = normalizeGemIds(dependencies);
-        this.conflicts = normalizeGemIds(conflicts);
-        this.nameActions = ConfigNodes.toPlainData(nameActions);
-        this.loreActions = ConfigNodes.toPlainData(loreActions);
-        this.inlayCost = inlayCost == null ? CostConfig.none() : inlayCost;
-        this.extractCost = extractCost == null ? CostConfig.none() : extractCost;
-        this.extractReturn = extractReturn == null ? ExtractReturn.defaults() : extractReturn;
-        this.stages = stages == null ? StageConfig.disabled() : stages;
-        this.reroll = reroll == null ? RerollConfig.disabled() : reroll;
-        this.inlaySuccessActions = inlaySuccessActions == null ? List.of() : List.copyOf(inlaySuccessActions);
-        this.extractSuccessActions = extractSuccessActions == null ? List.of() : List.copyOf(extractSuccessActions);
+        this(new Spec(id, displayName, lore, gemType, level, baseItemSource, recognition,
+                customModelData, stats, attributes, skillIds, socketCompatibility, dependencies,
+                conflicts, nameActions, loreActions, inlayCost, extractCost, extractReturn,
+                stages, reroll, inlaySuccessActions, extractSuccessActions));
     }
 
     public String id() {

@@ -142,7 +142,7 @@ public final class EnhancementAttemptService {
         }
         for (Map.Entry<String, CraftOperationJournal.Entry<JournalEntry>> entry
                 : operationJournal.snapshot().entrySet()) {
-            if (operationId.equals(operationIdOf(entry.getKey()))) {
+            if (operationId.equals(EnhancementAttemptServiceSupport.operationIdOf(entry.getKey()))) {
                 return toOperationView(entry.getKey(), entry.getValue());
             }
         }
@@ -162,7 +162,7 @@ public final class EnhancementAttemptService {
 
     private @Nullable EnhancementOperationView toOperationView(String journalKey,
             CraftOperationJournal.Entry<JournalEntry> entry) {
-        String operationId = operationIdOf(journalKey);
+        String operationId = EnhancementAttemptServiceSupport.operationIdOf(journalKey);
         if (Texts.isBlank(operationId)) {
             return null;
         }
@@ -176,13 +176,6 @@ public final class EnhancementAttemptService {
                 entry == null ? null : entry.playerId(), phase, pending);
     }
 
-    private static String operationIdOf(String journalKey) {
-        if (Texts.isBlank(journalKey)) {
-            return "";
-        }
-        int separator = journalKey.indexOf(':');
-        return separator < 0 ? journalKey : journalKey.substring(separator + 1);
-    }
 
     public @NotNull EnhancementAttemptResult attempt(@Nullable Player player,
             @Nullable EnhancementRecipe recipe,
@@ -461,7 +454,7 @@ public final class EnhancementAttemptService {
                 recipe, player, target, supplied, variables, materialAmounts, targetLevel, provider);
         List<AttemptCost> costs = applyCostGrowth(progression.currentCosts(), currentLevel);
         List<PityView> pityTracks = loadPityTracks(recipe, player, target, provider, variables);
-        double baseRate = clampChance(progression.chance().current());
+        double baseRate = EnhancementAttemptServiceSupport.clampChance(progression.chance().current());
         double effectiveRate = applyDiminishingReturns(baseRate, currentLevel);
         boolean forceSuccess = false;
         for (PityView track : pityTracks) {
@@ -474,7 +467,7 @@ public final class EnhancementAttemptService {
                 effectiveRate = 1D;
             } else if (effectType == PityEffectTypeEnum.CHANCE_BONUS) {
                 Double bonus = track.config().effect().bonusValue();
-                effectiveRate = clampChance(effectiveRate + (bonus == null ? 0D : bonus));
+                effectiveRate = EnhancementAttemptServiceSupport.clampChance(effectiveRate + (bonus == null ? 0D : bonus));
             }
         }
         if (!forceSuccess) {
@@ -670,7 +663,7 @@ public final class EnhancementAttemptService {
         } catch (RuntimeException | LinkageError exception) {
             warn("目标 Provider 刷新阶段抛出异常", exception);
             debug(player, "debug.attempt.refresh_failed", Map.of(
-                    "provider", safeProviderId(provider),
+                    "provider", EnhancementAttemptServiceSupport.safeProviderId(provider),
                     "reason", exception.getClass().getSimpleName(),
                     "error_key", ERROR_REBUILD_FAILED));
             return ERROR_REBUILD_FAILED;
@@ -684,7 +677,7 @@ public final class EnhancementAttemptService {
         String reasonKey = Texts.isBlank(refresh.reasonKey()) ? ERROR_REBUILD_FAILED : refresh.reasonKey();
         warn("目标 Provider 刷新阶段失败，未扣费即拒绝 | 原因键=" + reasonKey, null);
         debug(player, "debug.attempt.refresh_failed", Map.of(
-                "provider", safeProviderId(provider),
+                "provider", EnhancementAttemptServiceSupport.safeProviderId(provider),
                 "reason", refresh.failureKind() == null ? "未知" : refresh.failureKind().name(),
                 "error_key", reasonKey));
         return reasonKey;
@@ -774,13 +767,6 @@ public final class EnhancementAttemptService {
                 "provider", snapshot.providerId()));
     }
 
-    private static String safeProviderId(EnhancementTargetProvider provider) {
-        try {
-            return Texts.toStringSafe(provider.id());
-        } catch (RuntimeException | LinkageError exception) {
-            return "";
-        }
-    }
 
     private VariableContext buildVariablesFromSnapshot(Player player,
             EnhancementTargetVariables.Snapshot snapshot,
@@ -869,7 +855,7 @@ public final class EnhancementAttemptService {
                 effective = comparisonVariables.computeIfAbsent(candidate,
                         stack -> EnhancementMaterialVariables.enrich(variables, stack, target, targetLevel,
                                 provider, affixLayerCodec));
-                if (!satisfiesTargetCompare(slot.targetCompare(), effective)) {
+                if (!EnhancementAttemptServiceSupport.satisfiesTargetCompare(slot.targetCompare(), effective)) {
                     return false;
                 }
             }
@@ -882,22 +868,6 @@ public final class EnhancementAttemptService {
         }
     }
 
-    private static boolean satisfiesTargetCompare(TargetCompareEnum compare, VariableContext variables) {
-        Map<String, Object> values = variables.toMap();
-        return switch (compare) {
-            case NONE -> true;
-            case SAME_AFFIX -> flag(values, EnhancementMaterialVariables.VARIABLE_SHARED_AFFIX_COUNT) > 0;
-            case SAME_AFFIX_SET -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_AFFIX_SET) == 1;
-            case SAME_ITEM_TYPE -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_ITEM_TYPE) == 1;
-            case SAME_LEVEL -> flag(values, EnhancementMaterialVariables.VARIABLE_SAME_LEVEL) == 1;
-            case LEVEL_AT_LEAST -> flag(values, EnhancementMaterialVariables.VARIABLE_LEVEL_AT_LEAST_TARGET) == 1;
-        };
-    }
-
-    private static int flag(Map<String, Object> values, String key) {
-        Object value = values.get(key);
-        return value instanceof Number number ? number.intValue() : 0;
-    }
 
     private boolean matchesTargetFilter(EnhancementRecipe recipe,
             @Nullable Player player,
@@ -929,7 +899,7 @@ public final class EnhancementAttemptService {
             } else {
                 return false;
             }
-            if (!sameFilterValue(actual, expected)) {
+            if (!EnhancementAttemptServiceSupport.sameFilterValue(actual, expected)) {
                 return false;
             }
         }
@@ -953,15 +923,6 @@ public final class EnhancementAttemptService {
         }
     }
 
-    private static boolean sameFilterValue(Object actual, Object expected) {
-        if (actual == null || expected == null) {
-            return actual == expected;
-        }
-        if (actual instanceof Number actualNumber && expected instanceof Number expectedNumber) {
-            return Double.compare(actualNumber.doubleValue(), expectedNumber.doubleValue()) == 0;
-        }
-        return String.valueOf(actual).equalsIgnoreCase(String.valueOf(expected));
-    }
 
     private boolean ensurePityOwner(ItemStack target) {
         if (target == null || target.getType().isAir()) {
@@ -981,10 +942,6 @@ public final class EnhancementAttemptService {
                 && target.getItemMeta().getPersistentDataContainer().has(PITY_OWNER_KEY, PersistentDataType.STRING);
     }
 
-    private static int saturatedAdd(int left, int right) {
-        long value = (long) Math.max(0, left) + Math.max(0, right);
-        return value >= Integer.MAX_VALUE ? Integer.MAX_VALUE : (int) value;
-    }
 
     private @Nullable ItemSourceRef identifySource(@Nullable ItemStack itemStack) {
         if (itemStack == null || itemStack.getType().isAir() || plugin == null) {
@@ -1022,7 +979,7 @@ public final class EnhancementAttemptService {
                     if (candidate != null && !candidate.getType().isAir()
                             && testMatcher(slot, candidate, target, targetSource, player, variables,
                                     targetLevel, provider, comparisonVariables)) {
-                        available = saturatedAdd(available, candidate.getAmount());
+                        available = EnhancementAttemptServiceSupport.saturatedAdd(available, candidate.getAmount());
                     }
                 }
             }
@@ -1095,7 +1052,7 @@ public final class EnhancementAttemptService {
             return baseRate;
         }
         double factor = 1D - perLevel * (currentLevel - startLevel + 1);
-        return clampChance(baseRate * Math.max(0D, factor));
+        return EnhancementAttemptServiceSupport.clampChance(baseRate * Math.max(0D, factor));
     }
 
     private double applyMinimumSuccessRate(double rate) {
@@ -1104,7 +1061,7 @@ public final class EnhancementAttemptService {
         if (floor <= 0D) {
             return rate;
         }
-        return clampChance(Math.max(rate, floor));
+        return EnhancementAttemptServiceSupport.clampChance(Math.max(rate, floor));
     }
 
     private int resolveFailureLevel(int currentLevel) {
@@ -1165,7 +1122,7 @@ public final class EnhancementAttemptService {
 
     private void consumeMaterials(List<MaterialMatch> matches, boolean success) {
         for (MaterialMatch match : matches) {
-            if (!shouldConsume(match.timing(), success)) {
+            if (!EnhancementAttemptServiceSupport.shouldConsume(match.timing(), success)) {
                 continue;
             }
             ItemStack stack = match.stack();
@@ -1174,14 +1131,6 @@ public final class EnhancementAttemptService {
         }
     }
 
-    private static boolean shouldConsume(ConsumeTimingEnum timing, boolean success) {
-        return switch (timing) {
-            case ALWAYS -> true;
-            case SUCCESS -> success;
-            case FAILURE -> !success;
-            case NEVER -> false;
-        };
-    }
 
     private boolean commitPreparedTarget(Player player,
             ItemStack target,
@@ -1246,7 +1195,7 @@ public final class EnhancementAttemptService {
         if (threshold == null && pity.trigger().formula() != null) {
             double resolved = pity.trigger().formula().resolve(variables == null
                     ? VariableContext.builder(player).build() : variables);
-            threshold = finitePositiveInt(resolved, 0);
+            threshold = EnhancementAttemptServiceSupport.finitePositiveInt(resolved, 0);
         }
         boolean triggered = threshold != null && threshold > 0 && counter >= threshold;
         return new PityView(scope, group, key, counter, triggered, pity);
@@ -1383,22 +1332,6 @@ public final class EnhancementAttemptService {
         return Texts.isBlank(ownerId) ? "" : ownerId;
     }
 
-    private static double clampChance(double value) {
-        if (!Double.isFinite(value)) {
-            return 0D;
-        }
-        return Math.max(0D, Math.min(1D, value));
-    }
-
-    private static int finitePositiveInt(double value, int fallback) {
-        if (!Double.isFinite(value) || value <= 0D) {
-            return fallback;
-        }
-        if (value >= Integer.MAX_VALUE) {
-            return Integer.MAX_VALUE;
-        }
-        return (int) Math.ceil(value);
-    }
 
     record MaterialMatch(ItemStack stack,
             int amount,

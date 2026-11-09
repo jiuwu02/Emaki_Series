@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.structure.api;
 
+import emaki.jiuwu.craft.corelib.api.contract.BridgeState;
 import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -17,7 +18,7 @@ import org.jetbrains.annotations.Nullable;
  */
 public final class EmakiStructureApi {
 
-    private static volatile Bridge bridge;
+    private static final BridgeState<Bridge> bridge = new BridgeState<>();
 
     private EmakiStructureApi() {
     }
@@ -25,15 +26,13 @@ public final class EmakiStructureApi {
     /** Installs the backing bridge. For EmakiStructure lifecycle use only. */
     @ApiStatus.Internal
     public static void install(@NotNull Bridge b) {
-        bridge = b;
+        bridge.activate(b);
     }
 
     /** Removes the backing bridge when it is still the active bridge. */
     @ApiStatus.Internal
     public static void uninstall(@Nullable Bridge b) {
-        if (bridge == b) {
-            bridge = null;
-        }
+        bridge.deactivate(b);
     }
 
     /**
@@ -41,7 +40,7 @@ public final class EmakiStructureApi {
      * status while absent}
      */
     public static @NotNull emaki.jiuwu.craft.corelib.api.contract.ApiStatus status() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return emaki.jiuwu.craft.corelib.api.contract.ApiStatus.notInstalled();
         }
@@ -54,7 +53,7 @@ public final class EmakiStructureApi {
      * implementation while no bridge is installed}
      */
     public static @NotNull StructureCatalog catalog() {
-        Bridge resolved = bridge;
+        Bridge resolved = bridge.get();
         if (resolved == null) {
             return UnavailableStructure.CATALOG;
         }

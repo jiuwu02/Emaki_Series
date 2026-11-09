@@ -25,6 +25,9 @@ import emaki.jiuwu.craft.level.model.PlayerLevelData;
 import emaki.jiuwu.craft.level.model.PlayerLevelEntry;
 import emaki.jiuwu.craft.level.service.LevelTopService;
 import emaki.jiuwu.craft.level.service.PlayerLevelService;
+import emaki.jiuwu.craft.corelib.legacy.ConvertCommands;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport;
+import emaki.jiuwu.craft.corelib.command.EditorCommandSupport.Guard;
 
 public final class LevelCommand implements CommandExecutor, TabCompleter {
 
@@ -59,7 +62,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
             case "setlevel" -> handleLevel(sender, tail(args), "set");
             case "reset" -> handleReset(sender, tail(args));
             case "reload" -> handleReload(sender);
-            case "convert-legacy" -> LevelLegacyEntry.handle(plugin, sender, tail(args), LevelPermissions.ADMIN);
+            case ConvertCommands.TOKEN -> LevelLegacyEntry.handle(plugin, sender, tail(args), LevelPermissions.ADMIN);
             case "debug" -> handleDebug(sender, tail(args));
             default -> {
                 plugin.messages().send(sender, "command.usage");
@@ -84,7 +87,7 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
                 messages.message("command.help.commands.level"));
         lines.put("reset <player> <type>", messages.message("command.help.commands.reset"));
         lines.put("reload", messages.message("command.help.commands.reload"));
-        lines.put("convert-legacy", messages.message("command.help.commands.convert_legacy"));
+        lines.put(ConvertCommands.TOKEN, messages.message("command.help.commands.convert_legacy"));
         lines.put("debug", messages.message("command.help.commands.debug"));
         lines.forEach((usage, description) -> messages.sendRaw(sender,
                 messages.message("command.help.line", Map.of("cmd", usage, "desc", description))));
@@ -252,17 +255,20 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     }
 
     private boolean handleEdit(CommandSender sender, String[] args) {
-        if (!sender.hasPermission(LevelPermissions.EDIT)) {
+        EditorCommandSupport.Guard editGuard = EditorCommandSupport.check(
+                sender, () -> plugin.editorService() != null && plugin.editorModule() != null, LevelPermissions.EDIT);
+        if (editGuard == Guard.DENIED) {
             plugin.messages().send(sender, "command.no_permission");
             return true;
         }
-        if (!(sender instanceof Player player)) {
+        if (editGuard == Guard.NON_PLAYER) {
             plugin.messages().send(sender, "command.player_only");
             return true;
         }
-        if (plugin.editorService() == null || plugin.editorModule() == null) {
+        if (editGuard == Guard.UNAVAILABLE) {
             return true;
         }
+        Player player = (Player) sender;
         if (args.length == 0) {
             plugin.editorService().openBrowser(player);
             return true;
@@ -379,10 +385,10 @@ public final class LevelCommand implements CommandExecutor, TabCompleter {
     public List<String> onTabComplete(CommandSender sender, Command command, String alias, String[] args) {
         List<String> result = new ArrayList<>();
         if (args.length == 1) {
-            for (String candidate : List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp", "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", "convert-legacy", "debug")) {
-                addIfStarts(result, candidate, args[0]);
-            }
-            return result;
+            return CommandTabHelper.completeSubcommands(
+                    List.of("help", "info", "gui", "edit", "levelup", "top", "topgui", "giveexp", "takeexp",
+                            "setexp", "addlevel", "takelevel", "setlevel", "reset", "reload", ConvertCommands.TOKEN, "debug"),
+                    args[0]);
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if ("edit".equals(sub) && args.length == 2) {

@@ -35,6 +35,8 @@ import emaki.jiuwu.craft.corelib.editor.EditorValidator;
 import emaki.jiuwu.craft.corelib.editor.YamlTextDocument;
 import emaki.jiuwu.craft.corelib.gui.GuiItemBuilder;
 import emaki.jiuwu.craft.corelib.gui.GuiTemplate;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class AttributeEditorModule implements EditorModule {
 
@@ -218,6 +220,7 @@ public final class AttributeEditorModule implements EditorModule {
                     return id;
                 }
             } catch (RuntimeException failure) {
+                FailureRecorder.recordIgnoredFailure("EmakiAttribute", "AttributeEditorModule.java#1", failure);
             }
             return fileStem(String.valueOf(source.getFileName()));
         }
@@ -298,7 +301,7 @@ public final class AttributeEditorModule implements EditorModule {
                 "minecraft:custom_name", ItemComponentPatch.set("<white>" + id + "</white>"),
                 "minecraft:lore", ItemComponentPatch.set(lore)));
         return GuiItemBuilder.build(definition, Map.of(),
-                plugin == null ? null : EmakiCoreLibPlugin.lookup().configuredItemService());
+                plugin == null ? null : EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).configuredItemService());
     }
 
     private static String previewSource(YamlTextDocument draft) {
@@ -423,6 +426,7 @@ public final class AttributeEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiAttribute", "AttributeEditorModule.java#2", failure);
         }
         return fileStem(file.getName());
     }

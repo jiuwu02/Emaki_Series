@@ -79,6 +79,11 @@ public final class DefaultEmakiCoreLibApi implements EmakiCoreLibApi.Bridge {
     }
 
     @Override
+    public <T> T requireService(Class<T> type) {
+        return plugin.requireService(type);
+    }
+
+    @Override
     public ApiStatus status() {
         if (!plugin.isEnabled()) {
             return ApiStatus.notInstalled();

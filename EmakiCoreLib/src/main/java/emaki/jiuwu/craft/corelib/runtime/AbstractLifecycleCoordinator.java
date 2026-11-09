@@ -4,21 +4,43 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.function.BiConsumer;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 import org.bukkit.plugin.Plugin;
+import org.bukkit.plugin.java.JavaPlugin;
 
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapAssemblies;
+import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.loader.LanguageLoader;
 import emaki.jiuwu.craft.corelib.log.EmakiLog;
+import emaki.jiuwu.craft.corelib.yaml.YamlConfigLoader;
 
 public abstract class AbstractLifecycleCoordinator<P, C extends RuntimeComponents> {
 
     public abstract C initialize(P plugin);
+
+    protected final BootstrapHooks bootstrapHooks(BooleanSupplier installDefaultData,
+            BootstrapAssemblies.VersionedMergeHook afterVersionedMerge,
+            Runnable afterBootstrap) {
+        return BootstrapAssemblies.hooks(installDefaultData, afterVersionedMerge, afterBootstrap);
+    }
+
+    protected final <T> BooleanSupplier releaseDefaultData(YamlConfigLoader<T> loader,
+            Predicate<T> enabled) {
+        return BootstrapAssemblies.releaseDefaultData(loader, enabled);
+    }
+
+    protected final LanguageLoader moduleLanguageLoader(JavaPlugin plugin) {
+        return BootstrapAssemblies.moduleLanguageLoader(plugin);
+    }
 
     protected final void notifyProgress(Consumer<String> progressListener, String message) {
         if (progressListener == null || message == null || message.isBlank()) {

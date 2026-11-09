@@ -2,6 +2,7 @@ package emaki.jiuwu.craft.structure.integration;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.furniture.FurnitureBridge;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
 import org.bukkit.util.BoundingBox;
@@ -24,7 +25,7 @@ public final class FurnitureIdAdapter {
     private final List<String> presentSources;
 
     public FurnitureIdAdapter() {
-        EmakiCoreLibPlugin coreLib = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         this.itemsAdder = coreLib.itemsAdderFurnitureBridge();
         this.oraxen = coreLib.oraxenFurnitureBridge();
         this.nexo = coreLib.nexoFurnitureBridge();

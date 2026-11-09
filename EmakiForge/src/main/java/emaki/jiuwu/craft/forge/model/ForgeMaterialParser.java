@@ -65,10 +65,10 @@ final class ForgeMaterialParser {
         if (Texts.isBlank(auditId)) {
             auditId = legacyIdentity;
         }
-        return new ForgeMaterial(item, amount, ConfigNodes.bool(raw, "optional", false),
+        return new ForgeMaterial(new ForgeMaterialSpec(item, amount, ConfigNodes.bool(raw, "optional", false),
                 Numbers.roundToInt(ExpressionEngine.evaluateRandomConfig(ConfigNodes.get(raw, "capacity_cost"))),
                 effects, sources, matcher, matcherKey, materialId, countKey, auditId,
-                Texts.isNotBlank(declaredMaterialId), Texts.isNotBlank(declaredCountKey), Texts.isNotBlank(declaredAuditId));
+                Texts.isNotBlank(declaredMaterialId), Texts.isNotBlank(declaredCountKey), Texts.isNotBlank(declaredAuditId)));
     }
 
     private static String identity(Object raw, String... keys) {

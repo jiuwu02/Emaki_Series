@@ -45,19 +45,20 @@ record ForgeMaterialContribution(ForgeMaterial material,
 
     Map<String, Object> toAuditMap() {
         String materialId = material == null ? "" : material.materialId();
-        String legacyIdentity = material == null ? "" : material.legacySourceKey();
+        String materialItem = material == null ? "" : material.legacySourceKey();
         Map<String, Object> map = new LinkedHashMap<>(ForgeAuditIdentityResolver.canonicalEntry(
-                materialId,
-                material == null ? "" : material.countKey(),
-                material == null ? "" : material.auditId(),
-                Texts.isBlank(legacyIdentity) ? materialId : legacyIdentity,
-                category,
-                amount,
-                amountConsumed,
-                slot,
-                sequence,
-                source == null ? "" : ItemSourceUtil.toShorthand(source),
-                material == null ? "" : material.matcherKey()));
+                new AuditEntrySpec(
+                        materialId,
+                        material == null ? "" : material.countKey(),
+                        material == null ? "" : material.auditId(),
+                        Texts.isBlank(materialItem) ? materialId : materialItem,
+                        category,
+                        amount,
+                        amountConsumed,
+                        slot,
+                        sequence,
+                        source == null ? "" : ItemSourceUtil.toShorthand(source),
+                        material == null ? "" : material.matcherKey())));
         map.put("allocation", allocation);
         if (material != null && (!material.materialIdDeclared() || !material.countKeyDeclared() || !material.auditIdDeclared())) {
             if (!material.materialIdDeclared()) {

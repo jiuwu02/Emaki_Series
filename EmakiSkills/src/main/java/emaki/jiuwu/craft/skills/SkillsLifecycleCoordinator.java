@@ -16,7 +16,6 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.config.precheck.ConfigCommitGate;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
@@ -65,6 +64,7 @@ import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.editor.EditorService;
 import emaki.jiuwu.craft.skills.editor.SkillsEditorModule;
+import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 
 final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<EmakiSkillsPlugin, SkillsRuntimeComponents> {
 
@@ -74,8 +74,8 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
 
     @Override
     public SkillsRuntimeComponents initialize(EmakiSkillsPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
-        var executionDispatcher = coreLibPlugin.executionDispatcher();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
+        var executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
         var scheduling = EmakiCoreLibApi.scheduling();
 
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(
@@ -85,7 +85,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 this::parseAppConfig
         );
         appConfigLoader.load();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         SkillDefinitionLoader skillDefinitionLoader = new SkillDefinitionLoader(plugin);
         LocalResourceDefinitionLoader localResourceDefinitionLoader = new LocalResourceDefinitionLoader(plugin);
         GuiTemplateLoader guiTemplateLoader = new GuiTemplateLoader(plugin);
@@ -97,19 +97,9 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
                 staticFiles(plugin),
                 defaultDataFiles(plugin),
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        new LegacyContentMigrator(plugin.getDataFolder().toPath(), "skills", "技能定义",
-                                new SkillDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true);
-                    }
-                }
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData), null,
+                        () -> new LegacyContentMigrator(plugin.getDataFolder().toPath(), "skills", "技能定义",
+                                new SkillDefinitionMigrationRule(), messageService, plugin.getLogger()).run(true))
         );
         GuiService guiService = new GuiService(plugin, executionDispatcher, coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(), coreLibPlugin.guiBackend());
         ExternalSkillDefinitionRegistry externalSkillDefinitionRegistry = new ExternalSkillDefinitionRegistry(() -> {
@@ -290,7 +280,7 @@ final class SkillsLifecycleCoordinator extends AbstractLifecycleCoordinator<Emak
     }
 
     public CompletableFuture<Void> reloadAsync(EmakiSkillsPlugin plugin, boolean closeInventories, Consumer<String> progressListener) {
-        AsyncTaskScheduler scheduler = EmakiCoreLibPlugin.lookup().asyncTaskScheduler();
+        AsyncTaskScheduler scheduler = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class).asyncTaskScheduler();
         if (scheduler == null) {
             reload(plugin, closeInventories);
             return CompletableFuture.completedFuture(null);

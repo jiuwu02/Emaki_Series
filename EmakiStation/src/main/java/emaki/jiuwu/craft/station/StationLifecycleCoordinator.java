@@ -8,7 +8,6 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
-import emaki.jiuwu.craft.corelib.bootstrap.BootstrapHooks;
 import emaki.jiuwu.craft.corelib.bootstrap.BootstrapService;
 import emaki.jiuwu.craft.corelib.bootstrap.ConfigKeyMigration;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
@@ -46,6 +45,7 @@ import emaki.jiuwu.craft.station.queue.QueueUnlockStore;
 import emaki.jiuwu.craft.station.queue.StationCraftService;
 import emaki.jiuwu.craft.station.queue.StationQueueUnlockService;
 import emaki.jiuwu.craft.station.recipe.RecipeLoader;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 final class StationLifecycleCoordinator
         extends AbstractLifecycleCoordinator<EmakiStationPlugin, StationRuntimeComponents> {
@@ -79,12 +79,12 @@ final class StationLifecycleCoordinator
 
     @Override
     public StationRuntimeComponents initialize(EmakiStationPlugin plugin) {
-        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibPlugin.lookup();
+        EmakiCoreLibPlugin coreLibPlugin = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         YamlConfigLoader<AppConfig> appConfigLoader = new YamlConfigLoader<>(plugin,
                 "config.yml", AppConfig::defaults, AppConfigParser::parse);
         appConfigLoader.load();
         AppConfig config = appConfigLoader.current();
-        LanguageLoader languageLoader = new LanguageLoader(plugin, "lang", "lang", "zh_CN", "zh_CN");
+        LanguageLoader languageLoader = moduleLanguageLoader(plugin);
         MessageService messageService = new MessageService(plugin, languageLoader, DEFAULT_PREFIX, true);
         languageLoader.load();
         BootstrapService bootstrapService = new BootstrapService(plugin,
@@ -93,35 +93,25 @@ final class StationLifecycleCoordinator
                 STATIC_FILES,
                 DEFAULT_DATA_FILES,
                 EXTRA_DIRECTORIES,
-                new BootstrapHooks() {
-                    @Override
-                    public boolean shouldInstallDefaultData() {
-                        AppConfig current = appConfigLoader.current();
-                        return current == null || current.releaseDefaultData();
-                    }
+                bootstrapHooks(releaseDefaultData(appConfigLoader, AppConfig::releaseDefaultData),
+                        (relativePath, runtime, bundled) -> {
+                            if (!"config.yml".equals(relativePath)) {
+                                return;
+                            }
+                            ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
+                        },
+                        () -> {
+                            LegacyContentMigrator migrator = new LegacyContentMigrator(
+                                    plugin.getDataFolder().toPath(), "recipes", "站点配方",
+                                    new StationRecipeMigrationRule(), messageService, plugin.getLogger());
+                            migrator.run(true);
+                            new LegacyContentMigrator(plugin.getDataFolder().toPath(), "recipes_dismantle",
+                                    "分解配方", new StationRecipeMigrationRule(), messageService,
+                                    plugin.getLogger()).run(true);
+                        }));
 
-                    @Override
-                    public void afterVersionedMerge(String relativePath, YamlSection runtime, YamlSection bundled) {
-                        if (!"config.yml".equals(relativePath)) {
-                            return;
-                        }
-                        ConfigKeyMigration.applyRenames(runtime, bundled, CONFIG_RENAMES, plugin.getLogger());
-                    }
-
-                    @Override
-                    public void afterBootstrap() {
-                        LegacyContentMigrator migrator = new LegacyContentMigrator(
-                                plugin.getDataFolder().toPath(), "recipes", "站点配方",
-                                new StationRecipeMigrationRule(), messageService, plugin.getLogger());
-                        migrator.run(true);
-                        new LegacyContentMigrator(plugin.getDataFolder().toPath(), "recipes_dismantle",
-                                "分解配方", new StationRecipeMigrationRule(), messageService,
-                                plugin.getLogger()).run(true);
-                    }
-                });
-
-        ExecutionDispatcher executionDispatcher = coreLibPlugin.executionDispatcher();
-        ThreadOwnership threadOwnership = coreLibPlugin.threadOwnership();
+        ExecutionDispatcher executionDispatcher = EmakiCoreLibApi.requireService(ExecutionDispatcher.class);
+        ThreadOwnership threadOwnership = EmakiCoreLibApi.requireService(ThreadOwnership.class);
         GuiService guiService = new GuiService(plugin, executionDispatcher,
                 coreLibPlugin.asyncTaskScheduler(), coreLibPlugin.performanceMonitor(),
                 coreLibPlugin.guiBackend());

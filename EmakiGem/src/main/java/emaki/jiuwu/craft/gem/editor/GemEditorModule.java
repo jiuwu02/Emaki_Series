@@ -30,6 +30,7 @@ import emaki.jiuwu.craft.gem.EmakiGemPlugin;
 import emaki.jiuwu.craft.gem.loader.GemItemLoader;
 import emaki.jiuwu.craft.gem.loader.GemLoader;
 import emaki.jiuwu.craft.gem.loader.GemResonanceLoader;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class GemEditorModule implements EditorModule {
 
@@ -260,6 +261,7 @@ public final class GemEditorModule implements EditorModule {
                 return id;
             }
         } catch (RuntimeException failure) {
+            FailureRecorder.recordIgnoredFailure("EmakiGem", "GemEditorModule.java#1", failure);
         }
         String name = file.getName();
         int dot = name.lastIndexOf('.');

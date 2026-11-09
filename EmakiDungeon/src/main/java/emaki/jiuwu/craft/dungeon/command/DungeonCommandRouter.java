@@ -38,6 +38,7 @@ import emaki.jiuwu.craft.dungeon.snapshot.SnapshotManager;
 import emaki.jiuwu.craft.dungeon.state.PlayerStateService;
 import emaki.jiuwu.craft.dungeon.world.TemplateRepository;
 import emaki.jiuwu.craft.dungeon.world.WorldPool;
+import emaki.jiuwu.craft.corelib.api.command.CommandKeys;
 import java.util.function.Function;
 import org.bukkit.plugin.Plugin;
 
@@ -125,7 +126,7 @@ public final class DungeonCommandRouter {
 
     private void routeAdmin(CommandSender sender, String[] args) {
         if (!sender.hasPermission("emakidungeon.admin")) {
-            messages.send(sender, "general.no_permission", Map.of());
+            messages.send(sender, CommandKeys.NO_PERMISSION, Map.of());
             return;
         }
         if (args.length < 2) {
@@ -610,12 +611,12 @@ public final class DungeonCommandRouter {
                 continue;
             }
             Map<String, Object> status = limitService.status(target.getUniqueId(), dungeonId);
-            int dailyTotal = number(status.get("daily-total"));
-            int dailyUsed = number(status.get("daily-used"));
-            int weeklyTotal = number(status.get("weekly-total"));
-            int weeklyUsed = number(status.get("weekly-used"));
-            int monthlyTotal = number(status.get("monthly-total"));
-            int monthlyUsed = number(status.get("monthly-used"));
+            int dailyTotal = DungeonCommandRouterSupport.number(status.get("daily-total"));
+            int dailyUsed = DungeonCommandRouterSupport.number(status.get("daily-used"));
+            int weeklyTotal = DungeonCommandRouterSupport.number(status.get("weekly-total"));
+            int weeklyUsed = DungeonCommandRouterSupport.number(status.get("weekly-used"));
+            int monthlyTotal = DungeonCommandRouterSupport.number(status.get("monthly-total"));
+            int monthlyUsed = DungeonCommandRouterSupport.number(status.get("monthly-used"));
             long cooldown = ((Number) status.getOrDefault("cooldown-seconds", 0L)).longValue();
             StringBuilder limits = new StringBuilder();
             if (dailyTotal > 0) {
@@ -642,9 +643,9 @@ public final class DungeonCommandRouter {
             }
             messages.send(player, "command.stats.limit_windows", Map.of(
                     "monthly", dungeonConfig.limitsMonthlyWeeks().isEmpty()
-                            ? "*" : joinNumbers(dungeonConfig.limitsMonthlyWeeks()),
+                            ? "*" : DungeonCommandRouterSupport.joinNumbers(dungeonConfig.limitsMonthlyWeeks()),
                     "weekly", dungeonConfig.limitsWeeklyDays().isEmpty()
-                            ? "*" : joinNumbers(dungeonConfig.limitsWeeklyDays()),
+                            ? "*" : DungeonCommandRouterSupport.joinNumbers(dungeonConfig.limitsWeeklyDays()),
                     "daily", dungeonConfig.limitsDailyWindow() == null
                             ? "*" : dungeonConfig.limitsDailyWindow().format()));
             messages.send(player, "command.stats.entry", Map.of(
@@ -657,7 +658,7 @@ public final class DungeonCommandRouter {
                 messages.send(player, "command.stats.best", Map.of(
                         "dungeon", dungeonId,
                         "score", String.valueOf(entry.score()),
-                        "duration", formatDuration(entry.durationMs())
+                        "duration", DungeonCommandRouterSupport.formatDuration(entry.durationMs())
                 ));
             }
         }
@@ -691,34 +692,13 @@ public final class DungeonCommandRouter {
             messages.send(player, "command.rank.entry", Map.of(
                     "place", String.valueOf(place++),
                     "score", String.valueOf(entry.score()),
-                    "duration", formatDuration(entry.durationMs()),
+                    "duration", DungeonCommandRouterSupport.formatDuration(entry.durationMs()),
                     "difficulty", entry.difficulty(),
                     "members", names.toString()
             ));
         }
     }
 
-    private static String formatDuration(long durationMs) {
-        long totalSeconds = Math.max(0L, durationMs / 1000L);
-        long minutes = totalSeconds / 60L;
-        long seconds = totalSeconds % 60L;
-        return minutes + ":" + (seconds < 10 ? "0" : "") + seconds;
-    }
-
-    private static String joinNumbers(List<Integer> values) {
-        StringBuilder builder = new StringBuilder();
-        for (Integer value : values) {
-            if (builder.length() > 0) {
-                builder.append(',');
-            }
-            builder.append(value);
-        }
-        return builder.toString();
-    }
-
-    private static int number(Object value) {
-        return value instanceof Number number ? number.intValue() : 0;
-    }
 
     private void routeGlobalChat(Player player, String[] args) {
         if (args.length < 2) {
@@ -748,7 +728,7 @@ public final class DungeonCommandRouter {
             return;
         }
         if (!player.hasPermission("emakidungeon.editor")) {
-            messages.send(player, "general.no_permission", Map.of());
+            messages.send(player, CommandKeys.NO_PERMISSION, Map.of());
             return;
         }
         if (editor.hasSession(player.getUniqueId())) {

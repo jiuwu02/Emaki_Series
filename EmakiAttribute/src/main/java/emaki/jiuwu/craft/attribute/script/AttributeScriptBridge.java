@@ -14,6 +14,7 @@ import emaki.jiuwu.craft.corelib.script.host.ScriptHost;
 import emaki.jiuwu.craft.corelib.script.host.ScriptHostSettings;
 import emaki.jiuwu.craft.corelib.script.host.ScriptLoadReport;
 import emaki.jiuwu.craft.corelib.service.MessageService;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class AttributeScriptBridge {
 
@@ -85,7 +86,8 @@ public final class AttributeScriptBridge {
         if (host != null) {
             try {
                 host.close();
-            } catch (Throwable _) {
+            } catch (Throwable swallowed) {
+                FailureRecorder.recordIgnoredFailure("EmakiAttribute", "AttributeScriptBridge.java#1", swallowed);
             }
             host = null;
         }
@@ -143,7 +145,8 @@ public final class AttributeScriptBridge {
         }
         try {
             attributeRegistry.clearRuntimeBySource(SCRIPT_SOURCE);
-        } catch (Throwable _) {
+        } catch (Throwable swallowed) {
+            FailureRecorder.recordIgnoredFailure("EmakiAttribute", "AttributeScriptBridge.java#2", swallowed);
         }
     }
 

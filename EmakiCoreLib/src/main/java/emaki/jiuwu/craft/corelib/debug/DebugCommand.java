@@ -20,6 +20,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.service.AbstractMessageService;
+import emaki.jiuwu.craft.corelib.api.EmakiCoreLibApi;
 
 public final class DebugCommand {
 
@@ -160,7 +161,7 @@ public final class DebugCommand {
 
     private EmakiCoreLibPlugin lookupCoreLib() {
         try {
-            return EmakiCoreLibPlugin.lookup();
+            return EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         } catch (Exception exception) {
             return null;
         }

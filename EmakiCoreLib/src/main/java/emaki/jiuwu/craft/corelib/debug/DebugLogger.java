@@ -1,5 +1,6 @@
 package emaki.jiuwu.craft.corelib.debug;
 
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.Collections;
 import java.util.Locale;
 import java.util.Map;
@@ -26,7 +27,7 @@ public final class DebugLogger {
     @Nullable
     private LanguageLoader fallbackLoader;
     private final Set<UUID> trackedPlayers = ConcurrentHashMap.newKeySet();
-    private static volatile boolean globalAllEnabled;
+    private static final AtomicBoolean globalAllEnabled = new AtomicBoolean();
 
     private final Set<String> enabledModules = ConcurrentHashMap.newKeySet();
     private volatile boolean globalEnabled;
@@ -46,11 +47,11 @@ public final class DebugLogger {
     }
 
     public static void setGlobalAllEnabled(boolean enabled) {
-        globalAllEnabled = enabled;
+        globalAllEnabled.set(enabled);
     }
 
     public static boolean isGlobalAllEnabled() {
-        return globalAllEnabled;
+        return globalAllEnabled.get();
     }
 
     public void setFallbackLoader(@Nullable LanguageLoader fallbackLoader) {
@@ -66,7 +67,7 @@ public final class DebugLogger {
     }
 
     public boolean shouldLog(String module, UUID player) {
-        if (globalAllEnabled) {
+        if (globalAllEnabled.get()) {
             return true;
         }
         if (!globalEnabled) {

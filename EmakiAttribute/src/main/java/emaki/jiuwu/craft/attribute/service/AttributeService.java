@@ -8,6 +8,9 @@ import java.util.concurrent.CompletableFuture;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
+import org.bukkit.entity.Entity;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.inventory.ItemStack;
 
 import emaki.jiuwu.craft.attribute.EmakiAttributePlugin;
 import emaki.jiuwu.craft.attribute.config.AttributeConfig;
@@ -24,6 +27,16 @@ import emaki.jiuwu.craft.attribute.model.ResolvedDamage;
 import emaki.jiuwu.craft.corelib.async.AsyncTaskScheduler;
 import emaki.jiuwu.craft.corelib.api.scheduling.EmakiScheduling;
 import emaki.jiuwu.craft.corelib.pdc.PdcService;
+import emaki.jiuwu.craft.attribute.api.extension.AttributeContributionProvider;
+import emaki.jiuwu.craft.attribute.api.model.AttributeSnapshot;
+import emaki.jiuwu.craft.attribute.api.model.DamageContextVariables;
+import emaki.jiuwu.craft.attribute.api.model.DamageResult;
+import emaki.jiuwu.craft.attribute.model.DamageTypeDefinition;
+import emaki.jiuwu.craft.attribute.model.ProjectileDamageSnapshot;
+import emaki.jiuwu.craft.attribute.model.ResourceDefinition;
+import emaki.jiuwu.craft.attribute.model.ResourceState;
+import emaki.jiuwu.craft.attribute.model.ResourceSyncReason;
+import emaki.jiuwu.craft.corelib.api.text.Texts;
 
 public final class AttributeService extends AbstractAttributeServiceFacade {
 
@@ -131,12 +144,7 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         registryService.registerDerivedAttributeProvider(new AttributePowerProvider(this));
     }
 
-    @Override
-    protected AttributeConfig configRef() {
-        return config;
-    }
 
-    @Override
     protected void updateConfig(AttributeConfig config) {
         AttributeConfig nextConfig = config == null ? AttributeConfig.defaults() : config;
         boolean resetHealthScaling = this.config != null
@@ -148,70 +156,18 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
         }
     }
 
-    @Override
-    protected AttributeRegistry attributeRegistryRef() {
-        return attributeRegistry;
-    }
 
-    @Override
-    protected AttributeBalanceRegistry attributeBalanceRegistryRef() {
-        return attributeBalanceRegistry;
-    }
 
-    @Override
-    protected DamageTypeRegistry damageTypeRegistryRef() {
-        return damageTypeRegistry;
-    }
 
-    @Override
-    protected DefaultProfileRegistry defaultProfileRegistryRef() {
-        return defaultProfileRegistry;
-    }
 
-    @Override
-    protected LoreFormatRegistry loreFormatRegistryRef() {
-        return loreFormatRegistry;
-    }
 
-    @Override
-    protected AttributePresetRegistry presetRegistryRef() {
-        return presetRegistry;
-    }
 
-    @Override
-    protected LoreParser loreParserRef() {
-        return loreParser;
-    }
 
-    @Override
-    protected DamageEngine damageEngineRef() {
-        return damageEngine;
-    }
 
-    @Override
-    protected EmakiAttributePlugin pluginRef() {
-        return plugin;
-    }
 
-    @Override
-    protected AttributeRegistryService registryServiceRef() {
-        return registryService;
-    }
 
-    @Override
-    protected AttributeSnapshotService snapshotServiceRef() {
-        return snapshotService;
-    }
 
-    @Override
-    protected ResourceManagementService resourceManagementServiceRef() {
-        return resourceManagementService;
-    }
 
-    @Override
-    protected DamageCalculationService damageCalculationServiceRef() {
-        return damageCalculationService;
-    }
 
     AttributeStateRepository stateRepository() {
         return stateRepository;
@@ -340,12 +296,327 @@ public final class AttributeService extends AbstractAttributeServiceFacade {
     }
 
     List<ScalingCurveConfig> scalingCurves() {
-        return configRef().scalingCurves();
+        return config.scalingCurves();
     }
 
     @Override
     public void refreshCaches() {
-        super.refreshCaches();
+        registryService.refreshCaches();
         damageCalculationService.refreshCaches();
     }
+
+    @Override
+    public AttributeConfig config() {
+        return config;
+    }
+
+    @Override
+    public AttributeRegistry attributeRegistry() {
+        return attributeRegistry;
+    }
+
+    @Override
+    public AttributeBalanceRegistry attributeBalanceRegistry() {
+        return attributeBalanceRegistry;
+    }
+
+    @Override
+    public DamageTypeRegistry damageTypeRegistry() {
+        return damageTypeRegistry;
+    }
+
+    @Override
+    public DefaultProfileRegistry defaultProfileRegistry() {
+        return defaultProfileRegistry;
+    }
+
+    @Override
+    public LoreFormatRegistry loreFormatRegistry() {
+        return loreFormatRegistry;
+    }
+
+    @Override
+    public AttributePresetRegistry presetRegistry() {
+        return presetRegistry;
+    }
+
+    @Override
+    public LoreParser loreParser() {
+        return loreParser;
+    }
+
+    @Override
+    public DamageEngine damageEngine() {
+        return damageEngine;
+    }
+
+    @Override
+    public EmakiAttributePlugin plugin() {
+        return plugin;
+    }
+
+    @Override
+    public void reloadConfig(AttributeConfig config) {
+        updateConfig(config == null ? AttributeConfig.defaults() : config);
+    }
+
+    @Override
+    public String defaultDamageTypeId() {
+        return damageCalculationService.defaultDamageTypeId();
+    }
+
+    @Override
+    public String defaultProjectileDamageTypeId() {
+        return damageCalculationService.defaultProjectileDamageTypeId();
+    }
+
+    @Override
+    public DamageTypeDefinition resolveDamageType(String damageTypeId) {
+        return damageCalculationService.resolveDamageType(damageTypeId);
+    }
+
+    @Override
+    public String defaultProfileSignature() {
+        return registryService.combatBaseSignature();
+    }
+
+    @Override
+    public Map<String, ResourceDefinition> resourceDefinitions() {
+        return registryService.resourceDefinitions();
+    }
+
+    @Override
+    public Map<String, Double> defaultAttributeValues() {
+        return registryService.defaultAttributeValues();
+    }
+
+    @Override
+    public Double resolveAttributeValue(AttributeSnapshot snapshot, String attributeId) {
+        if (snapshot == null || Texts.isBlank(attributeId)) {
+            return null;
+        }
+        AttributeDefinition definition = attributeRegistry.resolve(attributeId);
+        String normalized = normalizeId(attributeId);
+        Double value = definition == null ? null : snapshot.values().get(definition.id());
+        if (value != null) {
+            return value;
+        }
+        value = snapshot.values().get(normalized);
+        return value != null || definition == null ? value : snapshot.values().get(definition.id());
+    }
+
+    @Override
+    public void registerContributionProvider(AttributeContributionProvider provider) {
+        registryService.registerContributionProvider(provider);
+    }
+
+    @Override
+    public void unregisterContributionProvider(String providerId) {
+        registryService.unregisterContributionProvider(providerId);
+    }
+
+    @Override
+    public boolean unregisterContributionProvider(String providerId, AttributeContributionProvider expectedProvider) {
+        return registryService.unregisterContributionProvider(providerId, expectedProvider);
+    }
+
+    @Override
+    public AttributeSnapshot collectItemSnapshot(ItemStack itemStack) {
+        return snapshotService.collectItemSnapshot(itemStack);
+    }
+
+    @Override
+    public AttributeSnapshot collectCombatSnapshot(LivingEntity entity) {
+        return snapshotService.collectCombatSnapshot(entity);
+    }
+
+    @Override
+    public AttributeSnapshot collectPlayerCombatSnapshot(Player player) {
+        return snapshotService.collectPlayerCombatSnapshot(player);
+    }
+
+    @Override
+    public void resyncAllPlayers() {
+        resourceManagementService.resyncAllPlayers();
+    }
+
+    @Override
+    public void regenerateOnlinePlayers() {
+        resourceManagementService.regenerateOnlinePlayers();
+    }
+
+    @Override
+    public void resyncPlayer(Player player) {
+        resourceManagementService.resyncPlayer(player);
+    }
+
+    @Override
+    public void scheduleJoinHealthSync(Player player) {
+        resourceManagementService.scheduleJoinHealthSync(player);
+    }
+
+    @Override
+    public void scheduleRespawnHealthSync(Player player) {
+        resourceManagementService.scheduleRespawnHealthSync(player);
+    }
+
+    @Override
+    public void scheduleHealthSync(LivingEntity entity) {
+        resourceManagementService.scheduleHealthSync(entity);
+    }
+
+    @Override
+    public void scheduleEquipmentSync(Player player) {
+        resourceManagementService.scheduleEquipmentSync(player);
+    }
+
+    public void scheduleEquipmentSync(Player player, String trigger) {
+        resourceManagementService.scheduleEquipmentSync(player, trigger);
+    }
+
+    @Override
+    public void scheduleLivingEntitySync(LivingEntity entity) {
+        resourceManagementService.scheduleLivingEntitySync(entity);
+    }
+
+    @Override
+    public void syncLivingEntity(LivingEntity entity) {
+        resourceManagementService.syncLivingEntity(entity);
+    }
+
+    @Override
+    public void syncPlayer(Player player, ResourceSyncReason reason, Double healthOverride) {
+        resourceManagementService.syncPlayer(player, reason, healthOverride);
+    }
+
+    @Override
+    public ResourceState syncResource(Player player,
+            ResourceDefinition resourceDefinition,
+            AttributeSnapshot snapshot,
+            ResourceSyncReason reason,
+            Double currentValueOverride) {
+        return resourceManagementService.syncResource(player, resourceDefinition, snapshot, reason, currentValueOverride);
+    }
+
+    @Override
+    public ResourceState readResourceState(Player player, String resourceId) {
+        return resourceManagementService.readResourceState(player, resourceId);
+    }
+
+    @Override
+    public void setDamageTypeOverride(LivingEntity entity, String damageTypeId) {
+        damageCalculationService.setDamageTypeOverride(entity, damageTypeId);
+    }
+
+    @Override
+    public String peekDamageTypeOverride(LivingEntity entity) {
+        return damageCalculationService.peekDamageTypeOverride(entity);
+    }
+
+    @Override
+    public String consumeDamageTypeOverride(LivingEntity entity) {
+        return damageCalculationService.consumeDamageTypeOverride(entity);
+    }
+
+    @Override
+    public void markSyntheticDamage(LivingEntity entity, boolean value) {
+        damageCalculationService.markSyntheticDamage(entity, value);
+    }
+
+    @Override
+    public boolean isSyntheticDamage(LivingEntity entity) {
+        return damageCalculationService.isSyntheticDamage(entity);
+    }
+
+    @Override
+    public ProjectileDamageSnapshot snapshotProjectile(Projectile projectile, LivingEntity shooter) {
+        return damageCalculationService.snapshotProjectile(projectile, shooter);
+    }
+
+    @Override
+    public ProjectileDamageSnapshot readProjectileSnapshot(Projectile projectile) {
+        return damageCalculationService.readProjectileSnapshot(projectile);
+    }
+
+    @Override
+    public DamageContext createDamageContext(LivingEntity attacker,
+            LivingEntity target,
+            Projectile projectile,
+            EntityDamageEvent.DamageCause cause,
+            String damageTypeId,
+            double sourceDamage,
+            double baseDamage,
+            AttributeSnapshot attackerSnapshot,
+            AttributeSnapshot targetSnapshot,
+            DamageContextVariables context) {
+        return damageCalculationService.createDamageContext(
+                attacker,
+                target,
+                projectile,
+                cause,
+                damageTypeId,
+                sourceDamage,
+                baseDamage,
+                attackerSnapshot,
+                targetSnapshot,
+                context
+        );
+    }
+
+    @Override
+    public DamageResult calculateDamage(DamageContext damageContext) {
+        return damageCalculationService.calculateDamage(damageContext);
+    }
+
+    public ResolvedDamage resolveDamageApplication(DamageContext damageContext) {
+        return damageCalculationService.resolveDamageApplication(damageContext);
+    }
+
+    @Override
+    public boolean applyDamage(DamageContext damageContext) {
+        return damageCalculationService.applyDamage(damageContext);
+    }
+
+    public boolean applyResolvedDamage(ResolvedDamage resolvedDamage, Entity visualSource, double alreadyAppliedDamage) {
+        return damageCalculationService.applyResolvedDamage(resolvedDamage, visualSource, alreadyAppliedDamage);
+    }
+
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage, double alreadyAppliedDamage) {
+        return damageCalculationService.applyResolvedDamageAsync(resolvedDamage, alreadyAppliedDamage);
+    }
+
+    public CompletableFuture<Boolean> applyResolvedDamageAsync(ResolvedDamage resolvedDamage,
+            Entity visualSource,
+            double alreadyAppliedDamage) {
+        return damageCalculationService.applyResolvedDamageAsync(resolvedDamage, visualSource, alreadyAppliedDamage);
+    }
+
+    public void applyDamageSideEffects(ResolvedDamage resolvedDamage, Entity visualSource) {
+        damageCalculationService.applyDamageSideEffects(resolvedDamage, visualSource);
+    }
+
+    public CompletableFuture<Boolean> applyDamageSideEffectsAsync(ResolvedDamage resolvedDamage) {
+        return damageCalculationService.applyDamageSideEffectsAsync(resolvedDamage);
+    }
+
+    @Override
+    public boolean applyProjectileDamage(DamageContext damageContext) {
+        return damageCalculationService.applyProjectileDamage(damageContext);
+    }
+
+    @Override
+    public void clearPlayerDamageTypeOverride(Player player) {
+        damageCalculationService.clearPlayerDamageTypeOverride(player);
+    }
+
+    @Override
+    public boolean isAttackCoolingDown(Player player) {
+        return resourceManagementService.isAttackCoolingDown(player);
+    }
+
+    @Override
+    public int startAttackCooldown(Player player, AttributeSnapshot snapshot, ItemStack itemStack) {
+        return resourceManagementService.startAttackCooldown(player, snapshot, itemStack);
+    }
+
 }

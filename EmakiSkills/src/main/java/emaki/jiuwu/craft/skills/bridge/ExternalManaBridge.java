@@ -15,6 +15,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 import emaki.jiuwu.craft.corelib.text.LogMessages;
 import emaki.jiuwu.craft.corelib.api.text.MiniMessages;
 import emaki.jiuwu.craft.skills.model.ResourceCostType;
+import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
 
 public final class ExternalManaBridge {
 
@@ -176,6 +177,7 @@ public final class ExternalManaBridge {
                 }
             }
         } catch (Exception | LinkageError ignored) {
+            FailureRecorder.recordIgnoredFailure("EmakiSkills", "ExternalManaBridge.java#1", ignored);
         }
         return null;
     }
@@ -188,6 +190,7 @@ public final class ExternalManaBridge {
                     method.setAccessible(true);
                     return method;
                 } catch (NoSuchMethodException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiSkills", "ExternalManaBridge.java#2", ignored);
                 }
             }
         }
@@ -204,6 +207,7 @@ public final class ExternalManaBridge {
                         return method;
                     }
                 } catch (NoSuchMethodException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiSkills", "ExternalManaBridge.java#3", ignored);
                 }
             }
         }
@@ -218,6 +222,7 @@ public final class ExternalManaBridge {
                     return method;
                 }
             } catch (NoSuchMethodException ignored) {
+                FailureRecorder.recordIgnoredFailure("EmakiSkills", "ExternalManaBridge.java#4", ignored);
             }
         }
         return null;
@@ -229,6 +234,7 @@ public final class ExternalManaBridge {
                 try {
                     return owner.getMethod(name, type);
                 } catch (NoSuchMethodException ignored) {
+                    FailureRecorder.recordIgnoredFailure("EmakiSkills", "ExternalManaBridge.java#5", ignored);
                 }
             }
         }
