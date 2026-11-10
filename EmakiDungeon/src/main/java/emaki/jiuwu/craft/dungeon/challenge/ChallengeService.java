@@ -700,8 +700,10 @@ public final class ChallengeService {
                 tempItems.grant(instanceId, member, tempItem.itemId(), tempItem.amount());
             }
         } catch (RuntimeException exception) {
-            plugin.getLogger().warning("[EmakiDungeon] challenge enter failed | instance=" + instanceId
-                    + " | player=" + memberId + " | error=" + exception.getMessage());
+            messages.warning("console.challenge_enter_failed", Map.of(
+                    "instance", String.valueOf(instanceId),
+                    "player", String.valueOf(memberId),
+                    "error", String.valueOf(exception.getMessage())));
         } finally {
             finishIfSettled(session, instanceId, remaining, settled);
         }

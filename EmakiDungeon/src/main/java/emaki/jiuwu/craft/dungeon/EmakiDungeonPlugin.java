@@ -22,6 +22,7 @@ import org.bukkit.entity.Player;
 
 import emaki.jiuwu.craft.corelib.EmakiCoreLibPlugin;
 import emaki.jiuwu.craft.corelib.api.contract.ApiStatus;
+import emaki.jiuwu.craft.corelib.api.text.ConsoleOutputs;
 import emaki.jiuwu.craft.corelib.api.text.Texts;
 import emaki.jiuwu.craft.corelib.chat.ChatInputService;
 import emaki.jiuwu.craft.corelib.debug.DebugCommand;
@@ -113,6 +114,16 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
     private static final Set<String> DEBUG_MODULES = Set.of(MODULE);
     private static final String API_VERSION = "1.0.0";
     private static final int BSTATS_PLUGIN_ID = 35153;
+    private static final String STARTUP_ASCII = """
+ ______  __    __  ______  __  __   __  _____   __  __  __   __  ______  ______  ______  __   __
+/\\  ___\\/\\ "-./  \\/\\  __ \\/\\ \\/ /  /\\ \\/\\  __-./\\ \\/\\ \\/\\ "-.\\ \\/\\  ___\\/\\  ___\\/\\  __ \\/\\ "-.\\ \\
+\\ \\  __\\\\ \\ \\-./\\ \\ \\  __ \\ \\  _"-.\\ \\ \\ \\ \\/\\ \\ \\ \\_\\ \\ \\ \\-.  \\ \\ \\__ \\ \\  __\\\\ \\ \\/\\ \\ \\ \\-.  \\
+ \\ \\_____\\ \\_\\ \\ \\_\\ \\_\\ \\_\\ \\_\\ \\_\\\\ \\_\\ \\____-\\ \\_____\\ \\_\\\\"\\_\\ \\_____\\ \\_____\\ \\_____\\ \\_\\\\"\\_\\
+  \\/_____/\\/_/  \\/_/\\/_/\\/_/\\/_/\\/_/ \\/_/\\/____/ \\/_____/\\/_/ \\/_/\\/_____/\\/_____/\\/_____/\\/_/ \\/_/
+""";
+    private static final int STARTUP_ASCII_START_COLOR = 0x1E3A8A;
+    private static final int STARTUP_ASCII_END_COLOR = 0x8B5CF6;
+    private static final String DEFAULT_PREFIX = "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>";
     static final String FOLIA_MARKER = "io.papermc.paper.threadedregions.RegionizedServer";
 
     private final AtomicBoolean shutdownStarted = new AtomicBoolean(false);
@@ -166,9 +177,11 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
     @Override
     public void onEnable() {
+        ConsoleOutputs.sendGradientAscii(this, STARTUP_ASCII,
+                STARTUP_ASCII_START_COLOR, STARTUP_ASCII_END_COLOR);
         shutdownStarted.set(false);
         languageLoader = new LanguageLoader(this);
-        messageService = new MessageService(this, "EmakiDungeon",
+        messageService = new MessageService(this, DEFAULT_PREFIX,
                 languageLoader::getMessage,
                 (key, replacements) -> {
                     String template = languageLoader.getMessage(key);
@@ -183,7 +196,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                     }
                     return Texts.formatTemplate(converted, safe);
                 },
-                false);
+                true);
         appConfigLoader = new YamlConfigLoader<>(this, "config.yml", AppConfig::defaults, AppConfig::parse);
         appConfigLoader.load();
         setDebugLogger(new DebugLogger(this, languageLoader));
@@ -293,7 +306,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         rewardBox = null;
         rewardBoxGui = null;
         if (shutdownFailures.get() > 0) {
-            getLogger().warning("[shutdown] 停服保存未干净完成: failed=" + shutdownFailures.get());
+            messageService.warning("console.shutdown_incomplete", Map.of(
+                    "count", String.valueOf(shutdownFailures.get())));
         }
         recovery = null;
         snapshots = null;
@@ -323,15 +337,17 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
             return Boolean.TRUE.equals(drain.get(SHUTDOWN_DRAIN_SECONDS, TimeUnit.SECONDS));
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            getLogger().warning("[shutdown] 等待奖励箱落盘时被中断, 停服结果不完整");
+            messageService.warning("console.rewardbox_drain_interrupted");
             return false;
         } catch (ExecutionException | CancellationException failure) {
-            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘失败, 停服结果不完整: "
-                    + describeShutdownFailure(failure), failure);
+            getLogger().log(Level.WARNING,
+                    messageService.message("console.rewardbox_drain_failed", Map.of(
+                            "error", describeShutdownFailure(failure))), failure);
             return false;
         } catch (TimeoutException timeout) {
-            getLogger().log(Level.WARNING, "[shutdown] 奖励箱落盘在 " + SHUTDOWN_DRAIN_SECONDS
-                    + " 秒内未完成, 停服结果不完整", timeout);
+            getLogger().log(Level.WARNING,
+                    messageService.message("console.rewardbox_drain_timeout", Map.of(
+                            "seconds", String.valueOf(SHUTDOWN_DRAIN_SECONDS))), timeout);
             return false;
         }
     }
@@ -402,7 +418,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         EmakiCoreLibPlugin coreLib = EmakiCoreLibApi.requireService(EmakiCoreLibPlugin.class);
         ExecutionDispatcher dispatcher = coreLib.executionDispatcher();
         File worldContainer = Bukkit.getWorldContainer();
-        TemplateRepository templates = new TemplateRepository(this, getDataFolder());
+        TemplateRepository templates = new TemplateRepository(this, messageService, getDataFolder());
 
         typeRegistry = new DungeonTypeRegistry((dungeon, raw) ->
                 messageService.warning("console.dungeon_type_unknown", Map.of(
@@ -453,12 +469,12 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 registry, getDataFolder(), auditService);
         scriptManager.startup();
         DestroyArbiter arbiter = new DestroyArbiter();
-        InstancesStore store = new InstancesStore(this, dispatcher, getDataFolder());
+        InstancesStore store = new InstancesStore(this, messageService, dispatcher, getDataFolder());
         WorldNames names = new WorldNames(worldContainer);
         WorldCloner cloner = new WorldCloner(this, dispatcher, worldContainer);
         WorldDisposer disposer = new WorldDisposer(this, dispatcher, worldContainer);
         EditorStateStore editorStates =
-                new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, getDataFolder());
+                new emaki.jiuwu.craft.dungeon.editor.EditorStateStore(this, messageService, getDataFolder());
         editorStates.loadAll(templates.discoverDungeons());
         WorldPool pool = new WorldPool(this, dispatcher, worldContainer, templates, names, cloner, disposer,
                 allocator, registry, store, poolMaxOf, warmOf, editorStates::generationOf, messageService);
@@ -466,8 +482,8 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
 
         teleportGuard = new TeleportGuard(messageService, registry);
         SnapshotsStore snapshotsStore = new SnapshotsStore(this, dispatcher, getDataFolder());
-        PlayersDataStore playersDataStore = new PlayersDataStore(this, dispatcher, getDataFolder(),
-                appConfig.globalChatDefault());
+        PlayersDataStore playersDataStore = new PlayersDataStore(this, messageService, dispatcher,
+                getDataFolder(), appConfig.globalChatDefault());
         snapshots = new SnapshotManager(snapshotsStore, playersDataStore, messageService);
 
         LimitService limitService =
@@ -486,7 +502,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
         records = new emaki.jiuwu.craft.dungeon.placeholder.DungeonRecordStore(
                 this, dispatcher, getDataFolder());
 
-        PartiesStore partiesStore = new PartiesStore(this, dispatcher, getDataFolder());
+        PartiesStore partiesStore = new PartiesStore(this, messageService, dispatcher, getDataFolder());
         parties = new PartyService(this, dispatcher, messageService, debugLogger(), partiesStore,
                 appConfig.partyMaxSize(), appConfig.partyInviteMode(), allocator::isPartyBusy);
         parties.bindScriptManager(scriptManager);
@@ -547,7 +563,7 @@ public class EmakiDungeonPlugin extends AbstractConfigurableEmakiPlugin<AppConfi
                 new emaki.jiuwu.craft.dungeon.drop.RewardChestService(registry, messageService);
         this.rewardChests = rewardChests;
         rewardBox = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxService(
-                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, dispatcher, getDataFolder()),
+                new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxStore(this, messageService, dispatcher, getDataFolder()),
                 messageService, appConfigSupplier);
         rewardBox.loadGuiConfig(this);
         rewardBoxGui = new emaki.jiuwu.craft.dungeon.rewardbox.RewardBoxGui(rewardBox, messageService);

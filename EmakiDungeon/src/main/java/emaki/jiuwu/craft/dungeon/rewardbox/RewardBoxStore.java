@@ -20,6 +20,7 @@ import emaki.jiuwu.craft.corelib.api.scheduling.TaskToken;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class RewardBoxStore {
 
@@ -50,13 +51,15 @@ public final class RewardBoxStore {
     private static final long DRAIN_TIMEOUT_MILLIS = 5000L;
 
     private final Plugin plugin;
+    private final MessageService messages;
     private final ExecutionDispatcher dispatcher;
     private final File root;
     private final Map<UUID, Object> lanes = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Boolean>> pendingWrites = new ConcurrentHashMap<>();
 
-    public RewardBoxStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder) {
+    public RewardBoxStore(Plugin plugin, MessageService messages, ExecutionDispatcher dispatcher, File dataFolder) {
         this.plugin = plugin;
+        this.messages = messages;
         this.dispatcher = dispatcher;
         this.root = new File(dataFolder, "rewardbox");
     }
@@ -92,13 +95,16 @@ public final class RewardBoxStore {
             try {
                 saved = update(playerId, mutator);
             } catch (RuntimeException failure) {
-                warn(playerId, "rewardbox update failed", failure);
+                messages.warning("console.rewardbox_update_failed", Map.of(
+                        "player", String.valueOf(playerId),
+                        "cause", describe(failure)));
                 saved = false;
             }
             future.complete(saved);
         });
         if (token == null || token.cancelled()) {
-            warn(playerId, "rewardbox update rejected | reason=调度被拒绝", null);
+            messages.warning("console.rewardbox_update_rejected", Map.of(
+                    "player", String.valueOf(playerId)));
             future.complete(Boolean.FALSE);
             return future;
         }
@@ -125,8 +131,9 @@ public final class RewardBoxStore {
                         pendingWrites.values().removeAll(pending);
                         return Boolean.TRUE;
                     }
-                    warn(null, "rewardbox drain unsettled | count=" + unsettled
-                            + " | reason=" + describe(throwable), null);
+                    messages.warning("console.rewardbox_drain_unsettled", Map.of(
+                            "count", String.valueOf(unsettled),
+                            "reason", describe(throwable)));
                     return Boolean.FALSE;
                 });
     }
@@ -172,8 +179,10 @@ public final class RewardBoxStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            warn(playerId, "rewardbox save failed | file=" + file.getAbsolutePath()
-                    + " | error=" + exception.getMessage(), null);
+            messages.warning("console.rewardbox_save_failed", Map.of(
+                    "player", String.valueOf(playerId),
+                    "file", String.valueOf(file.getAbsolutePath()),
+                    "error", String.valueOf(exception.getMessage())));
             return false;
         }
     }
@@ -182,11 +191,6 @@ public final class RewardBoxStore {
         return lanes.computeIfAbsent(playerId, id -> new Object());
     }
 
-    private void warn(UUID playerId, String detail, Throwable throwable) {
-        plugin.getLogger().warning("[EmakiDungeon] " + detail
-                + (playerId == null ? "" : " | player=" + playerId)
-                + (throwable == null ? "" : " | cause=" + describe(throwable)));
-    }
 
     private String describe(Throwable throwable) {
         if (throwable == null) {

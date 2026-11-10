@@ -203,8 +203,9 @@ final class EditorServiceDelegate {
                     session.regionSnapshot().put(sub + "/" + file.getName(), file.lastModified());
                     changed = true;
                 } catch (IOException exception) {
-                    ownerRef.plugin.getLogger().warning("[editor] region write-back failed | file=" + sub + "/"
-                            + file.getName() + " | error=" + exception.getMessage());
+                    ownerRef.messages.warning("console.editor_region_writeback_failed", Map.of(
+                            "file", String.valueOf(sub + "/" + file.getName()),
+                            "error", String.valueOf(exception.getMessage())));
                 }
             }
         }
@@ -377,8 +378,9 @@ final class EditorServiceDelegate {
             Files.move(source.toPath(), new File(originDir, source.getName()).toPath(),
                     StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException exception) {
-            ownerRef.plugin.getLogger().warning("[editor] playerdata handoff failed | player=" + session.playerId()
-                    + " | error=" + exception.getMessage());
+            ownerRef.messages.warning("console.editor_playerdata_handoff_failed", Map.of(
+                    "player", String.valueOf(session.playerId()),
+                    "error", String.valueOf(exception.getMessage())));
         }
     }
 

@@ -117,6 +117,8 @@ public final class CommandGuard implements Listener {
             Method setter = Bukkit.getServer().getClass().getMethod("setCommandMap", CommandMap.class);
             setter.invoke(Bukkit.getServer(), proxied);
             originalCommandMap = commandMap;
+        } catch (NoSuchMethodException unsupported) {
+            messages.info("console.command_map_unsupported");
         } catch (ReflectiveOperationException | RuntimeException exception) {
             messages.warning("console.command_map_wrap_failed", Map.of(
                     "error", String.valueOf(exception.getMessage())

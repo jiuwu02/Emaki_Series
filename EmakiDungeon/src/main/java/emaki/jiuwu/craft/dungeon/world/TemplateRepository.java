@@ -12,14 +12,18 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.dungeon.config.DungeonConfig;
 import java.io.IOException;
 import org.bukkit.plugin.java.JavaPlugin;
+import java.util.Map;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class TemplateRepository {
 
     private final JavaPlugin plugin;
+    private final MessageService messages;
     private final File templateRoot;
 
-    public TemplateRepository(JavaPlugin plugin, File dataFolder) {
+    public TemplateRepository(JavaPlugin plugin, MessageService messages, File dataFolder) {
         this.plugin = plugin;
+        this.messages = messages;
         this.templateRoot = new File(dataFolder, "world");
     }
 
@@ -93,8 +97,9 @@ public final class TemplateRepository {
                 YamlFiles.copyResourceIfMissing(
                         plugin, "world/default_config.yml", configFile);
             } catch (IOException exception) {
-                plugin.getLogger().warning("[EmakiDungeon] default_config 复制失败 | 副本="
-                        + child.getName() + " | 错误=" + exception.getMessage());
+                messages.warning("console.default_config_copy_failed", Map.of(
+                        "dungeon", String.valueOf(child.getName()),
+                        "error", String.valueOf(exception.getMessage())));
             }
         }
     }

@@ -15,6 +15,7 @@ import org.bukkit.plugin.Plugin;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class InstancesStore {
 
@@ -61,12 +62,14 @@ public final class InstancesStore {
     private static final String CURRENT_VERSION = "1.0.0";
 
     private final Plugin plugin;
+    private final MessageService messages;
     private final ExecutionDispatcher dispatcher;
     private final File file;
     private final Snapshot snapshot = new Snapshot();
 
-    public InstancesStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder) {
+    public InstancesStore(Plugin plugin, MessageService messages, ExecutionDispatcher dispatcher, File dataFolder) {
         this.plugin = plugin;
+        this.messages = messages;
         this.dispatcher = dispatcher;
         this.file = new File(dataFolder, "instances.yml");
     }
@@ -147,8 +150,9 @@ public final class InstancesStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("[EmakiDungeon] instances save failed | file="
-                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            messages.warning("console.instances_save_failed", Map.of(
+                    "file", String.valueOf(file.getAbsolutePath()),
+                    "error", String.valueOf(exception.getMessage())));
             return false;
         }
     }

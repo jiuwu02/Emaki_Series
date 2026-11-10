@@ -2,7 +2,7 @@
 # 消息使用 MiniMessage; 保留消息分组旁标明的占位符
 # version 由资源同步流程维护, 用于合并新增默认键
 
-version: "1.0.16"
+version: "1.0.17"
 
 general:
   prefix: "<gray>[ <gradient:#1E3A8A:#8B5CF6>EmakiDungeon</gradient> ]</gray>"
@@ -464,9 +464,10 @@ player:
   died: "<red>%player% 阵亡, 剩余重生次数: %remaining%</red>"
 
 console:
-  plugin_starting: "EmakiDungeon 正在启动"
-  plugin_started: "EmakiDungeon 已启动完成"
-  plugin_stopped: "EmakiDungeon 已停止"
+  plugin_starting: "[startup] <gray>正在启动...</gray>"
+  plugin_started: "[startup] <green>启动完成</green>"
+  plugin_stopping: "[shutdown] <gray>正在关闭...</gray>"
+  plugin_stopped: "[shutdown] <yellow>已关闭</yellow>"
   world_create_failed: "创建实例世界失败 | 副本=%dungeon% | 世界=%world% | 错误=%error%, 30 秒后重试"
   world_dispose_held: "实例世界卸载删除失败, 已挂起待重启清理 | 副本=%dungeon% | 世界=%world%"
   instances_load_failed: "instances.yml 加载失败, 跳过启动残留自检 | 错误=%error%"
@@ -481,6 +482,7 @@ console:
   world_command_deferred: "世界指令双限顺延 | 世界=%world% | 累计=%count%"
   parties_load_failed: "parties.yml 加载失败, 队伍快照未恢复 | 错误=%error%"
   command_map_wrap_failed: "CommandMap 包装失败, 插件代执行拦截入口未生效 | 错误=%error%"
+  command_map_unsupported: "[startup] <yellow>当前平台不提供 CommandMap 包装入口, 插件代执行拦截已降级; 玩家输入拦截仍生效</yellow>"
   action_corelib_unavailable: "CoreLib Action 接口不可用, 段注册跳过"
   action_dispatch_failed: "Action 段派发失败 | 段=%segment% | 错误=%error%"
   instance_crashed: "实例循环异常终止 | 实例=%instance% | 错误=%error%"
@@ -498,6 +500,29 @@ console:
   monitor_queue_backlog: "写队列持续积压超阈值 | 实例=%instance% | 持续=%seconds%s | 阈值=%threshold%s"
   audit_write_failed: "审计日志写入失败 | 文件=%file% | 错误=%error%"
   instance_disposing_stuck: "实例卡滞在销毁阶段超 60 秒 | 实例=%instance% | 已滞留=%seconds%s"
+  shutdown_incomplete: "[shutdown] <red>停服保存未干净完成</red> | failed=%count%"
+  rewardbox_drain_interrupted: "[shutdown] <red>等待奖励箱落盘时被中断, 停服结果不完整</red>"
+  rewardbox_drain_failed: "[shutdown] <red>奖励箱落盘失败, 停服结果不完整</red> | 错误=%error%"
+  rewardbox_drain_timeout: "[shutdown] <red>奖励箱落盘在 %seconds% 秒内未完成, 停服结果不完整</red>"
+  editor_state_save_failed: "[editor] <red>编辑状态保存失败</red> | 副本=%dungeon% | 错误=%error%"
+  default_config_copy_failed: "[editor] <red>默认副本配置复制失败</red> | 副本=%dungeon% | 错误=%error%"
+  instances_save_failed: "[storage] <red>实例数据保存失败</red> | 文件=%file% | 错误=%error%"
+  player_data_save_failed: "[storage] <red>玩家数据保存失败</red> | 文件=%file% | 错误=%error%"
+  parties_save_failed: "[storage] <red>队伍数据保存失败</red> | 文件=%file% | 错误=%error%"
+  rewardbox_update_failed: "[rewardbox] <red>奖励箱更新失败</red> | 玩家=%player% | 原因=%cause%"
+  rewardbox_update_rejected: "[rewardbox] <yellow>奖励箱更新被拒绝</yellow> | 玩家=%player% | 原因=调度被拒绝"
+  rewardbox_drain_unsettled: "[rewardbox] <red>奖励箱落盘未完成</red> | 数量=%count% | 原因=%reason%"
+  rewardbox_save_failed: "[rewardbox] <red>奖励箱保存失败</red> | 玩家=%player% | 文件=%file% | 错误=%error%"
+  editor_markers_world_missing: "[editor] <yellow>重建功能模块标注失败: 编辑世界不存在</yellow> | 世界=%world%"
+  editor_markers_render_failed: "[editor] <red>渲染模块标注失败</red> | 类型=%type% | 错误=%error%"
+  editor_markers_spawned: "[editor] <green>已生成功能模块标注</green> | 世界=%world% | 实体=%count%"
+  editor_markers_skip_not_map: "[editor] <gray>跳过模块标注</gray> | 段=%section% | id=%id% | 原因=节点不是映射"
+  editor_markers_skip_no_box: "[editor] <gray>跳过模块标注</gray> | 类型=%type% | id=%id% | 原因=缺少 location/region"
+  editor_fill_command_failed: "[editor] <red>填充指令执行失败</red> | 错误=%error%"
+  editor_region_writeback_failed: "[editor] <red>区域回写失败</red> | 文件=%file% | 错误=%error%"
+  editor_playerdata_handoff_failed: "[editor] <red>玩家数据交接失败</red> | 玩家=%player% | 错误=%error%"
+  challenge_enter_failed: "[challenge] <red>进入挑战失败</red> | 实例=%instance% | 玩家=%player% | 错误=%error%"
+  challenge_enter_skipped: "[challenge] <yellow>跳过进入挑战</yellow> | 实例=%instance% | 玩家=%player% | 原因=%reason%"
 
 script:
   stopped_chat: "副本脚本异常已停用, 本局继续运行"
@@ -546,4 +571,3 @@ hud:
     - "已通关: %emakidungeon_data_%dungeon%_cleared%"
     - "通关次数: %emakidungeon_data_%dungeon%_clear_count%"
     - "最佳评分: %emakidungeon_data_%dungeon%_best_score%"
-

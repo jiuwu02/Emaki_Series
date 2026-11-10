@@ -15,18 +15,21 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import emaki.jiuwu.craft.corelib.debug.FailureRecorder;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class PartiesStore {
 
     private static final String CURRENT_VERSION = "1.0.0";
 
     private final Plugin plugin;
+    private final MessageService messages;
     private final ExecutionDispatcher dispatcher;
     private final File file;
     private final Map<UUID, Party> parties = new ConcurrentHashMap<>();
 
-    public PartiesStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder) {
+    public PartiesStore(Plugin plugin, MessageService messages, ExecutionDispatcher dispatcher, File dataFolder) {
         this.plugin = plugin;
+        this.messages = messages;
         this.dispatcher = dispatcher;
         this.file = new File(dataFolder, "parties.yml");
     }
@@ -112,8 +115,9 @@ public final class PartiesStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("[EmakiDungeon] parties save failed | file="
-                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            messages.warning("console.parties_save_failed", Map.of(
+                    "file", String.valueOf(file.getAbsolutePath()),
+                    "error", String.valueOf(exception.getMessage())));
             return false;
         }
     }

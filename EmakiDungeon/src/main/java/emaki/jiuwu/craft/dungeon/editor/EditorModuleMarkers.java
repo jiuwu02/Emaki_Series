@@ -92,8 +92,8 @@ public final class EditorModuleMarkers {
         clear(session);
         World world = Bukkit.getWorld(session.editWorldName());
         if (world == null) {
-            plugin.getLogger().warning("[editor] 重建功能模块标注失败: 编辑世界不存在 | world="
-                    + session.editWorldName());
+            messages.warning("console.editor_markers_world_missing", Map.of(
+                    "world", String.valueOf(session.editWorldName())));
             return 0;
         }
         YamlTextDocument view = session.flowDoc().view();
@@ -107,14 +107,16 @@ public final class EditorModuleMarkers {
                 try {
                     renderSection(world, session, view, type, section, spawned);
                 } catch (RuntimeException exception) {
-                    plugin.getLogger().warning("[editor] 渲染模块标注失败 | type=" + type
-                            + " | error=" + exception);
+                    messages.warning("console.editor_markers_render_failed", Map.of(
+                            "type", String.valueOf(type),
+                            "error", String.valueOf(exception)));
                 }
             }
             session.markers(spawned);
             if (!spawned.isEmpty()) {
-                plugin.getLogger().info("[editor] 已生成功能模块标注 | world="
-                        + session.editWorldName() + " | 实体=" + spawned.size());
+                messages.info("console.editor_markers_spawned", Map.of(
+                        "world", String.valueOf(session.editWorldName()),
+                        "count", String.valueOf(spawned.size())));
             }
         });
         return spawned.size();
@@ -151,8 +153,9 @@ public final class EditorModuleMarkers {
         for (Map.Entry<?, ?> moduleEntry : value.entrySet()) {
             String moduleId = String.valueOf(moduleEntry.getKey());
             if (!(moduleEntry.getValue() instanceof Map<?, ?> module)) {
-                plugin.getLogger().info("[editor] 跳过模块标注 | section=" + section
-                        + " | id=" + moduleId + " | 原因=节点不是映射");
+                messages.info("console.editor_markers_skip_not_map", Map.of(
+                        "section", String.valueOf(section),
+                        "id", String.valueOf(moduleId)));
                 continue;
             }
             renderModule(world, session, type, moduleId, module, out);
@@ -163,8 +166,9 @@ public final class EditorModuleMarkers {
             Map<?, ?> module, List<Entity> out) {
         Box box = boxOf(module);
         if (box == null) {
-            plugin.getLogger().info("[editor] 跳过模块标注 | type=" + type
-                    + " | id=" + moduleId + " | 原因=缺少 location/region");
+            messages.info("console.editor_markers_skip_no_box", Map.of(
+                    "type", String.valueOf(type),
+                    "id", String.valueOf(moduleId)));
             return;
         }
         out.addAll(spawnEdges(world, session, box, colorOf(type)));

@@ -301,8 +301,10 @@ final class ChallengeServiceDelegate {
     }
 
     void warnEnter(String instanceId, UUID memberId, String reason) {
-        ownerRef.plugin.getLogger().warning("[EmakiDungeon] challenge enter skipped | instance=" + instanceId
-                + " | player=" + memberId + " | reason=" + reason);
+        ownerRef.messages.warning("console.challenge_enter_skipped", Map.of(
+                "instance", String.valueOf(instanceId),
+                "player", String.valueOf(memberId),
+                "reason", String.valueOf(reason)));
     }
 
     CompletableFuture<Void> preloadEntryChunks(World world, Location entry) {

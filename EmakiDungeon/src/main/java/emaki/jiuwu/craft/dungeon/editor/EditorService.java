@@ -470,7 +470,8 @@ public final class EditorService implements Listener {
                         command.execute();
                     } catch (Throwable throwable) {
                         command.fail(throwable);
-                        plugin.getLogger().warning("[editor] fill command failed | error=" + throwable);
+                        messages.warning("console.editor_fill_command_failed", Map.of(
+                                "error", String.valueOf(throwable)));
                     } finally {
                         session.inFlightAdd(-1);
                     }

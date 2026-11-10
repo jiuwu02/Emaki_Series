@@ -12,6 +12,7 @@ import emaki.jiuwu.craft.corelib.api.yaml.YamlFiles;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.execution.ExecutionDispatcher;
 import java.util.function.Consumer;
+import emaki.jiuwu.craft.corelib.service.MessageService;
 
 public final class PlayersDataStore {
 
@@ -56,13 +57,15 @@ public final class PlayersDataStore {
     }
 
     private final Plugin plugin;
+    private final MessageService messages;
     private final ExecutionDispatcher dispatcher;
     private final File root;
     private final boolean globalChatDefault;
     private final Object ioLock = new Object();
 
-    public PlayersDataStore(Plugin plugin, ExecutionDispatcher dispatcher, File dataFolder, boolean globalChatDefault) {
+    public PlayersDataStore(Plugin plugin, MessageService messages, ExecutionDispatcher dispatcher, File dataFolder, boolean globalChatDefault) {
         this.plugin = plugin;
+        this.messages = messages;
         this.dispatcher = dispatcher;
         this.root = new File(dataFolder, "players");
         this.globalChatDefault = globalChatDefault;
@@ -130,8 +133,9 @@ public final class PlayersDataStore {
             YamlFiles.save(file, values);
             return true;
         } catch (IOException exception) {
-            plugin.getLogger().warning("[EmakiDungeon] player data save failed | file="
-                    + file.getAbsolutePath() + " | error=" + exception.getMessage());
+            messages.warning("console.player_data_save_failed", Map.of(
+                    "file", String.valueOf(file.getAbsolutePath()),
+                    "error", String.valueOf(exception.getMessage())));
             return false;
         }
     }

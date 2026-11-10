@@ -7,6 +7,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import emaki.jiuwu.craft.corelib.api.text.Texts;
+import emaki.jiuwu.craft.corelib.api.yaml.MapYamlSection;
 import emaki.jiuwu.craft.corelib.api.yaml.YamlSection;
 import emaki.jiuwu.craft.corelib.expression.ExpressionEngine;
 import emaki.jiuwu.craft.corelib.variable.VariableContext;
@@ -43,26 +44,42 @@ public sealed interface Quantity permits Quantity.Fixed, Quantity.Formula, Quant
         if (config instanceof Number number) {
             return fixed(number.doubleValue());
         }
-        String strValue = String.valueOf(config).trim();
+        YamlSection section = asSection(config);
+        if (section != null) {
+            String type = Texts.lower(section.getString("type", "fixed"));
+            return switch (type) {
+                case "formula" -> formula(section.getString("expression", "0"));
+                case "lookup_table", "table" -> {
+                    String keyVariable = section.getString("key", "player_level");
+                    double defaultValue = section.getDouble("default", 0.0);
+                    Map<Integer, Double> table = parseTable(section.getSection("table"));
+                    yield lookupTable(keyVariable, table, defaultValue);
+                }
+                default -> fixed(section.getDouble("value", 0.0));
+            };
+        }
         try {
-            return fixed(Double.parseDouble(strValue));
+            return fixed(Double.parseDouble(String.valueOf(config).trim()));
         } catch (NumberFormatException swallowed) {
             FailureRecorder.recordIgnoredFailure("EmakiCoreLib", "Quantity.java#1", swallowed);
-        }
-        if (!(config instanceof YamlSection section)) {
             return fixed(0.0);
         }
-        String type = Texts.lower(section.getString("type", "fixed"));
-        return switch (type) {
-            case "formula" -> formula(section.getString("expression", "0"));
-            case "lookup_table", "table" -> {
-                String keyVariable = section.getString("key", "player_level");
-                double defaultValue = section.getDouble("default", 0.0);
-                Map<Integer, Double> table = parseTable(section.getSection("table"));
-                yield lookupTable(keyVariable, table, defaultValue);
+    }
+
+    private static @Nullable YamlSection asSection(@NotNull Object config) {
+        if (config instanceof YamlSection section) {
+            return section;
+        }
+        if (config instanceof Map<?, ?> map) {
+            Map<String, Object> keyed = new LinkedHashMap<>();
+            for (Map.Entry<?, ?> entry : map.entrySet()) {
+                if (entry.getKey() != null) {
+                    keyed.put(String.valueOf(entry.getKey()), entry.getValue());
+                }
             }
-            default -> fixed(section.getDouble("value", 0.0));
-        };
+            return new MapYamlSection(keyed);
+        }
+        return null;
     }
 
     private static @NotNull Map<Integer, Double> parseTable(@Nullable YamlSection section) {
